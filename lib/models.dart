@@ -85,6 +85,30 @@ const List<Map> poiTypes = [
     'iconMaterial': 0xe4c7,
     'colour': 'Colors.blue',
     'colourMaterial': 0xff4CAF50
+  },
+  {
+    'id': 10,
+    'name': 'Start',
+    'icon': 'Icons.assistant_navigation',
+    'iconMaterial': 0xe0ad,
+    'colour': 'Colors.blue',
+    'colourMaterial': 0xff4CAF50
+  },
+  {
+    'id': 11,
+    'name': 'End',
+    'icon': 'Icons.assistant_photo_outlined',
+    'iconMaterial': 0xee9e,
+    'colour': 'Colors.blue',
+    'colourMaterial': 0xff4CAF50
+  },
+  {
+    'id': 12,
+    'name': 'Other',
+    'icon': 'Icons.constant_moving',
+    'iconMaterial': 0xe410,
+    'colour': 'Colors.blue',
+    'colourMaterial': 0xff4CAF50
   }
 ];
 

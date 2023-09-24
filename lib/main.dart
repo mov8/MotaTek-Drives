@@ -66,19 +66,6 @@ class _MyHomePageState extends State<MyHomePage> {
 
   List<LatLng> routpoints = [LatLng(52.05884, -1.345583)];
 
-  /*
-  
-_latitude:
-51.55497227823168
-_longitude:
--0.6148080230234566
-
-LatLng(51.55497227823168, -0.6148080230234566)
-   */
-
-  LatLng lastLatLng = LatLng(0, 0);
-  LatLng latLng = LatLng(0, 0);
-
   final TextEditingController _textFieldController = TextEditingController();
 
   Future<void> _displayTextInputDialog(BuildContext context, LatLng latLng) {
@@ -148,9 +135,6 @@ LatLng(51.55497227823168, -0.6148080230234566)
                     pointsOfInterest.add(PointOfInterest(
                         id, userId, driveId, iconIdx, desc, 60.0, 60.0,
                         markerPoint: latLng,
-
-                        //       LatLng(
-                        //          51.55497227823168, -0.6148080230234566), //latLng,
                         markerBuilder: (ctx) => RawMaterialButton(
 
                             /// build the marker object - can be anything
@@ -268,12 +252,11 @@ LatLng(51.55497227823168, -0.6148080230234566)
                     child: FlutterMap(
                       options: MapOptions(
                         onTap: (tapPos, LatLng latLng) {
-                          // latLng = tapLatLng;
                           _textFieldController.text = '';
                           popValue.dropdownIdx = -1;
                           popValue.text1 = '';
-                          _displayTextInputDialog(context, latLng)
-                              .then((value) {});
+                          _displayTextInputDialog(context, latLng);
+                          //   .then((value) {});
                         },
                         onLongPress: (tapPos, LatLng latLng) {
                           debugPrint("TAP $tapPos    $latLng");
@@ -337,8 +320,6 @@ LatLng(51.55497227823168, -0.6148080230234566)
                           ],
                         ),
                         MarkerLayer(markers: pointsOfInterest),
-
-                        // MarkerLayer(markers: markers)
                       ],
                     ),
                   ),
