@@ -180,10 +180,12 @@ class _MyHomePageState extends State<MyHomePage> {
     super.dispose();
   }
 
-  Polyline polyline = Polyline(
-      points: [LatLng(50, 0)], // routePoints,
-      color: const Color.fromARGB(255, 28, 97, 5),
-      strokeWidth: 5);
+  List<Polyline> polylines = [
+    Polyline(
+        points: [LatLng(50, 0)], // routePoints,
+        color: const Color.fromARGB(255, 28, 97, 5),
+        strokeWidth: 5)
+  ];
   // uture<List<LatLng>>
 
   Future<String> getWaypoints(List<TextEditingController> controllers) async {
@@ -203,52 +205,55 @@ class _MyHomePageState extends State<MyHomePage> {
     return waypoints;
   }
 
-  Future<List<LatLng>> routeCallback(
+  Future<List<Polyline>> routeCallback(
       List<TextEditingController> controllers) async {
-    String waypoints = '';
-    //  return testRoutePoints;
-    for (int i = 0; i < controllers.length; i += 2) {
+    List<String> waypoints = [];
+    for (int i = 1; i < controllers.length; i++) {
       List<Location> startL;
       List<Location> endL;
       try {
-        await locationFromAddress(controllers[i].text).then((res) async {
+        await locationFromAddress(controllers[i - 1].text).then((res) async {
           startL = res;
-          await locationFromAddress(controllers[i + 1].text).then((res) {
+          await locationFromAddress(controllers[i].text).then((res) {
             endL = res;
-            waypoints =
-                '$waypoints${startL[0].longitude},${startL[0].latitude};${endL[0].longitude},${endL[0].latitude};';
+            waypoints.add(
+                '${startL[0].longitude},${startL[0].latitude};${endL[0].longitude},${endL[0].latitude}');
           });
         });
       } catch (e) {
         debugPrint('Error: ${e.toString()}');
       }
     }
-    // remove trailing ;
-    waypoints = waypoints.substring(0, waypoints.length - 1);
 
-//    return testRoutePoints;
-//    String waypoints = '';
-//    try {
-//      waypoints = await getWaypoints(controllers);
-//    } catch (e) {
-//      debugPrint('Error: ${e.toString()}');
-//    }
-    var router;
+    polylines = [];
+
+    for (int i = 0; i < waypoints.length; i++) {
+      routePoints = await getRoutePoints(waypoints[i]);
+      polylines.add(Polyline(
+          points: routePoints,
+          color: const Color.fromARGB(255, 28, 97, 5),
+          strokeWidth: 5));
+    }
+    setState(() {});
+    return polylines;
+  }
+
+  Future<List<LatLng>> getRoutePoints(String waypoints) async {
+    dynamic router;
+    List<LatLng> routePoints = [];
     var url = Uri.parse(
-        'http://router.project-osrm.org/route/v1/driving/$waypoints?steps=true&annotations=true&geometries=geojson&overview=full');
+        'http://router.project-osrm.org/route/v1/driving/${waypoints}?steps=true&annotations=true&geometries=geojson&overview=full');
     try {
       var response = await http.get(url);
       // http.Request persistentConnection = false;
-      debugPrint(response.body);
       router =
           jsonDecode(response.body)['routes'][0]['geometry']['coordinates'];
     } catch (e) {
       debugPrint('Http error: ${e.toString()}');
     }
 
-    routePoints = [];
-
     debugPrint("router.length: ${router.length.toString()}");
+    //  routePoints = [];
     for (int i = 0; i < router.length; i++) {
       var reep = router[i].toString();
       reep = reep.replaceAll("[", "");
@@ -257,17 +262,6 @@ class _MyHomePageState extends State<MyHomePage> {
       var long1 = reep.split(",");
       routePoints.add(LatLng(double.parse(lat1[1]), double.parse(long1[0])));
     }
-
-    // polyline. = routePoints;
-// context.
-    //   polyline = Polyline(
-    //       points: routePoints,
-    //       color: const Color.fromARGB(255, 28, 97, 5),
-    //       strokeWidth: 5);
-    // notifyListeners();
-    //   return routePoints;
-    // Navigator.of(context).pop(polyline);
-    // final Widget? map = context.findAncestorWidgetOfExactType(FlutterMap);
     return routePoints;
   }
 
@@ -286,7 +280,7 @@ class _MyHomePageState extends State<MyHomePage> {
             tooltip: 'Enter route',
             onPressed: () async {
               await routeDialog(context, 3, routeCallback).then((result) async {
-                routePoints = result;
+                polylines = result;
                 await Future.delayed(const Duration(seconds: 5))
                     .then((_) => setState(() {}));
               });
@@ -378,13 +372,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         ),
                         PolylineLayer(
                           polylineCulling: false,
-                          polylines: [
-                            // [polyline],
-                            Polyline(
-                                points: routePoints,
-                                color: const Color.fromARGB(255, 28, 97, 5),
-                                strokeWidth: 5)
-                          ],
+                          polylines: polylines,
                         ),
                         MarkerLayer(markers: pointsOfInterest),
                       ],
@@ -398,4 +386,29 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
     );
   }
+}
+
+/// Example of how to incorporate State into a function outside the main class
+/// the important part is passing the BuildContext and setState to lower functions...
+
+Future openDialog(BuildContext context) => showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Route waypoints'),
+          content: const TextField(
+              autofocus: true,
+              decoration: InputDecoration(hintText: 'Enter text')),
+          actions: [
+            TextButton(
+                onPressed: submit(context, setState),
+                child: const Text('Submit'))
+          ],
+        ),
+      ),
+    );
+
+submit(BuildContext context, setState) {
+  Navigator.of(context).pop();
+  setState(() {});
 }
