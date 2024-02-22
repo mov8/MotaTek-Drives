@@ -47,6 +47,7 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   final start = TextEditingController();
   final end = TextEditingController();
+  final mapController = MapController();
   bool isVisible = false;
   PopupValue popValue = PopupValue(-1, '', '');
   final navigatorKey = GlobalKey<NavigatorState>();
@@ -64,7 +65,8 @@ class _MyHomePageState extends State<MyHomePage> {
   late StreamController<double?> _followCurrentLocationStreamController;
   late StreamController<void> _turnHeadingUpStreamController;
 
-  List<LatLng> routpoints = [LatLng(52.05884, -1.345583)];
+  // List<LatLng> routePoints = [LatLng(52.05884, -1.345583)];
+  List<LatLng> routePoints = [LatLng(51.478815, -0.611477)];
 
   final TextEditingController _textFieldController = TextEditingController();
 
@@ -178,6 +180,97 @@ class _MyHomePageState extends State<MyHomePage> {
     super.dispose();
   }
 
+  Polyline polyline = Polyline(
+      points: [LatLng(50, 0)], // routePoints,
+      color: const Color.fromARGB(255, 28, 97, 5),
+      strokeWidth: 5);
+  // uture<List<LatLng>>
+
+  Future<String> getWaypoints(List<TextEditingController> controllers) async {
+    String waypoints = '';
+    List<Location> startL;
+    List<Location> endL;
+    for (int i = 0; i < controllers.length; i += 2) {
+      try {
+        startL = await locationFromAddress(controllers[i].text);
+        endL = await locationFromAddress(controllers[i + 1].text);
+        waypoints =
+            '$waypoints${startL[0].longitude},${startL[0].latitude};${endL[0].longitude},${endL[0].latitude};';
+      } catch (e) {
+        debugPrint('Error: ${e.toString()}');
+      }
+    }
+    return waypoints;
+  }
+
+  Future<List<LatLng>> routeCallback(
+      List<TextEditingController> controllers) async {
+    String waypoints = '';
+    //  return testRoutePoints;
+    for (int i = 0; i < controllers.length; i += 2) {
+      List<Location> startL;
+      List<Location> endL;
+      try {
+        await locationFromAddress(controllers[i].text).then((res) async {
+          startL = res;
+          await locationFromAddress(controllers[i + 1].text).then((res) {
+            endL = res;
+            waypoints =
+                '$waypoints${startL[0].longitude},${startL[0].latitude};${endL[0].longitude},${endL[0].latitude};';
+          });
+        });
+      } catch (e) {
+        debugPrint('Error: ${e.toString()}');
+      }
+    }
+    // remove trailing ;
+    waypoints = waypoints.substring(0, waypoints.length - 1);
+
+//    return testRoutePoints;
+//    String waypoints = '';
+//    try {
+//      waypoints = await getWaypoints(controllers);
+//    } catch (e) {
+//      debugPrint('Error: ${e.toString()}');
+//    }
+    var router;
+    var url = Uri.parse(
+        'http://router.project-osrm.org/route/v1/driving/$waypoints?steps=true&annotations=true&geometries=geojson&overview=full');
+    try {
+      var response = await http.get(url);
+      // http.Request persistentConnection = false;
+      debugPrint(response.body);
+      router =
+          jsonDecode(response.body)['routes'][0]['geometry']['coordinates'];
+    } catch (e) {
+      debugPrint('Http error: ${e.toString()}');
+    }
+
+    routePoints = [];
+
+    debugPrint("router.length: ${router.length.toString()}");
+    for (int i = 0; i < router.length; i++) {
+      var reep = router[i].toString();
+      reep = reep.replaceAll("[", "");
+      reep = reep.replaceAll("]", "");
+      var lat1 = reep.split(',');
+      var long1 = reep.split(",");
+      routePoints.add(LatLng(double.parse(lat1[1]), double.parse(long1[0])));
+    }
+
+    // polyline. = routePoints;
+// context.
+    //   polyline = Polyline(
+    //       points: routePoints,
+    //       color: const Color.fromARGB(255, 28, 97, 5),
+    //       strokeWidth: 5);
+    // notifyListeners();
+    //   return routePoints;
+    // Navigator.of(context).pop(polyline);
+    // final Widget? map = context.findAncestorWidgetOfExactType(FlutterMap);
+    return routePoints;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -187,6 +280,25 @@ class _MyHomePageState extends State<MyHomePage> {
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
         ),
         backgroundColor: Colors.grey[500],
+        actions: <Widget>[
+          IconButton(
+            icon: const Icon(Icons.assistant_direction_sharp),
+            tooltip: 'Enter route',
+            onPressed: () async {
+              await routeDialog(context, 3, routeCallback).then((result) async {
+                routePoints = result;
+                await Future.delayed(const Duration(seconds: 5))
+                    .then((_) => setState(() {}));
+              });
+            },
+          ),
+          IconButton(
+              icon: const Icon(Icons.read_more),
+              tooltip: 'Enter route',
+              onPressed: () async {
+                setState(() {});
+              }),
+        ],
       ),
       backgroundColor: Colors.grey[300],
       body: SafeArea(
@@ -195,61 +307,14 @@ class _MyHomePageState extends State<MyHomePage> {
           child: SingleChildScrollView(
             child: Column(
               children: [
-                myInput(controler: start, hint: 'Enter Starting PostCode'),
-                const SizedBox(
-                  height: 15,
-                ),
-                myInput(controler: end, hint: 'Enter Ending PostCode'),
-                const SizedBox(
-                  height: 15,
-                ),
-                ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.grey[500]),
-                    onPressed: () async {
-                      List<Location> startL =
-                          await locationFromAddress(start.text);
-                      List<Location> endL = await locationFromAddress(end.text);
-
-                      var v1 = startL[0].latitude;
-                      var v2 = startL[0].longitude;
-                      var v3 = endL[0].latitude;
-                      var v4 = endL[0].longitude;
-
-                      var url = Uri.parse(
-                          'http://router.project-osrm.org/route/v1/driving/$v2,$v1;$v4,$v3?steps=true&annotations=true&geometries=geojson&overview=full');
-                      var response = await http.get(url);
-                      debugPrint(response.body);
-                      setState(() {
-                        routpoints = [];
-                        var ruter = jsonDecode(response.body)['routes'][0]
-                            ['geometry']['coordinates'];
-
-                        debugPrint("ruter.length: ${ruter.length.toString()}");
-
-                        for (int i = 0; i < ruter.length; i++) {
-                          var reep = ruter[i].toString();
-                          reep = reep.replaceAll("[", "");
-                          reep = reep.replaceAll("]", "");
-                          var lat1 = reep.split(',');
-                          var long1 = reep.split(",");
-                          routpoints.add(LatLng(
-                              double.parse(lat1[1]), double.parse(long1[0])));
-                        }
-                        isVisible = !isVisible;
-                        debugPrint(routpoints.toString());
-                      });
-                    },
-                    child: const Text('Press')),
-                const SizedBox(
-                  height: 10,
-                ),
                 SizedBox(
-                  height: 500,
-                  width: 400,
+                  height: MediaQuery.of(context).size.height,
+                  width: MediaQuery.of(context).size.width,
                   child: Visibility(
-                    visible: isVisible,
+                    visible: true, //isVisible,
+
                     child: FlutterMap(
+                      mapController: mapController,
                       options: MapOptions(
                         onTap: (tapPos, LatLng latLng) {
                           _textFieldController.text = '';
@@ -273,7 +338,10 @@ class _MyHomePageState extends State<MyHomePage> {
                           );
                           setState(() {});
                         },
-                        center: routpoints[0],
+                        onMapReady: () {
+                          mapController.mapEventStream.listen((event) {});
+                        },
+                        center: routePoints[0],
                         zoom: 10,
                       ),
                       nonRotatedChildren: [
@@ -287,7 +355,6 @@ class _MyHomePageState extends State<MyHomePage> {
                               'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                           userAgentPackageName: 'com.example.app',
                         ),
-                        /*
                         CurrentLocationLayer(
                           followScreenPoint: const CustomPoint(0.0, 1.0),
                           followScreenPointOffset:
@@ -309,12 +376,12 @@ class _MyHomePageState extends State<MyHomePage> {
                             markerDirection: MarkerDirection.heading,
                           ),
                         ),
-                        */
                         PolylineLayer(
                           polylineCulling: false,
                           polylines: [
+                            // [polyline],
                             Polyline(
-                                points: routpoints,
+                                points: routePoints,
                                 color: const Color.fromARGB(255, 28, 97, 5),
                                 strokeWidth: 5)
                           ],

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:latlong2/latlong.dart';
 // import 'package:flutter/widgets.dart';
 
 ///
@@ -162,3 +163,93 @@ class Utility {
     );
   }
 }
+
+AlertDialog buildColumnDialog(
+    {required BuildContext context,
+    required String title,
+    required Column content,
+    required List<String> buttonTexts,
+    List callbacks = const []}) {
+  const textStyle = TextStyle(color: Colors.black);
+  return AlertDialog(
+      title: Text(title, style: textStyle),
+      elevation: 5,
+      content: content,
+      actions: actionButtons(context, callbacks, buttonTexts));
+}
+
+Future<List<LatLng>> routeDialog(
+    BuildContext context, int points, Function callback) async {
+  List<TextEditingController> controllers = [];
+  List<LatLng> routePoints = [LatLng(52.05884, -1.345583)];
+  List<String> waypoints = [];
+  for (int i = 0; i < points; i++) {
+    controllers.add(TextEditingController());
+    waypoints.add('Waypoint ${i + 1}');
+  }
+
+  // User user = User(forename: '', surname: '', email: '', password: '');
+
+  await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return buildColumnDialog(
+            context: context,
+            title: 'Trip Details',
+            content: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  const Text('Enter trip waypoints:'),
+                  for (int i = 0; i < points; i++) ...[
+                    Row(
+                      children: <Widget>[
+                        Expanded(
+                            flex: 1,
+                            child: Padding(
+                              padding: const EdgeInsets.fromLTRB(0, 0, 10, 0),
+                              child: TextField(
+                                  textCapitalization:
+                                      TextCapitalization.characters,
+                                  controller: controllers[i],
+                                  decoration:
+                                      InputDecoration(hintText: waypoints[i])),
+                                  
+                            )),
+                      ],
+                    )
+                  ]
+                ]),
+            buttonTexts: [
+              'OK',
+              'CANCEL'
+            ],
+            callbacks: [
+              () async {
+                //  setState() async {
+                await callback(controllers).then((result) {
+                  if (result != null) {
+                    routePoints = result;
+                    debugPrint('routePoints.length = ${routePoints.length}');
+                    //     if (context.mounted) {
+                    //       Navigator.pop(context, routePoints);
+                    //     } else {
+                    //       debugPrint('Context not mounted');
+                    //     }
+                  }
+                });
+                // Navigator.of(context).pop();
+                //    }
+              },
+            ]);
+      }).then((result) => {
+        if (result != null && result != "OK" && result != "CANCEL")
+          {
+            routePoints = result,
+          }
+      });
+
+  return routePoints;
+}
+//  [LatLng(52.05884, -1.345583)]
