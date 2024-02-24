@@ -225,12 +225,79 @@ class PointOfInterest extends Marker {
   ///
 }
 
+/*
 class User {
   int id;
   String forename;
   String surname;
   String email;
   User(this.id, this.forename, this.surname, this.email);
+}
+*/
+
+class User {
+  int id = 0;
+  String forename;
+  String surname;
+  String password;
+  String email;
+
+  User({
+    this.id = 0,
+    required this.forename,
+    required this.surname,
+    required this.email,
+    required this.password,
+  });
+
+  factory User.fromJson(Map<String, dynamic> json) {
+    final id = json['id'];
+    final forename = json['forename'];
+    final surname = json['surname'];
+    final email = json['email'];
+    final password = json['password'];
+    return User(
+        id: id,
+        forename: forename,
+        surname: surname,
+        email: email,
+        password: password);
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'forename': forename,
+      'surname': surname,
+      'email': email,
+      'password': password,
+    };
+  }
+}
+
+/// class User
+
+class Trip {
+  int id = 0;
+  int userId = 0;
+  String name;
+  String description;
+  DateTime date = DateTime.now();
+  Trip({
+    this.id = 0,
+    required this.name,
+    required this.description,
+    required this.date,
+  });
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'userId': userId,
+      'name': name,
+      'description': description,
+      'date': date,
+    };
+  }
 }
 
 class PopupValue {
@@ -245,13 +312,28 @@ class Drive {
   int userId;
   String name;
   String description;
-  DateTime dateEntered;
-  Drive(this.id, this.userId, this.name, this.description, this.dateEntered);
+  DateTime published;
+  double startLong;
+  double startLat;
+  Drive(this.id, this.userId, this.name, this.description, this.published,
+      this.startLong, this.startLat);
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'userId': userId,
+      'name': name,
+      'description': description,
+      'published': published,
+      'startLong': startLong,
+      'startLat': startLat,
+    };
+  }
 }
-
+/*
 class Trip {
   int id;
   int driveId;
   List<User> users;
   Trip(this.id, this.driveId, this.users);
 }
+*/

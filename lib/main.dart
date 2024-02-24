@@ -1,8 +1,6 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
-import 'myInput.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map/plugin_api.dart';
@@ -242,10 +240,9 @@ class _MyHomePageState extends State<MyHomePage> {
     dynamic router;
     List<LatLng> routePoints = [];
     var url = Uri.parse(
-        'http://router.project-osrm.org/route/v1/driving/${waypoints}?steps=true&annotations=true&geometries=geojson&overview=full');
+        'http://router.project-osrm.org/route/v1/driving/$waypoints?steps=true&annotations=true&geometries=geojson&overview=full');
     try {
       var response = await http.get(url);
-      // http.Request persistentConnection = false;
       router =
           jsonDecode(response.body)['routes'][0]['geometry']['coordinates'];
     } catch (e) {
