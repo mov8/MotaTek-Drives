@@ -1,4 +1,5 @@
 // import 'package:flutter/cupertino.dart';
+import 'package:drives/screens/dialogs.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter/material.dart';
@@ -109,10 +110,18 @@ const List<Map> poiTypes = [
     'iconMaterial': 0xe410,
     'colour': 'Colors.blue',
     'colourMaterial': 0xff4CAF50
-  }
+  },
+  {
+    'id': 13,
+    'name': 'Routepoint',
+    'icon': 'Icons.nature_people',
+    'iconMaterial': 0xe696,
+    'colour': 'Colors.blue',
+    'colourMaterial': 0xff4CAF50
+  },
 ];
 
-List<LatLng> testRoutePoints = [
+const List<LatLng> testRoutePoints = [
   LatLng(51.478815, -0.611477),
   LatLng(51.478807, -0.611422),
   LatLng(51.478666, -0.610359),
@@ -176,9 +185,11 @@ class PointOfInterest extends Marker {
         color: Colors.blueAccent,
       );
 */
+
+//  Marker marker = Marker()
+
   WidgetBuilder markerBuilder = (ctx) => RawMaterialButton(
-        onPressed: () =>
-            myFunc(), // Utility() .showAlertDialog(ctx, 'Hello', 'you'), // myFunc<void>(ctx),
+        onPressed: () => myFunc(),
         elevation: 1.0,
         fillColor: Colors.amber,
         padding: const EdgeInsets.all(2.0),
@@ -190,39 +201,35 @@ class PointOfInterest extends Marker {
         ),
       );
 
-  PointOfInterest(this.id, this.userId, this.driveId, this.type,
-      this.description, double width, double height,
-      {required LatLng markerPoint, required WidgetBuilder markerBuilder})
+  PointOfInterest(BuildContext ctx, this.id, this.userId, this.driveId,
+      this.type, this.description, double width, double height,
+      {required LatLng markerPoint})
       : super(
-            point: markerPoint,
-            width: width,
-            height: height,
-            builder: markerBuilder);
+          child: RawMaterialButton(
+              onPressed: () => Utility().showAlertDialog(
+                  ctx, poiTypes.toList()[type]['name'], description),
+              elevation: 2.0,
+              fillColor: const Color.fromARGB(255, 224, 132, 10),
+              // padding: const EdgeInsets.all(5.0),
+              shape: const CircleBorder(),
+              child: Icon(
+                markerIcon(type),
+                size: type > 10 ? 10 : width * 0.75,
+                color: Colors.blueAccent,
+              )),
+          point: markerPoint,
+//            draggable: true,fl
+          width: width,
+          height: height,
+        );
 
-/*
-                              RawMaterialButton(
-                                onPressed: () {},
-                                elevation: 2.0,
-                                fillColor: Colors.white,
-
-                                padding: EdgeInsets.all(15.0),
-                                shape: CircleBorder(),
-                                child: Icon(
-                                  IconData(item['iconMaterial'],
-                                      fontFamily: 'MaterialIcons'),
-                                  color: Color(item['colourMaterial']),
-                                  size: 35.0,
-                                ),
-                              )
- */
+  static IconData markerIcon(int type) {
+    return IconData(poiTypes.toList()[type]['iconMaterial'],
+        fontFamily: 'MaterialIcons');
+  }
 
   /// The : super keyword means we are referring to base class - Marker - parameters
   /// The point and builder are both required
-  ///
-  ///
-  ///
-  ///
-  ///
 }
 
 /*

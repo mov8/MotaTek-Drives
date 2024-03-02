@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'dart:async';
+import 'package:drives/services/webHelper.dart';
 // import 'package:flutter/widgets.dart';
 
 ///
@@ -31,6 +32,8 @@ import 'dart:async';
 
 const Duration fakeAPIDuration = Duration(seconds: 1);
 const Duration debounceDuration = Duration(milliseconds: 500);
+
+List<String> autoCompleteData = ['Dotty', 'James', 'Billy', 'Katie'];
 
 AlertDialog buildFlexDialog(
     {required BuildContext context,
@@ -189,6 +192,7 @@ AlertDialog buildColumnDialog(
 Future<List<Polyline>> routeDialog(
     BuildContext context, int points, Function callback) async {
   List<TextEditingController> controllers = [];
+  List<String> waypoints = [];
   // List<LatLng> routePoints = [LatLng(52.05884, -1.345583)];
   List<Polyline> polylines = [
     Polyline(
@@ -199,6 +203,7 @@ Future<List<Polyline>> routeDialog(
 
   for (int i = 0; i < points; i++) {
     controllers.add(TextEditingController());
+    waypoints.add('');
   }
 
   // User user = User(forename: '', surname: '', email: '', password: '');
@@ -221,24 +226,56 @@ Future<List<Polyline>> routeDialog(
                             mainAxisSize: MainAxisSize.min,
                             children: <Widget>[
                           const Text('Enter trip waypoints:'),
-                          for (int i = 0; i < controllers.length; i++) ...[
+                          for (int i = 0; i < waypoints.length; i++) ...[
                             Row(
                               children: <Widget>[
                                 Expanded(
-                                    flex: 1,
-                                    child: Padding(
-                                      padding: const EdgeInsets.fromLTRB(
-                                          0, 0, 10, 0),
-                                      child: TextField(
-                                          textCapitalization:
-                                              TextCapitalization.characters,
-                                          controller: controllers[i],
-                                          decoration: InputDecoration(
-                                              hintText: 'Waypoint ${i + 1}')),
-                                    )),
+                                  flex: 1,
+                                  child: Padding(
+                                    padding:
+                                        const EdgeInsets.fromLTRB(0, 0, 10, 0),
+                                    child: Autocomplete(
+                                      optionsBuilder: (TextEditingValue
+                                          textEditingValue) async {
+                                        autoCompleteData = await getSuggestions(
+                                            textEditingValue.text);
+                                        setState(() {
+                                          waypoints[i] = textEditingValue.text;
+                                        });
+                                        if (textEditingValue.text.isEmpty) {
+                                          return const Iterable<String>.empty();
+                                        } else {
+                                          return autoCompleteData.where(
+                                              (word) => word
+                                                  .toLowerCase()
+                                                  .contains(textEditingValue
+                                                      .text
+                                                      .toLowerCase()));
+                                        }
+                                      },
+                                      fieldViewBuilder: (context, controller,
+                                          focusNode, onEditingComplete) {
+                                        return TextFormField(
+                                            textCapitalization:
+                                                TextCapitalization.characters,
+                                            controller: controller,
+                                            focusNode: focusNode,
+                                            onEditingComplete:
+                                                onEditingComplete,
+                                            decoration: InputDecoration(
+                                                hintText: 'Waypoint ${i + 1}'));
+                                      },
+                                      onSelected: (String selection) {
+                                        waypoints[i] = selection;
+                                        debugPrint(
+                                            'You just selected $selection');
+                                      },
+                                    ),
+                                  ),
+                                ),
                                 const SizedBox(width: 16),
                                 _addRemoveWaypoint(
-                                    context, setState, i, controllers),
+                                    context, setState, i, waypoints),
                               ],
                             )
                           ]
@@ -249,7 +286,7 @@ Future<List<Polyline>> routeDialog(
                 ],
                 callbacks: [
                   () async {
-                    await callback(controllers).then((result) {
+                    await callback(waypoints).then((result) {
                       if (result != null) {
                         polylines = result;
                         debugPrint('polylines.length = ${polylines.length}');
@@ -268,6 +305,32 @@ Future<List<Polyline>> routeDialog(
 }
 
 Widget _addRemoveWaypoint(
+    BuildContext context, setState, index, var waypoints) {
+  // Using var allows parameter to be accessed by reference
+  return InkWell(
+      onTap: () {
+        if (index == waypoints.length - 1) {
+          waypoints.add('');
+        } else {
+          waypoints.removeAt(index);
+        }
+        setState(() {});
+      },
+      child: Container(
+          width: 30,
+          height: 30,
+          decoration: BoxDecoration(
+            color: index == waypoints.length - 1 ? Colors.green : Colors.red,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Icon(
+            index == waypoints.length - 1 ? Icons.add : Icons.remove,
+            color: Colors.white,
+          )));
+}
+
+/*
+Widget _addRemoveWaypoint2(
     BuildContext context, setState, index, var controllers) {
   return InkWell(
       onTap: () {
@@ -290,6 +353,7 @@ Widget _addRemoveWaypoint(
             color: Colors.white,
           )));
 }
+*/
 
 class _AsyncAutocomplete extends StatefulWidget {
   const _AsyncAutocomplete();

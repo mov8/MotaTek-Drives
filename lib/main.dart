@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:flutter_map/plugin_api.dart';
+// import 'package:flutter_map/plugin_api.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'models.dart';
@@ -55,11 +55,17 @@ class _MyHomePageState extends State<MyHomePage> {
   int userId = -1;
   int driveId = -1;
   int type = -1;
+  double iconSize = 35;
+  LatLng startLatLng = LatLng(0.00, 0.00);
 
   late bool _navigationMode;
   late int _pointerCount;
+  double _markerSize = 200.0;
   late FollowOnLocationUpdate _followOnLocationUpdate;
   late TurnOnHeadingUpdate _turnOnHeadingUpdate;
+
+  late AlignOnUpdate _alignOnUpdate;
+
   late StreamController<double?> _followCurrentLocationStreamController;
   late StreamController<void> _turnHeadingUpStreamController;
 
@@ -131,26 +137,11 @@ class _MyHomePageState extends State<MyHomePage> {
                 onPressed: () {
                   setState(() {
                     int iconIdx = popValue.dropdownIdx;
-                    String desc = popValue.text1;
-                    pointsOfInterest.add(PointOfInterest(
-                        id, userId, driveId, iconIdx, desc, 60.0, 60.0,
-                        markerPoint: latLng,
-                        markerBuilder: (ctx) => RawMaterialButton(
-
-                            /// build the marker object - can be anything
-                            onPressed: () => Utility().showAlertDialog(
-                                ctx, poiTypes.toList()[iconIdx]['name'], desc),
-                            elevation: 2.0,
-                            fillColor: Colors.amber,
-                            padding: const EdgeInsets.all(0.5),
-                            shape: const CircleBorder(),
-                            child: Icon(
-                              IconData(
-                                  poiTypes.toList()[iconIdx]['iconMaterial'],
-                                  fontFamily: 'MaterialIcons'),
-                              size: 35,
-                              color: Colors.blueAccent,
-                            ))));
+                    if (iconIdx >= 0) {
+                      String desc = popValue.text1;
+                      _addPointOfInterest(
+                          id, userId, iconIdx, desc, 30.0, latLng);
+                    }
                     Navigator.of(context).pop();
                   });
                 },
@@ -158,6 +149,13 @@ class _MyHomePageState extends State<MyHomePage> {
             ],
           );
         });
+  }
+
+  _addPointOfInterest(int id, int userId, int iconIdx, String desc, double size,
+      LatLng latLng) {
+    pointsOfInterest.add(PointOfInterest(
+        context, id, userId, driveId, iconIdx, desc, size, size,
+        markerPoint: latLng));
   }
 
   @override
@@ -169,6 +167,7 @@ class _MyHomePageState extends State<MyHomePage> {
     _turnOnHeadingUpdate = TurnOnHeadingUpdate.never;
     _followCurrentLocationStreamController = StreamController<double?>();
     _turnHeadingUpStreamController = StreamController<void>();
+    _markerSize = 200.0;
   }
 
   @override
@@ -203,18 +202,27 @@ class _MyHomePageState extends State<MyHomePage> {
     return waypoints;
   }
 
-  Future<List<Polyline>> routeCallback(
-      List<TextEditingController> controllers) async {
-    List<String> waypoints = [];
-    for (int i = 1; i < controllers.length; i++) {
+  void _updateMarkerSize(double zoom) {
+    setState(() {
+      _markerSize = 200.0 * (zoom / 13.0);
+      for (int i = 0; i < pointsOfInterest.length; i++) {
+        //    pointsOfInterest[i].height = _markerSize;
+        //    pointsOfInterest[i].width = _markerSize;
+      }
+    });
+  }
+
+  Future<List<Polyline>> routeCallback(List<String> waypoints) async {
+    List<String> urlWaypoints = [];
+    for (int i = 1; i < waypoints.length; i++) {
       List<Location> startL;
       List<Location> endL;
       try {
-        await locationFromAddress(controllers[i - 1].text).then((res) async {
+        await locationFromAddress(waypoints[i - 1]).then((res) async {
           startL = res;
-          await locationFromAddress(controllers[i].text).then((res) {
+          await locationFromAddress(waypoints[i]).then((res) {
             endL = res;
-            waypoints.add(
+            urlWaypoints.add(
                 '${startL[0].longitude},${startL[0].latitude};${endL[0].longitude},${endL[0].latitude}');
           });
         });
@@ -225,8 +233,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
     polylines = [];
 
-    for (int i = 0; i < waypoints.length; i++) {
-      routePoints = await getRoutePoints(waypoints[i]);
+    for (int i = 0; i < urlWaypoints.length; i++) {
+      routePoints = await getRoutePoints(urlWaypoints[i]);
       polylines.add(Polyline(
           points: routePoints,
           color: const Color.fromARGB(255, 28, 97, 5),
@@ -236,9 +244,39 @@ class _MyHomePageState extends State<MyHomePage> {
     return polylines;
   }
 
+  Future<List<LatLng>> addPolyLine(LatLng latLng1, LatLng latLng2) async {
+    String waypoint =
+        '${latLng1.longitude},${latLng1.latitude};${latLng2.longitude},${latLng2.latitude}';
+    return await getRoutePoints(waypoint);
+  }
+
+  Future insertPolyLine(LatLng latLng2) async {
+    List<LatLng> polyline;
+    LatLng latLng1;
+    if (startLatLng == LatLng(0.00, 0.00)) {
+      startLatLng = latLng2;
+      return;
+    }
+    if (polylines.length > 1) {
+      // Let's assume simple add
+      latLng1 = polylines[polylines.length - 1]
+          .points[polylines[polylines.length - 1].points.length - 1];
+    } else {
+      latLng1 = startLatLng;
+    }
+    polyline = await addPolyLine(latLng1, latLng2);
+    polylines.add(Polyline(
+        points: polyline,
+        color: const Color.fromARGB(255, 28, 97, 5),
+        strokeWidth: 5));
+    setState(() {});
+  }
+
   Future<List<LatLng>> getRoutePoints(String waypoints) async {
     dynamic router;
     List<LatLng> routePoints = [];
+
+    /// http://router.project-osrm.org/route/v1/driving/-0.515525,51.43148;-1.2577262999999999,51.7520209?steps=true&annotations=true&geometries=geojson&overview=full
     var url = Uri.parse(
         'http://router.project-osrm.org/route/v1/driving/$waypoints?steps=true&annotations=true&geometries=geojson&overview=full');
     try {
@@ -316,35 +354,39 @@ class _MyHomePageState extends State<MyHomePage> {
                         },
                         onLongPress: (tapPos, LatLng latLng) {
                           debugPrint("TAP $tapPos    $latLng");
-                          markers.add(
-                            Marker(
-                                point: latLng,
-                                width: 60,
-                                height: 60,
-                                builder: (ctx) => const Icon(
-                                      Icons.pin_drop,
-                                      size: 50,
-                                      color: Colors.blueAccent,
-                                    )),
-                          );
+                          _addPointOfInterest(
+                              id,
+                              userId,
+                              12,
+                              'Lat:${latLng.latitude} Long:${latLng.longitude}',
+                              15.0,
+                              latLng);
+                          insertPolyLine(latLng);
+
                           setState(() {});
                         },
                         onMapReady: () {
                           mapController.mapEventStream.listen((event) {});
                         },
-                        center: routePoints[0],
-                        zoom: 10,
+                        onPositionChanged: (position, hasGesure) {
+                          if (hasGesure) {
+                            _updateMarkerSize(position.zoom ?? 13.0);
+                          }
+                        },
+                        initialCenter: routePoints[0],
+                        initialZoom: 10,
                       ),
-                      nonRotatedChildren: [
-                        AttributionWidget.defaultWidget(
-                            source: 'OpenStreetMap contributors',
-                            onSourceTapped: null),
-                      ],
+                      //      nonRotatedChildren: [
+                      //        AttributionWidget.defaultWidget(
+                      //            source: 'OpenStreetMap contributors',
+                      //            onSourceTapped: null),
+                      //      ],
                       children: [
                         TileLayer(
                           urlTemplate:
                               'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                           userAgentPackageName: 'com.example.app',
+                          maxZoom: 18,
                         ),
                         CurrentLocationLayer(
                           followScreenPoint: const CustomPoint(0.0, 1.0),
