@@ -196,7 +196,7 @@ Future<List<Polyline>> routeDialog(
   // List<LatLng> routePoints = [LatLng(52.05884, -1.345583)];
   List<Polyline> polylines = [
     Polyline(
-        points: [LatLng(52.05884, -1.345583)], // routePoints,
+        points: const [LatLng(52.05884, -1.345583)], // routePoints,
         color: const Color.fromARGB(255, 28, 97, 5),
         strokeWidth: 5)
   ];

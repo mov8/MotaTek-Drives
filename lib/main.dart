@@ -1,8 +1,13 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+//import 'package:flutter/rendering.dart';
+
 import 'package:geocoding/geocoding.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_map_animations/flutter_map_animations.dart';
+//import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart';
+
 // import 'package:flutter_map/plugin_api.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -24,7 +29,7 @@ void main() {
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -36,13 +41,13 @@ class MyApp extends StatelessWidget {
 }
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({Key? key}) : super(key: key);
+  const MyHomePage({super.key});
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
+class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   final start = TextEditingController();
   final end = TextEditingController();
   final mapController = MapController();
@@ -56,15 +61,25 @@ class _MyHomePageState extends State<MyHomePage> {
   int driveId = -1;
   int type = -1;
   double iconSize = 35;
-  LatLng startLatLng = LatLng(0.00, 0.00);
+  LatLng startLatLng = const LatLng(0.00, 0.00);
+  late Size screenSize;
+  late Size appBarSize;
+  double mapHeight = 250;
+  double listHeight = 100;
 
-  late bool _navigationMode;
-  late int _pointerCount;
-  double _markerSize = 200.0;
+  // late bool _navigationMode;
+  // late int _pointerCount;
+  // double _markerSize = 200.0;
+  // late final _animatedMapController = AnimatedMapController(vsync: this);
+  late AnimatedMapController _animatedMapController;
   late FollowOnLocationUpdate _followOnLocationUpdate;
   late TurnOnHeadingUpdate _turnOnHeadingUpdate;
 
-  late AlignOnUpdate _alignOnUpdate;
+  final _dividerHeight = 25.0;
+//  double _ratio = 0.0; //0.6;
+  // double _maxHeight = 100.0;
+
+  // late AlignOnUpdate _alignOnUpdate;
 
   late StreamController<double?> _followCurrentLocationStreamController;
   late StreamController<void> _turnHeadingUpStreamController;
@@ -161,19 +176,26 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
-    _navigationMode = false;
-    _pointerCount = 0;
+    // _navigationMode = false;
+    // _pointerCount = 0;
     _followOnLocationUpdate = FollowOnLocationUpdate.never;
     _turnOnHeadingUpdate = TurnOnHeadingUpdate.never;
     _followCurrentLocationStreamController = StreamController<double?>();
     _turnHeadingUpStreamController = StreamController<void>();
-    _markerSize = 200.0;
+    _animatedMapController = AnimatedMapController(vsync: this);
+    //  _markerSize = 200.0;
+    // screenSize = MediaQuery.of(context).size;
+    // appBarSize = AppBar().preferredSize;, du
+    // _maxHeight = MediaQuery.of(context).size.height * 0.6;
+    mapHeight = 250.0;
+    //(screenSize.height - appBarSize.height - _dividerHeight) * 0.9;
   }
 
   @override
   void dispose() {
     _followCurrentLocationStreamController.close();
     _turnHeadingUpStreamController.close();
+    _animatedMapController.dispose();
     super.dispose();
   }
 
@@ -204,7 +226,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void _updateMarkerSize(double zoom) {
     setState(() {
-      _markerSize = 200.0 * (zoom / 13.0);
+      //  _markerSize = 200.0 * (zoom / 13.0);
       for (int i = 0; i < pointsOfInterest.length; i++) {
         //    pointsOfInterest[i].height = _markerSize;
         //    pointsOfInterest[i].width = _markerSize;
@@ -330,99 +352,231 @@ class _MyHomePageState extends State<MyHomePage> {
         ],
       ),
       backgroundColor: Colors.grey[300],
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(12.0),
-          child: SingleChildScrollView(
-            child: Column(
+      // floatingActionButton: SeparatedColumn(),
+      body: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: <Widget>[
+          SizedBox(
+            //Column( //SingleChildScrollView(
+            //   SafeArea(
+            //     child: Padding(
+            // padding: const EdgeInsets.all(12.0),
+            // child: SingleChildScrollView(
+            //    child: Column(
+            //     children: [
+            //        SizedBox(
+
+            height: mapHeight,
+            width: MediaQuery.of(context).size.width,
+            child: FlutterMap(
+              // Visibility(
+              //       visible: true, //isVisible,
+
+              //       child: FlutterMap(
+              // mapController: mapController,
+              mapController: _animatedMapController.mapController,
+              options: MapOptions(
+                onTap: (tapPos, LatLng latLng) {
+                  _textFieldController.text = '';
+                  popValue.dropdownIdx = -1;
+                  popValue.text1 = '';
+                  _displayTextInputDialog(context, latLng);
+                  //   .then((value) {});
+                },
+                onLongPress: (tapPos, LatLng latLng) {
+                  debugPrint("TAP $tapPos    $latLng");
+                  _addPointOfInterest(
+                      id,
+                      userId,
+                      12,
+                      'Lat:${latLng.latitude} Long:${latLng.longitude}',
+                      15.0,
+                      latLng);
+                  insertPolyLine(latLng);
+
+                  setState(() {});
+                },
+                onMapReady: () {
+                  mapController.mapEventStream.listen((event) {});
+                },
+                onPositionChanged: (position, hasGesure) {
+                  if (hasGesure) {
+                    _updateMarkerSize(position.zoom ?? 13.0);
+                  }
+                },
+                initialCenter: routePoints[0],
+                initialZoom: 10,
+              ),
+              //      nonRotatedChildren: [
+              //        AttributionWidget.defaultWidget(
+              //            source: 'OpenStreetMap contributors',
+              //            onSourceTapped: null),
+              //      ],
               children: [
-                SizedBox(
-                  height: MediaQuery.of(context).size.height,
-                  width: MediaQuery.of(context).size.width,
-                  child: Visibility(
-                    visible: true, //isVisible,
-
-                    child: FlutterMap(
-                      mapController: mapController,
-                      options: MapOptions(
-                        onTap: (tapPos, LatLng latLng) {
-                          _textFieldController.text = '';
-                          popValue.dropdownIdx = -1;
-                          popValue.text1 = '';
-                          _displayTextInputDialog(context, latLng);
-                          //   .then((value) {});
-                        },
-                        onLongPress: (tapPos, LatLng latLng) {
-                          debugPrint("TAP $tapPos    $latLng");
-                          _addPointOfInterest(
-                              id,
-                              userId,
-                              12,
-                              'Lat:${latLng.latitude} Long:${latLng.longitude}',
-                              15.0,
-                              latLng);
-                          insertPolyLine(latLng);
-
-                          setState(() {});
-                        },
-                        onMapReady: () {
-                          mapController.mapEventStream.listen((event) {});
-                        },
-                        onPositionChanged: (position, hasGesure) {
-                          if (hasGesure) {
-                            _updateMarkerSize(position.zoom ?? 13.0);
-                          }
-                        },
-                        initialCenter: routePoints[0],
-                        initialZoom: 10,
+                TileLayer(
+                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  userAgentPackageName: 'com.example.app',
+                  maxZoom: 18,
+                ),
+                CurrentLocationLayer(
+                  followScreenPoint: const CustomPoint(0.0, 1.0),
+                  followScreenPointOffset: const CustomPoint(0.0, -60.0),
+                  followCurrentLocationStream:
+                      _followCurrentLocationStreamController.stream,
+                  turnHeadingUpLocationStream:
+                      _turnHeadingUpStreamController.stream,
+                  followOnLocationUpdate: _followOnLocationUpdate,
+                  turnOnHeadingUpdate: _turnOnHeadingUpdate,
+                  style: const LocationMarkerStyle(
+                    marker: DefaultLocationMarker(
+                      child: Icon(
+                        Icons.navigation,
+                        color: Colors.white,
                       ),
-                      //      nonRotatedChildren: [
-                      //        AttributionWidget.defaultWidget(
-                      //            source: 'OpenStreetMap contributors',
-                      //            onSourceTapped: null),
-                      //      ],
-                      children: [
-                        TileLayer(
-                          urlTemplate:
-                              'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                          userAgentPackageName: 'com.example.app',
-                          maxZoom: 18,
-                        ),
-                        CurrentLocationLayer(
-                          followScreenPoint: const CustomPoint(0.0, 1.0),
-                          followScreenPointOffset:
-                              const CustomPoint(0.0, -60.0),
-                          followCurrentLocationStream:
-                              _followCurrentLocationStreamController.stream,
-                          turnHeadingUpLocationStream:
-                              _turnHeadingUpStreamController.stream,
-                          followOnLocationUpdate: _followOnLocationUpdate,
-                          turnOnHeadingUpdate: _turnOnHeadingUpdate,
-                          style: const LocationMarkerStyle(
-                            marker: DefaultLocationMarker(
-                              child: Icon(
-                                Icons.navigation,
-                                color: Colors.white,
-                              ),
-                            ),
-                            markerSize: Size(40, 40),
-                            markerDirection: MarkerDirection.heading,
-                          ),
-                        ),
-                        PolylineLayer(
-                          polylineCulling: false,
-                          polylines: polylines,
-                        ),
-                        MarkerLayer(markers: pointsOfInterest),
-                      ],
                     ),
+                    markerSize: Size(40, 40),
+                    markerDirection: MarkerDirection.heading,
                   ),
                 ),
+                PolylineLayer(
+                  polylineCulling: false,
+                  polylines: polylines,
+                ),
+                MarkerLayer(markers: pointsOfInterest),
               ],
             ),
+            //    ),
           ),
-        ),
+          GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            child: SizedBox(
+              height: _dividerHeight,
+
+              width: MediaQuery.of(context).size.width,
+              child: const Icon(
+                Icons.drag_handle,
+                color: Colors.blue,
+              ),
+              //    child: const RotationTransition(
+              //      turns: AlwaysStoppedAnimation(0.25),
+              //      child: Icon(Icons.drag_handle),
+              //    ),
+            ),
+            onPanUpdate: (DragUpdateDetails details) {
+              setState(() {
+                //         _ratio += details.delta.dy;
+                mapHeight += details.delta.dy;
+
+                debugPrint("mapHeight: ${mapHeight.toString()}");
+                double height = (MediaQuery.of(context).size.height -
+                        AppBar().preferredSize.height -
+                        _dividerHeight) *
+                    0.93;
+
+                mapHeight = mapHeight > height ? height : mapHeight;
+                mapHeight = mapHeight < 20 ? 20 : mapHeight;
+
+                listHeight = (height - mapHeight);
+              });
+            },
+          ),
+          // SingleChildScrollView(
+          SizedBox(
+            height: listHeight,
+            //Column( //SingleChildScrollView(
+            //   SafeArea(
+            //     child: Padding(
+            // padding: const EdgeInsets.all(12.0),
+            //    child: SingleChildScrollView(
+            //    child: Column(
+            //     children: [
+            //        SizedBox(
+
+            //   width: MediaQuery.of(context).size.width,
+            // child: Text('ListHeight $listHeight'),
+/*
+            child:
+                ListView(padding: const EdgeInsets.all(8), children: <Widget>[
+              Container(
+                height: 50,
+                color: Colors.amber[600],
+                child: const Center(child: Text('Entry A')),
+              ),
+              Container(
+                height: 50,
+                color: Colors.amber[500],
+                child: const Center(child: Text('Entry B')),
+              ),
+              Container(
+                height: 50,
+                color: Colors.amber[600],
+                child: const Center(child: Text('Entry C')),
+              ),
+            ]),
+*/
+            child: pointsOfInterest.isNotEmpty
+                ? ReorderableListView(
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    children: <Widget>[
+                      for (int i = 0; i < pointsOfInterest.length; i++)
+                        //   Card(
+                        //     key: ValueKey('$i'),
+                        //      color: Colors.orangeAccent,
+                        //     elevation: 2,
+                        //      child: ListTile(
+                        ListTile(
+                            key: ValueKey('$i'),
+                            tileColor: i.isOdd ? Colors.white : Colors.blue,
+                            title: Text(
+                                'Item $i ${pointsOfInterest[i].description}'),
+                            onLongPress: () => {
+                                  _animatedMapController.animateTo(
+                                      dest: pointsOfInterest[i].point)
+                                }),
+                    ],
+                    onReorder: (int oldIndex, int newIndex) {
+                      setState(() {
+                        if (oldIndex < newIndex) {
+                          newIndex -= 1;
+                        }
+                        final PointOfInterest item =
+                            pointsOfInterest.removeAt(oldIndex);
+                        pointsOfInterest.insert(newIndex, item);
+                      });
+                    })
+                : const Text('No points of interest'),
+            //   ),
+          ),
+          //   ),
+          /*
+          SingleChildScrollView(
+            child: ReorderableListView(
+                padding: const EdgeInsets.symmetric(horizontal: 40),
+                children: <Widget>[
+                  for (int i = 0; i < pointsOfInterest.length; i++)
+                    ListTile(
+                      key: Key('$i'),
+                      tileColor: i.isOdd ? Colors.white : Colors.blue,
+                      title: Text('Item $i'),
+                    ),
+                ],
+                onReorder: (int oldIndex, int newIndex) {
+                  setState(() {
+                    if (oldIndex < newIndex) {
+                      newIndex -= 1;
+                    }
+                    final PointOfInterest item =
+                        pointsOfInterest.removeAt(oldIndex);
+                    pointsOfInterest.insert(newIndex, item);
+                  });
+                }),
+          ), */
+        ],
       ),
+      //  ),
+      //  ),
+      //   ),
     );
   }
 }
@@ -451,3 +605,46 @@ submit(BuildContext context, setState) {
   Navigator.of(context).pop();
   setState(() {});
 }
+/*
+class WaypointList extends StatefulWidget {
+  List<PointOfInterest> waypoints;
+   final void Function(List<PointOfInterest>, int oldIndex, int newIndex)? onReorder;
+   int? oldIndex;
+   int? newIndex;
+   Function? onReorderList;
+
+  WaypointList({super.key, required this.waypoints, required this.oldIndex, required this.newIndex, required this.onReorderList});
+  @override
+  State<WaypointList> createState() => _WaypointListState();
+}
+
+class _WaypointListState extends State<WaypointList> {
+  Widget build(BuildContext context) {
+  return ReorderableListView(
+      padding: const EdgeInsets.symmetric(horizontal: 40),
+      children: <Widget>[
+        for (int i = 0; i < waypoints.length; i++)
+          ListTile(
+            key: Key('$i'),
+            tileColor: i.isOdd ? Colors.white : Colors.blue,
+            title: Text(
+                'Item $i ${pointsOfInterest[i].description}'),
+          ),
+        //  setState((){});
+      ],
+      onReorder: (int oldIndex, int newIndex) {
+        setState(() {
+          if (oldIndex < newIndex) {
+            newIndex -= 1;
+          }
+          final PointOfInterest item =
+              pointsOfInterest.removeAt(oldIndex);
+          pointsOfInterest.insert(newIndex, item);
+        });
+      });
+
+  )
+  }
+  
+}
+*/
