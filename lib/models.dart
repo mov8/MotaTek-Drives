@@ -177,7 +177,8 @@ class PointOfInterest extends Marker {
   int driveId;
   int type;
   String description;
-  LatLng markerPoint = LatLng(52.05884, -1.345583);
+  String hint;
+  LatLng markerPoint = const LatLng(52.05884, -1.345583);
   /*
   WidgetBuilder markerBuilder = (ctx) => const Icon(
         Icons.pin_drop,
@@ -202,7 +203,7 @@ class PointOfInterest extends Marker {
       );
 
   PointOfInterest(BuildContext ctx, this.id, this.userId, this.driveId,
-      this.type, this.description, double width, double height,
+      this.type, this.description, this.hint, double width, double height,
       {required LatLng markerPoint})
       : super(
           child: RawMaterialButton(

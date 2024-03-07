@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer';
 import 'package:flutter/material.dart';
 //import 'package:flutter/rendering.dart';
 
@@ -12,6 +13,7 @@ import 'package:flutter_map_animations/flutter_map_animations.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'models.dart';
+import 'screens/painters.dart';
 import 'screens/dialogs.dart';
 import 'package:flutter_map_location_marker/flutter_map_location_marker.dart';
 
@@ -66,6 +68,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   late Size appBarSize;
   double mapHeight = 250;
   double listHeight = 100;
+  bool showTarget = false;
 
   // late bool _navigationMode;
   // late int _pointerCount;
@@ -155,7 +158,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                     if (iconIdx >= 0) {
                       String desc = popValue.text1;
                       _addPointOfInterest(
-                          id, userId, iconIdx, desc, 30.0, latLng);
+                          id, userId, iconIdx, desc, '', 30.0, latLng);
                     }
                     Navigator.of(context).pop();
                   });
@@ -166,10 +169,10 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
         });
   }
 
-  _addPointOfInterest(int id, int userId, int iconIdx, String desc, double size,
-      LatLng latLng) {
+  _addPointOfInterest(int id, int userId, int iconIdx, String desc, String hint,
+      double size, LatLng latLng) {
     pointsOfInterest.add(PointOfInterest(
-        context, id, userId, driveId, iconIdx, desc, size, size,
+        context, id, userId, driveId, iconIdx, desc, hint, size, size,
         markerPoint: latLng));
   }
 
@@ -256,7 +259,10 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     polylines = [];
 
     for (int i = 0; i < urlWaypoints.length; i++) {
-      routePoints = await getRoutePoints(urlWaypoints[i]);
+      Map<String, dynamic> apiData;
+      apiData = await getRoutePoints(urlWaypoints[i]);
+      routePoints = apiData["points"];
+      await getRoutePoints(urlWaypoints[i]);
       polylines.add(Polyline(
           points: routePoints,
           color: const Color.fromARGB(255, 28, 97, 5),
@@ -266,18 +272,19 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     return polylines;
   }
 
-  Future<List<LatLng>> addPolyLine(LatLng latLng1, LatLng latLng2) async {
+  Future<Map<String, dynamic>> addPolyLine(
+      LatLng latLng1, LatLng latLng2) async {
     String waypoint =
         '${latLng1.longitude},${latLng1.latitude};${latLng2.longitude},${latLng2.latitude}';
     return await getRoutePoints(waypoint);
   }
 
-  Future insertPolyLine(LatLng latLng2) async {
-    List<LatLng> polyline;
+  Future<Map<String, dynamic>> insertPolyLine(LatLng latLng2) async {
     LatLng latLng1;
-    if (startLatLng == LatLng(0.00, 0.00)) {
+    Map<String, dynamic> apiData = {};
+    if (startLatLng == const LatLng(0.00, 0.00)) {
       startLatLng = latLng2;
-      return;
+      return apiData;
     }
     if (polylines.length > 1) {
       // Let's assume simple add
@@ -286,16 +293,19 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     } else {
       latLng1 = startLatLng;
     }
-    polyline = await addPolyLine(latLng1, latLng2);
+    apiData = await addPolyLine(latLng1, latLng2);
     polylines.add(Polyline(
-        points: polyline,
+        points: apiData["points"], // polyline,
         color: const Color.fromARGB(255, 28, 97, 5),
         strokeWidth: 5));
     setState(() {});
+    return apiData;
   }
 
-  Future<List<LatLng>> getRoutePoints(String waypoints) async {
-    dynamic router;
+//
+  Future<Map<String, dynamic>> getRoutePoints(String waypoints) async {
+    dynamic jsonResponse;
+    final Map<String, dynamic> result = {};
     List<LatLng> routePoints = [];
 
     /// http://router.project-osrm.org/route/v1/driving/-0.515525,51.43148;-1.2577262999999999,51.7520209?steps=true&annotations=true&geometries=geojson&overview=full
@@ -303,23 +313,31 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
         'http://router.project-osrm.org/route/v1/driving/$waypoints?steps=true&annotations=true&geometries=geojson&overview=full');
     try {
       var response = await http.get(url);
-      router =
-          jsonDecode(response.body)['routes'][0]['geometry']['coordinates'];
+      jsonResponse = jsonDecode(response.body);
     } catch (e) {
       debugPrint('Http error: ${e.toString()}');
     }
-
-    debugPrint("router.length: ${router.length.toString()}");
-    //  routePoints = [];
+    var router = jsonResponse['routes'][0]['geometry']['coordinates'];
     for (int i = 0; i < router.length; i++) {
-      var reep = router[i].toString();
-      reep = reep.replaceAll("[", "");
-      reep = reep.replaceAll("]", "");
-      var lat1 = reep.split(',');
-      var long1 = reep.split(",");
-      routePoints.add(LatLng(double.parse(lat1[1]), double.parse(long1[0])));
+      routePoints.add(LatLng(router[i][1], router[i][0]));
     }
-    return routePoints;
+    double distance = 0;
+    double duration = 0;
+    try {
+      distance = jsonResponse['routes'][0]['distance'];
+      duration = jsonResponse['routes'][0]['duration'];
+    } catch (e) {
+      debugPrint('Error: $e');
+    }
+    String summary =
+        '${(distance / 1000 * 5 / 8).toStringAsFixed(1)} miles - (${(duration / 60).floor()} minutes)';
+
+    result["name"] = jsonResponse['routes'][0]['legs'][0]['summary'];
+    result["distance"] = jsonResponse['routes'][0]['distance'];
+    result["duration"] = jsonResponse['routes'][0]['duration'];
+    result["summary"] = summary;
+    result["points"] = routePoints;
+    return result;
   }
 
   @override
@@ -353,6 +371,37 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       ),
       backgroundColor: Colors.grey[300],
       // floatingActionButton: SeparatedColumn(),
+      floatingActionButton: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          FloatingActionButton(
+            onPressed: () => (setState(() {
+              showTarget = !showTarget;
+            })),
+            backgroundColor: Colors.blue,
+            shape: const CircleBorder(),
+            child: const Icon(Icons.my_location),
+          ),
+          const SizedBox(
+            height: 10,
+          ),
+          FloatingActionButton(
+            onPressed: () async {
+              // if (showTarget==true)  {
+              if (showTarget) {
+                LatLng pos = _animatedMapController.mapController.camera.center;
+                insertPolyLine(pos).then((data) {
+                  _addPointOfInterest(id, userId, 12, '${data["name"]}',
+                      '${data["summary"]}', 15.0, pos);
+                });
+              }
+            },
+            backgroundColor: Colors.blue,
+            shape: const CircleBorder(),
+            child: const Icon(Icons.pin_drop),
+          ),
+        ],
+      ),
       body: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.end,
@@ -369,81 +418,82 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
 
             height: mapHeight,
             width: MediaQuery.of(context).size.width,
-            child: FlutterMap(
-              // Visibility(
-              //       visible: true, //isVisible,
-
-              //       child: FlutterMap(
-              // mapController: mapController,
-              mapController: _animatedMapController.mapController,
-              options: MapOptions(
-                onTap: (tapPos, LatLng latLng) {
-                  _textFieldController.text = '';
-                  popValue.dropdownIdx = -1;
-                  popValue.text1 = '';
-                  _displayTextInputDialog(context, latLng);
-                  //   .then((value) {});
-                },
-                onLongPress: (tapPos, LatLng latLng) {
-                  debugPrint("TAP $tapPos    $latLng");
-                  _addPointOfInterest(
-                      id,
-                      userId,
-                      12,
-                      'Lat:${latLng.latitude} Long:${latLng.longitude}',
-                      15.0,
-                      latLng);
-                  insertPolyLine(latLng);
-
-                  setState(() {});
-                },
-                onMapReady: () {
-                  mapController.mapEventStream.listen((event) {});
-                },
-                onPositionChanged: (position, hasGesure) {
-                  if (hasGesure) {
-                    _updateMarkerSize(position.zoom ?? 13.0);
-                  }
-                },
-                initialCenter: routePoints[0],
-                initialZoom: 10,
-              ),
-              //      nonRotatedChildren: [
-              //        AttributionWidget.defaultWidget(
-              //            source: 'OpenStreetMap contributors',
-              //            onSourceTapped: null),
-              //      ],
+            child: Stack(
               children: [
-                TileLayer(
-                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                  userAgentPackageName: 'com.example.app',
-                  maxZoom: 18,
-                ),
-                CurrentLocationLayer(
-                  followScreenPoint: const CustomPoint(0.0, 1.0),
-                  followScreenPointOffset: const CustomPoint(0.0, -60.0),
-                  followCurrentLocationStream:
-                      _followCurrentLocationStreamController.stream,
-                  turnHeadingUpLocationStream:
-                      _turnHeadingUpStreamController.stream,
-                  followOnLocationUpdate: _followOnLocationUpdate,
-                  turnOnHeadingUpdate: _turnOnHeadingUpdate,
-                  style: const LocationMarkerStyle(
-                    marker: DefaultLocationMarker(
-                      child: Icon(
-                        Icons.navigation,
-                        color: Colors.white,
+                FlutterMap(
+                  mapController: _animatedMapController.mapController,
+                  options: MapOptions(
+                    onTap: (tapPos, LatLng latLng) {
+                      _textFieldController.text = '';
+                      popValue.dropdownIdx = -1;
+                      popValue.text1 = '';
+                      _displayTextInputDialog(context, latLng);
+                      //   .then((value) {});
+                    },
+                    onLongPress: (tapPos, LatLng latLng) {
+                      if (!showTarget) {
+                        debugPrint("TAP $tapPos    $latLng");
+                        insertPolyLine(latLng).then((data) {
+                          _addPointOfInterest(id, userId, 12, '$data["name"]',
+                              '$data["summary"]', 15.0, latLng);
+                        });
+
+                        setState(() {});
+                      }
+                    },
+                    onMapReady: () {
+                      mapController.mapEventStream.listen((event) {});
+                    },
+                    onPositionChanged: (position, hasGesure) {
+                      if (hasGesure) {
+                        _updateMarkerSize(position.zoom ?? 13.0);
+                      }
+                    },
+                    initialCenter: routePoints[0],
+                    initialZoom: 10,
+                  ),
+                  children: [
+                    TileLayer(
+                      urlTemplate:
+                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      userAgentPackageName: 'com.example.app',
+                      maxZoom: 18,
+                    ),
+                    CurrentLocationLayer(
+                      followScreenPoint: const CustomPoint(0.0, 1.0),
+                      followScreenPointOffset: const CustomPoint(0.0, -60.0),
+                      followCurrentLocationStream:
+                          _followCurrentLocationStreamController.stream,
+                      turnHeadingUpLocationStream:
+                          _turnHeadingUpStreamController.stream,
+                      followOnLocationUpdate: _followOnLocationUpdate,
+                      turnOnHeadingUpdate: _turnOnHeadingUpdate,
+                      style: const LocationMarkerStyle(
+                        marker: DefaultLocationMarker(
+                          child: Icon(
+                            Icons.navigation,
+                            color: Colors.white,
+                          ),
+                        ),
+                        markerSize: Size(40, 40),
+                        markerDirection: MarkerDirection.heading,
                       ),
                     ),
-                    markerSize: Size(40, 40),
-                    markerDirection: MarkerDirection.heading,
-                  ),
+                    PolylineLayer(
+                      polylineCulling: false,
+                      polylines: polylines,
+                    ),
+                    MarkerLayer(markers: pointsOfInterest),
+                  ],
                 ),
-                PolylineLayer(
-                  polylineCulling: false,
-                  polylines: polylines,
-                ),
-                MarkerLayer(markers: pointsOfInterest),
+                if (showTarget) ...[
+                  CustomPaint(
+                    painter: TargetPainter(
+                        top: mapHeight / 2,
+                        left: MediaQuery.of(context).size.width / 2,
+                        color: Colors.black),
+                  )
+                ],
               ],
             ),
             //    ),
@@ -520,16 +570,22 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                     padding: const EdgeInsets.symmetric(horizontal: 10),
                     children: <Widget>[
                       for (int i = 0; i < pointsOfInterest.length; i++)
-                        //   Card(
-                        //     key: ValueKey('$i'),
-                        //      color: Colors.orangeAccent,
-                        //     elevation: 2,
-                        //      child: ListTile(
+                        //     Card(
+                        //  /       key: ValueKey('$i'),
+                        //         color: Colors.orangeAccent,
+                        //          elevation: 2,
+                        //          child: ListTile(
                         ListTile(
+                            //  leading: _addRemoveWaypoint(
+                            //      context, setState, i, pointsOfInterest),
+                            trailing:
+                                const Icon(Icons.assistant_direction_sharp),
                             key: ValueKey('$i'),
                             tileColor: i.isOdd ? Colors.white : Colors.blue,
-                            title: Text(
-                                'Item $i ${pointsOfInterest[i].description}'),
+                            leading: ReorderableDragStartListener(
+                                index: i, child: const Icon(Icons.drag_handle)),
+                            title: Text(getTitles(i)[0]),
+                            subtitle: Text(getTitles(i)[1]),
                             onLongPress: () => {
                                   _animatedMapController.animateTo(
                                       dest: pointsOfInterest[i].point)
@@ -578,6 +634,22 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       //  ),
       //   ),
     );
+  }
+
+  List<String> getTitles(int i) {
+    List<String> result = [];
+    if (pointsOfInterest.length == 1) {
+      result.add('Waypoint 1 Trip Start');
+      result.add('0.0 miles - (0 minutes)');
+    } else if (i == 0) {
+      result.add('Waypoint 1 ${pointsOfInterest[1].description.split(',')[0]}');
+      result.add('0.0 miles - (0 minutes)');
+    } else {
+      result.add(
+          'Waypoint ${i + 1} ${pointsOfInterest[i].description.split(',')[1]}');
+      result.add(pointsOfInterest[i].hint);
+    }
+    return result;
   }
 }
 
@@ -647,4 +719,6 @@ class _WaypointListState extends State<WaypointList> {
   }
   
 }
+
+"{"code":"Ok","routes":[{"geometry":{"coordinates":[[-1.068075,51.437906],[-1.068075,51.437906]],"type":"LineString"},"legs":[{"s…"
 */
