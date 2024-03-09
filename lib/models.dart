@@ -224,13 +224,13 @@ class PointOfInterest extends Marker {
           height: height,
         );
 
-  static IconData markerIcon(int type) {
-    return IconData(poiTypes.toList()[type]['iconMaterial'],
-        fontFamily: 'MaterialIcons');
-  }
-
   /// The : super keyword means we are referring to base class - Marker - parameters
   /// The point and builder are both required
+}
+
+IconData markerIcon(int type) {
+  return IconData(poiTypes.toList()[type]['iconMaterial'],
+      fontFamily: 'MaterialIcons');
 }
 
 /*
