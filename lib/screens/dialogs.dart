@@ -189,6 +189,98 @@ AlertDialog buildColumnDialog(
       actions: actionButtons(context, callbacks, buttonTexts));
 }
 
+Future<LatLng> locationDialog(BuildContext context, Function callback) async {
+  String waypoint = '';
+  LatLng location = const LatLng(0.00, 0.00);
+  await showDialog(
+      context: context,
+      // builder: (context) => StatefulBuilder(
+      barrierDismissible: false,
+      builder: (context) =>
+          StatefulBuilder(builder: (BuildContext context, setState) {
+            return buildColumnDialog(
+                context: context,
+                title: 'Location Search',
+                content: SizedBox(
+                    height: 100,
+                    width: 300,
+                    child: SingleChildScrollView(
+                        child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            mainAxisSize: MainAxisSize.min,
+                            children: <Widget>[
+                          const Text('Enter location name:'),
+                          Row(
+                            children: <Widget>[
+                              Expanded(
+                                flex: 1,
+                                child: Padding(
+                                  padding:
+                                      const EdgeInsets.fromLTRB(0, 0, 10, 0),
+                                  child: Autocomplete(
+                                    optionsBuilder: (TextEditingValue
+                                        textEditingValue) async {
+                                      autoCompleteData = await getSuggestions(
+                                          textEditingValue.text);
+                                      setState(() {
+                                        waypoint = textEditingValue.text;
+                                      });
+                                      if (textEditingValue.text.isEmpty) {
+                                        return const Iterable<String>.empty();
+                                      } else {
+                                        return autoCompleteData.where((word) =>
+                                            word.toLowerCase().contains(
+                                                textEditingValue.text
+                                                    .toLowerCase()));
+                                      }
+                                    },
+                                    fieldViewBuilder: (context, controller,
+                                        focusNode, onEditingComplete) {
+                                      return TextFormField(
+                                          textCapitalization:
+                                              TextCapitalization.characters,
+                                          controller: controller,
+                                          focusNode: focusNode,
+                                          onEditingComplete: onEditingComplete,
+                                          decoration: const InputDecoration(
+                                              hintText: 'Waypoint'));
+                                    },
+                                    onSelected: (String selection) {
+                                      // waypoints[i] = selection;
+                                      debugPrint(
+                                          'You just selected $selection');
+                                    },
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                            ],
+                          )
+                        ]))),
+                buttonTexts: [
+                  'OK',
+                  'CANCEL',
+                ],
+                callbacks: [
+                  () async {
+                    await callback(waypoint).then((result) {
+                      if (result != null) {
+                        location = result;
+                        return location;
+                      }
+                    });
+                  },
+                ]);
+          })).then((result) {
+    debugPrint('Result from dialog: ${result.toString()}');
+    if (result != null && result != "OK" && result != "CANCEL") {
+      location = result;
+      debugPrint('Location after callback: ${location.toString()}');
+    }
+  });
+  return location;
+}
+
 Future<List<Polyline>> routeDialog(
     BuildContext context, int points, Function callback) async {
   List<TextEditingController> controllers = [];

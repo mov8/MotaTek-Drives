@@ -14,6 +14,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'models.dart';
+import 'services/webHelper.dart';
 import 'screens/painters.dart';
 import 'screens/dialogs.dart';
 import 'package:flutter_map_location_marker/flutter_map_location_marker.dart';
@@ -71,6 +72,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   double listHeight = 100;
   bool showTarget = false;
   late Future<Position> _position;
+  int insertAfter = -1;
 
   // late bool _navigationMode;
   // late int _pointerCount;
@@ -80,7 +82,10 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   late FollowOnLocationUpdate _followOnLocationUpdate;
   late TurnOnHeadingUpdate _turnOnHeadingUpdate;
 
+  // final ValueNotifier<bool> showTarget = ValueNotifier<bool>(false);
+
   final _dividerHeight = 25.0;
+
 //  double _ratio = 0.0; //0.6;
   // double _maxHeight = 100.0;
 
@@ -178,6 +183,45 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
         markerPoint: latLng));
   }
 
+  ///
+  /// _singlePointOfInterest uses Komoot reverse lookup to get the address, and doesn't
+  /// try to generate any polylines
+  ///
+  _singlePointOfInterest(BuildContext context, latLng, int id) async {
+    dynamic jsonResponse;
+    PointOfInterest poi;
+    var url = Uri.parse(
+        'https://photon.komoot.io//reverse?lon=${latLng.longitude}&lat=${latLng.latitude}');
+    try {
+      // dynamic response;
+
+      var response = await http.get(url);
+      debugPrint('StatusCode:${response.statusCode}');
+      if (response.statusCode == 200) {
+        // response = await http
+        //     .get(url)
+        jsonResponse = jsonDecode(response.body);
+        String name = jsonResponse['features'][0]['properties']['name'];
+        int type = 12;
+        if (context.mounted) {
+          poi = PointOfInterest(context, id, userId, driveId, type, name,
+              '0.0 miles - (0 minutes)', 10, 10,
+              markerPoint: latLng);
+          if (id == -1) {
+            pointsOfInterest.clear();
+            startLatLng == latLng;
+            pointsOfInterest.add(poi);
+          } else {
+            pointsOfInterest.insert(id + 1, poi);
+          }
+          setState(() {});
+        }
+      }
+    } catch (e) {
+      debugPrint('Http error: ${e.toString()}');
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -242,6 +286,25 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     });
   }
 
+  Future<LatLng> locationCallback(String waypoint) async {
+    LatLng result = const LatLng(0.00, 0.00);
+    dynamic location; // = [LatLng(0.00, 0.00)];
+    try {
+      await locationFromAddress(waypoint).then((res) async {
+        location = res;
+        debugPrint('Location: ${location[0].toString()}');
+        await _animatedMapController
+            .animateTo(
+                dest: LatLng(location[0].latitude, location[0].longitude))
+            .then((_) => setState(() {}));
+      });
+    } catch (e) {
+      debugPrint('Error: ${e.toString()}');
+    }
+    debugPrint('locationCallback returning: $result');
+    return result;
+  }
+
   Future<List<Polyline>> routeCallback(List<String> waypoints) async {
     List<String> urlWaypoints = [];
     for (int i = 1; i < waypoints.length; i++) {
@@ -275,6 +338,52 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     }
     setState(() {});
     return polylines;
+  }
+
+  // Future<List<Polyline>> routeCallback2(List<String> waypoints) async {
+  Future<LatLng> routeCallback2(List<String> waypoints) async {
+    //  List<String> urlWaypoints = [];
+    for (int i = 0; i < waypoints.length; i++) {
+      List<Location> startL;
+      //   List<Location> endL;
+      try {
+        await locationFromAddress(waypoints[i]).then((res) async {
+          startL = res;
+
+          _animatedMapController.animateTo(
+              dest: LatLng(startL[0].latitude, startL[0].longitude));
+
+          debugPrint(
+              'Position: lat: ${startL[0].latitude} long: ${startL[0].longitude}');
+
+          return LatLng(startL[0].latitude, startL[0].longitude);
+          //        await locationFromAddress(waypoints[i]).then((res) {
+          //          endL = res;
+          //          urlWaypoints.add(
+          //              '${startL[0].longitude},${startL[0].latitude};${endL[0].longitude},${endL[0].latitude}');
+          //        });
+        });
+      } catch (e) {
+        debugPrint('Error: ${e.toString()}');
+      }
+    }
+/*
+    polylines = [];
+
+    for (int i = 0; i < urlWaypoints.length; i++) {
+      Map<String, dynamic> apiData;
+      apiData = await getRoutePoints(urlWaypoints[i]);
+      routePoints = apiData["points"];
+      await getRoutePoints(urlWaypoints[i]);
+      polylines.add(Polyline(
+          points: routePoints,
+          color: const Color.fromARGB(255, 28, 97, 5),
+          strokeWidth: 5));
+    }
+    setState(() {});
+    return polylines;
+    */
+    throw ('error in callback');
   }
 
   Future<Map<String, dynamic>> addPolyLine(
@@ -319,7 +428,9 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     setState(() {});
   }
 
-  Future<Map<String, dynamic>> insertPolyLine(LatLng latLng2) async {
+  Future<Map<String, dynamic>> appendPolyline(
+    LatLng latLng2,
+  ) async {
     LatLng latLng1;
     Map<String, dynamic> apiData = {};
     if (startLatLng == const LatLng(0.00, 0.00)) {
@@ -362,7 +473,9 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     return routePoints;
   }
 
-//
+  ///
+  /// Returns the routepoints and the waypoint data for the added waypoint
+  ///
   Future<Map<String, dynamic>> getRoutePoints(String waypoints) async {
     dynamic jsonResponse;
     final Map<String, dynamic> result = {};
@@ -394,8 +507,9 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
 
     String name =
         '${jsonResponse['routes'][0]['legs'][0]['steps'][0]['name']}, ${jsonResponse['routes'][0]['legs'][0]['steps'][jsonResponse['routes'][0]['legs'][0]['steps'].length - 1]['name']}';
-
-    if (!name.contains(',')) name = '$name, $name';
+    name =
+        '${jsonResponse['routes'][0]['legs'][0]['steps'][jsonResponse['routes'][0]['legs'][0]['steps'].length - 1]['name']}';
+    //  if (!name.contains(',')) name = '$name, $name';
 
     result["name"] = name;
 
@@ -485,29 +599,92 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
             const SizedBox(
               height: 10,
             ),
+            if (showTarget) ...[
+              FloatingActionButton(
+                onPressed: () async {
+                  // if (showTarget==true)  {
+                  if (showTarget) {
+                    LatLng pos =
+                        _animatedMapController.mapController.camera.center;
+                    if (insertAfter == -1 && pointsOfInterest.isNotEmpty) {
+                      appendPolyline(pos).then((data) {
+                        _addPointOfInterest(id, userId, 12, '${data["name"]}',
+                            '${data["summary"]}', 15.0, pos);
+                      });
+                    } else if (insertAfter > -1) {
+                      try {
+                        _singlePointOfInterest(context, pos, insertAfter)
+                            .then((_) {
+                          loadPolyLines();
+                        });
+                        insertAfter = -1;
+                      } catch (e) {
+                        debugPrint('Point of interest error: ${e.toString()}');
+                      }
+                    } else {
+                      _singlePointOfInterest(context, pos, insertAfter);
+                      startLatLng = pos;
+                    }
+                    setState(() {});
+                  }
+                },
+                backgroundColor: Colors.blue,
+                shape: const CircleBorder(),
+                child: const Icon(Icons.add_location),
+              ),
+              const SizedBox(
+                height: 10,
+              ),
+              FloatingActionButton(
+                onPressed: () async {
+                  // if (showTarget==true)  {
+                  if (showTarget) {
+                    LatLng pos =
+                        _animatedMapController.mapController.camera.center;
+                    if (insertAfter == -1 && pointsOfInterest.isNotEmpty) {
+                      appendPolyline(pos).then((data) {
+                        _addPointOfInterest(id, userId, 12, '${data["name"]}',
+                            '${data["summary"]}', 15.0, pos);
+                      });
+                    } else if (insertAfter > -1) {
+                      try {
+                        _singlePointOfInterest(context, pos, insertAfter)
+                            .then((_) {
+                          loadPolyLines();
+                        });
+                        insertAfter = -1;
+                      } catch (e) {
+                        debugPrint('Point of interest error: ${e.toString()}');
+                      }
+                    } else {
+                      _singlePointOfInterest(context, pos, insertAfter);
+                      startLatLng = pos;
+                    }
+                    setState(() {});
+                  }
+                },
+                backgroundColor: Colors.blue,
+                shape: const CircleBorder(),
+                child: const Icon(Icons.landscape),
+              ),
+              const SizedBox(
+                height: 10,
+              ),
+            ],
             FloatingActionButton(
               onPressed: () async {
-                // if (showTarget==true)  {
-                if (showTarget) {
-                  LatLng pos =
-                      _animatedMapController.mapController.camera.center;
-                  insertPolyLine(pos).then((data) {
-                    _addPointOfInterest(id, userId, 12, '${data["name"]}',
-                        '${data["summary"]}', 15.0, pos);
-                    setState(() {});
-                  });
-                }
+                await locationDialog(context, locationCallback);
               },
               backgroundColor: Colors.blue,
               shape: const CircleBorder(),
-              child: const Icon(Icons.pin_drop),
+              child: const Icon(Icons.travel_explore), //image_search),
             ),
           ],
         ),
         body: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.end,
-          children: <Widget>[
+          children: [
             SizedBox(
               height: mapHeight,
               width: MediaQuery.of(context).size.width,
@@ -526,7 +703,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                       onLongPress: (tapPos, LatLng latLng) async {
                         if (!showTarget) {
                           debugPrint("TAP $tapPos    $latLng");
-                          insertPolyLine(latLng).then((data) {
+                          appendPolyline(latLng).then((data) {
                             _addPointOfInterest(
                                 id,
                                 userId,
@@ -591,32 +768,25 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                       painter: TargetPainter(
                           top: mapHeight / 2,
                           left: MediaQuery.of(context).size.width / 2,
-                          color: Colors.black),
+                          color: insertAfter == -1 ? Colors.black : Colors.red),
                     )
                   ],
                 ],
               ),
-              //    ),
             ),
             GestureDetector(
               behavior: HitTestBehavior.translucent,
               child: SizedBox(
                 height: _dividerHeight,
-
                 width: MediaQuery.of(context).size.width,
                 child: const Icon(
                   Icons.drag_handle,
                   size: 40,
                   color: Colors.blue,
                 ),
-                //    child: const RotationTransition(
-                //      turns: AlwaysStoppedAnimation(0.25),
-                //      child: Icon(Icons.drag_handle),
-                //    ),
               ),
               onPanUpdate: (DragUpdateDetails details) {
                 setState(() {
-                  //         _ratio += details.delta.dy;
                   mapHeight += details.delta.dy;
 
                   debugPrint("mapHeight: ${mapHeight.toString()}");
@@ -647,9 +817,6 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                               alignment: Alignment.bottomCenter,
                               children: <Widget>[
                                 ListTile(
-                                    // ListTile(
-                                    //  leading: _addRemoveWaypoint(
-                                    //      context, setState, i, pointsOfInterest),
                                     trailing: IconButton(
                                       iconSize: 25,
                                       icon: const Icon(Icons.delete),
@@ -658,7 +825,6 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                         setState(() {});
                                       },
                                     ),
-                                    // key: ValueKey('$i'),
                                     tileColor: i.isOdd
                                         ? Colors.white
                                         : const Color.fromARGB(
@@ -675,10 +841,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                 const Icon(Icons.drag_handle)),
                                     title: Text(getTitles(i)[0]),
                                     subtitle: Text(getTitles(i)[1]),
-                                    //  horizontalTitleGap: 10,
-                                    //  minVerticalPadding: 35,
                                     contentPadding:
-                                        const EdgeInsets.fromLTRB(5, 5, 5, 40),
+                                        const EdgeInsets.fromLTRB(5, 5, 5, 30),
                                     onLongPress: () => {
                                           _animatedMapController.animateTo(
                                               dest: pointsOfInterest[i].point)
@@ -687,16 +851,22 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     IconButton.filled(
-                                      //  key: ValueKey('${i * 100}'),
-                                      // iconSize: 20,
-                                      // splashRadius: 12,
-                                      // color: Colors.red,
                                       style: IconButton.styleFrom(
+                                          elevation: 5,
+                                          shadowColor: const Color.fromRGBO(
+                                              95, 94, 94, 0.984),
                                           //   maximumSize: Size(12, 12),
                                           backgroundColor: const Color.fromARGB(
                                               214, 245, 6, 6)),
-                                      onPressed: () {},
-                                      icon: const Icon(Icons.add),
+                                      onPressed: () {
+                                        debugPrint('Button No:$i');
+                                        insertAfter = insertAfter == i ? -1 : i;
+                                        showTarget = insertAfter == i;
+                                        setState(() {});
+                                      },
+                                      icon: Icon(i == insertAfter
+                                          ? Icons.close
+                                          : Icons.add),
                                     ),
                                   ],
                                 )
@@ -727,8 +897,13 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       result.add(
           'Point of interest - ${poiTypes[pointsOfInterest[i].type]["name"]}');
       result.add(pointsOfInterest[i].description);
+    } else {
+      result.add('Waypoint ${i + 1} -  ${pointsOfInterest[i].description}');
+      result.add(pointsOfInterest[i].hint);
+    }
+/*
     } else if (pointsOfInterest.length == 1) {
-      result.add('Waypoint 1 - Trip Start');
+      result.add('Waypoint 1 -  ${pointsOfInterest[i].description}');
       result.add('0.0 miles - (0 minutes)');
     } else if (i == 0) {
       result
@@ -738,7 +913,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       result.add(
           'Waypoint ${i + 1} - ${pointsOfInterest[i].description.split(',')[1]}');
       result.add(pointsOfInterest[i].hint);
-    }
+    } */
     return result;
   }
 

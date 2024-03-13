@@ -10,12 +10,13 @@ class TargetPainter extends CustomPainter {
 
   @override
   TargetPainter({required this.top, required this.left, required this.color});
+  // final Color _color = color;
   var outLineBrush = Paint()
-    ..color = const Color.fromARGB(234, 13, 13, 14)
     ..style = PaintingStyle.stroke
     ..strokeWidth = 2.5;
   @override
   void paint(Canvas canvas, Size size) {
+    outLineBrush.color = color;
     canvas.drawArc(Rect.fromCircle(center: Offset(left, top), radius: radius),
         0, (2 * pi), false, outLineBrush);
     canvas.drawLine(Offset(left - radius - inset, top),
