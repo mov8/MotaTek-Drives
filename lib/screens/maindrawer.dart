@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 
 class MainDrawer extends StatefulWidget {
@@ -36,10 +35,38 @@ class _MainDrawerState extends State<MainDrawer> {
           )),
       ListTile(
         leading: Icon(
-          Icons.settings_input_component,
+          Icons.settings,
           size: 30,
         ),
         title: Text('App Settings',
+            style: TextStyle(
+              color: Colors.blue,
+              fontSize: 20,
+            )),
+        //             onTap: () {
+        //
+        //             }
+      ),
+      ListTile(
+        leading: Icon(
+          Icons.download,
+          size: 30,
+        ),
+        title: Text('Download a trip',
+            style: TextStyle(
+              color: Colors.blue,
+              fontSize: 20,
+            )),
+        //             onTap: () {
+        //
+        //             }
+      ),
+      ListTile(
+        leading: Icon(
+          Icons.share,
+          size: 30,
+        ),
+        title: Text('Share your trip',
             style: TextStyle(
               color: Colors.blue,
               fontSize: 20,

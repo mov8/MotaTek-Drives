@@ -4,8 +4,17 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter/material.dart';
 
-/// https://api.flutter.dev/flutter/material/Icons-class.  get the icon codepoint from here
-///
+/// https://api.flutter.dev/flutter/material/Icons-class.html  get the icon codepoint from here
+/// https://api.flutter.dev/flutter/material/Icons/add_road-constant.html
+
+enum UserMode {
+  home,
+  routes,
+  explore,
+  profile,
+  shop,
+}
+
 const List<Map> poiTypes = [
   {
     'id': 0,
@@ -33,14 +42,6 @@ const List<Map> poiTypes = [
   },
   {
     'id': 3,
-    'name': 'Great road',
-    'icon': 'Icons.add_road',
-    'iconMaterial': 0xe059,
-    'colour': 'Colors.blue',
-    'colourMaterial': 0xff4CAF50
-  },
-  {
-    'id': 4,
     'name': 'Historic building',
     'icon': 'Icons.castle',
     'iconMaterial': 0xf02e5,
@@ -48,7 +49,7 @@ const List<Map> poiTypes = [
     'colourMaterial': 0xff4CAF50
   },
   {
-    'id': 5,
+    'id': 4,
     'name': 'Monument',
     'icon': 'Icons.account_balance',
     'iconMaterial': 0xe040,
@@ -56,7 +57,7 @@ const List<Map> poiTypes = [
     'colourMaterial': 0xff4CAF50
   },
   {
-    'id': 6,
+    'id': 5,
     'name': 'Museum',
     'icon': 'Icons.museum',
     'iconMaterial': 0xe414,
@@ -64,7 +65,7 @@ const List<Map> poiTypes = [
     'colourMaterial': 0xff4CAF50
   },
   {
-    'id': 7,
+    'id': 6,
     'name': 'Park',
     'icon': 'Icons.park',
     'iconMaterial': 0xe478,
@@ -72,7 +73,7 @@ const List<Map> poiTypes = [
     'colourMaterial': 0xff4CAF50
   },
   {
-    'id': 8,
+    'id': 7,
     'name': 'Parking',
     'icon': 'Icons.local_parking',
     'iconMaterial': 0xe39d,
@@ -80,7 +81,7 @@ const List<Map> poiTypes = [
     'colourMaterial': 0xff4CAF50
   },
   {
-    'id': 9,
+    'id': 8,
     'name': 'Other',
     'icon': 'Icons.pin_drop',
     'iconMaterial': 0xe4c7,
@@ -88,7 +89,7 @@ const List<Map> poiTypes = [
     'colourMaterial': 0xff4CAF50
   },
   {
-    'id': 10,
+    'id': 9,
     'name': 'Start',
     'icon': 'Icons.assistant_navigation',
     'iconMaterial': 0xe0ad,
@@ -96,10 +97,18 @@ const List<Map> poiTypes = [
     'colourMaterial': 0xff4CAF50
   },
   {
-    'id': 11,
+    'id': 10,
     'name': 'End',
     'icon': 'Icons.assistant_photo_outlined',
     'iconMaterial': 0xee9e,
+    'colour': 'Colors.blue',
+    'colourMaterial': 0xff4CAF50
+  },
+  {
+    'id': 11,
+    'name': 'Routepoint',
+    'icon': 'Icons.nature_people',
+    'iconMaterial': 0xe696,
     'colour': 'Colors.blue',
     'colourMaterial': 0xff4CAF50
   },
@@ -113,10 +122,18 @@ const List<Map> poiTypes = [
   },
   {
     'id': 13,
-    'name': 'Routepoint',
-    'icon': 'Icons.nature_people',
-    'iconMaterial': 0xe696,
+    'name': 'Great road start',
+    'icon': 'Icons.add_road',
+    'iconMaterial': 0xe059,
     'colour': 'Colors.blue',
+    'colourMaterial': 0xff4CAF50
+  },
+  {
+    'id': 14,
+    'name': 'Great road end',
+    'icon': 'Icons.remove_road',
+    'iconMaterial': 0xf07bb,
+    'colour': 'Colors.red',
     'colourMaterial': 0xff4CAF50
   },
 ];
@@ -170,24 +187,46 @@ const List<LatLng> testRoutePoints = [
 
 void myFunc() {}
 
-class PointOfInterest extends Marker {
+class WayPoint {
   int id;
-
   int userId;
   int driveId;
   int type;
   String description;
   String hint;
-  LatLng markerPoint = const LatLng(52.05884, -1.345583);
-  /*
-  WidgetBuilder markerBuilder = (ctx) => const Icon(
-        Icons.pin_drop,
-        size: 50,
-        color: Colors.blueAccent,
-      );
-*/
+  LatLng markerPoint;
+  WayPoint(
+      {required this.id,
+      required this.userId,
+      required this.driveId,
+      required this.type,
+      required this.description,
+      required this.hint,
+      required this.markerPoint});
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'useId': userId,
+      'driveId': driveId,
+      'type': type,
+      'description': description,
+      'hint': hint,
+      'latitude': markerPoint.latitude,
+      'longitude': markerPoint.longitude,
+    };
+  }
+}
 
-//  Marker marker = Marker()
+class PointOfInterest extends Marker {
+  int id;
+  List<String> imageURIs;
+  int userId;
+  int driveId;
+  int type;
+  String description;
+  String hint;
+
+  LatLng markerPoint = const LatLng(52.05884, -1.345583);
 
   WidgetBuilder markerBuilder = (ctx) => RawMaterialButton(
         onPressed: () => myFunc(),
@@ -202,8 +241,17 @@ class PointOfInterest extends Marker {
         ),
       );
 
-  PointOfInterest(BuildContext ctx, this.id, this.userId, this.driveId,
-      this.type, this.description, this.hint, double width, double height,
+  PointOfInterest(
+      BuildContext ctx,
+      this.id,
+      this.userId,
+      this.driveId,
+      this.type,
+      this.description,
+      this.hint,
+      double width,
+      double height,
+      this.imageURIs,
       {required LatLng markerPoint})
       : super(
           child: RawMaterialButton(
@@ -215,7 +263,7 @@ class PointOfInterest extends Marker {
               shape: const CircleBorder(),
               child: Icon(
                 markerIcon(type),
-                size: type > 10 ? 10 : width * 0.75,
+                size: type > 12 ? 10 : width * 0.75,
                 color: Colors.blueAccent,
               )),
           point: markerPoint,
@@ -223,6 +271,19 @@ class PointOfInterest extends Marker {
           width: width,
           height: height,
         );
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'useId': userId,
+      'driveId': driveId,
+      'type': type,
+      'description': description,
+      'hint': hint,
+      'latitude': markerPoint.latitude,
+      'longitude': markerPoint.longitude,
+    };
+  }
 
   /// The : super keyword means we are referring to base class - Marker - parameters
   /// The point and builder are both required
@@ -285,18 +346,29 @@ class User {
 
 /// class User
 
-class Trip {
+class Drive {
   int id = 0;
   int userId = 0;
   String name;
   String description;
   DateTime date = DateTime.now();
-  Trip({
+  double maxLat = 0;
+  double minLat = 0;
+  double maxLong = 0;
+  double minLong = 0;
+
+  Drive({
     this.id = 0,
+    required this.userId,
     required this.name,
     required this.description,
     required this.date,
+    this.maxLat = 0,
+    this.minLat = 0,
+    this.maxLong = 0,
+    this.minLong = 0,
   });
+
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -304,6 +376,10 @@ class Trip {
       'name': name,
       'description': description,
       'date': date,
+      'maxLat': maxLat,
+      'minLat': minLat,
+      'maxLong': maxLong,
+      'minLong': minLong,
     };
   }
 }
@@ -315,7 +391,7 @@ class PopupValue {
   PopupValue(this.dropdownIdx, this.text1, this.text2);
 }
 
-class Drive {
+class Drive1 {
   int id;
   int userId;
   String name;
@@ -323,7 +399,7 @@ class Drive {
   DateTime published;
   double startLong;
   double startLat;
-  Drive(this.id, this.userId, this.name, this.description, this.published,
+  Drive1(this.id, this.userId, this.name, this.description, this.published,
       this.startLong, this.startLat);
   Map<String, dynamic> toMap() {
     return {

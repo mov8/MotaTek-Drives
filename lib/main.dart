@@ -1,5 +1,7 @@
 import 'dart:async';
 // import 'dart:developer';
+import 'package:drives/screens/maindrawer.dart';
+import 'package:drives/utilities.dart';
 import 'package:flutter/material.dart';
 //import 'package:flutter/rendering.dart';
 
@@ -15,6 +17,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'models.dart';
 import 'services/webHelper.dart';
+import 'services/imageHelper.dart';
 import 'screens/painters.dart';
 import 'screens/dialogs.dart';
 import 'package:flutter_map_location_marker/flutter_map_location_marker.dart';
@@ -26,6 +29,8 @@ https://pub.dev/packages/flutter_map_location_marker
 https://github.com/tlserver/flutter_map_location_marker
 https://www.appsdeveloperblog.com/alert-dialog-with-a-text-field-in-flutter/   /// Shows text input dialog
 https://fabricesumsa2000.medium.com/openstreetmaps-osm-maps-and-flutter-daeb23f67620  /// tapablePolylineLayer  
+
+https://github.com/OwnWeb/flutter_map_tappable_polyline/blob/master/lib/flutter_map_tappable_polyline.dart
 */
 
 void main() {
@@ -66,6 +71,9 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   int type = -1;
   double iconSize = 35;
   LatLng startLatLng = const LatLng(0.00, 0.00);
+  LatLng lastLatLng = const LatLng(0.00, 0.00);
+  bool tracking = false;
+  bool goodRoad = false;
   late Size screenSize;
   late Size appBarSize;
   double mapHeight = 250;
@@ -73,6 +81,9 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   bool showTarget = false;
   late Future<Position> _position;
   int insertAfter = -1;
+  int poiDetailIndex = -1;
+  int _bnbIndex = 0;
+  var moveDelay = const Duration(seconds: 2);
 
   // late bool _navigationMode;
   // late int _pointerCount;
@@ -84,7 +95,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
 
   // final ValueNotifier<bool> showTarget = ValueNotifier<bool>(false);
 
-  final _dividerHeight = 25.0;
+  final _dividerHeight = 35.0;
 
 //  double _ratio = 0.0; //0.6;
   // double _maxHeight = 100.0;
@@ -176,10 +187,12 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
         });
   }
 
+  List<String> images = [];
+
   _addPointOfInterest(int id, int userId, int iconIdx, String desc, String hint,
       double size, LatLng latLng) {
     pointsOfInterest.add(PointOfInterest(
-        context, id, userId, driveId, iconIdx, desc, hint, size, size,
+        context, id, userId, driveId, iconIdx, desc, hint, size, size, images,
         markerPoint: latLng));
   }
 
@@ -196,19 +209,23 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       // dynamic response;
 
       var response = await http.get(url);
-      debugPrint('StatusCode:${response.statusCode}');
+      // debugPrint('StatusCode:${response.statusCode}');
       if (response.statusCode == 200) {
         // response = await http
         //     .get(url)
         jsonResponse = jsonDecode(response.body);
         String name = jsonResponse['features'][0]['properties']['name'];
         int type = 12;
+
         if (context.mounted) {
-          poi = PointOfInterest(context, id, userId, driveId, type, name,
-              '0.0 miles - (0 minutes)', 10, 10,
+          poi = PointOfInterest(context, setState, id, userId, driveId, type,
+              name, '0.0 miles - (0 minutes)', 10, 10, images,
               markerPoint: latLng);
           if (id == -1) {
-            pointsOfInterest.clear();
+            if (pointsOfInterest.length == 1 &&
+                pointsOfInterest[0].type == 12) {
+              pointsOfInterest.clear();
+            }
             startLatLng == latLng;
             pointsOfInterest.add(poi);
           } else {
@@ -239,7 +256,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     // _maxHeight = MediaQuery.of(context).size.height * 0.6;
     // _position = Geolocator.getCurrentPosition();
     // mapHeight = MediaQuery.of(context).size.height * 0.8; //250.0;
-    mapHeight = 500;
+    mapHeight = 500; //500;
     //(screenSize.height - appBarSize.height - _dividerHeight) * 0.9;
   }
 
@@ -292,7 +309,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     try {
       await locationFromAddress(waypoint).then((res) async {
         location = res;
-        debugPrint('Location: ${location[0].toString()}');
+        // debugPrint('Location: ${location[0].toString()}');
         await _animatedMapController
             .animateTo(
                 dest: LatLng(location[0].latitude, location[0].longitude))
@@ -301,7 +318,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     } catch (e) {
       debugPrint('Error: ${e.toString()}');
     }
-    debugPrint('locationCallback returning: $result');
+    // debugPrint('locationCallback returning: $result');
     return result;
   }
 
@@ -333,7 +350,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       await getRoutePoints(urlWaypoints[i]);
       polylines.add(Polyline(
           points: routePoints,
-          color: const Color.fromARGB(255, 28, 97, 5),
+          color: goodRoad ? Colors.red : const Color.fromARGB(255, 28, 97, 5),
           strokeWidth: 5));
     }
     setState(() {});
@@ -353,8 +370,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
           _animatedMapController.animateTo(
               dest: LatLng(startL[0].latitude, startL[0].longitude));
 
-          debugPrint(
-              'Position: lat: ${startL[0].latitude} long: ${startL[0].longitude}');
+          //  debugPrint(
+          //      'Position: lat: ${startL[0].latitude} long: ${startL[0].longitude}');
 
           return LatLng(startL[0].latitude, startL[0].longitude);
           //        await locationFromAddress(waypoints[i]).then((res) {
@@ -421,7 +438,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       List<LatLng> points = await getPolylines(waypoints);
       Polyline polyline = Polyline(
           points: points, // polyline,
-          color: const Color.fromARGB(255, 28, 97, 5),
+          color: goodRoad ? Colors.red : const Color.fromARGB(255, 28, 97, 5),
           strokeWidth: 5);
       polylines.add(polyline);
     }
@@ -447,7 +464,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     apiData = await addPolyLine(latLng1, latLng2);
     polylines.add(Polyline(
         points: apiData["points"], // polyline,
-        color: const Color.fromARGB(255, 28, 97, 5),
+        color: goodRoad ? Colors.red : const Color.fromARGB(255, 28, 97, 5),
         strokeWidth: 5));
     setState(() {});
     return apiData;
@@ -523,6 +540,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+        drawer: const MainDrawer(),
         appBar: AppBar(
           title: const Text(
             'MotaTrip',
@@ -530,6 +548,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
           ),
           backgroundColor: Colors.blue,
           actions: <Widget>[
+            /*
             IconButton(
               icon: const Icon(Icons.download),
               tooltip: 'Load route',
@@ -540,6 +559,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
               tooltip: 'Save route',
               onPressed: () async {},
             ),
+            */
             IconButton(
               icon: const Icon(Icons.assistant_direction_sharp),
               tooltip: 'Enter route',
@@ -559,129 +579,219 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                   startLatLng == const LatLng(0.00, 0.00);
                   polylines.clear();
                   pointsOfInterest.clear();
+                  goodRoad = false;
+                  setState(() {});
+                }),
+            IconButton(
+                icon: Icon(tracking ? Icons.sports_score : Icons.flag_circle),
+                tooltip: 'Start',
+                onPressed: () async {
+                  tracking = !tracking;
+                  if (tracking) {
+                    startLatLng = const LatLng(0.00, 0.00);
+                    lastLatLng = startLatLng;
+                    polylines.clear();
+                    pointsOfInterest.clear();
+                    goodRoad = false;
+                  }
+
+                  Timer.periodic(moveDelay, (Timer t) async {
+                    if (tracking) {
+                      // Position position =
+                      await Geolocator.getCurrentPosition().then((position) {
+                        LatLng pos =
+                            LatLng(position.latitude, position.longitude);
+                        if (lastLatLng == const LatLng(0.00, 0.00)) {
+                          lastLatLng = pos;
+                        } else {
+                          if (distanceBetween(pos, lastLatLng) > 0.5) {
+                            appendPolyline(pos).then((data) {
+                              _addPointOfInterest(
+                                  id,
+                                  userId,
+                                  12,
+                                  '${data["name"]}',
+                                  '${data["summary"]}',
+                                  15.0,
+                                  pos);
+                            });
+                            lastLatLng = pos;
+                          }
+                          //  debugPrint('Position: ${position.toString()}');
+                          _animatedMapController.animateTo(
+                              dest: LatLng(
+                                  position.latitude, position.longitude));
+                        }
+                      });
+                      setState(() {
+                        //  showTarget = !showTarget;
+                      });
+                    } else {
+                      t.cancel();
+                    }
+                  });
                   setState(() {});
                 }),
           ],
         ),
+        bottomNavigationBar: BottomNavigationBar(
+            currentIndex: _bnbIndex,
+            showUnselectedLabels: true,
+            selectedItemColor: Colors.yellowAccent,
+            unselectedItemColor: Colors.white,
+            backgroundColor: Colors.blue,
+            onTap: ((idx) async {
+              _bnbIndex = idx;
+              switch (idx) {
+                case 0:
+                  await addWaypoint();
+                  break;
+              }
+              setState(() {});
+            }),
+            items: <BottomNavigationBarItem>[
+              if (showTarget) ...[
+                const BottomNavigationBarItem(
+                    icon: Icon(Icons.add_location), label: 'Add Waypoint'),
+                const BottomNavigationBarItem(
+                    icon: Icon(Icons.add_road), label: 'Add Great Road'),
+                const BottomNavigationBarItem(
+                    icon: Icon(Icons.add_photo_alternate),
+                    label: 'Add Point of Interest'),
+              ] else ...[
+                const BottomNavigationBarItem(
+                    icon: Icon(Icons.home),
+                    label: 'Home',
+                    backgroundColor: Colors.blue),
+                const BottomNavigationBarItem(
+                    icon: Icon(Icons.route),
+                    label: 'Routes',
+                    backgroundColor: Colors.blue),
+                const BottomNavigationBarItem(
+                    icon: Icon(Icons.map),
+                    label: 'Explore',
+                    backgroundColor: Colors.blue),
+                const BottomNavigationBarItem(
+                    icon: Icon(Icons.person),
+                    label: 'Profile',
+                    backgroundColor: Colors.blue),
+                const BottomNavigationBarItem(
+                    icon: Icon(Icons.storefront),
+                    label: 'Shop',
+                    backgroundColor: Colors.blue),
+              ],
+            ]),
         backgroundColor: Colors.grey[300],
         // floatingActionButton: SeparatedColumn(),
         floatingActionButton: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            const SizedBox(
-              height: 120,
-            ),
-            FloatingActionButton(
-              onPressed: () async {
-                Position position = await Geolocator.getCurrentPosition();
-                debugPrint('Position: ${position.toString()}');
-                _animatedMapController.animateTo(
-                    dest: LatLng(position.latitude, position.longitude));
-                setState(() {
-                  //  showTarget = !showTarget;
-                });
-              },
-              backgroundColor: Colors.blue,
-              shape: const CircleBorder(),
-              child: const Icon(Icons.my_location),
-            ),
-            const SizedBox(
-              height: 10,
-            ),
-            FloatingActionButton(
-              onPressed: () => (setState(() {
-                showTarget = !showTarget;
-              })),
-              backgroundColor: Colors.blue,
-              shape: const CircleBorder(),
-              child: const Icon(Icons.crisis_alert),
-            ),
-            const SizedBox(
-              height: 10,
-            ),
-            if (showTarget) ...[
-              FloatingActionButton(
-                onPressed: () async {
-                  // if (showTarget==true)  {
-                  if (showTarget) {
-                    LatLng pos =
-                        _animatedMapController.mapController.camera.center;
-                    if (insertAfter == -1 && pointsOfInterest.isNotEmpty) {
-                      appendPolyline(pos).then((data) {
-                        _addPointOfInterest(id, userId, 12, '${data["name"]}',
-                            '${data["summary"]}', 15.0, pos);
-                      });
-                    } else if (insertAfter > -1) {
-                      try {
-                        _singlePointOfInterest(context, pos, insertAfter)
-                            .then((_) {
-                          loadPolyLines();
-                        });
-                        insertAfter = -1;
-                      } catch (e) {
-                        debugPrint('Point of interest error: ${e.toString()}');
-                      }
-                    } else {
-                      _singlePointOfInterest(context, pos, insertAfter);
-                      startLatLng = pos;
-                    }
-                    setState(() {});
-                  }
-                },
-                backgroundColor: Colors.blue,
-                shape: const CircleBorder(),
-                child: const Icon(Icons.add_location),
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              const SizedBox(
+                height: 175,
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  /* if (showTarget) ...[
+                    FloatingActionButton(
+                      onPressed: () async {
+                        // if (showTarget==true)  {
+                        if (showTarget) {
+                          addWaypoint();
+                          setState(() {});
+                        }
+                      },
+                      backgroundColor: Colors.blue,
+                      shape: const CircleBorder(),
+                      child: Icon(Icons.add_location,
+                          color: goodRoad ? Colors.red : Colors.black),
+                    ),
+                    const SizedBox(
+                      width: 10,
+                    ),
+                    FloatingActionButton(
+                      onPressed: () async {
+                        // if (showTarget==true)  {
+                        if (showTarget) {
+                          await addWaypoint();
+                          setState(() {
+                            goodRoad = !goodRoad;
+                          });
+                        }
+                      },
+                      backgroundColor: Colors.blue,
+                      shape: const CircleBorder(),
+                      child:
+                          Icon(goodRoad ? Icons.remove_road : Icons.add_road),
+                    ),
+                    const SizedBox(
+                      width: 10,
+                    ),
+                    FloatingActionButton(
+                      onPressed: () async {
+                        // if (showTarget==true)  {
+                        if (showTarget) {
+                          LatLng pos = _animatedMapController
+                              .mapController.camera.center;
+                          _displayTextInputDialog(context, pos);
+                          setState(() {});
+                        }
+                      },
+                      backgroundColor: Colors.blue,
+                      shape: const CircleBorder(),
+                      child: const Icon(Icons.landscape),
+                    ),
+                    const SizedBox(
+                      height: 10,
+                    ),
+                  ], */
+                  const SizedBox(
+                    width: 10,
+                  ),
+                  FloatingActionButton(
+                    onPressed: () => (setState(() {
+                      showTarget = !showTarget;
+                      _bnbIndex = 0;
+                    })),
+                    backgroundColor: Colors.blue,
+                    shape: const CircleBorder(),
+                    child:
+                        const Icon(Icons.add_location_alt), //  crisis_alert),
+                  ),
+                ],
               ),
               const SizedBox(
                 height: 10,
               ),
               FloatingActionButton(
                 onPressed: () async {
-                  // if (showTarget==true)  {
-                  if (showTarget) {
-                    LatLng pos =
-                        _animatedMapController.mapController.camera.center;
-                    if (insertAfter == -1 && pointsOfInterest.isNotEmpty) {
-                      appendPolyline(pos).then((data) {
-                        _addPointOfInterest(id, userId, 12, '${data["name"]}',
-                            '${data["summary"]}', 15.0, pos);
-                      });
-                    } else if (insertAfter > -1) {
-                      try {
-                        _singlePointOfInterest(context, pos, insertAfter)
-                            .then((_) {
-                          loadPolyLines();
-                        });
-                        insertAfter = -1;
-                      } catch (e) {
-                        debugPrint('Point of interest error: ${e.toString()}');
-                      }
-                    } else {
-                      _singlePointOfInterest(context, pos, insertAfter);
-                      startLatLng = pos;
-                    }
-                    setState(() {});
-                  }
+                  await locationDialog(context, locationCallback);
                 },
                 backgroundColor: Colors.blue,
                 shape: const CircleBorder(),
-                child: const Icon(Icons.landscape),
+                child: const Icon(Icons.travel_explore), //image_search),
               ),
               const SizedBox(
                 height: 10,
               ),
-            ],
-            FloatingActionButton(
-              onPressed: () async {
-                await locationDialog(context, locationCallback);
-              },
-              backgroundColor: Colors.blue,
-              shape: const CircleBorder(),
-              child: const Icon(Icons.travel_explore), //image_search),
-            ),
-          ],
-        ),
-        body: Column(
+              FloatingActionButton(
+                onPressed: () async {
+                  Position position = await Geolocator.getCurrentPosition();
+                  //  debugPrint('Position: ${position.toString()}');
+                  _animatedMapController.animateTo(
+                      dest: LatLng(position.latitude, position.longitude));
+                  setState(() {
+                    //  showTarget = !showTarget;
+                  });
+                },
+                backgroundColor: Colors.blue,
+                shape: const CircleBorder(),
+                child: const Icon(Icons.my_location),
+              ),
+            ]),
+        body: SingleChildScrollView(
+            child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
@@ -693,7 +803,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                   FlutterMap(
                     mapController: _animatedMapController.mapController,
                     options: MapOptions(
-                      onTap: (tapPos, LatLng latLng) {
+                      /*     onTap: (tapPos, LatLng latLng) {
                         _textFieldController.text = '';
                         popValue.dropdownIdx = -1;
                         popValue.text1 = '';
@@ -715,7 +825,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                           });
                           setState(() {});
                         }
-                      },
+                      }, */
                       onMapReady: () {
                         mapController.mapEventStream.listen((event) {});
                       },
@@ -776,12 +886,15 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
             ),
             GestureDetector(
               behavior: HitTestBehavior.translucent,
-              child: SizedBox(
+              child: Container(
+                // margin: const EdgeInsets.fromLTRB(0, 0, 0, 10),
+                color: const Color.fromARGB(255, 158, 158, 158),
                 height: _dividerHeight,
                 width: MediaQuery.of(context).size.width,
-                child: const Icon(
+                //  padding: const EdgeInsets.fromLTRB(5, 0, 5, 15),
+                child: Icon(
                   Icons.drag_handle,
-                  size: 40,
+                  size: _dividerHeight,
                   color: Colors.blue,
                 ),
               ),
@@ -789,9 +902,10 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                 setState(() {
                   mapHeight += details.delta.dy;
 
-                  debugPrint("mapHeight: ${mapHeight.toString()}");
+                  //  debugPrint("mapHeight: ${mapHeight.toString()}");
                   double height = (MediaQuery.of(context).size.height -
                           AppBar().preferredSize.height -
+                          kBottomNavigationBarHeight -
                           _dividerHeight) *
                       0.93;
 
@@ -805,97 +919,164 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
             const SizedBox(
               height: 5,
             ),
-            SizedBox(
-              height: listHeight,
-              child: pointsOfInterest.isNotEmpty
-                  ? ReorderableListView(
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
-                      children: <Widget>[
-                        for (int i = 0; i < pointsOfInterest.length; i++)
-                          Stack(
-                              key: ValueKey('$i'),
-                              alignment: Alignment.bottomCenter,
-                              children: <Widget>[
-                                ListTile(
-                                    trailing: IconButton(
-                                      iconSize: 25,
-                                      icon: const Icon(Icons.delete),
-                                      onPressed: () async {
-                                        await pointOfInterestRemove(i);
-                                        setState(() {});
-                                      },
-                                    ),
-                                    tileColor: i.isOdd
-                                        ? Colors.white
-                                        : const Color.fromARGB(
-                                            255, 174, 211, 241),
-                                    leading: pointsOfInterest[i].type < 12
-                                        ? Icon(
+            if (poiDetailIndex == -1) ...[
+              SizedBox(
+                height: listHeight,
+
+                child: pointsOfInterest.isNotEmpty
+                    ? ReorderableListView(
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        children: <Widget>[
+                          for (int i = 0; i < pointsOfInterest.length; i++)
+                            Stack(
+                                key: ValueKey('$i'),
+                                alignment: Alignment.bottomCenter,
+                                children: <Widget>[
+                                  ListTile(
+                                      trailing: IconButton(
+                                        iconSize: 25,
+                                        icon: const Icon(Icons.delete),
+                                        onPressed: () async {
+                                          await pointOfInterestRemove(i);
+                                          setState(() {});
+                                        },
+                                      ),
+                                      tileColor: i.isOdd
+                                          ? Colors.white
+                                          : const Color.fromARGB(
+                                              255, 174, 211, 241),
+                                      leading: pointsOfInterest[i].type < 12
+                                          ? IconButton(
+                                              iconSize: 25,
+                                              icon: Icon(markerIcon(
+                                                  pointsOfInterest[i].type)),
+                                              onPressed: () async {
+                                                // await pointOfInterestRemove(i);
+                                                setState(() {
+                                                  poiDetailIndex = i;
+                                                });
+                                              },
+                                            )
+
+                                          /*Icon(
                                             markerIcon(
                                                 pointsOfInterest[i].type),
                                             size: 25,
-                                            color: Colors.black)
-                                        : ReorderableDragStartListener(
-                                            index: i,
-                                            child:
-                                                const Icon(Icons.drag_handle)),
-                                    title: Text(getTitles(i)[0]),
-                                    subtitle: Text(getTitles(i)[1]),
-                                    contentPadding:
-                                        const EdgeInsets.fromLTRB(5, 5, 5, 30),
-                                    onLongPress: () => {
-                                          _animatedMapController.animateTo(
-                                              dest: pointsOfInterest[i].point)
-                                        }),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    IconButton.filled(
-                                      style: IconButton.styleFrom(
-                                          elevation: 5,
-                                          shadowColor: const Color.fromRGBO(
-                                              95, 94, 94, 0.984),
-                                          //   maximumSize: Size(12, 12),
-                                          backgroundColor: const Color.fromARGB(
-                                              214, 245, 6, 6)),
-                                      onPressed: () {
-                                        debugPrint('Button No:$i');
-                                        insertAfter = insertAfter == i ? -1 : i;
-                                        showTarget = insertAfter == i;
-                                        setState(() {});
-                                      },
-                                      icon: Icon(i == insertAfter
-                                          ? Icons.close
-                                          : Icons.add),
-                                    ),
-                                  ],
-                                )
-                              ]),
-                      ],
-                      onReorder: (int oldIndex, int newIndex) {
-                        setState(() {
-                          if (oldIndex < newIndex) {
-                            newIndex -= 1;
-                          }
-                          final PointOfInterest item =
-                              pointsOfInterest.removeAt(oldIndex);
-                          pointsOfInterest.insert(newIndex, item);
-                          // regeneratePolylines();
-                          loadPolyLines();
-                        });
-                      })
-                  : const Text('No points of interest'),
-              //   ),
-            ),
+                                            color: Colors.black) */
+                                          : ReorderableDragStartListener(
+                                              index: i,
+                                              child: const Icon(
+                                                  Icons.drag_handle)),
+                                      title: Text(getTitles(i)[0]),
+                                      subtitle: Text(getTitles(i)[1]),
+                                      contentPadding: const EdgeInsets.fromLTRB(
+                                          5, 5, 5, 30),
+                                      onLongPress: () => {
+                                            _animatedMapController.animateTo(
+                                                dest: pointsOfInterest[i].point)
+                                          }),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      IconButton.filled(
+                                        style: IconButton.styleFrom(
+                                            elevation: 5,
+                                            shadowColor: const Color.fromRGBO(
+                                                95, 94, 94, 0.984),
+                                            //   maximumSize: Size(12, 12),
+                                            backgroundColor:
+                                                const Color.fromARGB(
+                                                    214, 245, 6, 6)),
+                                        onPressed: () {
+                                          //    debugPrint('Button No:$i');
+                                          insertAfter =
+                                              insertAfter == i ? -1 : i;
+                                          showTarget = insertAfter == i;
+                                          setState(() {});
+                                        },
+                                        icon: Icon(i == insertAfter
+                                            ? Icons.close
+                                            : Icons.add),
+                                      ),
+                                    ],
+                                  )
+                                ]),
+                        ],
+                        onReorder: (int oldIndex, int newIndex) {
+                          setState(() {
+                            if (oldIndex < newIndex) {
+                              newIndex -= 1;
+                            }
+                            final PointOfInterest item =
+                                pointsOfInterest.removeAt(oldIndex);
+                            pointsOfInterest.insert(newIndex, item);
+                            // regeneratePolylines();
+                            loadPolyLines();
+                          });
+                        })
+                    : const Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                            Text(
+                              textAlign: TextAlign.left,
+                              '  No waypoints or points of interest added...',
+                              style: TextStyle(fontSize: 18),
+                            )
+                          ]),
+                //   ),
+              ),
+            ] else ...[
+              PoiDetails(
+                context: context,
+                pointOfInterest: pointsOfInterest[poiDetailIndex],
+                height: listHeight,
+                width: MediaQuery.of(context).size.width,
+                onClose: detailClose,
+              ),
+            ],
           ],
-        ));
+        )));
+  }
+
+  ///
+  addWaypoint() {
+    LatLng pos = _animatedMapController.mapController.camera.center;
+    if (insertAfter == -1 &&
+        pointsOfInterest.isNotEmpty &&
+        pointsOfInterest[0].type == 12) {
+      appendPolyline(pos).then((data) {
+        _addPointOfInterest(
+            id, userId, 12, '${data["name"]}', '${data["summary"]}', 15.0, pos);
+      });
+    } else if (insertAfter > -1) {
+      try {
+        _singlePointOfInterest(context, pos, insertAfter).then((_) {
+          loadPolyLines();
+        });
+        insertAfter = -1;
+      } catch (e) {
+        debugPrint('Point of interest error: ${e.toString()}');
+      }
+    } else {
+      _singlePointOfInterest(context, pos, insertAfter);
+      startLatLng = pos;
+    }
+  }
+
+  detailClose() {
+    debugPrint('resetting poiDetailIndex');
+    if (poiDetailIndex > -1) {
+      poiDetailIndex = -1;
+      setState(() {});
+    }
   }
 
   List<String> getTitles(int i) {
     List<String> result = [];
     if (pointsOfInterest[i].type < 12) {
-      result.add(
-          'Point of interest - ${poiTypes[pointsOfInterest[i].type]["name"]}');
+      result.add(pointsOfInterest[i].hint == ''
+          ? 'Point of interest - ${poiTypes[pointsOfInterest[i].type]["name"]}'
+          : pointsOfInterest[i].hint);
       result.add(pointsOfInterest[i].description);
     } else {
       result.add('Waypoint ${i + 1} -  ${pointsOfInterest[i].description}');
