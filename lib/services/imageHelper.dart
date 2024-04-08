@@ -77,7 +77,7 @@ class _PoiDetails extends State<PoiDetails> {
                     Expanded(
                         flex: 1,
                         child: IconButton(
-                          icon: const Icon(Icons.close),
+                          icon: const Icon(Icons.cancel),
                           onPressed: () {
                             //  debugPrint('onPressed pressed');
                             widget.pointOfInterest.hint =
