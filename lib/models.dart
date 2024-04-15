@@ -136,6 +136,14 @@ const List<Map> poiTypes = [
     'colour': 'Colors.red',
     'colourMaterial': 0xff4CAF50
   },
+  {
+    'id': 15,
+    'name': 'New point of interest',
+    'icon': 'Icons.add_phot_alternate',
+    'iconMaterial': 0xee48,
+    'colour': 'Colors.red',
+    'colourMaterial': 0xff4CAF50
+  },
 ];
 
 const List<LatLng> testRoutePoints = [
@@ -310,6 +318,7 @@ class User {
   String surname;
   String password;
   String email;
+  String imageUrl;
 
   User({
     this.id = 0,
@@ -317,6 +326,7 @@ class User {
     required this.surname,
     required this.email,
     required this.password,
+    this.imageUrl = '',
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -330,7 +340,8 @@ class User {
         forename: forename,
         surname: surname,
         email: email,
-        password: password);
+        password: password,
+        imageUrl: json['imageUrl']);
   }
 
   Map<String, dynamic> toMap() {
@@ -340,6 +351,130 @@ class User {
       'surname': surname,
       'email': email,
       'password': password,
+      'imageUrl': imageUrl,
+    };
+  }
+}
+
+/// class HomeItem
+
+class HomeItem {
+  int id = 0;
+  String heading = '';
+  String subHeading = '';
+  String body = '';
+  String imageUrl = '';
+  int score = 5;
+  HomeItem({
+    this.id = 0,
+    required this.heading,
+    this.subHeading = '',
+    this.body = '',
+    this.imageUrl = '',
+    this.score = 5,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'heading': heading,
+      'subHeading': subHeading,
+      'body': body,
+      'imageUrl': imageUrl,
+      'score': score,
+    };
+  }
+}
+
+/// class TripItem
+
+class TripItem {
+  int id = 0;
+  String heading = '';
+  String subHeading = '';
+  String body = '';
+  String author = '';
+  String authorUrl = '';
+  String published = '';
+  List<String> imageUrls = [];
+  double score = 5;
+  int distance = 10;
+  int pointsOfInterest = 3;
+  int closest = 12;
+  int scored = 10;
+  int downloads = 18;
+  TripItem({
+    this.id = 0,
+    required this.heading,
+    this.subHeading = '',
+    this.body = '',
+    this.author = '',
+    this.authorUrl = '',
+    this.published = '',
+    this.imageUrls = const [],
+    this.score = 5,
+    this.distance = 10,
+    this.pointsOfInterest = 3,
+    this.closest = 12,
+    this.scored = 10,
+    this.downloads = 18,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'heading': heading,
+      'subHeading': subHeading,
+      'body': body,
+      'author': author,
+      'authorUrl': authorUrl,
+      'published': published,
+      'imageUrls': imageUrls,
+      'score': score,
+      'distance': distance,
+      'pointsOfInterest': pointsOfInterest,
+      'closest': closest,
+      'scrored': scored,
+      'downloads': downloads,
+    };
+  }
+}
+
+/// class MyTripItem
+
+class MyTripItem {
+  int id = 0;
+  String heading = '';
+  String subHeading = '';
+  String body = '';
+  String published = '';
+  List<PointOfInterest> pointsOfInterest = [];
+  double score = 5;
+  int distance = 10;
+  int closest = 12;
+  MyTripItem({
+    this.id = 0,
+    required this.heading,
+    this.subHeading = '',
+    this.body = '',
+    this.published = '',
+    this.pointsOfInterest = const [],
+    this.score = 5,
+    this.distance = 10,
+    this.closest = 12,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'heading': heading,
+      'subHeading': subHeading,
+      'body': body,
+      'published': published,
+      'pointsOfInterest': pointsOfInterest,
+      'score': score,
+      'distance': distance,
+      'closest': closest,
     };
   }
 }

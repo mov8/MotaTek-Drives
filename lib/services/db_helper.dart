@@ -36,8 +36,13 @@ Future<Database> initDb() async {
     version: newVersion,
     onCreate: (Database db, int version) async {
       await db.execute(
-          'CREATE TABLE users(id INTEGER PRIMARY KEY AUTOINCREMENT, forename TEXT, surname TEXT, email TEXT, password TEXT)'); //, locationId INTEGER, vehicleId INTEGER)');
-
+          'CREATE TABLE users(id INTEGER PRIMARY KEY AUTOINCREMENT, forename TEXT, surname TEXT, email TEXT, password TEXT, imageUrl Text)'); //, locationId INTEGER, vehicleId INTEGER)');
+/*
+      homeItems will only come from the API 
+      await db.execute(
+        'CREATE TABLE homeItems(id INTEGER PRIMARY KEY AUTOINCREMENT,)'
+      );
+*/
       await db.execute(
           '''CREATE TABLE versions(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, downloaded DATETIME, major INTEGER, 
         minor INTEGER, patch INTEGER, status INTEGER )''');
@@ -98,6 +103,7 @@ Future<User> getUser() async {
   String surname = '';
   String email = '';
   String password = '';
+  String imageUrl = '';
   try {
     var maps = await db.rawQuery("SELECT * FROM Users");
     if (maps.isNotEmpty) {
@@ -106,6 +112,7 @@ Future<User> getUser() async {
       surname = maps[0]['surname'].toString();
       email = maps[0]['email'].toString();
       password = maps[0]['password'].toString();
+      imageUrl = maps[0]['imageUrl'].toString();
     }
   } catch (e) {
     debugPrint('Error retrieving user');
@@ -116,6 +123,7 @@ Future<User> getUser() async {
     surname: surname,
     email: email,
     password: password,
+    imageUrl: imageUrl,
   );
 }
 

@@ -39,11 +39,13 @@ dependencies:
   geocoding: ^2.1.0
   flutter_map: ^6.1.0
   latlng: ^2.0.7 # ^0.2.0
+  wakelock: ^0.6.2
   latlong2: ^0.9.0 # ^0.8.1
   http: ^1.2.0 #^0.13.5
   flutter_map_location_marker: ^8.0.8 # ^5.3.0
   flutter_map_animations: ^0.5.3
   image_picker: ^1.0.7
+  reorderables: ^0.6.0
   
 
 
@@ -72,6 +74,8 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/images/map.png
+    - assets/images/splash.png
+    - assets/images/CarGroup.png
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see
