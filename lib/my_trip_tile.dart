@@ -65,7 +65,7 @@ class _myTripTileState extends State<MyTripTile> {
                                   child: Column(children: [
                                     const Icon(Icons.landscape),
                                     Text(
-                                        '${widget.myTripItem.pointsOfInterest} highlights')
+                                        '${widget.myTripItem.pointsOfInterest.length} highlights')
                                   ]),
                                 ),
                                 Expanded(
@@ -88,7 +88,7 @@ class _myTripTileState extends State<MyTripTile> {
                       SizedBox(
                           // height: 200,
                           child: Padding(
-                              padding: const EdgeInsets.fromLTRB(5, 15, 5, 10),
+                              padding: const EdgeInsets.fromLTRB(5, 10, 5, 10),
                               child: Align(
                                   alignment: Alignment.topLeft,
                                   child: Column(
@@ -115,6 +115,42 @@ class _myTripTileState extends State<MyTripTile> {
                                                   textAlign: TextAlign.left,
                                                 ),
                                               )),
+                                        ),
+                                        const SizedBox(
+                                          height: 10,
+                                        ),
+                                        if (widget
+                                            .myTripItem.imageUrls.isNotEmpty)
+                                          Row(children: <Widget>[
+                                            Expanded(
+                                                flex: 8,
+                                                child: SizedBox(
+                                                    height: 200,
+                                                    child: ListView(
+                                                      scrollDirection:
+                                                          Axis.horizontal,
+                                                      children: [
+                                                        for (int i = 0;
+                                                            i <
+                                                                widget
+                                                                    .myTripItem
+                                                                    .imageUrls
+                                                                    .length;
+                                                            i++)
+                                                          SizedBox(
+                                                              width: 200,
+                                                              child: Image(
+                                                                  image: AssetImage(widget
+                                                                      .myTripItem
+                                                                      .imageUrls[i]))),
+                                                        const SizedBox(
+                                                          width: 30,
+                                                        ),
+                                                      ],
+                                                    )))
+                                          ]),
+                                        const SizedBox(
+                                          height: 10,
                                         ),
                                         SizedBox(
                                             child: Padding(

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 import 'dart:convert';
+import 'package:drives/models.dart';
 
 /// Autocomplete API uses https://photon.komoot.io
 /// eg - https://photon.komoot.io/api/?q=staines
@@ -55,7 +56,106 @@ Future<LatLng> getPosition(String value) async {
   }
   return pos;
 }
-/*
-"{"features":[{"geometry":{"coordinates":[18.0710935,59.3251172],"type":"Point"},"type":"Feature","properties":{"osm_type":"R","o…"
 
- */
+class SearchLocation extends StatefulWidget {
+  final Function onSelect;
+  const SearchLocation({super.key, required this.onSelect});
+  @override
+  State<SearchLocation> createState() => _searchLocationState();
+}
+
+class _searchLocationState extends State<SearchLocation> {
+  List<String> autoCompleteData = [];
+  String waypoint = '';
+  LatLng location = const LatLng(0.00, 0.00);
+  late TextEditingController textEditingController;
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+        height: 45,
+        width: MediaQuery.of(context).size.width - 50,
+        decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border.all(
+              color: Colors.blue,
+            ),
+            borderRadius: const BorderRadius.all(Radius.circular(20))),
+        // color: Colors.white,
+        child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 5, 20, 5),
+            child: Row(children: [
+              const Expanded(
+                flex: 1,
+                child: Icon(Icons.search),
+              ),
+              const SizedBox(
+                width: 10,
+              ),
+              Expanded(
+                  flex: 14,
+                  child: Autocomplete(
+                    optionsBuilder: (TextEditingValue textEditingValue) async {
+                      autoCompleteData =
+                          await getSuggestions(textEditingValue.text);
+                      setState(() {
+                        waypoint = textEditingValue.text;
+                      });
+                      if (textEditingValue.text.isEmpty) {
+                        return const Iterable<String>.empty();
+                      } else {
+                        return autoCompleteData.where((word) => word
+                            .toLowerCase()
+                            .contains(textEditingValue.text.toLowerCase()));
+                      }
+                    },
+                    fieldViewBuilder:
+                        (context, controller, focusNode, onEditingComplete) {
+                      textEditingController = controller;
+                      return TextFormField(
+                          textCapitalization: TextCapitalization.characters,
+                          controller: controller,
+                          focusNode: focusNode,
+                          onEditingComplete: onEditingComplete,
+                          decoration: const InputDecoration(
+                              hintText: 'Search for place name'));
+                    },
+                    onSelected: (String selection) async {
+                      clearSelections();
+                      LatLng pos = await getPosition(selection);
+                      widget.onSelect(pos);
+                    },
+                  )),
+              const SizedBox(
+                width: 10,
+              ),
+            ])));
+  }
+
+  void clearSelections() {
+    textEditingController.text = '';
+    autoCompleteData.clear();
+  }
+}
+
+final apiUrl = 'http://10.101.1.155:5000/v1/user/register/';
+final urlBase = 'http://10.101.1.155:5000/';
+
+Future<String> postUser(User user) async {
+  Map<String, dynamic> userMap = user.toMap();
+  final http.Response response =
+      await http.post(Uri.parse(urlBase + 'v1/user/register/'),
+          headers: <String, String>{
+            "Content-Type": "application/json; charset=UTF-8",
+          },
+          body: jsonEncode(userMap));
+  if (response.statusCode == 201) {
+    // 201 = Created
+    debugPrint('User posted OK');
+    Map<String, dynamic> map = jsonDecode(response.body);
+    Setup().jwt = map['token'];
+    return jsonEncode({'token': Setup().jwt, 'code': response.statusCode});
+  } else {
+    debugPrint('Failed to post user');
+    return jsonEncode({'token': '', 'code': response.statusCode});
+  }
+}

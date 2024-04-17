@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:drives/screens/sign_up.dart';
 
 class MainDrawer extends StatefulWidget {
   const MainDrawer({super.key});
@@ -11,8 +12,8 @@ class _MainDrawerState extends State<MainDrawer> {
   @override
   Widget build(BuildContext context) {
     return Drawer(
-        child: ListView(children: const [
-      DrawerHeader(
+        child: ListView(children: [
+      const DrawerHeader(
           decoration: BoxDecoration(
             color: Colors.blue,
           ),
@@ -33,7 +34,7 @@ class _MainDrawerState extends State<MainDrawer> {
               ),
             ]),
           )),
-      ListTile(
+      const ListTile(
         leading: Icon(
           Icons.settings,
           size: 30,
@@ -48,6 +49,19 @@ class _MainDrawerState extends State<MainDrawer> {
         //             }
       ),
       ListTile(
+          leading: const Icon(Icons.how_to_reg, size: 30),
+          title: const Text('User details',
+              style: TextStyle(
+                color: Colors.blue,
+                fontSize: 20,
+              )),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => SignupForm()),
+            );
+          }),
+      const ListTile(
         leading: Icon(
           Icons.download,
           size: 30,
@@ -61,7 +75,7 @@ class _MainDrawerState extends State<MainDrawer> {
         //
         //             }
       ),
-      ListTile(
+      const ListTile(
         leading: Icon(
           Icons.share,
           size: 30,

@@ -1,7 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
-// import 'package:path/path.dart';
+import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:flutter/widgets.dart';
 import 'package:drives/models.dart';
@@ -30,7 +30,7 @@ Future<Database> initDb() async {
   var dbPath = await getDatabasesPath();
   int newVersion = 1;
   String path = '';
-  // join(dbPath, 'autoguard.db');
+  join(dbPath, 'drives.db');
   var newdb = await openDatabase(
     path,
     version: newVersion,
@@ -96,6 +96,21 @@ Future<Database> initDb() async {
   return newdb;
 }
 
+Future<List<Map<String, dynamic>>> getSetup(int id) async {
+  Database db = await dbHelper().db;
+  // int records = await recordCount('setup');
+  // if (records > 0){
+  try {
+    List<Map<String, dynamic>> maps =
+        await db.query('setup', where: 'id >= ?', whereArgs: [id], limit: 1);
+    return maps;
+  } catch (e) {
+    debugPrint('Error loading Setup ${e.toString()}');
+  }
+  // }
+  throw ('Error ');
+}
+
 Future<User> getUser() async {
   final db = await dbHelper().db;
   int id = 0;
@@ -125,6 +140,36 @@ Future<User> getUser() async {
     password: password,
     imageUrl: imageUrl,
   );
+}
+
+Future<int> insertSetup(Setup setup) async {
+  final db = await dbHelper().db;
+  try {
+    final insertedId = await db.insert(
+      'setup',
+      setup.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+    return insertedId;
+  } catch (e) {
+    debugPrint('Error witing setup : ${e.toString()}');
+
+    return -1;
+  }
+}
+
+Future<void> updateSetup() async {
+  final db = await dbHelper().db;
+  try {
+    await db.update(
+      'setup',
+      Setup().toMap(),
+      where: 'id = ?',
+      whereArgs: [Setup().id],
+    );
+  } catch (e) {
+    debugPrint('updateSetup error: ${e.toString()}');
+  }
 }
 
 Future<int> saveUser(User user) async {

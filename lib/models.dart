@@ -1,5 +1,6 @@
 // import 'package:flutter/cupertino.dart';
 import 'package:drives/screens/dialogs.dart';
+import 'package:drives/services/db_helper.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter/material.dart';
@@ -146,54 +147,67 @@ const List<Map> poiTypes = [
   },
 ];
 
-const List<LatLng> testRoutePoints = [
-  LatLng(51.478815, -0.611477),
-  LatLng(51.478807, -0.611422),
-  LatLng(51.478666, -0.610359),
-  LatLng(51.478452, -0.61045),
-  LatLng(51.478211, -0.610624),
-  LatLng(51.478062, -0.610679),
-  LatLng(51.477608, -0.610845),
-  LatLng(51.477433, -0.610909),
-  LatLng(51.477404, -0.610923),
-  LatLng(51.477401, -0.610994),
-  LatLng(51.477374, -0.610999),
-  LatLng(51.47694, -0.611088),
-  LatLng(51.476818, -0.611093),
-  LatLng(51.47639, -0.611103),
-  LatLng(51.47559, -0.611387),
-  LatLng(51.475477, -0.611411),
-  LatLng(51.475419, -0.611412),
-  LatLng(51.475366, -0.611403),
-  LatLng(51.475326, -0.611377),
-  LatLng(51.475259, -0.611294),
-  LatLng(51.475183, -0.611506),
-  LatLng(51.475099, -0.611732),
-  LatLng(51.475046, -0.61181),
-  LatLng(51.474999, -0.611918),
-  LatLng(51.474974, -0.611974),
-  LatLng(51.474949, -0.612013),
-  LatLng(51.474884, -0.612078),
-  LatLng(51.474856, -0.612042),
-  LatLng(51.474835, -0.612008),
-  LatLng(51.474803, -0.611945),
-  LatLng(51.474764, -0.611855),
-  LatLng(51.474752, -0.611809),
-  LatLng(51.474612, -0.611318),
-  LatLng(51.474348, -0.610374),
-  LatLng(51.474229, -0.609968),
-  LatLng(51.474133, -0.609666),
-  LatLng(51.4739, -0.609047),
-  LatLng(51.473705, -0.608537),
-  LatLng(51.47354, -0.608201),
-  LatLng(51.47333, -0.607775),
-  LatLng(51.47306, -0.607282),
-  LatLng(51.472955, -0.606992),
-  LatLng(51.472917, -0.606805),
-  LatLng(51.472904, -0.606586)
-];
+const List<String> manufacturers = ['Triumph', 'MG', 'Reliant'];
+const List<String> models = ['TR2', 'TR3', 'TR5', 'TR6', 'TR7', 'Stag'];
 
 void myFunc() {}
+
+class Setup {
+  int id = 0;
+  String jwt = '';
+  User user = User(id: 0, forename: '', surname: '', password: '', email: '');
+  bool? _loaded;
+  Setup._privateConstructor();
+  static final _instance = Setup._privateConstructor();
+  factory Setup() {
+    return _instance;
+  }
+
+  Future<bool> get loaded async {
+    return _loaded ??= await setupFromDb();
+  }
+
+  Future<bool> setupFromDb() async {
+    List<Map<String, dynamic>> maps = await getSetup(0);
+    if (maps.isNotEmpty) {
+      try {
+        id = maps[0]['id'];
+      } catch (e) {
+        debugPrint(e.toString());
+      }
+    }
+    return true;
+  }
+
+  Future<void> setupToDb() async {
+    await updateSetup();
+  }
+
+  Future<List<Map<String, dynamic>>> getSetupById(int id) async {
+    final db = await dbHelper().db;
+    List<Map<String, dynamic>> maps = await db.query(
+      'setup',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+    return maps;
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+    };
+  }
+
+  Future<void> deleteSetupById(int id) async {
+    final db = await dbHelper().db;
+    await db.delete(
+      'setup',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+}
 
 class WayPoint {
   int id;
@@ -233,6 +247,7 @@ class PointOfInterest extends Marker {
   int type;
   String description;
   String hint;
+  IconData iconData;
 
   LatLng markerPoint = const LatLng(52.05884, -1.345583);
 
@@ -244,7 +259,7 @@ class PointOfInterest extends Marker {
         shape: const CircleBorder(),
         child: const Icon(
           Icons.pin_drop,
-          size: 50,
+          size: 60,
           color: Colors.blueAccent,
         ),
       );
@@ -260,6 +275,8 @@ class PointOfInterest extends Marker {
       double width,
       double height,
       this.imageURIs,
+      // RawMaterialButton button,
+      this.iconData,
       {required LatLng markerPoint})
       : super(
           child: RawMaterialButton(
@@ -270,8 +287,8 @@ class PointOfInterest extends Marker {
               // padding: const EdgeInsets.all(5.0),
               shape: const CircleBorder(),
               child: Icon(
-                markerIcon(type),
-                size: type > 12 ? 10 : width * 0.75,
+                iconData, //markerIcon(type),
+                size: width < 30 ? 10 : width * 0.75,
                 color: Colors.blueAccent,
               )),
           point: markerPoint,
@@ -279,6 +296,31 @@ class PointOfInterest extends Marker {
           width: width,
           height: height,
         );
+
+  Widget getButton(int type, BuildContext ctx) {
+    return RawMaterialButton(
+        onPressed: () => Utility()
+            .showAlertDialog(ctx, poiTypes.toList()[type]['name'], description),
+        elevation: 2.0,
+        fillColor: const Color.fromARGB(255, 224, 132, 10),
+        // padding: const EdgeInsets.all(5.0),
+        shape: const CircleBorder(),
+        child: Icon(
+          markerIcon(type),
+          size: width < 30 ? 10 : width * 0.75,
+          color: Colors.blueAccent,
+        ));
+  }
+
+  IconData setIcon({required type}) {
+    /*  super.child. = Icon(
+      markerIcon(type),
+      size: width < 30 ? 10 : width * 0.75,
+      color: Colors.blueAccent,
+    );
+    */
+    return markerIcon(type);
+  }
 
   Map<String, dynamic> toMap() {
     return {
@@ -296,6 +338,23 @@ class PointOfInterest extends Marker {
   /// The : super keyword means we are referring to base class - Marker - parameters
   /// The point and builder are both required
 }
+
+/*
+  Widget getButton(int type, BuildContext ctx) {
+    return RawMaterialButton(
+        onPressed: () => Utility()
+            .showAlertDialog(ctx, poiTypes.toList()[type]['name'], description),
+        elevation: 2.0,
+        fillColor: const Color.fromARGB(255, 224, 132, 10),
+        // padding: const EdgeInsets.all(5.0),
+        shape: const CircleBorder(),
+        child: Icon(
+          markerIcon(type),
+          size: width < 30 ? 10 : width * 0.75,
+          color: Colors.blueAccent,
+        ));
+  }
+*/
 
 IconData markerIcon(int type) {
   return IconData(poiTypes.toList()[type]['iconMaterial'],
@@ -449,6 +508,7 @@ class MyTripItem {
   String body = '';
   String published = '';
   List<PointOfInterest> pointsOfInterest = [];
+  List<String> imageUrls = const [];
   double score = 5;
   int distance = 10;
   int closest = 12;
@@ -459,6 +519,7 @@ class MyTripItem {
     this.body = '',
     this.published = '',
     this.pointsOfInterest = const [],
+    this.imageUrls = const [],
     this.score = 5,
     this.distance = 10,
     this.closest = 12,
@@ -472,6 +533,7 @@ class MyTripItem {
       'body': body,
       'published': published,
       'pointsOfInterest': pointsOfInterest,
+      'imageUrls': imageUrls,
       'score': score,
       'distance': distance,
       'closest': closest,
