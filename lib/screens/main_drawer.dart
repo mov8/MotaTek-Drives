@@ -50,7 +50,7 @@ class _MainDrawerState extends State<MainDrawer> {
       ),
       ListTile(
           leading: const Icon(Icons.how_to_reg, size: 30),
-          title: const Text('User details',
+          title: const Text('Your Details',
               style: TextStyle(
                 color: Colors.blue,
                 fontSize: 20,
@@ -63,10 +63,24 @@ class _MainDrawerState extends State<MainDrawer> {
           }),
       const ListTile(
         leading: Icon(
-          Icons.download,
+          Icons.groups,
           size: 30,
         ),
-        title: Text('Download a trip',
+        title: Text('Organise Groups',
+            style: TextStyle(
+              color: Colors.blue,
+              fontSize: 20,
+            )),
+        //             onTap: () {
+        //
+        //             }
+      ),
+      const ListTile(
+        leading: Icon(
+          Icons.no_crash,
+          size: 30,
+        ),
+        title: Text('Organise Group Trip',
             style: TextStyle(
               color: Colors.blue,
               fontSize: 20,
@@ -80,7 +94,7 @@ class _MainDrawerState extends State<MainDrawer> {
           Icons.share,
           size: 30,
         ),
-        title: Text('Share your trip',
+        title: Text('Organise Followers',
             style: TextStyle(
               color: Colors.blue,
               fontSize: 20,

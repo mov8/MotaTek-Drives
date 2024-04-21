@@ -1,11 +1,13 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:flutter/widgets.dart';
 import 'package:drives/models.dart';
 import 'dart:async';
+import 'dart:convert';
 
 class dbHelper {
   Database? _db;
@@ -29,14 +31,20 @@ class dbHelper {
 Future<Database> initDb() async {
   var dbPath = await getDatabasesPath();
   int newVersion = 1;
-  String path = '';
-  join(dbPath, 'drives.db');
+  String path = join(dbPath, 'drives.db');
   var newdb = await openDatabase(
     path,
     version: newVersion,
     onCreate: (Database db, int version) async {
       await db.execute(
           'CREATE TABLE users(id INTEGER PRIMARY KEY AUTOINCREMENT, forename TEXT, surname TEXT, email TEXT, password TEXT, imageUrl Text)'); //, locationId INTEGER, vehicleId INTEGER)');
+      await db.execute(
+          'CREATE TABLE groups(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, description TEXT, created DATETIME)'); //, locationId INTEGER, vehicleId INTEGER)');
+      await db.execute(
+          'CREATE TABLE groupMembers(id INTEGER PRIMARY KEY AUTOINCREMENT, forename TEXT, surname TEXT, email TEXT, status Integer, joined DATETIME, note TEXT, uri TEXT)'); //, locationId INTEGER, vehicleId INTEGER)');
+      await db.execute(
+          'CREATE TABLE notifications(id INTEGER PRIMARY KEY AUTOINCREMENT, sentBy TEXT, message TEXT, received DATETIME)'); //, locationId INTEGER, vehicleId INTEGER)');
+
 /*
       homeItems will only come from the API 
       await db.execute(
@@ -48,16 +56,17 @@ Future<Database> initDb() async {
         minor INTEGER, patch INTEGER, status INTEGER )''');
 
       await db.execute(
-          '''CREATE TABLE setup(id INTEGER PRIMARY KEY AUTOINCREMENT, keepAlive INTEGER, notifications INTEGER,
-              lockSetup INTEGER, record INTEGER, recordRate INTEGER, playRate INTEGER, dark INTEGER) ''');
+          '''CREATE TABLE setup(id INTEGER PRIMARY KEY AUTOINCREMENT, routeColour INTEGER, goodRouteColour INTEGER, 
+          waypointColour INTEGER, pointOfInterestColour INTEGER, recordDetail INTEGER, allowNotifications INTEGER,
+               dark INTEGER) ''');
 
       await db.execute(
-          '''CREATE TABLE drives(id INTEGER PRIMARY KEY AUTOINCREMENT, userId INTEGER, name TEXT, description TEXT, 
-          maxLat REAL, minLat REAL, maxLong REAL, minLong REAL, added DATETIME)''');
+          '''CREATE TABLE drives(id INTEGER PRIMARY KEY AUTOINCREMENT, userId INTEGER, title TEXT, subTitle TEXT, body TEXT, 
+          imageUrl TEXT, maxLat REAL, minLat REAL, maxLong REAL, minLong REAL, added DATETIME)''');
 
       await db.execute(
-          '''CREATE TABLE wayPoints(id INTEGER PRIMARY KEY AUTOINCREMENT, userId INTEGER, driveId INTEGER, type INTEGER, 
-          description TEXT, hint TEXT, latitude REAL, longitude REAL)''');
+          '''CREATE TABLE pointOfInterest(id INTEGER PRIMARY KEY AUTOINCREMENT, userId INTEGER, driveId INTEGER, type INTEGER, 
+          title TEXT, subTitle TEXT, body TEXT, latitude REAL, longitude REAL)''');
 
       /// SQLite does have JSON capabilities
       /// INSERT INTO users (name, data) VALUES ('John', '{"age:": 30, "country": "USA"});
@@ -67,7 +76,11 @@ Future<Database> initDb() async {
 
       await db.execute(
           '''CREATE TABLE polyLines(id INTEGER PRIMARY KEY AUTOINCREMENT, userId INTEGER, driveId INTEGER, points TEXT, 
-    colour TEXT, stroke INTEGER)''');
+    colour Integer, stroke INTEGER)''');
+
+      await db.execute(
+          '''CREATE TABLE images(id INTEGER PRIMARY KEY AUTOINCREMENT, userId INTEGER, driveId INTEGER, 
+      pointOfInterestId INTEGER, title TEXT, url TEXT)''');
 
       await db.execute(
         '''CREATE TABLE log(id INTEGER PRIMARY KEY AUTOINCREMENT, monitor INTEGER, dateTime DATETIME, portNumber INTEGER, 
@@ -94,6 +107,14 @@ Future<Database> initDb() async {
     },
   );
   return newdb;
+}
+
+Future<int> recordCount(table) async {
+  final db = await dbHelper().db;
+  final count =
+      Sqflite.firstIntValue(await db.rawQuery("SELECT COUNT (*) FROM $table"));
+
+  return count!;
 }
 
 Future<List<Map<String, dynamic>>> getSetup(int id) async {
@@ -145,15 +166,21 @@ Future<User> getUser() async {
 Future<int> insertSetup(Setup setup) async {
   final db = await dbHelper().db;
   try {
-    final insertedId = await db.insert(
-      'setup',
-      setup.toMap(),
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
-    return insertedId;
+    int records = await recordCount('setup');
+    if (records > 0) {
+      final insertedId = await db.insert(
+        'setup',
+        setup.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+      return insertedId;
+    } else {
+      await db.update('users', setup.toMap(),
+          where: 'isd = ?', whereArgs: [setup.id]);
+      return setup.id;
+    }
   } catch (e) {
     debugPrint('Error witing setup : ${e.toString()}');
-
     return -1;
   }
 }
@@ -174,13 +201,25 @@ Future<void> updateSetup() async {
 
 Future<int> saveUser(User user) async {
   final db = await dbHelper().db;
+  var userRecords = await recordCount('users');
   try {
-    final insertedId = await db.insert(
-      'users',
-      user.toMap(),
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
-    return insertedId;
+    if (userRecords > 0) {
+      await db.update(
+        'versions',
+        user.toMap(), // toMap will return a SQLite friendly map
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+      return user.id;
+    } else {
+      final insertedId = await db.insert(
+        'users',
+        user.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+      userRecords = await recordCount('users');
+      debugPrint('Number of users: $userRecords');
+      return insertedId;
+    }
   } catch (e) {
     debugPrint('Error witing user : ${e.toString()}');
     return -1;
@@ -190,8 +229,9 @@ Future<int> saveUser(User user) async {
 Future<Drive> getDrive(int driveId) async {
   int id = 0;
   int userId = 0;
-  String name = '';
-  String description = '';
+  String title = '';
+  String subTitle = '';
+  String body = '';
   DateTime date = DateTime.now();
   double maxLat = 0.0;
   double minLat = 0.0;
@@ -203,8 +243,9 @@ Future<Drive> getDrive(int driveId) async {
     var maps = await db.rawQuery(query);
     id = int.parse(maps[0]['id'].toString());
     userId = int.parse(maps[0]['userId'].toString());
-    name = maps[0]['name'].toString();
-    description = maps[0]['description'].toString();
+    title = maps[0]['title'].toString();
+    subTitle = maps[0]['subTitle'].toString();
+    body = maps[0]['body'].toString();
     date = DateTime.parse(maps[0]['date'].toString());
     maxLat = double.parse(maps[0]['maxLat'].toString());
     minLat = double.parse(maps[0]['minLat'].toString());
@@ -216,8 +257,9 @@ Future<Drive> getDrive(int driveId) async {
   return Drive(
       id: id,
       userId: userId,
-      name: name,
-      description: description,
+      title: title,
+      subTitle: subTitle,
+      body: body,
       date: date,
       maxLat: maxLat,
       minLat: minLat,
@@ -225,21 +267,169 @@ Future<Drive> getDrive(int driveId) async {
       minLong: minLong);
 }
 
-Future<bool> saveDrive({required Drive drive}) async {
+Future<int> saveDrive({required Drive drive}) async {
   final db = await dbHelper().db;
+  int id = -1;
   try {
-    await db.update('drives', drive.toMap(),
-        conflictAlgorithm: ConflictAlgorithm.replace);
+    if (drive.id > 0) {
+      id = drive.id;
+      await db.update('drives', drive.toMap(),
+          where: 'id = ?',
+          whereArgs: [id],
+          conflictAlgorithm: ConflictAlgorithm.replace);
+    } else {
+      id = await db.insert('drives', drive.toMap(),
+          conflictAlgorithm: ConflictAlgorithm.replace);
+    }
   } catch (e) {
     debugPrint("Database error storing drive: ${e.toString()}");
-    return false;
+    return -1;
+  }
+  return id;
+}
+
+String pointsToString(List<LatLng> points) {
+  String pointsMap = '';
+  try {
+    for (int i = 0; i < points.length; i++) {
+      pointsMap =
+          '$pointsMap{"lat":${points[i].latitude},"lon":${points[i].longitude}},';
+    }
+    if (pointsMap.isNotEmpty) {
+      pointsMap = '[${pointsMap.substring(0, pointsMap.length - 1)}]';
+    }
+  } catch (e) {
+    debugPrint('Serialisation error: ${e.toString()}');
+  }
+  return pointsMap;
+}
+
+/// Saves the myTrips to the local SQLite database
+
+Future<bool> savePolylinesLocal(
+    {required int id,
+    required int userId,
+    required int driveId,
+    required List<Polyline> polylines}) async {
+  final db = await dbHelper().db;
+  for (int i = 0; i < polylines.length; i++) {
+    Map<String, dynamic> plMap = {
+      'id': id,
+      'useId': userId,
+      'driveId': driveId,
+      'points': pointsToString(polylines[i].points),
+      'stroke': polylines[i].strokeWidth,
+      'color': polylines[i].color,
+    };
+    if (id > 0) {
+      try {
+        await db.update('polylines', plMap,
+            conflictAlgorithm: ConflictAlgorithm.replace);
+      } catch (e) {
+        debugPrint("Database error storing polylines: ${e.toString()}");
+        return false;
+      }
+    } else {
+      id = await db.insert(
+        'polylines',
+        plMap,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
   }
   return true;
 }
 
+/// Get the polylines for a drive from SQLite
+/// Will initially only load the descriptive details and only
+/// load the details if the drive is selected
+
+Future<List<Polyline>> loadPolyLinesLocal(int driveId) async {
+  final db = await dbHelper().db;
+  List<Polyline> polylines = [];
+  List<Map<String, dynamic>> maps = await db.query(
+    'polylines',
+    where: 'driveId = ?',
+    whereArgs: [driveId],
+  );
+
+  for (int i = 0; i < maps.length; i++) {
+    polylines.add(Polyline(
+        points: stringToPoints(maps[i]['points']), // routePoints,
+        color: maps[i]['color'], //  const Color.fromARGB(255, 28, 97, 5),
+        strokeWidth: maps[i]['stroke']));
+  }
+  return polylines;
+}
+
+List<LatLng> stringToPoints(String pointsString) {
+  List<LatLng> points = [];
+  try {
+    var pointsJson = jsonDecode(pointsString);
+    for (int i = 0; i < pointsJson.length; i++) {
+      var jpoints = pointsJson[i];
+      for (int j = 0; j < jpoints.length; j++) {
+        points
+            .add(LatLng(jpoints['lat'].toDouble(), jpoints['lon'].toDouble()));
+      }
+    }
+  } catch (e) {
+    debugPrint('Points convertion error: ${e.toString()}');
+  }
+  return points;
+}
+
+String polyLineToString(List<Polyline> polyLines) {
+  Map<String, dynamic> json;
+
+  String color = Colors.black.toString();
+  String points = '';
+  String polyLineString = '';
+
+  List<LatLng> testValues = [];
+
+  try {
+    for (int i = 0; i < polyLines.length; i++) {
+      color = polyLines[i].color.toString();
+      points = pointsToString(polyLines[i].points);
+      testValues = stringToPoints(points);
+      debugPrint('Values retrieved: ${testValues.length}');
+      json = {'color': color, 'points': points};
+      polyLineString = '$polyLineString${jsonEncode(json).toString()},';
+    }
+    if (polyLineString.isNotEmpty) {
+      polyLineString = polyLineString.substring(0, polyLineString.length - 1);
+    }
+  } catch (e) {
+    String err = e.toString();
+    debugPrint('JsonEncode error: $err');
+  }
+  return polyLineString;
+}
+
+
+
+/*
+Future<bool> savePolyline({required String jsonString}) async {
+  final db = await dbHelper().db;
+  try {
+    await db.update('polylines', jsonString,
+        conflictAlgorithm: ConflictAlgorithm.replace);
+  } catch (e) {
+    debugPrint('@Database error storing polyline: ${e.toString()}');
+  }
+  return true;
+}
+*/
+/*
+Future<bool> savePolyLines({required List<PolyLine> ployLines}) async {
+  return true;
+}
+*/
+
 ///          '''CREATE TABLE pointsOfInterest(id INTEGER PRIMARY KEY AUTOINCREMENT, userId INTEGER, driveId INTEGER, type INTEGER,
 ///          description TEXT, hint TEXT, latitude REAL, longitude REAL)''');
-
+/*
 Future<WayPoint> getWayPoint(int id) async {
   int id = 0;
   int userId = 0;
@@ -274,3 +464,4 @@ Future<WayPoint> getWayPoint(int id) async {
       hint: hint,
       markerPoint: LatLng(latitude, longitude));
 }
+*/

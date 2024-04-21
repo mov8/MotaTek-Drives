@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:ffi';
+import 'dart:ui' as ui;
 // import 'dart:developer';
 import 'dart:io';
 import 'package:drives/screens/main_drawer.dart';
@@ -20,6 +22,7 @@ import 'dart:convert';
 import 'models.dart';
 import 'screens/splash_screen.dart';
 import 'services/web_helper.dart';
+import 'services/db_helper.dart';
 /*
 import 'screens/home.dart';
 import 'services/image_helper.dart';
@@ -94,10 +97,11 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   double iconSize = 35;
   LatLng _startLatLng = const LatLng(0.00, 0.00);
   LatLng lastLatLng = const LatLng(0.00, 0.00);
+  late Future<bool> _loadedOK;
   bool _tracking = false;
   bool _goodRoad = false;
-  late Size screenSize;
-  late Size appBarSize;
+  late ui.Size screenSize;
+  late ui.Size appBarSize;
   double mapHeight = 250;
   double listHeight = 100;
   bool _showTarget = false;
@@ -175,6 +179,19 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
 
   ]];
 */
+
+  final List<List<String>> _hints = [
+    [
+      'MotaTrip News',
+      'Trips available to download',
+      'Create new trip',
+      "Trips I've created",
+      'MotaTrip user offers'
+    ],
+    [' - manually', ' - recording', ' - stopped', ' - paused']
+  ];
+
+  String _title = 'MotaTrip'; // _hints[0][0];
 
   final List<List<BottomNavigationBarItem>> _bottomNavigationsBarItems = [
     [
@@ -422,6 +439,9 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+
+    _loadedOK = dataFromDatabase();
+    _title = _hints[0][0];
     // _navigationMode = false;
     // _pointerCount = 0;
     _followOnLocationUpdate =
@@ -455,7 +475,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   List<Polyline> polylines = [
     Polyline(
         points: [LatLng(50, 0)], // routePoints,
-        color: const Color.fromARGB(255, 28, 97, 5),
+        color: uiColors[
+            Setup().routeColour], //  const Color.fromARGB(255, 28, 97, 5),
         strokeWidth: 5)
   ];
   // uture<List<LatLng>>
@@ -533,9 +554,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       routePoints = apiData["points"];
       await getRoutePoints(urlWaypoints[i]);
       polylines.add(Polyline(
-          points: routePoints,
-          color: _goodRoad ? Colors.red : const Color.fromARGB(255, 28, 97, 5),
-          strokeWidth: 5));
+          points: routePoints, color: _routeColour(_goodRoad), strokeWidth: 5));
     }
     setState(() {});
     return polylines;
@@ -622,7 +641,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       List<LatLng> points = await getPolylines(waypoints);
       Polyline polyline = Polyline(
           points: points, // polyline,
-          color: _goodRoad ? Colors.red : const Color.fromARGB(255, 28, 97, 5),
+          color: _routeColour(_goodRoad),
           strokeWidth: 5);
       polylines.add(polyline);
     }
@@ -648,7 +667,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     apiData = await addPolyLine(latLng1, latLng2);
     polylines.add(Polyline(
         points: apiData["points"], // polyline,
-        color: _goodRoad ? Colors.red : const Color.fromARGB(255, 28, 97, 5),
+        color: _routeColour(_goodRoad),
         strokeWidth: 5));
     setState(() {});
     return apiData;
@@ -726,9 +745,9 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     return Scaffold(
         drawer: const MainDrawer(),
         appBar: AppBar(
-          title: const Text(
-            'MotaTrip',
-            style: TextStyle(
+          title: Text(
+            _title,
+            style: const TextStyle(
                 fontSize: 20, color: Colors.white, fontWeight: FontWeight.w700),
           ),
           iconTheme: const IconThemeData(color: Colors.white),
@@ -736,7 +755,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
           //flexibleSpace: const Text('Flexible Space'),
           bottom: _appState == AppState.createTrip && _showSearch
               ? PreferredSize(
-                  preferredSize: const Size.fromHeight(60),
+                  preferredSize: const ui.Size.fromHeight(60),
                   child: AnimatedContainer(
                       height: 60,
                       duration: const Duration(seconds: 3),
@@ -787,66 +806,103 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
         bottomNavigationBar: _handleBottomNavigationBar(),
         backgroundColor: Colors.grey[300],
         floatingActionButton: _handleFabs(),
-        body: SingleChildScrollView(
-            child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            if (_appState == AppState.loading) ...[
-              SizedBox(
-                height: MediaQuery.of(context).size.height -
-                    AppBar().preferredSize.height -
-                    kBottomNavigationBarHeight,
-                width: MediaQuery.of(context).size.width,
-                child: _showHomeTiles(), // const Text("Loading"),
-              ),
-            ] else if (_appState == AppState.home) ...[
-              SizedBox(
-                height: MediaQuery.of(context).size.height -
-                    AppBar().preferredSize.height -
-                    kBottomNavigationBarHeight,
-                width: MediaQuery.of(context).size.width,
-                child: _showHomeTiles(), // const Text("Home"),
-              ),
-            ] else if (_appState == AppState.download) ...[
-              SizedBox(
-                height: MediaQuery.of(context).size.height -
-                    AppBar().preferredSize.height -
-                    kBottomNavigationBarHeight,
-                width: MediaQuery.of(context).size.width,
-                child: _showTripTiles(),
-              ),
-            ] else if (_appState == AppState.createTrip) ...[
-              SizedBox(
-                height: mapHeight,
-                width: MediaQuery.of(context).size.width,
-                child: _handleMap(),
-              ),
-              _handleBottomSheetDivider(), // grab rail - GesureDetector()
-              const SizedBox(
-                height: 5,
-              ),
-              _showExploreDetail(), // Allows the trip to be planned
-            ] else if (_appState == AppState.myTrips) ...[
-              SizedBox(
-                height: MediaQuery.of(context).size.height -
-                    AppBar().preferredSize.height -
-                    kBottomNavigationBarHeight,
-                width: MediaQuery.of(context).size.width,
-                child: _showMyTripTiles(),
-              ),
-            ] else if (_appState == AppState.shop) ...[
-              SizedBox(
-                height: mapHeight,
-                width: MediaQuery.of(context).size.width,
-                child: const Text("Shop"),
-              ),
-            ]
-          ],
-        )));
+        body: FutureBuilder<bool>(
+          future: _loadedOK,
+          builder: (BuildContext context, snapshot) {
+            if (snapshot.hasError) {
+              debugPrint('Snapshot error: ${snapshot.error}');
+            } else if (snapshot.hasData) {
+              return _getPortraitBody();
+            } else {
+              return const SizedBox(
+                  width: double.infinity,
+                  height: double.infinity,
+                  child: Align(
+                      alignment: Alignment.center,
+                      child: CircularProgressIndicator()));
+            }
+
+            throw ('Error - FutureBuilder in main.dart');
+          },
+        ));
+  }
+
+  Future<bool> dataFromDatabase() async {
+    var userRecords = await recordCount('users');
+    if (userRecords > 0) {
+      try {
+        Setup().loaded;
+      } catch (e) {
+        debugPrint('Error starting local database: ${e.toString()}');
+      }
+    }
+    return true;
   }
 
   ///
+  ///
+  ///
+
+  Widget _getPortraitBody() {
+    return SingleChildScrollView(
+        child: Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        if (_appState == AppState.loading) ...[
+          SizedBox(
+            height: MediaQuery.of(context).size.height -
+                AppBar().preferredSize.height -
+                kBottomNavigationBarHeight,
+            width: MediaQuery.of(context).size.width,
+            child: _showHomeTiles(), // const Text("Loading"),
+          ),
+        ] else if (_appState == AppState.home) ...[
+          SizedBox(
+            height: MediaQuery.of(context).size.height -
+                AppBar().preferredSize.height -
+                kBottomNavigationBarHeight,
+            width: MediaQuery.of(context).size.width,
+            child: _showHomeTiles(), // const Text("Home"),
+          ),
+        ] else if (_appState == AppState.download) ...[
+          SizedBox(
+            height: MediaQuery.of(context).size.height -
+                AppBar().preferredSize.height -
+                kBottomNavigationBarHeight,
+            width: MediaQuery.of(context).size.width,
+            child: _showTripTiles(),
+          ),
+        ] else if (_appState == AppState.createTrip) ...[
+          SizedBox(
+            height: mapHeight,
+            width: MediaQuery.of(context).size.width,
+            child: _handleMap(),
+          ),
+          _handleBottomSheetDivider(), // grab rail - GesureDetector()
+          const SizedBox(
+            height: 5,
+          ),
+          _showExploreDetail(), // Allows the trip to be planned
+        ] else if (_appState == AppState.myTrips) ...[
+          SizedBox(
+            height: MediaQuery.of(context).size.height -
+                AppBar().preferredSize.height -
+                kBottomNavigationBarHeight,
+            width: MediaQuery.of(context).size.width,
+            child: _showMyTripTiles(),
+          ),
+        ] else if (_appState == AppState.shop) ...[
+          SizedBox(
+            height: mapHeight,
+            width: MediaQuery.of(context).size.width,
+            child: const Text("Shop"),
+          ),
+        ]
+      ],
+    ));
+  }
+
   addWaypoint() {
     LatLng pos = _animatedMapController.mapController.camera.center;
     if (insertAfter == -1 &&
@@ -883,13 +939,13 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   List<String> getTitles(int i) {
     List<String> result = [];
     if (_pointsOfInterest[i].type < 12) {
-      result.add(_pointsOfInterest[i].hint == ''
+      result.add(_pointsOfInterest[i].description == ''
           ? 'Point of interest - ${poiTypes[_pointsOfInterest[i].type]["name"]}'
-          : _pointsOfInterest[i].hint);
+          : _pointsOfInterest[i].description);
       result.add(_pointsOfInterest[i].description);
     } else {
       result.add('Waypoint ${i + 1} -  ${_pointsOfInterest[i].description}');
-      result.add(_pointsOfInterest[i].hint);
+      result.add(_pointsOfInterest[i].description);
     }
     return result;
   }
@@ -913,6 +969,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       onTap: ((idx) async {
         _bnbIndex = idx;
         if (_bottomNavigationsBarIndex == 0) {
+          _title = _hints[0][idx];
+
           switch (idx) {
             case 0:
               //  home
@@ -1032,7 +1090,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                 onPressed: () {
                   setState(() {
                     //  _showTarget = !_showTarget;
-                    _goodRoad = !_goodRoad;
+                    _goodRoad = _goodRoad ? false : true;
                   });
                 },
                 backgroundColor: Colors.blue,
@@ -1134,7 +1192,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                     color: Colors.white,
                   ),
                 ),
-                markerSize: Size(40, 40),
+                markerSize: ui.Size(40, 40),
                 markerDirection: MarkerDirection.heading,
               ),
             ),
@@ -1630,11 +1688,12 @@ You can plan trips either on your own or you can explore in a group''',
                                     labelText: 'Point of interest description',
                                   ),
                                   style: Theme.of(context).textTheme.bodyLarge,
-                                  initialValue: _pointsOfInterest[index].hint,
+                                  initialValue:
+                                      _pointsOfInterest[index].description,
                                   autovalidateMode:
                                       AutovalidateMode.onUserInteraction,
                                   onChanged: (text) => _pointsOfInterest[index]
-                                      .hint = text //body = text
+                                      .description = text //body = text
                                   )),
                         ),
                       ],
@@ -1816,7 +1875,13 @@ You can plan trips either on your own or you can explore in a group''',
 
   actionToggleButton(value) {
     setState(() {
-      if (value < 2) {
+      if (_bottomNavigationsBarIndex >= 1 &&
+          value == 0 &&
+          _pointsOfInterest.isNotEmpty) {
+        String polyLines = polyLineToString(polylines);
+        debugPrint('PolyLines: $polyLines');
+        polyLines = 'PolyLines: $polyLines';
+      } else if (value < 2) {
         _bottomNavigationsBarIndex =
             _pointsOfInterest.isEmpty && value == 1 ? 2 : 1;
       }
@@ -1871,8 +1936,7 @@ You can plan trips either on your own or you can explore in a group''',
             points: [
               LatLng(position.latitude, position.longitude)
             ], // polyline,
-            color:
-                _goodRoad ? Colors.red : const Color.fromARGB(255, 28, 97, 5),
+            color: _routeColour(_goodRoad),
             strokeWidth: 5));
         _startLatLng = pos;
         lastLatLng = pos;
@@ -1921,7 +1985,8 @@ You can plan trips either on your own or you can explore in a group''',
             _totalDistance += _tripDistance;
             _tripDistance = 0;
             _singlePointOfInterest(context, pos, -1,
-                distance: _totalDistance, time: secsMoving / 60);
+                distance: roundDouble(value: _totalDistance, places: 1),
+                time: roundDouble(value: secsMoving / 60, places: 1));
           }
         }
         _animatedMapController.animateTo(dest: pos);
@@ -1940,6 +2005,18 @@ You can plan trips either on your own or you can explore in a group''',
       _animatedMapController.animateTo(dest: pos);
     });
   }
+
+  Color _routeColour(bool goodRoad) {
+    return goodRoad
+        ? uiColors[Setup().goodRouteColour]
+        : uiColors[Setup().routeColour];
+  }
+
+/*
+  Future<bool> SavePolylines({required int userid, required int tripid, required int color, required String points}) async {
+    return true;
+  }
+*/
 
   /// _MyHomePageState Class End -----------------------------------------
 }

@@ -46,3 +46,8 @@ String getInitials({required String name}) {
       ? 'NA'
       : name.trim().split(' ').map((l) => l[0]).take(2).join();
 }
+
+double roundDouble({required double value, required int places}) {
+  var mod = pow(10.0, places);
+  return ((value * mod).round().toDouble() / mod);
+}

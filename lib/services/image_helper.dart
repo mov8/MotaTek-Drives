@@ -30,9 +30,9 @@ class _PoiDetails extends State<PoiDetails> {
   @override
   initState() {
     super.initState();
-    _contentControllerTitle.text = widget.pointOfInterest.hint == ''
+    _contentControllerTitle.text = widget.pointOfInterest.description == ''
         ? 'Point of interest - ${poiTypes[widget.pointOfInterest.type]["name"]}'
-        : widget.pointOfInterest.hint;
+        : widget.pointOfInterest.description;
     _contentControllerBody.text = widget.pointOfInterest.description;
   }
 
@@ -80,7 +80,7 @@ class _PoiDetails extends State<PoiDetails> {
                           icon: const Icon(Icons.cancel),
                           onPressed: () {
                             //  debugPrint('onPressed pressed');
-                            widget.pointOfInterest.hint =
+                            widget.pointOfInterest.description =
                                 _contentControllerTitle.text;
                             widget.pointOfInterest.description =
                                 _contentControllerBody.text;

@@ -150,10 +150,34 @@ const List<Map> poiTypes = [
 const List<String> manufacturers = ['Triumph', 'MG', 'Reliant'];
 const List<String> models = ['TR2', 'TR3', 'TR5', 'TR6', 'TR7', 'Stag'];
 
+const List<Color> uiColors = [
+  Colors.red,
+  Colors.orange,
+  Colors.green,
+  Colors.blue,
+  Colors.indigo,
+  Colors.white,
+  Colors.cyan,
+  Colors.amber,
+  Colors.deepPurpleAccent,
+  Colors.limeAccent,
+  Colors.black,
+  Colors.grey,
+  Colors.brown,
+];
+
 void myFunc() {}
 
 class Setup {
   int id = 0;
+  int routeColour = 0;
+  int goodRouteColour = 1;
+  int waypointColour = 2;
+  int pointOfInterestColour = 3;
+  int recordDetail = 5;
+  bool allowNotifications = true;
+  bool dark = false;
+
   String jwt = '';
   User user = User(id: 0, forename: '', surname: '', password: '', email: '');
   bool? _loaded;
@@ -172,10 +196,18 @@ class Setup {
     if (maps.isNotEmpty) {
       try {
         id = maps[0]['id'];
+        routeColour = maps[0]['routeColour'];
+        goodRouteColour = maps[0]['goodRouteColour'];
+        waypointColour = maps[0]['waypointColour'];
+        pointOfInterestColour = maps[0]['pointOfInterestColour'];
+        recordDetail = maps[0]['recordDetail'];
+        allowNotifications = maps[0]['allowNotifications'] == 1;
+        dark = maps[0]['dark'] == 1;
       } catch (e) {
         debugPrint(e.toString());
       }
     }
+    user = await getUser();
     return true;
   }
 
@@ -196,6 +228,12 @@ class Setup {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
+      'routeColour': routeColour,
+      'goodRouteColour': goodRouteColour,
+      'waypointColour': waypointColour,
+      'pointOfInterestColour': pointOfInterestColour,
+      'recordDetail': recordDetail,
+      'allowNotifications': allowNotifications,
     };
   }
 
@@ -209,6 +247,7 @@ class Setup {
   }
 }
 
+/*
 class WayPoint {
   int id;
   int userId;
@@ -238,6 +277,9 @@ class WayPoint {
     };
   }
 }
+*/
+
+// class PolyLine
 
 class PointOfInterest extends Marker {
   int id;
@@ -245,8 +287,8 @@ class PointOfInterest extends Marker {
   int userId;
   int driveId;
   int type;
+  String name;
   String description;
-  String hint;
   IconData iconData;
 
   LatLng markerPoint = const LatLng(52.05884, -1.345583);
@@ -270,8 +312,8 @@ class PointOfInterest extends Marker {
       this.userId,
       this.driveId,
       this.type,
+      this.name,
       this.description,
-      this.hint,
       double width,
       double height,
       this.imageURIs,
@@ -329,7 +371,7 @@ class PointOfInterest extends Marker {
       'driveId': driveId,
       'type': type,
       'description': description,
-      'hint': hint,
+      'hint': description,
       'latitude': markerPoint.latitude,
       'longitude': markerPoint.longitude,
     };
@@ -500,6 +542,7 @@ class TripItem {
 }
 
 /// class MyTripItem
+/// covers both points of interest and waypoints
 
 class MyTripItem {
   int id = 0;
@@ -539,26 +582,40 @@ class MyTripItem {
       'closest': closest,
     };
   }
+
+  Future<int> saveLocally() async {
+    return -1;
+  }
+
+  Future<bool> publish() async {
+    return false;
+  }
 }
 
 /// class User
+///
 
 class Drive {
   int id = 0;
   int userId = 0;
-  String name;
-  String description;
+  String title;
+  String subTitle;
+  String body;
   DateTime date = DateTime.now();
   double maxLat = 0;
   double minLat = 0;
   double maxLong = 0;
   double minLong = 0;
+  String imageUrl = ''; // To show map image
+  List<PointOfInterest> pointsOfInterest = [];
+  List<Polyline> polyLines = [];
 
   Drive({
     this.id = 0,
     required this.userId,
-    required this.name,
-    required this.description,
+    required this.title,
+    required this.subTitle,
+    required this.body,
     required this.date,
     this.maxLat = 0,
     this.minLat = 0,
@@ -566,18 +623,54 @@ class Drive {
     this.minLong = 0,
   });
 
+  Future<bool> SaveLocally() async {
+    bool ok = true;
+    try {
+      id = await saveDrive(drive: this);
+    } catch (e) {
+      debugPrint('Error saving trip: ${e.toString()}');
+    }
+    try {
+      //   await savePointsOfInterestLocal(pointsOfInterest);
+    } catch (e) {
+      debugPrint('Error savePointsOfInterest: ${e.toString()}');
+    }
+
+    try {
+      await savePolylinesLocal(
+          id: 0, userId: userId, driveId: id, polylines: polyLines);
+    } catch (e) {
+      debugPrint('Error in savePolyLinesLocal: ${e.toString()}');
+    }
+    return true;
+  }
+
+  Future<bool> publish() async {
+    return false;
+  }
+
   Map<String, dynamic> toMap() {
     return {
       'id': id,
       'userId': userId,
-      'name': name,
-      'description': description,
+      'title': title,
+      'subTitle': subTitle,
+      'body': body,
       'date': date,
+      'imageUrl': imageUrl,
       'maxLat': maxLat,
       'minLat': minLat,
       'maxLong': maxLong,
       'minLong': minLong,
     };
+  }
+
+  Future<bool> getDetailsLocal() async {
+    return true;
+  }
+
+  Future<bool> getDetailsApi() async {
+    return true;
   }
 }
 
