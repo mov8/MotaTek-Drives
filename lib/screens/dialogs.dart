@@ -506,6 +506,85 @@ class _AsyncAutocompleteState extends State<_AsyncAutocomplete> {
   }
 }
 
+/*
+  Future<void> _displayTextInputDialog(BuildContext context, LatLng latLng) {
+    return showDialog<void>(
+        context: context,
+        builder: (BuildContext context) {
+          // PopupValue popValue = PopupValue(-1, '', '');
+          return AlertDialog(
+            title: const Text('Location Description'),
+            content: SizedBox(
+                height: 200,
+                child: Column(
+                  children: <Widget>[
+                    DropdownButtonFormField<String>(
+                        decoration: const InputDecoration(
+                          border: OutlineInputBorder(),
+                          labelText: 'Type',
+                        ),
+                        items: poiTypes
+                            .map((item) => DropdownMenuItem<String>(
+                                  value: item['id'].toString(),
+                                  child: Row(children: [
+                                    Icon(
+                                      IconData(item['iconMaterial'],
+                                          fontFamily: 'MaterialIcons'),
+                                      color: Color(item['colourMaterial']),
+                                    ),
+                                    Text('    ${item['name']}')
+                                  ]),
+                                ))
+                            .toList(),
+                        onChanged: (item) => setState(() =>
+                            popValue.dropdownIdx = item == null
+                                ? -1
+                                : int.parse(
+                                    item)) //index of chosen item as a string
+                        ),
+                    TextField(
+                      onChanged: (value) {
+                        setState(() {
+                          popValue.text1 = value;
+                        });
+                      },
+                      controller: _textFieldController,
+                      decoration: const InputDecoration(
+                          hintText: "Describe point of interest.."),
+                    ),
+                  ],
+                )),
+            actions: <Widget>[
+              MaterialButton(
+                color: Colors.red,
+                textColor: Colors.white,
+                child: const Text('CANCEL'),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+              MaterialButton(
+                color: Colors.green,
+                textColor: Colors.white,
+                child: const Text('OK'),
+                onPressed: () {
+                  setState(() {
+                    int iconIdx = popValue.dropdownIdx;
+                    if (iconIdx >= 0) {
+                      String desc = popValue.text1;
+                      _addPointOfInterest(
+                          id, userId, iconIdx, desc, '', 30.0, latLng);
+                    }
+                    Navigator.of(context).pop();
+                  });
+                },
+              ),
+            ],
+          );
+        });
+  }
+*/
+
 // Mimics a remote API.
 class _FakeAPI {
   static const List<String> _kOptions = <String>[

@@ -1,6 +1,7 @@
 import 'dart:async';
-import 'dart:ffi';
+// import 'dart:ffi';
 import 'dart:ui' as ui;
+import 'dart:math';
 // import 'dart:developer';
 import 'dart:io';
 import 'package:drives/screens/main_drawer.dart';
@@ -20,9 +21,11 @@ import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'models.dart';
+import 'route.dart' as mt;
 import 'screens/splash_screen.dart';
 import 'services/web_helper.dart';
 import 'services/db_helper.dart';
+import 'point_of_interest_tile.dart';
 /*
 import 'screens/home.dart';
 import 'services/image_helper.dart';
@@ -43,14 +46,15 @@ https://stackoverflow.com/questions/76090873/how-to-set-location-marker-size-dep
 https://pub.dev/packages/flutter_map_location_marker
 https://github.com/tlserver/flutter_map_location_marker
 https://www.appsdeveloperblog.com/alert-dialog-with-a-text-field-in-flutter/   /// Shows text input dialog
-https://fabricesumsa2000.medium.com/openstreetmaps-osm-maps-and-flutter-daeb23f67620  /// tapablePolylineLayer  
+https://fabricesumsa2000.medium.com/openstreetmaps-osm-maps-and-flutter-daeb23f67620  /// tapableRouteLayer  
 
-https://github.com/OwnWeb/flutter_map_tappable_polyline/blob/master/lib/flutter_map_tappable_polyline.dart
+https://github.com/OwnWeb/flutter_map_tappable_Route/blob/master/lib/flutter_map_tappable_Route.dart
+
+https://pub.dev/packages/flutter_map_animations/example  shows how to animate markers too
+
 */
 
 int testInt = 0;
-bool _exploreTracking = false;
-List<PointOfInterest> _pointsOfInterest = [];
 
 enum AppState { loading, home, download, createTrip, myTrips, shop }
 
@@ -81,6 +85,8 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
+  final bool _exploreTracking = false;
+  final List<PointOfInterest> _pointsOfInterest = [];
   AppState _appState = AppState.home;
   final start = TextEditingController();
   final end = TextEditingController();
@@ -106,6 +112,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   double listHeight = 100;
   bool _showTarget = false;
   bool _showSearch = false;
+  int _editPointOfInterest = -1;
   late Position _position;
   double _tripDistance = 0;
   double _totalDistance = 0;
@@ -119,66 +126,60 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   double _travelled = 0.0;
   TripItem tripItem = TripItem(heading: '');
   final ScrollController _scrollController = ScrollController();
+  final PointOfInterestController _pointOfInterestController =
+      PointOfInterestController();
 
-  static const List<Widget> _exploreModes = <Widget>[
-    Padding(
-        padding: EdgeInsets.fromLTRB(20, 5, 20, 5),
-        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Icon(Icons.touch_app),
-          Text('Add trip details'),
-          Text('manually')
-        ])),
-    Padding(
-        padding: EdgeInsets.fromLTRB(20, 5, 20, 5),
-        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Icon(Icons.directions_car),
-          Text('Add trip details'),
-          Text('automatically'),
-        ])),
+  final List<List<bool>> _exploreMenuStates = [
+    <bool>[true, false],
+    <bool>[false, false, false],
+    <bool>[false, false, false]
   ];
-  final List<bool> _selectedMode = <bool>[true, false];
-
-  static const List<Widget> _imageModes = <Widget>[
-    Padding(
-        padding: EdgeInsets.fromLTRB(9, 3, 9, 3),
-        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Icon(Icons.save),
-          Text('Save'),
-          Text('point of interest')
-        ])),
-    Padding(
-        padding: EdgeInsets.fromLTRB(9, 3, 9, 3),
-        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Icon(Icons.delete),
-          Text('Delete'),
-          Text('point of interest')
-        ])),
-    Padding(
-        padding: EdgeInsets.fromLTRB(9, 3, 9, 3),
-        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Icon(Icons.photo_library),
-          Text('Image from'),
-          Text('gallery'),
-        ])),
+  static const List<List<Widget>> _exploreMenuOptions = [
+    <Widget>[
+      Padding(
+          padding: EdgeInsets.fromLTRB(20, 5, 20, 5),
+          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+            Icon(Icons.touch_app),
+            Text('Add trip details'),
+            Text('manually')
+          ])),
+      Padding(
+          padding: EdgeInsets.fromLTRB(20, 5, 20, 5),
+          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+            Icon(Icons.directions_car),
+            Text('Add trip details'),
+            Text('automatically'),
+          ])),
+    ],
+    <Widget>[
+      Column(children: [Icon(Icons.save), Text('Save trip')]),
+      Column(children: [Icon(Icons.share), Text('Share trip')]),
+      Column(children: [Icon(Icons.wrong_location), Text('Clear trip')]),
+    ],
+    <Widget>[
+      Padding(
+          padding: EdgeInsets.fromLTRB(9, 3, 9, 3),
+          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+            Icon(Icons.save),
+            Text('Save'),
+            Text('point of interest')
+          ])),
+      Padding(
+          padding: EdgeInsets.fromLTRB(9, 3, 9, 3),
+          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+            Icon(Icons.delete),
+            Text('Delete'),
+            Text('point of interest')
+          ])),
+      Padding(
+          padding: EdgeInsets.fromLTRB(9, 3, 9, 3),
+          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+            Icon(Icons.photo_library),
+            Text('Image from'),
+            Text('gallery'),
+          ])),
+    ],
   ];
-  final List<bool> _selectedImage = <bool>[false, false, false];
-
-  static const List<Widget> _exploreModes1 = <Widget>[
-    Column(children: [Icon(Icons.save), Text('Save trip')]),
-    Column(children: [Icon(Icons.share), Text('Share trip')]),
-    Column(children: [Icon(Icons.wrong_location), Text('Clear trip')]),
-  ];
-  final List<bool> _selectedMode1 = <bool>[false, false, false];
-  final bool _exploreTracking = false;
-
-/*
-  List<List<BottomNavigationBarItem>> _bottomNavigationsBarItems =  [[
-    BottomNavigationBarItem(
-                icon: Icon(Icons.add_photo_alternate),
-                label: 'Add Point of Interest'),
-
-  ]];
-*/
 
   final List<List<String>> _hints = [
     [
@@ -267,118 +268,39 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   // double _markerSize = 200.0;
   // late final _animatedMapController = AnimatedMapController(vsync: this);
   late AnimatedMapController _animatedMapController;
-  late FollowOnLocationUpdate _followOnLocationUpdate;
-  late TurnOnHeadingUpdate _turnOnHeadingUpdate;
+
+  late final StreamController<double?> _allignPositionStreamController;
+  late final StreamController<void> _allignDirectionStreamController;
+  late AlignOnUpdate _alignPositionOnUpdate;
+  late AlignOnUpdate _alignDirectionOnUpdate;
 
   // final ValueNotifier<bool> _showTarget = ValueNotifier<bool>(false);
 
   final _dividerHeight = 35.0;
 
-//  double _ratio = 0.0; //0.6;
-  // double _maxHeight = 100.0;
-
-  // late AlignOnUpdate _alignOnUpdate;
-
-  late StreamController<double?> _followCurrentLocationStreamController;
-  late StreamController<void> _turnHeadingUpStreamController;
-
-  // List<LatLng> routePoints = [LatLng(52.05884, -1.345583)];
   List<LatLng> routePoints = const [LatLng(51.478815, -0.611477)];
 
-  final TextEditingController _textFieldController = TextEditingController();
-
-  Future<void> _displayTextInputDialog(BuildContext context, LatLng latLng) {
-    return showDialog<void>(
-        context: context,
-        builder: (BuildContext context) {
-          // PopupValue popValue = PopupValue(-1, '', '');
-          return AlertDialog(
-            title: const Text('Location Description'),
-            content: SizedBox(
-                height: 200,
-                child: Column(
-                  children: <Widget>[
-                    DropdownButtonFormField<String>(
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                          labelText: 'Type',
-                        ),
-                        items: poiTypes
-                            .map((item) => DropdownMenuItem<String>(
-                                  value: item['id'].toString(),
-                                  child: Row(children: [
-                                    Icon(
-                                      IconData(item['iconMaterial'],
-                                          fontFamily: 'MaterialIcons'),
-                                      color: Color(item['colourMaterial']),
-                                    ),
-                                    Text('    ${item['name']}')
-                                  ]),
-                                ))
-                            .toList(),
-                        onChanged: (item) => setState(() =>
-                            popValue.dropdownIdx = item == null
-                                ? -1
-                                : int.parse(
-                                    item)) //index of chosen item as a string
-                        ),
-                    TextField(
-                      onChanged: (value) {
-                        setState(() {
-                          popValue.text1 = value;
-                        });
-                      },
-                      controller: _textFieldController,
-                      decoration: const InputDecoration(
-                          hintText: "Describe point of interest.."),
-                    ),
-                  ],
-                )),
-            actions: <Widget>[
-              MaterialButton(
-                color: Colors.red,
-                textColor: Colors.white,
-                child: const Text('CANCEL'),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-              ),
-              MaterialButton(
-                color: Colors.green,
-                textColor: Colors.white,
-                child: const Text('OK'),
-                onPressed: () {
-                  setState(() {
-                    int iconIdx = popValue.dropdownIdx;
-                    if (iconIdx >= 0) {
-                      String desc = popValue.text1;
-                      _addPointOfInterest(
-                          id, userId, iconIdx, desc, '', 30.0, latLng);
-                    }
-                    Navigator.of(context).pop();
-                  });
-                },
-              ),
-            ],
-          );
-        });
-  }
-
   List<String> images = [];
+
+  /// Routine to add point of interest
+  /// Identified as a point
 
   _addPointOfInterest(int id, int userId, int iconIdx, String desc, String hint,
       double size, LatLng latLng) {
     _pointsOfInterest.add(PointOfInterest(context, id, userId, driveId, iconIdx,
         desc, hint, size, size, images, markerIcon(iconIdx),
+        /* ValueKey(id),*/
         markerPoint: latLng));
     setState(() {
+      // adjustHeigth(25);
       _scrollDown();
+      //  _editPointOfInterest = _pointsOfInterest.length - 1;
     });
   }
 
   ///
   /// _singlePointOfInterest uses Komoot reverse lookup to get the address, and doesn't
-  /// try to generate any polylines
+  /// try to generate any Routes
   ///
   _singlePointOfInterest(BuildContext context, latLng, int id,
       {name = '', distance = 0, time = 0}) async {
@@ -398,6 +320,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
             10,
             images,
             markerIcon(type),
+            /* ValueKey(id), */
             markerPoint: latLng);
         if (id == -1) {
           _pointsOfInterest.add(poi);
@@ -442,39 +365,25 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
 
     _loadedOK = dataFromDatabase();
     _title = _hints[0][0];
-    // _navigationMode = false;
-    // _pointerCount = 0;
-    _followOnLocationUpdate =
-        AlignOnUpdate.never; //FollowOnLocationUpdate.never;
-    _turnOnHeadingUpdate = AlignOnUpdate.never; //TurnOnHeadingUpdate.never;
-    _followCurrentLocationStreamController = StreamController<double?>();
-    _turnHeadingUpStreamController = StreamController<void>();
+    _allignPositionStreamController = StreamController<double?>();
+    _allignDirectionStreamController = StreamController<void>();
+    _alignPositionOnUpdate = AlignOnUpdate.never;
+    _alignDirectionOnUpdate = AlignOnUpdate.never;
     _animatedMapController = AnimatedMapController(vsync: this);
-    //  _markerSize = 200.0;
-    // screenSize = MediaQuery.of(context).size;
-    // appBarSize = AppBar().preferredSize;, du
-    // _maxHeight = MediaQuery.of(context).size.height * 0.6;
-    // _position = Geolocator.getCurrentPosition();
-    // mapHeight = MediaQuery.of(context).size.height * 0.8; //250.0;
     mapHeight = 500; //500;
-    //(screenSize.height - appBarSize.height - _dividerHeight) * 0.9;
-
-    // Timer(const Duration(seconds: 3), () {
-    //   _appState = AppState.home;
-    // });
   }
 
   @override
   void dispose() {
-    _followCurrentLocationStreamController.close();
-    _turnHeadingUpStreamController.close();
+    _allignPositionStreamController.close();
+    _allignDirectionStreamController.close();
     _animatedMapController.dispose();
     super.dispose();
   }
 
-  List<Polyline> polylines = [
-    Polyline(
-        points: [LatLng(50, 0)], // routePoints,
+  List<mt.Route> _routes = [
+    mt.Route(
+        points: const [LatLng(50, 0)], // routePoints,
         color: uiColors[
             Setup().routeColour], //  const Color.fromARGB(255, 28, 97, 5),
         strokeWidth: 5)
@@ -527,7 +436,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     return result;
   }
 
-  Future<List<Polyline>> routeCallback(List<String> waypoints) async {
+  Future<List<mt.Route>> routeCallback(List<String> waypoints) async {
     List<String> urlWaypoints = [];
     for (int i = 1; i < waypoints.length; i++) {
       List<Location> startL;
@@ -546,21 +455,24 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       }
     }
 
-    polylines = [];
+    _routes = [];
 
     for (int i = 0; i < urlWaypoints.length; i++) {
       Map<String, dynamic> apiData;
       apiData = await getRoutePoints(urlWaypoints[i]);
       routePoints = apiData["points"];
       await getRoutePoints(urlWaypoints[i]);
-      polylines.add(Polyline(
-          points: routePoints, color: _routeColour(_goodRoad), strokeWidth: 5));
+      _routes.add(mt.Route(
+          id: -1,
+          points: routePoints,
+          color: _routeColour(_goodRoad),
+          strokeWidth: 5));
     }
     setState(() {});
-    return polylines;
+    return _routes;
   }
 
-  // Future<List<Polyline>> routeCallback2(List<String> waypoints) async {
+  // Future<List<Route>> routeCallback2(List<String> waypoints) async {
   Future<LatLng> routeCallback2(List<String> waypoints) async {
     //  List<String> urlWaypoints = [];
     for (int i = 0; i < waypoints.length; i++) {
@@ -588,32 +500,30 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       }
     }
 /*
-    polylines = [];
-
+    Routes = [];
     for (int i = 0; i < urlWaypoints.length; i++) {
       Map<String, dynamic> apiData;
       apiData = await getRoutePoints(urlWaypoints[i]);
       routePoints = apiData["points"];
       await getRoutePoints(urlWaypoints[i]);
-      polylines.add(Polyline(
+      Routes.add(Route(
           points: routePoints,
           color: const Color.fromARGB(255, 28, 97, 5),
           strokeWidth: 5));
     }
     setState(() {});
-    return polylines;
+    return Routes;
     */
     throw ('error in callback');
   }
 
-  Future<Map<String, dynamic>> addPolyLine(
-      LatLng latLng1, LatLng latLng2) async {
+  Future<Map<String, dynamic>> addRoute(LatLng latLng1, LatLng latLng2) async {
     String waypoint =
         '${latLng1.longitude},${latLng1.latitude};${latLng2.longitude},${latLng2.latitude}';
     return await getRoutePoints(waypoint);
   }
 
-  Future loadPolyLines() async {
+  Future loadRoutes() async {
     int prior = -1;
     int next = -1;
     String waypoints = '';
@@ -636,19 +546,19 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       }
     }
     if (waypoints != '') {
-      polylines.clear();
+      _routes.clear();
       waypoints = waypoints.substring(0, waypoints.length - 1);
-      List<LatLng> points = await getPolylines(waypoints);
-      Polyline polyline = Polyline(
-          points: points, // polyline,
+      List<LatLng> points = await getRoutes(waypoints);
+      _routes.add(mt.Route(
+          id: -1,
+          points: points, // Route,
           color: _routeColour(_goodRoad),
-          strokeWidth: 5);
-      polylines.add(polyline);
+          strokeWidth: 5));
     }
     setState(() {});
   }
 
-  Future<Map<String, dynamic>> appendPolyline(
+  Future<Map<String, dynamic>> appendRoute(
     LatLng latLng2,
   ) async {
     LatLng latLng1;
@@ -657,23 +567,24 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       _startLatLng = latLng2;
       return apiData;
     }
-    if (polylines.length > 1) {
+    if (_routes.length > 1) {
       // Let's assume simple add
-      latLng1 = polylines[polylines.length - 1]
-          .points[polylines[polylines.length - 1].points.length - 1];
+      latLng1 = _routes[_routes.length - 1]
+          .points[_routes[_routes.length - 1].points.length - 1];
     } else {
       latLng1 = _startLatLng;
     }
-    apiData = await addPolyLine(latLng1, latLng2);
-    polylines.add(Polyline(
-        points: apiData["points"], // polyline,
+    apiData = await addRoute(latLng1, latLng2);
+    _routes.add(mt.Route(
+        id: -1,
+        points: apiData["points"], // Route,
         color: _routeColour(_goodRoad),
         strokeWidth: 5));
     setState(() {});
     return apiData;
   }
 
-  Future<List<LatLng>> getPolylines(String waypoints) async {
+  Future<List<LatLng>> getRoutes(String waypoints) async {
     dynamic jsonResponse;
     List<LatLng> routePoints = [];
 
@@ -769,13 +680,6 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                       )))
               : null, //Text('Flexible Space')),
           actions: <Widget>[
-            /*
-            IconButton(
-              icon: const Icon(Icons.download),
-              tooltip: 'Load route',
-              onPressed: () async {},
-            ),
-            */
             if (_appState == AppState.createTrip)
               IconButton(
                 icon: _showSearch
@@ -788,19 +692,6 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                   });
                 },
               ),
-/*
-            IconButton(
-              icon: const Icon(Icons.assistant_direction_sharp),
-              tooltip: 'Enter route',
-              onPressed: () async {
-                await routeDialog(context, 3, routeCallback)
-                    .then((result) async {
-                  polylines = result;
-                  await Future.delayed(const Duration(seconds: 5))
-                      .then((_) => setState(() {}));
-                });
-              },
-            ), */
           ],
         ),
         bottomNavigationBar: _handleBottomNavigationBar(),
@@ -812,6 +703,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
             if (snapshot.hasError) {
               debugPrint('Snapshot error: ${snapshot.error}');
             } else if (snapshot.hasData) {
+              // _building = false;
               return _getPortraitBody();
             } else {
               return const SizedBox(
@@ -908,14 +800,14 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     if (insertAfter == -1 &&
         _pointsOfInterest.isNotEmpty &&
         _pointsOfInterest[0].type == 12) {
-      appendPolyline(pos).then((data) {
+      appendRoute(pos).then((data) {
         _addPointOfInterest(
             id, userId, 12, '${data["name"]}', '${data["summary"]}', 15.0, pos);
       });
     } else if (insertAfter > -1) {
       try {
         _singlePointOfInterest(context, pos, insertAfter).then((_) {
-          loadPolyLines();
+          loadRoutes();
         });
         insertAfter = -1;
       } catch (e) {
@@ -944,7 +836,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
           : _pointsOfInterest[i].description);
       result.add(_pointsOfInterest[i].description);
     } else {
-      result.add('Waypoint ${i + 1} -  ${_pointsOfInterest[i].description}');
+      result.add('Waypoint ${i + 1} -  ${_pointsOfInterest[i].name}');
       result.add(_pointsOfInterest[i].description);
     }
     return result;
@@ -953,7 +845,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   pointOfInterestRemove(int idx) async {
     /// Removing a poi:
     final PointOfInterest item = _pointsOfInterest.removeAt(idx);
-    loadPolyLines();
+
+    loadRoutes();
     setState(() {});
   }
 
@@ -964,7 +857,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       currentIndex: _bnbIndex,
       showUnselectedLabels: true,
       selectedItemColor: Colors.white,
-      unselectedItemColor: Color.fromARGB(255, 214, 211, 211),
+      unselectedItemColor: const Color.fromARGB(255, 214, 211, 211),
       backgroundColor: Colors.blue,
       onTap: ((idx) async {
         _bnbIndex = idx;
@@ -986,8 +879,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
               _showTarget = true;
               _bottomNavigationsBarIndex = 1;
               _bnbIndex = 0;
-              _selectedMode[0] = true;
-              _selectedMode[1] = false;
+              _exploreMenuStates[_stickyMenuIndex()][0] = true;
+              _exploreMenuStates[_stickyMenuIndex()][1] = false;
               break;
             case 3:
               // My routes
@@ -1013,7 +906,10 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
             case 2:
               _showTarget = true;
               LatLng pos = _animatedMapController.mapController.camera.center;
-              _addPointOfInterest(id, userId, 15, '', '', 30.0, pos);
+              await getPoiName(latLng: pos, name: 'Point of interest')
+                  .then((name) {
+                _addPointOfInterest(id, userId, 15, name, '', 30.0, pos);
+              });
               break;
             case 3:
               // Handle great road
@@ -1131,29 +1027,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
         FlutterMap(
           mapController: _animatedMapController.mapController,
           options: MapOptions(
-            /*     onTap: (tapPos, LatLng latLng) {
-                        _textFieldController.text = '';
-                        popValue.dropdownIdx = -1;
-                        popValue.text1 = '';
-                        _displayTextInputDialog(context, latLng);
-                        //   .then((value) {});
-                      },
-                      onLongPress: (tapPos, LatLng latLng) async {
-                        if (!_showTarget) {
-                          debugPrint("TAP $tapPos    $latLng");
-                          appendPolyline(latLng).then((data) {
-                            _addPointOfInterest(
-                                id,
-                                userId,
-                                12,
-                                '${data["name"]}',
-                                '${data["summary"]}',
-                                15.0,
-                                latLng);
-                          });
-                          setState(() {});
-                        }
-                      }, */
+            onMapEvent: checkMapEvent,
             onMapReady: () {
               mapController.mapEventStream.listen((event) {});
             },
@@ -1168,6 +1042,13 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
             initialCenter: routePoints[0],
             initialZoom: 15,
             maxZoom: 18,
+            interactionOptions: const InteractionOptions(
+                enableMultiFingerGestureRace: true,
+                flags: InteractiveFlag.doubleTapDragZoom |
+                    InteractiveFlag.doubleTapZoom |
+                    InteractiveFlag.drag |
+                    InteractiveFlag.pinchZoom |
+                    InteractiveFlag.pinchMove),
           ),
           children: [
             TileLayer(
@@ -1176,15 +1057,14 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
               maxZoom: 18,
             ),
             CurrentLocationLayer(
-              followScreenPoint: const CustomPoint(0.0, 1.0),
-              followScreenPointOffset: const CustomPoint(0.0, -60.0),
-              // focalPoint: const CustomPoint(0.0, 1.0),
-              followCurrentLocationStream:
-                  _followCurrentLocationStreamController.stream,
-              turnHeadingUpLocationStream:
-                  _turnHeadingUpStreamController.stream,
-              followOnLocationUpdate: _followOnLocationUpdate,
-              turnOnHeadingUpdate: _turnOnHeadingUpdate,
+              focalPoint: const FocalPoint(
+                ratio: Point(0.0, 1.0),
+                offset: Point(0.0, -60.0),
+              ),
+              alignPositionStream: _allignPositionStreamController.stream,
+              alignDirectionStream: _allignDirectionStreamController.stream,
+              alignPositionOnUpdate: _alignPositionOnUpdate,
+              alignDirectionOnUpdate: _alignDirectionOnUpdate,
               style: const LocationMarkerStyle(
                 marker: DefaultLocationMarker(
                   child: Icon(
@@ -1196,11 +1076,15 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                 markerDirection: MarkerDirection.heading,
               ),
             ),
-            PolylineLayer(
-              polylineCulling: false,
-              polylines: polylines,
+            //  if (_pointsOfInterest.isNotEmpty)
+            mt.RouteLayer(
+              polylineCulling: true,
+              polylines: _routes,
+              onTap: routeTapped,
+              onMiss: routeMissed,
             ),
             MarkerLayer(markers: _pointsOfInterest),
+            // mt.RouteLayer(polylines: Routes)
           ],
         ),
         if (_showTarget) ...[
@@ -1235,28 +1119,19 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
           color: Colors.blue,
         ),
       )),
-      //  onPanUpdate: (DragUpdateDetails details) {
       onVerticalDragUpdate: (DragUpdateDetails details) {
         setState(() {
           mapHeight += details.delta.dy;
-
-          //  debugPrint("mapHeight: ${mapHeight.toString()}");
-          double height = (MediaQuery.of(context).size.height -
-                  AppBar().preferredSize.height -
-                  kBottomNavigationBarHeight -
-                  _dividerHeight) *
-              0.93;
-
-          mapHeight = mapHeight > height ? height : mapHeight;
-          mapHeight = mapHeight < 20 ? 20 : mapHeight;
-
-          listHeight = (height - mapHeight);
+          adjustHeigth(100);
         });
       },
     );
   }
 
+  /// The container that shows trip details
+
   SizedBox _showExploreDetail() {
+    // _exploreTracking || _pointsOfInterest.isEmpty
     return SizedBox(
         height: listHeight,
         child: CustomScrollView(controller: _scrollController, slivers: [
@@ -1264,34 +1139,52 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
             pinned: true,
             floating: true,
             delegate: StickyMenuDeligate(
-              options1: _exploreModes,
-              states1: _selectedMode,
-              options2: _exploreModes1,
-              states2: _selectedMode1,
+              options: _exploreMenuOptions[_stickyMenuIndex()],
+              states: _exploreMenuStates[_stickyMenuIndex()],
               onButtonPressed: actionToggleButton,
             ),
           ),
-          SliverToBoxAdapter(
-            child: _exploreDetailsHeader(),
-          ),
-          SliverReorderableList(
-              itemBuilder: (context, index) {
-                debugPrint('Index: $index');
-                return _pointsOfInterest[index].type == 12
-                    ? waypointTile(index)
-                    : pointOfInterestTile(index);
-              },
-              itemCount: _pointsOfInterest.length,
-              onReorder: (int oldIndex, int newIndex) {
-                setState(() {
-                  if (oldIndex < newIndex) {
-                    newIndex = -1;
-                  }
-                  final PointOfInterest poi =
-                      _pointsOfInterest.removeAt(oldIndex);
-                  _pointsOfInterest.insert(newIndex, poi);
-                });
-              })
+          if (_editPointOfInterest < 0)
+            SliverToBoxAdapter(
+              child: _exploreDetailsHeader(),
+            ),
+          if (_editPointOfInterest < 0)
+            SliverReorderableList(
+                itemBuilder: (context, index) {
+                  debugPrint('Index: $index');
+                  return _pointsOfInterest[index].type == 12
+                      ? waypointTile(index)
+                      : PointOfInterestTile(
+                          key: ValueKey(index),
+                          pointOfInterestController: _pointOfInterestController,
+                          index: index,
+                          pointOfInterest: _pointsOfInterest[index],
+                          onExpandChange: expandChange,
+                          onIconTap: iconButtonTapped,
+                        ); //   pointOfInterestTile(index);
+                },
+                itemCount: _pointsOfInterest.length,
+                onReorder: (int oldIndex, int newIndex) {
+                  setState(() {
+                    if (oldIndex < newIndex) {
+                      newIndex = -1;
+                    }
+                    final PointOfInterest poi =
+                        _pointsOfInterest.removeAt(oldIndex);
+                    _pointsOfInterest.insert(newIndex, poi);
+                  });
+                }),
+          if (_editPointOfInterest > -1)
+            SliverToBoxAdapter(
+                child: PointOfInterestTile(
+              key: ValueKey(_editPointOfInterest),
+              pointOfInterestController: _pointOfInterestController,
+              index: _editPointOfInterest,
+              pointOfInterest: _pointsOfInterest[_editPointOfInterest],
+              onExpandChange: expandChange,
+              onIconTap: iconButtonTapped,
+              expanded: true,
+            )) //     iconButtonTapped  expandChange      pointOfInterestTile(_editPointOfInterest)),
         ]));
   }
 
@@ -1573,230 +1466,6 @@ You can plan trips either on your own or you can explore in a group''',
             ]));
   }
 
-  Widget pointOfInterestTile(int index) {
-    return Material(
-      key: Key('$index'),
-      child: ExpansionTile(
-        shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(5))),
-        title: _pointsOfInterest[index].description == ''
-            ? const Text(
-                'Add a point of interest',
-                style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              )
-            : Text(_pointsOfInterest[index].description,
-                style: const TextStyle(
-                    color: Colors.black)), //getTitles(index)[0]),
-        collapsedBackgroundColor: index.isOdd
-            ? Colors.white
-            : const Color.fromARGB(255, 174, 211, 241),
-        backgroundColor: Colors.white,
-        initiallyExpanded: _pointsOfInterest[index].description == '',
-        onExpansionChanged: (expanded) {},
-        leading: IconButton(
-          iconSize: 25,
-          icon: Icon(markerIcon(_pointsOfInterest[index].type)),
-          onPressed: () async {
-            setState(() {
-              _poiDetailIndex = index;
-              _animatedMapController.animateTo(
-                  dest: _pointsOfInterest[index].point);
-            });
-          },
-        ),
-        children: [
-          SizedBox(
-              // height: 200,
-              child: Padding(
-                  padding: const EdgeInsets.fromLTRB(5, 5, 0, 30),
-                  child: Column(children: <Widget>[
-                    Row(children: [
-                      Expanded(
-                          flex: 10,
-                          child: DropdownButtonFormField<String>(
-                              decoration: const InputDecoration(
-                                border: OutlineInputBorder(),
-                                labelText: 'Type',
-                              ),
-                              value: _pointsOfInterest[index].type.toString(),
-                              items: poiTypes
-                                  .map((item) => DropdownMenuItem<String>(
-                                        value: item['id'].toString(),
-                                        child: Row(children: [
-                                          Icon(
-                                            IconData(item['iconMaterial'],
-                                                fontFamily: 'MaterialIcons'),
-                                            color:
-                                                Color(item['colourMaterial']),
-                                          ),
-                                          Text('    ${item['name']}')
-                                        ]),
-                                      ))
-                                  .toList(),
-                              onChanged: (item) => _pointsOfInterest[index]
-                                  .type = item == null ? -1 : int.parse(item))),
-                      const Expanded(
-                        flex: 8,
-                        child: SizedBox(),
-                      ),
-                    ]),
-                    Row(
-                      children: [
-                        Expanded(
-                            child: Padding(
-                                padding:
-                                    const EdgeInsets.fromLTRB(0, 10, 10, 10),
-                                child: TextFormField(
-                                    initialValue:
-                                        _pointsOfInterest[index].description,
-                                    textAlign: TextAlign.start,
-                                    keyboardType: TextInputType.streetAddress,
-                                    textCapitalization:
-                                        TextCapitalization.sentences,
-                                    decoration: const InputDecoration(
-                                      border: OutlineInputBorder(),
-                                      hintText:
-                                          "What is the point of interest's name...",
-                                      labelText: 'Point of interest name',
-                                    ),
-                                    style:
-                                        Theme.of(context).textTheme.bodyLarge,
-                                    autovalidateMode:
-                                        AutovalidateMode.onUserInteraction,
-                                    onChanged: (text) =>
-                                        _pointsOfInterest[index].description =
-                                            text)))
-                      ],
-                    ),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Padding(
-                              padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
-                              child: TextFormField(
-                                  textAlign: TextAlign.start,
-                                  keyboardType: TextInputType.streetAddress,
-                                  textCapitalization:
-                                      TextCapitalization.sentences,
-                                  decoration: const InputDecoration(
-                                    border: OutlineInputBorder(),
-                                    hintText: 'Describe Point of Interest...',
-                                    labelText: 'Point of interest description',
-                                  ),
-                                  style: Theme.of(context).textTheme.bodyLarge,
-                                  initialValue:
-                                      _pointsOfInterest[index].description,
-                                  autovalidateMode:
-                                      AutovalidateMode.onUserInteraction,
-                                  onChanged: (text) => _pointsOfInterest[index]
-                                      .description = text //body = text
-                                  )),
-                        ),
-                      ],
-                    ),
-                    Row(children: [
-                      Align(
-                          alignment: Alignment.topCenter,
-                          child: ToggleButtons(
-                            isSelected: _selectedImage,
-                            borderRadius:
-                                const BorderRadius.all(Radius.circular(8)),
-                            selectedBorderColor: Colors.blue[700],
-                            selectedColor: Colors.white,
-                            fillColor: Colors.blue[400],
-                            color: Colors.blue[400],
-                            constraints: const BoxConstraints(
-                                minHeight: 40.0, minWidth: 70.0),
-                            children: _imageModes,
-                            onPressed: (int idx) async {
-                              switch (idx) {
-                                case 0:
-                                  setState(() {
-                                    _pointsOfInterest[index].child =
-                                        RawMaterialButton(
-                                            onPressed: () => Utility()
-                                                .showAlertDialog(
-                                                    context,
-                                                    poiTypes.toList()[
-                                                        _pointsOfInterest[index]
-                                                            .type]['name'],
-                                                    _pointsOfInterest[index]
-                                                        .description),
-                                            elevation: 2.0,
-                                            fillColor: const Color.fromARGB(
-                                                255, 224, 132, 10),
-                                            // padding: const EdgeInsets.all(5.0),
-                                            shape: const CircleBorder(),
-                                            child: Icon(
-                                              markerIcon(_pointsOfInterest[
-                                                      index]
-                                                  .type), //markerIcon(type),
-                                              size: 25,
-                                              color: Colors.blueAccent,
-                                            ));
-                                  });
-                                  break;
-                                case 1:
-                                  // delete
-                                  _pointsOfInterest.removeAt(index);
-                                  break;
-                                case 2:
-                                  await ImagePicker()
-                                      .pickImage(source: ImageSource.gallery)
-                                      .then((pickedFile) {
-                                    try {
-                                      if (pickedFile != null) {
-                                        _pointsOfInterest[index]
-                                            .imageURIs
-                                            .add(pickedFile.path);
-                                      }
-                                    } catch (e) {
-                                      debugPrint(
-                                          'Error getting image: ${e.toString()}');
-                                    }
-                                  });
-                                  break;
-                              }
-                              setState(() {});
-                            },
-                          ))
-                    ]),
-                    if (_pointsOfInterest[index].imageURIs.isNotEmpty)
-                      Row(children: <Widget>[
-                        Expanded(
-                            flex: 8,
-                            child: SizedBox(
-                                height: 200,
-                                child: ListView(
-                                  scrollDirection: Axis.horizontal,
-                                  children: [
-                                    for (int i = 0;
-                                        i <
-                                            _pointsOfInterest[index]
-                                                .imageURIs
-                                                .length;
-                                        i++)
-                                      SizedBox(
-                                          width: 160,
-                                          child: Image.file(File(
-                                              _pointsOfInterest[index]
-                                                  .imageURIs[i]))),
-                                    const SizedBox(
-                                      width: 30,
-                                    ),
-                                  ],
-                                )))
-                      ]),
-                  ]))),
-        ],
-      ),
-    );
-  }
-
   Column _exploreDetailsHeader() {
     return Column(children: [
       SizedBox(
@@ -1873,14 +1542,65 @@ You can plan trips either on your own or you can explore in a group''',
     ]);
   }
 
-  actionToggleButton(value) {
+  actionToggleButton(value) async {
+    int stickyMenuIndex = _stickyMenuIndex();
+    switch (stickyMenuIndex) {
+      case 0:
+
+        /// Choose between manual and automatic routing
+        _showTarget = value == 0;
+        _bottomNavigationsBarIndex =
+            _pointsOfInterest.isEmpty && value == 1 ? 2 : 1;
+        break;
+      case 1:
+        // Choose between Save Edit and Clear
+        if (value == 2) {
+          _startLatLng == const LatLng(0.00, 0.00);
+          _routes.clear();
+          _pointsOfInterest.clear();
+          _goodRoad = false;
+          _tracking = false;
+        }
+        break;
+      case 2:
+        // Choose between save PointOfInterest delete PointOfInterest and load image
+        switch (value) {
+          case 0:
+            // Save the point of interest
+            _pointOfInterestController.save(_editPointOfInterest);
+            setState(() {
+              _editPointOfInterest = -1;
+              _pointOfInterestController.expand(false);
+            });
+            break;
+          case 1:
+            // delete the point of interest
+            if (_editPointOfInterest > -1 &&
+                _editPointOfInterest < _pointsOfInterest.length) {
+              PointOfInterest poi =
+                  _pointsOfInterest.removeAt(_editPointOfInterest);
+            }
+            _editPointOfInterest = -1;
+            break;
+          case 2:
+            // load image from galary
+            _pointOfInterestController.loadImage(_editPointOfInterest);
+            break;
+        }
+    }
     setState(() {
+      for (int i = 0; i < _exploreMenuOptions[stickyMenuIndex].length; i++) {
+        _exploreMenuStates[stickyMenuIndex][i] = i == value;
+      }
+    });
+
+/*
       if (_bottomNavigationsBarIndex >= 1 &&
           value == 0 &&
           _pointsOfInterest.isNotEmpty) {
-        String polyLines = polyLineToString(polylines);
-        debugPrint('PolyLines: $polyLines');
-        polyLines = 'PolyLines: $polyLines';
+        //   String Routes = RouteToString(Routes);
+        //   debugPrint('Routes: $Routes');
+        //   Routes = 'Routes: $Routes';
       } else if (value < 2) {
         _bottomNavigationsBarIndex =
             _pointsOfInterest.isEmpty && value == 1 ? 2 : 1;
@@ -1888,21 +1608,32 @@ You can plan trips either on your own or you can explore in a group''',
       if (_exploreTracking || _pointsOfInterest.isEmpty) {
         _showTarget = value == 0;
         // !_exploreTracking;
-        for (int i = 0; i < _exploreModes.length; i++) {
-          _selectedMode[i] = i == value;
+
+        for (int i = 0; i < _exploreMenuOptions[stickyMenuIndex].length; i++) {
+          _exploreMenuStates[stickyMenuIndex][i] = i == value;
         }
       } else if (value == 2) {
         _startLatLng == const LatLng(0.00, 0.00);
-        polylines.clear();
+        _routes.clear();
         _pointsOfInterest.clear();
         _goodRoad = false;
         _tracking = false;
       } else {
-        for (int i = 0; i < _exploreModes1.length; i++) {
-          _selectedMode1[i] = i == value;
+        for (int i = 0; i < _exploreMenuOptions[stickyMenuIndex].length; i++) {
+          _exploreMenuStates[stickyMenuIndex][i] = i == value;
         }
-      }
-    });
+      } */
+    // });
+  }
+
+  int _stickyMenuIndex() {
+    if (_editPointOfInterest > -1) {
+      return 2;
+    } else if (_exploreTracking || _pointsOfInterest.isEmpty) {
+      return 0;
+    } else {
+      return 1;
+    }
   }
 
   Future getImage(ImageSource source, PointOfInterest poi) async {
@@ -1931,11 +1662,10 @@ You can plan trips either on your own or you can explore in a group''',
         _position = position;
         pos = LatLng(position.latitude, position.longitude);
         _animatedMapController.animateTo(dest: pos);
-        polylines.clear();
-        polylines.add(Polyline(
-            points: [
-              LatLng(position.latitude, position.longitude)
-            ], // polyline,
+        _routes.clear();
+        _routes.add(mt.Route(
+            id: -1,
+            points: [LatLng(position.latitude, position.longitude)], // Route,
             color: _routeColour(_goodRoad),
             strokeWidth: 5));
         _startLatLng = pos;
@@ -1978,7 +1708,7 @@ You can plan trips either on your own or you can explore in a group''',
           }
           _lastCheck = DateTime.now();
           _travelled += distance;
-          polylines[0].points.add(pos);
+          _routes[0].points.add(pos);
           lastLatLng = pos;
           _tripDistance += distance;
           if (_tripDistance >= 0.5) {
@@ -1998,6 +1728,21 @@ You can plan trips either on your own or you can explore in a group''',
     });
   }
 
+  adjustHeigth(int percent) {
+    double height = (MediaQuery.of(context).size.height -
+            AppBar().preferredSize.height -
+            kBottomNavigationBarHeight -
+            _dividerHeight) *
+        0.93;
+
+    height = height * percent / 100;
+
+    mapHeight = mapHeight > height ? height : mapHeight;
+    mapHeight = mapHeight < 20 ? 20 : mapHeight;
+
+    listHeight = (height - mapHeight);
+  }
+
   locationLatLng(pos) {
     debugPrint(pos.toString());
     setState(() {
@@ -2012,8 +1757,48 @@ You can plan trips either on your own or you can explore in a group''',
         : uiColors[Setup().routeColour];
   }
 
+  routeTapped(routes, details) {
+    if (details != null) {
+      setState(() {
+        debugPrint(
+            'Route tapped routes: ${routes.toString()}  details: ${details.toString()}');
+      });
+    }
+  }
+
+  expandChange(var details) {
+    if (details != null) {
+      debugPrint('ExpandChanged: $details');
+      _editPointOfInterest = details;
+      setState(() {});
+    }
+  }
+
+  iconButtonTapped(var details) {
+    // if (details != null) {
+    debugPrint('IconButton pressed');
+    //  setState(() {});
+    // }
+  }
+
+  routeMissed(var details) {
+    if (details != null) {
+      setState(() {
+        debugPrint('Route missed');
+      });
+    }
+  }
+
+  checkMapEvent(var details) {
+    if (details != null) {
+      setState(() {
+        debugPrint('Map event: ${details.toString()}');
+      });
+    }
+  }
+
 /*
-  Future<bool> SavePolylines({required int userid, required int tripid, required int color, required String points}) async {
+  Future<bool> SaveRoutes({required int userid, required int tripid, required int color, required String points}) async {
     return true;
   }
 */
@@ -2030,17 +1815,13 @@ You can plan trips either on your own or you can explore in a group''',
 
 class StickyMenuDeligate extends SliverPersistentHeaderDelegate {
   final Function onButtonPressed;
-  final List<Widget> options1;
-  final List<bool> states1;
-  final List<Widget> options2;
-  final List<bool> states2;
+  final List<Widget> options;
+  final List<bool> states;
 
   StickyMenuDeligate({
     required this.onButtonPressed,
-    required this.options1,
-    required this.states1,
-    required this.options2,
-    required this.states2,
+    required this.options,
+    required this.states,
   });
 
   @override
@@ -2060,9 +1841,7 @@ class StickyMenuDeligate extends SliverPersistentHeaderDelegate {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ToggleButtons(
-              isSelected: _exploreTracking || _pointsOfInterest.isEmpty
-                  ? states1
-                  : states2,
+              isSelected: states,
               borderRadius: const BorderRadius.all(Radius.circular(8)),
               selectedBorderColor: Colors.blue[700],
               selectedColor: Colors.white,
@@ -2071,9 +1850,7 @@ class StickyMenuDeligate extends SliverPersistentHeaderDelegate {
               color: Colors.blue[400],
               constraints:
                   const BoxConstraints(minHeight: 40.0, minWidth: 70.0),
-              children: _exploreTracking || _pointsOfInterest.isEmpty
-                  ? options1
-                  : options2,
+              children: options,
               onPressed: (int index) {
                 onButtonPressed(index);
               },

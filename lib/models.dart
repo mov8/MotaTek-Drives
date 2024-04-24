@@ -151,6 +151,7 @@ const List<String> manufacturers = ['Triumph', 'MG', 'Reliant'];
 const List<String> models = ['TR2', 'TR3', 'TR5', 'TR6', 'TR7', 'Stag'];
 
 const List<Color> uiColors = [
+  Color.fromARGB(255, 25, 65, 26),
   Colors.red,
   Colors.orange,
   Colors.green,
@@ -171,7 +172,7 @@ void myFunc() {}
 class Setup {
   int id = 0;
   int routeColour = 0;
-  int goodRouteColour = 1;
+  int goodRouteColour = 0;
   int waypointColour = 2;
   int pointOfInterestColour = 3;
   int recordDetail = 5;
@@ -319,6 +320,7 @@ class PointOfInterest extends Marker {
       this.imageURIs,
       // RawMaterialButton button,
       this.iconData,
+      // Key key,
       {required LatLng markerPoint})
       : super(
           child: RawMaterialButton(
@@ -329,14 +331,15 @@ class PointOfInterest extends Marker {
               // padding: const EdgeInsets.all(5.0),
               shape: const CircleBorder(),
               child: Icon(
-                iconData, //markerIcon(type),
+                // iconData, //
+                markerIcon(type),
                 size: width < 30 ? 10 : width * 0.75,
                 color: Colors.blueAccent,
               )),
           point: markerPoint,
 //            draggable: true,fl
           width: width,
-          height: height,
+          height: height, /*key: key*/
         );
 
   Widget getButton(int type, BuildContext ctx) {
@@ -623,8 +626,7 @@ class Drive {
     this.minLong = 0,
   });
 
-  Future<bool> SaveLocally() async {
-    bool ok = true;
+  Future<bool> saveLocally() async {
     try {
       id = await saveDrive(drive: this);
     } catch (e) {

@@ -1,19 +1,16 @@
-// library flutter_map_tappable_polyline;
-
 import 'dart:math';
+import 'dart:ui';
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
-/// A polyline with a tag
-class TaggedRoute extends Polyline {
-  /// The name of the polyline
-  final String? tag;
+/// A polyline with an id
+class Route extends Polyline {
   final int? id;
   final List<Offset> _offsets = [];
 
-  TaggedRoute({
+  Route({
     required super.points,
     super.strokeWidth = 1.0,
     super.color = const Color(0xFF00FF00),
@@ -22,21 +19,20 @@ class TaggedRoute extends Polyline {
     super.gradientColors,
     super.colorsStop,
     super.isDotted = false,
-    this.tag,
-    this.id,
+    this.id = -1,
   });
 }
 
 class RouteLayer extends PolylineLayer {
-  /// The list of [TaggedRoute] which could be tapped
+  /// The list of [Route] which could be tapped
   @override
-  final List<TaggedRoute> polylines;
+  final List<Route> polylines;
 
   /// The tolerated distance between pointer and user tap to trigger the [onTap] callback
   final double pointerDistanceTolerance;
 
   /// The callback to call when a polyline was hit by the tap
-  final void Function(List<TaggedRoute>, TapUpDetails tapPosition)? onTap;
+  final void Function(List<Route>, TapUpDetails tapPosition)? onTap;
 
   /// The optional callback to call when no polyline was hit by the tap
   final void Function(TapUpDetails tapPosition)? onMiss;
@@ -66,16 +62,23 @@ class RouteLayer extends PolylineLayer {
     );
   }
 
-  Widget _build(BuildContext context, Size size, List<TaggedRoute> lines) {
+  Widget _build(BuildContext context, Size size, List<Route> lines) {
     final mapState = MapCamera.of(context);
 
-    for (TaggedRoute polyline in lines) {
+    double rotation = mapState.rotation;
+    debugPrint('Camera rotation: $rotation');
+
+    for (Route polyline in lines) {
       polyline._offsets.clear();
       var i = 0;
+
       for (var point in polyline.points) {
         var pos = mapState.project(point);
         pos = (pos * mapState.getZoomScale(mapState.zoom, mapState.zoom)) -
             mapState.pixelOrigin.toDoublePoint();
+
+        // final mapCenter = crs.latLngToPoint(center, zoom);
+        // pos = mapState.rotatePoint(mapState.center   mapCenter, point)
         polyline._offsets.add(Offset(pos.x.toDouble(), pos.y.toDouble()));
         if (i > 0 && i < polyline.points.length) {
           polyline._offsets.add(Offset(pos.x.toDouble(), pos.y.toDouble()));
@@ -84,18 +87,21 @@ class RouteLayer extends PolylineLayer {
       }
     }
 
-    return Container(
-      child: GestureDetector(
-        onDoubleTap: () {
-          // For some strange reason i have to add this callback for the onDoubleTapDown callback to be called.
-        },
-        onDoubleTapDown: (TapDownDetails details) {
-          _zoomMap(details, context);
-        },
-        onTapUp: (TapUpDetails details) {
-          _forwardCallToMapOptions(details, context);
-          _handlePolylineTap(details, onTap, onMiss);
-        },
+    // _handlePolylineTap(noTap, onTap, onMiss);
+
+    return GestureDetector(
+      /* 
+      onDoubleTap: () {
+        // For some strange reason i have to add this callback for the onDoubleTapDown callback to be called.
+      },
+      onDoubleTapDown: (TapDownDetails details) {
+        _zoomMap(details, context);
+      },
+   */
+
+      behavior: HitTestBehavior.translucent,
+      child: AbsorbPointer(
+          child: MobileLayerTransformer(
         child: Stack(
           children: [
             CustomPaint(
@@ -104,27 +110,36 @@ class RouteLayer extends PolylineLayer {
             ),
           ],
         ),
-      ),
+      )),
+      onTapUp: (TapUpDetails details) {
+        _forwardCallToMapOptions(details, context);
+        _handlePolylineTap(details, onTap, onMiss);
+      },
+      /*
+      onPanUpdate: (DragUpdateDetails details) {
+        _handlePolylineTap(details, onTap, onMiss);
+      },
+      */
     );
   }
 
   void _handlePolylineTap(
       TapUpDetails details, Function? onTap, Function? onMiss) {
     // We might hit close to multiple polylines. We will therefore keep a reference to these in this map.
-    Map<double, List<TaggedRoute>> candidates = {};
-
+    Map<double, List<Route>> candidates = {};
+    // var mapState = MapCamera.of(context);
     // Calculating taps in between points on the polyline. We
     // iterate over all the segments in the polyline to find any
     // matches with the tapped point within the
     // pointerDistanceTolerance.
-    for (TaggedRoute currentPolyline in polylines) {
+    for (Route currentPolyline in polylines) {
       for (var j = 0; j < currentPolyline._offsets.length - 1; j++) {
         // We consider the points point1, point2 and tap points in a triangle
         var point1 = currentPolyline._offsets[j];
         var point2 = currentPolyline._offsets[j + 1];
         var tap = details.localPosition;
 
-        // To determine if we have tapped in between two po ints, we
+        // To determine if we have tapped in between two points, we
         // calculate the length from the tapped point to the line
         // created by point1, point2. If this distance is shorter
         // than the specified threshold, we have detected a tap
@@ -162,7 +177,7 @@ class RouteLayer extends PolylineLayer {
             lengthDToOriginalSegment < pointerDistanceTolerance) {
           var minimum = min(height, lengthDToOriginalSegment);
 
-          candidates[minimum] ??= <TaggedRoute>[];
+          candidates[minimum] ??= <Route>[];
           candidates[minimum]!.add(currentPolyline);
         }
       }
@@ -183,7 +198,6 @@ class RouteLayer extends PolylineLayer {
 
     final tapPosition =
         TapPosition(details.globalPosition, details.localPosition);
-
     // Forward the onTap call to map.options so that we won't break onTap
     mapOptions.onTap?.call(tapPosition, latlng);
   }
