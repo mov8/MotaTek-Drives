@@ -1,10 +1,12 @@
-import 'package:flutter/cupertino.dart';
+// import 'dart:js_interop';
+
+// import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
-import 'package:flutter/widgets.dart';
+//import 'package:flutter/widgets.dart';
 import 'package:drives/models.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -41,7 +43,7 @@ Future<Database> initDb() async {
       await db.execute(
           'CREATE TABLE groups(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, description TEXT, created DATETIME)'); //, locationId INTEGER, vehicleId INTEGER)');
       await db.execute(
-          'CREATE TABLE groupMembers(id INTEGER PRIMARY KEY AUTOINCREMENT, forename TEXT, surname TEXT, email TEXT, status Integer, joined DATETIME, note TEXT, uri TEXT)'); //, locationId INTEGER, vehicleId INTEGER)');
+          'CREATE TABLE group_members(id INTEGER PRIMARY KEY AUTOINCREMENT, forename TEXT, surname TEXT, email TEXT, status Integer, joined DATETIME, note TEXT, uri TEXT)'); //, locationId INTEGER, vehicleId INTEGER)');
       await db.execute(
           'CREATE TABLE notifications(id INTEGER PRIMARY KEY AUTOINCREMENT, sentBy TEXT, message TEXT, received DATETIME)'); //, locationId INTEGER, vehicleId INTEGER)');
 
@@ -57,16 +59,17 @@ Future<Database> initDb() async {
 
       await db.execute(
           '''CREATE TABLE setup(id INTEGER PRIMARY KEY AUTOINCREMENT, routeColour INTEGER, goodRouteColour INTEGER, 
-          waypointColour INTEGER, pointOfInterestColour INTEGER, recordDetail INTEGER, allowNotifications INTEGER,
-               dark INTEGER) ''');
+          waypoint_colour INTEGER, waypoint_colour_2 INTEGER, point_of_interest_colour INTEGER, 
+          point_of_interest_colour_2 INTEGER, record_detail INTEGER, allow_notifications INTEGER,
+          dark INTEGER) ''');
 
       await db.execute(
-          '''CREATE TABLE drives(id INTEGER PRIMARY KEY AUTOINCREMENT, userId INTEGER, title TEXT, subTitle TEXT, body TEXT, 
-          imageUrl TEXT, maxLat REAL, minLat REAL, maxLong REAL, minLong REAL, added DATETIME)''');
+          '''CREATE TABLE drives(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, title TEXT, sub_title TEXT, body TEXT, 
+          image_url TEXT, max_lat REAL, min_lat REAL, max_long REAL, min_long REAL, added DATETIME)''');
 
       await db.execute(
-          '''CREATE TABLE pointOfInterest(id INTEGER PRIMARY KEY AUTOINCREMENT, userId INTEGER, driveId INTEGER, type INTEGER, 
-          title TEXT, subTitle TEXT, body TEXT, latitude REAL, longitude REAL)''');
+          '''CREATE TABLE points_of_interest(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, drive_id INTEGER, type INTEGER, 
+          title TEXT, sub_title TEXT, body TEXT, latitude REAL, longitude REAL, images STRING)''');
 
       /// SQLite does have JSON capabilities
       /// INSERT INTO users (name, data) VALUES ('John', '{"age:": 30, "country": "USA"});
@@ -75,35 +78,17 @@ Future<Database> initDb() async {
       /// SELECT * FROM users WHERE data LIKE '%"country":"USA"%';
 
       await db.execute(
-          '''CREATE TABLE polyLines(id INTEGER PRIMARY KEY AUTOINCREMENT, userId INTEGER, driveId INTEGER, points TEXT, 
+          '''CREATE TABLE polylines(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, drive_id INTEGER, points TEXT, 
     colour Integer, stroke INTEGER)''');
-
+/*
       await db.execute(
-          '''CREATE TABLE images(id INTEGER PRIMARY KEY AUTOINCREMENT, userId INTEGER, driveId INTEGER, 
+          '''CREATE TABLE images(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, drive_id INTEGER, 
       pointOfInterestId INTEGER, title TEXT, url TEXT)''');
-
+*/
       await db.execute(
         '''CREATE TABLE log(id INTEGER PRIMARY KEY AUTOINCREMENT, monitor INTEGER, dateTime DATETIME, portNumber INTEGER, 
               value REAL, alarm INTEGER)''',
       );
-    },
-    onUpgrade: (Database db, int oldVersion, int newVersion) async {
-      await db.execute('ALTER TABLE ports ADD COLUMN value INTEGER');
-      await db.execute('ALTER TABLE gauges ADD COLUMN notification TEXT');
-    },
-    onDowngrade: (Database db, int oldVersion, int newVersion) async {
-      await db.execute('DROP TABLE IF EXISTS gauges');
-      await db.execute('DROP TABLE IF EXISTS ports');
-
-      await db.execute(
-          '''CREATE TABLE ports(id INTEGER PRIMARY KEY AUTOINCREMENT, monitor INTEGER, portNumber INTEGER, name TEXT,
-            value REAL, type INTEGER, unit TEXT, minValue REAL, minRaw REAL, minReal REAL, redLine REAL, warning REAL, 
-            maxValue REAL, maxRaw REAL, maxReal REAL, latency INTEGER, volume INTEGER, inverse INTEGER)''');
-
-      await db.execute(
-          '''CREATE TABLE gauges(id INTEGER PRIMARY KEY AUTOINCREMENT, monitor INTEGER, portNumber INTEGER, type INTEGER,
-            size INTEGER, positionXp REAL, positionYp REAL, positionXl REAL, positionYl REAL, damping INTEGER, 
-            isDecimal INTEGER, notification TEXT)''');
     },
   );
   return newdb;
@@ -242,15 +227,15 @@ Future<Drive> getDrive(int driveId) async {
     String query = "SELECT * FROM drives WHERE if = $driveId";
     var maps = await db.rawQuery(query);
     id = int.parse(maps[0]['id'].toString());
-    userId = int.parse(maps[0]['userId'].toString());
+    userId = int.parse(maps[0]['user_id'].toString());
     title = maps[0]['title'].toString();
-    subTitle = maps[0]['subTitle'].toString();
+    subTitle = maps[0]['sub_title'].toString();
     body = maps[0]['body'].toString();
     date = DateTime.parse(maps[0]['date'].toString());
-    maxLat = double.parse(maps[0]['maxLat'].toString());
-    minLat = double.parse(maps[0]['minLat'].toString());
-    maxLong = double.parse(maps[0]['maxLong'].toString());
-    minLong = double.parse(maps[0]['minLong'].toString());
+    maxLat = double.parse(maps[0]['max_lat'].toString());
+    minLat = double.parse(maps[0]['min_lat'].toString());
+    maxLong = double.parse(maps[0]['max_long'].toString());
+    minLong = double.parse(maps[0]['min_long'].toString());
   } catch (e) {
     debugPrint('dbError:${e.toString()}');
   }
@@ -304,6 +289,49 @@ String pointsToString(List<LatLng> points) {
   return pointsMap;
 }
 
+// Save all the points of interest + their images
+
+Future<bool> savePointsOfInterestLocal(
+    {required int userId,
+    required int driveId,
+    required List<PointOfInterest> pointsOfInterest}) async {
+  final db = await dbHelper().db;
+  for (int i = 0; i < pointsOfInterest.length; i++) {
+    int id = -1;
+    Map<String, dynamic> poiMap = {
+      'use_id': userId,
+      'drive_id': driveId,
+      'type': pointsOfInterest[i].type,
+      'name': pointsOfInterest[i].name,
+      'description': pointsOfInterest[i].description,
+      'images': pointsOfInterest[i].images,
+
+      /// Json [{'image': imageUrl, 'caption': imageCaption}, ...]
+      'latitude': pointsOfInterest[i].markerPoint.latitude,
+      'longitude': pointsOfInterest[i].markerPoint.longitude,
+    };
+    if (pointsOfInterest[i].id > -1) {
+      id = pointsOfInterest[i].id;
+      try {
+        await db.update('points_of_interest', poiMap,
+            where: 'id = ?',
+            whereArgs: [id],
+            conflictAlgorithm: ConflictAlgorithm.replace);
+      } catch (e) {
+        debugPrint('Error saving points of interest: ${e.toString()}');
+        return false;
+      }
+    } else {
+      id = await db.insert(
+        'polylines',
+        poiMap,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+  }
+  return true;
+}
+
 /// Saves the myTrips to the local SQLite database
 
 Future<bool> savePolylinesLocal(
@@ -315,8 +343,8 @@ Future<bool> savePolylinesLocal(
   for (int i = 0; i < polylines.length; i++) {
     Map<String, dynamic> plMap = {
       'id': id,
-      'useId': userId,
-      'driveId': driveId,
+      'user_id': userId,
+      'drive_id': driveId,
       'points': pointsToString(polylines[i].points),
       'stroke': polylines[i].strokeWidth,
       'color': polylines[i].color,
@@ -349,7 +377,7 @@ Future<List<Polyline>> loadPolyLinesLocal(int driveId) async {
   List<Polyline> polylines = [];
   List<Map<String, dynamic>> maps = await db.query(
     'polylines',
-    where: 'driveId = ?',
+    where: 'drive_id = ?',
     whereArgs: [driveId],
   );
 
@@ -406,62 +434,3 @@ String polyLineToString(List<Polyline> polyLines) {
   }
   return polyLineString;
 }
-
-
-
-/*
-Future<bool> savePolyline({required String jsonString}) async {
-  final db = await dbHelper().db;
-  try {
-    await db.update('polylines', jsonString,
-        conflictAlgorithm: ConflictAlgorithm.replace);
-  } catch (e) {
-    debugPrint('@Database error storing polyline: ${e.toString()}');
-  }
-  return true;
-}
-*/
-/*
-Future<bool> savePolyLines({required List<PolyLine> ployLines}) async {
-  return true;
-}
-*/
-
-///          '''CREATE TABLE pointsOfInterest(id INTEGER PRIMARY KEY AUTOINCREMENT, userId INTEGER, driveId INTEGER, type INTEGER,
-///          description TEXT, hint TEXT, latitude REAL, longitude REAL)''');
-/*
-Future<WayPoint> getWayPoint(int id) async {
-  int id = 0;
-  int userId = 0;
-  int driveId = 0;
-  int type = 0;
-  String description = '';
-  String hint = '';
-  double longitude = 0.0;
-  double latitude = 0.0;
-  final db = await dbHelper().db;
-  try {
-    String query = "SELECT * FROM drives WHERE if = $driveId";
-    var maps = await db.rawQuery(query);
-    id = int.parse(maps[0]['id'].toString());
-    userId = int.parse(maps[0]['userId'].toString());
-    driveId = int.parse(maps[0]['driveId'].toString());
-    type = int.parse(maps[0]['type'].toString());
-    description = maps[0]['description'].toString();
-    hint = maps[0]['hint'].toString();
-    longitude = double.parse(maps[0]['longitude'].toString());
-    latitude = double.parse(maps[0]['latitude'].toString());
-  } catch (e) {
-    debugPrint('Database error getting point of interest: ${e.toString()}');
-  }
-
-  return WayPoint(
-      id: id,
-      userId: userId,
-      driveId: driveId,
-      type: type,
-      description: description,
-      hint: hint,
-      markerPoint: LatLng(latitude, longitude));
-}
-*/

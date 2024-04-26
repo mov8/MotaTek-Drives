@@ -59,7 +59,7 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
   late String name;
   late String description;
   late int type;
-  late List<String> imageURIs;
+  late String images;
   late int index;
   bool expanded = false;
   // final _key = GlobalKey();
@@ -75,7 +75,7 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
     name = widget.pointOfInterest.name;
     description = widget.pointOfInterest.description;
     type = widget.pointOfInterest.type;
-    imageURIs = widget.pointOfInterest.imageURIs;
+    images = widget.pointOfInterest.images;
   }
 
   @override
@@ -200,7 +200,7 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                         ),
                       ],
                     ),
-                    if (imageURIs.isNotEmpty)
+                    if (images.isNotEmpty)
                       Row(children: <Widget>[
                         Expanded(
                             flex: 8,
@@ -209,11 +209,13 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                                 child: ListView(
                                   scrollDirection: Axis.horizontal,
                                   children: [
-                                    for (int i = 0; i < imageURIs.length; i++)
+                                    for (int i = 0;
+                                        i < photosFromJson(images).length;
+                                        i++)
                                       SizedBox(
                                           width: 160,
-                                          child:
-                                              Image.file(File(imageURIs[i]))),
+                                          child: Image.file(File(
+                                              photosFromJson(images)[i].url))),
                                     const SizedBox(
                                       width: 30,
                                     ),
@@ -233,7 +235,7 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
           .then((pickedFile) {
         try {
           if (pickedFile != null) {
-            imageURIs.add(pickedFile.path);
+            images = "$images, {'url': ${pickedFile.path}, 'caption:'}";
           }
         } catch (e) {
           debugPrint('Error getting image: ${e.toString()}');
@@ -250,7 +252,7 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
       widget.pointOfInterest.name = name;
       widget.pointOfInterest.description = description;
       widget.pointOfInterest.type = type;
-      widget.pointOfInterest.imageURIs = imageURIs;
+      widget.pointOfInterest.images = images;
       widget.pointOfInterest.iconData = markerIcon(type);
     }
   }

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:drives/models.dart';
 
@@ -16,6 +18,7 @@ class MyTripTile extends StatefulWidget {
 class _myTripTileState extends State<MyTripTile> {
   @override
   Widget build(BuildContext context) {
+    List<Photo> photos = photosFromJson((widget.myTripItem.images));
     return SingleChildScrollView(
         child: Material(
             child: ClipRRect(
@@ -119,8 +122,7 @@ class _myTripTileState extends State<MyTripTile> {
                                         const SizedBox(
                                           height: 10,
                                         ),
-                                        if (widget
-                                            .myTripItem.imageUrls.isNotEmpty)
+                                        if (widget.myTripItem.images.isNotEmpty)
                                           Row(children: <Widget>[
                                             Expanded(
                                                 flex: 8,
@@ -131,18 +133,14 @@ class _myTripTileState extends State<MyTripTile> {
                                                           Axis.horizontal,
                                                       children: [
                                                         for (int i = 0;
-                                                            i <
-                                                                widget
-                                                                    .myTripItem
-                                                                    .imageUrls
-                                                                    .length;
+                                                            i < photos.length;
                                                             i++)
                                                           SizedBox(
                                                               width: 200,
                                                               child: Image(
-                                                                  image: AssetImage(widget
-                                                                      .myTripItem
-                                                                      .imageUrls[i]))),
+                                                                  image: AssetImage(
+                                                                      photos[i]
+                                                                          .url))),
                                                         const SizedBox(
                                                           width: 30,
                                                         ),

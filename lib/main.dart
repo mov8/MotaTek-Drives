@@ -33,8 +33,9 @@ import 'services/image_helper.dart';
 import 'home_tile.dart';
 import 'trip_tile.dart';
 import 'my_trip_tile.dart';
-import 'screens/painters.dart';
 import 'screens/dialogs.dart';
+import 'screens/painters.dart';
+// import 'screens/dialogs.dart';
 import 'package:flutter_map_location_marker/flutter_map_location_marker.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -153,7 +154,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     ],
     <Widget>[
       Column(children: [Icon(Icons.save), Text('Save trip')]),
-      Column(children: [Icon(Icons.share), Text('Share trip')]),
+      Column(children: [Icon(Icons.publish), Text('Publish trip')]),
       Column(children: [Icon(Icons.wrong_location), Text('Clear trip')]),
     ],
     <Widget>[
@@ -280,17 +281,28 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
 
   List<LatLng> routePoints = const [LatLng(51.478815, -0.611477)];
 
-  List<String> images = [];
+  String images = '';
 
   /// Routine to add point of interest
   /// Identified as a point
 
   _addPointOfInterest(int id, int userId, int iconIdx, String desc, String hint,
       double size, LatLng latLng) {
-    _pointsOfInterest.add(PointOfInterest(context, id, userId, driveId, iconIdx,
-        desc, hint, size, size, images, markerIcon(iconIdx),
-        /* ValueKey(id),*/
-        markerPoint: latLng));
+    _pointsOfInterest.add(PointOfInterest(
+      context,
+      id,
+      userId,
+      driveId,
+      iconIdx,
+      desc,
+      hint,
+      size,
+      size,
+      images,
+      markerIcon(iconIdx),
+      /* ValueKey(id),*/
+      markerPoint: latLng,
+    ));
     setState(() {
       // adjustHeigth(25);
       _scrollDown();
@@ -298,10 +310,9 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     });
   }
 
-  ///
   /// _singlePointOfInterest uses Komoot reverse lookup to get the address, and doesn't
   /// try to generate any Routes
-  ///
+
   _singlePointOfInterest(BuildContext context, latLng, int id,
       {name = '', distance = 0, time = 0}) async {
     int type = 12;
@@ -309,19 +320,19 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     await getPoiName(latLng: latLng, name: name).then((name) {
       if (context.mounted) {
         PointOfInterest poi = PointOfInterest(
-            context,
-            id,
-            userId,
-            driveId,
-            type,
-            name,
-            '$distance miles - ($time minutes)',
-            10,
-            10,
-            images,
-            markerIcon(type),
-            /* ValueKey(id), */
-            markerPoint: latLng);
+          context,
+          id,
+          userId,
+          driveId,
+          type,
+          name,
+          '$distance miles - ($time minutes)',
+          10,
+          10,
+          images,
+          markerIcon(type),
+          markerPoint: latLng,
+        );
         if (id == -1) {
           _pointsOfInterest.add(poi);
         } else {
@@ -384,7 +395,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   List<mt.Route> _routes = [
     mt.Route(
         points: const [LatLng(50, 0)], // routePoints,
-        color: uiColors[
+        color: uiColours.keys.toList()[
             Setup().routeColour], //  const Color.fromARGB(255, 28, 97, 5),
         strokeWidth: 5)
   ];
@@ -484,36 +495,12 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
 
           _animatedMapController.animateTo(
               dest: LatLng(startL[0].latitude, startL[0].longitude));
-
-          //  debugPrint(
-          //      'Position: lat: ${startL[0].latitude} long: ${startL[0].longitude}');
-
           return LatLng(startL[0].latitude, startL[0].longitude);
-          //        await locationFromAddress(waypoints[i]).then((res) {
-          //          endL = res;
-          //          urlWaypoints.add(
-          //              '${startL[0].longitude},${startL[0].latitude};${endL[0].longitude},${endL[0].latitude}');
-          //        });
         });
       } catch (e) {
         debugPrint('Error: ${e.toString()}');
       }
     }
-/*
-    Routes = [];
-    for (int i = 0; i < urlWaypoints.length; i++) {
-      Map<String, dynamic> apiData;
-      apiData = await getRoutePoints(urlWaypoints[i]);
-      routePoints = apiData["points"];
-      await getRoutePoints(urlWaypoints[i]);
-      Routes.add(Route(
-          points: routePoints,
-          color: const Color.fromARGB(255, 28, 97, 5),
-          strokeWidth: 5));
-    }
-    setState(() {});
-    return Routes;
-    */
     throw ('error in callback');
   }
 
@@ -845,7 +832,6 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   pointOfInterestRemove(int idx) async {
     /// Removing a poi:
     final PointOfInterest item = _pointsOfInterest.removeAt(idx);
-
     loadRoutes();
     setState(() {});
   }
@@ -1336,7 +1322,8 @@ You can plan trips either on your own or you can explore in a group''',
       body:
           '''MotaTrip is a new app to help you make the most of the countryside around you. 
 You can plan trips either on your own or you can explore in a group''',
-      imageUrls: ['assets/images/map.png', 'assets/images/splash.png'],
+      images:
+          '[{"url": "assets/images/map.png", "caption": ""}, {"url": "assets/images/splash.png", "caption": ""}, {"url": "assets/images/CarGroup.png", "caption": "" }]',
       //   author: 'James Seddon',
       published: 'Feb 24',
       score: 3.5,
@@ -1355,11 +1342,10 @@ You can plan trips either on your own or you can explore in a group''',
       body:
           '''MotaTrip is a new app to help you make the most of the countryside around you. 
 You can plan trips either on your own or you can explore in a group''',
-      imageUrls: [
-        'assets/images/map.png',
-        'assets/images/splash.png',
-        'assets/images/CarGroup.png'
-      ],
+      images:
+          '[{"url": "assets/images/map.png", "caption": ""}, {"url": "assets/images/splash.png", "caption": ""}, {"url": "assets/images/CarGroup.png", "caption": "" }]',
+
+      //  "[{'url': assets/images/map.png, 'caption': }, {'url': assets/images/splash.png, 'caption':}, {'url': assets/images/CarGroup.png, 'caption': }]",
       //  author: 'James Seddon',
       published: 'Dec 23',
       score: 2.5,
@@ -1554,12 +1540,23 @@ You can plan trips either on your own or you can explore in a group''',
         break;
       case 1:
         // Choose between Save Edit and Clear
-        if (value == 2) {
-          _startLatLng == const LatLng(0.00, 0.00);
-          _routes.clear();
-          _pointsOfInterest.clear();
-          _goodRoad = false;
-          _tracking = false;
+        switch (value) {
+          case 0:
+            // Save trip
+            await _saveTrip();
+            break;
+          case 1:
+            // Publish trip
+            await _publishTrip();
+            break;
+          case 2:
+            // Clear trip
+            _startLatLng == const LatLng(0.00, 0.00);
+            _routes.clear();
+            _pointsOfInterest.clear();
+            _goodRoad = false;
+            _tracking = false;
+            break;
         }
         break;
       case 2:
@@ -1569,8 +1566,8 @@ You can plan trips either on your own or you can explore in a group''',
             // Save the point of interest
             _pointOfInterestController.save(_editPointOfInterest);
             setState(() {
+              _updateMarker(_editPointOfInterest);
               _editPointOfInterest = -1;
-              _pointOfInterestController.expand(false);
             });
             break;
           case 1:
@@ -1593,37 +1590,25 @@ You can plan trips either on your own or you can explore in a group''',
         _exploreMenuStates[stickyMenuIndex][i] = i == value;
       }
     });
+  }
 
-/*
-      if (_bottomNavigationsBarIndex >= 1 &&
-          value == 0 &&
-          _pointsOfInterest.isNotEmpty) {
-        //   String Routes = RouteToString(Routes);
-        //   debugPrint('Routes: $Routes');
-        //   Routes = 'Routes: $Routes';
-      } else if (value < 2) {
-        _bottomNavigationsBarIndex =
-            _pointsOfInterest.isEmpty && value == 1 ? 2 : 1;
-      }
-      if (_exploreTracking || _pointsOfInterest.isEmpty) {
-        _showTarget = value == 0;
-        // !_exploreTracking;
-
-        for (int i = 0; i < _exploreMenuOptions[stickyMenuIndex].length; i++) {
-          _exploreMenuStates[stickyMenuIndex][i] = i == value;
-        }
-      } else if (value == 2) {
-        _startLatLng == const LatLng(0.00, 0.00);
-        _routes.clear();
-        _pointsOfInterest.clear();
-        _goodRoad = false;
-        _tracking = false;
-      } else {
-        for (int i = 0; i < _exploreMenuOptions[stickyMenuIndex].length; i++) {
-          _exploreMenuStates[stickyMenuIndex][i] = i == value;
-        }
-      } */
-    // });
+  _updateMarker(editPointOfInterest) {
+    _pointsOfInterest[_editPointOfInterest].child = RawMaterialButton(
+        onPressed: () => Utility().showAlertDialog(
+            context,
+            poiTypes.toList()[_pointsOfInterest[editPointOfInterest].type]
+                ['name'],
+            _pointsOfInterest[editPointOfInterest].description),
+        elevation: 2.0,
+        fillColor: uiColours.keys.toList()[Setup()
+            .pointOfInterestColour], // const Color.fromARGB(255, 224, 132, 10),
+        shape: const CircleBorder(),
+        child: Icon(
+          markerIcon(
+              _pointsOfInterest[editPointOfInterest].type), //markerIcon(type),
+          size: 25,
+          color: Colors.blueAccent,
+        ));
   }
 
   int _stickyMenuIndex() {
@@ -1640,7 +1625,7 @@ You can plan trips either on your own or you can explore in a group''',
     await ImagePicker().pickImage(source: source).then((pickedFile) {
       setState(() {
         if (pickedFile != null) {
-          poi.imageURIs.add(pickedFile.path);
+          poi.images = "${poi.images},{'url': ${pickedFile.path}, 'caption':}";
         }
       });
     });
@@ -1753,8 +1738,8 @@ You can plan trips either on your own or you can explore in a group''',
 
   Color _routeColour(bool goodRoad) {
     return goodRoad
-        ? uiColors[Setup().goodRouteColour]
-        : uiColors[Setup().routeColour];
+        ? uiColours.keys.toList()[Setup().goodRouteColour]
+        : uiColours.keys.toList()[Setup().routeColour];
   }
 
   routeTapped(routes, details) {
@@ -1795,6 +1780,49 @@ You can plan trips either on your own or you can explore in a group''',
         debugPrint('Map event: ${details.toString()}');
       });
     }
+  }
+
+  Future<bool> _saveTrip() async {
+    // Insert / Update the drive details
+
+    Drive drive = Drive(
+        id: 0,
+        userId: -1,
+        title: tripItem.heading,
+        subTitle: tripItem.subHeading,
+        body: tripItem.body,
+        date: DateTime.now());
+
+    int driveId = await saveDrive(drive: drive);
+
+    if (driveId > -1 && _pointsOfInterest.isNotEmpty) {
+      savePointsOfInterestLocal(
+          userId: userId,
+          driveId: driveId,
+          pointsOfInterest: _pointsOfInterest);
+      if (_routes.isNotEmpty) {
+        savePolylinesLocal(
+            id: id, userId: userId, driveId: driveId, polylines: _routes);
+      }
+    }
+
+    // Insert / update all the points of interest with images
+
+    // Insert / update all polylines
+
+    return true;
+  }
+
+  Future<bool> _publishTrip() async {
+    // Check user is registered - email verification
+
+    // Insert / Update the drive details
+
+    // Insert / update all the points of interest with images
+
+    // Insert / update all polylines
+
+    return true;
   }
 
 /*

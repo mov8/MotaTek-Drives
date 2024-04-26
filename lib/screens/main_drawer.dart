@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:drives/screens/sign_up.dart';
+import 'package:drives/screens/setup.dart';
 
 class MainDrawer extends StatefulWidget {
   const MainDrawer({super.key});
@@ -34,20 +35,22 @@ class _MainDrawerState extends State<MainDrawer> {
               ),
             ]),
           )),
-      const ListTile(
-        leading: Icon(
-          Icons.settings,
-          size: 30,
-        ),
-        title: Text('App Settings',
-            style: TextStyle(
-              color: Colors.blue,
-              fontSize: 20,
-            )),
-        //             onTap: () {
-        //
-        //             }
-      ),
+      ListTile(
+          leading: const Icon(
+            Icons.settings,
+            size: 30,
+          ),
+          title: const Text('App Settings',
+              style: TextStyle(
+                color: Colors.blue,
+                fontSize: 20,
+              )),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const SetupForm()),
+            );
+          }),
       ListTile(
           leading: const Icon(Icons.how_to_reg, size: 30),
           title: const Text('Your Details',
@@ -58,7 +61,7 @@ class _MainDrawerState extends State<MainDrawer> {
           onTap: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => SignupForm()),
+              MaterialPageRoute(builder: (context) => const SignupForm()),
             );
           }),
       const ListTile(

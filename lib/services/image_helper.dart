@@ -114,7 +114,7 @@ class _PoiDetails extends State<PoiDetails> {
                               )),
                         ))
                   ]),
-              if (widget.pointOfInterest.imageURIs.isNotEmpty)
+              if (widget.pointOfInterest.images.isNotEmpty)
                 Row(children: <Widget>[
                   Expanded(
                       flex: 8,
@@ -124,12 +124,16 @@ class _PoiDetails extends State<PoiDetails> {
                             scrollDirection: Axis.horizontal,
                             children: [
                               for (int i = 0;
-                                  i < widget.pointOfInterest.imageURIs.length;
+                                  i <
+                                      photosFromJson(
+                                              widget.pointOfInterest.images)
+                                          .length;
                                   i++)
                                 SizedBox(
                                     width: 160,
-                                    child: Image.file(File(
-                                        widget.pointOfInterest.imageURIs[i]))),
+                                    child: Image.file(File(photosFromJson(
+                                            widget.pointOfInterest.images)[i]
+                                        .url))),
                               const SizedBox(
                                 width: 30,
                               ),
@@ -206,7 +210,8 @@ class _PoiDetails extends State<PoiDetails> {
     final pickedFile = await ImagePicker().pickImage(source: source);
     setState(() {
       if (pickedFile != null) {
-        widget.pointOfInterest.imageURIs.add(pickedFile.path);
+        widget.pointOfInterest.images =
+            "${widget.pointOfInterest.images}, {'url': ${pickedFile.path}, 'caption':}";
         _image = File(pickedFile.path);
       }
     });

@@ -1,4 +1,6 @@
 // import 'package:flutter/cupertino.dart';
+import 'dart:convert';
+
 import 'package:drives/screens/dialogs.dart';
 import 'package:drives/services/db_helper.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -149,23 +151,46 @@ const List<Map> poiTypes = [
 
 const List<String> manufacturers = ['Triumph', 'MG', 'Reliant'];
 const List<String> models = ['TR2', 'TR3', 'TR5', 'TR6', 'TR7', 'Stag'];
-
-const List<Color> uiColors = [
+/*
+const List<Color> uiColours.keys.toList() = [
+  Colors.white,
   Color.fromARGB(255, 25, 65, 26),
   Colors.red,
   Colors.orange,
+  Colors.amber,
+  Colors.lime,
+  Colors.yellow,
   Colors.green,
   Colors.blue,
   Colors.indigo,
-  Colors.white,
+  Colors.deepPurple,
   Colors.cyan,
-  Colors.amber,
-  Colors.deepPurpleAccent,
-  Colors.limeAccent,
-  Colors.black,
   Colors.grey,
   Colors.brown,
+  Colors.black,
 ];
+*/
+Map<Color, String> uiColours = {
+  Colors.white: 'white',
+  const Color.fromARGB(255, 25, 65, 26): 'olive',
+  Colors.red: 'red',
+  Colors.orange: 'orange',
+  Colors.amber: 'amber',
+  Colors.lime: 'lime',
+  Colors.yellow: 'yellow',
+  Colors.green: 'green',
+  Colors.blue: 'blue',
+  Colors.indigo: 'indigo',
+  Colors.deepPurple: 'purple',
+  Colors.cyan: 'cyan',
+  Colors.grey: 'grey',
+  Colors.brown: 'brown',
+  Colors.black: 'black',
+};
+
+// const List<UiColour> uiColours = [
+//  UiColour(0, uiColours.keys.toList()[0], uiColours.keys.toList()[0].toString())
+//]
 
 void myFunc() {}
 
@@ -175,6 +200,8 @@ class Setup {
   int goodRouteColour = 0;
   int waypointColour = 2;
   int pointOfInterestColour = 3;
+  int waypointColour2 = 14;
+  int pointOfInterestColour2 = 14;
   int recordDetail = 5;
   bool allowNotifications = true;
   bool dark = false;
@@ -192,17 +219,26 @@ class Setup {
     return _loaded ??= await setupFromDb();
   }
 
+/*
+          '''CREATE TABLE setup(id INTEGER PRIMARY KEY AUTOINCREMENT, routeColour INTEGER, goodRouteColour INTEGER, 
+          waypoint_colour INTEGER, waypoint_colour_2 INTEGER, point_of_interest_colour INTEGER, 
+          point_of_interest_colour2 INTEGER, record_detail INTEGER, allow_notifications INTEGER,
+          dark INTEGER) ''');
+ */
+
   Future<bool> setupFromDb() async {
     List<Map<String, dynamic>> maps = await getSetup(0);
     if (maps.isNotEmpty) {
       try {
         id = maps[0]['id'];
-        routeColour = maps[0]['routeColour'];
-        goodRouteColour = maps[0]['goodRouteColour'];
-        waypointColour = maps[0]['waypointColour'];
-        pointOfInterestColour = maps[0]['pointOfInterestColour'];
-        recordDetail = maps[0]['recordDetail'];
-        allowNotifications = maps[0]['allowNotifications'] == 1;
+        routeColour = maps[0]['route_colour'];
+        goodRouteColour = maps[0]['good_route_colour'];
+        waypointColour = maps[0]['waypoint_colour'];
+        pointOfInterestColour = maps[0]['point_of_interest_colour'];
+        waypointColour2 = maps[0]['waypoint_colour_2'];
+        pointOfInterestColour2 = maps[0]['point_of_interest_colour_2'];
+        recordDetail = maps[0]['record_detail'];
+        allowNotifications = maps[0]['allow_notifications'] == 1;
         dark = maps[0]['dark'] == 1;
       } catch (e) {
         debugPrint(e.toString());
@@ -229,12 +265,14 @@ class Setup {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
-      'routeColour': routeColour,
-      'goodRouteColour': goodRouteColour,
-      'waypointColour': waypointColour,
-      'pointOfInterestColour': pointOfInterestColour,
-      'recordDetail': recordDetail,
-      'allowNotifications': allowNotifications,
+      'route_colour': routeColour,
+      'good_routeColour': goodRouteColour,
+      'waypoint_colour': waypointColour,
+      'point_of_interestColour': pointOfInterestColour,
+      'waypoint_colour_2': waypointColour2,
+      'point_of_interestColour_2': pointOfInterestColour2,
+      'record_detail': recordDetail,
+      'allow_notifications': allowNotifications,
     };
   }
 
@@ -248,86 +286,65 @@ class Setup {
   }
 }
 
-/*
-class WayPoint {
-  int id;
-  int userId;
-  int driveId;
-  int type;
-  String description;
-  String hint;
-  LatLng markerPoint;
-  WayPoint(
-      {required this.id,
-      required this.userId,
-      required this.driveId,
-      required this.type,
-      required this.description,
-      required this.hint,
-      required this.markerPoint});
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'useId': userId,
-      'driveId': driveId,
-      'type': type,
-      'description': description,
-      'hint': hint,
-      'latitude': markerPoint.latitude,
-      'longitude': markerPoint.longitude,
-    };
-  }
-}
-*/
-
 // class PolyLine
 
 class PointOfInterest extends Marker {
   int id;
-  List<String> imageURIs;
+  String images;
+
+  /// Json [{'image': imageUrl, 'caption': imageCaption}, ...]
   int userId;
   int driveId;
   int type;
   String name;
   String description;
   IconData iconData;
-
+  late BuildContext ctx;
+  /*
+  @override
+  late Widget child;
+  */
   LatLng markerPoint = const LatLng(52.05884, -1.345583);
+  // @override
 
   WidgetBuilder markerBuilder = (ctx) => RawMaterialButton(
-        onPressed: () => myFunc(),
-        elevation: 1.0,
-        fillColor: Colors.amber,
-        padding: const EdgeInsets.all(2.0),
-        shape: const CircleBorder(),
-        child: const Icon(
-          Icons.pin_drop,
-          size: 60,
-          color: Colors.blueAccent,
-        ),
-      );
+      onPressed: () => myFunc(),
+      elevation: 1.0,
+      fillColor: uiColours.keys.toList()[Setup().waypointColour],
+      padding: const EdgeInsets.all(2.0),
+      shape: const CircleBorder(),
+      child: const Icon(
+        Icons.pin_drop,
+        size: 60,
+        color: Colors.blueAccent,
+      ));
 
   PointOfInterest(
-      BuildContext ctx,
-      this.id,
-      this.userId,
-      this.driveId,
-      this.type,
-      this.name,
-      this.description,
-      double width,
-      double height,
-      this.imageURIs,
-      // RawMaterialButton button,
-      this.iconData,
-      // Key key,
-      {required LatLng markerPoint})
-      : super(
+    this.ctx,
+    this.id,
+    this.userId,
+    this.driveId,
+    this.type,
+    this.name,
+    this.description,
+    double width,
+    double height,
+    this.images,
+    // RawMaterialButton button,
+    this.iconData,
+    // Key key,
+    {
+    required LatLng markerPoint,
+
+    /*required this.xchild*/
+  }) : super(
           child: RawMaterialButton(
               onPressed: () => Utility().showAlertDialog(
                   ctx, poiTypes.toList()[type]['name'], description),
               elevation: 2.0,
-              fillColor: const Color.fromARGB(255, 224, 132, 10),
+              fillColor: width < 30
+                  ? uiColours.keys.toList()[Setup().waypointColour]
+                  : uiColours.keys.toList()[Setup().pointOfInterestColour],
               // padding: const EdgeInsets.all(5.0),
               shape: const CircleBorder(),
               child: Icon(
@@ -336,34 +353,14 @@ class PointOfInterest extends Marker {
                 size: width < 30 ? 10 : width * 0.75,
                 color: Colors.blueAccent,
               )),
+
           point: markerPoint,
 //            draggable: true,fl
           width: width,
           height: height, /*key: key*/
         );
 
-  Widget getButton(int type, BuildContext ctx) {
-    return RawMaterialButton(
-        onPressed: () => Utility()
-            .showAlertDialog(ctx, poiTypes.toList()[type]['name'], description),
-        elevation: 2.0,
-        fillColor: const Color.fromARGB(255, 224, 132, 10),
-        // padding: const EdgeInsets.all(5.0),
-        shape: const CircleBorder(),
-        child: Icon(
-          markerIcon(type),
-          size: width < 30 ? 10 : width * 0.75,
-          color: Colors.blueAccent,
-        ));
-  }
-
   IconData setIcon({required type}) {
-    /*  super.child. = Icon(
-      markerIcon(type),
-      size: width < 30 ? 10 : width * 0.75,
-      color: Colors.blueAccent,
-    );
-    */
     return markerIcon(type);
   }
 
@@ -373,8 +370,8 @@ class PointOfInterest extends Marker {
       'useId': userId,
       'driveId': driveId,
       'type': type,
+      'name': name,
       'description': description,
-      'hint': description,
       'latitude': markerPoint.latitude,
       'longitude': markerPoint.longitude,
     };
@@ -384,37 +381,40 @@ class PointOfInterest extends Marker {
   /// The point and builder are both required
 }
 
-/*
-  Widget getButton(int type, BuildContext ctx) {
-    return RawMaterialButton(
-        onPressed: () => Utility()
-            .showAlertDialog(ctx, poiTypes.toList()[type]['name'], description),
-        elevation: 2.0,
-        fillColor: const Color.fromARGB(255, 224, 132, 10),
-        // padding: const EdgeInsets.all(5.0),
-        shape: const CircleBorder(),
-        child: Icon(
-          markerIcon(type),
-          size: width < 30 ? 10 : width * 0.75,
-          color: Colors.blueAccent,
-        ));
-  }
-*/
-
 IconData markerIcon(int type) {
   return IconData(poiTypes.toList()[type]['iconMaterial'],
       fontFamily: 'MaterialIcons');
 }
 
-/*
-class User {
-  int id;
-  String forename;
-  String surname;
-  String email;
-  User(this.id, this.forename, this.surname, this.email);
+class Photo {
+  String url;
+  String caption;
+  Photo({required this.url, this.caption = ''});
+
+  factory Photo.fromJson(Map<String, dynamic> json) {
+    return Photo(url: json['url'], caption: json['caption']);
+  }
+
+  String toJson() {
+    return "{'url': $url, 'caption': $caption}";
+  }
 }
-*/
+
+List<Photo> photosFromJson(String photoString) {
+  List<Photo> photos = (json.decode(photoString) as List<dynamic>)
+      .map((jsonObject) => Photo.fromJson(jsonObject))
+      .toList();
+  return photos;
+}
+
+String photosToString(List<Photo> photos) {
+  String photoString = '';
+  for (int i = 0; i < photos.length; i++) {
+    photoString = '$photoString, ${photos[i].toJson()} ';
+  }
+  photoString = '[${photoString.substring(1, photoString.length)}]';
+  return photoString;
+}
 
 class User {
   int id = 0;
@@ -458,6 +458,19 @@ class User {
       'imageUrl': imageUrl,
     };
   }
+}
+
+class PoiImage {
+  int id = -1;
+  String url = '';
+  PoiImage(this.id, this.url);
+}
+
+class UiColour {
+  int id = -1;
+  Color colour = Colors.black;
+  String name = 'black';
+  UiColour(this.id, this.colour, this.name);
 }
 
 /// class HomeItem
@@ -554,7 +567,7 @@ class MyTripItem {
   String body = '';
   String published = '';
   List<PointOfInterest> pointsOfInterest = [];
-  List<String> imageUrls = const [];
+  String images = '';
   double score = 5;
   int distance = 10;
   int closest = 12;
@@ -565,7 +578,7 @@ class MyTripItem {
     this.body = '',
     this.published = '',
     this.pointsOfInterest = const [],
-    this.imageUrls = const [],
+    this.images = '',
     this.score = 5,
     this.distance = 10,
     this.closest = 12,
@@ -579,7 +592,7 @@ class MyTripItem {
       'body': body,
       'published': published,
       'pointsOfInterest': pointsOfInterest,
-      'imageUrls': imageUrls,
+      'images': images,
       'score': score,
       'distance': distance,
       'closest': closest,
@@ -609,7 +622,7 @@ class Drive {
   double minLat = 0;
   double maxLong = 0;
   double minLong = 0;
-  String imageUrl = ''; // To show map image
+  String images = ''; // To s
   List<PointOfInterest> pointsOfInterest = [];
   List<Polyline> polyLines = [];
 
@@ -654,16 +667,16 @@ class Drive {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
-      'userId': userId,
+      'user_id': userId,
       'title': title,
-      'subTitle': subTitle,
+      'sub_title': subTitle,
       'body': body,
       'date': date,
-      'imageUrl': imageUrl,
-      'maxLat': maxLat,
-      'minLat': minLat,
-      'maxLong': maxLong,
-      'minLong': minLong,
+      'images': images,
+      'max_lat': maxLat,
+      'min_lat': minLat,
+      'max_long': maxLong,
+      'min_long': minLong,
     };
   }
 
@@ -705,11 +718,3 @@ class Drive1 {
     };
   }
 }
-/*
-class Trip {
-  int id;
-  int driveId;
-  List<User> users;
-  Trip(this.id, this.driveId, this.users);
-}
-*/
