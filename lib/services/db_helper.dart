@@ -38,14 +38,15 @@ Future<Database> initDb() async {
     path,
     version: newVersion,
     onCreate: (Database db, int version) async {
-      await db.execute(
-          'CREATE TABLE users(id INTEGER PRIMARY KEY AUTOINCREMENT, forename TEXT, surname TEXT, email TEXT, password TEXT, imageUrl Text)'); //, locationId INTEGER, vehicleId INTEGER)');
-      await db.execute(
-          'CREATE TABLE groups(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, description TEXT, created DATETIME)'); //, locationId INTEGER, vehicleId INTEGER)');
-      await db.execute(
-          'CREATE TABLE group_members(id INTEGER PRIMARY KEY AUTOINCREMENT, forename TEXT, surname TEXT, email TEXT, status Integer, joined DATETIME, note TEXT, uri TEXT)'); //, locationId INTEGER, vehicleId INTEGER)');
-      await db.execute(
-          'CREATE TABLE notifications(id INTEGER PRIMARY KEY AUTOINCREMENT, sentBy TEXT, message TEXT, received DATETIME)'); //, locationId INTEGER, vehicleId INTEGER)');
+      try {
+        await db.execute(
+            'CREATE TABLE users(id INTEGER PRIMARY KEY AUTOINCREMENT, forename TEXT, surname TEXT, email TEXT, password TEXT, imageUrl Text)'); //, locationId INTEGER, vehicleId INTEGER)');
+        await db.execute(
+            'CREATE TABLE groups(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, description TEXT, created DATETIME)'); //, locationId INTEGER, vehicleId INTEGER)');
+        await db.execute(
+            'CREATE TABLE group_members(id INTEGER PRIMARY KEY AUTOINCREMENT, forename TEXT, surname TEXT, email TEXT, status Integer, joined DATETIME, note TEXT, uri TEXT)'); //, locationId INTEGER, vehicleId INTEGER)');
+        await db.execute(
+            'CREATE TABLE notifications(id INTEGER PRIMARY KEY AUTOINCREMENT, sentBy TEXT, message TEXT, received DATETIME)'); //, locationId INTEGER, vehicleId INTEGER)');
 
 /*
       homeItems will only come from the API 
@@ -53,42 +54,46 @@ Future<Database> initDb() async {
         'CREATE TABLE homeItems(id INTEGER PRIMARY KEY AUTOINCREMENT,)'
       );
 */
-      await db.execute(
-          '''CREATE TABLE versions(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, downloaded DATETIME, major INTEGER, 
+        await db.execute(
+            '''CREATE TABLE versions(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, downloaded DATETIME, major INTEGER, 
         minor INTEGER, patch INTEGER, status INTEGER )''');
 
-      await db.execute(
-          '''CREATE TABLE setup(id INTEGER PRIMARY KEY AUTOINCREMENT, routeColour INTEGER, goodRouteColour INTEGER, 
+        await db.execute(
+            '''CREATE TABLE setup(id INTEGER PRIMARY KEY AUTOINCREMENT, route_colour INTEGER, good_route_colour INTEGER, 
           waypoint_colour INTEGER, waypoint_colour_2 INTEGER, point_of_interest_colour INTEGER, 
-          point_of_interest_colour_2 INTEGER, record_detail INTEGER, allow_notifications INTEGER,
+          point_of_interest_colour_2 INTEGER, selected_colour INTEGER, highlighted_colour INTEGER, 
+          record_detail INTEGER, allow_notifications INTEGER,
           dark INTEGER) ''');
 
-      await db.execute(
-          '''CREATE TABLE drives(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, title TEXT, sub_title TEXT, body TEXT, 
+        await db.execute(
+            '''CREATE TABLE drives(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, title TEXT, sub_title TEXT, body TEXT, 
           image_url TEXT, max_lat REAL, min_lat REAL, max_long REAL, min_long REAL, added DATETIME)''');
 
-      await db.execute(
-          '''CREATE TABLE points_of_interest(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, drive_id INTEGER, type INTEGER, 
+        await db.execute(
+            '''CREATE TABLE points_of_interest(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, drive_id INTEGER, type INTEGER, 
           title TEXT, sub_title TEXT, body TEXT, latitude REAL, longitude REAL, images STRING)''');
 
-      /// SQLite does have JSON capabilities
-      /// INSERT INTO users (name, data) VALUES ('John', '{"age:": 30, "country": "USA"});
-      /// SELECT name, JSON_EXTRACT(data, '$.age') AS age FROM users; // will return all names and ages
-      /// See JSON_QUERY, JSON_MODIFY
-      /// SELECT * FROM users WHERE data LIKE '%"country":"USA"%';
+        /// SQLite does have JSON capabilities
+        /// INSERT INTO users (name, data) VALUES ('John', '{"age:": 30, "country": "USA"});
+        /// SELECT name, JSON_EXTRACT(data, '$.age') AS age FROM users; // will return all names and ages
+        /// See JSON_QUERY, JSON_MODIFY
+        /// SELECT * FROM users WHERE data LIKE '%"country":"USA"%';
 
-      await db.execute(
-          '''CREATE TABLE polylines(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, drive_id INTEGER, points TEXT, 
+        await db.execute(
+            '''CREATE TABLE polylines(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, drive_id INTEGER, points TEXT, 
     colour Integer, stroke INTEGER)''');
 /*
       await db.execute(
           '''CREATE TABLE images(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, drive_id INTEGER, 
       pointOfInterestId INTEGER, title TEXT, url TEXT)''');
 */
-      await db.execute(
-        '''CREATE TABLE log(id INTEGER PRIMARY KEY AUTOINCREMENT, monitor INTEGER, dateTime DATETIME, portNumber INTEGER, 
+        await db.execute(
+          '''CREATE TABLE log(id INTEGER PRIMARY KEY AUTOINCREMENT, monitor INTEGER, dateTime DATETIME, portNumber INTEGER, 
               value REAL, alarm INTEGER)''',
-      );
+        );
+      } catch (e) {
+        debugPrint('Error creating tables: ${e.toString()}');
+      }
     },
   );
   return newdb;
@@ -100,6 +105,23 @@ Future<int> recordCount(table) async {
       Sqflite.firstIntValue(await db.rawQuery("SELECT COUNT (*) FROM $table"));
 
   return count!;
+}
+
+alterTable() async {
+  /*
+  final db = await dbHelper().db;
+  try {
+    await db.execute('DROP TABLE IF EXISTS setup').then((_) {
+      db.execute(
+          '''CREATE TABLE setup(id INTEGER PRIMARY KEY AUTOINCREMENT, route_colour INTEGER, good_route_colour INTEGER, 
+          waypoint_colour INTEGER, waypoint_colour_2 INTEGER, point_of_interest_colour INTEGER, 
+          point_of_interest_colour_2 INTEGER, record_detail INTEGER, allow_notifications INTEGER,
+          dark INTEGER) ''');
+    });
+  } catch (e) {
+    debugPrint('Alter table error: ${e.toString()}');
+  }
+  */
 }
 
 Future<List<Map<String, dynamic>>> getSetup(int id) async {
@@ -152,7 +174,7 @@ Future<int> insertSetup(Setup setup) async {
   final db = await dbHelper().db;
   try {
     int records = await recordCount('setup');
-    if (records > 0) {
+    if (records < 1) {
       final insertedId = await db.insert(
         'setup',
         setup.toMap(),
@@ -160,8 +182,8 @@ Future<int> insertSetup(Setup setup) async {
       );
       return insertedId;
     } else {
-      await db.update('users', setup.toMap(),
-          where: 'isd = ?', whereArgs: [setup.id]);
+      await db.update('setup', setup.toMap(),
+          where: 'id = ?', whereArgs: [setup.id]);
       return setup.id;
     }
   } catch (e) {

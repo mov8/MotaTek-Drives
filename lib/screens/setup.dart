@@ -14,16 +14,6 @@ class _SetupFormState extends State<SetupForm> {
   //int sound = 0;
 
   @override
-/*
-  @override
-  void initState() {
-    super.initState;
-  }
-
-  @override
-*/
-  int manufacturer = 0;
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -122,7 +112,7 @@ class _SetupFormState extends State<SetupForm> {
         children: [
           Expanded(
               child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+                  padding: const EdgeInsets.fromLTRB(10, 10, 5, 10),
                   child: DropdownButtonFormField<String>(
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
@@ -138,7 +128,7 @@ class _SetupFormState extends State<SetupForm> {
                   ))),
           Expanded(
               child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+                  padding: const EdgeInsets.fromLTRB(5, 10, 10, 10),
                   child: DropdownButtonFormField<String>(
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
@@ -158,7 +148,7 @@ class _SetupFormState extends State<SetupForm> {
         children: [
           Expanded(
               child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+                  padding: const EdgeInsets.fromLTRB(10, 10, 5, 10),
                   child: DropdownButtonFormField<String>(
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
@@ -173,7 +163,7 @@ class _SetupFormState extends State<SetupForm> {
                   ))),
           Expanded(
               child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+                  padding: const EdgeInsets.fromLTRB(5, 10, 10, 10),
                   child: DropdownButtonFormField<String>(
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
@@ -192,7 +182,7 @@ class _SetupFormState extends State<SetupForm> {
         children: [
           Expanded(
               child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+                  padding: const EdgeInsets.fromLTRB(10, 10, 5, 10),
                   child: DropdownButtonFormField<String>(
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
@@ -206,7 +196,7 @@ class _SetupFormState extends State<SetupForm> {
                   ))),
           Expanded(
               child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+                  padding: const EdgeInsets.fromLTRB(5, 10, 10, 10),
                   child: DropdownButtonFormField<String>(
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
@@ -216,6 +206,40 @@ class _SetupFormState extends State<SetupForm> {
                     items: colourChoices(context),
                     onChanged: (chosen) => setState(() => Setup()
                             .goodRouteColour =
+                        uiColours.values.toList().indexOf(chosen.toString())),
+                  ))),
+        ],
+      ),
+      Row(
+        children: [
+          Expanded(
+              child: Padding(
+                  padding: const EdgeInsets.fromLTRB(10, 10, 5, 10),
+                  child: DropdownButtonFormField<String>(
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      labelText: 'Highlight colour',
+                    ),
+                    value:
+                        uiColours.values.elementAt(Setup().highlightedColour),
+                    items: colourChoices(context),
+                    onChanged: (chosen) => setState(() => Setup()
+                            .highlightedColour =
+                        uiColours.values.toList().indexOf(chosen.toString())),
+                    //  uiColours.keys.toList().toString().indexOf(item.toString())),
+                  ))),
+          Expanded(
+              child: Padding(
+                  padding: const EdgeInsets.fromLTRB(5, 10, 10, 10),
+                  child: DropdownButtonFormField<String>(
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      labelText: 'Selected colour',
+                    ),
+                    value: uiColours.values.elementAt(Setup().selectedColour),
+                    items: colourChoices(context),
+                    onChanged: (chosen) => setState(() => Setup()
+                            .selectedColour =
                         uiColours.values.toList().indexOf(chosen.toString())),
                   ))),
         ],

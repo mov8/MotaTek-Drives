@@ -18,7 +18,7 @@ class MyTripTile extends StatefulWidget {
 class _myTripTileState extends State<MyTripTile> {
   @override
   Widget build(BuildContext context) {
-    List<Photo> photos = photosFromJson((widget.myTripItem.images));
+    List<Photo> photos = photosFromJson(widget.myTripItem.images);
     return SingleChildScrollView(
         child: Material(
             child: ClipRRect(

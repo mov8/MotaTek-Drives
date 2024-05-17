@@ -2,14 +2,17 @@
 import 'dart:convert';
 
 import 'package:drives/screens/dialogs.dart';
+import 'package:drives/screens/painters.dart';
 import 'package:drives/services/db_helper.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter/material.dart';
+import 'dart:ui' as ui;
 
 /// https://api.flutter.dev/flutter/material/Icons-class.html  get the icon codepoint from here
 /// https://api.flutter.dev/flutter/material/Icons/add_road-constant.html
 
+/*
 enum UserMode {
   home,
   routes,
@@ -17,7 +20,7 @@ enum UserMode {
   profile,
   shop,
 }
-
+*/
 const List<Map> poiTypes = [
   {
     'id': 0,
@@ -172,13 +175,15 @@ const List<Color> uiColours.keys.toList() = [
 */
 Map<Color, String> uiColours = {
   Colors.white: 'white',
-  const Color.fromARGB(255, 25, 65, 26): 'olive',
+  const Color.fromARGB(255, 28, 77, 30): 'olive',
+  const Color.fromRGBO(105, 8, 1, 1): 'maroon',
   Colors.red: 'red',
   Colors.orange: 'orange',
   Colors.amber: 'amber',
   Colors.lime: 'lime',
   Colors.yellow: 'yellow',
   Colors.green: 'green',
+  Colors.lightGreenAccent: 'light green',
   Colors.blue: 'blue',
   Colors.indigo: 'indigo',
   Colors.deepPurple: 'purple',
@@ -194,14 +199,33 @@ Map<Color, String> uiColours = {
 
 void myFunc() {}
 
+class CutRoute {
+  int routeIndex = 0; // holds the polyLine Index in Routes
+  int pointIndex = 0; // holds the index of LatLng on the above polyLine
+  int precedingPointIndex =
+      0; // holds the index of the previous POI in _routes[routeIndex].points[]
+  int precedingPoiIndex; // holds the index in _pointsOfInterest of the preceding POI
+  LatLng poiPosition =
+      const LatLng(0, 0); // The LatLng of the POI to be inserted
+
+  CutRoute(
+      {required this.routeIndex,
+      required this.pointIndex,
+      required this.poiPosition,
+      this.precedingPoiIndex = 0,
+      this.precedingPointIndex = 0});
+}
+
 class Setup {
   int id = 0;
-  int routeColour = 0;
-  int goodRouteColour = 0;
+  int routeColour = 5;
+  int goodRouteColour = 6;
   int waypointColour = 2;
   int pointOfInterestColour = 3;
   int waypointColour2 = 14;
   int pointOfInterestColour2 = 14;
+  int selectedColour = 7;
+  int highlightedColour = 8;
   int recordDetail = 5;
   bool allowNotifications = true;
   bool dark = false;
@@ -219,13 +243,6 @@ class Setup {
     return _loaded ??= await setupFromDb();
   }
 
-/*
-          '''CREATE TABLE setup(id INTEGER PRIMARY KEY AUTOINCREMENT, routeColour INTEGER, goodRouteColour INTEGER, 
-          waypoint_colour INTEGER, waypoint_colour_2 INTEGER, point_of_interest_colour INTEGER, 
-          point_of_interest_colour2 INTEGER, record_detail INTEGER, allow_notifications INTEGER,
-          dark INTEGER) ''');
- */
-
   Future<bool> setupFromDb() async {
     List<Map<String, dynamic>> maps = await getSetup(0);
     if (maps.isNotEmpty) {
@@ -237,6 +254,8 @@ class Setup {
         pointOfInterestColour = maps[0]['point_of_interest_colour'];
         waypointColour2 = maps[0]['waypoint_colour_2'];
         pointOfInterestColour2 = maps[0]['point_of_interest_colour_2'];
+        selectedColour = maps[0]['selected_colour'];
+        highlightedColour = maps[0]['highlighted_colour'];
         recordDetail = maps[0]['record_detail'];
         allowNotifications = maps[0]['allow_notifications'] == 1;
         dark = maps[0]['dark'] == 1;
@@ -266,13 +285,16 @@ class Setup {
     return {
       'id': id,
       'route_colour': routeColour,
-      'good_routeColour': goodRouteColour,
+      'good_route_colour': goodRouteColour,
       'waypoint_colour': waypointColour,
-      'point_of_interestColour': pointOfInterestColour,
+      'point_of_interest_colour': pointOfInterestColour,
       'waypoint_colour_2': waypointColour2,
-      'point_of_interestColour_2': pointOfInterestColour2,
+      'point_of_interest_colour_2': pointOfInterestColour2,
+      'highlighted_colour': highlightedColour,
+      'selected_colour': selectedColour,
       'record_detail': recordDetail,
-      'allow_notifications': allowNotifications,
+      'allow_notifications': allowNotifications ? 1 : 0,
+      'dark': dark ? 1 : 0,
     };
   }
 
@@ -284,6 +306,24 @@ class Setup {
       whereArgs: [id],
     );
   }
+}
+
+class MarkerLabel extends Marker {
+  int id;
+  int userId;
+  int driveId;
+  int type;
+  String description;
+  late BuildContext ctx;
+  late MarkerWidget marker;
+  late LatLng markerPoint;
+
+  MarkerLabel(this.ctx, this.id, this.userId, this.driveId, this.type,
+      this.description, double width, double height,
+      {required LatLng markerPoint, required Widget marker})
+      : super(child: marker, point: markerPoint, width: width, height: height);
+
+  // Future<Bitma
 }
 
 // class PolyLine
@@ -300,13 +340,15 @@ class PointOfInterest extends Marker {
   String description;
   IconData iconData;
   late BuildContext ctx;
+  late Widget marker;
+
   /*
   @override
   late Widget child;
   */
   LatLng markerPoint = const LatLng(52.05884, -1.345583);
   // @override
-
+/*
   WidgetBuilder markerBuilder = (ctx) => RawMaterialButton(
       onPressed: () => myFunc(),
       elevation: 1.0,
@@ -318,27 +360,29 @@ class PointOfInterest extends Marker {
         size: 60,
         color: Colors.blueAccent,
       ));
-
+ */
   PointOfInterest(
-    this.ctx,
-    this.id,
-    this.userId,
-    this.driveId,
-    this.type,
-    this.name,
-    this.description,
-    double width,
-    double height,
-    this.images,
-    // RawMaterialButton button,
-    this.iconData,
-    // Key key,
-    {
-    required LatLng markerPoint,
+      this.ctx,
+      this.id,
+      this.userId,
+      this.driveId,
+      this.type,
+      this.name,
+      this.description,
+      double width,
+      double height,
+      this.images,
+      // RawMaterialButton button,
+      this.iconData,
+      // Key key,
+      {required LatLng markerPoint,
+      required Widget marker
 
-    /*required this.xchild*/
-  }) : super(
-          child: RawMaterialButton(
+      /*required this.xchild*/
+      })
+      : super(
+          child: marker,
+          /*         child: RawMaterialButton(
               onPressed: () => Utility().showAlertDialog(
                   ctx, poiTypes.toList()[type]['name'], description),
               elevation: 2.0,
@@ -353,7 +397,7 @@ class PointOfInterest extends Marker {
                 size: width < 30 ? 10 : width * 0.75,
                 color: Colors.blueAccent,
               )),
-
+*/
           point: markerPoint,
 //            draggable: true,fl
           width: width,
@@ -381,6 +425,60 @@ class PointOfInterest extends Marker {
   /// The point and builder are both required
 }
 
+class MarkerWidget extends StatelessWidget {
+  set iconType(int poiType) {
+    // setState(() {
+    type = poiType;
+    // });
+    // _context = context;
+  }
+
+  int type = 12; // default type 12 => waypoint
+  String description;
+  MarkerWidget({super.key, required this.type, this.description = ''});
+
+  @override
+  Widget build(BuildContext context) {
+    int width = type == 12 ? 10 : 30;
+    return RawMaterialButton(
+        onPressed: () => Utility().showAlertDialog(
+            context, poiTypes.toList()[type]['name'], description),
+        elevation: 2.0,
+        fillColor: width < 30
+            ? uiColours.keys.toList()[Setup().waypointColour]
+            : uiColours.keys.toList()[Setup().pointOfInterestColour],
+        // padding: const EdgeInsets.all(5.0),
+        shape: const CircleBorder(),
+        child: Icon(
+          // iconData, //
+          markerIcon(type),
+          size: width < 30 ? 10 : width * 0.75,
+          color: Colors.blueAccent,
+        ));
+  }
+}
+
+class LabelWidget extends StatelessWidget {
+  String description;
+  int top;
+  int left;
+  LabelWidget(
+      {super.key,
+      required this.top,
+      required this.left,
+      required this.description});
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+        painter: MapLabelPainter(
+            top: top, left: left, labelText: description, pixelRatio: 1));
+  }
+
+  // MapLabelPainter(text: 'Test Label', pixe
+
+  //);
+}
+
 IconData markerIcon(int type) {
   return IconData(poiTypes.toList()[type]['iconMaterial'],
       fontFamily: 'MaterialIcons');
@@ -396,9 +494,14 @@ class Photo {
   }
 
   String toJson() {
-    return "{'url': $url, 'caption': $caption}";
+    return '{"url": $url, "caption": $caption}';
   }
 }
+
+/// Creates a list of photos from a json string of the following format:
+///  '[{"url": "assets/images/map.png", "caption": ""}, {"url": "assets/images/splash.png", "caption": ""},
+///   {"url": "assets/images/CarGroup.png", "caption": "" }]',
+///  for some strange reason the string must start with a single quote.
 
 List<Photo> photosFromJson(String photoString) {
   List<Photo> photos = (json.decode(photoString) as List<dynamic>)
@@ -407,7 +510,7 @@ List<Photo> photosFromJson(String photoString) {
   return photos;
 }
 
-String photosToString(List<Photo> photos) {
+String photosToJson(List<Photo> photos) {
   String photoString = '';
   for (int i = 0; i < photos.length; i++) {
     photoString = '$photoString, ${photos[i].toJson()} ';
@@ -694,6 +797,11 @@ class PopupValue {
   String text1 = '';
   String text2 = '';
   PopupValue(this.dropdownIdx, this.text1, this.text2);
+}
+
+class SearchHelper {
+  int poiIndex = -1;
+  //List<Polyline> = [];
 }
 
 class Drive1 {
