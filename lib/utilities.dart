@@ -71,12 +71,18 @@ int insertWayointAt(
       debugPrint('Distance between points $temp');
       if (temp < distance) {
         distance = temp;
-        index = j - 1;
+        index = j;
       }
       j++;
     }
   }
+
+  ///   O--------------X--O---------------------O    cut nearest next waypoint      index = j - 1
+  ///   O-----------------O--X------------------O    cut nearest previous waypoint  index = j + 1
+
   if (index == 0) return 0;
+
+  if (index == pointsOfInterest.length - 1) return index - 1;
 
   if (distanceBetween(pointsOfInterest[index - 1].point, pointToFind) >
       distanceBetween(
@@ -84,7 +90,7 @@ int insertWayointAt(
     index++;
   }
 
-  return index;
+  return index - 1;
 }
 
 String getInitials({required String name}) {
