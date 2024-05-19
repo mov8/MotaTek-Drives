@@ -93,6 +93,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
+  GlobalKey mapKey = GlobalKey();
   final bool _exploreTracking = false;
   final List<PointOfInterest> _pointsOfInterest = [];
   AppState _appState = AppState.home;
@@ -359,7 +360,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   _addPointOfInterest(int id, int userId, int iconIdx, String desc, String hint,
       double size, LatLng latLng) {
     _pointsOfInterest.add(PointOfInterest(
-      context,
+      //  context,
       id,
       userId,
       driveId,
@@ -369,7 +370,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       size,
       size,
       images,
-      markerIcon(iconIdx),
+      //  markerIcon(iconIdx),
       /* ValueKey(id),*/
       markerPoint: latLng,
       marker: MarkerWidget(type: iconIdx),
@@ -387,7 +388,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     int left = MediaQuery.of(context).size.width ~/ 2;
 
     _pointsOfInterest.add(PointOfInterest(
-      context,
+      //  context,
       id,
       userId,
       driveId,
@@ -397,7 +398,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       size,
       size,
       images,
-      markerIcon(iconIdx),
+      //   markerIcon(iconIdx),
       /* ValueKey(id),*/
       markerPoint: latLng,
       marker: LabelWidget(
@@ -425,7 +426,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     await getPoiName(latLng: latLng, name: name).then((name) {
       if (context.mounted) {
         PointOfInterest poi = PointOfInterest(
-          context,
+          //   context,
           id,
           userId,
           driveId,
@@ -435,7 +436,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
           10,
           10,
           images,
-          markerIcon(type),
+          //   markerIcon(type),
           markerPoint: latLng,
           marker: MarkerWidget(
             type: type,
@@ -822,7 +823,17 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
 
   Future<bool> dataFromDatabase() async {
     var setupRecords = await recordCount('setup');
-    alterTable();
+    var userRecords = await recordCount('users');
+    var drivesRecords = await recordCount('drives');
+    var polyLineRecords = await recordCount('polylines');
+    var poiRecords = await recordCount('points_of_interest');
+
+    debugPrint(
+        'users: $userRecords  drives: $drivesRecords  polylines: $polyLineRecords  points of interest: $poiRecords');
+
+    // tripItemFromDb();
+
+    var user = alterTable();
     if (setupRecords > 0) {
       try {
         Setup().loaded;
@@ -1846,7 +1857,8 @@ You can plan trips either on your own or you can explore in a group''',
             break;
           case 1:
             // Publish trip
-            await _publishTrip();
+            // await _publishTrip();
+            tripItemFromDb();
             break;
           case 2:
             // Clear trip
@@ -1867,7 +1879,8 @@ You can plan trips either on your own or you can explore in a group''',
             break;
           case 1:
             // Publish trip
-            await _publishTrip();
+            // await _publishTrip();
+            tripItemFromDb();
             break;
           case 2:
             // Clear trip
@@ -2139,6 +2152,23 @@ You can plan trips either on your own or you can explore in a group''',
 
   Future<bool> _saveTrip() async {
     // Insert / Update the drive details
+    if (tripItem.heading.isEmpty) {
+      Utility().showConfirmDialog(context, "Can't save - more info please",
+          "Please enter what you'd like to call this trip");
+      return false;
+    }
+
+    if (tripItem.subHeading.isEmpty) {
+      Utility().showConfirmDialog(context, "Can't save - more info please",
+          'Please give a brief summary of this trip.');
+      return false;
+    }
+
+    if (tripItem.body.isEmpty) {
+      Utility().showConfirmDialog(context, "Can't save - more info please",
+          'Please give some interesting details about this trip');
+      return false;
+    }
 
     Drive drive = Drive(
         id: 0,
@@ -2146,7 +2176,7 @@ You can plan trips either on your own or you can explore in a group''',
         title: tripItem.heading,
         subTitle: tripItem.subHeading,
         body: tripItem.body,
-        date: DateTime.now());
+        added: DateTime.now());
 
     int driveId = await saveDrive(drive: drive);
 

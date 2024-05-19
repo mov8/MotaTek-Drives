@@ -338,8 +338,8 @@ class PointOfInterest extends Marker {
   int type;
   String name;
   String description;
-  IconData iconData;
-  late BuildContext ctx;
+  // IconData iconData;
+  // late BuildContext ctx;
   late Widget marker;
 
   /*
@@ -362,7 +362,7 @@ class PointOfInterest extends Marker {
       ));
  */
   PointOfInterest(
-      this.ctx,
+      //  this.ctx,
       this.id,
       this.userId,
       this.driveId,
@@ -373,7 +373,7 @@ class PointOfInterest extends Marker {
       double height,
       this.images,
       // RawMaterialButton button,
-      this.iconData,
+      //    this.iconData,
       // Key key,
       {required LatLng markerPoint,
       required Widget marker
@@ -711,6 +711,104 @@ class MyTripItem {
   }
 }
 
+/*
+
+SELECT * FROM drives 
+JOIN points_of_interest ON drives.id = points_of_interest.drive_id 
+
+QueryResultSet ([{id: 1, user_id: -1, title: Trip Name, sub_title: Trip summary , body: Trip details, 
+images: , max_lat: 0.0, min_lat: 0.0, max_long: 0.0, min_long: 0.0, added: 2024-05-18 22:57:56.570120, 
+drive_id: 0, type: 12, name: Albany Road, description: 0 miles - (0 minutes), latitude: 52.05884, longitude: -1.345583}, 
+
+{id: 2, user_id: -1, title: Trip Name, sub_title: Trip summary , body: Trip details, 
+images: , max_lat: 0.0, min_lat: 0.0, max_long: 0.0, min_long: 0.0, added: 2024-05-18 22:57:56.570120, 
+drive_id: 0, type: 12, name: Church Street, description: 6.1 miles - (13 minutes), latitude: 52.05884, longitude: -1.345583}, 
+
+{id: 3, user_id: -1, title: Trip Name, sub_title: Trip summary , body: Trip details, 
+images: , max_lat: 0.0, min_lat: 0.0, max_long: 0.0, min_long: 0.0, added: 2024-05-18 22:57:56.570120, 
+drive_id: 0, type: 15, name: Point of Interest name, description: Point of Interest description , latitude: 52.05884, longitude: -1.345583}])
+
+*/
+
+Future<List<MyTripItem>> tripItemFromDb() async {
+  final db = await dbHelper().db;
+  // int records = await recordCount('setup');
+  // if (records > 0){
+  /*
+  const String drivesQuery = '''
+      SELECT * FROM drives 
+      JOIN points_of_interest ON drives.id = points_of_interest.drive_id 
+      JOIN polylines ON drives.id = polylines.drive_id
+      ''';
+   db.rawQuery(drivesQuery); 
+  */
+  const String drivesQuery = '''
+    SELECT * FROM drives 
+    JOIN points_of_interest ON drives.id = points_of_interest.drive_id 
+    ''';
+
+  List<MyTripItem> trips = [];
+  try {
+    List<Map<String, dynamic>> maps = await db.rawQuery(drivesQuery);
+    // List<Map<String, dynamic>> maps = await db.query('drives');
+
+    int driveId = -1;
+
+    for (int i = 0; i < maps.length; i++) {
+      if (maps[i]['drive_id'] != driveId) {
+        driveId = maps[i]['drive_id'];
+        trips.add(MyTripItem(
+            heading: maps[i]['title'],
+            subHeading: maps[i]['sub_title'],
+            body: maps[i]['body'],
+            images: maps[i]['images'],
+            pointsOfInterest: [
+              PointOfInterest(
+                  // context,
+                  -1,
+                  maps[i]['user_id'],
+                  driveId,
+                  maps[i]['type'],
+                  maps[i]['name'],
+                  maps[i]['description'],
+                  30,
+                  30,
+                  'images',
+                  // iconData,
+                  markerPoint:
+                      LatLng(maps[i]['latitude'], maps[i]['longitude']),
+                  marker: MarkerWidget(type: maps[i]['type']))
+            ],
+            distance: 10,
+            closest: 15));
+      } else {
+        trips[trips.length - 1].pointsOfInterest.add(PointOfInterest(
+            // context,
+            -1,
+            maps[i]['user_id'],
+            driveId,
+            maps[i]['type'],
+            maps[i]['name'],
+            maps[i]['description'],
+            30,
+            30,
+            'images',
+            // iconData,
+            markerPoint: LatLng(maps[i]['latitude'], maps[i]['longitude']),
+            marker: MarkerWidget(type: maps[i]['type'])));
+      }
+    }
+
+    // for maps;
+  } catch (e) {
+    debugPrint('Error loading Setup ${e.toString()}');
+  }
+
+  return trips;
+  // }
+  // throw ('Error ');
+}
+
 /// class User
 ///
 
@@ -720,7 +818,7 @@ class Drive {
   String title;
   String subTitle;
   String body;
-  DateTime date = DateTime.now();
+  DateTime added = DateTime.now();
   double maxLat = 0;
   double minLat = 0;
   double maxLong = 0;
@@ -729,13 +827,19 @@ class Drive {
   List<PointOfInterest> pointsOfInterest = [];
   List<Polyline> polyLines = [];
 
+/* 
+            '''CREATE TABLE drives(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, title TEXT, sub_title TEXT, body TEXT, 
+          images TEXT, max_lat REAL, min_lat REAL, max_long REAL, min_long REAL, added DATETIME)''');
+*/
+
   Drive({
     this.id = 0,
     required this.userId,
     required this.title,
     required this.subTitle,
     required this.body,
-    required this.date,
+    required this.added,
+    // this.images,
     this.maxLat = 0,
     this.minLat = 0,
     this.maxLong = 0,
@@ -774,7 +878,7 @@ class Drive {
       'title': title,
       'sub_title': subTitle,
       'body': body,
-      'date': date,
+      'added': added.toString(),
       'images': images,
       'max_lat': maxLat,
       'min_lat': minLat,

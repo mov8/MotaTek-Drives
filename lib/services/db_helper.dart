@@ -67,11 +67,11 @@ Future<Database> initDb() async {
 
         await db.execute(
             '''CREATE TABLE drives(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, title TEXT, sub_title TEXT, body TEXT, 
-          image_url TEXT, max_lat REAL, min_lat REAL, max_long REAL, min_long REAL, added DATETIME)''');
+          images TEXT, max_lat REAL, min_lat REAL, max_long REAL, min_long REAL, added DATETIME)''');
 
         await db.execute(
             '''CREATE TABLE points_of_interest(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, drive_id INTEGER, type INTEGER, 
-          title TEXT, sub_title TEXT, body TEXT, latitude REAL, longitude REAL, images STRING)''');
+          name TEXT, description TEXT, images TEXT, latitude REAL, longitude REAL)''');
 
         /// SQLite does have JSON capabilities
         /// INSERT INTO users (name, data) VALUES ('John', '{"age:": 30, "country": "USA"});
@@ -80,8 +80,8 @@ Future<Database> initDb() async {
         /// SELECT * FROM users WHERE data LIKE '%"country":"USA"%';
 
         await db.execute(
-            '''CREATE TABLE polylines(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, drive_id INTEGER, points TEXT, 
-    colour Integer, stroke INTEGER)''');
+            '''CREATE TABLE polylines(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, drive_id INTEGER, type INTEGER, points TEXT, 
+    color Integer, stroke INTEGER)''');
 /*
       await db.execute(
           '''CREATE TABLE images(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, drive_id INTEGER, 
@@ -239,7 +239,7 @@ Future<Drive> getDrive(int driveId) async {
   String title = '';
   String subTitle = '';
   String body = '';
-  DateTime date = DateTime.now();
+  DateTime added = DateTime.now();
   double maxLat = 0.0;
   double minLat = 0.0;
   double maxLong = 0.0;
@@ -253,7 +253,7 @@ Future<Drive> getDrive(int driveId) async {
     title = maps[0]['title'].toString();
     subTitle = maps[0]['sub_title'].toString();
     body = maps[0]['body'].toString();
-    date = DateTime.parse(maps[0]['date'].toString());
+    added = DateTime.parse(maps[0]['date'].toString());
     maxLat = double.parse(maps[0]['max_lat'].toString());
     minLat = double.parse(maps[0]['min_lat'].toString());
     maxLong = double.parse(maps[0]['max_long'].toString());
@@ -267,7 +267,7 @@ Future<Drive> getDrive(int driveId) async {
       title: title,
       subTitle: subTitle,
       body: body,
-      date: date,
+      added: added,
       maxLat: maxLat,
       minLat: minLat,
       maxLong: maxLong,
@@ -289,7 +289,8 @@ Future<int> saveDrive({required Drive drive}) async {
           conflictAlgorithm: ConflictAlgorithm.replace);
     }
   } catch (e) {
-    debugPrint("Database error storing drive: ${e.toString()}");
+    String err = e.toString();
+    debugPrint("Database error storing drive: $err");
     return -1;
   }
   return id;
@@ -312,6 +313,10 @@ String pointsToString(List<LatLng> points) {
 }
 
 // Save all the points of interest + their images
+/* 
+            '''CREATE TABLE points_of_interest(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, drive_id INTEGER, type INTEGER, 
+          name TEXT, description TEXT, images TEXT, latitude REAL, longitude REAL)''');
+*/
 
 Future<bool> savePointsOfInterestLocal(
     {required int userId,
@@ -321,7 +326,7 @@ Future<bool> savePointsOfInterestLocal(
   for (int i = 0; i < pointsOfInterest.length; i++) {
     int id = -1;
     Map<String, dynamic> poiMap = {
-      'use_id': userId,
+      'user_id': userId,
       'drive_id': driveId,
       'type': pointsOfInterest[i].type,
       'name': pointsOfInterest[i].name,
@@ -345,7 +350,7 @@ Future<bool> savePointsOfInterestLocal(
       }
     } else {
       id = await db.insert(
-        'polylines',
+        'points_of_interest',
         poiMap,
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
@@ -369,7 +374,9 @@ Future<bool> savePolylinesLocal(
       'drive_id': driveId,
       'points': pointsToString(polylines[i].points),
       'stroke': polylines[i].strokeWidth,
-      'color': polylines[i].color,
+      'color': uiColours.keys
+          .toList()
+          .indexWhere((col) => col == polylines[i].color),
     };
     if (id > 0) {
       try {
@@ -406,7 +413,8 @@ Future<List<Polyline>> loadPolyLinesLocal(int driveId) async {
   for (int i = 0; i < maps.length; i++) {
     polylines.add(Polyline(
         points: stringToPoints(maps[i]['points']), // routePoints,
-        color: maps[i]['color'], //  const Color.fromARGB(255, 28, 97, 5),
+        color: uiColours.keys.toList()[maps[i]['color']],
+        borderColor: uiColours.keys.toList()[maps[i]['color']],
         strokeWidth: maps[i]['stroke']));
   }
   return polylines;

@@ -173,6 +173,52 @@ class Utility {
       },
     );
   }
+
+  showConfirmDialog(
+      BuildContext context, String alertTitle, String alertMessage) {
+    // set up the buttons
+    Widget confirmButton = TextButton(
+      child: const Text(
+        "Ok",
+        style: TextStyle(fontSize: 24),
+      ),
+      onPressed: () {
+        Navigator.pop(context);
+      },
+    );
+
+    // set up the AlertDialog
+    AlertDialog alert = AlertDialog(
+      title: Text(
+        alertTitle,
+        style: const TextStyle(
+          fontSize: 24,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      content: SingleChildScrollView(
+        child: ListBody(
+          children: <Widget>[
+            Text(
+              alertMessage,
+              style: const TextStyle(fontSize: 20),
+            )
+          ],
+        ),
+      ),
+      actions: [
+        confirmButton,
+      ],
+    );
+
+    // show the dialog
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return alert;
+      },
+    );
+  }
 }
 
 AlertDialog buildColumnDialog(

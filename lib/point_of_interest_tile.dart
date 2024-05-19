@@ -253,7 +253,7 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
       widget.pointOfInterest.description = description;
       widget.pointOfInterest.type = type;
       widget.pointOfInterest.images = images;
-      widget.pointOfInterest.iconData = markerIcon(type);
+      //   widget.pointOfInterest.iconData = markerIcon(type);
     }
   }
 
