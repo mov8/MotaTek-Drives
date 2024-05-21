@@ -501,12 +501,19 @@ class Photo {
 /// Creates a list of photos from a json string of the following format:
 ///  '[{"url": "assets/images/map.png", "caption": ""}, {"url": "assets/images/splash.png", "caption": ""},
 ///   {"url": "assets/images/CarGroup.png", "caption": "" }]',
+///
 ///  for some strange reason the string must start with a single quote.
 
 List<Photo> photosFromJson(String photoString) {
-  List<Photo> photos = (json.decode(photoString) as List<dynamic>)
-      .map((jsonObject) => Photo.fromJson(jsonObject))
-      .toList();
+  List<Photo> photos = [];
+  try {
+    photos = (json.decode(photoString) as List<dynamic>)
+        .map((jsonObject) => Photo.fromJson(jsonObject))
+        .toList();
+  } catch (e) {
+    String err = e.toString();
+    debugPrint('Error converting image data: $err ($photoString)');
+  }
   return photos;
 }
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:drives/models.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 
 /// An example of a widget with a controller.
@@ -76,6 +77,14 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
     description = widget.pointOfInterest.description;
     type = widget.pointOfInterest.type;
     images = widget.pointOfInterest.images;
+    // images =
+    //     '[{"url":"/data/user/0/com.example.drives/app_flutter/point_of_interest_0_1.jpg","caption":"image 1"},{"url":"/data/user/0/com.example.drives/app_flutter/point_of_interest_0_1.jpg","caption":"image 1"}]';
+
+    /*
+        '''[{"url":"/data/user/0/com.example.drives/app_flutter/point_of_interest_0_1.jpg","caption":"image 1"},
+           {"url":"/data/user/0/com.example.drives/app_flutter/point_of_interest_0_1.jpg","caption":"image 1"},
+        {"url":"/data/user/0/com.example.drives/app_flutter/point_of_interest_0_1.jpg","caption":"image 1"}]''';
+    */
   }
 
   @override
@@ -212,13 +221,18 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                                     for (int i = 0;
                                         i < photosFromJson(images).length;
                                         i++)
-                                      SizedBox(
-                                          width: 160,
-                                          child: Image.file(File(
-                                              photosFromJson(images)[i].url))),
-                                    const SizedBox(
-                                      width: 30,
-                                    ),
+                                      Row(
+                                        children: [
+                                          SizedBox(
+                                              width: 160,
+                                              child: Image.file(File(
+                                                  photosFromJson(images)[i]
+                                                      .url))),
+                                          const SizedBox(
+                                            width: 30,
+                                          )
+                                        ],
+                                      ),
                                   ],
                                 )))
                       ]),
@@ -230,12 +244,38 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
 
   loadImage(int id) async {
     if (widget.index == id) {
-      await ImagePicker()
-          .pickImage(source: ImageSource.gallery)
-          .then((pickedFile) {
+      ImagePicker picker = ImagePicker();
+      await //ImagePicker()
+          picker
+              .pickImage(source: ImageSource.gallery)
+              .then((pickedFile) async {
         try {
           if (pickedFile != null) {
-            images = "$images, {'url': ${pickedFile.path}, 'caption:'}";
+            final directory = (await getApplicationDocumentsDirectory()).path;
+
+            /// Don't know what type of image so have to get file extension from picker file
+            int num = 1;
+            if (images.isNotEmpty) {
+              /// count number of images
+              num = '{'.allMatches(images).length + 1;
+            }
+            debugPrint('Image count: $num');
+            String imagePath =
+                '$directory/point_of_interest_${id}_$num.${pickedFile.path.split('.').last}';
+            File(pickedFile.path).copy(imagePath);
+            setState(() {
+              //    if (num == 1) {
+              images =
+                  '[${images.isNotEmpty ? '${images.substring(1, images.length - 1)},' : ''}{"url":"$imagePath","caption":"image $num"}]';
+              debugPrint('Images: $images');
+              /*        } else {
+                String images2 =
+                    '[${images.isNotEmpty ? '${images.substring(1, images.length - 1)},' : ''}{"url":"$imagePath","caption":"image $num"}]';
+                debugPrint('Images2: $images2');
+      
+              }
+      */
+            });
           }
         } catch (e) {
           debugPrint('Error getting image: ${e.toString()}');

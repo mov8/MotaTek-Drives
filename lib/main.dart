@@ -6,8 +6,11 @@ import 'dart:math';
 import 'dart:io';
 import 'package:drives/screens/main_drawer.dart';
 import 'package:drives/utilities.dart';
+import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
 // import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 //import 'package:flutter/rendering.dart';
 import 'package:wakelock/wakelock.dart';
 import 'package:geocoding/geocoding.dart';
@@ -1275,99 +1278,102 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   ///
   /// handlMap()
   /// does all the map UI
+  /// Wrapped in a RepaintBoundary so that a screenshot of the map can be saved for the Route description
   ///
 
-  Stack _handleMap() {
-    return Stack(
-      children: [
-        FlutterMap(
-          mapController: _animatedMapController.mapController,
-          options: MapOptions(
-            onMapEvent: checkMapEvent,
-            onMapReady: () {
-              mapController.mapEventStream.listen((event) {});
-            },
-            onPositionChanged: (position, hasGesure) {
-              if (!_tracking) {
-                int routeIdx = _routeAtCenter.getPolyLineNearestCenter();
-                // if (routeIdx > -1) {
-                for (int i = 0; i < _routes.length; i++) {
-                  //  _routes[i].borderColor = _routes[i].color;
-                  if (i == routeIdx) {
-                    _routes[i].color =
-                        uiColours.keys.toList()[Setup().selectedColour];
-                  } else {
-                    _routes[i].color = _routes[i].borderColor;
-                  }
-                }
-
-                highlightedIndex = routeIdx;
-              } else {
-                updateTracking();
-              }
-              if (hasGesure) {
-                _updateMarkerSize(position.zoom ?? 13.0);
-              }
-            },
-            initialCenter: routePoints[0],
-            initialZoom: 15,
-            maxZoom: 18,
-            interactionOptions: const InteractionOptions(
-                enableMultiFingerGestureRace: true,
-                flags: InteractiveFlag.doubleTapDragZoom |
-                    InteractiveFlag.doubleTapZoom |
-                    InteractiveFlag.drag |
-                    InteractiveFlag.pinchZoom |
-                    InteractiveFlag.pinchMove),
-          ),
+  Widget _handleMap() {
+    return RepaintBoundary(
+        key: mapKey,
+        child: Stack(
           children: [
-            TileLayer(
-              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-              userAgentPackageName: 'com.example.app',
-              maxZoom: 18,
-            ),
-            CurrentLocationLayer(
-              focalPoint: const FocalPoint(
-                ratio: Point(0.0, 1.0),
-                offset: Point(0.0, -60.0),
+            FlutterMap(
+              mapController: _animatedMapController.mapController,
+              options: MapOptions(
+                onMapEvent: checkMapEvent,
+                onMapReady: () {
+                  mapController.mapEventStream.listen((event) {});
+                },
+                onPositionChanged: (position, hasGesure) {
+                  if (!_tracking) {
+                    int routeIdx = _routeAtCenter.getPolyLineNearestCenter();
+                    // if (routeIdx > -1) {
+                    for (int i = 0; i < _routes.length; i++) {
+                      //  _routes[i].borderColor = _routes[i].color;
+                      if (i == routeIdx) {
+                        _routes[i].color =
+                            uiColours.keys.toList()[Setup().selectedColour];
+                      } else {
+                        _routes[i].color = _routes[i].borderColor;
+                      }
+                    }
+
+                    highlightedIndex = routeIdx;
+                  } else {
+                    updateTracking();
+                  }
+                  if (hasGesure) {
+                    _updateMarkerSize(position.zoom ?? 13.0);
+                  }
+                },
+                initialCenter: routePoints[0],
+                initialZoom: 15,
+                maxZoom: 18,
+                interactionOptions: const InteractionOptions(
+                    enableMultiFingerGestureRace: true,
+                    flags: InteractiveFlag.doubleTapDragZoom |
+                        InteractiveFlag.doubleTapZoom |
+                        InteractiveFlag.drag |
+                        InteractiveFlag.pinchZoom |
+                        InteractiveFlag.pinchMove),
               ),
-              alignPositionStream: _allignPositionStreamController.stream,
-              alignDirectionStream: _allignDirectionStreamController.stream,
-              alignPositionOnUpdate: _alignPositionOnUpdate,
-              alignDirectionOnUpdate: _alignDirectionOnUpdate,
-              style: const LocationMarkerStyle(
-                marker: DefaultLocationMarker(
-                  child: Icon(
-                    Icons.navigation,
-                    color: Colors.white,
+              children: [
+                TileLayer(
+                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  userAgentPackageName: 'com.example.app',
+                  maxZoom: 18,
+                ),
+                CurrentLocationLayer(
+                  focalPoint: const FocalPoint(
+                    ratio: Point(0.0, 1.0),
+                    offset: Point(0.0, -60.0),
+                  ),
+                  alignPositionStream: _allignPositionStreamController.stream,
+                  alignDirectionStream: _allignDirectionStreamController.stream,
+                  alignPositionOnUpdate: _alignPositionOnUpdate,
+                  alignDirectionOnUpdate: _alignDirectionOnUpdate,
+                  style: const LocationMarkerStyle(
+                    marker: DefaultLocationMarker(
+                      child: Icon(
+                        Icons.navigation,
+                        color: Colors.white,
+                      ),
+                    ),
+                    markerSize: ui.Size(40, 40),
+                    markerDirection: MarkerDirection.heading,
                   ),
                 ),
-                markerSize: ui.Size(40, 40),
-                markerDirection: MarkerDirection.heading,
-              ),
+                //  if (_pointsOfInterest.isNotEmpty)
+                mt.RouteLayer(
+                  polylineCulling: true,
+                  polylines: _routes,
+                  onTap: routeTapped,
+                  onMiss: routeMissed,
+                  routeAtCenter: _routeAtCenter,
+                ),
+                MarkerLayer(markers: _pointsOfInterest),
+                // mt.RouteLayer(polylines: Routes)
+              ],
             ),
-            //  if (_pointsOfInterest.isNotEmpty)
-            mt.RouteLayer(
-              polylineCulling: true,
-              polylines: _routes,
-              onTap: routeTapped,
-              onMiss: routeMissed,
-              routeAtCenter: _routeAtCenter,
-            ),
-            MarkerLayer(markers: _pointsOfInterest),
-            // mt.RouteLayer(polylines: Routes)
+            if (_showTarget) ...[
+              CustomPaint(
+                painter: TargetPainter(
+                    top: mapHeight / 2,
+                    left: MediaQuery.of(context).size.width / 2,
+                    color: insertAfter == -1 ? Colors.black : Colors.red),
+              )
+            ],
           ],
-        ),
-        if (_showTarget) ...[
-          CustomPaint(
-            painter: TargetPainter(
-                top: mapHeight / 2,
-                left: MediaQuery.of(context).size.width / 2,
-                color: insertAfter == -1 ? Colors.black : Colors.red),
-          )
-        ],
-      ],
-    );
+        ));
   }
 
   _splitRoute() async {
@@ -1395,7 +1401,12 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   /// _handleBottomSheetDivider()
   /// Handles the grab icion to separate the map from the bottom sheet
   ///
-  GestureDetector _handleBottomSheetDivider() {
+  _handleBottomSheetDivider() {
+    /* return AnimatedPositioned(
+        duration: const Duration(seconds: 1),
+        height: _dividerHeight,
+        width: MediaQuery.of(context).size.width,
+        child: */
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
       child: AbsorbPointer(
@@ -1417,7 +1428,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
           adjustHeigth(100);
         });
       },
-    );
+    ); //);
   }
 
   /// The container that shows trip details
@@ -1671,7 +1682,7 @@ You can plan trips either on your own or you can explore in a group''',
               child: Align(
                 alignment: Alignment.topCenter,
                 child: Text(
-                  "Trips you've explored...",
+                  "Trips I've already explored...",
                   style: TextStyle(
                     color: Colors.blue,
                     fontSize: 28,
@@ -1915,6 +1926,9 @@ You can plan trips either on your own or you can explore in a group''',
           case 2:
             // load image from galary
             _pointOfInterestController.loadImage(_editPointOfInterest);
+            Future.delayed(const Duration(seconds: 1))
+                .then((_) => stickyMenuIndex = -1);
+
             break;
         }
     }
@@ -1971,7 +1985,18 @@ You can plan trips either on your own or you can explore in a group''',
   }
 
   Future getImage(ImageSource source, PointOfInterest poi) async {
-    await ImagePicker().pickImage(source: source).then((pickedFile) {
+    XFile _image;
+    final picker = ImagePicker();
+/*
+    final pickedImage = picker.pickImage(source: ImageSource.gallery);
+
+    setState(() {
+      if (pickedImage != null) {
+        _image = File(pickedImage.path);
+      }
+    });
+*/
+    await picker.pickImage(source: source).then((pickedFile) {
       setState(() {
         if (pickedFile != null) {
           poi.images = "${poi.images},{'url': ${pickedFile.path}, 'caption':}";
@@ -2189,13 +2214,54 @@ You can plan trips either on your own or you can explore in a group''',
         savePolylinesLocal(
             id: id, userId: userId, driveId: driveId, polylines: _routes);
       }
+
+      /*
+      final mapBoundary =
+          mapKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
+      final image = await mapBoundary.toImage();
+      final directory = (await getApplicationDocumentsDirectory()).path;
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      final pngBytes = byteData?.buffer.asUint8List();
+      final imgFile = File('$directory/drive$driveId.png');
+      imgFile.writeAsBytes(pngBytes!);
+      */
     }
+
+    double height = mapHeight;
+    if (context.mounted && MediaQuery.of(context).viewInsets.bottom > 0) {
+      setState(() {
+        FocusManager.instance.primaryFocus?.unfocus();
+        mapHeight = 500;
+        adjustHeigth(20);
+      });
+    }
+    Future.delayed(const Duration(seconds: 1));
+    saveMapImage(driveId);
+
+    setState(() {
+      mapHeight = height;
+    });
 
     // Insert / update all the points of interest with images
 
     // Insert / update all polylines
 
     return true;
+  }
+
+  Future<void> saveMapImage(int driveId) async {
+    try {
+      final mapBoundary =
+          mapKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
+      final image = await mapBoundary.toImage();
+      final directory = (await getApplicationDocumentsDirectory()).path;
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      final pngBytes = byteData?.buffer.asUint8List();
+      final imgFile = File('$directory/drive$driveId.png');
+      imgFile.writeAsBytes(pngBytes!);
+    } catch (e) {
+      debugPrint('Error saving map image: ${e.toString()}');
+    }
   }
 
   Future<bool> _publishTrip() async {
