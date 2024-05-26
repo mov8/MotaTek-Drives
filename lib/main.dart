@@ -108,6 +108,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   PopupValue popValue = PopupValue(-1, '', '');
   final navigatorKey = GlobalKey<NavigatorState>();
   List<Marker> markers = [];
+  List<MyTripItem> myTripItems = [];
   // List<PointOfInterest> _pointsOfInterest = [];
   int id = -1;
   int userId = -1;
@@ -118,7 +119,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   LatLng lastLatLng = const LatLng(0.00, 0.00);
   late Future<bool> _loadedOK;
   bool _tracking = false;
-  bool _goodRoad = false;
+  final GoodRoad _goodRoad = GoodRoad();
+  // bool _goodRoad.isGood = false;
   // late CutRoute _cutRoute;
   final List<CutRoute> _cutRoutes = [];
   //int _goodRouteStartIdx = -1;
@@ -591,8 +593,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       _routes.add(mt.Route(
           id: -1,
           points: routePoints,
-          color: _routeColour(_goodRoad),
-          borderColor: _routeColour(_goodRoad),
+          color: _routeColour(_goodRoad.isGood),
+          borderColor: _routeColour(_goodRoad.isGood),
           strokeWidth: 5));
     }
     setState(() {});
@@ -655,8 +657,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       _routes.add(mt.Route(
           id: -1,
           points: points, // Route,
-          color: _routeColour(_goodRoad),
-          borderColor: _routeColour(_goodRoad),
+          color: _routeColour(_goodRoad.isGood),
+          borderColor: _routeColour(_goodRoad.isGood),
           strokeWidth: 5));
     }
     setState(() {});
@@ -682,8 +684,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     _routes.add(mt.Route(
         id: -1,
         points: apiData["points"], // Route,
-        color: _routeColour(_goodRoad),
-        borderColor: _routeColour(_goodRoad),
+        color: _routeColour(_goodRoad.isGood),
+        borderColor: _routeColour(_goodRoad.isGood),
         strokeWidth: 5));
     setState(() {});
     return apiData;
@@ -831,6 +833,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     var polyLineRecords = await recordCount('polylines');
     var poiRecords = await recordCount('points_of_interest');
 
+    myTripItems = await tripItemFromDb();
+
     debugPrint(
         'users: $userRecords  drives: $drivesRecords  polylines: $polyLineRecords  points of interest: $poiRecords');
 
@@ -898,7 +902,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                 AppBar().preferredSize.height -
                 kBottomNavigationBarHeight,
             width: MediaQuery.of(context).size.width,
-            child: _showMyTripTiles(),
+            child: _showMyTripTiles(myTripItems),
           ),
         ] else if (_appState == AppState.shop) ...[
           SizedBox(
@@ -973,7 +977,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     // int nbItemsIndex = 0;
     if (highlightedIndex > -1) {
       roadHighlighted = true;
-      onTapOffset = _goodRoad
+      onTapOffset = _goodRoad.isGood
           ? 5 - _bottomNavigationsBarIndex
           : 4 - _bottomNavigationsBarIndex;
 
@@ -991,7 +995,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
         // _bnbIndex = idx + onTapOffset;
 /*
         int bbIdx = roadHighlighted
-            ? _goodRoad
+            ? _goodRoad.isGood
                 ? 4 // handle  Back | Point of Interest | Great Road End
                 : 5 // handle  Back | Split Route | Point of Interest | Great Road
             : _bottomNavigationsBarIndex;
@@ -1044,7 +1048,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
               case 1:
 
                 /// Add waypoint
-                _goodRoad = false;
+                _goodRoad.isGood = false;
                 await addWaypoint().then(() {
                   setState(() {});
                 });
@@ -1060,14 +1064,14 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
               case 3:
                 // Handle great road
                 String txt =
-                    'Great road start'; //_goodRoad ? 'Great road start' : 'Great road end';
+                    'Great road start'; //_goodRoad.isGood ? 'Great road start' : 'Great road end';
                 LatLng pos = _animatedMapController.mapController.camera.center;
                 await _addGreatRoadStartLabel(id, userId, 13, txt, '', 80, pos)
                     .then(() {
                   setState(() {
                     _cutRoutes.clear;
                     _splitRoute();
-                    _goodRoad = true;
+                    _goodRoad.isGood = true;
                   });
                 });
                 break;
@@ -1163,10 +1167,13 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                 String txt = 'Great road start'; // : 'Great road end';
                 await getPoiName(latLng: pos, name: 'Point of interest')
                     .then((name) {
-                  _addGreatRoadStartLabel(
-                      id, userId, _goodRoad ? 15 : 14, txt, name, 80.0, pos);
+                  _addGreatRoadStartLabel(id, userId,
+                      _goodRoad.isGood ? 15 : 14, txt, name, 80.0, pos);
                 }).then((_) {
-                  _goodRoad = true;
+                  _goodRoad.isGood = true;
+                  _goodRoad.pointIdx1 = _routeAtCenter.pointIndex;
+                  _goodRoad.routeIdx1 = _routeAtCenter.routeIndex;
+                  _goodRoad.markerIdx = _pointsOfInterest.length - 1;
                   _splitRoute();
                 });
             }
@@ -1191,16 +1198,17 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                 //  4 Back | Split Route | Point of Interest || Great Road Start
                 //  3 Back | Point of Interest | Great Road End
                 _bottomNavigationsBarIndex = 2;
-                LatLng pos = _animatedMapController.mapController.camera.center;
+                _goodRoad.pointIdx2 = _routeAtCenter.pointIndex;
+                _goodRoad.routeIdx2 = _routeAtCenter.routeIndex;
+                _splitRoute().then((pos) async {
+                  await getPoiName(latLng: pos, name: 'Nice road').then((name) {
+                    PointOfInterest poi =
+                        _pointsOfInterest.removeAt(_goodRoad.markerIdx);
+                    _addPointOfInterest(
+                        -1, -1, 13, name, 'Great road', 30, pos);
+                  });
 
-                String txt = 'Great road end'; // : 'Great road end';
-                await getPoiName(latLng: pos, name: 'Point of interest')
-                    .then((name) {
-                  _addGreatRoadStartLabel(
-                      id, userId, _goodRoad ? 15 : 14, txt, name, 80.0, pos);
-                }).then((_) {
-                  _splitRoute();
-                  _goodRoad = false;
+                  _goodRoad.isGood = false;
                 });
             }
         }
@@ -1245,12 +1253,13 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                 onPressed: () {
                   setState(() {
                     //  _showTarget = !_showTarget;
-                    _goodRoad = _goodRoad ? false : true;
+                    _goodRoad.isGood = _goodRoad.isGood ? false : true;
                   });
                 },
                 backgroundColor: Colors.blue,
                 shape: const CircleBorder(),
-                child: Icon(_goodRoad ? Icons.remove_road : Icons.add_road),
+                child:
+                    Icon(_goodRoad.isGood ? Icons.remove_road : Icons.add_road),
               )
             ],
             const SizedBox(
@@ -1376,31 +1385,105 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
         ));
   }
 
-  _splitRoute() async {
-    try {
-      _routes.add(mt.Route(
-          id: -1,
-          points: [], // Route,
-          color: _routeColour(false), // == -1), //_goodRoad),
-          borderColor: _routeColour(false), //  _goodPointStartIdx == -1),
-          strokeWidth: 5));
+  /// _splitRoute() splits a route putting the two split parts contiguously in _routes array
+  /// if being used to split a goodRoad then on the 2nd split it sets the colour and borderColour
+  /// for the affected routes and returns the LatNng for the goodRoad marker point
+  ///
 
+  Future<LatLng> _splitRoute() async {
+    LatLng result = LatLng(0, 0);
+    try {
+      int newRouteIdx = 0;
+      mt.Route newRoute = mt.Route(
+          id: -1,
+          points: [],
+          color: _routeColour(false),
+          borderColor: _routeColour(false),
+          strokeWidth: 5);
+
+      if (_routeAtCenter.routeIndex < _routes.length - 1) {
+        _routes.insert(_routeAtCenter.routeIndex + 1, newRoute);
+        newRouteIdx = _routeAtCenter.routeIndex + 1;
+      } else {
+        _routes.add(newRoute);
+        newRouteIdx = _routes.length - 1;
+      }
       for (int i = _routeAtCenter.pointIndex;
           i < _routes[_routeAtCenter.routeIndex].points.length;
           i++) {
-        _routes[_routes.length - 1]
+        _routes[newRouteIdx]
             .points
             .add(_routes[_routeAtCenter.routeIndex].points.removeAt(i));
+      }
+
+      if (_goodRoad.isGood &&
+          _goodRoad.routeIdx1 > -1 &&
+          _goodRoad.routeIdx2 > -1) {
+        /// Now set the good road flag for the split routes
+        /// _splitRoute() puts the two parts of the cut route contiguously
+        ///
+        ///       a           b         c
+        ///  O----------O-----X----O----------O       route b gests plit int b & b2
+        ///
+        ///       a        b    b2      c
+        ///  O----------O-----O----O----------O
+        ///
+        ///       a        b    b2      c
+        ///  O-----X----O--X--O--X--O----X----O      for 2nd split there are 4 possibilities
+        ///        1       2     3       4
+        ///
+        /// roots are held in array _routes
+        ///
+        ///    SPLIT 1 on route b           SPLIT 2 @ X  4 possibilities
+        /// a ----------  a ----------      a ----X-----  1) X < b      2nd bit of a + all b are good
+        /// b ----X-----  b -----           b --X--       2) X == b     2nd bit of b is good
+        /// c ----------  b2-----           b2--X--       3) X == b+1   1st bit of b2 is good
+        ///               c ----------      c ----X-----  4) X > b+1    all from b2 to c are good
+        ///
+        List<LatLng> goodPoints = [];
+        if (_goodRoad.routeIdx2 < _goodRoad.routeIdx1) {
+          for (int i = _goodRoad.routeIdx2 + 1; i < _goodRoad.routeIdx1; i++) {
+            _routes[i].color = _routeColour(true);
+            _routes[i].borderColor = _routeColour(true);
+            for (int j = 0; j < _routes[i].points.length; j++) {
+              goodPoints.add(_routes[i].points[j]);
+            }
+          }
+        } else if (_goodRoad.routeIdx2 == _goodRoad.routeIdx1) {
+          _routes[_goodRoad.routeIdx2 + 1].color = _routeColour(true);
+          _routes[_goodRoad.routeIdx2 + 1].borderColor = _routeColour(true);
+          for (int j = 0;
+              j < _routes[_goodRoad.routeIdx2 + 1].points.length;
+              j++) {
+            goodPoints.add(_routes[_goodRoad.routeIdx2 + 1].points[j]);
+          }
+        } else if (_goodRoad.routeIdx2 == _goodRoad.routeIdx1 + 1) {
+          _routes[_goodRoad.routeIdx2].color = _routeColour(true);
+          _routes[_goodRoad.routeIdx2].borderColor = _routeColour(true);
+          for (int j = 0; j < _routes[_goodRoad.routeIdx2].points.length; j++) {
+            goodPoints.add(_routes[_goodRoad.routeIdx2].points[j]);
+          }
+        } else if (_goodRoad.routeIdx2 > _goodRoad.routeIdx1) {
+          for (int i = _goodRoad.routeIdx1 + 1; i < _goodRoad.routeIdx2; i++) {
+            _routes[i].color = _routeColour(true);
+            _routes[i].borderColor = _routeColour(true);
+            for (int j = 0; j < _routes[i].points.length; j++) {
+              goodPoints.add(_routes[i].points[j]);
+            }
+          }
+        }
+        result = goodPoints[goodPoints.length ~/ 2];
       }
     } catch (e) {
       debugPrint('splitRoute error: ${e.toString()}');
     }
+
+    return result;
   }
 
-  ///
   /// _handleBottomSheetDivider()
   /// Handles the grab icion to separate the map from the bottom sheet
-  ///
+
   _handleBottomSheetDivider() {
     /* return AnimatedPositioned(
         duration: const Duration(seconds: 1),
@@ -1630,8 +1713,10 @@ You can plan trips either on your own or you can explore in a group''',
     ]);
   }
 
-  Widget _showMyTripTiles() {
-    List<MyTripItem> myTripItems = [];
+  Widget _showMyTripTiles(List<MyTripItem> myTripItems) {
+    //[];
+
+/*
     myTripItems.add(MyTripItem(
       heading: 'A Beautiful Trip Through The Cotswolds',
       subHeading:
@@ -1672,6 +1757,7 @@ You can plan trips either on your own or you can explore in a group''',
       closest: 32,
     ));
     // downloads: 12));
+*/
 
     return ListView(children: [
       const Card(
@@ -1869,7 +1955,8 @@ You can plan trips either on your own or you can explore in a group''',
           case 1:
             // Publish trip
             // await _publishTrip();
-            tripItemFromDb();
+            // tripItemFromDb();
+            myTripItems = await tripItemFromDb();
             break;
           case 2:
             // Clear trip
@@ -1891,7 +1978,7 @@ You can plan trips either on your own or you can explore in a group''',
           case 1:
             // Publish trip
             // await _publishTrip();
-            tripItemFromDb();
+            myTripItems = await tripItemFromDb();
             break;
           case 2:
             // Clear trip
@@ -1912,6 +1999,7 @@ You can plan trips either on your own or you can explore in a group''',
             setState(() {
               _updateMarker(_editPointOfInterest);
               _editPointOfInterest = -1;
+              value = -1;
             });
             break;
           case 1:
@@ -1922,13 +2010,12 @@ You can plan trips either on your own or you can explore in a group''',
                   _pointsOfInterest.removeAt(_editPointOfInterest);
             }
             _editPointOfInterest = -1;
+            value = -1;
             break;
           case 2:
             // load image from galary
             _pointOfInterestController.loadImage(_editPointOfInterest);
-            Future.delayed(const Duration(seconds: 1))
-                .then((_) => stickyMenuIndex = -1);
-
+            value = -1;
             break;
         }
     }
@@ -2029,8 +2116,8 @@ You can plan trips either on your own or you can explore in a group''',
         _routes.add(mt.Route(
             id: -1,
             points: [LatLng(position.latitude, position.longitude)], // Route,
-            color: _routeColour(_goodRoad),
-            borderColor: _routeColour(_goodRoad),
+            color: _routeColour(_goodRoad.isGood),
+            borderColor: _routeColour(_goodRoad.isGood),
             strokeWidth: 5));
         _startLatLng = pos;
         lastLatLng = pos;
@@ -2049,7 +2136,7 @@ You can plan trips either on your own or you can explore in a group''',
           name: description); // -1 = append
     }
     setState(() {});
-    _goodRoad = false;
+    _goodRoad.isGood = false;
     _tracking = trackingOn;
   }
 
@@ -2179,7 +2266,7 @@ You can plan trips either on your own or you can explore in a group''',
     // Insert / Update the drive details
     if (tripItem.heading.isEmpty) {
       Utility().showConfirmDialog(context, "Can't save - more info please",
-          "Please enter what you'd like to call this trip");
+          "Please enter what you'd like to call this trip.");
       return false;
     }
 
@@ -2191,9 +2278,24 @@ You can plan trips either on your own or you can explore in a group''',
 
     if (tripItem.body.isEmpty) {
       Utility().showConfirmDialog(context, "Can't save - more info please",
-          'Please give some interesting details about this trip');
+          'Please give some interesting details about this trip.');
       return false;
     }
+
+/* 
+  MyTripItem({
+    this.id = 0,
+    required this.heading,
+    this.subHeading = '',
+    this.body = '',
+    this.published = '',
+    this.pointsOfInterest = const [],
+    this.images = '',
+    this.score = 5,
+    this.distance = 10,
+    this.closest = 12,
+  });
+*/
 
     Drive drive = Drive(
         id: 0,
@@ -2202,6 +2304,7 @@ You can plan trips either on your own or you can explore in a group''',
         subTitle: tripItem.subHeading,
         body: tripItem.body,
         added: DateTime.now());
+    // images
 
     int driveId = await saveDrive(drive: drive);
 
@@ -2235,8 +2338,39 @@ You can plan trips either on your own or you can explore in a group''',
         adjustHeigth(20);
       });
     }
+
     Future.delayed(const Duration(seconds: 1));
-    saveMapImage(driveId);
+    String imageUrl = await saveMapImage(driveId);
+
+    imageUrl = '[{"url":"$imageUrl", "caption": ""}]';
+
+    drive.images = imageUrl;
+    saveDrive(drive: drive);
+
+    /// update Drive with image data
+
+    int distance = 10;
+    int closest = 10;
+    await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.best)
+        .then((position) {
+      LatLng pos = LatLng(position.latitude, position.longitude);
+      closest =
+          closestWaypoint(pointsOfInterest: _pointsOfInterest, location: pos)
+              .toInt();
+      distance = distanceAlongRoute(routes: _routes).toInt();
+    });
+
+    myTripItems.add(MyTripItem(
+        id: 0,
+        heading: tripItem.heading,
+        subHeading: tripItem.subHeading,
+        body: tripItem.body,
+        published: '',
+        pointsOfInterest: _pointsOfInterest,
+        images: imageUrl,
+        score: 5,
+        distance: distance,
+        closest: closest));
 
     setState(() {
       mapHeight = height;
@@ -2249,7 +2383,8 @@ You can plan trips either on your own or you can explore in a group''',
     return true;
   }
 
-  Future<void> saveMapImage(int driveId) async {
+  Future<String> saveMapImage(int driveId) async {
+    String url = '';
     try {
       final mapBoundary =
           mapKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
@@ -2257,11 +2392,16 @@ You can plan trips either on your own or you can explore in a group''',
       final directory = (await getApplicationDocumentsDirectory()).path;
       final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
       final pngBytes = byteData?.buffer.asUint8List();
-      final imgFile = File('$directory/drive$driveId.png');
+      url = '$directory/drive$driveId.png';
+      final imgFile = File(url);
       imgFile.writeAsBytes(pngBytes!);
+      if (imgFile.existsSync()) {
+        debugPrint('Image file $url exists');
+      }
     } catch (e) {
       debugPrint('Error saving map image: ${e.toString()}');
     }
+    return url;
   }
 
   Future<bool> _publishTrip() async {
@@ -2281,7 +2421,7 @@ You can plan trips either on your own or you can explore in a group''',
       _startLatLng == const LatLng(0.00, 0.00);
       _routes.clear();
       _pointsOfInterest.clear();
-      _goodRoad = false;
+      _goodRoad.isGood = false;
       _cutRoutes.clear;
       _tracking = false;
       _bottomNavigationsBarIndex = 1; // Create route menu

@@ -67,7 +67,7 @@ Future<Database> initDb() async {
 
         await db.execute(
             '''CREATE TABLE drives(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, title TEXT, sub_title TEXT, body TEXT, 
-          images TEXT, max_lat REAL, min_lat REAL, max_long REAL, min_long REAL, added DATETIME)''');
+          map_image TEXT, max_lat REAL, min_lat REAL, max_long REAL, min_long REAL, added DATETIME)''');
 
         await db.execute(
             '''CREATE TABLE points_of_interest(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, drive_id INTEGER, type INTEGER, 
@@ -349,11 +349,15 @@ Future<bool> savePointsOfInterestLocal(
         return false;
       }
     } else {
-      id = await db.insert(
-        'points_of_interest',
-        poiMap,
-        conflictAlgorithm: ConflictAlgorithm.replace,
-      );
+      try {
+        id = await db.insert(
+          'points_of_interest',
+          poiMap,
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
+      } catch (e) {
+        debugPrint('Error saving point of interest: ${e.toString()}');
+      }
     }
   }
   return true;

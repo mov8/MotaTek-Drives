@@ -1,12 +1,13 @@
 // import 'package:flutter/cupertino.dart';
 import 'dart:convert';
-
+import 'package:drives/utilities.dart';
 import 'package:drives/screens/dialogs.dart';
 import 'package:drives/screens/painters.dart';
 import 'package:drives/services/db_helper.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'dart:ui' as ui;
 
 /// https://api.flutter.dev/flutter/material/Icons-class.html  get the icon codepoint from here
@@ -681,6 +682,7 @@ class MyTripItem {
   double score = 5;
   int distance = 10;
   int closest = 12;
+  int highlights = 0;
   MyTripItem({
     this.id = 0,
     required this.heading,
@@ -748,7 +750,14 @@ Future<List<MyTripItem>> tripItemFromDb() async {
       JOIN polylines ON drives.id = polylines.drive_id
       ''';
    db.rawQuery(drivesQuery); 
+
   */
+  LatLng pos = const LatLng(0, 0);
+
+  await getPosition().then((currentPosition) {
+    pos = LatLng(currentPosition.latitude, currentPosition.longitude);
+  });
+
   const String drivesQuery = '''
     SELECT * FROM drives 
     JOIN points_of_interest ON drives.id = points_of_interest.drive_id 
@@ -757,21 +766,31 @@ Future<List<MyTripItem>> tripItemFromDb() async {
   List<MyTripItem> trips = [];
   try {
     List<Map<String, dynamic>> maps = await db.rawQuery(drivesQuery);
-    // List<Map<String, dynamic>> maps = await db.query('drives');
-
     int driveId = -1;
+    int highlights = 0;
+    String tripImages = '';
 
     for (int i = 0; i < maps.length; i++) {
       if (maps[i]['drive_id'] != driveId) {
+        if (trips.isNotEmpty) {
+          trips[trips.length - 1].closest = closestWaypoint(
+                  pointsOfInterest: trips[trips.length - 1].pointsOfInterest,
+                  location: pos)
+              .toInt();
+          if (tripImages.isNotEmpty) {
+            trips[trips.length - 1].images = '[$tripImages]';
+          }
+          trips[trips.length - 1].highlights = highlights;
+        }
         driveId = maps[i]['drive_id'];
+        tripImages = unList(maps[i]['map_image']);
         trips.add(MyTripItem(
             heading: maps[i]['title'],
             subHeading: maps[i]['sub_title'],
             body: maps[i]['body'],
-            images: maps[i]['images'],
+            images: maps[i]['map_image'],
             pointsOfInterest: [
               PointOfInterest(
-                  // context,
                   -1,
                   maps[i]['user_id'],
                   driveId,
@@ -780,17 +799,16 @@ Future<List<MyTripItem>> tripItemFromDb() async {
                   maps[i]['description'],
                   30,
                   30,
-                  'images',
-                  // iconData,
+                  maps[i]['images'],
                   markerPoint:
                       LatLng(maps[i]['latitude'], maps[i]['longitude']),
                   marker: MarkerWidget(type: maps[i]['type']))
             ],
             distance: 10,
             closest: 15));
+        if (maps[i]['type'] != 12) highlights++;
       } else {
         trips[trips.length - 1].pointsOfInterest.add(PointOfInterest(
-            // context,
             -1,
             maps[i]['user_id'],
             driveId,
@@ -799,21 +817,31 @@ Future<List<MyTripItem>> tripItemFromDb() async {
             maps[i]['description'],
             30,
             30,
-            'images',
-            // iconData,
+            maps[i]['images'],
             markerPoint: LatLng(maps[i]['latitude'], maps[i]['longitude']),
             marker: MarkerWidget(type: maps[i]['type'])));
+        if (maps[i]['type'] != 12) highlights++;
       }
+      if (maps[i]['images'].isNotEmpty) {
+        tripImages =
+            '${tripImages.isNotEmpty ? '$tripImages,' : ''}${unList(maps[i]['images'])}';
+      }
+    } //
+    if (trips.isNotEmpty) {
+      trips[trips.length - 1].closest = closestWaypoint(
+              pointsOfInterest: trips[trips.length - 1].pointsOfInterest,
+              location: pos)
+          .toInt();
+      if (tripImages.isNotEmpty) {
+        trips[trips.length - 1].images = '[$tripImages]';
+      }
+      trips[trips.length - 1].highlights = highlights;
     }
-
     // for maps;
   } catch (e) {
     debugPrint('Error loading Setup ${e.toString()}');
   }
-
   return trips;
-  // }
-  // throw ('Error ');
 }
 
 /// class User
@@ -846,7 +874,7 @@ class Drive {
     required this.subTitle,
     required this.body,
     required this.added,
-    // this.images,
+    this.images = '',
     this.maxLat = 0,
     this.minLat = 0,
     this.maxLong = 0,
@@ -886,7 +914,7 @@ class Drive {
       'sub_title': subTitle,
       'body': body,
       'added': added.toString(),
-      'images': images,
+      'map_image': images,
       'max_lat': maxLat,
       'min_lat': minLat,
       'max_long': maxLong,
@@ -913,6 +941,25 @@ class PopupValue {
 class SearchHelper {
   int poiIndex = -1;
   //List<Polyline> = [];
+}
+
+class GoodRoad {
+  bool _isGood = false;
+  int routeIdx1 = -1;
+  int routeIdx2 = -1;
+  int pointIdx1 = -1;
+  int pointIdx2 = -1;
+  int markerIdx = -1;
+  GoodRoad();
+  bool get isGood => _isGood;
+  set isGood(bool value) {
+    _isGood = value;
+    routeIdx1 = -1;
+    routeIdx2 = -1;
+    pointIdx1 = -1;
+    pointIdx2 = -1;
+    markerIdx = -1;
+  }
 }
 
 class Drive1 {

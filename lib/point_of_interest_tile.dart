@@ -20,7 +20,12 @@ class PointOfInterestController {
 
   void loadImage(int id) {
     assert(isAttached, 'Controller must be attached to widget');
-    _pointOfInterestTileState?.loadImage(id);
+    try {
+      _pointOfInterestTileState?.loadImage(id);
+    } catch (e) {
+      String err = e.toString();
+      debugPrint('Error loading image: $err');
+    }
   }
 
   void save(int id) {
@@ -244,43 +249,49 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
 
   loadImage(int id) async {
     if (widget.index == id) {
-      ImagePicker picker = ImagePicker();
-      await //ImagePicker()
-          picker
-              .pickImage(source: ImageSource.gallery)
-              .then((pickedFile) async {
-        try {
-          if (pickedFile != null) {
-            final directory = (await getApplicationDocumentsDirectory()).path;
+      try {
+        ImagePicker picker = ImagePicker();
+        await //ImagePicker()
+            picker
+                .pickImage(source: ImageSource.gallery)
+                .then((pickedFile) async {
+          try {
+            if (pickedFile != null) {
+              final directory = (await getApplicationDocumentsDirectory()).path;
 
-            /// Don't know what type of image so have to get file extension from picker file
-            int num = 1;
-            if (images.isNotEmpty) {
-              /// count number of images
-              num = '{'.allMatches(images).length + 1;
-            }
-            debugPrint('Image count: $num');
-            String imagePath =
-                '$directory/point_of_interest_${id}_$num.${pickedFile.path.split('.').last}';
-            File(pickedFile.path).copy(imagePath);
-            setState(() {
-              //    if (num == 1) {
-              images =
-                  '[${images.isNotEmpty ? '${images.substring(1, images.length - 1)},' : ''}{"url":"$imagePath","caption":"image $num"}]';
-              debugPrint('Images: $images');
-              /*        } else {
+              /// Don't know what type of image so have to get file extension from picker file
+              int num = 1;
+              if (images.isNotEmpty) {
+                /// count number of images
+                num = '{'.allMatches(images).length + 1;
+              }
+              debugPrint('Image count: $num');
+              String imagePath =
+                  '$directory/point_of_interest_${id}_$num.${pickedFile.path.split('.').last}';
+              File(pickedFile.path).copy(imagePath);
+              setState(() {
+                //    if (num == 1) {
+                images =
+                    '[${images.isNotEmpty ? '${images.substring(1, images.length - 1)},' : ''}{"url":"$imagePath","caption":"image $num"}]';
+                debugPrint('Images: $images');
+                /*        } else {
                 String images2 =
                     '[${images.isNotEmpty ? '${images.substring(1, images.length - 1)},' : ''}{"url":"$imagePath","caption":"image $num"}]';
                 debugPrint('Images2: $images2');
       
               }
       */
-            });
+              });
+            }
+          } catch (e) {
+            String err = e.toString();
+            debugPrint('Error getting image: $err');
           }
-        } catch (e) {
-          debugPrint('Error getting image: ${e.toString()}');
-        }
-      });
+        });
+      } catch (e) {
+        String err = e.toString();
+        debugPrint('Error loading image: $err');
+      }
     }
   }
 

@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:drives/models.dart';
+import 'package:drives/route.dart' as mtRt;
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter/widgets.dart';
@@ -93,6 +94,14 @@ int insertWayointAt(
   return index - 1;
 }
 
+String unList(String listString) {
+  if (listString.length > 2) {
+    return listString.substring(1, listString.length - 1);
+  } else {
+    return listString;
+  }
+}
+
 String getInitials({required String name}) {
   return name.isEmpty
       ? 'NA'
@@ -109,4 +118,25 @@ bool samePosition({required LatLng pos1, required LatLng pos2, places = 6}) {
           roundDouble(value: pos2.latitude, places: places) &&
       roundDouble(value: pos2.longitude, places: places) ==
           roundDouble(value: pos2.longitude, places: places));
+}
+
+double closestWaypoint(
+    {required List<PointOfInterest> pointsOfInterest,
+    required LatLng location}) {
+  double distance = 9999;
+  for (int i = 0; i < pointsOfInterest.length; i++) {
+    distance =
+        min(distanceBetween(pointsOfInterest[i].point, location), distance);
+  }
+  return distance;
+}
+
+double distanceAlongRoute({required List<mtRt.Route> routes}) {
+  double distance = 0;
+  for (mtRt.Route root in routes) {
+    for (int i = 1; i < root.points.length; i++) {
+      distance += distanceBetween(root.points[i], root.points[i - 1]);
+    }
+  }
+  return distance;
 }

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:drives/models.dart';
@@ -135,15 +136,17 @@ class _myTripTileState extends State<MyTripTile> {
                                                         for (int i = 0;
                                                             i < photos.length;
                                                             i++)
-                                                          SizedBox(
-                                                              width: 200,
-                                                              child: Image(
-                                                                  image: AssetImage(
-                                                                      photos[i]
-                                                                          .url))),
-                                                        const SizedBox(
-                                                          width: 30,
-                                                        ),
+                                                          Row(children: [
+                                                            SizedBox(
+                                                                width: 200,
+                                                                child: Image.file(
+                                                                    File(photos[
+                                                                            i]
+                                                                        .url))),
+                                                            const SizedBox(
+                                                              width: 20,
+                                                            )
+                                                          ]),
                                                       ],
                                                     )))
                                           ]),
