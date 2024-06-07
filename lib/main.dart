@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ffi';
 // import 'dart:ffi';
 import 'dart:ui' as ui;
 import 'dart:math';
@@ -60,7 +61,7 @@ https://pub.dev/packages/flutter_map_animations/example  shows how to animate ma
 
 int testInt = 0;
 
-enum AppState { loading, home, download, createTrip, myTrips, shop }
+enum AppState { loading, home, download, createTrip, myTrips, shop, driveTrip }
 
 enum TripState { manual, automatic }
 
@@ -109,6 +110,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   final navigatorKey = GlobalKey<NavigatorState>();
   List<Marker> markers = [];
   List<MyTripItem> myTripItems = [];
+  List<LatLng> _trackingPoints = [];
   // List<PointOfInterest> _pointsOfInterest = [];
   int id = -1;
   int userId = -1;
@@ -116,7 +118,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   int type = -1;
   double iconSize = 35;
   LatLng _startLatLng = const LatLng(0.00, 0.00);
-  LatLng lastLatLng = const LatLng(0.00, 0.00);
+  LatLng _lastLatLng = const LatLng(0.00, 0.00);
+  late StreamSubscription<Position> _positionStream;
   late Future<bool> _loadedOK;
   bool _tracking = false;
   final GoodRoad _goodRoad = GoodRoad();
@@ -133,7 +136,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   bool _showTarget = false;
   bool _showSearch = false;
   int _editPointOfInterest = -1;
-  late Position _position;
+  late Position _currentPosition;
   double _tripDistance = 0;
   double _totalDistance = 0;
   DateTime _start = DateTime.now();
@@ -337,6 +340,21 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
           label: 'Great Road End',
           backgroundColor: Colors.blue),
     ],
+    [
+      /// Level 6  AppState = driveTrip
+      const BottomNavigationBarItem(
+          icon: Icon(Icons.arrow_back),
+          label: 'Back',
+          backgroundColor: Colors.blue),
+      const BottomNavigationBarItem(
+          icon: Icon(Icons.near_me),
+          label: 'Start',
+          backgroundColor: Colors.blue),
+      const BottomNavigationBarItem(
+          icon: Icon(Icons.edit),
+          label: 'Edit trip',
+          backgroundColor: Colors.blue),
+    ],
   ];
 
   int _bottomNavigationsBarIndex = 0;
@@ -348,6 +366,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
 
   late final StreamController<double?> _allignPositionStreamController;
   late final StreamController<void> _allignDirectionStreamController;
+  late final StreamSubscription<double?> _positionSubscription;
   late AlignOnUpdate _alignPositionOnUpdate;
   late AlignOnUpdate _alignDirectionOnUpdate;
 
@@ -493,23 +512,43 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
 
     _loadedOK = dataFromDatabase();
     _title = _hints[0][0];
-    _allignPositionStreamController = StreamController<double?>();
-    _allignDirectionStreamController = StreamController<void>();
+    // stream_controller = StreamController<int>.broadcast();
+    _allignPositionStreamController = StreamController<double?>.broadcast();
+
+    ///    _allignPositionStreamController.onListen =
+    ///        () => debugPrint('Location stream listening..');
+    ///    _positionSubscription = _allignPositionStreamController.stream
+    ///        .listen((element) => subscriptionCallback(element));
+    _allignDirectionStreamController = StreamController<void>.broadcast();
     _alignPositionOnUpdate = AlignOnUpdate.never;
-    _alignDirectionOnUpdate = AlignOnUpdate.never;
+    _alignDirectionOnUpdate = AlignOnUpdate.never; // never;
     _animatedMapController = AnimatedMapController(vsync: this);
     mapHeight = 500; //500;
   }
 
   @override
   void dispose() {
+    _positionStream.cancel();
     _allignPositionStreamController.close();
     _allignDirectionStreamController.close();
     _animatedMapController.dispose();
     super.dispose();
   }
 
-  List<mt.Route> _routes = [
+/*
+  void subscriptionCallback(double? value) {
+    String strValue = 'Subscription value: ${value.toString()}';
+    // _currentPosition = _allignPositionStreamController.stream.last(value);
+    debugPrint(strValue);
+  }
+*/
+/*
+  void setPosition(Position pos) {
+    _currentPosition = pos;
+    debugPrint('Current position: ${pos.toString()}');
+  }
+*/
+  final List<mt.Route> _routes = [
     mt.Route(
         points: const [LatLng(50, 0)], // routePoints,
         borderColor: uiColours.keys.toList()[Setup().routeColour],
@@ -545,6 +584,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     });
   }
 
+/*
   Future<LatLng> locationCallback(String waypoint) async {
     LatLng result = const LatLng(0.00, 0.00);
     dynamic location; // = [LatLng(0.00, 0.00)];
@@ -563,7 +603,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     // debugPrint('locationCallback returning: $result');
     return result;
   }
-
+*/
+/*
   Future<List<mt.Route>> routeCallback(List<String> waypoints) async {
     List<String> urlWaypoints = [];
     for (int i = 1; i < waypoints.length; i++) {
@@ -600,8 +641,9 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     setState(() {});
     return _routes;
   }
-
+*/
   // Future<List<Route>> routeCallback2(List<String> waypoints) async {
+/*
   Future<LatLng> routeCallback2(List<String> waypoints) async {
     //  List<String> urlWaypoints = [];
     for (int i = 0; i < waypoints.length; i++) {
@@ -621,7 +663,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     }
     throw ('error in callback');
   }
-
+*/
   Future<Map<String, dynamic>> addRoute(LatLng latLng1, LatLng latLng2) async {
     String waypoint =
         '${latLng1.longitude},${latLng1.latitude};${latLng2.longitude},${latLng2.latitude}';
@@ -771,7 +813,9 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
           iconTheme: const IconThemeData(color: Colors.white),
           backgroundColor: Colors.blue,
           //flexibleSpace: const Text('Flexible Space'),
-          bottom: _appState == AppState.createTrip && _showSearch
+          bottom: (_appState == AppState.createTrip ||
+                      _appState == AppState.driveTrip) &&
+                  _showSearch
               ? PreferredSize(
                   preferredSize: const ui.Size.fromHeight(60),
                   child: AnimatedContainer(
@@ -787,7 +831,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                       )))
               : null, //Text('Flexible Space')),
           actions: <Widget>[
-            if (_appState == AppState.createTrip)
+            if (_appState == AppState.createTrip ||
+                _appState == AppState.driveTrip)
               IconButton(
                 icon: _showSearch
                     ? const Icon(Icons.search_off)
@@ -885,7 +930,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
             width: MediaQuery.of(context).size.width,
             child: _showTripTiles(),
           ),
-        ] else if (_appState == AppState.createTrip) ...[
+        ] else if (_appState == AppState.createTrip ||
+            _appState == AppState.driveTrip) ...[
           SizedBox(
             height: mapHeight,
             width: MediaQuery.of(context).size.width,
@@ -964,7 +1010,10 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
 
   pointOfInterestRemove(int idx) async {
     /// Removing a poi:
-    final PointOfInterest item = _pointsOfInterest.removeAt(idx);
+    final PointOfInterest poi = _pointsOfInterest.removeAt(idx);
+    if (poi.id > -1) {
+      deletePointOfInterestById(poi.id);
+    }
     loadRoutes();
     setState(() {});
   }
@@ -992,23 +1041,13 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       items:
           _bottomNavigationsBarItems[_bottomNavigationsBarIndex + onTapOffset],
       onTap: ((idx) async {
-        // _bnbIndex = idx + onTapOffset;
-/*
-        int bbIdx = roadHighlighted
-            ? _goodRoad.isGood
-                ? 4 // handle  Back | Point of Interest | Great Road End
-                : 5 // handle  Back | Split Route | Point of Interest | Great Road
-            : _bottomNavigationsBarIndex;
-*/
         int bbIdx = _bottomNavigationsBarIndex + onTapOffset;
 
         switch (bbIdx) {
           //_bottomNavigationsBarIndex) {
           case 0:
-
-            /// Top level Home, Download, Create Trip, ....
             _title = _hints[0][idx];
-
+            //    }
             switch (idx) {
               case 0:
                 //  home
@@ -1036,6 +1075,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                 _appState = AppState.shop;
                 break;
             }
+            break;
+
           case 1:
 
             /// <Back> <Waypoint> <Point of Interest> <Great Road>
@@ -1076,6 +1117,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                 });
                 break;
             }
+            break;
+
           case 2 || 3:
 
             /// <Back> <Record>/<Stop> <Pause>
@@ -1089,7 +1132,45 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
               case 1:
                 // stop / start
                 _bottomNavigationsBarIndex = _tracking ? 2 : 3;
-                _trackingState(trackingOn: !_tracking);
+                // _trackingState(trackingOn: !_tracking);
+                if (_tracking) {
+                  _positionStream.cancel();
+                  _tracking = false;
+                  _alignDirectionOnUpdate = AlignOnUpdate.never;
+                  _alignPositionOnUpdate = AlignOnUpdate.never;
+                  if (_trackingPoints.isNotEmpty) {
+                    _routes.clear();
+                    _routes.add(mt.Route(
+                        id: -1,
+                        points: _trackingPoints, // Route,
+                        color: _routeColour(_goodRoad.isGood),
+                        borderColor: _routeColour(_goodRoad.isGood),
+                        strokeWidth: 5));
+                    final LatLng pos = LatLng(
+                        _currentPosition.latitude, _currentPosition.longitude);
+                    await getPoiName(latLng: pos, name: 'Trip end')
+                        .then((name) {
+                      _addPointOfInterest(id, userId, 12, name, '', 15.0, pos);
+                    });
+                  }
+                } else {
+                  if (Setup().rotateMap) {
+                    _alignDirectionOnUpdate = AlignOnUpdate.always;
+                  }
+                  _alignPositionOnUpdate = AlignOnUpdate.always;
+                  Geolocator.getCurrentPosition().then((pos) {
+                    _currentPosition = pos;
+                    getPoiName(
+                            latLng: LatLng(pos.latitude, pos.longitude),
+                            name: 'Trip start')
+                        .then((name) {
+                      _addPointOfInterest(id, userId, 12, name, '', 15.0,
+                          LatLng(pos.latitude, pos.longitude));
+                    });
+                  });
+                  getLocationUpdates();
+                  _tracking = true;
+                }
                 _bnbIndex = 1;
                 break;
               case 2:
@@ -1100,8 +1181,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                 _tracking = false;
                 break;
             }
-
-          /// <Back> <Stop> <Pause>
+            break;
 
           case 4:
 
@@ -1111,22 +1191,11 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                 _bottomNavigationsBarIndex = 1;
                 _tripState = TripState.manual;
                 _bnbIndex = 0;
+                highlightedIndex = -1;
                 break;
               case 1:
                 // split route
                 _showTarget = true;
-                /*
-                LatLng pos = _animatedMapController.mapController.camera.center;
-                await getPoiName(latLng: pos, name: 'Point of interest')
-                    .then((name) {
-                  _addPointOfInterest(id, userId, 15, name, '', 30.0, pos);
-                });
-               */
-
-                /// When cutting a route it should place the waypoint in the correct position in _pointsOfInterest
-                /// the 3rd parameter determines the position -1 is an append any other value is an insert
-                ///  insertWayointAt
-                ///
 
                 int idx = insertWayointAt(
                     pointsOfInterest: _pointsOfInterest,
@@ -1144,9 +1213,6 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                     debugPrint('Error splitting route: ${e.toString()}');
                   }
                 });
-
-                //    _bottomNavigationsBarIndex = _tracking ? 2 : 3;
-                //    _trackingState(trackingOn: !_tracking);
                 _bnbIndex = 1;
                 break;
               case 2:
@@ -1177,6 +1243,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                   _splitRoute();
                 });
             }
+            break;
           case 5:
 
             /// <Back> <Point of Interest> <Great Road End>
@@ -1185,6 +1252,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                 _bottomNavigationsBarIndex = 1;
                 _tripState = TripState.manual;
                 _bnbIndex = 0;
+                highlightedIndex = -1;
                 break;
               case 1:
                 _showTarget = true;
@@ -1211,6 +1279,46 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                   _goodRoad.isGood = false;
                 });
             }
+            break;
+          case 6:
+            switch (idx) {
+              case 0:
+                _bottomNavigationsBarIndex = 1;
+                _tripState = TripState.manual;
+                _tracking = false;
+                _bnbIndex = 0;
+                highlightedIndex = -1;
+                break;
+              case 1:
+                _tracking = true;
+                CurrentLocationLayer().positionStream?.listen((event) {
+                  debugPrint('location layer event: ${event.toString()}');
+                });
+                _currentPosition = await Geolocator.getCurrentPosition();
+                _animatedMapController.animateTo(
+                    dest: LatLng(
+                        _currentPosition.latitude, _currentPosition.longitude));
+                setState(() {
+                  if (_alignPositionOnUpdate == AlignOnUpdate.never) {
+                    _alignPositionOnUpdate = AlignOnUpdate.always;
+                    if (Setup().rotateMap) {
+                      _alignDirectionOnUpdate = AlignOnUpdate.always;
+                    }
+                  } else {
+                    _alignPositionOnUpdate = AlignOnUpdate.never;
+                    _alignDirectionOnUpdate = AlignOnUpdate.never;
+                  }
+                  //  _showTarget = !_showTarget;
+                });
+              case 2:
+                _appState = AppState.createTrip;
+                _bottomNavigationsBarIndex = 1;
+                _bnbIndex = 3;
+                _tracking = false;
+                _showTarget = true;
+                break;
+            }
+            break;
         }
 
         setState(() {});
@@ -1267,10 +1375,11 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
             ),
             FloatingActionButton(
               onPressed: () async {
-                Position position = await Geolocator.getCurrentPosition();
-                //  debugPrint('Position: ${position.toString()}');
+                _currentPosition = await Geolocator.getCurrentPosition();
+                debugPrint('Position: ${_currentPosition.toString()}');
                 _animatedMapController.animateTo(
-                    dest: LatLng(position.latitude, position.longitude));
+                    dest: LatLng(
+                        _currentPosition.latitude, _currentPosition.longitude));
                 setState(() {
                   //  _showTarget = !_showTarget;
                 });
@@ -1303,7 +1412,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                   mapController.mapEventStream.listen((event) {});
                 },
                 onPositionChanged: (position, hasGesure) {
-                  if (!_tracking) {
+                  if (!_tracking && _showTarget) {
+                    // } && _appState != AppState.driveTrip) {
                     int routeIdx = _routeAtCenter.getPolyLineNearestCenter();
                     // if (routeIdx > -1) {
                     for (int i = 0; i < _routes.length; i++) {
@@ -1318,7 +1428,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
 
                     highlightedIndex = routeIdx;
                   } else {
-                    updateTracking();
+                    //      updateTracking();
                   }
                   if (hasGesure) {
                     _updateMarkerSize(position.zoom ?? 13.0);
@@ -1414,6 +1524,12 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
         _routes[newRouteIdx]
             .points
             .add(_routes[_routeAtCenter.routeIndex].points.removeAt(i));
+        if (_routes[newRouteIdx].points.length > 1 &&
+            i < _routes[_routeAtCenter.routeIndex].offsets.length) {
+          _routes[newRouteIdx]
+              .offsets
+              .add(_routes[_routeAtCenter.routeIndex].offsets.removeAt(i));
+        }
       }
 
       if (_goodRoad.isGood &&
@@ -1440,7 +1556,10 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
         /// c ----------  b2-----           b2--X--       3) X == b+1   1st bit of b2 is good
         ///               c ----------      c ----X-----  4) X > b+1    all from b2 to c are good
         ///
+
         List<LatLng> goodPoints = [];
+
+        /// 1) X < b      2nd bit of a + all b are good
         if (_goodRoad.routeIdx2 < _goodRoad.routeIdx1) {
           for (int i = _goodRoad.routeIdx2 + 1; i < _goodRoad.routeIdx1; i++) {
             _routes[i].color = _routeColour(true);
@@ -1449,6 +1568,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
               goodPoints.add(_routes[i].points[j]);
             }
           }
+
+          /// 2) X == b     2nd bit of b is
         } else if (_goodRoad.routeIdx2 == _goodRoad.routeIdx1) {
           _routes[_goodRoad.routeIdx2 + 1].color = _routeColour(true);
           _routes[_goodRoad.routeIdx2 + 1].borderColor = _routeColour(true);
@@ -1457,12 +1578,16 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
               j++) {
             goodPoints.add(_routes[_goodRoad.routeIdx2 + 1].points[j]);
           }
+
+          /// 3) X == b+1   1st bit of b2 is good
         } else if (_goodRoad.routeIdx2 == _goodRoad.routeIdx1 + 1) {
           _routes[_goodRoad.routeIdx2].color = _routeColour(true);
           _routes[_goodRoad.routeIdx2].borderColor = _routeColour(true);
           for (int j = 0; j < _routes[_goodRoad.routeIdx2].points.length; j++) {
             goodPoints.add(_routes[_goodRoad.routeIdx2].points[j]);
           }
+
+          /// 4) X > b+1    all from b2 to c are good
         } else if (_goodRoad.routeIdx2 > _goodRoad.routeIdx1) {
           for (int i = _goodRoad.routeIdx1 + 1; i < _goodRoad.routeIdx2; i++) {
             _routes[i].color = _routeColour(true);
@@ -1521,15 +1646,17 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     return SizedBox(
         height: listHeight,
         child: CustomScrollView(controller: _scrollController, slivers: [
-          SliverPersistentHeader(
-            pinned: true,
-            floating: true,
-            delegate: StickyMenuDeligate(
-              options: _exploreMenuOptions[_stickyMenuIndex()],
-              states: _exploreMenuStates[_stickyMenuIndex()],
-              onButtonPressed: actionToggleButton,
+          if (_appState != AppState.driveTrip) ...[
+            SliverPersistentHeader(
+              pinned: true,
+              floating: true,
+              delegate: StickyMenuDeligate(
+                options: _exploreMenuOptions[_stickyMenuIndex()],
+                states: _exploreMenuStates[_stickyMenuIndex()],
+                onButtonPressed: actionToggleButton,
+              ),
             ),
-          ),
+          ],
           if (_editPointOfInterest < 0)
             SliverToBoxAdapter(
               child: _exploreDetailsHeader(),
@@ -1547,6 +1674,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                           pointOfInterest: _pointsOfInterest[index],
                           onExpandChange: expandChange,
                           onIconTap: iconButtonTapped,
+                          canEdit: _appState != AppState.driveTrip,
                         ); //   pointOfInterestTile(index);
                 },
                 itemCount: _pointsOfInterest.length,
@@ -1570,6 +1698,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
               onExpandChange: expandChange,
               onIconTap: iconButtonTapped,
               expanded: true,
+              canEdit: _appState != AppState.driveTrip,
             )) //     iconButtonTapped  expandChange      pointOfInterestTile(_editPointOfInterest)),
         ]));
   }
@@ -1714,51 +1843,6 @@ You can plan trips either on your own or you can explore in a group''',
   }
 
   Widget _showMyTripTiles(List<MyTripItem> myTripItems) {
-    //[];
-
-/*
-    myTripItems.add(MyTripItem(
-      heading: 'A Beautiful Trip Through The Cotswolds',
-      subHeading:
-          'Miles of lanes surrounded by beautiful countryside and honey stoned buildings',
-      body:
-          '''MotaTrip is a new app to help you make the most of the countryside around you. 
-You can plan trips either on your own or you can explore in a group''',
-      images:
-          '[{"url": "assets/images/map.png", "caption": ""}, {"url": "assets/images/splash.png", "caption": ""}, {"url": "assets/images/CarGroup.png", "caption": "" }]',
-      //   author: 'James Seddon',
-      published: 'Feb 24',
-      score: 3.5,
-      distance: 54,
-      closest: 98,
-      //  scored: 19,
-      pointsOfInterest: [],
-    )
-        //  downloads: 32),
-        );
-
-    myTripItems.add(MyTripItem(
-      heading: 'A Beautiful Trip Through The Cotswolds',
-      subHeading:
-          'Miles of lanes surrounded by beautiful countryside and honey stoned buildings',
-      body:
-          '''MotaTrip is a new app to help you make the most of the countryside around you. 
-You can plan trips either on your own or you can explore in a group''',
-      images:
-          '[{"url": "assets/images/map.png", "caption": ""}, {"url": "assets/images/splash.png", "caption": ""}, {"url": "assets/images/CarGroup.png", "caption": "" }]',
-
-      //  "[{'url': assets/images/map.png, 'caption': }, {'url': assets/images/splash.png, 'caption':}, {'url': assets/images/CarGroup.png, 'caption': }]",
-      //  author: 'James Seddon',
-      published: 'Dec 23',
-      score: 2.5,
-      //  scored: 5,
-      pointsOfInterest: [], //6,
-      distance: 52,
-      closest: 32,
-    ));
-    // downloads: 12));
-*/
-
     return ListView(children: [
       const Card(
           child: Column(children: [
@@ -1782,12 +1866,76 @@ You can plan trips either on your own or you can explore in a group''',
       for (int i = 0; i < myTripItems.length; i++) ...[
         Padding(
             padding: const EdgeInsets.fromLTRB(5, 5, 5, 5),
-            child: MyTripTile(myTripItem: myTripItems[i]))
+            child: MyTripTile(
+              index: i,
+              myTripItem: myTripItems[i],
+              onLoadTrip: loadTrip,
+              onDeleteTrip: deleteTrip,
+            ))
       ],
       const SizedBox(
         height: 40,
       ),
     ]);
+  }
+
+  /// Good example of an async callback
+  /// used in my_trip_tile.dart
+  ///
+  Future<void> loadTrip(int index) async {
+    /// Flutter uses pass-by-reference for all objects (not int bool etc which are pass-by-value)
+    /// so clearing the _pointsOfInterest will also clear myTripItems[index].pointsOfInterest
+    /// if the myTripItems[index] is the currently just entered trip
+    ///     if (myTripItems[index].driveId != driveId) {
+    driveId = myTripItems[index].driveId;
+    tripItem.heading = myTripItems[index].heading;
+    tripItem.subHeading = myTripItems[index].subHeading;
+    tripItem.body = myTripItems[index].body;
+    _pointsOfInterest.clear();
+    try {
+      for (int i = 0; i < myTripItems[index].pointsOfInterest.length; i++) {
+        _pointsOfInterest.add(myTripItems[index].pointsOfInterest[i]);
+      }
+    } catch (e) {
+      String err = e.toString();
+      debugPrint('Error: $err');
+    }
+    _routes.clear;
+    List<Polyline> polyLines = await loadPolyLinesLocal(driveId);
+    for (int i = 0; i < polyLines.length; i++) {
+      _routes.add(mt.Route(
+          id: -1,
+          points: polyLines[i].points,
+          color: polyLines[i].color,
+          borderColor: polyLines[i].color,
+          strokeWidth: polyLines[i].strokeWidth));
+    }
+
+    setState(() {
+      _appState = AppState.driveTrip;
+      _title = tripItem.heading;
+      _bottomNavigationsBarIndex = 6;
+      _showTarget = false;
+    });
+
+    //  }
+  }
+
+  Future<void> deleteTrip(int index) async {
+    Utility().showOkCancelDialog(
+        context: context,
+        alertTitle: 'Permanently delete trip?',
+        alertMessage: myTripItems[index].heading,
+        okValue: myTripItems[index].driveId,
+        callback: onConfirmDeleteTrip);
+  }
+
+  void onConfirmDeleteTrip(int value) {
+    debugPrint('Returned value: ${value.toString()}');
+    if (value > -1) {
+      deleteDriveByTripItem(driveId: value);
+      setState(() => myTripItems.removeAt(value));
+    }
   }
 
   Widget waypointTile(int index) {
@@ -1800,133 +1948,133 @@ You can plan trips either on your own or you can explore in a group''',
               Padding(
                   padding: const EdgeInsets.fromLTRB(5, 2, 5, 2),
                   child: ListTile(
+                      contentPadding: _appState == AppState.driveTrip
+                          ? const EdgeInsets.fromLTRB(20, 5, 5, 0)
+                          : const EdgeInsets.fromLTRB(5, 5, 5, 30),
                       shape: const RoundedRectangleBorder(
                           borderRadius: BorderRadius.all(Radius.circular(5))),
-                      trailing: IconButton(
-                        iconSize: 25,
-                        icon: const Icon(Icons.delete),
-                        onPressed: () async {
-                          await pointOfInterestRemove(index);
-                          setState(() {});
-                        },
-                      ),
+                      trailing: _appState == AppState.driveTrip
+                          ? null
+                          : IconButton(
+                              iconSize: 25,
+                              icon: const Icon(Icons.delete),
+                              onPressed: () async {
+                                await pointOfInterestRemove(index);
+                                setState(() {});
+                              },
+                            ),
                       tileColor: index.isOdd
                           ? Colors.white
                           : const Color.fromARGB(255, 174, 211, 241),
-                      leading: _pointsOfInterest[index].type < 12
-                          ? IconButton(
-                              iconSize: 25,
-                              icon: Icon(
-                                  markerIcon(_pointsOfInterest[index].type)),
-                              onPressed: () async {
-                                setState(() {});
-                              },
-                            )
+                      leading: _appState == AppState.driveTrip
+                          ? null
                           : ReorderableDragStartListener(
                               key: Key('$index'),
                               index: index,
                               child: const Icon(Icons.drag_handle)),
                       title: Text(getTitles(index)[0]),
                       subtitle: Text(getTitles(index)[1]),
-                      contentPadding: const EdgeInsets.fromLTRB(5, 5, 5, 30),
+                      //  contentPadding: const EdgeInsets.fromLTRB(5, 5, 5, 30),
                       onLongPress: () => {
                             _animatedMapController.animateTo(
                                 dest: _pointsOfInterest[index].point)
                           })),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  IconButton.filled(
-                    style: IconButton.styleFrom(
-                        elevation: 5,
-                        shadowColor: const Color.fromRGBO(95, 94, 94, 0.984),
-                        //   maximumSize: Size(12, 12),
-                        backgroundColor: const Color.fromARGB(214, 245, 6, 6)),
-                    onPressed: () {
-                      //    debugPrint('Button No:$i');
-                      insertAfter = insertAfter == index ? -1 : index;
-                      _showTarget = insertAfter == index;
-                      setState(() {});
-                    },
-                    icon: Icon(index == insertAfter ? Icons.close : Icons.add),
-                  ),
-                ],
-              )
+              if (_appState != AppState.driveTrip) ...[
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    IconButton.filled(
+                      style: IconButton.styleFrom(
+                          elevation: 5,
+                          shadowColor: const Color.fromRGBO(95, 94, 94, 0.984),
+                          //   maximumSize: Size(12, 12),
+                          backgroundColor:
+                              const Color.fromARGB(214, 245, 6, 6)),
+                      onPressed: () {
+                        //    debugPrint('Button No:$i');
+                        insertAfter = insertAfter == index ? -1 : index;
+                        _showTarget = insertAfter == index;
+                        setState(() {});
+                      },
+                      icon:
+                          Icon(index == insertAfter ? Icons.close : Icons.add),
+                    ),
+                  ],
+                ),
+              ],
             ]));
   }
 
   Column _exploreDetailsHeader() {
     return Column(children: [
-      SizedBox(
-        height: 90,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
-          child: TextFormField(
-              textAlign: TextAlign.start,
-              keyboardType: TextInputType.streetAddress,
-              textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: 'Give your trip a name...',
-                labelText: 'Trip name',
-              ),
-              style: Theme.of(context).textTheme.bodyLarge,
-              initialValue: tripItem.heading, //widget.port.warning.toString(),
-              onChanged: (text) => setState(() {
-                    tripItem.heading = text;
-                  })
-              // () => widget.port.warning = double.parse(text)),
-              ),
-        ),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+        child: TextFormField(
+            readOnly: _appState == AppState.driveTrip,
+            //    enabled: _appState != AppState.driveTrip,
+            textAlign: TextAlign.start,
+            keyboardType: TextInputType.streetAddress,
+            textCapitalization: TextCapitalization.words,
+            decoration: const InputDecoration(
+              border: OutlineInputBorder(),
+              hintText: 'Give your trip a name...',
+              labelText: 'Trip name',
+            ),
+            style: Theme.of(context).textTheme.bodyLarge,
+            initialValue: tripItem.heading, //widget.port.warning.toString(),
+            onChanged: (text) => setState(() {
+                  tripItem.heading = text;
+                })
+            // () => widget.port.warning = double.parse(text)),
+            ),
       ),
-      SizedBox(
-        height: 90,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-          child: TextFormField(
-              textAlign: TextAlign.start,
-              keyboardType: TextInputType.multiline,
-              textCapitalization: TextCapitalization.sentences,
-              spellCheckConfiguration: const SpellCheckConfiguration(),
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: 'Enter a short summary of your trip...',
-                labelText: 'Trip summary',
-              ),
-              style: Theme.of(context).textTheme.bodyLarge,
-              initialValue:
-                  tripItem.subHeading, //widget.port.warning.toString(),
-              autovalidateMode: AutovalidateMode.onUserInteraction,
-              onChanged: (text) => setState(() {
-                    tripItem.subHeading = text;
-                  })
-              // () => widget.port.warning = double.parse(text)),
-              ),
-        ),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+        child: TextFormField(
+            readOnly: _appState == AppState.driveTrip,
+            //  enabled: _appState != AppState.driveTrip,
+            textAlign: TextAlign.start,
+            keyboardType: TextInputType.multiline,
+            maxLines: null,
+            textCapitalization: TextCapitalization.sentences,
+            spellCheckConfiguration: const SpellCheckConfiguration(),
+            decoration: const InputDecoration(
+              border: OutlineInputBorder(),
+              hintText: 'Enter a short summary of your trip...',
+              labelText: 'Trip summary',
+            ),
+            style: Theme.of(context).textTheme.bodyLarge,
+            initialValue: tripItem.subHeading, //widget.port.warning.toString(),
+            autovalidateMode: AutovalidateMode.onUserInteraction,
+            onChanged: (text) => setState(() {
+                  tripItem.subHeading = text;
+                })
+            // () => widget.port.warning = double.parse(text)),
+            ),
       ),
-      SizedBox(
-        height: 90,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-          child: TextFormField(
-              textAlign: TextAlign.start,
-              keyboardType: TextInputType.multiline,
-              textCapitalization: TextCapitalization.sentences,
-              spellCheckConfiguration: const SpellCheckConfiguration(),
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: 'Describe details of your trip...',
-                labelText: 'Trip details',
-              ),
-              style: Theme.of(context).textTheme.bodyLarge,
-              initialValue: tripItem.body, //widget.port.warning.toString(),
-              autovalidateMode: AutovalidateMode.onUserInteraction,
-              onChanged: (text) => setState(() {
-                    tripItem.body = text;
-                  })
-              // () => widget.port.warning = double.parse(text)),
-              ),
-        ),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+        child: TextFormField(
+            readOnly: _appState == AppState.driveTrip,
+            // enabled: _appState != AppState.driveTrip,
+            textAlign: TextAlign.start,
+            maxLines: null,
+            keyboardType: TextInputType.multiline,
+            textCapitalization: TextCapitalization.sentences,
+            spellCheckConfiguration: const SpellCheckConfiguration(),
+            decoration: const InputDecoration(
+              border: OutlineInputBorder(),
+              hintText: 'Describe details of your trip...',
+              labelText: 'Trip details',
+            ),
+            style: Theme.of(context).textTheme.bodyLarge,
+            initialValue: tripItem.body, //widget.port.warning.toString(),
+            autovalidateMode: AutovalidateMode.onUserInteraction,
+            onChanged: (text) => setState(() {
+                  tripItem.body = text;
+                })
+            // () => widget.port.warning = double.parse(text)),
+            ),
       ),
     ]);
   }
@@ -1940,23 +2088,49 @@ You can plan trips either on your own or you can explore in a group''',
       case 0:
 
         /// Choose between manual and automatic routing
-        _showTarget = value == 0;
-        _bottomNavigationsBarIndex =
-            _pointsOfInterest.isEmpty && value == 1 ? 2 : 1;
+        ///
+        switch (value) {
+          case 0:
+            _showTarget = true;
+            _bottomNavigationsBarIndex = 1;
+            _alignPositionOnUpdate = AlignOnUpdate.never;
+            _alignDirectionOnUpdate = AlignOnUpdate.never;
+            break;
+          case 1:
+            _showTarget = false;
+            _bottomNavigationsBarIndex = _pointsOfInterest.isEmpty ? 2 : 1;
+            //  _alignPositionOnUpdate = AlignOnUpdate.always;
+            //  _alignDirectionOnUpdate = AlignOnUpdate.always;
+            break;
+        }
 
-        break;
       case 1:
         // Choose between Save Publish Clear and Edit
         switch (value) {
           case 0:
             // Save trip
-            await _saveTrip();
+            bool found = false;
+            await _saveTrip().then((driveId) async {
+              await tripItemFromDb(driveId: driveId).then((trip) {
+                for (int i = 0; i < myTripItems.length; i++) {
+                  if (myTripItems[i].driveId == trip[0].driveId) {
+                    myTripItems[i] = trip[0];
+                    found = true;
+                    break;
+                  }
+                }
+                if (!found) {
+                  myTripItems.add(trip[0]);
+                }
+              }).then((_) => setState(() {}));
+            });
             break;
           case 1:
             // Publish trip
             // await _publishTrip();
             // tripItemFromDb();
-            myTripItems = await tripItemFromDb();
+            // myTripItems = await tripItemFromDb();
+            debugPrint('Publish trip:');
             break;
           case 2:
             // Clear trip
@@ -1973,12 +2147,27 @@ You can plan trips either on your own or you can explore in a group''',
         switch (value) {
           case 0:
             // Save trip
-            await _saveTrip();
+            bool found = false;
+            await _saveTrip().then((driveId) async {
+              await tripItemFromDb(driveId: driveId).then((trip) {
+                for (int i = 0; i < myTripItems.length; i++) {
+                  if (myTripItems[i].driveId == trip[0].driveId) {
+                    myTripItems[i] = trip[0];
+                    found = true;
+                    break;
+                  }
+                }
+                if (!found) {
+                  myTripItems.add(trip[0]);
+                }
+              }).then((_) => setState(() {}));
+            });
             break;
           case 1:
             // Publish trip
             // await _publishTrip();
-            myTripItems = await tripItemFromDb();
+            // myTripItems = await tripItemFromDb();
+            debugPrint('Publish trip:');
             break;
           case 2:
             // Clear trip
@@ -2004,10 +2193,14 @@ You can plan trips either on your own or you can explore in a group''',
             break;
           case 1:
             // delete the point of interest
+
             if (_editPointOfInterest > -1 &&
                 _editPointOfInterest < _pointsOfInterest.length) {
               PointOfInterest poi =
                   _pointsOfInterest.removeAt(_editPointOfInterest);
+              if (poi.id > -1) {
+                deletePointOfInterestById(poi.id);
+              }
             }
             _editPointOfInterest = -1;
             value = -1;
@@ -2099,7 +2292,7 @@ You can plan trips either on your own or you can explore in a group''',
   _trackingState({required bool trackingOn, description = ''}) async {
     LatLng pos;
     try {
-      pos = LatLng(_position.latitude, _position.longitude);
+      pos = LatLng(_currentPosition.latitude, _currentPosition.longitude);
     } catch (e) {
       debugPrint('Error getting lat_long @ ${e.toString()}');
       pos = const LatLng(0.0, 0.0);
@@ -2109,18 +2302,20 @@ You can plan trips either on your own or you can explore in a group''',
       await Geolocator.getCurrentPosition(
               desiredAccuracy: LocationAccuracy.best)
           .then((position) {
-        _position = position;
-        pos = LatLng(position.latitude, position.longitude);
+        _currentPosition = position;
+        pos = LatLng(_currentPosition.latitude, _currentPosition.longitude);
         _animatedMapController.animateTo(dest: pos);
         _routes.clear();
         _routes.add(mt.Route(
             id: -1,
-            points: [LatLng(position.latitude, position.longitude)], // Route,
+            points: [
+              LatLng(_currentPosition.latitude, _currentPosition.longitude)
+            ], // Route,
             color: _routeColour(_goodRoad.isGood),
             borderColor: _routeColour(_goodRoad.isGood),
             strokeWidth: 5));
         _startLatLng = pos;
-        lastLatLng = pos;
+        _lastLatLng = pos;
         _travelled = 0.0;
         _start = DateTime.now();
         _lastCheck = DateTime.now();
@@ -2128,6 +2323,7 @@ You can plan trips either on your own or you can explore in a group''',
         _totalDistance = 0;
       });
     }
+
     if (context.mounted) {
       int elapsed = _start.difference(DateTime.now()).inMinutes.abs();
       _singlePointOfInterest(context, pos, -1,
@@ -2140,17 +2336,64 @@ You can plan trips either on your own or you can explore in a group''',
     _tracking = trackingOn;
   }
 
+  /// Uses Geolocator.getPositionStream to get a stream of locations. Triggers posotion update
+  /// every 10M
+  /// must use _positionStream.cancel() to cancel stream when no longer reading from it
+
+  void getLocationUpdates() {
+    const LocationSettings locationSettings = LocationSettings(
+      accuracy: LocationAccuracy.best,
+      distanceFilter: 10, // 10 meters
+    );
+    _positionStream =
+        Geolocator.getPositionStream(locationSettings: locationSettings)
+            .listen((position) {
+      _currentPosition = position;
+      _speed = _currentPosition.speed * 3.6 / 8 * 5; // M/S -> MPH
+      LatLng pos =
+          LatLng(_currentPosition.latitude, _currentPosition.longitude);
+      if (_lastLatLng == const LatLng(0.00, 0.00)) {
+        _lastLatLng = pos;
+        _tripDistance = 0;
+        _routes.clear();
+        _trackingPoints.clear();
+        _trackingPoints.add(pos);
+        _routes.add(mt.Route(
+            points: _trackingPoints, // routePoints,
+            borderColor: uiColours.keys.toList()[Setup().routeColour],
+            color: uiColours.keys.toList()[Setup().routeColour],
+            strokeWidth: 5));
+      } else {
+        setState(() {
+          _trackingPoints.add(pos);
+          //  _routes[_routes.length - 1].points = _trackingPoints; //   .add(pos);
+
+          /// Debug diappearing routes
+          _speed = _routes[_routes.length - 1].points.length.toDouble();
+          _tripDistance += Geolocator.distanceBetween(
+              _lastLatLng.latitude,
+              _lastLatLng.longitude,
+              _currentPosition.latitude,
+              _currentPosition.longitude);
+        });
+      }
+    });
+  }
+
+/*
   updateTracking() async {
     await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.best)
         .then((position) {
-      LatLng pos = LatLng(position.latitude, position.longitude);
-      _speed = position.speed * 3.6 / 8 * 5;
-      _position = position;
-      if (lastLatLng == const LatLng(0.00, 0.00)) {
-        lastLatLng = pos;
+      _currentPosition = position;
+      LatLng pos =
+          LatLng(_currentPosition.latitude, _currentPosition.longitude);
+      _speed = _currentPosition.speed * 3.6 / 8 * 5;
+      //  _currentPosition = position;
+      if (_lastLatLng == const LatLng(0.00, 0.00)) {
+        _lastLatLng = pos;
         _lastCheck = DateTime.now();
       } else {
-        double distance = distanceBetween(pos, lastLatLng);
+        double distance = distanceBetween(pos, _lastLatLng);
         if (distance > 0.01) {
           int secsMoving =
               _lastCheck.difference(DateTime.now()).inSeconds.abs();
@@ -2169,18 +2412,20 @@ You can plan trips either on your own or you can explore in a group''',
             _routes[_routes.length - 1].points.add(pos);
           }
 
-          lastLatLng = pos;
+          _lastLatLng = pos;
           _tripDistance += distance;
           if (_tripDistance >= 0.5 ||
               _routes[_routes.length - 1].points.length == 1) {
             _totalDistance += _tripDistance;
             _tripDistance = 0;
+/*            
             _singlePointOfInterest(context, pos, -1,
                 distance: roundDouble(value: _totalDistance, places: 1),
                 time: roundDouble(value: secsMoving / 60, places: 1));
+*/
           }
         }
-        _animatedMapController.animateTo(dest: pos);
+//        _animatedMapController.animateTo(dest: pos);
       }
     }).then((_) {
       setState(() {
@@ -2188,7 +2433,7 @@ You can plan trips either on your own or you can explore in a group''',
       });
     });
   }
-
+*/
   adjustHeigth(int percent) {
     double height = (MediaQuery.of(context).size.height -
             AppBar().preferredSize.height -
@@ -2262,24 +2507,28 @@ You can plan trips either on your own or you can explore in a group''',
     }
   }
 
-  Future<bool> _saveTrip() async {
+  /// SaveTrip()
+  /// Saves all the trip data to the local SQLLite db
+  ///
+
+  Future<int> _saveTrip() async {
     // Insert / Update the drive details
     if (tripItem.heading.isEmpty) {
       Utility().showConfirmDialog(context, "Can't save - more info please",
           "Please enter what you'd like to call this trip.");
-      return false;
+      return -1;
     }
 
     if (tripItem.subHeading.isEmpty) {
       Utility().showConfirmDialog(context, "Can't save - more info please",
           'Please give a brief summary of this trip.');
-      return false;
+      return -1;
     }
 
     if (tripItem.body.isEmpty) {
       Utility().showConfirmDialog(context, "Can't save - more info please",
           'Please give some interesting details about this trip.');
-      return false;
+      return -1;
     }
 
 /* 
@@ -2318,6 +2567,8 @@ You can plan trips either on your own or you can explore in a group''',
             id: id, userId: userId, driveId: driveId, polylines: _routes);
       }
 
+      if (_totalDistance > 100) {}
+
       /*
       final mapBoundary =
           mapKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
@@ -2348,7 +2599,7 @@ You can plan trips either on your own or you can explore in a group''',
     saveDrive(drive: drive);
 
     /// update Drive with image data
-
+/*
     int distance = 10;
     int closest = 10;
     await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.best)
@@ -2362,25 +2613,22 @@ You can plan trips either on your own or you can explore in a group''',
 
     myTripItems.add(MyTripItem(
         id: 0,
+        driveId: driveId,
         heading: tripItem.heading,
         subHeading: tripItem.subHeading,
         body: tripItem.body,
         published: '',
         pointsOfInterest: _pointsOfInterest,
+        routes: _routes,
         images: imageUrl,
         score: 5,
         distance: distance,
         closest: closest));
-
+*/
     setState(() {
       mapHeight = height;
     });
-
-    // Insert / update all the points of interest with images
-
-    // Insert / update all polylines
-
-    return true;
+    return driveId;
   }
 
   Future<String> saveMapImage(int driveId) async {

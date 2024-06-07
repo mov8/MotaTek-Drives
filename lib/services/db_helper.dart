@@ -10,6 +10,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:drives/models.dart';
 import 'dart:async';
 import 'dart:convert';
+import '../route.dart' as mt;
 
 class dbHelper {
   Database? _db;
@@ -60,7 +61,7 @@ Future<Database> initDb() async {
 
         await db.execute(
             '''CREATE TABLE setup(id INTEGER PRIMARY KEY AUTOINCREMENT, route_colour INTEGER, good_route_colour INTEGER, 
-          waypoint_colour INTEGER, waypoint_colour_2 INTEGER, point_of_interest_colour INTEGER, 
+          waypoint_colour INTEGER, waypoint_colour_2 INTEGER, point_of_interest_colour INTEGER, rotate_map INTEGER,
           point_of_interest_colour_2 INTEGER, selected_colour INTEGER, highlighted_colour INTEGER, 
           record_detail INTEGER, allow_notifications INTEGER,
           dark INTEGER) ''');
@@ -274,6 +275,21 @@ Future<Drive> getDrive(int driveId) async {
       minLong: minLong);
 }
 
+Future<void> deleteDriveById(int id) async {
+  final db = await dbHelper().db;
+  await db.delete(
+    'drives',
+    where: 'id = ?',
+    whereArgs: [id],
+  );
+}
+
+Future<void> deleteDriveByTripItem({required int driveId}) async {
+  await deletePolyLinesByDriveId(driveId)
+      .then((_) => deletePointOfInterestByDriveId(driveId))
+      .then((_) => deleteDriveById(driveId));
+}
+
 Future<int> saveDrive({required Drive drive}) async {
   final db = await dbHelper().db;
   int id = -1;
@@ -334,8 +350,9 @@ Future<bool> savePointsOfInterestLocal(
       'images': pointsOfInterest[i].images,
 
       /// Json [{'image': imageUrl, 'caption': imageCaption}, ...]
-      'latitude': pointsOfInterest[i].markerPoint.latitude,
-      'longitude': pointsOfInterest[i].markerPoint.longitude,
+      ///
+      'latitude': pointsOfInterest[i].point.latitude,
+      'longitude': pointsOfInterest[i].point.longitude,
     };
     if (pointsOfInterest[i].id > -1) {
       id = pointsOfInterest[i].id;
@@ -361,6 +378,24 @@ Future<bool> savePointsOfInterestLocal(
     }
   }
   return true;
+}
+
+Future<void> deletePointOfInterestById(int id) async {
+  final db = await dbHelper().db;
+  await db.delete(
+    'points_of_interest',
+    where: 'id = ?',
+    whereArgs: [id],
+  );
+}
+
+Future<void> deletePointOfInterestByDriveId(int driveId) async {
+  final db = await dbHelper().db;
+  await db.delete(
+    'points_of_interest',
+    where: 'drive_id = ?',
+    whereArgs: [driveId],
+  );
 }
 
 /// Saves the myTrips to the local SQLite database
@@ -401,6 +436,24 @@ Future<bool> savePolylinesLocal(
   return true;
 }
 
+Future<void> deletePolyLinesById(int id) async {
+  final db = await dbHelper().db;
+  await db.delete(
+    'polylines',
+    where: 'id = ?',
+    whereArgs: [id],
+  );
+}
+
+Future<void> deletePolyLinesByDriveId(int driveId) async {
+  final db = await dbHelper().db;
+  await db.delete(
+    'polylines',
+    where: 'id = ?',
+    whereArgs: [driveId],
+  );
+}
+
 /// Get the polylines for a drive from SQLite
 /// Will initially only load the descriptive details and only
 /// load the details if the drive is selected
@@ -419,7 +472,7 @@ Future<List<Polyline>> loadPolyLinesLocal(int driveId) async {
         points: stringToPoints(maps[i]['points']), // routePoints,
         color: uiColours.keys.toList()[maps[i]['color']],
         borderColor: uiColours.keys.toList()[maps[i]['color']],
-        strokeWidth: maps[i]['stroke']));
+        strokeWidth: (maps[i]['stroke']).toDouble()));
   }
   return polylines;
 }

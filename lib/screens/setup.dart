@@ -98,6 +98,17 @@ class _SetupFormState extends State<SetupForm> {
         secondary: const Icon(Icons.notifications_on_outlined, size: 30),
       ),
       SwitchListTile(
+        title: Text('Auto-rotate map',
+            style: Theme.of(context).textTheme.bodyLarge!),
+        value: Setup().rotateMap,
+        onChanged: (bool value) {
+          setState(() {
+            Setup().rotateMap = value;
+          });
+        },
+        secondary: const Icon(Icons.on_device_training, size: 30),
+      ),
+      SwitchListTile(
         title: Text('Dark mode', style: Theme.of(context).textTheme.bodyLarge!),
         value: Setup().dark,
         onChanged: (bool value) {

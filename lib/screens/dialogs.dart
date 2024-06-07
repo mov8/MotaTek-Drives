@@ -136,18 +136,19 @@ class Utility {
   }
 
   showAlertDialog(
-      BuildContext context, String alertTitle, String alertMessage) {
+      BuildContext context, String alertTitle, String alertMessage) async {
+    bool result = false;
     // set up the buttons
     Widget cancelButton = TextButton(
       child: const Text("Cancel"),
       onPressed: () {
-        Navigator.pop(context);
+        Navigator.pop(context, false);
       },
     );
     Widget continueButton = TextButton(
       child: const Text("Ok"),
       onPressed: () {
-        Navigator.pop(context);
+        Navigator.pop(context, true);
       },
     );
 
@@ -169,6 +170,8 @@ class Utility {
     showDialog(
       context: context,
       builder: (BuildContext context) {
+        // result = alert;
+
         return alert;
       },
     );
@@ -219,6 +222,67 @@ class Utility {
       },
     );
   }
+
+  showOkCancelDialog(
+      {required BuildContext context,
+      required String alertTitle,
+      required String alertMessage,
+      required int okValue,
+      required Function callback}) {
+    // set up the buttons
+    Widget okButton = TextButton(
+      child: const Text(
+        "Ok",
+        style: TextStyle(fontSize: 24),
+      ),
+      onPressed: () {
+        callback(okValue);
+        Navigator.pop(context);
+      },
+    );
+    Widget cancelButton = TextButton(
+      child: const Text(
+        "Cancel",
+        style: TextStyle(fontSize: 24),
+      ),
+      onPressed: () {
+        callback(-1);
+        Navigator.pop(context);
+      },
+    );
+    // set up the AlertDialog
+    AlertDialog alert = AlertDialog(
+      title: Text(
+        alertTitle,
+        style: const TextStyle(
+          fontSize: 24,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      content: SingleChildScrollView(
+        child: ListBody(
+          children: <Widget>[
+            Text(
+              alertMessage,
+              style: const TextStyle(fontSize: 20),
+            )
+          ],
+        ),
+      ),
+      actions: [
+        okButton,
+        cancelButton,
+      ],
+    );
+
+    // show the dialog
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return alert;
+      },
+    );
+  }
 }
 
 AlertDialog buildColumnDialog(
@@ -233,6 +297,79 @@ AlertDialog buildColumnDialog(
       elevation: 5,
       content: content,
       actions: actionButtons(context, callbacks, buttonTexts));
+}
+
+class DialogOkCancel extends StatefulWidget {
+  @override
+  State<DialogOkCancel> createState() => _DialogOkCancelState();
+
+  final Function(int value) onConfirm;
+  final int id;
+  final String title;
+  final String body;
+
+  const DialogOkCancel({
+    super.key,
+    required this.id,
+    required this.title,
+    required this.body,
+    required this.onConfirm,
+  });
+}
+
+class _DialogOkCancelState extends State<DialogOkCancel> {
+  int value = -1;
+  TextStyle textStyle = const TextStyle(color: Colors.black);
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+        //  context: context,
+        //  barrierDismissible: false,
+        title: Column(children: [
+      Row(children: [
+        Text(widget.title,
+            style: const TextStyle(
+                color: Colors.black,
+                fontSize: 20,
+                fontWeight: FontWeight.bold)),
+        Row(children: [
+          Text(widget.body,
+              style: const TextStyle(
+                color: Colors.black,
+                fontSize: 16,
+              )),
+        ]),
+        Row(
+          children: [
+            const Expanded(
+              flex: 4,
+              child: SizedBox(
+                height: 20,
+              ),
+            ),
+            Expanded(
+              flex: 2,
+              child: ElevatedButton(
+                  onPressed: () {
+                    widget.onConfirm(widget.id);
+                    Navigator.pop(context);
+                  },
+                  child: const Text('OK')),
+            ),
+            Expanded(
+              flex: 2,
+              child: ElevatedButton(
+                  onPressed: () {
+                    widget.onConfirm(-1);
+                    Navigator.pop(context);
+                  },
+                  child: const Text('Cancel')),
+            )
+          ],
+        )
+      ]),
+    ]));
+  }
 }
 
 Future<LatLng> locationDialog(BuildContext context, Function callback) async {

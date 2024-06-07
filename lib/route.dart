@@ -8,7 +8,7 @@ import 'package:latlong2/latlong.dart';
 /// A polyline with an id
 class Route extends Polyline {
   final int? id;
-  final List<Offset> _offsets = [];
+  List<Offset> offsets = [];
   @override
   Color color;
   Color borderColor;
@@ -24,6 +24,25 @@ class Route extends Polyline {
     super.isDotted = false,
     this.id = -1,
   });
+
+  /*
+  List<Offset> get offsets {
+    return offsets;
+  }
+
+  set offsets(List<Offset> offsets) {
+    offsets = offsets;
+  }
+*/
+/*
+class MarkerWidget extends StatelessWidget {
+  set iconType(int poiType) {
+    // setState(() {
+    type = poiType;
+    // });
+    // _context = context;
+  }
+*/
 }
 
 /// Class RouteAtCenter
@@ -73,13 +92,13 @@ class RouteAtCenter {
       Offset center = mapState.project(mapController.camera.center).toOffset();
       center = (center * mapState.getZoomScale(mapState.zoom, mapState.zoom)) -
           mapState.pixelOrigin.toOffset();
-
+      Route currentPolyline = _routes[0];
       for (int i = 0; i < _routes.length; i++) {
-        Route currentPolyline = _routes[i];
-        for (var j = 1; j < currentPolyline._offsets.length; j++) {
+        currentPolyline = _routes[i];
+        for (var j = 1; j < currentPolyline.offsets.length; j++) {
           // We consider the points point1, point2 and tap points in a triangle
-          var point1 = currentPolyline._offsets[j - 1];
-          var point2 = currentPolyline._offsets[j];
+          var point1 = currentPolyline.offsets[j - 1];
+          var point2 = currentPolyline.offsets[j];
           // To determine if target is in between two points, we
           // calculate the length from the tapped point to the line
           // created by point1, point2. If this distance is shorter
@@ -129,13 +148,14 @@ class RouteAtCenter {
           }
         }
       }
-    }
 
-    if (idx > -1) {
-      debugPrint('Polyline found $idx');
-    }
+      if (idx > -1) {
+        debugPrint(
+            'Polyline index: $idx  points length: ${currentPolyline.points.length} ${currentPolyline.offsets.length}');
+      }
 
-    debugPrint('Polyline index $idx');
+      debugPrint('Polyline index $idx');
+    }
     return idx;
   }
 
@@ -199,7 +219,7 @@ class RouteLayer extends PolylineLayer {
     // debugPrint('Camera rotation: $rotation');
 
     for (Route polyline in lines) {
-      polyline._offsets.clear();
+      polyline.offsets.clear();
       var i = 0;
 
       for (var point in polyline.points) {
@@ -209,9 +229,9 @@ class RouteLayer extends PolylineLayer {
 
         // final mapCenter = crs.latLngToPoint(center, zoom);
         // pos = mapState.rotatePoint(mapState.center   mapCenter, point)
-        //  polyline._offsets.add(Offset(pos.x.toDouble(), pos.y.toDouble()));
+        //  polyline.offsets.add(Offset(pos.x.toDouble(), pos.y.toDouble()));
         if (i > 0 && i < polyline.points.length) {
-          polyline._offsets.add(Offset(pos.x.toDouble(), pos.y.toDouble()));
+          polyline.offsets.add(Offset(pos.x.toDouble(), pos.y.toDouble()));
         }
         i++;
       }
@@ -268,10 +288,10 @@ class RouteLayer extends PolylineLayer {
     // matches with the tapped point within the
     // pointerDistanceTolerance.
     for (Route currentPolyline in polylines) {
-      for (var j = 0; j < currentPolyline._offsets.length - 1; j++) {
+      for (var j = 0; j < currentPolyline.offsets.length - 1; j++) {
         // We consider the points point1, point2 and tap points in a triangle
-        var point1 = currentPolyline._offsets[j];
-        var point2 = currentPolyline._offsets[j + 1];
+        var point1 = currentPolyline.offsets[j];
+        var point2 = currentPolyline.offsets[j + 1];
         var tap = details.localPosition;
         // To determine if we have tapped in between two points, we
         // calculate the length from the tapped point to the line

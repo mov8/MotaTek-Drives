@@ -8,6 +8,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'route.dart' as mt;
 import 'dart:ui' as ui;
 
 /// https://api.flutter.dev/flutter/material/Icons-class.html  get the icon codepoint from here
@@ -230,6 +231,7 @@ class Setup {
   int recordDetail = 5;
   bool allowNotifications = true;
   bool dark = false;
+  bool rotateMap = true;
 
   String jwt = '';
   User user = User(id: 0, forename: '', surname: '', password: '', email: '');
@@ -260,6 +262,7 @@ class Setup {
         recordDetail = maps[0]['record_detail'];
         allowNotifications = maps[0]['allow_notifications'] == 1;
         dark = maps[0]['dark'] == 1;
+        rotateMap = maps[0]['rotate_map'];
       } catch (e) {
         debugPrint(e.toString());
       }
@@ -296,6 +299,7 @@ class Setup {
       'record_detail': recordDetail,
       'allow_notifications': allowNotifications ? 1 : 0,
       'dark': dark ? 1 : 0,
+      'rotate_map': rotateMap ? 1 : 0,
     };
   }
 
@@ -383,24 +387,7 @@ class PointOfInterest extends Marker {
       })
       : super(
           child: marker,
-          /*         child: RawMaterialButton(
-              onPressed: () => Utility().showAlertDialog(
-                  ctx, poiTypes.toList()[type]['name'], description),
-              elevation: 2.0,
-              fillColor: width < 30
-                  ? uiColours.keys.toList()[Setup().waypointColour]
-                  : uiColours.keys.toList()[Setup().pointOfInterestColour],
-              // padding: const EdgeInsets.all(5.0),
-              shape: const CircleBorder(),
-              child: Icon(
-                // iconData, //
-                markerIcon(type),
-                size: width < 30 ? 10 : width * 0.75,
-                color: Colors.blueAccent,
-              )),
-*/
           point: markerPoint,
-//            draggable: true,fl
           width: width,
           height: height, /*key: key*/
         );
@@ -673,23 +660,28 @@ class TripItem {
 
 class MyTripItem {
   int id = 0;
+  int driveId = 0;
   String heading = '';
   String subHeading = '';
   String body = '';
   String published = '';
   List<PointOfInterest> pointsOfInterest = [];
+  List<mt.Route> routes = [];
   String images = '';
   double score = 5;
   int distance = 10;
   int closest = 12;
   int highlights = 0;
+
   MyTripItem({
     this.id = 0,
+    this.driveId = 0,
     required this.heading,
     this.subHeading = '',
     this.body = '',
     this.published = '',
     this.pointsOfInterest = const [],
+    this.routes = const [],
     this.images = '',
     this.score = 5,
     this.distance = 10,
@@ -739,7 +731,7 @@ drive_id: 0, type: 15, name: Point of Interest name, description: Point of Inter
 
 */
 
-Future<List<MyTripItem>> tripItemFromDb() async {
+Future<List<MyTripItem>> tripItemFromDb({int driveId = -1}) async {
   final db = await dbHelper().db;
   // int records = await recordCount('setup');
   // if (records > 0){
@@ -749,19 +741,21 @@ Future<List<MyTripItem>> tripItemFromDb() async {
       JOIN points_of_interest ON drives.id = points_of_interest.drive_id 
       JOIN polylines ON drives.id = polylines.drive_id
       ''';
-   db.rawQuery(drivesQuery); 
-
-  */
+   */
   LatLng pos = const LatLng(0, 0);
 
   await getPosition().then((currentPosition) {
     pos = LatLng(currentPosition.latitude, currentPosition.longitude);
   });
-
-  const String drivesQuery = '''
-    SELECT * FROM drives 
-    JOIN points_of_interest ON drives.id = points_of_interest.drive_id 
-    ''';
+  String drivesQuery =
+      '''SELECT drives.title, drives.sub_title, drives.body, drives.map_image,
+    points_of_interest.*  
+    FROM drives
+    JOIN points_of_interest 
+    ON drives.id = points_of_interest.drive_id''';
+  if (driveId > -1) {
+    drivesQuery = '$drivesQuery WHERE drives.id = $driveId';
+  }
 
   List<MyTripItem> trips = [];
   try {
@@ -785,20 +779,21 @@ Future<List<MyTripItem>> tripItemFromDb() async {
         driveId = maps[i]['drive_id'];
         tripImages = unList(maps[i]['map_image']);
         trips.add(MyTripItem(
+            driveId: driveId,
             heading: maps[i]['title'],
             subHeading: maps[i]['sub_title'],
             body: maps[i]['body'],
             images: maps[i]['map_image'],
             pointsOfInterest: [
               PointOfInterest(
-                  -1,
+                  maps[i]['id'],
                   maps[i]['user_id'],
                   driveId,
                   maps[i]['type'],
                   maps[i]['name'],
                   maps[i]['description'],
-                  30,
-                  30,
+                  maps[i]['type'] == 12 ? 10 : 30,
+                  maps[i]['type'] == 12 ? 10 : 30,
                   maps[i]['images'],
                   markerPoint:
                       LatLng(maps[i]['latitude'], maps[i]['longitude']),
@@ -809,14 +804,14 @@ Future<List<MyTripItem>> tripItemFromDb() async {
         if (maps[i]['type'] != 12) highlights++;
       } else {
         trips[trips.length - 1].pointsOfInterest.add(PointOfInterest(
-            -1,
+            maps[i]['id'],
             maps[i]['user_id'],
             driveId,
             maps[i]['type'],
             maps[i]['name'],
             maps[i]['description'],
-            30,
-            30,
+            maps[i]['type'] == 12 ? 10 : 30,
+            maps[i]['type'] == 12 ? 10 : 30,
             maps[i]['images'],
             markerPoint: LatLng(maps[i]['latitude'], maps[i]['longitude']),
             marker: MarkerWidget(type: maps[i]['type'])));
@@ -839,13 +834,14 @@ Future<List<MyTripItem>> tripItemFromDb() async {
     }
     // for maps;
   } catch (e) {
-    debugPrint('Error loading Setup ${e.toString()}');
+    String err = e.toString();
+    debugPrint('Error loading Setup $err');
   }
   return trips;
 }
 
 /// class User
-///
+/// "DatabaseException(ambiguous column name: id (code 1 SQLITE_ERROR): , while compiling: SELECT id as drive_id, title, sub_title, b…"
 
 class Drive {
   int id = 0;
