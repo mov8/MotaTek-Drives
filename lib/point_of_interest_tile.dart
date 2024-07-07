@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:drives/models.dart';
-import 'package:drives/services/db_helper.dart';
+// import 'package:drives/services/db_helper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
@@ -46,12 +46,13 @@ class PointOfInterestTile extends StatefulWidget {
   final int index;
   final Function onIconTap;
   final Function onExpandChange;
-  final Key key;
+  // final Key key;
   final bool expanded;
   final bool canEdit;
 
   const PointOfInterestTile({
-    required this.key,
+    //required this.key,
+    super.key,
     required this.pointOfInterestController,
     required this.index,
     required this.pointOfInterest,
@@ -59,7 +60,7 @@ class PointOfInterestTile extends StatefulWidget {
     required this.onExpandChange,
     this.expanded = false,
     this.canEdit = true,
-  }) : super(key: key);
+  }); // : super(key: key);
   @override
   State<PointOfInterestTile> createState() => _PointOfInterestTileState();
 }

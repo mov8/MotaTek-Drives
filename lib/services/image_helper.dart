@@ -25,7 +25,7 @@ class PoiDetails extends StatefulWidget {
 class _PoiDetails extends State<PoiDetails> {
   final _contentControllerBody = TextEditingController();
   final _contentControllerTitle = TextEditingController();
-  File? _image;
+  // File? _image;
 
   @override
   initState() {
@@ -212,7 +212,7 @@ class _PoiDetails extends State<PoiDetails> {
       if (pickedFile != null) {
         widget.pointOfInterest.images =
             "${widget.pointOfInterest.images}, {'url': ${pickedFile.path}, 'caption':}";
-        _image = File(pickedFile.path);
+        // _image = File(pickedFile.path);
       }
     });
   }

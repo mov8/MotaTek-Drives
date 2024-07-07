@@ -1,5 +1,6 @@
 // import 'package:flutter/cupertino.dart';
 import 'dart:convert';
+import 'dart:ffi';
 import 'package:drives/utilities.dart';
 import 'package:drives/screens/dialogs.dart';
 import 'package:drives/screens/painters.dart';
@@ -7,9 +8,9 @@ import 'package:drives/services/db_helper.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
+// import 'package:geolocator/geolocator.dart';
 import 'route.dart' as mt;
-import 'dart:ui' as ui;
+// import 'dart:ui' as ui;
 
 /// https://api.flutter.dev/flutter/material/Icons-class.html  get the icon codepoint from here
 /// https://api.flutter.dev/flutter/material/Icons/add_road-constant.html
@@ -152,6 +153,14 @@ const List<Map> poiTypes = [
     'colour': 'Colors.red',
     'colourMaterial': 0xff4CAF50
   },
+  {
+    'id': 16,
+    'name': 'follower',
+    'icon': 'Icons.directions_car',
+    'iconMaterial': 0xe1d7,
+    'colour': 'Colors.red',
+    'colourMaterial': 0xff4CAF50
+  }
 ];
 
 const List<String> manufacturers = ['Triumph', 'MG', 'Reliant'];
@@ -262,7 +271,7 @@ class Setup {
         recordDetail = maps[0]['record_detail'];
         allowNotifications = maps[0]['allow_notifications'] == 1;
         dark = maps[0]['dark'] == 1;
-        rotateMap = maps[0]['rotate_map'];
+        rotateMap = maps[0]['rotate_map'] == 1;
       } catch (e) {
         debugPrint(e.toString());
       }
@@ -314,14 +323,16 @@ class Setup {
 }
 
 class MarkerLabel extends Marker {
-  int id;
-  int userId;
-  int driveId;
-  int type;
-  String description;
-  late BuildContext ctx;
-  late MarkerWidget marker;
-  late LatLng markerPoint;
+  final int id;
+  final int userId;
+  final int driveId;
+  final int type;
+  final String description;
+  late final BuildContext ctx;
+  late final MarkerWidget marker;
+  late final LatLng markerPoint;
+  // @override
+  // late final Widget child;
 
   MarkerLabel(this.ctx, this.id, this.userId, this.driveId, this.type,
       this.description, double width, double height,
@@ -396,6 +407,10 @@ class PointOfInterest extends Marker {
     return markerIcon(type);
   }
 
+  set position(LatLng pos) {
+    markerPoint = pos;
+  }
+
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -412,6 +427,16 @@ class PointOfInterest extends Marker {
   /// The : super keyword means we are referring to base class - Marker - parameters
   /// The point and builder are both required
 }
+/*
+Marker(
+  width: 55,
+  height: 55,
+  point: LatLng(0, 0),
+  builder: (_) => Transform.rotate(
+    angle: -this._rotation * math.pi / 180,
+    child: Container()
+)
+*/
 
 class MarkerWidget extends StatelessWidget {
   set iconType(int poiType) {
@@ -423,26 +448,51 @@ class MarkerWidget extends StatelessWidget {
 
   int type = 12; // default type 12 => waypoint
   String description;
-  MarkerWidget({super.key, required this.type, this.description = ''});
+  double angle = 0;
+  int colourIdx = -1;
+
+  MarkerWidget(
+      {super.key,
+      required this.type,
+      this.description = '',
+      this.angle = 0,
+      this.colourIdx = -1});
 
   @override
   Widget build(BuildContext context) {
-    int width = type == 12 ? 10 : 30;
-    return RawMaterialButton(
-        onPressed: () => Utility().showAlertDialog(
-            context, poiTypes.toList()[type]['name'], description),
-        elevation: 2.0,
-        fillColor: width < 30
-            ? uiColours.keys.toList()[Setup().waypointColour]
-            : uiColours.keys.toList()[Setup().pointOfInterestColour],
-        // padding: const EdgeInsets.all(5.0),
-        shape: const CircleBorder(),
-        child: Icon(
-          // iconData, //
-          markerIcon(type),
-          size: width < 30 ? 10 : width * 0.75,
-          color: Colors.blueAccent,
-        ));
+    int width = 30;
+    double iconWidth = width * 0.75;
+    Color buttonFillColor =
+        uiColours.keys.toList()[Setup().pointOfInterestColour];
+    Color iconColor = Colors.blueAccent;
+    switch (type) {
+      case 12:
+        buttonFillColor = uiColours.keys.toList()[Setup().waypointColour];
+        iconWidth = 10;
+        break;
+      case 16:
+        buttonFillColor = Colors.transparent;
+        iconColor = uiColours.keys.toList()[colourIdx];
+        iconWidth = 22;
+        break;
+    }
+    // Want to counter rotate the icons so that they are vertical when the map rotates
+    // -_mapRotation * pi / 180 to convert from _mapRotation in degrees to radians
+    return Transform.rotate(
+        angle: angle,
+        child: RawMaterialButton(
+            onPressed: () => Utility().showAlertDialog(
+                context, poiTypes.toList()[type]['name'], description),
+            elevation: 2.0,
+            fillColor: buttonFillColor,
+            shape: const CircleBorder(),
+            child: Padding(
+                padding: const EdgeInsets.fromLTRB(0, 0, 1, 2),
+                child: Icon(
+                  markerIcon(type),
+                  size: iconWidth,
+                  color: iconColor,
+                ))));
   }
 }
 
@@ -461,10 +511,6 @@ class LabelWidget extends StatelessWidget {
         painter: MapLabelPainter(
             top: top, left: left, labelText: description, pixelRatio: 1));
   }
-
-  // MapLabelPainter(text: 'Test Label', pixe
-
-  //);
 }
 
 IconData markerIcon(int type) {
@@ -569,6 +615,122 @@ class UiColour {
   Color colour = Colors.black;
   String name = 'black';
   UiColour(this.id, this.colour, this.name);
+}
+
+class Maneuver {
+  int id = 0;
+  int driveId = 0;
+  String roadFrom = '';
+  String roadTo = '';
+  int exit = 0;
+  int bearingBefore = 0;
+  int bearingAfter = 0;
+  LatLng location = const LatLng(0, 0);
+  String modifier = '';
+  String type = '';
+  Maneuver({
+    this.id = 0,
+    this.driveId = 0,
+    required this.roadFrom,
+    required this.roadTo,
+    required this.exit,
+    required this.bearingBefore,
+    required this.bearingAfter,
+    required this.location,
+    required this.modifier,
+    required this.type,
+  });
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'drive_id': driveId,
+      'road_from': roadFrom,
+      'road_to': roadTo,
+      'exit': exit,
+      'bearing_before': bearingBefore,
+      'bearing_after': bearingAfter,
+      'location': '{"lat":${location.latitude},"long":${location.longitude}}',
+      'modifier': modifier,
+      'type': type,
+    };
+  }
+
+  /// ...['steps'][n]['name'] => the current road name
+  /// ...['steps'][n]['maneuver'][bearing_before'] => approach bearing
+  /// ...['steps'][n]['maneuver'][bearing_after] => exit bearing
+  /// ...['steps'][n]['maneuver']['location'] => latLng of intersection
+  /// ...['steps'][n]['maneuver']['modifier'] => 'right', 'left' etc
+  /// ...['steps'][n]['maneuver']['type'] => 'turn' etc
+  /// ...['steps'][n]['maneuver']['name'] => 'Alexandra Road'
+}
+
+/// class Follower
+
+class Follower extends Marker {
+  int id = 0;
+  int driveId = 0;
+  String forename = '';
+  String surname = '';
+  String phoneNumber = '';
+  String car = '';
+  String registration = '';
+  int iconColour = 0;
+  LatLng position = const LatLng(0, 0);
+  DateTime reported = DateTime.now();
+  int index = -1;
+  double width;
+  double height;
+  Follower(
+      {this.id = 0,
+      this.driveId = 0,
+      this.forename = '',
+      this.surname = '',
+      this.phoneNumber = '',
+      this.car = '',
+      this.registration = '',
+      this.width = 20,
+      this.height = 20,
+      this.iconColour = 0,
+      required position,
+      required Widget marker})
+      : super(
+          child: marker,
+          point: position, // markerPoint,
+          width: width,
+          height: height, /*key: key*/
+        ) {
+    reported = DateTime.now();
+  }
+
+/**
+ *       {required LatLng markerPoint,
+      required Widget marker
+
+      /*required this.xchild*/
+      })
+      : super(
+          child: marker,
+          point: markerPoint,
+          width: width,
+          height: height, /*key: key*/
+        );
+ */
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'drive_id': driveId,
+      'forename': forename,
+      'surname': surname,
+      'phone_number': phoneNumber,
+      'car': car,
+      'registration': registration,
+      'icon_colour': iconColour,
+      'position':
+          '{"lat": ${position.latitude}, "long": ${position.longitude}}',
+      'reported': reported.toString()
+    };
+  }
 }
 
 /// class HomeItem

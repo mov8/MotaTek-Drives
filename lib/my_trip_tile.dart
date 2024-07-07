@@ -1,7 +1,7 @@
-import 'dart:convert';
+// import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
+// import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:drives/models.dart';
 
@@ -31,20 +31,20 @@ class _myTripTileState extends State<MyTripTile> {
         child: Material(
             child: ClipRRect(
                 borderRadius: BorderRadius.circular(10),
-                child: Container(
-                    /*
+                //   child: Container(
+                /*
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10)),
                 clipBehavior: Clip.antiAlias,
                 margin: EdgeInsets.zero,
               */
-                    child: ExpansionTile(
-                        //   collapsedShape: const RoundedRectangleBorder(
-                        //       side: BorderSide(style: BorderStyle.solid),
-                        //       borderRadius: BorderRadius.all(Radius.circular(10))),
-                        title: Column(children: [
-                          Row(children: [
-                            /* const Expanded(
+                child: ExpansionTile(
+                    //   collapsedShape: const RoundedRectangleBorder(
+                    //       side: BorderSide(style: BorderStyle.solid),
+                    //       borderRadius: BorderRadius.all(Radius.circular(10))),
+                    title: Column(children: [
+                      Row(children: [
+                        /* const Expanded(
                             flex: 5,
                             child: SizedBox(
                                 width: 200,
@@ -52,50 +52,48 @@ class _myTripTileState extends State<MyTripTile> {
                                     image:
                                         AssetImage('assets/images/map.png')))),
                                         */
+                        Expanded(
+                            flex: 8,
+                            child: Text(widget.myTripItem.heading,
+                                style: const TextStyle(
+                                    color: Colors.black,
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold))),
+                      ]),
+                      Padding(
+                          padding: const EdgeInsets.fromLTRB(5, 0, 5, 15),
+                          child: Row(children: [
                             Expanded(
-                                flex: 8,
-                                child: Text(widget.myTripItem.heading,
-                                    style: const TextStyle(
-                                        color: Colors.black,
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.bold))),
-                          ]),
-                          Padding(
-                              padding: const EdgeInsets.fromLTRB(5, 0, 5, 15),
-                              child: Row(children: [
-                                Expanded(
-                                  flex: 1,
-                                  child: Column(children: [
-                                    const Icon(Icons.route),
-                                    Text(
-                                        '${widget.myTripItem.distance} miles long')
-                                  ]),
-                                ),
-                                Expanded(
-                                  flex: 1,
-                                  child: Column(children: [
-                                    const Icon(Icons.landscape),
-                                    Text(
-                                        '${widget.myTripItem.pointsOfInterest.length} highlights')
-                                  ]),
-                                ),
-                                Expanded(
-                                  flex: 1,
-                                  child: Column(children: [
-                                    const Icon(Icons.social_distance),
-                                    Text(
-                                        '${widget.myTripItem.closest} miles away')
-                                  ]),
-                                ),
-                              ]))
-                        ]),
-                        backgroundColor: Colors.white,
-                        onExpansionChanged: (expanded) {
-                          setState(() {
-                            // _scrollReorderListView = expanded;
-                          });
-                        },
-                        children: [
+                              flex: 1,
+                              child: Column(children: [
+                                const Icon(Icons.route),
+                                Text('${widget.myTripItem.distance} miles long')
+                              ]),
+                            ),
+                            Expanded(
+                              flex: 1,
+                              child: Column(children: [
+                                const Icon(Icons.landscape),
+                                Text(
+                                    '${widget.myTripItem.pointsOfInterest.length} highlights')
+                              ]),
+                            ),
+                            Expanded(
+                              flex: 1,
+                              child: Column(children: [
+                                const Icon(Icons.social_distance),
+                                Text('${widget.myTripItem.closest} miles away')
+                              ]),
+                            ),
+                          ]))
+                    ]),
+                    backgroundColor: Colors.white,
+                    onExpansionChanged: (expanded) {
+                      setState(() {
+                        // _scrollReorderListView = expanded;
+                      });
+                    },
+                    children: [
                       SizedBox(
                           // height: 200,
                           child: Padding(
@@ -209,7 +207,7 @@ class _myTripTileState extends State<MyTripTile> {
                                           ]),
                                         )),
                                       ]))))
-                    ])))));
+                    ]) /*)*/)));
   }
 
   changeRating(value) {

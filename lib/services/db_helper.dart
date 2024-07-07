@@ -10,7 +10,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:drives/models.dart';
 import 'dart:async';
 import 'dart:convert';
-import '../route.dart' as mt;
+// import '../route.dart' as mt;
 
 class dbHelper {
   Database? _db;
@@ -41,13 +41,21 @@ Future<Database> initDb() async {
     onCreate: (Database db, int version) async {
       try {
         await db.execute(
-            'CREATE TABLE users(id INTEGER PRIMARY KEY AUTOINCREMENT, forename TEXT, surname TEXT, email TEXT, password TEXT, imageUrl Text)'); //, locationId INTEGER, vehicleId INTEGER)');
+            '''CREATE TABLE users(id INTEGER PRIMARY KEY AUTOINCREMENT, forename TEXT, surname TEXT, email TEXT, 
+            password TEXT, imageUrl Text)'''); //, locationId INTEGER, vehicleId INTEGER)');
         await db.execute(
-            'CREATE TABLE groups(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, description TEXT, created DATETIME)'); //, locationId INTEGER, vehicleId INTEGER)');
+            '''CREATE TABLE groups(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, description TEXT, 
+            created DATETIME)'''); //, locationId INTEGER, vehicleId INTEGER)');
         await db.execute(
-            'CREATE TABLE group_members(id INTEGER PRIMARY KEY AUTOINCREMENT, forename TEXT, surname TEXT, email TEXT, status Integer, joined DATETIME, note TEXT, uri TEXT)'); //, locationId INTEGER, vehicleId INTEGER)');
+            '''CREATE TABLE group_members(id INTEGER PRIMARY KEY AUTOINCREMENT, forename TEXT, surname TEXT, 
+            email TEXT, status Integer, joined DATETIME, note TEXT, uri TEXT)'''); //, locationId INTEGER, vehicleId INTEGER)');
         await db.execute(
-            'CREATE TABLE notifications(id INTEGER PRIMARY KEY AUTOINCREMENT, sentBy TEXT, message TEXT, received DATETIME)'); //, locationId INTEGER, vehicleId INTEGER)');
+            '''CREATE TABLE notifications(id INTEGER PRIMARY KEY AUTOINCREMENT, sentBy TEXT, message TEXT, 
+            received DATETIME)'''); //, locationId INTEGER, vehicleId INTEGER)');
+        await db.execute(
+            '''CREATE TABLE followers(id INTEGER PRIMARY KEY AUTOINCREMENT, drive_id INTEGER, forename TEXT, 
+            surname TEXT, phone_number TEXT, car TEXT, registration TEXT, icon_colour INTEGER, position TEXT, 
+            reported DATETIME)''');
 
 /*
       homeItems will only come from the API 
@@ -55,9 +63,10 @@ Future<Database> initDb() async {
         'CREATE TABLE homeItems(id INTEGER PRIMARY KEY AUTOINCREMENT,)'
       );
 */
+
         await db.execute(
             '''CREATE TABLE versions(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, downloaded DATETIME, major INTEGER, 
-        minor INTEGER, patch INTEGER, status INTEGER )''');
+            minor INTEGER, patch INTEGER, status INTEGER )''');
 
         await db.execute(
             '''CREATE TABLE setup(id INTEGER PRIMARY KEY AUTOINCREMENT, route_colour INTEGER, good_route_colour INTEGER, 
@@ -81,8 +90,13 @@ Future<Database> initDb() async {
         /// SELECT * FROM users WHERE data LIKE '%"country":"USA"%';
 
         await db.execute(
-            '''CREATE TABLE polylines(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, drive_id INTEGER, type INTEGER, points TEXT, 
-    color Integer, stroke INTEGER)''');
+            '''CREATE TABLE maneuvers(id INTEGER PRIMARY KEY AUTOINCREMENT, drive_id INTEGER, road_from TEXT,
+          road_to TEXT, bearing_before INTEGER, bearing_after INTEGER, exit INTEGER, location TEXT, 
+          modifier TEXT, type TEXT)''');
+
+        await db.execute(
+            '''CREATE TABLE polylines(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, drive_id INTEGER, 
+            type INTEGER, points TEXT, color Integer, stroke INTEGER)''');
 /*
       await db.execute(
           '''CREATE TABLE images(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, drive_id INTEGER, 
@@ -173,18 +187,23 @@ Future<User> getUser() async {
 
 Future<int> insertSetup(Setup setup) async {
   final db = await dbHelper().db;
+  Map<String, dynamic> suMap = setup.toMap();
+  try {
+    suMap.remove('id');
+  } catch (e) {
+    debugPrint('Map.remove() error: ${e.toString()}');
+  }
   try {
     int records = await recordCount('setup');
     if (records < 1) {
       final insertedId = await db.insert(
         'setup',
-        setup.toMap(),
+        suMap,
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
       return insertedId;
     } else {
-      await db.update('setup', setup.toMap(),
-          where: 'id = ?', whereArgs: [setup.id]);
+      await db.update('setup', suMap, where: 'id = ?', whereArgs: [setup.id]);
       return setup.id;
     }
   } catch (e) {
@@ -195,6 +214,7 @@ Future<int> insertSetup(Setup setup) async {
 
 Future<void> updateSetup() async {
   final db = await dbHelper().db;
+
   try {
     await db.update(
       'setup',
@@ -210,18 +230,26 @@ Future<void> updateSetup() async {
 Future<int> saveUser(User user) async {
   final db = await dbHelper().db;
   var userRecords = await recordCount('users');
+  Map<String, dynamic> usMap = user.toMap();
+  try {
+    usMap.remove('id');
+  } catch (e) {
+    debugPrint('Map.remove() error: ${e.toString()}');
+  }
   try {
     if (userRecords > 0) {
       await db.update(
-        'versions',
-        user.toMap(), // toMap will return a SQLite friendly map
+        'users',
+        usMap, // toMap will return a SQLite friendly map
+        where: 'id = ?',
+        whereArgs: [user.id],
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
       return user.id;
     } else {
       final insertedId = await db.insert(
         'users',
-        user.toMap(),
+        usMap,
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
       userRecords = await recordCount('users');
@@ -290,19 +318,37 @@ Future<void> deleteDriveByTripItem({required int driveId}) async {
       .then((_) => deleteDriveById(driveId));
 }
 
+// "type 'int' is not a subtype of type 'Map<String, dynamic>'"
 Future<int> saveDrive({required Drive drive}) async {
   final db = await dbHelper().db;
   int id = -1;
+  Map<String, dynamic> drMap = drive.toMap();
   try {
-    if (drive.id > 0) {
+    drMap = drMap.remove("id");
+  } catch (e) {
+    String err = e.toString();
+    debugPrint('Error: $err');
+  }
+  try {
+    if (drive.id > -1) {
       id = drive.id;
-      await db.update('drives', drive.toMap(),
+
+      await db.update('drives', drMap,
           where: 'id = ?',
           whereArgs: [id],
           conflictAlgorithm: ConflictAlgorithm.replace);
     } else {
-      id = await db.insert('drives', drive.toMap(),
-          conflictAlgorithm: ConflictAlgorithm.replace);
+      try {
+        id = await db.insert(
+          'drives',
+          drMap,
+        );
+        // conflictAlgorithm: ConflictAlgorithm.fail);
+        // "DatabaseException(UNIQUE constraint failed: drives.id (code 1555 SQLITE_CONSTRAINT_PRIMARYKEY)) sql 'INSERT INTO drives (id, use…"
+      } catch (e) {
+        String err = e.toString();
+        debugPrint('Database error: $err');
+      }
     }
   } catch (e) {
     String err = e.toString();
@@ -348,9 +394,6 @@ Future<bool> savePointsOfInterestLocal(
       'name': pointsOfInterest[i].name,
       'description': pointsOfInterest[i].description,
       'images': pointsOfInterest[i].images,
-
-      /// Json [{'image': imageUrl, 'caption': imageCaption}, ...]
-      ///
       'latitude': pointsOfInterest[i].point.latitude,
       'longitude': pointsOfInterest[i].point.longitude,
     };
@@ -399,6 +442,80 @@ Future<void> deletePointOfInterestByDriveId(int driveId) async {
 }
 
 /// Saves the myTrips to the local SQLite database
+///
+
+Future<bool> saveManeuversLocal({
+  required int id,
+  required int driveId,
+  required List<Maneuver> maneuvers,
+}) async {
+  final db = await dbHelper().db;
+  for (int i = 0; i < maneuvers.length; i++) {
+    maneuvers[i].driveId = driveId;
+    Map<String, dynamic> manMap = maneuvers[i].toMap();
+    try {
+      manMap.remove('id');
+    } catch (e) {
+      debugPrint('Map.remove() error: ${e.toString()}');
+    }
+    try {
+      await db.insert(
+        'maneuvers',
+        manMap,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    } catch (err) {
+      String tError = err.toString();
+      debugPrint('Error saving maneuvers: $tError');
+    }
+  }
+  return true;
+}
+
+Future<List<Maneuver>> loadManeuversLocal(int driveId) async {
+  final db = await dbHelper().db;
+  List<Maneuver> maneuvers = [];
+  List<Map<String, dynamic>> maps = await db.query(
+    'maneuvers',
+    where: 'drive_id = ?',
+    whereArgs: [driveId],
+  );
+  LatLng pos = const LatLng(0, 0);
+  dynamic jsonPos;
+
+  for (int i = 0; i < maps.length; i++) {
+    try {
+      jsonPos = jsonDecode(maps[i]['location']);
+      pos = LatLng(jsonPos['lat'], jsonPos['long']);
+    } catch (e) {
+      String err = e.toString();
+      debugPrint(err);
+    }
+
+    maneuvers.add(Maneuver(
+      id: maps[i]['id'],
+      driveId: driveId,
+      roadFrom: maps[i]['road_from'],
+      roadTo: maps[i]['road_to'],
+      bearingBefore: maps[i]['bearing_before'],
+      bearingAfter: maps[i]['bearing_after'],
+      exit: maps[i]['exit'],
+      location: pos,
+      modifier: maps[i]['modifier'],
+      type: maps[i]['type'],
+    ));
+  }
+  return maneuvers;
+}
+
+Future<void> deleteManeuversByDriveId(int driveId) async {
+  final db = await dbHelper().db;
+  await db.delete(
+    'maneuvers',
+    where: 'drive_id = ?',
+    whereArgs: [driveId],
+  );
+}
 
 Future<bool> savePolylinesLocal(
     {required int id,
@@ -417,16 +534,23 @@ Future<bool> savePolylinesLocal(
           .toList()
           .indexWhere((col) => col == polylines[i].color),
     };
-    if (id > 0) {
+    if (id > -1) {
       try {
         await db.update('polylines', plMap,
+            where: 'id = ?',
+            whereArgs: [plMap['id']],
             conflictAlgorithm: ConflictAlgorithm.replace);
       } catch (e) {
         debugPrint("Database error storing polylines: ${e.toString()}");
         return false;
       }
     } else {
-      id = await db.insert(
+      try {
+        plMap.remove('id');
+      } catch (e) {
+        debugPrint('Map.remove() error: ${e.toString()}');
+      }
+      await db.insert(
         'polylines',
         plMap,
         conflictAlgorithm: ConflictAlgorithm.replace,
@@ -449,7 +573,90 @@ Future<void> deletePolyLinesByDriveId(int driveId) async {
   final db = await dbHelper().db;
   await db.delete(
     'polylines',
+    where: 'drive_id = ?',
+    whereArgs: [driveId],
+  );
+}
+
+Future<List<Follower>> loadFollowers(int driveId) async {
+  final db = await dbHelper().db;
+  List<Follower> followers = [];
+  List<Map<String, dynamic>> maps = await db.query(
+    'followers',
+    where: 'drive_id = ?',
+    whereArgs: [driveId],
+  );
+  dynamic jsonPos;
+  LatLng pos;
+  for (int i = 0; i < maps.length; i++) {
+    jsonPos = jsonDecode(maps[i]['position']);
+    pos = LatLng(jsonPos['lat'], jsonPos['long']);
+    followers.add(Follower(
+        id: maps[i]['id'],
+        driveId: driveId,
+        forename: maps[i]['forename'],
+        surname: maps[i]['surname'],
+        phoneNumber: maps[i]['phone_number'],
+        car: maps[i]['car'],
+        registration: maps[i]['registration'],
+        iconColour: maps[i]
+            ['icon_color'], //uiColours.keys.toList()[maps[i]['icon_color']],
+        position: pos,
+        marker: MarkerWidget(
+          type: 16,
+          description: '',
+          angle: 0,
+        )));
+  }
+  return followers;
+}
+
+Future<bool> saveFollowersLocal(
+    {required int driveId, required List<Follower> followers}) async {
+  final db = await dbHelper().db;
+  for (int i = 0; i < followers.length; i++) {
+    Map<String, dynamic> fMap = followers[i].toMap();
+
+    if (followers[i].id > -1) {
+      try {
+        await db.update('followers', fMap,
+            where: 'id = ?',
+            whereArgs: [followers[i].id],
+            conflictAlgorithm: ConflictAlgorithm.replace);
+      } catch (e) {
+        debugPrint("Database error storing followers: ${e.toString()}");
+        return false;
+      }
+    } else {
+      try {
+        fMap.remove('id');
+      } catch (e) {
+        debugPrint('Map.remove() error: ${e.toString()}');
+      }
+      await db.insert(
+        'polylines',
+        fMap,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+  }
+  return true;
+}
+
+Future<void> deleteFollowerById(int id) async {
+  final db = await dbHelper().db;
+  await db.delete(
+    'followers',
     where: 'id = ?',
+    whereArgs: [id],
+  );
+}
+
+Future<void> deleteFollowerByDriveId(int driveId) async {
+  final db = await dbHelper().db;
+  await db.delete(
+    'followers',
+    where: 'drive_id = ?',
     whereArgs: [driveId],
   );
 }

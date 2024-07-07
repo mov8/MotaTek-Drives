@@ -92,69 +92,71 @@ class RouteAtCenter {
       Offset center = mapState.project(mapController.camera.center).toOffset();
       center = (center * mapState.getZoomScale(mapState.zoom, mapState.zoom)) -
           mapState.pixelOrigin.toOffset();
-      Route currentPolyline = _routes[0];
-      for (int i = 0; i < _routes.length; i++) {
-        currentPolyline = _routes[i];
-        for (var j = 1; j < currentPolyline.offsets.length; j++) {
-          // We consider the points point1, point2 and tap points in a triangle
-          var point1 = currentPolyline.offsets[j - 1];
-          var point2 = currentPolyline.offsets[j];
-          // To determine if target is in between two points, we
-          // calculate the length from the tapped point to the line
-          // created by point1, point2. If this distance is shorter
-          // than the specified threshold, we have detected a tap
-          // between two points.
-          //
-          // We start by calculating the length of all the sides using pythagoras.
-          var a = _distanceBetween(point1, point2);
-          var b = _distanceBetween(point1, center);
-          var c = _distanceBetween(point2, center);
+      if (_routes.isNotEmpty) {
+        Route currentPolyline = _routes[0];
+        for (int i = 0; i < _routes.length; i++) {
+          currentPolyline = _routes[i];
+          for (var j = 1; j < currentPolyline.offsets.length; j++) {
+            // We consider the points point1, point2 and tap points in a triangle
+            var point1 = currentPolyline.offsets[j - 1];
+            var point2 = currentPolyline.offsets[j];
+            // To determine if target is in between two points, we
+            // calculate the length from the tapped point to the line
+            // created by point1, point2. If this distance is shorter
+            // than the specified threshold, we have detected a tap
+            // between two points.
+            //
+            // We start by calculating the length of all the sides using pythagoras.
+            var a = _distanceBetween(point1, point2);
+            var b = _distanceBetween(point1, center);
+            var c = _distanceBetween(point2, center);
 
-          // To find the height when we only know the lengths of the sides, we can use Heron's formula to get the Area.
-          var semiPerimeter = (a + b + c) / 2.0;
-          var triangleArea = sqrt(semiPerimeter *
-              (semiPerimeter - a) *
-              (semiPerimeter - b) *
-              (semiPerimeter - c));
+            // To find the height when we only know the lengths of the sides, we can use Heron's formula to get the Area.
+            var semiPerimeter = (a + b + c) / 2.0;
+            var triangleArea = sqrt(semiPerimeter *
+                (semiPerimeter - a) *
+                (semiPerimeter - b) *
+                (semiPerimeter - c));
 
-          // We can then finally calculate the length from the tapped point onto the line created by point1, point2.
-          // Area of triangles is half the area of a rectangle
-          // area = 1/2 base * height -> height = (2 * area) / base
+            // We can then finally calculate the length from the tapped point onto the line created by point1, point2.
+            // Area of triangles is half the area of a rectangle
+            // area = 1/2 base * height -> height = (2 * area) / base
 
-          var height = (2 * triangleArea) / a;
+            var height = (2 * triangleArea) / a;
 
-          // We're not there yet - We need to satisfy the edge case
-          // where the perpendicular line from the tapped point onto
-          // the line created by point1, point2 (called point D) is
-          // outside of the segment point1, point2. We need
-          // to check if the length from D to the original segment
-          // (point1, point2) is less than the threshold.
+            // We're not there yet - We need to satisfy the edge case
+            // where the perpendicular line from the tapped point onto
+            // the line created by point1, point2 (called point D) is
+            // outside of the segment point1, point2. We need
+            // to check if the length from D to the original segment
+            // (point1, point2) is less than the threshold.
 
-          var hypotenus = max(b, c);
-          var newTriangleBase =
-              sqrt((hypotenus * hypotenus) - (height * height));
-          var lengthDToOriginalSegment = newTriangleBase - a;
+            var hypotenus = max(b, c);
+            var newTriangleBase =
+                sqrt((hypotenus * hypotenus) - (height * height));
+            var lengthDToOriginalSegment = newTriangleBase - a;
 
-          if (height < pointerDistanceTolerance &&
-              lengthDToOriginalSegment < pointerDistanceTolerance) {
-            var minimum = min(height, lengthDToOriginalSegment);
-            if (minimum < maxValue) {
-              idx = i;
-              _routeIndex = i;
-              _pointIndex = j;
-              _pointOnRoute = currentPolyline.points[j];
-              maxValue = minimum;
+            if (height < pointerDistanceTolerance &&
+                lengthDToOriginalSegment < pointerDistanceTolerance) {
+              var minimum = min(height, lengthDToOriginalSegment);
+              if (minimum < maxValue) {
+                idx = i;
+                _routeIndex = i;
+                _pointIndex = j;
+                _pointOnRoute = currentPolyline.points[j];
+                maxValue = minimum;
+              }
             }
           }
         }
+
+        if (idx > -1) {
+          //    debugPrint(
+          //        'Polyline index: $idx  points length: ${currentPolyline.points.length} ${currentPolyline.offsets.length}');
+        }
       }
 
-      if (idx > -1) {
-        debugPrint(
-            'Polyline index: $idx  points length: ${currentPolyline.points.length} ${currentPolyline.offsets.length}');
-      }
-
-      debugPrint('Polyline index $idx');
+      // debugPrint('Polyline index $idx');
     }
     return idx;
   }
