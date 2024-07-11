@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:drives/screens/sign_up.dart';
 import 'package:drives/screens/setup.dart';
+import 'package:drives/screens/group.dart';
 
 class MainDrawer extends StatefulWidget {
   const MainDrawer({super.key});
@@ -64,20 +65,22 @@ class _MainDrawerState extends State<MainDrawer> {
               MaterialPageRoute(builder: (context) => const SignupForm()),
             );
           }),
-      const ListTile(
-        leading: Icon(
-          Icons.groups,
-          size: 30,
-        ),
-        title: Text('Organise Groups',
-            style: TextStyle(
-              color: Colors.blue,
-              fontSize: 20,
-            )),
-        //             onTap: () {
-        //
-        //             }
-      ),
+      ListTile(
+          leading: Icon(
+            Icons.groups,
+            size: 30,
+          ),
+          title: Text('Organise Groups',
+              style: TextStyle(
+                color: Colors.blue,
+                fontSize: 20,
+              )),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const GroupForm()),
+            );
+          }),
       const ListTile(
         leading: Icon(
           Icons.no_crash,

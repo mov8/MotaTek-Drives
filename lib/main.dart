@@ -6,6 +6,7 @@ import 'dart:math';
 // import 'dart:developer';
 import 'dart:io';
 import 'package:drives/follower_tile.dart';
+import 'package:drives/maneuver_tile.dart';
 import 'package:drives/screens/main_drawer.dart';
 import 'package:drives/utilities.dart';
 // import 'package:flutter/services.dart';
@@ -63,7 +64,7 @@ enum AppState { loading, home, download, createTrip, myTrips, shop, driveTrip }
 
 enum TripState { manual, automatic }
 
-enum TripActions { none, showFollowers }
+enum TripActions { none, showFollowers, showSteps }
 
 enum BottomNav {
   mainMenu,
@@ -368,6 +369,11 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
           backgroundColor: Colors.blue),
       const BottomNavigationBarItem(
           // icon: Icon(IconData(0xe52e, fontFamily: 'MaterialIcons')),
+          icon: Icon(Icons.alt_route),
+          label: 'Steps',
+          backgroundColor: Colors.blue),
+      const BottomNavigationBarItem(
+          // icon: Icon(IconData(0xe52e, fontFamily: 'MaterialIcons')),
           icon: Icon(Icons.directions_car),
           label: 'Followers',
           backgroundColor: Colors.blue),
@@ -385,6 +391,11 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       const BottomNavigationBarItem(
           icon: Icon(Icons.directions_off),
           label: 'Stop following',
+          backgroundColor: Colors.blue),
+      const BottomNavigationBarItem(
+          // icon: Icon(IconData(0xe52e, fontFamily: 'MaterialIcons')),
+          icon: Icon(Icons.alt_route),
+          label: 'Steps',
           backgroundColor: Colors.blue),
       const BottomNavigationBarItem(
           // icon: Icon(IconData(0xe52e, fontFamily: 'MaterialIcons')),
@@ -633,6 +644,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     //  if (latLng2 != const LatLng(0.00, 0.00)) {
     //    waypoint = 'waypoint;${latLng2.longitude},${latLng2.latitude}';
     //  }
+
+    //  return await getRoutePoints(points);
     return await getRoutePoints(waypoint);
   }
 
@@ -760,7 +773,6 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
         '${jsonResponse['routes'][0]['legs'][0]['steps'][0]['name']}, ${jsonResponse['routes'][0]['legs'][0]['steps'][jsonResponse['routes'][0]['legs'][0]['steps'].length - 1]['name']}';
     name =
         '${jsonResponse['routes'][0]['legs'][0]['steps'][jsonResponse['routes'][0]['legs'][0]['steps'].length - 1]['name']}';
-    //  if (!name.contains(',')) name = '$name, $name';
 
     /// ToDo: handling turn by turn:
     /// ...['steps'][n]['name'] => the current road name
@@ -775,42 +787,49 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     /// Maybe use flutter_tts to provide voice
     /// var parts = str.split(':');
     /// var prefix = parts[0]
-    ///
-    ///
 
     List<String> waypointList = waypoints.split(';');
 
     if (waypointList.length > 1 && waypointList[0] != waypointList[1]) {
       String lastRoad = name;
+
       for (int i = 0; i < jsonResponse['routes'].length; i++) {
         for (int j = 0; j < jsonResponse['routes'][i]['legs'].length; j++) {
           for (int k = 0;
               k < jsonResponse['routes'][i]['legs'][j]['steps'].length;
               k++) {
-            _maneuvers.add(Maneuver(
-              roadFrom: jsonResponse['routes'][i]['legs'][j]['steps'][k]
-                  ['name'],
-              roadTo: lastRoad,
-              bearingBefore: jsonResponse['routes'][i]['legs'][j]['steps'][k]
-                      ['maneuver']['bearing_before'] ??
-                  0,
-              bearingAfter: jsonResponse['routes'][i]['legs'][j]['steps'][k]
-                      ['maneuver']['bearing_after'] ??
-                  0,
-              exit: jsonResponse['routes'][i]['legs'][j]['steps'][k]['maneuver']
-                      ['exit'] ??
-                  0,
-              location: LatLng(
-                  jsonResponse['routes'][i]['legs'][j]['steps'][k]['maneuver']
-                      ['location'][1],
-                  jsonResponse['routes'][i]['legs'][j]['steps'][k]['maneuver']
-                      ['location'][0]),
-              modifier: jsonResponse['routes'][i]['legs'][j]['steps'][k]
-                      ['maneuver']['modifier'] ??
-                  'depart',
-              type: jsonResponse['routes'][i]['legs'][j]['steps'][k]['maneuver']
-                  ['type'],
-            ));
+            try {
+              _maneuvers.add(Maneuver(
+                roadFrom: jsonResponse['routes'][i]['legs'][j]['steps'][k]
+                    ['name'],
+                roadTo: lastRoad,
+                bearingBefore: jsonResponse['routes'][i]['legs'][j]['steps'][k]
+                        ['maneuver']['bearing_before'] ??
+                    0,
+                bearingAfter: jsonResponse['routes'][i]['legs'][j]['steps'][k]
+                        ['maneuver']['bearing_after'] ??
+                    0,
+                exit: jsonResponse['routes'][i]['legs'][j]['steps'][k]
+                        ['maneuver']['exit'] ??
+                    0,
+                location: LatLng(
+                    jsonResponse['routes'][i]['legs'][j]['steps'][k]['maneuver']
+                        ['location'][1],
+                    jsonResponse['routes'][i]['legs'][j]['steps'][k]['maneuver']
+                        ['location'][0]),
+                modifier: jsonResponse['routes'][i]['legs'][j]['steps'][k]
+                        ['maneuver']['modifier'] ??
+                    'depart',
+                type: jsonResponse['routes'][i]['legs'][j]['steps'][k]
+                    ['maneuver']['type'],
+                distance: (jsonResponse['routes'][i]['legs'][j]['steps'][k]
+                        ['distance'])
+                    .toDouble(),
+              ));
+            } catch (e) {
+              String err = e.toString();
+              debugPrint(err);
+            }
             if (k > 0) {
               _maneuvers[k - 1].roadTo = _maneuvers[k].roadFrom;
             }
@@ -831,6 +850,42 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     result["summary"] = summary;
     result["points"] = routePoints;
     return result;
+  }
+
+/*
+  waypointsFromPoints(10).then((waypoints) = {getRoutePoints(waypoints});
+*/
+
+  List<Maneuver> getManeuvers() {
+    List<Maneuver> maneuvers = [];
+
+    return maneuvers;
+  }
+
+  Future<String> waypointsFromPoints(int points) async {
+    List<LatLng> latLongs = [];
+    for (int i = 0; i < _routes.length; i++) {
+      latLongs = latLongs + _routes[i].points;
+    }
+    int count = latLongs.length;
+
+    if (count / points < 10) {
+      points = count ~/ 10;
+    }
+
+    int gap = (count - 2) ~/ points;
+
+    String waypoints = '${latLongs[0].longitude},${latLongs[0].latitude}';
+    for (int i = 0; i < points - 2; i++) {
+      int idx = (gap + 1) * (i + 1);
+      waypoints =
+          '$waypoints;${latLongs[idx].longitude},${latLongs[idx].latitude}';
+    }
+
+    waypoints =
+        '$waypoints;${latLongs[count - 1].longitude},${latLongs[count - 1].latitude}';
+
+    return waypoints;
   }
 
   @override
@@ -974,7 +1029,9 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
           ),
           _tripActions == TripActions.none
               ? _showExploreDetail()
-              : _showFollowers(), // Allows the trip to be planned
+              : _tripActions == TripActions.showFollowers
+                  ? _showFollowers()
+                  : _showManeuvers(), // Allows the trip to be planned
         ] else if (_appState == AppState.myTrips) ...[
           SizedBox(
             height: MediaQuery.of(context).size.height -
@@ -1059,6 +1116,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     //  bool roadHighlighted = false;
     int onTapOffset = 0;
     // int nbItemsIndex = 0;
+    if (_bottomNavMenu != BottomNav.createTripManual) highlightedIndex = -1;
+
     if (highlightedIndex > -1) {
       //   roadHighlighted = true;
       onTapOffset = _goodRoad.isGood
@@ -1075,8 +1134,12 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     }
 
     return BottomNavigationBar(
-      currentIndex: _bottomNavigationsBarIndex +
-          onTapOffset, //BottomNav.values.indexOf(_bottomNavMenu),
+      currentIndex: _bottomNavigationsBarIndex + onTapOffset <
+              _bottomNavigationsBarItems[
+                      BottomNav.values.indexOf(_bottomNavMenu)]
+                  .length
+          ? _bottomNavigationsBarIndex + onTapOffset
+          : 0, //BottomNav.values.indexOf(_bottomNavMenu),
       showUnselectedLabels: true,
       selectedItemColor: Colors.white,
       unselectedItemColor: const Color.fromARGB(255, 214, 211, 211),
@@ -1368,6 +1431,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                 _appState = AppState.home;
                 highlightedIndex = -1;
                 _bottomNavigationsBarIndex = 2;
+                _tripActions = TripActions.none;
                 break;
               case 1:
                 if (!_tracking) {
@@ -1393,8 +1457,14 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                   _bottomNavMenu = BottomNav.driveTrip;
                   _bottomNavigationsBarIndex = 1;
                 }
+                _tripActions = TripActions.none;
+                _showTarget = false;
                 break;
               case 2:
+                _tripActions = TripActions.showSteps;
+                _bottomNavigationsBarIndex = 2;
+                break;
+              case 3:
                 _tripActions = TripActions.showFollowers;
                 _following.clear();
                 _following.add(Follower(
@@ -1436,13 +1506,14 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                 _bottomNavMenu = BottomNav.showFollowing;
                 _bottomNavigationsBarIndex = 2;
                 break;
-              case 3:
+              case 4:
                 _appState = AppState.createTrip;
                 _bottomNavigationsBarIndex = 3;
                 _bottomNavMenu =
                     BottomNav.createTripManual; //recordTripControlEnd;
                 _tracking = false;
                 _showTarget = true;
+                _tripActions = TripActions.none;
                 break;
             }
             break;
@@ -1454,6 +1525,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                 _tracking = false;
                 _bottomNavMenu = BottomNav.mainMenu;
                 _appState = AppState.home;
+                _tripActions = TripActions.none;
                 highlightedIndex = -1;
                 break;
               case 1:
@@ -1461,13 +1533,20 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                 _alignDirectionOnUpdate = AlignOnUpdate.never;
                 _tracking = false;
                 _bottomNavMenu = BottomNav.driveTrip;
+                _tripActions = TripActions.none;
+                _showTarget = false;
                 break;
               case 2:
+                _tripActions = TripActions.showSteps;
+                _bottomNavigationsBarIndex = 2;
+                break;
+              case 3:
                 _bottomNavigationsBarIndex = 2;
                 _tripActions = TripActions.showFollowers;
                 _bottomNavMenu = BottomNav.showFollowing;
                 break;
-              case 3:
+              case 4:
+                _tripActions = TripActions.none;
                 _appState = AppState.createTrip;
                 _bottomNavigationsBarIndex = 3;
                 _bottomNavMenu =
@@ -1482,9 +1561,11 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                 _bottomNavigationsBarIndex = 1;
                 _tripState = TripState.manual;
                 _tracking = false;
+                _showTarget = false;
                 _bottomNavMenu = BottomNav.mainMenu;
                 _appState = AppState.home;
                 highlightedIndex = -1;
+                _tripActions = TripActions.none;
                 break;
               case 1:
                 _tripActions = TripActions.none;
@@ -1492,6 +1573,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                 _alignPositionOnUpdate = AlignOnUpdate.never;
                 _alignDirectionOnUpdate = AlignOnUpdate.never;
                 _tracking = false;
+                _showTarget = false;
                 _bottomNavMenu = BottomNav.driveTrip;
                 _bottomNavigationsBarIndex = 1;
 
@@ -1507,6 +1589,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                     BottomNav.createTripManual; //recordTripControlEnd;
                 _tracking = false;
                 _showTarget = true;
+                _tripActions = TripActions.none;
                 break;
             }
         }
@@ -1858,21 +1941,46 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                 ))));
   }
 
-/*
-AlertDialog buildColumnDialog(
-    {required BuildContext context,
-    required String title,
-    required SizedBox content,
-    required List<String> buttonTexts,
-    List callbacks = const []}) {
-  const textStyle = TextStyle(color: Colors.black);
-  return AlertDialog(
-      title: Text(title, style: textStyle),
-      elevation: 5,
-      content: content,
-      actions: actionButtons(context, callbacks, buttonTexts));
-}
- */
+  SizedBox _showManeuvers() {
+    return SizedBox(
+        height: listHeight,
+        child: ListView.builder(
+            itemCount: _maneuvers.length,
+            itemBuilder: (context, index) => Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
+                child: ManeuverTile(
+                    index: index,
+                    maneuver: _maneuvers[index],
+                    onLongPress: maneuverLongPress,
+                    distance: 0))));
+  }
+
+  void maneuverLongPress(int index) {
+    _showTarget = true;
+    _animatedMapController.animateTo(dest: _maneuvers[index].location);
+    return;
+  }
+
+  Future<int> getClosestManeuver(List<Maneuver> maneuvers) async {
+    double distance = 9999999;
+    double testDistance;
+    int closest = 0;
+    _currentPosition = await Geolocator.getCurrentPosition();
+    for (int i = 0; i < maneuvers.length; i++) {
+      testDistance = Geolocator.distanceBetween(
+          maneuvers[i].location.latitude,
+          maneuvers[i].location.longitude,
+          _currentPosition.latitude,
+          _currentPosition.longitude);
+      if (testDistance < distance) {
+        distance = testDistance;
+        closest = i;
+      }
+    }
+    return closest;
+  }
+
   Future<void> followerIconClick(int index) async {
     await messageFollowers(index);
     return;
@@ -1976,6 +2084,7 @@ AlertDialog buildColumnDialog(
   }
 
   void followerLongPress(int index) {
+    _showTarget = true;
     _animatedMapController.animateTo(dest: _following[index].point);
     return;
   }
@@ -2264,6 +2373,9 @@ You can plan trips either on your own or you can explore in a group''',
           strokeWidth: polyLines[i].strokeWidth));
     }
     _maneuvers = await loadManeuversLocal(driveId);
+
+    int closest = await getClosestManeuver(_maneuvers);
+    debugPrint('closest maneuver is: $closest');
 
     setState(() {
       _appState = AppState.driveTrip;
@@ -2868,6 +2980,7 @@ You can plan trips either on your own or you can explore in a group''',
 
   Future<int> _saveTrip() async {
     // Insert / Update the drive details
+
     if (tripItem.heading.isEmpty) {
       Utility().showConfirmDialog(context, "Can't save - more info please",
           "Please enter what you'd like to call this trip.");
@@ -2906,6 +3019,17 @@ You can plan trips either on your own or you can explore in a group''',
       if (_routes.isNotEmpty) {
         savePolylinesLocal(
             id: id, userId: userId, driveId: driveId, polylines: _routes);
+        if (_maneuvers.isEmpty) {
+          /// If the trip was generated through trackin there will be
+          /// no point by point data so have to generate it from
+          /// the API using sample points
+          try {
+            String points = await waypointsFromPoints(50);
+            await getRoutePoints(points);
+          } catch (e) {
+            debugPrint('error ${e.toString()}');
+          }
+        }
         saveManeuversLocal(id: -1, driveId: driveId, maneuvers: _maneuvers);
       }
       if (_totalDistance > 100) {}

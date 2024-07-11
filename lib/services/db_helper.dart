@@ -47,8 +47,8 @@ Future<Database> initDb() async {
             '''CREATE TABLE groups(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, description TEXT, 
             created DATETIME)'''); //, locationId INTEGER, vehicleId INTEGER)');
         await db.execute(
-            '''CREATE TABLE group_members(id INTEGER PRIMARY KEY AUTOINCREMENT, forename TEXT, surname TEXT, 
-            email TEXT, status Integer, joined DATETIME, note TEXT, uri TEXT)'''); //, locationId INTEGER, vehicleId INTEGER)');
+            '''CREATE TABLE group_members(id INTEGER PRIMARY KEY AUTOINCREMENT, group_ids STRING, forename TEXT, surname TEXT, 
+            email TEXT, phone TEXT, status Integer, joined DATETIME, note TEXT, uri TEXT)'''); //, locationId INTEGER, vehicleId INTEGER)');
         await db.execute(
             '''CREATE TABLE notifications(id INTEGER PRIMARY KEY AUTOINCREMENT, sentBy TEXT, message TEXT, 
             received DATETIME)'''); //, locationId INTEGER, vehicleId INTEGER)');
@@ -92,7 +92,7 @@ Future<Database> initDb() async {
         await db.execute(
             '''CREATE TABLE maneuvers(id INTEGER PRIMARY KEY AUTOINCREMENT, drive_id INTEGER, road_from TEXT,
           road_to TEXT, bearing_before INTEGER, bearing_after INTEGER, exit INTEGER, location TEXT, 
-          modifier TEXT, type TEXT)''');
+          modifier TEXT, type TEXT, distance REAL)''');
 
         await db.execute(
             '''CREATE TABLE polylines(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, drive_id INTEGER, 
@@ -115,8 +115,9 @@ Future<Database> initDb() async {
 }
 
 Future<int> recordCount(table) async {
+  int? count = 0;
   final db = await dbHelper().db;
-  final count =
+  count =
       Sqflite.firstIntValue(await db.rawQuery("SELECT COUNT (*) FROM $table"));
 
   return count!;
@@ -260,6 +261,148 @@ Future<int> saveUser(User user) async {
     debugPrint('Error witing user : ${e.toString()}');
     return -1;
   }
+}
+
+Future<List<Group>> getGroups() async {
+  final db = await dbHelper().db;
+  List<Group> groups = [];
+  try {
+    List<Map<String, dynamic>> maps = await db.query(
+      'groups',
+    );
+  } catch (e) {
+    debugPrint(e.toString());
+  }
+  /*
+  for (int i = 0; i < maps.length; i++) {
+    groups.add(Group(
+      id: maps[i]['id'],
+      name: maps[i]['name'],
+      description: maps[i]['description'],
+    ));
+  }
+  */
+  return groups;
+}
+
+Future<List<Group>> loadGroups() async {
+  final db = await dbHelper().db;
+  List<Group> groups = [];
+  try {
+    List<Map<String, dynamic>> maps = await db.query(
+      'groups',
+    );
+
+    for (int i = 0; i < maps.length; i++) {
+      groups.add(Group(
+          id: maps[i]['id'],
+          name: maps[i]['name'],
+          description: maps[i]['description']));
+    }
+  } catch (e) {
+    String err = e.toString();
+    debugPrint(err);
+  }
+  return groups;
+}
+
+Future<int> saveGroupLocal(Group group) async {
+  final db = await dbHelper().db;
+  int id = group.id;
+  Map<String, dynamic> grMap = group.toMap();
+  if (group.id < 0) {
+    try {
+      grMap.remove('id');
+    } catch (e) {
+      debugPrint('Map.remove() error: ${e.toString()}');
+    }
+
+    try {
+      id = await db.insert(
+        'groups',
+        grMap,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    } catch (err) {
+      String tError = err.toString();
+      debugPrint('Error saving groups: $tError');
+    }
+  } else {
+    await db.update('groups', grMap,
+        where: 'id = ?',
+        whereArgs: [group.id],
+        conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  return id;
+}
+
+Future<List<GroupMember>> loadGroupMembers() async {
+  final db = await dbHelper().db;
+  List<GroupMember> members = [];
+  try {
+    List<Map<String, dynamic>> maps = await db.query(
+      'group_members',
+    );
+
+    for (int i = 0; i < maps.length; i++) {
+      members.add(GroupMember(
+          stId: maps[i]['id'].toString(),
+          groupIds: maps[i]['group_ids'],
+          forename: maps[i]['forename'],
+          surname: maps[i]['surname'],
+          email: maps[i]['email'],
+          phone: maps[i]['phone'],
+          note: maps[i]['note'],
+          status: maps[i]['status']));
+    }
+  } catch (e) {
+    debugPrint(e.toString());
+  }
+
+  return members;
+}
+
+Future<int> saveGroupMemberLocal(GroupMember groupMember) async {
+  final db = await dbHelper().db;
+  Map<String, dynamic> grMap = groupMember.toMap();
+  int id = groupMember.id;
+  if (id == -1) {
+    try {
+      grMap.remove('id');
+    } catch (e) {
+      debugPrint('Map.remove() error: ${e.toString()}');
+    }
+
+    try {
+      id = await db.insert(
+        'group_members',
+        grMap,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    } catch (err) {
+      String tError = err.toString();
+      debugPrint('Error saving group memberss: $tError');
+    }
+  } else {
+    try {
+      await db.update('group_members', grMap,
+          where: 'id = ?',
+          whereArgs: [groupMember.id],
+          conflictAlgorithm: ConflictAlgorithm.replace);
+    } catch (e) {
+      String err = e.toString();
+      debugPrint(err);
+    }
+  }
+  return id;
+}
+
+Future<bool> saveGroupMembers(List<GroupMember> groupMembers) async {
+  for (int i = 0; i < groupMembers.length; i++) {
+    saveGroupMemberLocal(groupMembers[i]);
+  }
+  return true;
 }
 
 Future<Drive> getDrive(int driveId) async {
@@ -503,6 +646,7 @@ Future<List<Maneuver>> loadManeuversLocal(int driveId) async {
       location: pos,
       modifier: maps[i]['modifier'],
       type: maps[i]['type'],
+      distance: maps[i]['distance'],
     ));
   }
   return maneuvers;

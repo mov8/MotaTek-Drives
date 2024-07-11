@@ -195,6 +195,20 @@ class _myTripTileState extends State<MyTripTile> {
                                               // alignment: Alignment.topLeft,
                                               child: TextButton(
                                                 onPressed: () async => widget
+                                                    .onLoadTrip(widget.index),
+                                                child: const Row(children: [
+                                                  Icon(Icons.share),
+                                                  Text('Share trip')
+                                                ]),
+
+                                                // icon: const Icon(Icons.upload),
+                                              ),
+                                            ),
+                                            Expanded(
+                                              flex: 1,
+                                              // alignment: Alignment.topLeft,
+                                              child: TextButton(
+                                                onPressed: () async => widget
                                                     .onDeleteTrip(widget.index),
                                                 child: const Row(children: [
                                                   Icon(Icons.delete_forever),

@@ -1,11 +1,6 @@
-import 'dart:io';
-
-// import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:drives/models.dart';
 import 'package:drives/utilities.dart';
-import 'package:latlong2/latlong.dart';
-import 'package:geolocator/geolocator.dart';
 
 class FollowerTile extends StatefulWidget {
   final Follower follower;
@@ -34,7 +29,7 @@ class _followerTileState extends State<FollowerTile> {
         child: ListTile(
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.all(Radius.circular(10))),
-      contentPadding: const EdgeInsets.fromLTRB(5, 5, 5, 30),
+      contentPadding: const EdgeInsets.fromLTRB(5, 5, 5, 10),
       title: Text(
         '${widget.follower.forename} ${widget.follower.surname} (1 mins)',
         style: const TextStyle(overflow: TextOverflow.ellipsis),
@@ -63,17 +58,6 @@ class _followerTileState extends State<FollowerTile> {
         ),
       ),
       onLongPress: () => widget.onLongPress(widget.index), //() => {},
-      /*  trailing: RawMaterialButton(
-                onPressed: () => {},
-                elevation: 2.0,
-                fillColor: Colors.blueAccent,
-                shape: const RoundedRectangleBorder(),
-                child: Row(
-                  children: [
-                    const Icon(Icons.phone),
-                    Text('Call ${widget.follower.phoneNumber}')
-                  ],
-                ))*/
     ));
   }
 }

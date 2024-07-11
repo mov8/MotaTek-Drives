@@ -517,6 +517,82 @@ IconData markerIcon(int type) {
   return IconData(poiTypes.toList()[type]['iconMaterial'],
       fontFamily: 'MaterialIcons');
 }
+/*
+            '''CREATE TABLE groups(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, description TEXT, 
+            created DATETIME)'''); //, locationId INTEGER, vehicleId INTEGER)');
+        await db.execute(
+            '''CREATE TABLE group_members(id INTEGER PRIMARY KEY AUTOINCREMENT, forename TEXT, surname TEXT, 
+            email TEXT, status Integer, joined DATETIME, note TEXT, uri TEXT)''');
+*/
+
+class Group {
+  int id = -1;
+  String name = '';
+  String description = '';
+  DateTime created = DateTime.now();
+  bool edited = false;
+  Group(
+      {this.id = 0,
+      required this.name,
+      this.description = '',
+      this.edited = false});
+  set groupName(String value) => name = value;
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'name': name,
+      'description': description,
+      'created': created.toString(),
+    };
+  }
+}
+
+class GroupMember {
+  // int id = -1;
+  String stId = '-1';
+  String groupIds = '';
+  String forename = '';
+  String surname = '';
+  String email = '';
+  String phone = '';
+  String status = '';
+  DateTime joined = DateTime.now();
+  String note = '';
+  String uri = '';
+  String isEdited = 'false';
+  int index = 0;
+  GroupMember(
+      {required this.groupIds,
+      required this.forename,
+      required this.surname,
+      this.email = '',
+      this.phone = '',
+      this.status = '',
+      this.stId = '-1',
+      note = ''});
+// Getter for edited have to use this because ints are passed by value not by reference
+  bool get edited => isEdited == 'true';
+// Setter for edited
+  set edited(bool value) => isEdited = value ? 'true' : 'false';
+// Getter for id
+  int get id => int.parse(stId);
+// Setter for id
+  set id(int value) => stId = value.toString();
+  Map<String, dynamic> toMap() {
+    return {
+      'id': stId,
+      'group_ids': groupIds,
+      'forename': forename,
+      'surname': surname,
+      'email': email,
+      'phone': phone,
+      'status': status,
+      'joined': joined.toString(),
+      'note': note,
+      'uri': uri
+    };
+  }
+}
 
 class Photo {
   String url;
@@ -628,6 +704,7 @@ class Maneuver {
   LatLng location = const LatLng(0, 0);
   String modifier = '';
   String type = '';
+  double distance = 0.0;
   Maneuver({
     this.id = 0,
     this.driveId = 0,
@@ -639,6 +716,7 @@ class Maneuver {
     required this.location,
     required this.modifier,
     required this.type,
+    required this.distance,
   });
   Map<String, dynamic> toMap() {
     return {
@@ -652,6 +730,7 @@ class Maneuver {
       'location': '{"lat":${location.latitude},"long":${location.longitude}}',
       'modifier': modifier,
       'type': type,
+      'distance': distance,
     };
   }
 
