@@ -1,22 +1,22 @@
 import 'dart:convert';
 import 'package:drives/tiles/group_member_tile.dart';
 import 'package:drives/screens/group_member.dart';
+import 'package:drives/tiles/my_trip_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:drives/models.dart';
-import 'package:drives/drives_classes.dart';
 import 'package:drives/screens/dialogs.dart';
 import 'package:drives/services/db_helper.dart';
 
-class GroupForm extends StatefulWidget {
+class ShareForm extends StatefulWidget {
   // var setup;
-
-  const GroupForm({super.key, setup});
+  final MyTripItem tripItem;
+  const ShareForm({super.key, required this.tripItem});
 
   @override
-  State<GroupForm> createState() => _GroupFormState();
+  State<ShareForm> createState() => _shareFormState();
 }
 
-class _GroupFormState extends State<GroupForm> {
+class _shareFormState extends State<ShareForm> {
   int group = 0;
   bool choosing = true;
   late Future<bool> dataloaded;
@@ -27,37 +27,31 @@ class _GroupFormState extends State<GroupForm> {
   final List<List<BottomNavigationBarItem>> _bottomNavigationsBarItems = [
     [
       /// Level 0  mainMenu
+
       const BottomNavigationBarItem(
-          icon: Icon(Icons.arrow_back),
-          label: 'Back',
-          backgroundColor: Colors.blue),
-      const BottomNavigationBarItem(
-          icon: Icon(Icons.contacts),
-          label: 'Contacts',
+          icon: Icon(Icons.schedule),
+          label: 'When',
           backgroundColor: Colors.blue),
       const BottomNavigationBarItem(
           icon: Icon(Icons.group_add),
-          label: 'New Member',
+          label: 'Add member',
           backgroundColor: Colors.blue),
       const BottomNavigationBarItem(
           icon: Icon(Icons.save),
           label: 'Save Group',
           backgroundColor: Colors.blue),
       const BottomNavigationBarItem(
-          icon: Icon(Icons.delete),
-          label: 'Delete Group',
-          backgroundColor: Colors.blue),
+          icon: Icon(Icons.send), label: 'Send', backgroundColor: Colors.blue),
     ]
   ];
 
   String groupName = 'Driving Group';
   bool edited = false;
   int groupIndex = 0;
-  int _chosen = 0;
   String testString = '';
 
   List<GroupMember> filteredGroupMembers = [];
-  List<String> groupNames = ['New group', 'Un-grouped'];
+  List<String> groupNames = ['All members'];
 
   @override
   void initState() {
@@ -92,7 +86,7 @@ class _GroupFormState extends State<GroupForm> {
 
         /// Removes Shadow
         toolbarHeight: 40,
-        title: const Text('MotaTek groups',
+        title: const Text('MotaTek share a trip',
             style: TextStyle(
               color: Colors.white,
               fontSize: 18,
@@ -102,10 +96,7 @@ class _GroupFormState extends State<GroupForm> {
           preferredSize: const Size.fromHeight(60),
           child: Padding(
               padding: const EdgeInsets.fromLTRB(5, 10, 5, 10),
-              child: Text(
-                  groups.isNotEmpty
-                      ? '$groupName${groupIndex >= 0 && groups[groupIndex].edited ? '*' : ''}'
-                      : 'Create groups',
+              child: Text(widget.tripItem.heading,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 38,
@@ -166,110 +157,134 @@ class _GroupFormState extends State<GroupForm> {
     );
   }
 
-  Widget portraitView() {
+  Column portraitView() {
     // setup =  Settings().setup;
 
-    return KeyboardVisibilityListener(
-      listener: _listener,
-      child: Column(children: [
-        if (choosing) ...[
-          Padding(
-              padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-              child: DropdownButtonFormField<String>(
-                style: const TextStyle(fontSize: 18),
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  labelText: 'Group name',
-                ),
-                value: groupNames[_chosen],
-                items: groupNames
-                    .map((item) => DropdownMenuItem<String>(
-                          value: item,
-                          child: Text(item,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleLarge!), // bodyLarge!),
-                        ))
-                    .toList(),
-                onChanged: (item) => {
-                  setState(() {
-                    filteredGroupMembers.clear();
-                    groupName = item.toString();
-                    group = groupNames.indexOf(item.toString());
-                    if (group == 0) {
-                      var id = -1;
-                      for (int i = 0; i < groups.length; i++) {
-                        if (groups[i].id <= id) --id;
-                      }
-                      groups.add(Group(id: id, name: '', edited: true));
-                      groupIndex = groups.length - 1;
-                      edited = true;
-                      choosing = false;
-                    } else {
-                      groupIndex = group - 2;
-                      if (groupIndex >= 0) {
-                        edited = groups[groupIndex].edited;
-                      }
-                      filterGroup();
-                    }
-                  })
-                },
-              )),
-        ] else ...[
-          Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
-              child: TextFormField(
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  hintText: 'Enter group name',
-                  labelText: 'Group name',
-                ),
-                textCapitalization: TextCapitalization.words,
-                textAlign: TextAlign.left,
-                initialValue: '',
-                style: Theme.of(context).textTheme.bodyLarge,
-                onChanged: (text) => groups[groups.length - 1].groupName = text,
-              ))
-        ],
-        Expanded(
-            child: SizedBox(
-                height: (MediaQuery.of(context).size.height -
-                    AppBar().preferredSize.height -
-                    kBottomNavigationBarHeight -
-                    20 * 0.93), // 200,
-                child: ListView.builder(
-                    itemCount: filteredGroupMembers.length,
-                    itemBuilder: (context, index) => Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10.0, vertical: 5.0),
-                        child: GroupMemberTile(
-                          groupMember: filteredGroupMembers[index],
-                          index: index,
-                          onDelete: onDelete,
-                          onEdit: onEdit,
-                          // ToDo: calculate how far away
-                        )))))
-      ]),
-    );
-  }
-
-  void _listener(bool value) {
-    if (value) {
-      debugPrint('Listener called true');
-    } else {
-      debugPrint('Listener called false');
-      if (groups[groups.length - 1].name.isNotEmpty) {
-        if (groupNames.length - groups.length < 2) {
-          groupNames.add(groups[groups.length - 1].name);
-        } else {
-          groupNames[groupNames.length - 1] = groups[groups.length - 1].name;
-        }
-        _chosen = groupNames.length - 1;
-        groupName = groups[groups.length - 1].name;
-      }
-      setState(() => choosing = true);
-    }
-    return;
+    return Column(children: [
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
+        child: MyTripTile(
+          index: 0,
+          myTripItem: widget.tripItem,
+          onDeleteTrip: deleteTrip,
+          onLoadTrip: loadTrip,
+          onShareTrip: shareTrip,
+        ),
+      ),
+      Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
+          child: DropdownButtonFormField<String>(
+            style: const TextStyle(fontSize: 18),
+            decoration: const InputDecoration(
+              border: OutlineInputBorder(),
+              labelText: 'Filter by group',
+            ),
+            value: groupNames[0],
+            items: groupNames
+                .map((item) => DropdownMenuItem<String>(
+                      value: item,
+                      child: Text(item,
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleLarge!), // bodyLarge!),
+                    ))
+                .toList(),
+            onChanged: (item) => {
+              setState(() {
+                filteredGroupMembers.clear();
+                groupName = item.toString();
+                group = groupNames.indexOf(item.toString());
+                groupIndex = group - 1;
+                filterGroup();
+              })
+            },
+          )),
+      Expanded(
+          child: SizedBox(
+              height: (MediaQuery.of(context).size.height -
+                      AppBar().preferredSize.height -
+                      kBottomNavigationBarHeight -
+                      20) *
+                  0.3, // 200,
+              child: ListView.builder(
+                  itemCount: filteredGroupMembers.length,
+                  itemBuilder: (context, index) => Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10.0, vertical: 5.0),
+                      child: Card(
+                          elevation: 5,
+                          child: CheckboxListTile(
+                            title: Row(children: [
+                              Expanded(
+                                flex: 1,
+                                child: IconButton(
+                                    onPressed: () => onEdit(index),
+                                    icon: const Icon(
+                                      Icons.edit,
+                                      size: 30,
+                                    )),
+                              ),
+                              Expanded(
+                                flex: 4,
+                                child: Column(children: [
+                                  Row(children: [
+                                    Text(
+                                      '${filteredGroupMembers[index].forename} ${filteredGroupMembers[index].surname}',
+                                      style: const TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold),
+                                    )
+                                  ]),
+                                  Row(children: [
+                                    Text(
+                                      'email: ${filteredGroupMembers[index].email}',
+                                      style: const TextStyle(fontSize: 14),
+                                    )
+                                  ]),
+                                  Row(children: [
+                                    Text(
+                                      'phone: ${filteredGroupMembers[index].phone}',
+                                      style: const TextStyle(fontSize: 14),
+                                    )
+                                  ]),
+                                ]),
+                              )
+                            ]),
+                            onChanged: (value) {
+                              setState(() {
+                                filteredGroupMembers[index].selected = value!;
+                                groupMembers[filteredGroupMembers[index].index]
+                                    .selected = value;
+                              });
+                            },
+                            value: filteredGroupMembers[index].selected,
+                          )))))),
+      const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 11),
+          child: Row(children: [
+            Text(
+              'Enter your message:',
+              textAlign: TextAlign.left,
+            )
+          ])),
+      Padding(
+          padding: EdgeInsets.symmetric(horizontal: 10),
+          child: TextFormField(
+            autofocus: true,
+            autocorrect: false,
+            keyboardType: TextInputType.multiline,
+            minLines: 5,
+            maxLines: 20,
+            decoration: const InputDecoration(
+              filled: true,
+              fillColor: Color(0xFFF2F2F2),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.all(Radius.circular(4)),
+                borderSide: BorderSide(width: 1),
+              ),
+            ),
+          )),
+    ]);
   }
 
   BottomNavigationBar _handleBottomNavigationBar() {
@@ -392,32 +407,36 @@ class _GroupFormState extends State<GroupForm> {
 
   filterGroup() {
     filteredGroupMembers.clear();
-    bool isEdited = groupIndex >= 0 ? groups[groupIndex].edited : false;
+
     for (int i = 0; i < groupMembers.length; i++) {
-      if (groupMembers[i].groupIds.isEmpty) {
-        if (group == 1) {
-          isEdited = groupMembers[i].edited ? true : isEdited;
-          groupMembers[i].index = i;
-          filteredGroupMembers.add(groupMembers[i]);
-        }
-      } else if (group != 1) {
+      if (group == 0 || groupMembers[i].groupIds.isEmpty) {
+        groupMembers[i].index = i;
+        filteredGroupMembers.add(groupMembers[i]);
+      } else {
         var groupIds = jsonDecode(groupMembers[i].groupIds);
         for (int j = 0; j < groupIds.length; j++) {
           if (groupIds[j]['groupId'] == groups[groupIndex].id) {
-            isEdited = groupMembers[i].edited ? true : isEdited;
             groupMembers[i].index = i;
             filteredGroupMembers.add(groupMembers[i]);
           }
         }
       }
     }
-    setState(() {
-      if (groupIndex >= 0) {
-        groups[groupIndex].edited = isEdited;
-      }
-    });
+    setState(() {});
     return;
   }
+}
+
+Future<void> deleteTrip(int index) async {
+  return;
+}
+
+Future<void> loadTrip(int index) async {
+  return;
+}
+
+Future<void> shareTrip(int index) async {
+  return;
 }
 
 int test() {

@@ -472,7 +472,7 @@ class MarkerWidget extends StatelessWidget {
         break;
       case 16:
         buttonFillColor = Colors.transparent;
-        iconColor = uiColours.keys.toList()[colourIdx];
+        iconColor = uiColours.keys.toList()[colourIdx < 0 ? 0 : colourIdx];
         iconWidth = 22;
         break;
     }
@@ -560,6 +560,7 @@ class GroupMember {
   String note = '';
   String uri = '';
   String isEdited = 'false';
+  bool selected = false;
   int index = 0;
   GroupMember(
       {required this.groupIds,
@@ -913,6 +914,7 @@ class MyTripItem {
   int distance = 10;
   int closest = 12;
   int highlights = 0;
+  bool showMethods = true;
 
   MyTripItem({
     this.id = 0,

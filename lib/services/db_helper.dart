@@ -593,24 +593,25 @@ Future<bool> saveManeuversLocal({
   required List<Maneuver> maneuvers,
 }) async {
   final db = await dbHelper().db;
+  Map<String, dynamic> manMap = {};
+  await deleteManeuversByDriveId(driveId);
   for (int i = 0; i < maneuvers.length; i++) {
-    maneuvers[i].driveId = driveId;
-    Map<String, dynamic> manMap = maneuvers[i].toMap();
     try {
+      maneuvers[i].driveId = driveId;
+      manMap = maneuvers[i].toMap();
       manMap.remove('id');
-    } catch (e) {
-      debugPrint('Map.remove() error: ${e.toString()}');
-    }
-    try {
+
       await db.insert(
         'maneuvers',
         manMap,
-        conflictAlgorithm: ConflictAlgorithm.replace,
+        conflictAlgorithm: ConflictAlgorithm.ignore, //  replace,
       );
     } catch (err) {
       String tError = err.toString();
       debugPrint('Error saving maneuvers: $tError');
     }
+    debugPrint(
+        'i: $i  => ${maneuvers[maneuvers.length - 1].roadFrom}  ${maneuvers[maneuvers.length - 1].roadTo}');
   }
   return true;
 }
@@ -630,24 +631,26 @@ Future<List<Maneuver>> loadManeuversLocal(int driveId) async {
     try {
       jsonPos = jsonDecode(maps[i]['location']);
       pos = LatLng(jsonPos['lat'], jsonPos['long']);
+
+      maneuvers.add(Maneuver(
+        id: maps[i]['id'],
+        driveId: driveId,
+        roadFrom: maps[i]['road_from'],
+        roadTo: maps[i]['road_to'],
+        bearingBefore: maps[i]['bearing_before'],
+        bearingAfter: maps[i]['bearing_after'],
+        exit: maps[i]['exit'],
+        location: pos,
+        modifier: maps[i]['modifier'],
+        type: maps[i]['type'],
+        distance: maps[i]['distance'],
+      ));
+      debugPrint(
+          'i: $i  => ${maneuvers[maneuvers.length - 1].roadFrom}  ${maneuvers[maneuvers.length - 1].roadTo}');
     } catch (e) {
       String err = e.toString();
       debugPrint(err);
     }
-
-    maneuvers.add(Maneuver(
-      id: maps[i]['id'],
-      driveId: driveId,
-      roadFrom: maps[i]['road_from'],
-      roadTo: maps[i]['road_to'],
-      bearingBefore: maps[i]['bearing_before'],
-      bearingAfter: maps[i]['bearing_after'],
-      exit: maps[i]['exit'],
-      location: pos,
-      modifier: maps[i]['modifier'],
-      type: maps[i]['type'],
-      distance: maps[i]['distance'],
-    ));
   }
   return maneuvers;
 }

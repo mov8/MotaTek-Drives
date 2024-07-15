@@ -10,6 +10,7 @@ import 'dart:io';
 /// In this case I wanted the widget to edit the data independantly
 /// of the external data and update the external data when the save method is called
 /// accessing the save method is achieved through the controller
+/*
 
 class PointOfInterestController {
   _PointOfInterestTileState? _pointOfInterestTileState;
@@ -39,9 +40,9 @@ class PointOfInterestController {
     _pointOfInterestTileState?.expand(state, canEdit);
   }
 }
-
+*/
 class PointOfInterestTile extends StatefulWidget {
-  final PointOfInterestController? pointOfInterestController;
+//  final PointOfInterestController? pointOfInterestController;
   final PointOfInterest pointOfInterest;
   final int index;
   final Function onIconTap;
@@ -53,7 +54,7 @@ class PointOfInterestTile extends StatefulWidget {
   const PointOfInterestTile({
     //required this.key,
     super.key,
-    required this.pointOfInterestController,
+//    required this.pointOfInterestController,
     required this.index,
     required this.pointOfInterest,
     required this.onIconTap,
@@ -66,10 +67,10 @@ class PointOfInterestTile extends StatefulWidget {
 }
 
 class _PointOfInterestTileState extends State<PointOfInterestTile> {
-  late String name;
-  late String description;
-  late int type;
-  late String images;
+  // late String name;
+  //  late String description;
+  //   late int type;
+  /// late String images;
   late int index;
   bool expanded = false;
   bool canEdit = true;
@@ -78,16 +79,16 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
   @override
   void initState() {
     super.initState();
-    widget.pointOfInterestController?._addState(this);
+    //   widget.pointOfInterestController?._addState(this);
 
     /// add to controller if instantiated
     expanded = widget.expanded;
     canEdit = widget.canEdit;
     index = widget.index;
-    name = widget.pointOfInterest.name;
-    description = widget.pointOfInterest.description;
-    type = widget.pointOfInterest.type;
-    images = widget.pointOfInterest.images;
+    //  name = widget.pointOfInterest.name;
+    //  description = widget.pointOfInterest.description;
+    //  type = widget.pointOfInterest.type;
+    //  images = widget.pointOfInterest.images;
     // images =
     //     '[{"url":"/data/user/0/com.example.drives/app_flutter/point_of_interest_0_1.jpg","caption":"image 1"},{"url":"/data/user/0/com.example.drives/app_flutter/point_of_interest_0_1.jpg","caption":"image 1"}]';
 
@@ -107,7 +108,7 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
 
         shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.all(Radius.circular(5))),
-        title: name == ''
+        title: widget.pointOfInterest.name == ''
             ? const Text(
                 'Add a point of interest',
                 style: TextStyle(
@@ -116,7 +117,7 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                   fontWeight: FontWeight.bold,
                 ),
               )
-            : Text(name,
+            : Text(widget.pointOfInterest.name,
                 style: const TextStyle(
                     color: Colors.black)), //getTitles(index)[0]),
         collapsedBackgroundColor: widget.index.isOdd
@@ -131,9 +132,17 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
         },
         leading: IconButton(
           iconSize: 25,
-          icon: Icon(markerIcon(type)),
+          icon: Icon(markerIcon(widget.pointOfInterest.type)),
           onPressed: widget.onIconTap(widget.index),
         ),
+
+        /*
+        trailing: IconButton(
+          iconSize: 25,
+          icon: const Icon(Icons.delete),
+          onPressed: widget.onIconTap(widget.index),
+        ),
+        */
         children: [
           SizedBox(
               // height: 200,
@@ -149,7 +158,7 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                                   border: OutlineInputBorder(),
                                   labelText: 'Type',
                                 ),
-                                value: type.toString(),
+                                value: widget.pointOfInterest.type.toString(),
                                 items: poiTypes
                                     .map((item) => DropdownMenuItem<String>(
                                           value: item['id'].toString(),
@@ -164,11 +173,25 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                                           ]),
                                         ))
                                     .toList(),
-                                onChanged: (item) => type =
-                                    item == null ? -1 : int.parse(item))),
-                        const Expanded(
+                                onChanged: (item) =>
+                                    widget.pointOfInterest.type =
+                                        item == null ? -1 : int.parse(item))),
+                        Expanded(
                           flex: 8,
-                          child: SizedBox(),
+                          child: SizedBox(
+                              child: Align(
+                                  alignment: Alignment.bottomCenter,
+                                  child: ActionChip(
+                                    label: const Text(
+                                      'Image',
+                                      style: TextStyle(
+                                          fontSize: 18, color: Colors.white),
+                                    ),
+                                    avatar: const Icon(Icons.photo_album,
+                                        size: 20, color: Colors.white),
+                                    onPressed: () => loadImage(index),
+                                    backgroundColor: Colors.blueAccent,
+                                  ))),
                         ),
                       ] else ...[
                         Expanded(
@@ -177,12 +200,16 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                               padding: const EdgeInsets.fromLTRB(10, 5, 5, 20),
                               child: Row(children: [
                                 Icon(
-                                  IconData(poiTypes[type]['iconMaterial'],
+                                  IconData(
+                                      poiTypes[widget.pointOfInterest.type]
+                                          ['iconMaterial'],
                                       fontFamily: 'MaterialIcons'),
-                                  color:
-                                      Color(poiTypes[type]['colourMaterial']),
+                                  color: Color(
+                                      poiTypes[widget.pointOfInterest.type]
+                                          ['colourMaterial']),
                                 ),
-                                Text('    ${poiTypes[type]['name']}')
+                                Text(
+                                    '    ${poiTypes[widget.pointOfInterest.type]['name']}')
                               ])),
                         ),
                       ],
@@ -195,7 +222,7 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                                     const EdgeInsets.fromLTRB(0, 10, 10, 10),
                                 child: TextFormField(
                                     readOnly: !canEdit,
-                                    initialValue: name,
+                                    initialValue: widget.pointOfInterest.name,
                                     textAlign: TextAlign.start,
                                     keyboardType: TextInputType.streetAddress,
                                     textCapitalization:
@@ -210,7 +237,8 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                                         Theme.of(context).textTheme.bodyLarge,
                                     autovalidateMode:
                                         AutovalidateMode.onUserInteraction,
-                                    onChanged: (text) => name = text)))
+                                    onChanged: (text) =>
+                                        widget.pointOfInterest.name = text)))
                       ],
                     ),
                     Row(
@@ -222,7 +250,8 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                                   readOnly: !canEdit,
                                   maxLines: null,
                                   //     expands: true,
-                                  initialValue: description,
+                                  initialValue:
+                                      widget.pointOfInterest.description,
                                   textAlign: TextAlign.start,
                                   keyboardType: TextInputType.streetAddress,
                                   textCapitalization:
@@ -235,13 +264,13 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                                   style: Theme.of(context).textTheme.bodyLarge,
                                   autovalidateMode:
                                       AutovalidateMode.onUserInteraction,
-                                  onChanged: (text) =>
-                                      description = text //body = text
+                                  onChanged: (text) => widget.pointOfInterest
+                                      .description = text //body = text
                                   )),
                         ),
                       ],
                     ),
-                    if (images.isNotEmpty)
+                    if (widget.pointOfInterest.images.isNotEmpty)
                       Row(children: <Widget>[
                         Expanded(
                             flex: 8,
@@ -251,14 +280,19 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                                   scrollDirection: Axis.horizontal,
                                   children: [
                                     for (int i = 0;
-                                        i < photosFromJson(images).length;
+                                        i <
+                                            photosFromJson(widget
+                                                    .pointOfInterest.images)
+                                                .length;
                                         i++)
                                       Row(
                                         children: [
                                           SizedBox(
                                               width: 160,
                                               child: Image.file(File(
-                                                  photosFromJson(images)[i]
+                                                  photosFromJson(widget
+                                                          .pointOfInterest
+                                                          .images)[i]
                                                       .url))),
                                           const SizedBox(
                                             width: 30,
@@ -288,18 +322,18 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
 
               /// Don't know what type of image so have to get file extension from picker file
               int num = 1;
-              if (images.isNotEmpty) {
+              if (widget.pointOfInterest.images.isNotEmpty) {
                 /// count number of images
-                num = '{'.allMatches(images).length + 1;
+                num = '{'.allMatches(widget.pointOfInterest.images).length + 1;
               }
               debugPrint('Image count: $num');
               String imagePath =
                   '$directory/point_of_interest_${id}_$num.${pickedFile.path.split('.').last}';
               File(pickedFile.path).copy(imagePath);
               setState(() {
-                images =
-                    '[${images.isNotEmpty ? '${images.substring(1, images.length - 1)},' : ''}{"url":"$imagePath","caption":"image $num"}]';
-                debugPrint('Images: $images');
+                widget.pointOfInterest.images =
+                    '[${widget.pointOfInterest.images.isNotEmpty ? '${widget.pointOfInterest.images.substring(1, widget.pointOfInterest.images.length - 1)},' : ''}{"url":"$imagePath","caption":"image $num"}]';
+                debugPrint('Images: $widget.pointOfInterest.images');
               });
             }
           } catch (e) {
@@ -317,12 +351,13 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
   save(int id) {
     if (widget.index == id) {
       expanded = false;
-      debugPrint('Updating the pointofinterest: $name [$type]');
+      debugPrint(
+          'Updating the pointofinterest: ${widget.pointOfInterest.name} [${widget.pointOfInterest.type}]');
 
-      widget.pointOfInterest.name = name;
-      widget.pointOfInterest.description = description;
-      widget.pointOfInterest.type = type;
-      widget.pointOfInterest.images = images;
+      widget.pointOfInterest.name = widget.pointOfInterest.name;
+      widget.pointOfInterest.description = widget.pointOfInterest.description;
+      widget.pointOfInterest.type = widget.pointOfInterest.type;
+      widget.pointOfInterest.images = widget.pointOfInterest.images;
       //   widget.pointOfInterest.iconData = markerIcon(type);
     }
   }

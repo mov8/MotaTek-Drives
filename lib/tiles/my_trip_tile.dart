@@ -9,6 +9,7 @@ class MyTripTile extends StatefulWidget {
   final MyTripItem myTripItem;
   // final AsyncCallback onLoadTrip;
   final Future<void> Function(int) onLoadTrip;
+  final Future<void> Function(int) onShareTrip;
   final Future<void> Function(int) onDeleteTrip;
   final int index;
   const MyTripTile({
@@ -16,6 +17,7 @@ class MyTripTile extends StatefulWidget {
     required this.index,
     required this.myTripItem,
     required this.onLoadTrip,
+    required this.onShareTrip,
     required this.onDeleteTrip,
   });
 
@@ -171,6 +173,7 @@ class _myTripTileState extends State<MyTripTile> {
                                                 textAlign: TextAlign.left),
                                           ),
                                         )),
+                                        if(widget.myTripItem.showMethods) ...[
                                         SizedBox(
                                             child: Padding(
                                           padding: const EdgeInsets.fromLTRB(
@@ -195,7 +198,7 @@ class _myTripTileState extends State<MyTripTile> {
                                               // alignment: Alignment.topLeft,
                                               child: TextButton(
                                                 onPressed: () async => widget
-                                                    .onLoadTrip(widget.index),
+                                                    .onShareTrip(widget.index),
                                                 child: const Row(children: [
                                                   Icon(Icons.share),
                                                   Text('Share trip')
@@ -220,7 +223,7 @@ class _myTripTileState extends State<MyTripTile> {
                                             )
                                           ]),
                                         )),
-                                      ]))))
+                                      ]]))))
                     ]) /*)*/)));
   }
 

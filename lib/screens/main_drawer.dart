@@ -66,11 +66,11 @@ class _MainDrawerState extends State<MainDrawer> {
             );
           }),
       ListTile(
-          leading: Icon(
+          leading: const Icon(
             Icons.groups,
             size: 30,
           ),
-          title: Text('Organise Groups',
+          title: const Text('Groups',
               style: TextStyle(
                 color: Colors.blue,
                 fontSize: 20,
@@ -86,7 +86,7 @@ class _MainDrawerState extends State<MainDrawer> {
           Icons.no_crash,
           size: 30,
         ),
-        title: Text('Organise Group Trip',
+        title: Text('Group Trips',
             style: TextStyle(
               color: Colors.blue,
               fontSize: 20,
@@ -100,7 +100,7 @@ class _MainDrawerState extends State<MainDrawer> {
           Icons.share,
           size: 30,
         ),
-        title: Text('Organise Followers',
+        title: Text('Followers',
             style: TextStyle(
               color: Colors.blue,
               fontSize: 20,
