@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:drives/models.dart';
 import 'package:drives/services/db_helper.dart';
+import 'package:drives/screens/dialogs.dart';
 import 'dart:convert';
 // import 'package:drives/services/web_helper.dart';
 
@@ -17,6 +18,26 @@ class GroupMemberForm extends StatefulWidget {
 }
 
 class _groupMemberFormState extends State<GroupMemberForm> {
+  late FocusNode fn1;
+  bool editing = false;
+  TextInputAction action = TextInputAction.done;
+  int currentPageIndex = 0;
+  @override
+  void initState() {
+    super.initState();
+    fn1 = FocusNode();
+    editing = widget.groupMember!.forename.isNotEmpty;
+    action = editing ? TextInputAction.done : TextInputAction.next;
+  }
+
+  @override
+  void dispose() {
+    // Clean up the focus node when the Form is disposed.
+    fn1.dispose();
+
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -52,25 +73,54 @@ class _groupMemberFormState extends State<GroupMemberForm> {
         /// Shrink height a bit
         leading: BackButton(
           onPressed: () {
-            try {
-              insertSetup(Setup());
-              Navigator.pop(context);
-            } catch (e) {
-              debugPrint('Setup error: ${e.toString()}');
-            }
+            Navigator.pop(context);
           },
         ),
       ),
       body: portraitView(),
+      bottomNavigationBar: NavigationBar(
+        onDestinationSelected: (int index) {
+          setState(() {
+            currentPageIndex = index;
+          });
+        },
+        indicatorColor: Colors.amber,
+        selectedIndex: currentPageIndex,
+        destinations: const <Widget>[
+          NavigationDestination(
+            selectedIcon: Icon(Icons.home),
+            icon: Icon(Icons.home_outlined),
+            label: 'Home',
+          ),
+          NavigationDestination(
+            icon: Badge(child: Icon(Icons.notifications_sharp)),
+            label: 'Notifications',
+          ),
+          NavigationDestination(
+            icon: Badge(
+              label: Text('2'),
+              child: Icon(Icons.messenger_sharp),
+            ),
+            label: 'Messages',
+          ),
+        ],
+      ),
     );
   }
 
   Column portraitView() {
     // setup =  Settings().setup;
+
     return Column(children: <Widget>[
       Padding(
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
           child: TextFormField(
+            onFieldSubmitted: (val) => setState(() {
+              val = val.trim();
+              widget.groupMember?.forename = val;
+            }),
+            autofocus: !editing,
+            textInputAction: action,
             decoration: const InputDecoration(
               border: OutlineInputBorder(),
               hintText: 'Enter your forename',
@@ -81,14 +131,16 @@ class _groupMemberFormState extends State<GroupMemberForm> {
             textAlign: TextAlign.left,
             initialValue: widget.groupMember?.forename,
             style: Theme.of(context).textTheme.bodyLarge,
-            onChanged: (text) {
-              widget.groupMember?.edited = true;
-              setState(() => widget.groupMember?.forename = text);
-            },
+            onChanged: (text) => widget.groupMember?.edited = true,
           )),
       Padding(
         padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
         child: TextFormField(
+          onFieldSubmitted: (val) => setState(() {
+            val = val.trim();
+            widget.groupMember?.surname = val;
+          }),
+          textInputAction: action,
           decoration: const InputDecoration(
             border: OutlineInputBorder(),
             hintText: 'Enter surname',
@@ -99,15 +151,17 @@ class _groupMemberFormState extends State<GroupMemberForm> {
           textCapitalization: TextCapitalization.words,
           initialValue: widget.groupMember?.surname,
           style: Theme.of(context).textTheme.bodyLarge,
-          onChanged: (text) {
-            widget.groupMember?.edited = true;
-            setState(() => widget.groupMember?.surname = text);
-          },
+          onChanged: (text) => widget.groupMember?.edited = true,
         ),
       ),
       Padding(
           padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
           child: TextFormField(
+            textInputAction: action,
+            onFieldSubmitted: (val) => setState(() {
+              val = val.trim();
+              widget.groupMember?.email = val;
+            }),
             keyboardType: TextInputType.emailAddress,
             decoration: const InputDecoration(
               border: OutlineInputBorder(),
@@ -117,14 +171,16 @@ class _groupMemberFormState extends State<GroupMemberForm> {
             textAlign: TextAlign.left,
             initialValue: widget.groupMember?.email,
             style: Theme.of(context).textTheme.bodyLarge,
-            onChanged: (text) {
-              widget.groupMember?.edited = true;
-              setState(() => widget.groupMember?.email = text);
-            },
+            onChanged: (text) => widget.groupMember?.edited = true,
           )),
       Padding(
           padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
           child: TextFormField(
+            onFieldSubmitted: (val) => setState(() {
+              val = val.trim();
+              widget.groupMember?.phone = val;
+            }),
+            textInputAction: TextInputAction.done,
             decoration: const InputDecoration(
               border: OutlineInputBorder(),
               hintText: 'Enter mobile phone number',
@@ -134,10 +190,7 @@ class _groupMemberFormState extends State<GroupMemberForm> {
             keyboardType: TextInputType.phone,
             initialValue: widget.groupMember?.phone,
             style: Theme.of(context).textTheme.bodyLarge,
-            onChanged: (text) {
-              widget.groupMember?.edited = true;
-              setState(() => widget.groupMember?.phone = text);
-            },
+            onChanged: (text) => widget.groupMember?.edited = true,
           )),
       Expanded(
           child: SizedBox(
@@ -161,7 +214,24 @@ class _groupMemberFormState extends State<GroupMemberForm> {
                                 });
                               })
                           // ToDo: calculate how far away
-                          )))))
+                          ))))),
+      if (widget.groupMember!.id >= 0) ...[
+        Align(
+            alignment: Alignment.bottomLeft,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              child: ActionChip(
+                onPressed: () => deleteMember(widget.groupMember!.id),
+                backgroundColor: Colors.blue,
+                avatar: const Icon(
+                  Icons.delete,
+                  color: Colors.white,
+                ),
+                label: const Text('Delete Member',
+                    style: TextStyle(fontSize: 18, color: Colors.white)),
+              ),
+            )),
+      ]
     ]);
   }
 
@@ -195,5 +265,24 @@ class _groupMemberFormState extends State<GroupMemberForm> {
     }
     widget.groupMember?.groupIds = result;
     debugPrint(result);
+  }
+
+  Future<void> deleteMember(int index) async {
+    Utility().showOkCancelDialog(
+        context: context,
+        alertTitle: 'Permanently delete member?',
+        alertMessage:
+            '${widget.groupMember?.forename} ${widget.groupMember?.surname}',
+        okValue: widget.groupMember!.id,
+        callback: onConfirmDeleteMember);
+  }
+
+  void onConfirmDeleteMember(int value) {
+    debugPrint('Returned value: ${value.toString()}');
+    if (value > -1) {
+      deleteGroupMemberById(value);
+      widget.groupMember?.index = -1;
+      Navigator.pop(context);
+    }
   }
 }

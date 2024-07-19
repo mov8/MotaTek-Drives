@@ -103,9 +103,16 @@ String unList(String listString) {
 }
 
 String getInitials({required String name}) {
-  return name.isEmpty
-      ? 'NA'
-      : name.trim().split(' ').map((l) => l[0]).take(2).join();
+  String initials = 'NA';
+  while (name.contains('  ')) {
+    name = name.replaceAll('  ', ' ');
+  }
+  try {
+    initials = name.trim().split(' ').map((l) => l[0]).take(2).join();
+  } catch (e) {
+    debugPrint('getInitials error:[$name]');
+  }
+  return initials;
 }
 
 double roundDouble({required double value, required int places}) {

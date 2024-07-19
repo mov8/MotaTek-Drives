@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:drives/models.dart';
+import 'package:drives/utilities.dart';
 
 class GroupMemberTile extends StatefulWidget {
   final GroupMember groupMember;
@@ -35,22 +36,24 @@ class _groupMemberTileState extends State<GroupMemberTile> {
                 shape: const RoundedRectangleBorder(
                     borderRadius: BorderRadius.all(Radius.circular(10))),
                 contentPadding: const EdgeInsets.fromLTRB(5, 5, 5, 5),
-                leading: IconButton(
+                leading: CircleAvatar(
+                    backgroundColor: Colors.blue,
+                    child: Text(
+                      getInitials(
+                          name:
+                              '${widget.groupMember.forename} ${widget.groupMember.surname}'),
+                      overflow: TextOverflow.ellipsis,
+                    )),
+                trailing: IconButton(
                   iconSize: 30,
                   icon: const Icon(Icons.edit),
                   onPressed: () => widget.onEdit(widget.index),
                 ),
-                trailing: IconButton(
-                  iconSize: 30,
-                  icon: const Icon(Icons.person_remove),
-                  onPressed: () => widget.onDelete(widget.index),
-                ),
                 title: Text(
-                  // '${widget.groupMember.forename} ${widget.groupMember.surname}',
                   '${widget.groupMember.forename} ${widget.groupMember.surname}${widget.groupMember.edited ? '*' : ''}',
-
                   style: const TextStyle(
                       fontSize: 20, fontWeight: FontWeight.bold),
+                  overflow: TextOverflow.ellipsis,
                 ),
                 subtitle: Column(children: [
                   Row(

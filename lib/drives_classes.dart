@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:ui' as ui;
 
 class KeyboardVisibilityListener extends StatefulWidget {
   final Widget child;
@@ -46,4 +47,20 @@ class _KeyboardVisibilityListenerState extends State<KeyboardVisibilityListener>
 
   @override
   Widget build(BuildContext context) => widget.child;
+}
+
+class InvertedClipper extends CustomClipper<ui.Path> {
+  @override
+  ui.Path getClip(Size size) {
+    return ui.Path()
+      ..addRect(Rect.fromLTWH(0, 0, size.width, size.height))
+      ..addOval(Rect.fromCircle(
+          center: Offset(size.width / 2, size.height / 2), radius: 40))
+      ..fillType = PathFillType.evenOdd;
+
+    // return new Path();
+  }
+
+  @override
+  bool shouldReclip(CustomClipper<ui.Path> oldClipper) => true;
 }

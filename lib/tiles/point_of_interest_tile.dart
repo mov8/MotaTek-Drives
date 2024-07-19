@@ -47,6 +47,7 @@ class PointOfInterestTile extends StatefulWidget {
   final int index;
   final Function onIconTap;
   final Function onExpandChange;
+  final Function onDelete;
   // final Key key;
   final bool expanded;
   final bool canEdit;
@@ -59,6 +60,7 @@ class PointOfInterestTile extends StatefulWidget {
     required this.pointOfInterest,
     required this.onIconTap,
     required this.onExpandChange,
+    required this.onDelete,
     this.expanded = false,
     this.canEdit = true,
   }); // : super(key: key);
@@ -72,7 +74,7 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
   //   late int type;
   /// late String images;
   late int index;
-  bool expanded = false;
+  bool expanded = true;
   bool canEdit = true;
   // final _key = GlobalKey();
 
@@ -105,7 +107,6 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
       key: Key('$widget.key'),
       child: ExpansionTile(
         controller: ExpansionTileController(),
-
         shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.all(Radius.circular(5))),
         title: widget.pointOfInterest.name == ''
@@ -145,7 +146,7 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
         */
         children: [
           SizedBox(
-              // height: 200,
+              height: 500,
               child: Padding(
                   padding: const EdgeInsets.fromLTRB(5, 5, 0, 30),
                   child: Column(children: <Widget>[
@@ -223,6 +224,8 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                                 child: TextFormField(
                                     readOnly: !canEdit,
                                     initialValue: widget.pointOfInterest.name,
+                                    autofocus: canEdit,
+                                    textInputAction: TextInputAction.next,
                                     textAlign: TextAlign.start,
                                     keyboardType: TextInputType.streetAddress,
                                     textCapitalization:
@@ -237,7 +240,7 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                                         Theme.of(context).textTheme.bodyLarge,
                                     autovalidateMode:
                                         AutovalidateMode.onUserInteraction,
-                                    onChanged: (text) =>
+                                    onFieldSubmitted: (text) =>
                                         widget.pointOfInterest.name = text)))
                       ],
                     ),
@@ -249,6 +252,7 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                               child: TextFormField(
                                   readOnly: !canEdit,
                                   maxLines: null,
+                                  textInputAction: TextInputAction.done,
                                   //     expands: true,
                                   initialValue:
                                       widget.pointOfInterest.description,
@@ -264,7 +268,8 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                                   style: Theme.of(context).textTheme.bodyLarge,
                                   autovalidateMode:
                                       AutovalidateMode.onUserInteraction,
-                                  onChanged: (text) => widget.pointOfInterest
+                                  onFieldSubmitted: (text) => widget
+                                      .pointOfInterest
                                       .description = text //body = text
                                   )),
                         ),
@@ -275,7 +280,7 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                         Expanded(
                             flex: 8,
                             child: SizedBox(
-                                height: 200,
+                                height: 175,
                                 child: ListView(
                                   scrollDirection: Axis.horizontal,
                                   children: [
@@ -302,6 +307,21 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                                   ],
                                 )))
                       ]),
+                    if (canEdit) ...[
+                      Align(
+                        alignment: Alignment.bottomLeft,
+                        child: ActionChip(
+                          label: const Text(
+                            'Delete',
+                            style: TextStyle(fontSize: 18, color: Colors.white),
+                          ),
+                          avatar: const Icon(Icons.delete,
+                              size: 20, color: Colors.white),
+                          onPressed: () => widget.onDelete,
+                          backgroundColor: Colors.blueAccent,
+                        ),
+                      )
+                    ],
                   ]))),
         ],
       ),

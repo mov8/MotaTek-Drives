@@ -1,18 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:drives/models.dart';
 
-class DirectionsTile extends StatefulWidget {
-  final Maneuver directions;
-  const DirectionsTile({
+class DirectionTile extends StatefulWidget {
+  final Maneuver direction;
+  final int index;
+  final int directions;
+
+  const DirectionTile({
     super.key,
+    required this.direction,
+    required this.index,
     required this.directions,
   });
 
   @override
-  State<DirectionsTile> createState() => _directionsTileState();
+  State<DirectionTile> createState() => _directionTileState();
 }
 
-class _directionsTileState extends State<DirectionsTile> {
+class _directionTileState extends State<DirectionTile> {
   @override
   Widget build(BuildContext context) {
     return Material(
@@ -25,12 +30,15 @@ class _directionsTileState extends State<DirectionsTile> {
                   Row(children: [
                     Expanded(
                         flex: 3,
-                        child: getNavIcon(widget.directions.modifier,
-                            widget.directions.type)),
+                        child: getNavIcon(
+                            widget.direction.modifier,
+                            widget.direction.type,
+                            widget.index,
+                            widget.directions)),
                     Expanded(
                       flex: 20,
                       child: Text(
-                        '${modifyModifier(widget.directions.modifier, widget.directions.type)} ${widget.directions.roadFrom}',
+                        '${modifyModifier(widget.direction.modifier, widget.direction.type, widget.index, widget.directions)} ${widget.direction.roadFrom}',
                         style: const TextStyle(
                             fontSize: 20, fontWeight: FontWeight.bold),
                       ),
@@ -42,9 +50,9 @@ class _directionsTileState extends State<DirectionsTile> {
                     Expanded(
                         flex: 20,
                         child: Text(
-                            widget.directions.type.contains('arrive')
+                            widget.direction.type.contains('arrive')
                                 ? ''
-                                : 'drive ${modifyDistance(widget.directions.distance)} towards ${widget.directions.roadTo}',
+                                : 'drive ${modifyDistance(widget.direction.distance)} towards ${widget.direction.roadTo}',
                             style: const TextStyle(
                                 fontSize: 18, fontWeight: FontWeight.normal))),
                     const Expanded(flex: 3, child: SizedBox(width: 1)),
@@ -65,9 +73,13 @@ String modifyDistance(double distance) {
   }
 }
 
-String modifyModifier(String modifier, String type) {
-  if (modifier == 'depart') {
+String modifyModifier(String modifier, String type, int index, int directions) {
+  if (index == 0) {
+    modifier = 'depart from';
+  } else if (modifier == 'depart') {
     modifier = 'trip start depart from';
+  } else if (type.contains('arrive') && index < directions - 1) {
+    modifier = 'waypoint';
   } else if (type.contains('arrive')) {
     modifier = 'trip end';
   } else if (modifier.contains('arrive')) {
@@ -80,12 +92,17 @@ String modifyModifier(String modifier, String type) {
   return modifier;
 }
 
-Icon getNavIcon(String modifier, String type) {
+Icon getNavIcon(String modifier, String type, int index, int directions) {
   Icon navIcon = const Icon(
     Icons.arrow_upward,
     size: 40,
   );
-  if (type.contains('arrive')) {
+  if (type.contains('arrive') && index < directions - 1) {
+    navIcon = const Icon(
+      Icons.pin_drop,
+      size: 40,
+    );
+  } else if (type.contains('arrive')) {
     navIcon = const Icon(
       Icons.flag,
       size: 40,

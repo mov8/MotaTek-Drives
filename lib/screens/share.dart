@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:drives/tiles/group_member_tile.dart';
+import 'package:intl/intl.dart';
 import 'package:drives/screens/group_member.dart';
 import 'package:drives/tiles/my_trip_tile.dart';
 import 'package:flutter/material.dart';
@@ -20,7 +20,7 @@ class _shareFormState extends State<ShareForm> {
   int group = 0;
   bool choosing = true;
   late Future<bool> dataloaded;
-
+  DateTime tripDate = DateTime.now();
   List<GroupMember> groupMembers = [];
   List<Group> groups = [];
 
@@ -53,6 +53,8 @@ class _shareFormState extends State<ShareForm> {
   List<GroupMember> filteredGroupMembers = [];
   List<String> groupNames = ['All members'];
 
+  DateFormat dateFormat = DateFormat('dd/MM/yyy');
+
   @override
   void initState() {
     super.initState();
@@ -66,6 +68,8 @@ class _shareFormState extends State<ShareForm> {
       for (int i = 0; i < groups.length; i++) {
         groupNames.add(groups[i].name);
       }
+      group = 0;
+      filterGroup();
     } else {
       groups.add(Group(id: -1, name: '', edited: true));
       groupIndex = 0;
@@ -157,10 +161,11 @@ class _shareFormState extends State<ShareForm> {
     );
   }
 
-  Column portraitView() {
+  Widget portraitView() {
     // setup =  Settings().setup;
 
-    return Column(children: [
+    return SingleChildScrollView(
+        child: Column(children: [
       Padding(
         padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
         child: MyTripTile(
@@ -173,92 +178,128 @@ class _shareFormState extends State<ShareForm> {
       ),
       Padding(
           padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
-          child: DropdownButtonFormField<String>(
-            style: const TextStyle(fontSize: 18),
-            decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-              labelText: 'Filter by group',
-            ),
-            value: groupNames[0],
-            items: groupNames
-                .map((item) => DropdownMenuItem<String>(
-                      value: item,
-                      child: Text(item,
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleLarge!), // bodyLarge!),
-                    ))
-                .toList(),
-            onChanged: (item) => {
-              setState(() {
-                filteredGroupMembers.clear();
-                groupName = item.toString();
-                group = groupNames.indexOf(item.toString());
-                groupIndex = group - 1;
-                filterGroup();
-              })
-            },
-          )),
-      Expanded(
-          child: SizedBox(
-              height: (MediaQuery.of(context).size.height -
-                      AppBar().preferredSize.height -
-                      kBottomNavigationBarHeight -
-                      20) *
-                  0.3, // 200,
-              child: ListView.builder(
-                  itemCount: filteredGroupMembers.length,
-                  itemBuilder: (context, index) => Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10.0, vertical: 5.0),
-                      child: Card(
-                          elevation: 5,
-                          child: CheckboxListTile(
-                            title: Row(children: [
-                              Expanded(
-                                flex: 1,
-                                child: IconButton(
-                                    onPressed: () => onEdit(index),
-                                    icon: const Icon(
-                                      Icons.edit,
-                                      size: 30,
-                                    )),
-                              ),
-                              Expanded(
-                                flex: 4,
-                                child: Column(children: [
-                                  Row(children: [
-                                    Text(
-                                      '${filteredGroupMembers[index].forename} ${filteredGroupMembers[index].surname}',
-                                      style: const TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold),
-                                    )
-                                  ]),
-                                  Row(children: [
-                                    Text(
-                                      'email: ${filteredGroupMembers[index].email}',
-                                      style: const TextStyle(fontSize: 14),
-                                    )
-                                  ]),
-                                  Row(children: [
-                                    Text(
-                                      'phone: ${filteredGroupMembers[index].phone}',
-                                      style: const TextStyle(fontSize: 14),
-                                    )
-                                  ]),
-                                ]),
-                              )
+          child: Row(children: [
+            Expanded(
+                flex: 1,
+                child: Padding(
+                    padding: const EdgeInsets.fromLTRB(0, 0, 2, 0),
+                    child: DropdownButtonFormField<String>(
+                      style: const TextStyle(fontSize: 18),
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        labelText: 'Filter by group',
+                      ),
+                      value: groupNames[0],
+                      items: groupNames
+                          .map((item) => DropdownMenuItem<String>(
+                                value: item,
+                                child: Text(item,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleLarge!), // bodyLarge!),
+                              ))
+                          .toList(),
+                      onChanged: (item) => {
+                        setState(() {
+                          filteredGroupMembers.clear();
+                          groupName = item.toString();
+                          group = groupNames.indexOf(item.toString());
+                          groupIndex = group - 1;
+                          filterGroup();
+                        })
+                      },
+                    ))),
+            Expanded(
+                flex: 1,
+                child: Padding(
+                    padding: const EdgeInsets.fromLTRB(2, 0, 0, 0),
+                    child: TextFormField(
+                      textInputAction: TextInputAction.done,
+                      autofocus: false,
+                      //    focusNode: fn1,
+                      style: const TextStyle(
+                          fontSize: 20, fontWeight: FontWeight.w400),
+                      decoration: InputDecoration(
+                        border: const OutlineInputBorder(),
+                        hintText: 'Trip date',
+                        labelText: 'Trip date',
+                        suffixIcon: IconButton(
+                          onPressed: () => test(),
+                          icon: const Icon(Icons.schedule),
+                        ),
+                      ),
+                      textCapitalization: TextCapitalization.words,
+                      textAlign: TextAlign.left,
+                      initialValue: dateFormat.format(tripDate),
+                      //     style: Theme.of(context).textTheme.bodyLarge,
+                      // onChanged: (_) => (),
+                    )))
+          ])),
+      /* Expanded(
+          child: */
+      SizedBox(
+          height: (MediaQuery.of(context).size.height -
+                  AppBar().preferredSize.height -
+                  kBottomNavigationBarHeight -
+                  20) *
+              0.4,
+          //100,
+          child: ListView.builder(
+              itemCount: filteredGroupMembers.length,
+              itemBuilder: (context, index) => Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10.0, vertical: 5.0),
+                  child: Card(
+                      elevation: 5,
+                      child: CheckboxListTile(
+                        title: Row(children: [
+                          Expanded(
+                            flex: 1,
+                            child: IconButton(
+                                onPressed: () => onEdit(index),
+                                icon: const Icon(
+                                  Icons.edit,
+                                  size: 30,
+                                )),
+                          ),
+                          Expanded(
+                            flex: 5,
+                            child: Column(children: [
+                              Row(children: [
+                                Text(
+                                  '${filteredGroupMembers[index].forename} ${filteredGroupMembers[index].surname}',
+                                  style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold),
+                                  overflow: TextOverflow.ellipsis,
+                                )
+                              ]),
+                              Row(children: [
+                                Text(
+                                  'email: ${filteredGroupMembers[index].email}',
+                                  style: const TextStyle(fontSize: 14),
+                                  overflow: TextOverflow.ellipsis,
+                                )
+                              ]),
+                              Row(children: [
+                                Text(
+                                  'phone: ${filteredGroupMembers[index].phone}',
+                                  style: const TextStyle(fontSize: 14),
+                                  overflow: TextOverflow.ellipsis,
+                                )
+                              ]),
                             ]),
-                            onChanged: (value) {
-                              setState(() {
-                                filteredGroupMembers[index].selected = value!;
-                                groupMembers[filteredGroupMembers[index].index]
-                                    .selected = value;
-                              });
-                            },
-                            value: filteredGroupMembers[index].selected,
-                          )))))),
+                          )
+                        ]),
+                        onChanged: (value) {
+                          setState(() {
+                            filteredGroupMembers[index].selected = value!;
+                            groupMembers[filteredGroupMembers[index].index]
+                                .selected = value;
+                          });
+                        },
+                        value: filteredGroupMembers[index].selected,
+                      ))))),
       const Padding(
           padding: EdgeInsets.symmetric(horizontal: 11),
           child: Row(children: [
@@ -268,10 +309,11 @@ class _shareFormState extends State<ShareForm> {
             )
           ])),
       Padding(
-          padding: EdgeInsets.symmetric(horizontal: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 10),
           child: TextFormField(
             autofocus: true,
             autocorrect: false,
+            textInputAction: TextInputAction.done,
             keyboardType: TextInputType.multiline,
             minLines: 5,
             maxLines: 20,
@@ -284,7 +326,7 @@ class _shareFormState extends State<ShareForm> {
               ),
             ),
           )),
-    ]);
+    ]));
   }
 
   BottomNavigationBar _handleBottomNavigationBar() {
@@ -359,6 +401,16 @@ class _shareFormState extends State<ShareForm> {
     result = '[${result.substring(2)}]';
     member.groupIds = result;
     debugPrint(result);
+  }
+
+  int test() {
+    showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime(2028),
+    ).then((date) => ());
+    return 1;
   }
 
   void newMember() {
@@ -437,8 +489,4 @@ Future<void> loadTrip(int index) async {
 
 Future<void> shareTrip(int index) async {
   return;
-}
-
-int test() {
-  return 1;
 }

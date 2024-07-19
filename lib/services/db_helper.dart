@@ -77,7 +77,7 @@ Future<Database> initDb() async {
 
         await db.execute(
             '''CREATE TABLE drives(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, title TEXT, sub_title TEXT, body TEXT, 
-          map_image TEXT, max_lat REAL, min_lat REAL, max_long REAL, min_long REAL, added DATETIME)''');
+          map_image TEXT, distance REAL, points_of_interest INTEGER, added DATETIME)''');
 
         await db.execute(
             '''CREATE TABLE points_of_interest(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, drive_id INTEGER, type INTEGER, 
@@ -97,11 +97,11 @@ Future<Database> initDb() async {
         await db.execute(
             '''CREATE TABLE polylines(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, drive_id INTEGER, 
             type INTEGER, points TEXT, color Integer, stroke INTEGER)''');
-/*
-      await db.execute(
-          '''CREATE TABLE images(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, drive_id INTEGER, 
-      pointOfInterestId INTEGER, title TEXT, url TEXT)''');
-*/
+
+        await db.execute(
+            '''CREATE TABLE messages(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, message TEXT, 
+        read INTEGER, received DATETIME)''');
+
         await db.execute(
           '''CREATE TABLE log(id INTEGER PRIMARY KEY AUTOINCREMENT, monitor INTEGER, dateTime DATETIME, portNumber INTEGER, 
               value REAL, alarm INTEGER)''',
@@ -398,6 +398,15 @@ Future<int> saveGroupMemberLocal(GroupMember groupMember) async {
   return id;
 }
 
+Future<void> deleteGroupMemberById(int id) async {
+  final db = await dbHelper().db;
+  await db.delete(
+    'group_members',
+    where: 'id = ?',
+    whereArgs: [id],
+  );
+}
+
 Future<bool> saveGroupMembers(List<GroupMember> groupMembers) async {
   for (int i = 0; i < groupMembers.length; i++) {
     saveGroupMemberLocal(groupMembers[i]);
@@ -412,10 +421,9 @@ Future<Drive> getDrive(int driveId) async {
   String subTitle = '';
   String body = '';
   DateTime added = DateTime.now();
-  double maxLat = 0.0;
-  double minLat = 0.0;
-  double maxLong = 0.0;
-  double minLong = 0.0;
+  double distance = 0.0;
+  int pois = 0;
+
   final db = await dbHelper().db;
   try {
     String query = "SELECT * FROM drives WHERE if = $driveId";
@@ -426,24 +434,21 @@ Future<Drive> getDrive(int driveId) async {
     subTitle = maps[0]['sub_title'].toString();
     body = maps[0]['body'].toString();
     added = DateTime.parse(maps[0]['date'].toString());
-    maxLat = double.parse(maps[0]['max_lat'].toString());
-    minLat = double.parse(maps[0]['min_lat'].toString());
-    maxLong = double.parse(maps[0]['max_long'].toString());
-    minLong = double.parse(maps[0]['min_long'].toString());
+    distance = double.parse(maps[0]['distance'].toString());
+    pois = int.parse(maps[0]['points_of_interest'].toString());
   } catch (e) {
     debugPrint('dbError:${e.toString()}');
   }
   return Drive(
-      id: id,
-      userId: userId,
-      title: title,
-      subTitle: subTitle,
-      body: body,
-      added: added,
-      maxLat: maxLat,
-      minLat: minLat,
-      maxLong: maxLong,
-      minLong: minLong);
+    id: id,
+    userId: userId,
+    title: title,
+    subTitle: subTitle,
+    body: body,
+    added: added,
+    distance: distance,
+    pois: pois,
+  );
 }
 
 Future<void> deleteDriveById(int id) async {

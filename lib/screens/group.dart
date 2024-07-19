@@ -20,35 +20,10 @@ class _GroupFormState extends State<GroupForm> {
   int group = 0;
   bool choosing = true;
   late Future<bool> dataloaded;
+  late FocusNode fn1;
 
   List<GroupMember> groupMembers = [];
   List<Group> groups = [];
-
-  final List<List<BottomNavigationBarItem>> _bottomNavigationsBarItems = [
-    [
-      /// Level 0  mainMenu
-      const BottomNavigationBarItem(
-          icon: Icon(Icons.arrow_back),
-          label: 'Back',
-          backgroundColor: Colors.blue),
-      const BottomNavigationBarItem(
-          icon: Icon(Icons.contacts),
-          label: 'Contacts',
-          backgroundColor: Colors.blue),
-      const BottomNavigationBarItem(
-          icon: Icon(Icons.group_add),
-          label: 'New Member',
-          backgroundColor: Colors.blue),
-      const BottomNavigationBarItem(
-          icon: Icon(Icons.save),
-          label: 'Save Group',
-          backgroundColor: Colors.blue),
-      const BottomNavigationBarItem(
-          icon: Icon(Icons.delete),
-          label: 'Delete Group',
-          backgroundColor: Colors.blue),
-    ]
-  ];
 
   String groupName = 'Driving Group';
   bool edited = false;
@@ -62,7 +37,16 @@ class _GroupFormState extends State<GroupForm> {
   @override
   void initState() {
     super.initState();
+    fn1 = FocusNode();
     dataloaded = dataFromDatabase();
+  }
+
+  @override
+  void dispose() {
+    // Clean up the focus node when the Form is disposed.
+    fn1.dispose();
+
+    super.dispose();
   }
 
   Future<bool> dataFromDatabase() async {
@@ -116,33 +100,10 @@ class _GroupFormState extends State<GroupForm> {
         /// Shrink height a bit
         leading: BackButton(
           onPressed: () {
-            try {
-              insertSetup(Setup());
-              Navigator.pop(context);
-            } catch (e) {
-              debugPrint('Setup error: ${e.toString()}');
-            }
+            Navigator.pop(context);
           },
         ),
-        actions: <Widget>[
-          IconButton(
-            icon: const Icon(Icons.save),
-            tooltip: 'Back to main screen',
-            onPressed: () {
-              debugPrint('debug print');
-              try {
-                // insertPort(widget.port);
-                // insertGauge(widget.gauge);
-              } catch (e) {
-                debugPrint('Error saving data : ${e.toString()}');
-              }
-              ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Data has been updated')));
-            },
-          )
-        ],
       ),
-      bottomNavigationBar: _handleBottomNavigationBar(),
       body: FutureBuilder<bool>(
         future: dataloaded,
         builder: (BuildContext context, snapshot) {
@@ -169,88 +130,110 @@ class _GroupFormState extends State<GroupForm> {
   Widget portraitView() {
     // setup =  Settings().setup;
 
-    return KeyboardVisibilityListener(
+    return /* KeyboardVisibilityListener(
       listener: _listener,
-      child: Column(children: [
-        if (choosing) ...[
-          Padding(
-              padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-              child: DropdownButtonFormField<String>(
-                style: const TextStyle(fontSize: 18),
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  labelText: 'Group name',
-                ),
-                value: groupNames[_chosen],
-                items: groupNames
-                    .map((item) => DropdownMenuItem<String>(
-                          value: item,
-                          child: Text(item,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleLarge!), // bodyLarge!),
-                        ))
-                    .toList(),
-                onChanged: (item) => {
-                  setState(() {
-                    filteredGroupMembers.clear();
-                    groupName = item.toString();
-                    group = groupNames.indexOf(item.toString());
-                    if (group == 0) {
-                      var id = -1;
-                      for (int i = 0; i < groups.length; i++) {
-                        if (groups[i].id <= id) --id;
-                      }
-                      groups.add(Group(id: id, name: '', edited: true));
-                      groupIndex = groups.length - 1;
-                      edited = true;
-                      choosing = false;
-                    } else {
-                      groupIndex = group - 2;
-                      if (groupIndex >= 0) {
-                        edited = groups[groupIndex].edited;
-                      }
-                      filterGroup();
+      child: */
+        Column(children: [
+      if (choosing) ...[
+        Padding(
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+            child: DropdownButtonFormField<String>(
+              style: const TextStyle(fontSize: 18),
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                labelText: 'Group name',
+              ),
+              value: groupNames[_chosen],
+              items: groupNames
+                  .map((item) => DropdownMenuItem<String>(
+                        value: item,
+                        child: Text(item,
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleLarge!), // bodyLarge!),
+                      ))
+                  .toList(),
+              onChanged: (item) => {
+                setState(() {
+                  filteredGroupMembers.clear();
+                  groupName = item.toString();
+                  group = groupNames.indexOf(item.toString());
+                  if (group == 0) {
+                    var id = -1;
+                    for (int i = 0; i < groups.length; i++) {
+                      if (groups[i].id <= id) --id;
                     }
-                  })
-                },
-              )),
-        ] else ...[
-          Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
-              child: TextFormField(
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  hintText: 'Enter group name',
-                  labelText: 'Group name',
-                ),
-                textCapitalization: TextCapitalization.words,
-                textAlign: TextAlign.left,
-                initialValue: '',
-                style: Theme.of(context).textTheme.bodyLarge,
-                onChanged: (text) => groups[groups.length - 1].groupName = text,
-              ))
-        ],
-        Expanded(
-            child: SizedBox(
-                height: (MediaQuery.of(context).size.height -
-                    AppBar().preferredSize.height -
-                    kBottomNavigationBarHeight -
-                    20 * 0.93), // 200,
-                child: ListView.builder(
-                    itemCount: filteredGroupMembers.length,
-                    itemBuilder: (context, index) => Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10.0, vertical: 5.0),
-                        child: GroupMemberTile(
-                          groupMember: filteredGroupMembers[index],
-                          index: index,
-                          onDelete: onDelete,
-                          onEdit: onEdit,
-                          // ToDo: calculate how far away
-                        )))))
-      ]),
-    );
+                    groups.add(Group(id: id, name: '', edited: true));
+                    groupIndex = groups.length - 1;
+                    edited = true;
+                    choosing = false;
+                  } else {
+                    groupIndex = group - 2;
+                    if (groupIndex >= 0) {
+                      edited = groups[groupIndex].edited;
+                    }
+                    filterGroup();
+                  }
+                })
+              },
+            )),
+      ] else ...[
+        Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+            child: TextFormField(
+              textInputAction: TextInputAction.done,
+              onFieldSubmitted: (val) => setState(() {
+                groups[groupIndex].groupName = val;
+
+                if (groups[groupIndex].name.isNotEmpty) {
+                  if (groupNames.length - groups.length < 2) {
+                    groupNames.add(groups[groups.length - 1].name);
+                  } else {
+                    groupNames[groupIndex + 2] = groups[groupIndex].name;
+                  }
+                  _chosen = groupIndex + 2;
+                  groupName = groups[groupIndex].name;
+                  choosing = true;
+                }
+              }),
+              autofocus: true,
+              focusNode: fn1,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w400),
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                hintText: 'Enter group name',
+                labelText: 'Group name',
+              ),
+              textCapitalization: TextCapitalization.words,
+              textAlign: TextAlign.left,
+              initialValue: groups[groupIndex].name,
+              //     style: Theme.of(context).textTheme.bodyLarge,
+              onChanged: (text) => groups[groupIndex].edited = true,
+            ))
+      ],
+      Expanded(
+          child: SizedBox(
+              height: (MediaQuery.of(context).size.height -
+                  AppBar().preferredSize.height -
+                  kBottomNavigationBarHeight -
+                  20 * 0.93), // 200,
+              child: ListView.builder(
+                  itemCount: filteredGroupMembers.length,
+                  itemBuilder: (context, index) => Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10.0, vertical: 5.0),
+                      child: GroupMemberTile(
+                        groupMember: filteredGroupMembers[index],
+                        index: index,
+                        onDelete: onDelete,
+                        onEdit: onEdit,
+                        // ToDo: calculate how far away
+                      ))))),
+      Align(
+        alignment: Alignment.bottomLeft,
+        child: _handleChips(),
+      )
+    ]);
   }
 
   void _listener(bool value) {
@@ -258,49 +241,91 @@ class _GroupFormState extends State<GroupForm> {
       debugPrint('Listener called true');
     } else {
       debugPrint('Listener called false');
-      if (groups[groups.length - 1].name.isNotEmpty) {
+      if (groups[groupIndex].name.isNotEmpty) {
         if (groupNames.length - groups.length < 2) {
           groupNames.add(groups[groups.length - 1].name);
         } else {
-          groupNames[groupNames.length - 1] = groups[groups.length - 1].name;
+          groupNames[groupIndex + 2] = groups[groupIndex].name;
         }
-        _chosen = groupNames.length - 1;
-        groupName = groups[groups.length - 1].name;
+        _chosen = groupIndex + 2;
+        groupName = groups[groupIndex].name;
       }
       setState(() => choosing = true);
     }
     return;
   }
 
-  BottomNavigationBar _handleBottomNavigationBar() {
-    return BottomNavigationBar(
-      currentIndex: 0, //BottomNav.values.indexOf(_bottomNavMenu),
-      showUnselectedLabels: true,
-      selectedItemColor: Colors.white,
-      unselectedItemColor: const Color.fromARGB(255, 214, 211, 211),
-      backgroundColor: Colors.blue,
-      items: _bottomNavigationsBarItems[
-          0], //  _bottomNavigationsBarIndex + onTapOffset],
-      onTap: ((idx) {
-        switch (idx) {
-          case 0:
-            setState(() {
-              choosing = true;
-            });
-            break;
-          case 1:
-            //    debugPrint(
-            //        'testString: $testString -> groups[${groups.length - 1}].name: ${groups[groups.length - 1].name} testGroup.name: ${testGroup.name}');
-            break;
-          case 2:
-            newMember();
-            break;
-          case 3:
-            saveGroup();
-            break;
-        }
-      }),
-    );
+  Widget _handleChips() {
+    return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        child: Wrap(spacing: 10, children: [
+          if (!choosing && groups.length > 1) ...[
+            ActionChip(
+              onPressed: () => setState(() {
+                choosing = true;
+                if (groupIndex >= 0 && groups[groupIndex].name.isEmpty) {
+                  groups.removeAt(groupIndex);
+                }
+                groupIndex = groups.isNotEmpty ? -1 : 0;
+              }),
+              backgroundColor: Colors.blue,
+              avatar: const Icon(
+                Icons.arrow_back,
+                color: Colors.white,
+              ),
+              label: const Text('Back',
+                  style: TextStyle(fontSize: 18, color: Colors.white)),
+            ),
+          ] else if (choosing && groupIndex >= 0) ...[
+            if (groups[groupIndex].name.isNotEmpty) ...[
+              ActionChip(
+                onPressed: () => newMember(),
+                backgroundColor: Colors.blue,
+                avatar: const Icon(
+                  Icons.group_add,
+                  color: Colors.white,
+                ),
+                label: const Text('New Member',
+                    style: TextStyle(fontSize: 18, color: Colors.white)),
+              ),
+              ActionChip(
+                onPressed: () => setState(() {
+                  choosing = false;
+                  fn1.requestFocus();
+                }),
+                backgroundColor: Colors.blue,
+                avatar: const Icon(
+                  Icons.edit,
+                  color: Colors.white,
+                ),
+                label: const Text('Edit Group Name',
+                    style: TextStyle(fontSize: 18, color: Colors.white)),
+              ),
+            ],
+            if (groups[groupIndex].edited &&
+                groups[groupIndex].name.isNotEmpty) ...[
+              ActionChip(
+                onPressed: () => saveGroup(),
+                backgroundColor: Colors.blue,
+                avatar: const Icon(Icons.save, color: Colors.white),
+                label: const Text('Save Group',
+                    style: TextStyle(fontSize: 18, color: Colors.white)),
+              ),
+            ],
+            if (group > 1 && groups[groupIndex].name.isNotEmpty) ...[
+              ActionChip(
+                onPressed: () => (),
+                backgroundColor: Colors.blue,
+                avatar: const Icon(
+                  Icons.delete,
+                  color: Colors.white,
+                ),
+                label: const Text('Delete Group',
+                    style: TextStyle(fontSize: 18, color: Colors.white)),
+              ),
+            ],
+          ],
+        ]));
   }
 
   void onDelete(int index) {
@@ -318,14 +343,15 @@ class _GroupFormState extends State<GroupForm> {
       groups[groupIndex].id = id;
       for (int i = 0; i < filteredGroupMembers.length; i++) {
         saveGroupMemberLocal(filteredGroupMembers[i]).then((id) {
-          filteredGroupMembers[i].id = id;
-          filteredGroupMembers[i].edited = false;
+          groupMembers[filteredGroupMembers[i].index].id = id;
+          groupMembers[filteredGroupMembers[i].index].edited = false;
           setState(() {});
         });
       }
     });
     setState(() {
       groups[groupIndex].edited = false;
+      groupName = groups[groupIndex].name;
       filterGroup();
     });
     return true;
@@ -359,6 +385,7 @@ class _GroupFormState extends State<GroupForm> {
 
   void onEdit(int index) async {
     // edited = true;
+    int parentIndex = filteredGroupMembers[index].index;
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -371,7 +398,10 @@ class _GroupFormState extends State<GroupForm> {
               )),
     ).then((value) {
       setState(() {
-        if (filteredGroupMembers[index].forename.isEmpty &&
+        /// if deleted in GroupMemberForm filteredGroupMembers[index].index is set to -1
+        if (filteredGroupMembers[index].index == -1) {
+          groupMembers.removeAt(parentIndex);
+        } else if (filteredGroupMembers[index].forename.isEmpty &&
             filteredGroupMembers[index].surname.isEmpty) {
           Utility().showConfirmDialog(context, "Missing information",
               "Records without a forename and surname can't be saved");

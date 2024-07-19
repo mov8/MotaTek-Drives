@@ -28,6 +28,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'models.dart';
+import 'drives_classes.dart';
 import 'route.dart' as mt;
 import 'screens/splash_screen.dart';
 import 'services/web_helper.dart';
@@ -78,12 +79,19 @@ enum TripState {
 
 enum TripActions {
   none,
-  showFollowers,
+  showGroup,
   showSteps,
   routeHighlited,
   greatRoadStart,
   saving,
   headingDetail,
+  pointOfInterest,
+  saved,
+}
+
+enum MapHeights {
+  full,
+  headers,
   pointOfInterest,
 }
 
@@ -115,7 +123,7 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   GlobalKey mapKey = GlobalKey();
-  // final bool _exploreTracking = false;
+  List<double> mapHeights = [0, 0, 0];
   final List<PointOfInterest> _pointsOfInterest = [];
   AppState _appState = AppState.home;
   TripState _tripState = TripState.manual;
@@ -128,6 +136,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   final navigatorKey = GlobalKey<NavigatorState>();
   List<Marker> markers = [];
   List<MyTripItem> myTripItems = [];
+  List<TripItem> tripItems = [];
+  final List<String> _messages = ['One', 'Two'];
   int id = -1;
   int userId = -1;
   int driveId = -1;
@@ -139,8 +149,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   LatLng _lastLatLng = const LatLng(0.00, 0.00);
   late StreamSubscription<Position> _positionStream;
   late Future<bool> _loadedOK;
-  bool _tracking = false;
   bool _showMask = false;
+  late FocusNode fn1;
   final GoodRoad _goodRoad = GoodRoad();
   // bool _goodRoad.isGood = false;
   // late CutRoute _cutRoute;
@@ -193,26 +203,6 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
 
   String _title = 'MotaTrip'; // _hints[0][0];
 
-  final List<BottomNavigationBarItem> _bottomNavigationsBarItems = [
-    /// Level 0  mainMenu
-    const BottomNavigationBarItem(
-        icon: Icon(Icons.home), label: 'Home', backgroundColor: Colors.blue),
-    const BottomNavigationBarItem(
-        icon: Icon(Icons.route), label: 'Trips', backgroundColor: Colors.blue),
-    const BottomNavigationBarItem(
-        icon: Icon(Icons.map),
-        label: 'Create Trip',
-        backgroundColor: Colors.blue),
-    const BottomNavigationBarItem(
-        icon: Icon(Icons.person),
-        label: 'My Trips',
-        backgroundColor: Colors.blue),
-    const BottomNavigationBarItem(
-        icon: Icon(Icons.storefront),
-        label: 'Shop',
-        backgroundColor: Colors.blue),
-  ];
-
   int _bottomNavigationsBarIndex = 0;
   late AnimatedMapController _animatedMapController;
 
@@ -252,7 +242,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       ),
     ));
     setState(() {
-      _scrollDown();
+      //  _scrollDown();
+      // _editPointOfInterest = _pointsOfInterest.length - 1;
       _showMask = false;
     });
   }
@@ -282,7 +273,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
           description: desc), // MarkerWidget(type: iconIdx),
     ));
     setState(() {
-      // adjustHeigth(25);
+      // adjustMapHeight(25);
       _scrollDown();
       //  _editPointOfInterest = _pointsOfInterest.length - 1;
     });
@@ -361,8 +352,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-
     _loadedOK = dataFromDatabase();
+    tripsFromWeb();
     _title = _hints[0][0];
     // stream_controller = StreamController<int>.broadcast();
     _allignPositionStreamController = StreamController<double?>.broadcast();
@@ -371,7 +362,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     _alignPositionOnUpdate = AlignOnUpdate.never;
     _alignDirectionOnUpdate = AlignOnUpdate.never; // never;
     _animatedMapController = AnimatedMapController(vsync: this);
-    mapHeight = 500; //500;
+
+    fn1 = FocusNode();
   }
 
   @override
@@ -380,6 +372,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     _allignPositionStreamController.close();
     _allignDirectionStreamController.close();
     _animatedMapController.dispose();
+    fn1.dispose();
     super.dispose();
   }
 
@@ -494,6 +487,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
         color: _routeColour(_goodRoad.isGood),
         borderColor: _routeColour(_goodRoad.isGood),
         strokeWidth: 5));
+
+    tripItem.distance += double.parse(apiData["distance"].toString());
     setState(() {});
     return apiData;
   }
@@ -544,11 +539,12 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     try {
       distance = jsonResponse['routes'][0]['distance'];
       duration = jsonResponse['routes'][0]['duration'];
+      distance = distance / 1000 * 5 / 8;
     } catch (e) {
       debugPrint('Error: $e');
     }
     String summary =
-        '${(distance / 1000 * 5 / 8).toStringAsFixed(1)} miles - (${(duration / 60).floor()} minutes)';
+        '${distance.toStringAsFixed(1)} miles - (${(duration / 60).floor()} minutes)';
 
     String name =
         '${jsonResponse['routes'][0]['legs'][0]['steps'][0]['name']}, ${jsonResponse['routes'][0]['legs'][0]['steps'][jsonResponse['routes'][0]['legs'][0]['steps'].length - 1]['name']}';
@@ -573,18 +569,10 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
 
     if (waypointList.length > 1 && waypointList[0] != waypointList[1]) {
       String lastRoad = name;
-      _maneuvers.clear();
-
       for (int j = 0; j < jsonResponse['routes'][0]['legs'].length; j++) {
-        int start = j == 0 ? 0 : 1;
-        // int end = jsonResponse['routes'][0]['legs'][j]['steps'].length;
-        //j == 0 ? 0 : 1;
-
-        int end = j < jsonResponse['routes'][0]['legs'].length
-            ? jsonResponse['routes'][0]['legs'][j]['steps'].length - 1
-            : jsonResponse['routes'][0]['legs'][j]['steps'].length;
-
-        for (int k = start; k < end; k++) {
+        for (int k = 0;
+            k < jsonResponse['routes'][0]['legs'][j]['steps'].length;
+            k++) {
           try {
             _maneuvers.add(Maneuver(
               roadFrom: jsonResponse['routes'][0]['legs'][j]['steps'][k]
@@ -617,8 +605,6 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
             String err = e.toString();
             debugPrint(err);
           }
-          debugPrint(
-              'j: $j  k: $k => ${_maneuvers[_maneuvers.length - 1].roadFrom}  ${_maneuvers[_maneuvers.length - 1].roadTo}');
           if (k > 0) {
             _maneuvers[k - 1].roadTo = _maneuvers[k].roadFrom;
           }
@@ -628,14 +614,12 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
               _maneuvers[_maneuvers.length - 1]
                   .type
                   .replaceAll('rotary', 'roundabout');
-          //      }
-          //       }
         }
       }
     }
     result["name"] = name;
 
-    result["distance"] = jsonResponse['routes'][0]['distance'];
+    result["distance"] = distance.toStringAsFixed(1);
     result["duration"] = jsonResponse['routes'][0]['duration'];
     result["summary"] = summary;
     result["points"] = routePoints;
@@ -823,7 +807,6 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
           AnimatedContainer(
             duration: Duration(milliseconds: _resizeDelay),
             curve: Curves.easeInOut, // fastOutSlowIn,
-            //      child: SizedBox(
             height: mapHeight,
             width: MediaQuery.of(context).size.width,
             child: _handleMap(),
@@ -885,6 +868,13 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
         _startLatLng = pos;
       });
 
+      try {
+        double distance = double.parse(data['distance'].toString());
+        tripItem.distance += distance;
+      } catch (e) {
+        debugPrint(e.toString());
+      }
+
       //   _singlePointOfInterest(context, pos, insertAfter);
 
       /*
@@ -929,60 +919,91 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     setState(() {});
   }
 
-  BottomNavigationBar _handleBottomNavigationBar() {
-    return BottomNavigationBar(
-      currentIndex: _bottomNavigationsBarIndex,
-      showUnselectedLabels: true,
-      selectedItemColor: Colors.white,
-      unselectedItemColor: const Color.fromARGB(255, 214, 211, 211),
-      backgroundColor: Colors.blue,
-      items:
-          _bottomNavigationsBarItems, //  _bottomNavigationsBarIndex + onTapOffset],
-      onTap: ((idx) async {
-        _bottomNavigationsBarIndex = idx;
-        _title = _hints[0][idx];
-        switch (idx) {
-          case 0:
-            //  home
-            _appState = AppState.home;
+  NavigationBar _handleBottomNavigationBar() {
+    return NavigationBar(
+      height: 60,
+      surfaceTintColor: Colors.blue,
+      onDestinationSelected: (int index) {
+        setState(() {
+          _bottomNavigationsBarIndex = index;
+          switch (index) {
+            case 0:
+              //  home
+              _appState = AppState.home;
 
-            break;
-          case 1:
-            // Web routes
-            _appState = AppState.download;
-            break;
-          case 2:
-            // Create route
-            _appState = AppState.createTrip;
-            _showMask = false;
-            if (_pointsOfInterest.isEmpty) {
-              _tripState = TripState.none;
-              _showTarget = false;
-              _tripActions = TripActions.none;
-              mapHeight = MediaQuery.of(context).size.height - 190;
-            }
-            break;
-          case 3:
-            // My routes
-            _appState = AppState.myTrips;
-            break;
-          case 4:
-            //
-            setState(() {
-              _resizeDelay = 300;
-              if (mapHeight > 150) {
-                mapHeight -= 100;
-              } else {
-                mapHeight = 500;
+              break;
+            case 1:
+              // Web routes
+              _appState = AppState.download;
+              break;
+            case 2:
+              // Create route
+              _appState = AppState.createTrip;
+              _showMask = false;
+              if (_pointsOfInterest.isEmpty) {
+                _tripState = TripState.none;
+                _showTarget = false;
+                _tripActions = TripActions.headingDetail;
+                mapHeight = MediaQuery.of(context).size.height - 190;
               }
-              adjustHeigth(100);
-              tripItem.heading = 'C';
-            });
-            break;
-        }
+              break;
+            case 3:
+              // My routes
+              _appState = AppState.myTrips;
+              break;
+            case 4:
+              //
 
-        setState(() {});
-      }),
+              break;
+          }
+        });
+      },
+      indicatorColor: Colors.lightBlue,
+      selectedIndex: _bottomNavigationsBarIndex,
+      destinations: <Widget>[
+        const NavigationDestination(
+          selectedIcon: Icon(
+            Icons.home,
+          ),
+          icon: Icon(Icons.home_outlined),
+          label: 'Home',
+        ),
+        const NavigationDestination(
+          selectedIcon: Icon(Icons.route),
+          icon: Icon(Icons.route_outlined),
+          label: 'Trips',
+        ),
+        const NavigationDestination(
+          selectedIcon: Icon(
+            Icons.map,
+          ),
+          icon: Icon(Icons.map_outlined),
+          label: 'Create Trip',
+        ),
+        const NavigationDestination(
+          selectedIcon: Icon(Icons.person),
+          icon: Icon(Icons.person_outlined),
+          label: 'My Trips',
+        ),
+        const NavigationDestination(
+          selectedIcon: Icon(
+            Icons.storefront,
+          ),
+          icon: Icon(Icons.storefront_outlined),
+          label: 'Shop',
+        ),
+        NavigationDestination(
+          icon: Badge(
+            label: _messages.isEmpty ? null : Text(_messages.length.toString()),
+            child: const Icon(Icons.messenger_outlined),
+          ),
+          selectedIcon: Badge(
+            label: _messages.isEmpty ? null : Text(_messages.length.toString()),
+            child: const Icon(Icons.messenger),
+          ),
+          label: 'Messages',
+        ),
+      ],
     );
   }
 
@@ -1001,7 +1022,9 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
             const SizedBox(
               height: 175,
             ),
-            if (_tracking && _speed > 0.01) ...[
+            if ([TripState.recording, TripState.following]
+                    .contains(_tripState) &&
+                _speed > 0.01) ...[
               CircleAvatar(
                 radius: 28,
                 backgroundColor: Colors.blue,
@@ -1009,7 +1032,6 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                     style: const TextStyle(fontSize: 20)),
               ),
             ],
-            //      if (_tracking) ...[
             const SizedBox(
               height: 10,
             ),
@@ -1084,11 +1106,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                   mapController.mapEventStream.listen((event) {});
                 },
                 onPositionChanged: (position, hasGesure) {
-                  if (_tripState == TripState.manual &&
-                      !_tracking &&
-                      _showTarget) {
+                  if (_tripState == TripState.manual) {
                     _tripActions = TripActions.none;
-                    // } && _appState != AppState.driveTrip) {
                     int routeIdx = _routeAtCenter.getPolyLineNearestCenter();
                     // if (routeIdx > -1) {
                     for (int i = 0; i < _routes.length; i++) {
@@ -1192,13 +1211,23 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
         _maneuvers.isNotEmpty) {
       return Align(
           alignment: Alignment.topLeft,
-          child: DirectionsTile(
-            directions: _maneuvers[index],
+          child: DirectionTile(
+            direction: _maneuvers[index],
+            index: index,
+            directions: _maneuvers.length,
           ));
     } else {
       return const Align(
         alignment: Alignment.topLeft,
       );
+    }
+  }
+
+  dismissKeyboard() {
+    if (WidgetsBinding
+            .instance.platformDispatcher.views.first.viewInsets.bottom >
+        0) {
+      FocusManager.instance.primaryFocus?.unfocus();
     }
   }
 
@@ -1222,7 +1251,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       'Follow route',
       'Stop following',
       'Steps',
-      'Followers',
+      'Group',
       'Edit route',
       'Trip info',
       'Back',
@@ -1245,7 +1274,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       followRoute,
       stopFollowing,
       steps,
-      followers,
+      group,
       editRoute,
       tripData,
       back,
@@ -1273,8 +1302,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       Icons.map,
       Icons.arrow_back,
     ];
-    if (_tripActions == TripActions.saving) {
-      _tripActions = TripActions.none;
+    if ([TripActions.saving, TripActions.saved].contains(_tripActions)) {
+      _tripActions = TripActions.saved;
       return chips;
     }
     if (_tripState == TripState.none) {
@@ -1332,10 +1361,10 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       TripState.stoppedFollowing,
       TripState.notFollowing
     ].contains(_tripState)) {
-      if (_tripActions == TripActions.showFollowers) {
+      if (_tripActions == TripActions.showGroup) {
         chipNames.add('Trip info');
       } else {
-        chipNames.add('Followers');
+        chipNames.add('Group');
       }
       if (_tripActions == TripActions.showSteps) {
         chipNames.add('Trip info');
@@ -1345,7 +1374,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       if (_tripState != TripState.following) {
         chipNames
           ..add('Edit route')
-          ..add('Clear trip')
+          //    ..add('Clear trip')
           ..add('Back');
       }
     }
@@ -1375,10 +1404,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       _alignPositionOnUpdate = AlignOnUpdate.never;
       _alignDirectionOnUpdate = AlignOnUpdate.never;
       _tripState = TripState.manual;
-      _resizeDelay = 400;
-      mapHeight = 300;
-      adjustHeigth(100);
-      tripItem.heading = 'C';
+      _tripActions = TripActions.headingDetail;
+      adjustMapHeight(MapHeights.headers);
     });
   }
 
@@ -1387,29 +1414,38 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       _showMask = false;
       _showTarget = false;
       _tripState = TripState.automatic;
-      _resizeDelay = 400;
-      mapHeight = 300;
-      adjustHeigth(100);
-      tripItem.heading = 'C';
+      _tripActions = TripActions.headingDetail;
+      adjustMapHeight(MapHeights.headers);
     });
   }
 
   void waypoint() async {
     _goodRoad.isGood = false;
-    setState(() => _showMask = true);
-    if (_pointsOfInterest.isEmpty) {
-      _routes.clear();
-      _maneuvers.clear();
-    }
+    setState(() {
+      _showMask = true;
+      _tripActions = TripActions.none;
+      _editPointOfInterest = -1;
+      // _poiDetailIndex = -1;
+      if (_pointsOfInterest.isEmpty) {
+        adjustMapHeight(MapHeights.full);
+        _routes.clear();
+        _maneuvers.clear();
+      }
+    });
     await addWaypoint();
   }
 
   void pointOfInterest() async {
     _showMask = true;
     LatLng pos = _animatedMapController.mapController.camera.center;
-    await getPoiName(latLng: pos, name: 'Point of interest').then((name) {
-      _addPointOfInterest(id, userId, 15, name, '', 30.0, pos);
-      setState(() => _showMask = false);
+    String name = await getPoiName(latLng: pos, name: 'Point of interest');
+    await _addPointOfInterest(id, userId, 15, name, '', 30.0, pos);
+    setState(() {
+      tripItem.pointsOfInterest++;
+      _showMask = false;
+      _tripActions = TripActions.pointOfInterest;
+      _editPointOfInterest = _pointsOfInterest.length - 1;
+      adjustMapHeight(MapHeights.pointOfInterest);
     });
   }
 
@@ -1447,13 +1483,13 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     });
     getLocationUpdates();
     _tripState = TripState.recording;
-    _tracking = true;
+    _tripState = TripState.recording;
     setState(() {});
   }
 
   void stopRecording() async {
     _positionStream.cancel();
-    _tracking = false;
+    _tripState = TripState.stoppedRecording;
     _alignDirectionOnUpdate = AlignOnUpdate.never;
     _alignPositionOnUpdate = AlignOnUpdate.never;
     _tripState = TripState.stoppedRecording;
@@ -1470,7 +1506,6 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   void pauseRecording() {
     setState(() {
       _trackingState(trackingOn: false);
-      _tracking = false;
       _tripState = TripState.paused;
     });
   }
@@ -1566,8 +1601,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
         _alignPositionOnUpdate = AlignOnUpdate.always;
         _alignDirectionOnUpdate =
             Setup().rotateMap ? AlignOnUpdate.always : AlignOnUpdate.never;
-        _tracking = true;
         _showTarget = false;
+        adjustMapHeight(MapHeights.full);
       });
     });
   }
@@ -1576,7 +1611,6 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     setState(() {
       _alignPositionOnUpdate = AlignOnUpdate.never;
       _alignDirectionOnUpdate = AlignOnUpdate.never;
-      _tracking = false;
       _tripState = TripState.stoppedFollowing;
     });
   }
@@ -1584,39 +1618,36 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   void steps() {
     setState(() {
       _tripActions = TripActions.showSteps;
-      _resizeDelay = 300;
-      mapHeight = 400;
-      adjustHeigth(100);
+      adjustMapHeight(MapHeights.headers);
     });
   }
 
   void tripData() {
     setState(() {
       _tripActions = TripActions.none;
-      _resizeDelay = 300;
-      mapHeight = MediaQuery.of(context).size.height - 190;
-      adjustHeigth(100);
+      adjustMapHeight(MapHeights.full);
     });
   }
 
   void back() {
     setState(() {
+      if ([TripState.stoppedFollowing, TripState.notFollowing]
+          .contains(_tripState)) {
+        _appState = AppState.myTrips;
+        clearTrip();
+        _bottomNavigationsBarIndex = 3;
+      }
       _tripState = TripState.none;
       _tripActions = TripActions.none;
       _showTarget = false;
-      _resizeDelay = 300;
-      mapHeight = 700;
-      adjustHeigth(100);
-      tripItem.heading = 'C';
+      adjustMapHeight(MapHeights.full);
     });
   }
 
-  void followers() async {
+  void group() async {
     setState(() {
-      _tripActions = TripActions.showFollowers;
-      _resizeDelay = 300;
-      mapHeight = 400;
-      adjustHeigth(100);
+      _tripActions = TripActions.showGroup;
+      adjustMapHeight(MapHeights.headers);
     });
     _following.clear();
     _following.add(Follower(
@@ -1657,10 +1688,10 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
 
   void editRoute() async {
     setState(() {
-      _tracking = false;
       _showTarget = true;
       _tripActions = TripActions.none;
       _tripState = TripState.manual;
+      _bottomNavigationsBarIndex = 2;
     });
   }
 
@@ -1776,10 +1807,12 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
 
   Widget _handleTripInfo() {
     switch (_tripActions) {
-      case TripActions.showFollowers:
-        return _showFollowers();
+      case TripActions.showGroup:
+        return _showGroup();
       case TripActions.showSteps:
         return _showManeuvers();
+      case TripActions.headingDetail:
+        return _exploreDetailsHeader();
       default:
         return _showExploreDetail();
     }
@@ -1807,14 +1840,19 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       )),
       onVerticalDragUpdate: (DragUpdateDetails details) {
         setState(() {
+          if (mapHeights[0] == 0) {
+            mapHeights[0] = MediaQuery.of(context).size.height - 190;
+          }
           mapHeight += details.delta.dy;
-          adjustHeigth(100);
+          mapHeight = mapHeight > mapHeights[0] ? mapHeights[0] : mapHeight;
+          mapHeight = mapHeight < 1 ? 1 : mapHeight;
+          listHeight = mapHeights[0] - mapHeight;
         });
       },
     ); //);
   }
 
-  SizedBox _showFollowers() {
+  SizedBox _showGroup() {
     // List<Follower> sortedFollowing = _following
     //   ..sort((item1, item2) => item2.compareTo(item1));
     return SizedBox(
@@ -1844,6 +1882,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                 child: ManeuverTile(
                     index: index,
                     maneuver: _maneuvers[index],
+                    maneuvers: _maneuvers.length,
                     onLongPress: maneuverLongPress,
                     distance: 0))));
   }
@@ -1874,11 +1913,11 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   }
 
   Future<void> followerIconClick(int index) async {
-    await messageFollowers(index);
+    await messageGroup(index);
     return;
   }
 
-  Future<void> messageFollowers(int index) async {
+  Future<void> messageGroup(int index) async {
     List<String> choices = [
       'All OK',
       'Stopping for fuel',
@@ -1981,99 +2020,17 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     return;
   }
 
-/*
-  SizedBox _showExporeDetails() {
-
-    return SizedBox(height: listHeight,
-    child: ListView.builder(
-                  itemCount: filteredGroupMembers.length,
-                  itemBuilder: (context, index) => Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10.0, vertical: 5.0),
-                      child: GroupMemberTile(
-                        groupMember: filteredGroupMembers[index],
-                        index: index,
-                        onDelete: onDelete,
-                        onEdit: onEdit,
-                        // ToDo: calculate how far away
-                      )))
-    )
-  }
-*/
-  /// The container that shows trip details
-  ///
-/*    return ReorderableListView(
-      padding: const EdgeInsets.symmetric(horizontal: 40),
-      children: <Widget>[
-        for (int index = 0; index < _items.length; index += 1)
-          ListTile(
-            key: Key('$index'),
-            tileColor: _items[index].isOdd ? oddItemColor : evenItemColor,
-            title: Text('Item ${_items[index]}'),
-          ),
-      ],
-      onReorder: (int oldIndex, int newIndex) {
-        setState(() {
-          if (oldIndex < newIndex) {
-            newIndex -= 1;
-          }
-          final int item = _items.removeAt(oldIndex);
-          _items.insert(newIndex, item);
-        });
-      }, 
-      
-      SingleChildScrollView(
-  child: SizedBox(
-    height: MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top,
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        // ...
-      ],
-    ),
-  ),
-),
-      
-      
-      */
-  Widget _showExploreDetail2() {
-    return SingleChildScrollView(
-        // child:
-        // SizedBox(
-        //    height: listHeight + 250,
-        child: Column(children: [
-      if (_editPointOfInterest < 0) _exploreDetailsHeader(),
-      SizedBox(
-          height: listHeight - 250 >= 0 ? listHeight - 250 : 0,
-          child: ListView.builder(
-              itemCount: _pointsOfInterest.length,
-              itemBuilder: (context, index) => Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10.0, vertical: 5.0),
-                  child: _pointsOfInterest[index].type == 12
-                      ? waypointTile(index)
-                      : PointOfInterestTile(
-                          key: ValueKey(index),
-                          index: index,
-                          pointOfInterest: _pointsOfInterest[index],
-                          onExpandChange: expandChange,
-                          onIconTap: iconButtonTapped,
-                          canEdit: _appState != AppState.driveTrip,
-                        ))))
-    ]));
-  }
-
   SizedBox _showExploreDetail() {
     // _exploreTracking || _pointsOfInterest.isEmpty
     return SizedBox(
         height: listHeight,
         child: CustomScrollView(controller: _scrollController, slivers: [
-          if (_editPointOfInterest < 0)
+          if (_editPointOfInterest < 0) ...[
             SliverToBoxAdapter(
               child: _exploreDetailsHeader(),
             ),
-          if (_editPointOfInterest <
-              0) // && _pointsOfInterest[index].type != 12)
+            //      if (_editPointOfInterest <
+            //          0) // && _pointsOfInterest[index].type != 12)
             SliverReorderableList(
                 itemBuilder: (context, index) {
                   //   debugPrint('Index: $index');
@@ -2089,6 +2046,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                             pointOfInterest: _pointsOfInterest[index],
                             onExpandChange: expandChange,
                             onIconTap: iconButtonTapped,
+                            onDelete: removePointOfInterest,
                             canEdit: _appState != AppState.driveTrip,
                           ); //   pointOfInterestTile(index);
                   } else {
@@ -2108,8 +2066,9 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                         _pointsOfInterest.removeAt(oldIndex);
                     _pointsOfInterest.insert(newIndex, poi);
                   });
-                }),
-          if (_editPointOfInterest > -1)
+                })
+          ],
+          if (_editPointOfInterest > -1) ...[
             SliverToBoxAdapter(
                 child: PointOfInterestTile(
               key: ValueKey(_editPointOfInterest),
@@ -2118,9 +2077,11 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
               pointOfInterest: _pointsOfInterest[_editPointOfInterest],
               onExpandChange: expandChange,
               onIconTap: iconButtonTapped,
+              onDelete: removePointOfInterest,
               expanded: true,
               canEdit: _appState != AppState.driveTrip,
-            )) //     iconButtonTapped  expandChange      pointOfInterestTile(_editPointOfInterest)),
+            ))
+          ] //     iconButtonTapped  expandChange      pointOfInterestTile(_editPointOfInterest)),
         ]));
   }
 
@@ -2192,8 +2153,7 @@ You can also publish your trips for others to enjoy. You can invite a group of f
     ]);
   }
 
-  Widget _showTripTiles() {
-    List<TripItem> tripItems = [];
+  void tripsFromWeb() {
     tripItems.add(
       TripItem(
           heading: 'A Beautiful Trip Through The Cotswolds',
@@ -2233,7 +2193,9 @@ You can plan trips either on your own or you can explore in a group''',
         distance: 52,
         closest: 32,
         downloads: 12));
+  }
 
+  Widget _showTripTiles() {
     return ListView(children: [
       const Card(
           child: Column(children: [
@@ -2317,8 +2279,6 @@ You can plan trips either on your own or you can explore in a group''',
       _tripActions = TripActions.none;
       _appState = AppState.driveTrip;
       _showTarget = false;
-      _tracking = false;
-      _bottomNavigationsBarIndex = 2;
       _title = myTripItems[index].heading;
     });
 
@@ -2468,6 +2428,10 @@ You can plan trips either on your own or you can explore in a group''',
       Padding(
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
         child: TextFormField(
+            autofocus: _tripActions ==
+                TripActions.headingDetail, //  tripItem.heading.isEmpty,
+            focusNode: fn1,
+            textInputAction: TextInputAction.next,
             readOnly: _tripState != TripState.manual,
             //    enabled: _appState != AppState.driveTrip,
             textAlign: TextAlign.start,
@@ -2491,6 +2455,8 @@ You can plan trips either on your own or you can explore in a group''',
         child: TextFormField(
             readOnly: _tripState != TripState.manual,
             //  enabled: _appState != AppState.driveTrip,
+            autofocus: false,
+            textInputAction: TextInputAction.next,
             textAlign: TextAlign.start,
             keyboardType: TextInputType.multiline,
             maxLines: null,
@@ -2514,6 +2480,8 @@ You can plan trips either on your own or you can explore in a group''',
         padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
         child: TextFormField(
             readOnly: _tripState != TripState.manual,
+            autofocus: false,
+            textInputAction: TextInputAction.done,
             // enabled: _appState != AppState.driveTrip,
             textAlign: TextAlign.start,
             maxLines: null,
@@ -2537,6 +2505,7 @@ You can plan trips either on your own or you can explore in a group''',
     ]);
   }
 
+/*
   _updateMarker(editPointOfInterest) {
     setState(() {
       _pointsOfInterest[_editPointOfInterest].child = RawMaterialButton(
@@ -2557,7 +2526,7 @@ You can plan trips either on your own or you can explore in a group''',
           ));
     });
   }
-
+*/
   Future getImage(ImageSource source, PointOfInterest poi) async {
     // XFile _image;
     final picker = ImagePicker();
@@ -2584,7 +2553,7 @@ You can plan trips either on your own or you can explore in a group''',
       pos = const LatLng(0.0, 0.0);
     }
 
-    if (!_tracking) {
+    if (_tripState == TripState.recording) {
       await Geolocator.getCurrentPosition(
               desiredAccuracy: LocationAccuracy.best)
           .then((position) {
@@ -2619,7 +2588,7 @@ You can plan trips either on your own or you can explore in a group''',
     }
     setState(() {});
     _goodRoad.isGood = false;
-    _tracking = trackingOn;
+    // _tracking = trackingOn;
   }
 
   /// Uses Geolocator.getPositionStream to get a stream of locations. Triggers posotion update
@@ -2631,6 +2600,7 @@ You can plan trips either on your own or you can explore in a group''',
       accuracy: LocationAccuracy.best,
       distanceFilter: 10, // 10 meters
     );
+
     _positionStream =
         Geolocator.getPositionStream(locationSettings: locationSettings)
             .listen((position) {
@@ -2639,66 +2609,31 @@ You can plan trips either on your own or you can explore in a group''',
       LatLng pos =
           LatLng(_currentPosition.latitude, _currentPosition.longitude);
 
-      if (_lastLatLng == const LatLng(0.00, 0.00)) {
-        _lastLatLng = pos;
-        _tripDistance = 0;
-        _routes.clear();
-        _routes.add(mt.Route(
-            id: -1,
-            points: [pos],
-            borderColor: uiColours.keys.toList()[Setup().routeColour],
-            color: uiColours.keys.toList()[Setup().routeColour],
-            strokeWidth: 5));
-      } else {
-        setState(() {
-          _directionsIndex = getDirectionsIndex();
-          LatLng followPos = _lastLatLng;
-          int points = _routes[_routes.length - 1].points.length;
-          if (points > 3) {
-            if (_pointsOfInterest.isNotEmpty) {
-              followPos = _routes[_routes.length - 1].points[points - 3];
-            }
-          }
+      if (_tripState == TripState.recording) {
+        if (_lastLatLng == const LatLng(0.00, 0.00)) {
+          _lastLatLng = pos;
+          _tripDistance = 0;
+          _routes.clear();
+          _routes.add(mt.Route(
+              id: -1,
+              points: [pos],
+              borderColor: uiColours.keys.toList()[Setup().routeColour],
+              color: uiColours.keys.toList()[Setup().routeColour],
+              strokeWidth: 5));
+        }
+        _routes[_routes.length - 1].points.add(pos);
+        debugPrint(
+            '_routes.length: ${_routes.length}  points: ${_routes[_routes.length - 1].points.length}');
+        _tripDistance += Geolocator.distanceBetween(
+            _lastLatLng.latitude,
+            _lastLatLng.longitude,
+            _currentPosition.latitude,
+            _currentPosition.longitude);
 
-          PointOfInterest testPoi = PointOfInterest(
-            id,
-            userId,
-            driveId,
-            16,
-            'test',
-            'test',
-            12,
-            12,
-            images,
-            markerPoint: followPos,
-            marker: MarkerWidget(
-              type: 16,
-              description: 'test',
-              angle: -_mapRotation * pi / 180,
-            ),
-          );
-
-          if (_pointsOfInterest.isEmpty) {
-            _pointsOfInterest.add(testPoi);
-          } else {
-            // _pointsOfInterest.removeAt(0);
-            _pointsOfInterest[0] = testPoi;
-          }
-
-          _pointsOfInterest[0].position = followPos;
-
-          _routes[_routes.length - 1].points.add(pos);
-          debugPrint(
-              '_routes.length: ${_routes.length}  points: ${_routes[_routes.length - 1].points.length}');
-          _tripDistance += Geolocator.distanceBetween(
-              _lastLatLng.latitude,
-              _lastLatLng.longitude,
-              _currentPosition.latitude,
-              _currentPosition.longitude);
-
-          _lastLatLng =
-              LatLng(_currentPosition.latitude, _currentPosition.longitude);
-        });
+        _lastLatLng =
+            LatLng(_currentPosition.latitude, _currentPosition.longitude);
+      } else if (_tripState == TripState.following) {
+        setState(() => _directionsIndex = getDirectionsIndex());
       }
     });
   }
@@ -2724,19 +2659,18 @@ You can plan trips either on your own or you can explore in a group''',
     return idx;
   }
 
-  adjustHeigth(int percent) {
-    double height = (MediaQuery.of(context).size.height -
-            AppBar().preferredSize.height -
-            kBottomNavigationBarHeight -
-            _dividerHeight) *
-        0.93;
-
-    height = height * percent / 100;
-
-    mapHeight = mapHeight > height ? height : mapHeight;
-    mapHeight = mapHeight < 20 ? 20 : mapHeight;
-
-    listHeight = (height - mapHeight);
+  adjustMapHeight(MapHeights newHeight) {
+    if (mapHeights[1] == 0) {
+      mapHeights[0] = MediaQuery.of(context).size.height - 190; // info closed
+      mapHeights[1] = mapHeights[0] - 100; // heading data
+      mapHeights[2] = mapHeights[0] - 400;
+    }
+    double mapHeight = mapHeights[MapHeights.values.indexOf(newHeight)];
+    if (newHeight == MapHeights.full) {
+      dismissKeyboard();
+    }
+    listHeight = (mapHeights[0] - mapHeight);
+    _resizeDelay = 400;
   }
 
   locationLatLng(pos) {
@@ -2764,9 +2698,19 @@ You can plan trips either on your own or you can explore in a group''',
 
   expandChange(var details) {
     if (details != null) {
-      debugPrint('ExpandChanged: $details');
-      _editPointOfInterest = details;
-      setState(() {});
+      setState(() {
+        debugPrint('ExpandChanged: $details');
+        _editPointOfInterest = details;
+        if (details >= 0) {
+          adjustMapHeight(MapHeights.pointOfInterest);
+        } else {
+          FocusManager.instance.primaryFocus?.unfocus(); // dismiss keyboard
+          adjustMapHeight(MapHeights.full);
+        }
+      });
+      //  Future.delayed(const Duration(milliseconds: 500), () {
+      //    setState(() {});
+      //  });
     }
   }
 
@@ -2776,6 +2720,12 @@ You can plan trips either on your own or you can explore in a group''',
     if (_editPointOfInterest > -1) {
       _animatedMapController.animateTo(
           dest: _pointsOfInterest[_editPointOfInterest].point);
+    }
+  }
+
+  removePointOfInterest(var details) {
+    if (_editPointOfInterest > -1) {
+      _pointsOfInterest.removeAt(_editPointOfInterest);
     }
   }
 
@@ -2808,7 +2758,9 @@ You can plan trips either on your own or you can explore in a group''',
       setState(() {
         _resizeDelay = 300;
         mapHeight = 400;
-        tripItem.heading = ' ';
+        adjustMapHeight(MapHeights.headers);
+        _tripActions = TripActions.headingDetail;
+        fn1.requestFocus();
       });
       return -1;
     }
@@ -2817,9 +2769,8 @@ You can plan trips either on your own or you can explore in a group''',
       Utility().showConfirmDialog(context, "Can't save - more info needed",
           'Please give a brief summary of this trip.');
       setState(() {
-        _resizeDelay = 300;
-        mapHeight = 400;
-        tripItem.body = ' ';
+        adjustMapHeight(MapHeights.headers);
+        _tripActions = TripActions.headingDetail;
       });
       return -1;
     }
@@ -2828,26 +2779,26 @@ You can plan trips either on your own or you can explore in a group''',
       Utility().showConfirmDialog(context, "Can't save - more info needed",
           'Please give some interesting details about this trip.');
       setState(() {
-        _resizeDelay = 300;
-        mapHeight = 400;
-        tripItem.body = ' ';
+        adjustMapHeight(MapHeights.headers);
+        _tripActions = TripActions.headingDetail;
       });
       return -1;
     }
-    double height = mapHeight;
     setState(() {
       _tripActions = TripActions.saving;
       _showTarget = false;
-      mapHeight = 590;
-      adjustHeigth(100);
+      adjustMapHeight(MapHeights.full);
     });
     Drive drive = Drive(
-        id: driveId,
-        userId: -1,
-        title: tripItem.heading,
-        subTitle: tripItem.subHeading,
-        body: tripItem.body,
-        added: DateTime.now());
+      id: driveId,
+      userId: -1,
+      title: tripItem.heading,
+      subTitle: tripItem.subHeading,
+      body: tripItem.body,
+      added: DateTime.now(),
+      distance: tripItem.distance,
+      pois: tripItem.pointsOfInterest,
+    );
 
     if (driveId == -1) {
       driveId = await saveDrive(drive: drive);
@@ -2879,7 +2830,7 @@ You can plan trips either on your own or you can explore in a group''',
           try {
             String points = waypointsFromPointsOfInterest();
             if (points.isNotEmpty) {
-              await getRoutePoints(points);
+              //    await getRoutePoints(points);
             }
           } catch (e) {
             debugPrint('error ${e.toString()}');
@@ -2895,7 +2846,6 @@ You can plan trips either on your own or you can explore in a group''',
       // && MediaQuery.of(context).viewInsets.bottom > 0) {
       setState(() {
         FocusManager.instance.primaryFocus?.unfocus();
-        tripItem.heading = tripItem.heading + ' ';
       });
     }
 
@@ -2921,7 +2871,7 @@ You can plan trips either on your own or you can explore in a group''',
     saveDrive(drive: drive);
 
     setState(() {
-      mapHeight = height;
+      //  mapHeight = height;
     });
     return driveId;
   }
@@ -2964,10 +2914,11 @@ You can plan trips either on your own or you can explore in a group''',
       //   }
       _routes.clear();
       _pointsOfInterest.clear();
+      _editPointOfInterest = -1;
       _maneuvers.clear();
       _goodRoad.isGood = false;
       _cutRoutes.clear;
-      _tracking = false;
+      _tripActions = TripActions.none;
       driveId = -1;
     });
   }
@@ -3013,22 +2964,6 @@ You can plan trips either on your own or you can explore in a group''',
   }
 
   /// _MyHomePageState Class End -----------------------------------------
-}
-
-class InvertedClipper extends CustomClipper<ui.Path> {
-  @override
-  ui.Path getClip(Size size) {
-    return ui.Path()
-      ..addRect(Rect.fromLTWH(0, 0, size.width, size.height))
-      ..addOval(Rect.fromCircle(
-          center: Offset(size.width / 2, size.height / 2), radius: 40))
-      ..fillType = PathFillType.evenOdd;
-
-    // return new Path();
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<ui.Path> oldClipper) => true;
 }
 
 /// StickyMenuDeligate provides a ToggleButton menu at the top of the sliverList

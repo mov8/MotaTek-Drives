@@ -5,11 +5,14 @@ class ManeuverTile extends StatefulWidget {
   final Maneuver maneuver;
   final Function(int) onLongPress;
   final int index;
+  final int maneuvers;
   final double distance;
+
   const ManeuverTile({
     super.key,
     required this.index,
     required this.maneuver,
+    required this.maneuvers,
     required this.onLongPress,
     required this.distance,
   });
@@ -26,9 +29,10 @@ class _maneuverTileState extends State<ManeuverTile> {
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.all(Radius.circular(10))),
       contentPadding: const EdgeInsets.fromLTRB(5, 5, 5, 5),
-      leading: getNavIcon(widget.maneuver.modifier, widget.maneuver.type),
+      leading: getNavIcon(widget.maneuver.modifier, widget.maneuver.type,
+          widget.index, widget.maneuvers),
       title: Text(
-          '${modifyModifier(widget.maneuver.modifier, widget.maneuver.type)} ${widget.maneuver.roadFrom}'),
+          '${modifyModifier(widget.maneuver.modifier, widget.maneuver.type, widget.index, widget.maneuvers)} ${widget.maneuver.roadFrom}'),
       subtitle: Text(widget.maneuver.type.contains('arrive')
           ? ''
           : 'drive ${modifyDistance(widget.maneuver.distance)} towards ${widget.maneuver.roadTo}'),
@@ -49,9 +53,13 @@ String modifyDistance(double distance) {
   }
 }
 
-String modifyModifier(String modifier, String type) {
-  if (modifier == 'depart') {
+String modifyModifier(String modifier, String type, int index, int maneuvers) {
+  if (index == 0) {
+    modifier = 'depart from';
+  } else if (modifier == 'depart') {
     modifier = 'trip start depart from';
+  } else if (type.contains('arrive') && index < maneuvers - 1) {
+    modifier = 'waypoint';
   } else if (type.contains('arrive')) {
     modifier = 'trip end';
   } else if (modifier.contains('arrive')) {
@@ -64,12 +72,17 @@ String modifyModifier(String modifier, String type) {
   return modifier;
 }
 
-Icon getNavIcon(String modifier, String type) {
+Icon getNavIcon(String modifier, String type, int index, int maneuvers) {
   Icon navIcon = const Icon(
     Icons.arrow_upward,
     size: 40,
   );
-  if (type.contains('arrive')) {
+  if (index < maneuvers - 1 && type.contains('arrive')) {
+    navIcon = const Icon(
+      Icons.pin_drop,
+      size: 40,
+    );
+  } else if (type.contains('arrive')) {
     navIcon = const Icon(
       Icons.flag,
       size: 40,

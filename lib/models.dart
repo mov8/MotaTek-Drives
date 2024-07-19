@@ -855,8 +855,8 @@ class TripItem {
   String published = '';
   List<String> imageUrls = [];
   double score = 5;
-  int distance = 10;
-  int pointsOfInterest = 3;
+  double distance = 0;
+  int pointsOfInterest = 0;
   int closest = 12;
   int scored = 10;
   int downloads = 18;
@@ -870,8 +870,8 @@ class TripItem {
     this.published = '',
     this.imageUrls = const [],
     this.score = 5,
-    this.distance = 10,
-    this.pointsOfInterest = 3,
+    this.distance = 0,
+    this.pointsOfInterest = 0,
     this.closest = 12,
     this.scored = 10,
     this.downloads = 18,
@@ -911,7 +911,7 @@ class MyTripItem {
   List<mt.Route> routes = [];
   String images = '';
   double score = 5;
-  int distance = 10;
+  double distance = 0;
   int closest = 12;
   int highlights = 0;
   bool showMethods = true;
@@ -927,7 +927,7 @@ class MyTripItem {
     this.routes = const [],
     this.images = '',
     this.score = 5,
-    this.distance = 10,
+    this.distance = 0,
     this.closest = 12,
   });
 
@@ -991,7 +991,7 @@ Future<List<MyTripItem>> tripItemFromDb({int driveId = -1}) async {
     pos = LatLng(currentPosition.latitude, currentPosition.longitude);
   });
   String drivesQuery =
-      '''SELECT drives.title, drives.sub_title, drives.body, drives.map_image,
+      '''SELECT drives.title, drives.sub_title, drives.body, drives.map_image, drives.distance, drives.points_of_interest,
     points_of_interest.*  
     FROM drives
     JOIN points_of_interest 
@@ -1027,6 +1027,7 @@ Future<List<MyTripItem>> tripItemFromDb({int driveId = -1}) async {
             subHeading: maps[i]['sub_title'],
             body: maps[i]['body'],
             images: maps[i]['map_image'],
+            distance: double.parse(maps[i]['distance'].toString()),
             pointsOfInterest: [
               PointOfInterest(
                   maps[i]['id'],
@@ -1042,7 +1043,6 @@ Future<List<MyTripItem>> tripItemFromDb({int driveId = -1}) async {
                       LatLng(maps[i]['latitude'], maps[i]['longitude']),
                   marker: MarkerWidget(type: maps[i]['type']))
             ],
-            distance: 10,
             closest: 15));
         if (maps[i]['type'] != 12) highlights++;
       } else {
@@ -1078,7 +1078,7 @@ Future<List<MyTripItem>> tripItemFromDb({int driveId = -1}) async {
     // for maps;
   } catch (e) {
     String err = e.toString();
-    debugPrint('Error loading Setup $err');
+    debugPrint('Error loading Drive $err');
   }
   return trips;
 }
@@ -1093,10 +1093,8 @@ class Drive {
   String subTitle;
   String body;
   DateTime added = DateTime.now();
-  double maxLat = 0;
-  double minLat = 0;
-  double maxLong = 0;
-  double minLong = 0;
+  double distance = 0;
+  int pois = 0;
   String images = ''; // To s
   List<PointOfInterest> pointsOfInterest = [];
   List<Polyline> polyLines = [];
@@ -1114,10 +1112,8 @@ class Drive {
     required this.body,
     required this.added,
     this.images = '',
-    this.maxLat = 0,
-    this.minLat = 0,
-    this.maxLong = 0,
-    this.minLong = 0,
+    this.distance = 0,
+    this.pois = 0,
   });
 
   Future<bool> saveLocally() async {
@@ -1154,10 +1150,8 @@ class Drive {
       'body': body,
       'added': added.toString(),
       'map_image': images,
-      'max_lat': maxLat,
-      'min_lat': minLat,
-      'max_long': maxLong,
-      'min_long': minLong,
+      'distance': distance,
+      'points_of_interest': pois,
     };
   }
 

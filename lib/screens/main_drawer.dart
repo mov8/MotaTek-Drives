@@ -81,34 +81,6 @@ class _MainDrawerState extends State<MainDrawer> {
               MaterialPageRoute(builder: (context) => const GroupForm()),
             );
           }),
-      const ListTile(
-        leading: Icon(
-          Icons.no_crash,
-          size: 30,
-        ),
-        title: Text('Group Trips',
-            style: TextStyle(
-              color: Colors.blue,
-              fontSize: 20,
-            )),
-        //             onTap: () {
-        //
-        //             }
-      ),
-      const ListTile(
-        leading: Icon(
-          Icons.share,
-          size: 30,
-        ),
-        title: Text('Followers',
-            style: TextStyle(
-              color: Colors.blue,
-              fontSize: 20,
-            )),
-        //             onTap: () {
-        //
-        //             }
-      )
     ]));
   }
 }
