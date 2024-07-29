@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 import 'dart:convert';
 import 'package:drives/models.dart';
+import 'package:drives/services/db_helper.dart';
 
 /// Autocomplete API uses https://photon.komoot.io
 /// eg - https://photon.komoot.io/api/?q=staines
@@ -137,13 +139,13 @@ class _searchLocationState extends State<SearchLocation> {
   }
 }
 
-final apiUrl = 'http://10.101.1.155:5000/v1/user/register/';
-final urlBase = 'http://10.101.1.155:5000/';
+//final apiUrl = 'http://10.101.1.150:5000/v1/user/register/';
+const urlBase = 'http://10.101.1.150:5000/';
 
 Future<String> postUser(User user) async {
   Map<String, dynamic> userMap = user.toMap();
   final http.Response response =
-      await http.post(Uri.parse(urlBase + 'v1/user/register/'),
+      await http.post(Uri.parse('${urlBase}v1/user/register/'),
           headers: <String, String>{
             "Content-Type": "application/json; charset=UTF-8",
           },
@@ -153,9 +155,262 @@ Future<String> postUser(User user) async {
     debugPrint('User posted OK');
     Map<String, dynamic> map = jsonDecode(response.body);
     Setup().jwt = map['token'];
+    await updateSetup();
+
     return jsonEncode({'token': Setup().jwt, 'code': response.statusCode});
   } else {
     debugPrint('Failed to post user');
+    return jsonEncode({'token': '', 'code': response.statusCode});
+  }
+}
+
+/*
+      'id': id,
+      'user_id': userId,
+      'title': title,
+      'sub_title': subTitle,
+      'body': body,
+      'added': added.toString(),
+      'map_image': images,
+      'distance': distance,
+      'points_of_interest': pois,
+
+      'id': id,
+      'heading': heading,
+      'subHeading': subHeading,
+      'body': body,
+      'author': author,
+      'authorUrl': authorUrl,
+      'published': published,
+      'imageUrls': imageUrls,
+      'score': score,
+      'distance': distance,
+      'pointsOfInterest': pointsOfInterest,
+      'closest': closest,
+      'scrored': scored,
+      'downloads': downloads,      
+*/
+
+Future<dynamic> postTrip(MyTripItem tripItem) async {
+  Map<String, dynamic> map = tripItem.toMap();
+  List<Photo> photos = photosFromJson(tripItem.images);
+
+  var request =
+      http.MultipartRequest('POST', Uri.parse('${urlBase}v1/drive/add'));
+
+  ///  for (Photo photo in photos) {
+  ///    request.files.add(await http.MultipartFile.fromPath('files', photo.url));
+  /// "ClientException with SocketException: Broken pipe (OS Error: Broken pipe, errno = 32), address = 10.101.1.150, port = 58368, uri…"
+  /// }
+  var response;
+  String jwToken = Setup().jwt;
+  try {
+    request.files.add(await http.MultipartFile.fromPath('file', photos[0].url));
+    request.fields['title'] = map['heading'];
+    request.fields['sub_title'] = map['subHeading'];
+    request.fields['body'] = map['body'];
+    request.fields['distance'] = map['distance'].toString();
+    request.fields['points_of_interest'] =
+        map['pointsOfInterest'].length.toString();
+    request.fields['score'] = '5';
+    // map['scored'] ?? '5';
+    request.fields['added'] = DateTime.now().toString();
+
+    request.headers['Authorization'] = 'Bearer $jwToken';
+
+    response = await request.send().timeout(const Duration(seconds: 30));
+  } catch (e) {
+    String err = e.toString();
+    if (e is TimeoutException) {
+      debugPrint('Request timed out');
+    } else {
+      debugPrint('Error posting trip: $err');
+    }
+  }
+
+  if ([200, 201].contains(response.statusCode)) {
+    // 201 = Created
+    var responseData = await response.stream.bytesToString();
+    debugPrint('Server response: $responseData');
+    return jsonDecode(responseData);
+  } else {
+    debugPrint('Failed to post trip: ${response.statusCode}');
+    return jsonEncode({'token': '', 'code': response.statusCode});
+  }
+}
+
+///      'id': id,
+///      'useId': userId,
+///      'driveId': driveId,
+///      'type': type,
+///      'name': name,
+///      'description': description,
+///      'latitude': markerPoint.latitude,
+///      'longitude': markerPoint.longitude,
+
+Future<String> postPointOfInterest(
+    PointOfInterest pointOfInterest, String tripUri) async {
+  Map<String, dynamic> map = pointOfInterest.toMap();
+  List<Photo> photos = photosFromJson(pointOfInterest.images);
+
+  var request = http.MultipartRequest(
+      'POST', Uri.parse('${urlBase}v1/point_of_interest/add'));
+
+  for (Photo photo in photos) {
+    request.files.add(await http.MultipartFile.fromPath('files', photo.url));
+  }
+  var response;
+  String jwToken = Setup().jwt;
+  try {
+    request.fields['drive_id'] = tripUri;
+    request.fields['name'] = map['name'];
+    request.fields['description'] = map['description'];
+    request.fields['type'] = map['type'].toString();
+    request.fields['latitude'] = map['latitude'].toString();
+    request.fields['longitude'] = map['longitude'].toString();
+
+    response = await request.send().timeout(const Duration(seconds: 30));
+  } catch (e) {
+    String err = e.toString();
+    if (e is TimeoutException) {
+      debugPrint('Request timed out');
+    } else {
+      debugPrint('Error posting trip: $err');
+    }
+  }
+
+  if (response.statusCode == 201) {
+    // 201 = Created
+    debugPrint('Point of interest posted OK');
+    var responseData = await response.stream.bytesToString();
+    debugPrint('Server response: $responseData');
+    return jsonEncode(responseData);
+  } else {
+    debugPrint('Failed to post point_of_interest: ${response.statusCode}');
+    return jsonEncode({'token': '', 'code': response.statusCode});
+  }
+}
+
+///      'drive_id': driveId,
+///      'points': pointsToString(polylines[i].points),
+///      'stroke': polylines[i].strokeWidth,
+///      'color': uiColours.keys
+
+Future<String> postPolyline(Polyline polyline, String driveUid) async {
+  Map<String, dynamic> map = {
+    'drive_id': driveUid,
+    'points': pointsToString(polyline.points),
+    'stroke': polyline.strokeWidth,
+    'color': uiColours.keys.toList().indexWhere((col) => col == polyline.color),
+  };
+
+  final http.Response response =
+      await http.post(Uri.parse('${urlBase}v1/polyline/add'),
+          headers: <String, String>{
+            "Content-Type": "application/json; charset=UTF-8",
+          },
+          body: jsonEncode(map));
+  if (response.statusCode == 201) {
+    // 201 = Created
+    debugPrint('Polyline posted OK');
+    return jsonEncode({'code': response.statusCode});
+  } else {
+    debugPrint('Failed to post user');
+    return jsonEncode({'token': '', 'code': response.statusCode});
+  }
+}
+
+Future<String> postPolylines(List<Polyline> polylines, String driveUid) async {
+  List<Map<String, dynamic>> maps = [];
+  for (Polyline polyline in polylines) {
+    maps.add({
+      'drive_id': driveUid,
+      'points': pointsToString(polyline.points),
+      'stroke': polyline.strokeWidth,
+      'colour':
+          uiColours.keys.toList().indexWhere((col) => col == polyline.color),
+    });
+  }
+  if (polylines.isEmpty) {
+    return jsonEncode({'message': 'no polylines to post'});
+  }
+  final http.Response response =
+      await http.post(Uri.parse('${urlBase}v1/polyline/add'),
+          headers: <String, String>{
+            "Content-Type": "application/json; charset=UTF-8",
+          },
+          body: jsonEncode(maps));
+  if (response.statusCode == 201) {
+    // 201 = Created
+    debugPrint('Polyline posted OK');
+    return jsonEncode({'code': response.statusCode});
+  } else {
+    debugPrint('Failed to post user');
+    return jsonEncode({'token': '', 'code': response.statusCode});
+  }
+}
+
+Future<String> postManeuver(Maneuver maneuver, String driveUid) async {
+  Map<String, dynamic> map = {
+    'drive_id': driveUid,
+    'road_from': maneuver.roadFrom,
+    'road_to': maneuver.roadTo,
+    'bearing_before': maneuver.bearingBefore,
+    'bearing_after': maneuver.bearingAfter,
+    'exit': maneuver.exit,
+    'location': maneuver.location.toString(),
+    'modifier': maneuver.modifier,
+    'type': maneuver.type,
+    'distance': maneuver.distance
+  };
+
+  final http.Response response =
+      await http.post(Uri.parse('${urlBase}v1/maneuver/add'),
+          headers: <String, String>{
+            "Content-Type": "application/json; charset=UTF-8",
+          },
+          body: jsonEncode(map));
+  if (response.statusCode == 201) {
+    // 201 = Created
+    debugPrint('Maneuver posted OK');
+    return jsonEncode({'code': response.statusCode});
+  } else {
+    debugPrint('Failed to post maneuver');
+    return jsonEncode({'token': '', 'code': response.statusCode});
+  }
+}
+
+Future<String> postManeuvers(List<Maneuver> maneuvers, String driveUid) async {
+  List<Map<String, dynamic>> maps = [];
+  for (Maneuver maneuver in maneuvers) {
+    maps.add({
+      'drive_id': driveUid,
+      'road_from': maneuver.roadFrom,
+      'road_to': maneuver.roadTo,
+      'bearing_before': maneuver.bearingBefore,
+      'bearing_after': maneuver.bearingAfter,
+      'exit': maneuver.exit,
+      'location': maneuver.location.toString(),
+      'modifier': maneuver.modifier,
+      'type': maneuver.type,
+      'distance': maneuver.distance
+    });
+  }
+  if (maps.isEmpty) {
+    return jsonEncode({'message': 'no maneuvers to post'});
+  }
+  final http.Response response =
+      await http.post(Uri.parse('${urlBase}v1/maneuver/add'),
+          headers: <String, String>{
+            "Content-Type": "application/json; charset=UTF-8",
+          },
+          body: jsonEncode(maps));
+  if (response.statusCode == 201) {
+    // 201 = Created
+    debugPrint('Maneuver posted OK');
+    return jsonEncode({'code': response.statusCode});
+  } else {
+    debugPrint('Failed to post maneuver');
     return jsonEncode({'token': '', 'code': response.statusCode});
   }
 }

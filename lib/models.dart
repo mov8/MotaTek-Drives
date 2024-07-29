@@ -243,7 +243,8 @@ class Setup {
   bool rotateMap = true;
 
   String jwt = '';
-  User user = User(id: 0, forename: '', surname: '', password: '', email: '');
+  User user = User(
+      id: 0, forename: '', surname: '', password: '', email: '', phone: '');
   bool? _loaded;
   Setup._privateConstructor();
   static final _instance = Setup._privateConstructor();
@@ -642,6 +643,7 @@ class User {
   String forename;
   String surname;
   String password;
+  String phone;
   String email;
   String imageUrl;
 
@@ -650,6 +652,7 @@ class User {
     required this.forename,
     required this.surname,
     required this.email,
+    required this.phone,
     required this.password,
     this.imageUrl = '',
   });
@@ -659,12 +662,14 @@ class User {
     final forename = json['forename'];
     final surname = json['surname'];
     final email = json['email'];
+    final phone = json['phone'];
     final password = json['password'];
     return User(
         id: id,
         forename: forename,
         surname: surname,
         email: email,
+        phone: phone,
         password: password,
         imageUrl: json['imageUrl']);
   }
@@ -675,6 +680,7 @@ class User {
       'forename': forename,
       'surname': surname,
       'email': email,
+      'phone': phone,
       'password': password,
       'imageUrl': imageUrl,
     };
@@ -891,7 +897,7 @@ class TripItem {
       'distance': distance,
       'pointsOfInterest': pointsOfInterest,
       'closest': closest,
-      'scrored': scored,
+      'scored': scored,
       'downloads': downloads,
     };
   }
@@ -1129,8 +1135,7 @@ class Drive {
     }
 
     try {
-      await savePolylinesLocal(
-          id: 0, userId: userId, driveId: id, polylines: polyLines);
+      await savePolylinesLocal(id: 0, driveId: id, polylines: polyLines);
     } catch (e) {
       debugPrint('Error in savePolyLinesLocal: ${e.toString()}');
     }
@@ -1162,6 +1167,98 @@ class Drive {
   Future<bool> getDetailsApi() async {
     return true;
   }
+}
+
+class Message {
+  int id = -1;
+  GroupMember groupMember;
+  String message = '';
+  bool read = false;
+  bool selected = false;
+  int targetId = 0;
+  DateTime received = DateTime.now();
+  int index = 0;
+  Message(
+      {required this.id,
+      required this.groupMember,
+      required this.message,
+      this.read = false,
+      this.selected = false}) {
+    received = DateTime.now();
+  }
+/*
+            '''CREATE TABLE messages(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, target_id INTEGER, message TEXT, 
+        read INTEGER, received DATETIME)''');
+*/
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'user_id': groupMember.id,
+      'target_id': targetId,
+      'message': message,
+      'read': read ? 1 : 0,
+      'received': received.toString(),
+    };
+  }
+}
+
+Future<List<Message>> messagesFromDb({int driveId = -1}) async {
+  final db = await dbHelper().db;
+  // int records = await recordCount('setup');
+  // if (records > 0){
+  /*
+  const String drivesQuery = '''
+      SELECT * FROM drives 
+      JOIN points_of_interest ON drives.id = points_of_interest.drive_id 
+      JOIN polylines ON drives.id = polylines.drive_id
+
+      TABLE group_members(id INTEGER PRIMARY KEY AUTOINCREMENT, group_ids STRING, forename TEXT, surname TEXT, 
+            email TEXT, phone TEXT, status Integer, joined DATETIME, note TEXT, uri TEXT)'''); 
+      ''';messages(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, target_id INTEGER, message TEXT, 
+        read INTEGER, received DATETIME)''');
+
+   */
+
+  String messagesQuery =
+      '''SELECT group_members.forename, group_members.surname, group_members.group_ids, group_members.id, 
+      group_members.phone, group_members.email,  messages.*  
+    FROM group_members
+    JOIN messages 
+    ON group_members.id = messages.user_id''';
+
+  List<Message> messages = [];
+  try {
+    List<Map<String, dynamic>> maps = await db.rawQuery(messagesQuery);
+    int memberId = -1;
+
+    for (int i = 0; i < maps.length; i++) {
+      try {
+        memberId = maps[i]['user_id'];
+        messages.add(Message(
+          id: maps[i]['id'],
+          groupMember: GroupMember(
+              forename: maps[i]['forename'],
+              surname: maps[i]['surname'],
+              groupIds: maps[i]['group_ids'],
+              email: maps[i]['email'],
+              phone: maps[i]['phone']),
+          message: maps[i]['message'],
+          read: maps[i]['read'] == 1,
+        ));
+
+        // for maps;
+      } catch (e) {
+        String err = e.toString();
+        debugPrint('Error loading User $err');
+      }
+    }
+  } catch (e) {
+    debugPrint('Error: loading Message ${e.toString()}');
+  }
+// E/SQLiteLog( 3905): (1) near ".": syntax error in "SELECT group_members.forename, group_members.surname, group_members.group_ids, group_members.id,
+
+  return messages;
 }
 
 class PopupValue {

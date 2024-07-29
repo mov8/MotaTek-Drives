@@ -78,33 +78,6 @@ class _groupMemberFormState extends State<GroupMemberForm> {
         ),
       ),
       body: portraitView(),
-      bottomNavigationBar: NavigationBar(
-        onDestinationSelected: (int index) {
-          setState(() {
-            currentPageIndex = index;
-          });
-        },
-        indicatorColor: Colors.amber,
-        selectedIndex: currentPageIndex,
-        destinations: const <Widget>[
-          NavigationDestination(
-            selectedIcon: Icon(Icons.home),
-            icon: Icon(Icons.home_outlined),
-            label: 'Home',
-          ),
-          NavigationDestination(
-            icon: Badge(child: Icon(Icons.notifications_sharp)),
-            label: 'Notifications',
-          ),
-          NavigationDestination(
-            icon: Badge(
-              label: Text('2'),
-              child: Icon(Icons.messenger_sharp),
-            ),
-            label: 'Messages',
-          ),
-        ],
-      ),
     );
   }
 
@@ -123,7 +96,7 @@ class _groupMemberFormState extends State<GroupMemberForm> {
             textInputAction: action,
             decoration: const InputDecoration(
               border: OutlineInputBorder(),
-              hintText: 'Enter your forename',
+              hintText: 'Enter forename',
               labelText: 'Forename',
             ),
             textCapitalization: TextCapitalization.words,

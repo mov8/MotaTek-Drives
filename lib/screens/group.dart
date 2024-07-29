@@ -261,6 +261,8 @@ class _GroupFormState extends State<GroupForm> {
         child: Wrap(spacing: 10, children: [
           if (!choosing && groups.length > 1) ...[
             ActionChip(
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20)),
               onPressed: () => setState(() {
                 choosing = true;
                 if (groupIndex >= 0 && groups[groupIndex].name.isEmpty) {
@@ -279,6 +281,8 @@ class _GroupFormState extends State<GroupForm> {
           ] else if (choosing && groupIndex >= 0) ...[
             if (groups[groupIndex].name.isNotEmpty) ...[
               ActionChip(
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20)),
                 onPressed: () => newMember(),
                 backgroundColor: Colors.blue,
                 avatar: const Icon(
@@ -294,6 +298,8 @@ class _GroupFormState extends State<GroupForm> {
                   fn1.requestFocus();
                 }),
                 backgroundColor: Colors.blue,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20)),
                 avatar: const Icon(
                   Icons.edit,
                   color: Colors.white,
@@ -305,6 +311,8 @@ class _GroupFormState extends State<GroupForm> {
             if (groups[groupIndex].edited &&
                 groups[groupIndex].name.isNotEmpty) ...[
               ActionChip(
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20)),
                 onPressed: () => saveGroup(),
                 backgroundColor: Colors.blue,
                 avatar: const Icon(Icons.save, color: Colors.white),
@@ -314,6 +322,8 @@ class _GroupFormState extends State<GroupForm> {
             ],
             if (group > 1 && groups[groupIndex].name.isNotEmpty) ...[
               ActionChip(
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20)),
                 onPressed: () => (),
                 backgroundColor: Colors.blue,
                 avatar: const Icon(

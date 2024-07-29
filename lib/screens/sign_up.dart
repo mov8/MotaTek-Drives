@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:drives/models.dart';
+import 'package:drives/services/web_helper.dart';
 import 'package:drives/services/db_helper.dart';
 // import 'package:drives/services/web_helper.dart';
 
@@ -18,6 +19,7 @@ class _SignupFormState extends State<SignupForm> {
   String password = 'ohmy10';
   int manufacturer = 0;
   int model = 0;
+  bool carData = false;
 
   final ButtonStyle style = ElevatedButton.styleFrom(
       minimumSize: const Size.fromHeight(60),
@@ -103,11 +105,13 @@ class _SignupFormState extends State<SignupForm> {
       Padding(
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
           child: TextFormField(
+            autofocus: true,
             decoration: const InputDecoration(
               border: OutlineInputBorder(),
               hintText: 'Enter your forename',
               labelText: 'Forename',
             ),
+            textInputAction: TextInputAction.next,
             textCapitalization: TextCapitalization.words,
             textAlign: TextAlign.left,
             initialValue: Setup().user.forename.toString(),
@@ -123,6 +127,7 @@ class _SignupFormState extends State<SignupForm> {
             labelText: 'Surname',
           ),
           textAlign: TextAlign.left,
+          textInputAction: TextInputAction.next,
           textCapitalization: TextCapitalization.words,
           initialValue: Setup().user.surname.toString(),
           style: Theme.of(context).textTheme.bodyLarge,
@@ -138,6 +143,7 @@ class _SignupFormState extends State<SignupForm> {
               hintText: 'Enter your email address',
               labelText: 'Email address',
             ),
+            textInputAction: TextInputAction.next,
             textAlign: TextAlign.left,
             initialValue: Setup().user.email.toString(),
             style: Theme.of(context).textTheme.bodyLarge,
@@ -146,59 +152,78 @@ class _SignupFormState extends State<SignupForm> {
       Padding(
           padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
           child: TextFormField(
+            keyboardType: TextInputType.phone,
             decoration: const InputDecoration(
               border: OutlineInputBorder(),
-              hintText: 'Enter your password',
-              labelText: 'Password',
+              hintText: 'Enter your phone number',
+              labelText: 'Phone number',
             ),
+            textInputAction: TextInputAction.next,
             textAlign: TextAlign.left,
-            initialValue: Setup().user.password.toString(),
+            initialValue: Setup().user.email.toString(),
             style: Theme.of(context).textTheme.bodyLarge,
-            onChanged: (text) => setState(() => Setup().user.password = text),
+            onChanged: (text) => setState(() => Setup().user.phone = text),
           )),
-      Padding(
-          padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-          child: DropdownButtonFormField<String>(
-            decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-              labelText: 'Car Manufacturer',
-            ),
-            value: manufacturers[0],
-            items: manufacturers
-                .map((item) => DropdownMenuItem<String>(
-                      value: item,
-                      child: Text(item,
-                          style: Theme.of(context).textTheme.bodyLarge!),
-                    ))
-                .toList(),
-            onChanged: (item) => setState(
-                () => manufacturer = manufacturers.indexOf(item.toString())),
-          )),
-      Padding(
-          padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-          child: DropdownButtonFormField<String>(
-            decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-              labelText: 'Car Model',
-            ),
-            value: models[0],
-            items: models
-                .map((item) => DropdownMenuItem<String>(
-                      value: item,
-                      child: Text(item,
-                          style: Theme.of(context).textTheme.bodyLarge!),
-                    ))
-                .toList(),
-            onChanged: (item) =>
-                setState(() => model = models.indexOf(item.toString())),
-          )),
+      if (carData) ...[
+        Padding(
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+            child: TextFormField(
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                hintText: 'Enter your password',
+                labelText: 'Password',
+              ),
+              textAlign: TextAlign.left,
+              keyboardType: TextInputType.visiblePassword,
+              textInputAction: TextInputAction.done,
+              initialValue: Setup().user.password.toString(),
+              style: Theme.of(context).textTheme.bodyLarge,
+              onChanged: (text) => setState(() => Setup().user.password = text),
+            )),
+        Padding(
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+            child: DropdownButtonFormField<String>(
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                labelText: 'Car Manufacturer',
+              ),
+              value: manufacturers[0],
+              items: manufacturers
+                  .map((item) => DropdownMenuItem<String>(
+                        value: item,
+                        child: Text(item,
+                            style: Theme.of(context).textTheme.bodyLarge!),
+                      ))
+                  .toList(),
+              onChanged: (item) => setState(
+                  () => manufacturer = manufacturers.indexOf(item.toString())),
+            )),
+        Padding(
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+            child: DropdownButtonFormField<String>(
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                labelText: 'Car Model',
+              ),
+              value: models[0],
+              items: models
+                  .map((item) => DropdownMenuItem<String>(
+                        value: item,
+                        child: Text(item,
+                            style: Theme.of(context).textTheme.bodyLarge!),
+                      ))
+                  .toList(),
+              onChanged: (item) =>
+                  setState(() => model = models.indexOf(item.toString())),
+            ))
+      ],
       Padding(
         padding: const EdgeInsets.fromLTRB(20, 40, 20, 10),
         child: ElevatedButton(
           style: style,
           onPressed: () {
-            //  postUser(Setup().user);
-            saveUser(Setup().user);
+            postUser(Setup().user);
+            //  saveUser(Setup().user);
           },
           child: const Text('Register', style: TextStyle(color: Colors.white)),
         ),

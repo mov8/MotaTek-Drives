@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:drives/screens/sign_up.dart';
 import 'package:drives/screens/setup.dart';
 import 'package:drives/screens/group.dart';
+import 'package:drives/models.dart';
 
 class MainDrawer extends StatefulWidget {
   const MainDrawer({super.key});
@@ -52,9 +53,10 @@ class _MainDrawerState extends State<MainDrawer> {
               MaterialPageRoute(builder: (context) => const SetupForm()),
             );
           }),
+      //  if (Setup().jwt.isEmpty) ...[
       ListTile(
           leading: const Icon(Icons.how_to_reg, size: 30),
-          title: const Text('Your Details',
+          title: const Text('Register Your Details',
               style: TextStyle(
                 color: Colors.blue,
                 fontSize: 20,
@@ -65,12 +67,29 @@ class _MainDrawerState extends State<MainDrawer> {
               MaterialPageRoute(builder: (context) => const SignupForm()),
             );
           }),
+      //  ],
       ListTile(
           leading: const Icon(
             Icons.groups,
             size: 30,
           ),
           title: const Text('Groups',
+              style: TextStyle(
+                color: Colors.blue,
+                fontSize: 20,
+              )),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const GroupForm()),
+            );
+          }),
+      ListTile(
+          leading: const Icon(
+            Icons.directions_car,
+            size: 30,
+          ),
+          title: const Text('Group trip',
               style: TextStyle(
                 color: Colors.blue,
                 fontSize: 20,

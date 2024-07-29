@@ -42,7 +42,7 @@ Future<Database> initDb() async {
       try {
         await db.execute(
             '''CREATE TABLE users(id INTEGER PRIMARY KEY AUTOINCREMENT, forename TEXT, surname TEXT, email TEXT, 
-            password TEXT, imageUrl Text)'''); //, locationId INTEGER, vehicleId INTEGER)');
+            phone TEXT, password TEXT, imageUrl Text)'''); //, locationId INTEGER, vehicleId INTEGER)');
         await db.execute(
             '''CREATE TABLE groups(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, description TEXT, 
             created DATETIME)'''); //, locationId INTEGER, vehicleId INTEGER)');
@@ -95,11 +95,11 @@ Future<Database> initDb() async {
           modifier TEXT, type TEXT, distance REAL)''');
 
         await db.execute(
-            '''CREATE TABLE polylines(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, drive_id INTEGER, 
-            type INTEGER, points TEXT, color Integer, stroke INTEGER)''');
+            '''CREATE TABLE polylines(id INTEGER PRIMARY KEY AUTOINCREMENT, drive_id INTEGER, 
+            type INTEGER, points TEXT, colour Integer, stroke INTEGER)''');
 
         await db.execute(
-            '''CREATE TABLE messages(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, message TEXT, 
+            '''CREATE TABLE messages(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, target_id INTEGER, message TEXT, 
         read INTEGER, received DATETIME)''');
 
         await db.execute(
@@ -161,6 +161,7 @@ Future<User> getUser() async {
   String forename = '';
   String surname = '';
   String email = '';
+  String phone = '';
   String password = '';
   String imageUrl = '';
   try {
@@ -181,6 +182,7 @@ Future<User> getUser() async {
     forename: forename,
     surname: surname,
     email: email,
+    phone: phone,
     password: password,
     imageUrl: imageUrl,
   );
@@ -270,18 +272,18 @@ Future<List<Group>> getGroups() async {
     List<Map<String, dynamic>> maps = await db.query(
       'groups',
     );
+
+    for (int i = 0; i < maps.length; i++) {
+      groups.add(Group(
+        id: maps[i]['id'],
+        name: maps[i]['name'],
+        description: maps[i]['description'],
+      ));
+    }
   } catch (e) {
     debugPrint(e.toString());
   }
-  /*
-  for (int i = 0; i < maps.length; i++) {
-    groups.add(Group(
-      id: maps[i]['id'],
-      name: maps[i]['name'],
-      description: maps[i]['description'],
-    ));
-  }
-  */
+
   return groups;
 }
 
@@ -412,6 +414,47 @@ Future<bool> saveGroupMembers(List<GroupMember> groupMembers) async {
     saveGroupMemberLocal(groupMembers[i]);
   }
   return true;
+}
+
+Future<int> saveMessage(Message message) async {
+  int memberId = -1;
+  final db = await dbHelper().db;
+  if (message.groupMember.id < 0) {
+    memberId = await saveGroupMemberLocal(message.groupMember);
+    message.groupMember.id = memberId;
+  }
+
+  Map<String, dynamic> meMap = message.toMap();
+  int id = message.id;
+  if (id == -1) {
+    try {
+      meMap.remove('id');
+    } catch (e) {
+      debugPrint('Map.remove() error: ${e.toString()}');
+    }
+
+    try {
+      id = await db.insert(
+        'messages',
+        meMap,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    } catch (err) {
+      String tError = err.toString();
+      debugPrint('Error saving message: $tError');
+    }
+  } else {
+    try {
+      await db.update('messages', meMap,
+          where: 'id = ?',
+          whereArgs: [message.id],
+          conflictAlgorithm: ConflictAlgorithm.replace);
+    } catch (e) {
+      String err = e.toString();
+      debugPrint(err);
+    }
+  }
+  return id;
 }
 
 Future<Drive> getDrive(int driveId) async {
@@ -671,18 +714,16 @@ Future<void> deleteManeuversByDriveId(int driveId) async {
 
 Future<bool> savePolylinesLocal(
     {required int id,
-    required int userId,
     required int driveId,
     required List<Polyline> polylines}) async {
   final db = await dbHelper().db;
   for (int i = 0; i < polylines.length; i++) {
     Map<String, dynamic> plMap = {
       'id': id,
-      'user_id': userId,
       'drive_id': driveId,
       'points': pointsToString(polylines[i].points),
       'stroke': polylines[i].strokeWidth,
-      'color': uiColours.keys
+      'colour': uiColours.keys
           .toList()
           .indexWhere((col) => col == polylines[i].color),
     };
@@ -829,8 +870,8 @@ Future<List<Polyline>> loadPolyLinesLocal(int driveId) async {
   for (int i = 0; i < maps.length; i++) {
     polylines.add(Polyline(
         points: stringToPoints(maps[i]['points']), // routePoints,
-        color: uiColours.keys.toList()[maps[i]['color']],
-        borderColor: uiColours.keys.toList()[maps[i]['color']],
+        color: uiColours.keys.toList()[maps[i]['colour']],
+        borderColor: uiColours.keys.toList()[maps[i]['colour']],
         strokeWidth: (maps[i]['stroke']).toDouble()));
   }
   return polylines;

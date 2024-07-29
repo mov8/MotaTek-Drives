@@ -2,12 +2,14 @@ import 'dart:async';
 // import 'dart:ffi';
 // import 'dart:ffi';
 import 'dart:ui' as ui;
+import 'package:intl/intl.dart';
+
 import 'dart:math';
 // import 'dart:developer';
 import 'dart:io';
-import 'package:drives/tiles/follower_tile.dart';
-import 'package:drives/tiles/maneuver_tile.dart';
+
 import 'package:drives/screens/main_drawer.dart';
+import 'package:drives/screens/group_member.dart';
 import 'package:drives/screens/share.dart';
 import 'package:drives/utilities.dart';
 // import 'package:flutter/services.dart';
@@ -27,23 +29,23 @@ import 'package:flutter_map_animations/flutter_map_animations.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'models.dart';
-import 'drives_classes.dart';
-import 'route.dart' as mt;
-import 'screens/splash_screen.dart';
-import 'services/web_helper.dart';
-import 'services/db_helper.dart';
-import 'tiles/point_of_interest_tile.dart';
-import 'tiles/directions_tile.dart';
-/*
-import 'screens/home.dart';
-import 'services/image_helper.dart';
-*/
-import 'tiles/home_tile.dart';
-import 'tiles/trip_tile.dart';
-import 'tiles/my_trip_tile.dart';
-import 'screens/dialogs.dart';
-import 'screens/painters.dart';
+import 'package:drives/models.dart';
+import 'package:drives/drives_classes.dart';
+import 'package:drives/route.dart' as mt;
+import 'package:drives/screens/splash_screen.dart';
+import 'package:drives/services/web_helper.dart';
+import 'package:drives/services/db_helper.dart';
+import 'package:drives/tiles/point_of_interest_tile.dart';
+import 'package:drives/tiles/message_tile.dart';
+import 'package:drives/tiles/directions_tile.dart';
+import 'package:drives/tiles/group_member_tile.dart';
+import 'package:drives/tiles/follower_tile.dart';
+import 'package:drives/tiles/maneuver_tile.dart';
+import 'package:drives/tiles/home_tile.dart';
+import 'package:drives/tiles/trip_tile.dart';
+import 'package:drives/tiles/my_trip_tile.dart';
+import 'package:drives/screens/dialogs.dart';
+import 'package:drives/screens/painters.dart';
 // import 'screens/dialogs.dart';
 import 'package:flutter_map_location_marker/flutter_map_location_marker.dart';
 import 'package:image_picker/image_picker.dart';
@@ -63,7 +65,16 @@ https://pub.dev/packages/flutter_map_animations/example  shows how to animate ma
 
 int testInt = 0;
 
-enum AppState { loading, home, download, createTrip, myTrips, shop, driveTrip }
+enum AppState {
+  loading,
+  home,
+  download,
+  createTrip,
+  myTrips,
+  shop,
+  messages,
+  driveTrip
+}
 
 enum TripState {
   none,
@@ -89,10 +100,13 @@ enum TripActions {
   saved,
 }
 
+enum MessageActions { none, read, write, writing, reply, send, delete }
+
 enum MapHeights {
   full,
   headers,
   pointOfInterest,
+  message,
 }
 
 void main() {
@@ -123,7 +137,8 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   GlobalKey mapKey = GlobalKey();
-  List<double> mapHeights = [0, 0, 0];
+  DateFormat dateFormat = DateFormat('dd/MM/yy HH:mm');
+  List<double> mapHeights = [0, 0, 0, 0];
   final List<PointOfInterest> _pointsOfInterest = [];
   AppState _appState = AppState.home;
   TripState _tripState = TripState.manual;
@@ -135,14 +150,22 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   PopupValue popValue = PopupValue(-1, '', '');
   final navigatorKey = GlobalKey<NavigatorState>();
   List<Marker> markers = [];
-  List<MyTripItem> myTripItems = [];
+  List<MyTripItem> _myTripItems = [];
   List<TripItem> tripItems = [];
-  final List<String> _messages = ['One', 'Two'];
+  List<Message> _messages = [];
+  String _message = '';
+  List<Message> _filteredMessages = [];
+  MessageActions _messageActions = MessageActions.read;
+  List<Group> _groups = [];
+  List<GroupMember> _groupMembers = [];
+  List<GroupMember> _filteredGroupMembers = [];
   int id = -1;
   int userId = -1;
   int driveId = -1;
   int type = -1;
   int _directionsIndex = 0;
+  int _selectedRadio = 0;
+  int _selectedGroup = -1;
   double iconSize = 35;
   double _mapRotation = 0;
   LatLng _startLatLng = const LatLng(0.00, 0.00);
@@ -196,7 +219,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       'Trips available to download',
       'Create new trip',
       "Trips I've recorded",
-      'MotaTrip user offers'
+      'MotaTrip user offers',
+      'Messages'
     ],
     [' - manually', ' - recording', ' - stopped', ' - paused']
   ];
@@ -752,7 +776,9 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     var polyLineRecords = await recordCount('polylines');
     var poiRecords = await recordCount('points_of_interest');
 
-    myTripItems = await tripItemFromDb();
+    _myTripItems = await tripItemFromDb();
+    _groups = await loadGroups();
+    _groupMembers = await loadGroupMembers();
 
     debugPrint(
         'users: $userRecords  drives: $drivesRecords  polylines: $polyLineRecords  points of interest: $poiRecords');
@@ -802,6 +828,20 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
             width: MediaQuery.of(context).size.width,
             child: _showTripTiles(),
           ),
+        ] else if (_appState == AppState.messages) ...[
+          AnimatedContainer(
+            duration: Duration(milliseconds: _resizeDelay),
+            curve: Curves.easeInOut, // fastOutSlowIn,
+            height: mapHeight,
+            width: MediaQuery.of(context).size.width,
+            child: _showMessages(),
+          ),
+
+          _handleBottomSheetDivider(), // grab rail - GesureDetector()
+          const SizedBox(
+            height: 5,
+          ),
+          _handleMessages(), // Allows the trip to be planned
         ] else if (_appState == AppState.createTrip ||
             _appState == AppState.driveTrip) ...[
           AnimatedContainer(
@@ -823,7 +863,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                 AppBar().preferredSize.height -
                 kBottomNavigationBarHeight,
             width: MediaQuery.of(context).size.width,
-            child: _showMyTripTiles(myTripItems),
+            child: _showMyTripTiles(_myTripItems),
           ),
         ] else if (_appState == AppState.shop) ...[
           SizedBox(
@@ -868,22 +908,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
         _startLatLng = pos;
       });
 
-      try {
-        double distance = double.parse(data['distance'].toString());
-        tripItem.distance += distance;
-      } catch (e) {
-        debugPrint(e.toString());
-      }
-
-      //   _singlePointOfInterest(context, pos, insertAfter);
-
-      /*
-    Future.delayed(const Duration(milliseconds: 500), () {
-      setState(() {
-        _showMask = false;
-      });
-    });
-    */
+      tripItem.distance += double.parse(data['distance'].toString());
     }
   }
 
@@ -926,6 +951,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       onDestinationSelected: (int index) {
         setState(() {
           _bottomNavigationsBarIndex = index;
+          _title = _hints[0][index];
           switch (index) {
             case 0:
               //  home
@@ -952,7 +978,18 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
               _appState = AppState.myTrips;
               break;
             case 4:
-              //
+              _appState = AppState.shop;
+            case 5:
+              // // Messages
+              loadGroups()
+                  .then((v) => _groups = v)
+                  .then((_) => loadGroupMembers())
+                  .then((v) => _groupMembers = v)
+                  .then((_) => _getMessages())
+                  .then((_) => setState(() {
+                        _appState = AppState.messages;
+                        adjustMapHeight(MapHeights.full);
+                      }));
 
               break;
           }
@@ -1255,6 +1292,10 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       'Edit route',
       'Trip info',
       'Back',
+      'Write message',
+      'Read messages',
+      'Reply',
+      'Send',
     ];
 
     final List<Function> methods = [
@@ -1278,6 +1319,10 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       editRoute,
       tripData,
       back,
+      writeMessage,
+      readMessages,
+      reply,
+      send,
     ];
 
     final List<IconData> avatars = [
@@ -1301,81 +1346,101 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       Icons.edit,
       Icons.map,
       Icons.arrow_back,
+      Icons.add_comment,
+      Icons.mark_chat_read,
+      Icons.quickreply,
+      Icons.send
     ];
-    if ([TripActions.saving, TripActions.saved].contains(_tripActions)) {
-      _tripActions = TripActions.saved;
-      return chips;
-    }
-    if (_tripState == TripState.none) {
-      chipNames
-        ..add('Create manually')
-        ..add('Track drive');
-    }
-    if (_tripState == TripState.manual) {
-      chipNames
-        ..add('Waypoint')
-        ..add('Point of interest')
-        ..add('Great road');
-    }
-
-    if (_tripState == TripState.manual && _pointsOfInterest.isEmpty) {
-      chipNames.add('Back');
-    }
-
-    if ([TripState.automatic, TripState.stoppedRecording, TripState.paused]
-        .contains(_tripState)) {
-      chipNames
-        ..add('Start recording')
-        ..add('Back');
-    }
-    if (_tripState == TripState.recording) {
-      chipNames
-        ..add('Stop recording')
-        ..add('Pause recording');
-    }
-    if (_pointsOfInterest.isNotEmpty &&
-        [TripState.manual, TripState.stoppedRecording].contains(_tripState)) {
-      chipNames
-        ..add('Save trip')
-        ..add('Clear trip');
-    }
-    if (_tripActions == TripActions.routeHighlited) {
-      chipNames
-        ..add('Split route')
-        ..add('Remove section');
-    }
-    if (_tripActions == TripActions.greatRoadStart) {
-      chipNames.add('Great road end');
-    }
-
-    if ([TripState.stoppedFollowing, TripState.notFollowing]
-        .contains(_tripState)) {
-      chipNames.add('Follow route');
-    }
-    if (_tripState == TripState.following) {
-      chipNames.add('Stop following');
-    }
-    if ( //_pointsOfInterest.isNotEmpty &&
-        [
-      TripState.following,
-      TripState.stoppedFollowing,
-      TripState.notFollowing
-    ].contains(_tripState)) {
-      if (_tripActions == TripActions.showGroup) {
-        chipNames.add('Trip info');
-      } else {
-        chipNames.add('Group');
+    if (_appState == AppState.messages) {
+      if ([MessageActions.none, MessageActions.read]
+          .contains(_messageActions)) {
+        chipNames.add('Write message');
       }
-      if (_tripActions == TripActions.showSteps) {
-        chipNames.add('Trip info');
-      } else {
-        chipNames.add('Steps');
+      if ([MessageActions.none, MessageActions.write]
+          .contains(_messageActions)) {
+        chipNames.add('Read messages');
       }
-      if (_tripState != TripState.following) {
+      if (_messageActions == MessageActions.writing) {
         chipNames
-          ..add('Edit route')
-          //    ..add('Clear trip')
+          ..add('Send')
+          ..add('Read messages');
+      }
+    } else {
+      if ([TripActions.saving, TripActions.saved].contains(_tripActions)) {
+        _tripActions = TripActions.saved;
+        return chips;
+      }
+      if (_tripState == TripState.none) {
+        chipNames
+          ..add('Create manually')
+          ..add('Track drive');
+      }
+      if (_tripState == TripState.manual) {
+        chipNames
+          ..add('Waypoint')
+          ..add('Point of interest')
+          ..add('Great road');
+      }
+
+      if (_tripState == TripState.manual && _pointsOfInterest.isEmpty) {
+        chipNames.add('Back');
+      }
+
+      if ([TripState.automatic, TripState.stoppedRecording, TripState.paused]
+          .contains(_tripState)) {
+        chipNames
+          ..add('Start recording')
           ..add('Back');
+      }
+      if (_tripState == TripState.recording) {
+        chipNames
+          ..add('Stop recording')
+          ..add('Pause recording');
+      }
+      if (_pointsOfInterest.isNotEmpty &&
+          [TripState.manual, TripState.stoppedRecording].contains(_tripState)) {
+        chipNames
+          ..add('Save trip')
+          ..add('Clear trip');
+      }
+      if (_tripActions == TripActions.routeHighlited) {
+        chipNames
+          ..add('Split route')
+          ..add('Remove section');
+      }
+      if (_tripActions == TripActions.greatRoadStart) {
+        chipNames.add('Great road end');
+      }
+
+      if ([TripState.stoppedFollowing, TripState.notFollowing]
+          .contains(_tripState)) {
+        chipNames.add('Follow route');
+      }
+      if (_tripState == TripState.following) {
+        chipNames.add('Stop following');
+      }
+      if ( //_pointsOfInterest.isNotEmpty &&
+          [
+        TripState.following,
+        TripState.stoppedFollowing,
+        TripState.notFollowing
+      ].contains(_tripState)) {
+        if (_tripActions == TripActions.showGroup) {
+          chipNames.add('Trip info');
+        } else {
+          chipNames.add('Group');
+        }
+        if (_tripActions == TripActions.showSteps) {
+          chipNames.add('Trip info');
+        } else {
+          chipNames.add('Steps');
+        }
+        if (_tripState != TripState.following) {
+          chipNames
+            ..add('Edit route')
+            //    ..add('Clear trip')
+            ..add('Back');
+        }
       }
     }
 
@@ -1383,14 +1448,18 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       int index = labels.indexOf(chipNames[i]);
       if (index >= 0) {
         chips.add(ActionChip(
+            visualDensity: const VisualDensity(horizontal: 0.0, vertical: 0.5),
             backgroundColor: Colors.blueAccent,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             label: Text(labels[index],
                 style: const TextStyle(fontSize: 16, color: Colors.white)),
-            elevation: 5,
+            elevation: 10,
+            shadowColor: Colors.black,
             onPressed: () => methods[index](),
             avatar: Icon(avatars[index], size: 20, color: Colors.white)));
       } else {
-        debugPrint('Chip mismatch: $chipNames[i]');
+        debugPrint('Chip mismatch: ${chipNames[i]}');
       }
     }
 
@@ -1441,7 +1510,11 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     String name = await getPoiName(latLng: pos, name: 'Point of interest');
     await _addPointOfInterest(id, userId, 15, name, '', 30.0, pos);
     setState(() {
-      tripItem.pointsOfInterest++;
+      try {
+        tripItem.pointsOfInterest += 1;
+      } catch (e) {
+        debugPrint(e.toString());
+      }
       _showMask = false;
       _tripActions = TripActions.pointOfInterest;
       _editPointOfInterest = _pointsOfInterest.length - 1;
@@ -1519,17 +1592,17 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
         _pointsOfInterest.clear();
         _maneuvers.clear();
         tripItemFromDb(driveId: driveId).then((trip) async {
-          for (int i = 0; i < myTripItems.length; i++) {
-            if (myTripItems[i].driveId == trip[0].driveId) {
-              myTripItems[i] = trip[0];
+          for (int i = 0; i < _myTripItems.length; i++) {
+            if (_myTripItems[i].driveId == trip[0].driveId) {
+              _myTripItems[i] = trip[0];
               index = i;
               found = true;
               break;
             }
           }
           if (!found) {
-            myTripItems.add(trip[0]);
-            index = myTripItems.length - 1;
+            _myTripItems.add(trip[0]);
+            index = _myTripItems.length - 1;
           }
           await getTripDetails(index);
         }).then((_) => setState(() {}));
@@ -1690,12 +1763,58 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     setState(() {
       _showTarget = true;
       _tripActions = TripActions.none;
+      _appState = AppState.createTrip;
       _tripState = TripState.manual;
       _bottomNavigationsBarIndex = 2;
     });
   }
 
-  /// _splitRoute() splits a route putting the two split parts contiguously in _routes array
+  void writeMessage() {
+    setState(() {
+      _title = 'Write message';
+      if (_messageActions == MessageActions.writing) {
+        adjustMapHeight(MapHeights.headers);
+        fn1.requestFocus();
+      }
+      _messageActions = MessageActions.write;
+    });
+  }
+
+  void readMessages() {
+    setState(() {
+      _title = 'Read messages';
+      adjustMapHeight(MapHeights.full);
+      fn1.unfocus();
+      _messageActions = MessageActions.read;
+    });
+  }
+
+  void reply() {
+    setState(() {
+      adjustMapHeight(MapHeights.headers);
+      _messageActions = MessageActions.reply;
+    });
+  }
+
+  void send() {
+    setState(() {
+      for (int i = 0; i < _groupMembers.length; i++) {
+        if (_groupMembers[i].selected) {
+          Message message = Message(
+            id: -1,
+            groupMember: _groupMembers[i],
+            message: _message,
+          );
+          saveMessage(message);
+        }
+        adjustMapHeight(MapHeights.full);
+        fn1.unfocus();
+      }
+    });
+  }
+
+  /// _splitR
+  /// oute() splits a route putting the two split parts contiguously in _routes array
   /// if being used to split a goodRoad then on the 2nd split it sets the colour and borderColour
   /// for the affected routes and returns the LatNng for the goodRoad marker point
 
@@ -1815,6 +1934,275 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
         return _exploreDetailsHeader();
       default:
         return _showExploreDetail();
+    }
+  }
+
+  Widget _handleMessages() {
+    return Padding(
+        padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+        child: Column(children: [
+          const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 1),
+              child: Row(children: [
+                Text(
+                  'Enter your message:',
+                  textAlign: TextAlign.left,
+                )
+              ])),
+          Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 0),
+              child: TextFormField(
+                autofocus: false,
+                focusNode: fn1,
+                autocorrect: false,
+                textInputAction: TextInputAction.send,
+                keyboardType: TextInputType.multiline,
+                textCapitalization: TextCapitalization.sentences,
+                minLines: 5,
+                maxLines: 20,
+                onChanged: (val) {
+                  _message = val;
+                  //         if (_messageActions != MessageActions.writing) {
+                  //           setState(() => _messageActions = MessageActions.writing);
+                  //         }
+                },
+                onFieldSubmitted: (val) => _message = val,
+                decoration: const InputDecoration(
+                  filled: true,
+                  fillColor: Color(0xFFF2F2F2),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(4)),
+                    borderSide: BorderSide(width: 1),
+                  ),
+                ),
+              )),
+        ]));
+  }
+
+  Widget _filterMessages() {
+    int chosen = 0;
+    List<String> groupNames = ['All members'];
+    /*
+    if (_groups.isEmpty) {
+      _groups.add(Group(id: -1, name: 'Old Farts'));
+      _groups.add(Group(id: -1, name: 'Outlaws'));
+    }
+    */
+    for (int i = 0; i < _groups.length; i++) {
+      groupNames.add(_groups[i].name);
+    }
+
+    return Column(children: [
+      Row(children: [
+        Expanded(
+            flex: 1,
+            child: DropdownButtonFormField<String>(
+              style: const TextStyle(fontSize: 18),
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                labelText: 'Group name',
+              ),
+              value: groupNames[chosen],
+              items: groupNames
+                  .map((item) => DropdownMenuItem<String>(
+                        value: item,
+                        child: Text(item,
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleLarge!), // bodyLarge!),
+                      ))
+                  .toList(),
+              onChanged: (item) => {
+                setState(() {
+                  _selectedGroup = groupNames.indexOf(item!) - 1;
+                  if ([MessageActions.read, MessageActions.none]
+                      .contains(_messageActions)) {
+                    _filteredMessages = filterMessages(_selectedRadio);
+                  } else {
+                    _filteredGroupMembers = filterGroupMembers();
+                  }
+                })
+              },
+            )),
+        if ([MessageActions.read, MessageActions.none]
+            .contains(_messageActions)) ...[
+          Expanded(
+              flex: 1,
+              child: ButtonBar(
+                alignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Column(children: [
+                    const Text('All'),
+                    Radio(
+                      value: 0,
+                      groupValue: _selectedRadio,
+                      activeColor: Colors.blue,
+                      onChanged: (val) {
+                        setState(() {
+                          _selectedRadio = 0;
+                          _filteredMessages = filterMessages(_selectedRadio);
+                        });
+                        debugPrint("Radio $val");
+                        //    set_selectedRadio(val);
+                      },
+                    ),
+                  ]),
+                  Column(children: [
+                    const Text('Read'),
+                    Radio(
+                      value: 1,
+                      groupValue: _selectedRadio,
+                      activeColor: Colors.blue,
+                      onChanged: (val) {
+                        setState(() {
+                          _selectedRadio = 1;
+                          _filteredMessages = filterMessages(_selectedRadio);
+                        });
+                        debugPrint("Radio $val");
+                        // set_selectedRadio(val);
+                      },
+                    )
+                  ]),
+                  Column(children: [
+                    const Text('Unread'),
+                    Radio(
+                      value: 2,
+                      groupValue: _selectedRadio,
+                      activeColor: Colors.blue,
+                      onChanged: (val) {
+                        setState(() {
+                          _selectedRadio = 2;
+                          _filteredMessages = filterMessages(_selectedRadio);
+                        });
+                        debugPrint("Radio $val");
+                        //    set_selectedRadio(val);
+                      },
+                    ),
+                  ]),
+                ],
+              ))
+        ] else ...[
+          const Expanded(flex: 1, child: SizedBox())
+        ]
+      ]),
+    ]);
+  }
+
+  List<Message> filterMessages(int type) {
+    List<Message> messages = [];
+    try {
+      for (int i = 0; i < _messages.length; i++) {
+        bool stateOk = type == 0 ||
+            (_messages[i].read && type == 1) ||
+            (!_messages[i].read && type == 2);
+        if (_messages[i].groupMember.groupIds.isEmpty || _selectedGroup < 0) {
+          if (stateOk) {
+            _messages[i].groupMember.index = i;
+            messages.add(_messages[i]);
+          }
+        } else {
+          var groupIds = jsonDecode(_messages[i].groupMember.groupIds);
+          for (int j = 0; j < groupIds.length; j++) {
+            if (groupIds[j]['groupId'] == _groups[_selectedGroup].id &&
+                stateOk) {
+              _messages[i].groupMember.index = i;
+              messages.add(_messages[i]);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error processing messages: ${e.toString()}');
+      messages = _messages;
+    }
+    // setState(() {});
+    return messages;
+  }
+
+  List<GroupMember> filterGroupMembers() {
+    List<GroupMember> members = [];
+    try {
+      for (int i = 0; i < _groupMembers.length; i++) {
+        if (_groupMembers[i].groupIds.isEmpty || _selectedGroup < 0) {
+          _groupMembers[i].index = i;
+          members.add(_groupMembers[i]);
+        } else {
+          var groupIds = jsonDecode(_groupMembers[i].groupIds);
+          for (int j = 0; j < groupIds.length; j++) {
+            if (groupIds[j]['groupId'] == _groups[_selectedGroup].id) {
+              _groupMembers[i].index = i;
+              members.add(_groupMembers[i]);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error processing messages: ${e.toString()}');
+      members = _groupMembers;
+    }
+    // setState(() {});
+    return members;
+  }
+
+  void onEditMember(int index) async {
+    GroupMember member;
+    int parentIndex;
+    if ([MessageActions.write, MessageActions.writing]
+        .contains(_messageActions)) {
+      parentIndex = _filteredGroupMembers[index].index;
+      member = _groupMembers[parentIndex];
+    } else {
+      parentIndex = _filteredMessages[index].index;
+      member = _messages[parentIndex].groupMember;
+    }
+    String groupName = 'None';
+    if (member.groupIds.isNotEmpty) {
+      var groupIds = jsonDecode(member.groupIds);
+      for (int j = 0; j < _groups.length; j++) {
+        if (groupIds[0]['groupId'] == _groups[j].id) {
+          groupName = _groups[j].name;
+          break;
+        }
+      }
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+          builder: (context) => GroupMemberForm(
+                groupMember: member,
+                groupName: groupName,
+                groups: _groups,
+              )),
+    ).then((value) {
+      setState(() {
+        /// if deleted in GroupMemberForm filteredGroupMembers[index].index is set to -1
+        /*     if (_messages[_filteredMessages[index].index].groupMember.index == -1) {
+          _groupMembers.removeAt(parentIndex);
+        } else if (_filteredMessages[index].groupMember.forename.isEmpty &&
+            _filteredMessages[index].groupMember.surname.isEmpty) {
+          Utility().showConfirmDialog(context, "Missing information",
+              "Records without a forename and surname can't be saved");
+          _groupMembers.removeAt(_filteredMessages[index].groupMember.index);
+        }
+  */
+        filterMessages(type);
+      });
+    });
+    return;
+  }
+
+  void onSelectMember(int index) {
+    if (_messageActions != MessageActions.writing) {
+      setState(() {
+        _messageActions = MessageActions.writing;
+        debugPrint('Selected : $index');
+      });
+    } else if (!_filteredGroupMembers[index].selected) {
+      setState(() {
+        adjustMapHeight(MapHeights.message);
+        fn1.requestFocus();
+      });
     }
   }
 
@@ -2225,7 +2613,119 @@ You can plan trips either on your own or you can explore in a group''',
     ]);
   }
 
-  Widget _showMyTripTiles(List<MyTripItem> myTripItems) {
+  _getMessages() async {
+    _messages = await messagesFromDb();
+    if (_messages.isEmpty) {
+      // _messages.clear();
+      _messages.add(Message(
+        id: -1,
+        groupMember:
+            GroupMember(groupIds: '', forename: 'Frank', surname: 'Seddon'),
+        message: 'Message 1',
+        read: false,
+      ));
+      _messages.add(Message(
+        id: -1,
+        groupMember:
+            GroupMember(groupIds: '', forename: 'Frank', surname: 'Seddon'),
+        message:
+            'Message 2 blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah',
+      ));
+    }
+    _filteredMessages = filterMessages(0);
+  }
+
+  Widget _showMessages() {
+    /// https://www.dhiwise.com/post/flutter-pull-to-refresh-how-to-implement-customize
+    /// https://www.youtube.com/watch?app=desktop&v=X_hQijCqaKA  handling bottom system nav visibility
+    /// https://www.youtube.com/watch?v=bWehAFTFc9o  share on social media
+
+    if ([MessageActions.read, MessageActions.none].contains(_messageActions)) {
+      if (_messages.isEmpty) {
+        _getMessages();
+      }
+      return RefreshIndicator(
+          onRefresh: _handleRefresh,
+          child: Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
+              child: Column(children: [
+                _filterMessages(),
+                const SizedBox(
+                  height: 10,
+                ),
+                Expanded(
+                    child: ListView.builder(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  itemCount: _filteredMessages.length,
+                  itemBuilder: (context, index) => Card(
+                    elevation: 5,
+                    child: MessageTile(
+                      index: index,
+                      message: _filteredMessages[index],
+                      onEdit: onEditMember,
+                      onSelect: (val) => {debugPrint('Selected message: $val')},
+                    ),
+                  ),
+                )),
+                //  ]),
+                Align(
+                    alignment: Alignment.bottomLeft,
+                    child: Wrap(
+                      spacing: 5,
+                      children: getChips(),
+                    )),
+              ])));
+    } else {
+      if (_groupMembers.isEmpty) {}
+      return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
+          child: Column(children: [
+            _filterMessages(),
+            const SizedBox(
+              height: 10,
+            ),
+            Expanded(
+                child: ListView.builder(
+              physics: const AlwaysScrollableScrollPhysics(),
+              itemCount: _filteredGroupMembers.length,
+              itemBuilder: (context, index) => Card(
+                elevation: 5,
+                child: GroupMemberTile(
+                  index: index,
+                  groupMember: _filteredGroupMembers[index],
+                  onEdit: onEditMember,
+                  onDelete: (val) => {debugPrint('Selected message: $val')},
+                  onSelect: onSelectMember,
+                ),
+              ),
+            )),
+            //  ]),
+            Align(
+                alignment: Alignment.bottomLeft,
+                child: Wrap(
+                  spacing: 5,
+                  children: getChips(),
+                )),
+          ]));
+    }
+  }
+
+  Future<void> _handleRefresh() async {
+    // Simulate network fetch or database query
+
+    await Future.delayed(const Duration(seconds: 2));
+
+    // Update the list of items and refresh the UI
+
+    setState(() {
+      _getMessages();
+
+      /// xx = List.generate(20, (index) => "Refreshed Item ${index + 1}");
+    });
+  }
+
+  Widget _showMyTripTiles(List<MyTripItem> _myTripItems) {
     return ListView(children: [
       const Card(
           child: Column(children: [
@@ -2246,15 +2746,16 @@ You can plan trips either on your own or you can explore in a group''',
               )),
         ),
       ])),
-      for (int i = 0; i < myTripItems.length; i++) ...[
+      for (int i = 0; i < _myTripItems.length; i++) ...[
         Padding(
             padding: const EdgeInsets.fromLTRB(5, 5, 5, 5),
             child: MyTripTile(
               index: i,
-              myTripItem: myTripItems[i],
+              myTripItem: _myTripItems[i],
               onLoadTrip: loadTrip,
               onShareTrip: shareTrip,
               onDeleteTrip: deleteTrip,
+              onPublishTrip: publishTrip,
             ))
       ],
       const SizedBox(
@@ -2268,10 +2769,10 @@ You can plan trips either on your own or you can explore in a group''',
   ///
   Future<void> loadTrip(int index) async {
     /// Flutter uses pass-by-reference for all objects (not int bool etc which are pass-by-value)
-    /// so clearing the _pointsOfInterest will also clear myTripItems[index].pointsOfInterest
-    /// if the myTripItems[index] is the currently just entered trip
+    /// so clearing the _pointsOfInterest will also clear _myTripItems[index].pointsOfInterest
+    /// if the _myTripItems[index] is the currently just entered trip
     /// _startLatLng == const LatLng(0.00, 0.00);
-    ///     if (myTripItems[index].driveId != driveId) {
+    ///     if (_myTripItems[index].driveId != driveId) {
     setState(() {
       _tripState = TripState.notFollowing;
       _alignDirectionOnUpdate = AlignOnUpdate.never;
@@ -2279,13 +2780,13 @@ You can plan trips either on your own or you can explore in a group''',
       _tripActions = TripActions.none;
       _appState = AppState.driveTrip;
       _showTarget = false;
-      _title = myTripItems[index].heading;
+      _title = _myTripItems[index].heading;
     });
 
-    driveId = myTripItems[index].driveId;
-    tripItem.heading = myTripItems[index].heading;
-    tripItem.subHeading = myTripItems[index].subHeading;
-    tripItem.body = myTripItems[index].body;
+    driveId = _myTripItems[index].driveId;
+    tripItem.heading = _myTripItems[index].heading;
+    tripItem.subHeading = _myTripItems[index].subHeading;
+    tripItem.body = _myTripItems[index].body;
 
     await getTripDetails(index);
     return;
@@ -2294,8 +2795,8 @@ You can plan trips either on your own or you can explore in a group''',
   Future<void> getTripDetails(int index) async {
     _pointsOfInterest.clear();
     try {
-      for (int i = 0; i < myTripItems[index].pointsOfInterest.length; i++) {
-        _pointsOfInterest.add(myTripItems[index].pointsOfInterest[i]);
+      for (int i = 0; i < _myTripItems[index].pointsOfInterest.length; i++) {
+        _pointsOfInterest.add(_myTripItems[index].pointsOfInterest[i]);
       }
     } catch (e) {
       String err = e.toString();
@@ -2320,16 +2821,16 @@ You can plan trips either on your own or you can explore in a group''',
   }
 
   Future<void> shareTrip(int index) async {
-    myTripItems[index].showMethods = false;
+    _myTripItems[index].showMethods = false;
     Navigator.push(
       context,
       MaterialPageRoute(
           builder: (context) => ShareForm(
-                tripItem: myTripItems[index],
+                tripItem: _myTripItems[index],
               )),
     ).then((value) {
       setState(() {
-        myTripItems[index].showMethods = true;
+        _myTripItems[index].showMethods = true;
       });
     });
     return;
@@ -2340,9 +2841,28 @@ You can plan trips either on your own or you can explore in a group''',
     Utility().showOkCancelDialog(
         context: context,
         alertTitle: 'Permanently delete trip?',
-        alertMessage: myTripItems[index].heading,
-        okValue: myTripItems[index].driveId,
+        alertMessage: _myTripItems[index].heading,
+        okValue: _myTripItems[index].driveId,
         callback: onConfirmDeleteTrip);
+  }
+
+  Future<void> publishTrip(int index) async {
+    String driveUI = '';
+    int driveId = _myTripItems[index].driveId;
+    postTrip(_myTripItems[index]).then((driveUi) {
+      driveUI = driveUi['id'];
+      for (PointOfInterest pointOfInterest
+          in _myTripItems[index].pointsOfInterest) {
+        postPointOfInterest(pointOfInterest, driveUI);
+      }
+    }).then((_) async {
+      List<Polyline> polylines = await loadPolyLinesLocal(driveId);
+      postPolylines(polylines, driveUI);
+
+      List<Maneuver> maneuvers = await loadManeuversLocal(driveId);
+      postManeuvers(maneuvers, driveUI);
+    });
+    return;
   }
 
   void onConfirmDeleteTrip(int value) {
@@ -2350,7 +2870,7 @@ You can plan trips either on your own or you can explore in a group''',
     if (value > -1) {
       deleteDriveByTripItem(driveId: value);
       if (_indexToDelete > -1) {
-        setState(() => myTripItems.removeAt(_indexToDelete));
+        setState(() => _myTripItems.removeAt(_indexToDelete));
       }
       driveId = -1;
     }
@@ -2662,10 +3182,11 @@ You can plan trips either on your own or you can explore in a group''',
   adjustMapHeight(MapHeights newHeight) {
     if (mapHeights[1] == 0) {
       mapHeights[0] = MediaQuery.of(context).size.height - 190; // info closed
-      mapHeights[1] = mapHeights[0] - 100; // heading data
-      mapHeights[2] = mapHeights[0] - 400;
+      mapHeights[1] = mapHeights[0] - 200; // heading data
+      mapHeights[2] = mapHeights[0] - 400; // open point of interest
+      mapHeights[3] = mapHeights[0] - 300; // message
     }
-    double mapHeight = mapHeights[MapHeights.values.indexOf(newHeight)];
+    mapHeight = mapHeights[MapHeights.values.indexOf(newHeight)];
     if (newHeight == MapHeights.full) {
       dismissKeyboard();
     }
@@ -2810,8 +3331,7 @@ You can plan trips either on your own or you can explore in a group''',
           driveId: driveId,
           pointsOfInterest: _pointsOfInterest);
       if (_routes.isNotEmpty) {
-        savePolylinesLocal(
-            id: id, userId: userId, driveId: driveId, polylines: _routes);
+        savePolylinesLocal(id: id, driveId: driveId, polylines: _routes);
         if (_maneuvers.isEmpty) {
           /// If the trip was generated through tracking there will be
           /// no point by point data so have to generate it from
