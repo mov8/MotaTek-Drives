@@ -6,10 +6,14 @@ import 'package:drives/screens/star_ratings.dart';
 
 class TripTile extends StatefulWidget {
   final TripItem tripItem;
+  final Future<void> Function(int) onGetTrip;
+  final int index;
 
   const TripTile({
     super.key,
     required this.tripItem,
+    required this.index,
+    required this.onGetTrip,
   });
 
   @override
@@ -44,10 +48,43 @@ class _tripTileState extends State<TripTile> {
                                               i++)
                                             SizedBox(
                                                 width: 200,
-                                                child: Image(
-                                                    image: AssetImage(widget
-                                                        .tripItem
-                                                        .imageUrls[i]))),
+                                                child: Padding(
+                                                    padding: const EdgeInsets
+                                                        .symmetric(
+                                                        horizontal: 10),
+                                                    child: Image.network(
+                                                      widget.tripItem
+                                                          .imageUrls[i],
+
+                                                      loadingBuilder: (BuildContext
+                                                              context,
+                                                          Widget child,
+                                                          ImageChunkEvent?
+                                                              loadingProgress) {
+                                                        if (loadingProgress ==
+                                                            null) {
+                                                          return child;
+                                                        }
+                                                        return Center(
+                                                          child:
+                                                              CircularProgressIndicator(
+                                                            value: loadingProgress
+                                                                        .expectedTotalBytes !=
+                                                                    null
+                                                                ? loadingProgress
+                                                                        .cumulativeBytesLoaded /
+                                                                    (loadingProgress
+                                                                            .expectedTotalBytes ??
+                                                                        1)
+                                                                : null,
+                                                          ),
+                                                        );
+                                                      },
+
+                                                      //   image: AssetImage(widget
+                                                      //       .tripItem
+                                                      //       .imageUrls[i])
+                                                    ))),
                                           const SizedBox(
                                             width: 30,
                                           ),
@@ -64,7 +101,7 @@ class _tripTileState extends State<TripTile> {
                                   flex: 1,
                                   child: Column(children: [
                                     const Icon(Icons.publish),
-                                    Text('from ${widget.tripItem.published}')
+                                    Text(widget.tripItem.published)
                                   ]),
                                 ),
                                 Expanded(
@@ -171,7 +208,9 @@ class _tripTileState extends State<TripTile> {
                                     child: Row(children: [
                                       IconButton(
                                           icon: const Icon(Icons.download),
-                                          onPressed: () => (setState(() {}))),
+                                          onPressed: () => (setState(() {
+                                                widget.onGetTrip(widget.index);
+                                              }))),
                                       Align(
                                         alignment: Alignment.topLeft,
                                         child: Text(

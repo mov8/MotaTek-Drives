@@ -4,8 +4,10 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 import 'dart:convert';
+import 'package:intl/intl.dart';
 import 'package:drives/models.dart';
 import 'package:drives/services/db_helper.dart';
+import 'package:drives/route.dart' as mt;
 
 /// Autocomplete API uses https://photon.komoot.io
 /// eg - https://photon.komoot.io/api/?q=staines
@@ -15,6 +17,7 @@ import 'package:drives/services/db_helper.dart';
 // Future<Map<String, dynamic>> getSuggestions(String value) async {
 
 const List<String> settlementTypes = ['city', 'town', 'village', 'hamlet'];
+DateFormat dateFormat = DateFormat('dd/MM/yy HH:mm');
 
 Future<List<String>> getSuggestions(String value) async {
   String baseURL = 'https://photon.komoot.io/api/?q=$value';
@@ -210,8 +213,7 @@ Future<dynamic> postTrip(MyTripItem tripItem) async {
     request.fields['sub_title'] = map['subHeading'];
     request.fields['body'] = map['body'];
     request.fields['distance'] = map['distance'].toString();
-    request.fields['points_of_interest'] =
-        map['pointsOfInterest'].length.toString();
+    request.fields['pois'] = map['pointsOfInterest'].length.toString();
     request.fields['score'] = '5';
     // map['scored'] ?? '5';
     request.fields['added'] = DateTime.now().toString();
@@ -383,6 +385,8 @@ Future<String> postManeuver(Maneuver maneuver, String driveUid) async {
 Future<String> postManeuvers(List<Maneuver> maneuvers, String driveUid) async {
   List<Map<String, dynamic>> maps = [];
   for (Maneuver maneuver in maneuvers) {
+    String pos =
+        '{"lat":${maneuver.location.latitude}, "long":${maneuver.location.longitude}}';
     maps.add({
       'drive_id': driveUid,
       'road_from': maneuver.roadFrom,
@@ -390,7 +394,7 @@ Future<String> postManeuvers(List<Maneuver> maneuvers, String driveUid) async {
       'bearing_before': maneuver.bearingBefore,
       'bearing_after': maneuver.bearingAfter,
       'exit': maneuver.exit,
-      'location': maneuver.location.toString(),
+      'location': pos,
       'modifier': maneuver.modifier,
       'type': maneuver.type,
       'distance': maneuver.distance
@@ -413,4 +417,179 @@ Future<String> postManeuvers(List<Maneuver> maneuvers, String driveUid) async {
     debugPrint('Failed to post maneuver');
     return jsonEncode({'token': '', 'code': response.statusCode});
   }
+}
+
+Future<List<TripItem>> getTrips() async {
+  List<TripItem> trips = [];
+  String jwToken = Setup().jwt;
+  final http.Response response = await http.get(
+    Uri.parse('${urlBase}v1/drive/all'),
+    headers: {
+      'Authorization': 'Bearer $jwToken', // $Setup().jwt',
+      'Content-Type': 'application/json',
+    },
+  );
+  if (response.statusCode == 200) {
+    List<dynamic> tripsJson = jsonDecode(response.body);
+    //  List<String> images = ['map'];
+
+    for (Map<String, dynamic> trip in tripsJson) {
+      List<String> images = [
+        Uri.parse('${urlBase}v1/drive/images/${trip['id']}/map.png').toString()
+      ];
+      try {
+        for (int i = 0; i < trip['points_of_interest'].length; i++) {
+          if (trip['points_of_interest'][i]['images'].length > 0) {
+            var pics = jsonDecode(trip['points_of_interest'][i]['images']);
+            for (int j = 0; j < pics.length; j++) {
+              images.add(Uri.parse(
+                      '${urlBase}v1/drive/images/${trip['id']}/${trip['points_of_interest'][i]['id']}/${pics[j]}')
+                  .toString());
+              debugPrint(images[images.length - 1]);
+            }
+          }
+        }
+        trips.add(TripItem(
+            heading: trip['title'],
+            subHeading: trip['sub_title'],
+            body: trip['body'],
+            author: trip['author'],
+            published: trip['added'],
+            imageUrls: images,
+            score: trip['score'] ?? 5.0,
+            distance: trip['distance'],
+            pointsOfInterest: trip['points_of_interest'].length,
+            closest: 12,
+            scored: trip['scored'] ?? 1,
+            downloads: trip['downloads'] ?? 0,
+            uri: trip['id']));
+      } catch (e) {
+        String err = e.toString();
+        debugPrint('Error: $err');
+      }
+    }
+  }
+  return trips;
+}
+
+Future<MyTripItem> getTrip(String tripUuid) async {
+  MyTripItem trip = MyTripItem(heading: '', subHeading: '');
+  String jwToken = Setup().jwt;
+  final http.Response response = await http.get(
+    Uri.parse('${urlBase}v1/drive/$tripUuid'),
+    headers: {
+      'Authorization': 'Bearer $jwToken', // $Setup().jwt',
+      'Content-Type': 'application/json',
+    },
+  );
+  if (response.statusCode == 200) {
+    Map<String, dynamic> trip = jsonDecode(response.body);
+    List<mt.Route> gotRoutes = [];
+
+    for (int i = 0; i < trip['polylines'].length; i++) {
+      gotRoutes.add(mt.Route(
+          id: -1,
+          points:
+              stringToPoints(trip['polylines'][i]['points']), // routePoints,
+          color: uiColours.keys.toList()[trip['polylines'][i]['colour']],
+          borderColor: uiColours.keys.toList()[trip['polylines'][i]['colour']],
+          strokeWidth: (trip['polylines'][i]['stroke']).toDouble()));
+    }
+
+    List<Maneuver> gotManeuvers = [];
+    LatLng pos = const LatLng(0, 0);
+    dynamic jsonPos;
+    for (int i = 0; i < trip['maneuvers'].length; i++) {
+      jsonPos = jsonDecode(trip['maneuvers'][i]['location']);
+      pos = LatLng(jsonPos['lat'], jsonPos['long']);
+      try {
+        gotManeuvers.add(Maneuver(
+          id: -1,
+          driveId: -1, //trip['maneuvers'][i]['driveId'],
+          roadFrom: trip['maneuvers'][i]['road_from'],
+          roadTo: trip['maneuvers'][i]['road_to'],
+          bearingBefore: trip['maneuvers'][i]['bearing_before'],
+          bearingAfter: trip['maneuvers'][i]['bearing_after'],
+          exit: trip['maneuvers'][i]['exit'],
+          location: pos,
+          modifier: trip['maneuvers'][i]['modifier'],
+          type: trip['maneuvers'][i]['type'],
+          distance: trip['maneuvers'][i]['distance'],
+        ));
+      } catch (e) {
+        debugPrint('Error maneuvers: ${e.toString()}');
+      }
+    }
+
+    /*
+  PointOfInterest(
+      //  this.ctx,
+      this.id,
+      this.userId,
+      this.driveId,
+      this.type,
+      this.name,
+      this.description,
+      double width,
+      double height,
+      this.images,
+      // RawMaterialButton button,
+      //    this.iconData,
+      // Key key,
+      {required LatLng markerPoint,
+      required Widget marker
+    */
+
+    List<PointOfInterest> gotPointsOfInterest = [];
+
+    try {
+      for (int i = 0; i < trip['points_of_interest'].length; i++) {
+        try {
+          LatLng posn = LatLng(trip['points_of_interest'][i]['latitude'],
+              trip['points_of_interest'][i]['longitude']);
+          Widget marker =
+              MarkerWidget(type: trip['points_of_interest'][i]['_type']);
+          gotPointsOfInterest.add(PointOfInterest(
+            -1,
+            -1,
+            -1,
+            trip['points_of_interest'][i]['_type'],
+            trip['points_of_interest'][i]['name'],
+            trip['points_of_interest'][i]['description'],
+            trip['points_of_interest'][i]['_type'] == 12 ? 10 : 30,
+            trip['points_of_interest'][i]['_type'] == 12 ? 10 : 30,
+            trip['points_of_interest'][i]['images'],
+            markerPoint: posn,
+            marker: marker,
+          ));
+        } catch (e) {
+          debugPrint('Error: ${e.toString()}');
+        }
+      }
+    } catch (e) {
+      String err = e.toString();
+      debugPrint('PointsOfInterest error: $err');
+    }
+    try {
+      MyTripItem myTripItem = MyTripItem(
+        heading: trip['title'],
+        subHeading: trip['sub_title'],
+        body: trip['body'],
+        published: trip['added'],
+        images: Uri.parse('${urlBase}v1/drive/images/${trip['id']}/map.png')
+            .toString(),
+        score: trip['score'] ?? 5.0,
+        distance: trip['distance'],
+        routes: gotRoutes,
+        maneuvers: gotManeuvers,
+        pointsOfInterest: gotPointsOfInterest,
+        closest: 12,
+      );
+      return myTripItem;
+    } catch (e) {
+      String err = e.toString();
+      debugPrint('Error: $err');
+    }
+  }
+  return trip;
 }

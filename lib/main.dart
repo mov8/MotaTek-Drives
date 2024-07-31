@@ -139,7 +139,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   GlobalKey mapKey = GlobalKey();
   DateFormat dateFormat = DateFormat('dd/MM/yy HH:mm');
   List<double> mapHeights = [0, 0, 0, 0];
-  final List<PointOfInterest> _pointsOfInterest = [];
+  List<PointOfInterest> _pointsOfInterest = [];
   AppState _appState = AppState.home;
   TripState _tripState = TripState.manual;
   TripActions _tripActions = TripActions.none;
@@ -400,7 +400,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     super.dispose();
   }
 
-  final List<mt.Route> _routes = [
+  List<mt.Route> _routes = [
     mt.Route(
         points: const [LatLng(50, 0)], // routePoints,
         borderColor: uiColours.keys.toList()[Setup().routeColour],
@@ -961,6 +961,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
             case 1:
               // Web routes
               _appState = AppState.download;
+              tripsFromWeb();
               break;
             case 2:
               // Create route
@@ -2541,46 +2542,9 @@ You can also publish your trips for others to enjoy. You can invite a group of f
     ]);
   }
 
-  void tripsFromWeb() {
-    tripItems.add(
-      TripItem(
-          heading: 'A Beautiful Trip Through The Cotswolds',
-          subHeading:
-              'Miles of lanes surrounded by beautiful countryside and honey stoned buildings',
-          body:
-              '''MotaTrip is a new app to help you make the most of the countryside around you. 
-You can plan trips either on your own or you can explore in a group''',
-          imageUrls: ['assets/images/map.png', 'assets/images/splash.png'],
-          author: 'James Seddon',
-          published: 'Feb 24',
-          score: 3.5,
-          distance: 54,
-          closest: 98,
-          scored: 19,
-          pointsOfInterest: 4,
-          downloads: 32),
-    );
-
-    tripItems.add(TripItem(
-        heading: 'A Beautiful Trip Through The Cotswolds',
-        subHeading:
-            'Miles of lanes surrounded by beautiful countryside and honey stoned buildings',
-        body:
-            '''MotaTrip is a new app to help you make the most of the countryside around you. 
-You can plan trips either on your own or you can explore in a group''',
-        imageUrls: [
-          'assets/images/map.png',
-          'assets/images/splash.png',
-          'assets/images/CarGroup.png'
-        ],
-        author: 'James Seddon',
-        published: 'Dec 23',
-        score: 2.5,
-        scored: 5,
-        pointsOfInterest: 6,
-        distance: 52,
-        closest: 32,
-        downloads: 12));
+  void tripsFromWeb() async {
+    tripItems = await getTrips();
+    setState(() {});
   }
 
   Widget _showTripTiles() {
@@ -2605,7 +2569,11 @@ You can plan trips either on your own or you can explore in a group''',
         ),
       ])),
       for (int i = 0; i < tripItems.length; i++) ...[
-        TripTile(tripItem: tripItems[i])
+        TripTile(
+          tripItem: tripItems[i],
+          index: i,
+          onGetTrip: onGetTrip,
+        )
       ],
       const SizedBox(
         height: 40,
@@ -2862,6 +2830,30 @@ You can plan trips either on your own or you can explore in a group''',
       List<Maneuver> maneuvers = await loadManeuversLocal(driveId);
       postManeuvers(maneuvers, driveUI);
     });
+    return;
+  }
+
+  Future<void> onGetTrip(int index) async {
+    MyTripItem myTripItem = await getTrip(tripItems[index].uri);
+    _routes = myTripItem.routes;
+    _maneuvers = myTripItem.maneuvers;
+    _pointsOfInterest = myTripItem.pointsOfInterest;
+    driveId = myTripItem.driveId;
+    tripItem.heading = myTripItem.heading;
+    tripItem.subHeading = myTripItem.subHeading;
+    tripItem.body = myTripItem.body;
+    setState(() {
+      _tripState = TripState.notFollowing;
+      _alignDirectionOnUpdate = AlignOnUpdate.never;
+      _alignPositionOnUpdate = AlignOnUpdate.never;
+      _tripActions = TripActions.none;
+      _appState = AppState.driveTrip;
+      _showTarget = false;
+      _title = _myTripItems[index].heading;
+    });
+
+    _myTripItems.add(myTripItem);
+
     return;
   }
 

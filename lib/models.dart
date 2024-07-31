@@ -420,8 +420,8 @@ class PointOfInterest extends Marker {
       'type': type,
       'name': name,
       'description': description,
-      'latitude': markerPoint.latitude,
-      'longitude': markerPoint.longitude,
+      'latitude': point.latitude, //markerPoint.latitude,
+      'longitude': point.longitude, //markerPoint.longitude,
     };
   }
 
@@ -854,6 +854,7 @@ class HomeItem {
 class TripItem {
   int id = 0;
   String heading = '';
+  String uri = '';
   String subHeading = '';
   String body = '';
   String author = '';
@@ -881,6 +882,7 @@ class TripItem {
     this.closest = 12,
     this.scored = 10,
     this.downloads = 18,
+    this.uri = '',
   });
 
   Map<String, dynamic> toMap() {
@@ -914,6 +916,7 @@ class MyTripItem {
   String body = '';
   String published = '';
   List<PointOfInterest> pointsOfInterest = [];
+  List<Maneuver> maneuvers = [];
   List<mt.Route> routes = [];
   String images = '';
   double score = 5;
@@ -930,6 +933,7 @@ class MyTripItem {
     this.body = '',
     this.published = '',
     this.pointsOfInterest = const [],
+    this.maneuvers = const [],
     this.routes = const [],
     this.images = '',
     this.score = 5,
