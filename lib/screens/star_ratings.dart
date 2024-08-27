@@ -23,7 +23,7 @@ class StarRating extends StatelessWidget {
       icon = Icon(Icons.star, color: Theme.of(context).primaryColor);
     }
     return InkResponse(
-      onTap: onRatingChanged(index + 1),
+      onTap: () => onRatingChanged(index + 1),
       child: icon,
     );
   }

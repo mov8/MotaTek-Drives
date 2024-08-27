@@ -160,26 +160,26 @@ class _SignupFormState extends State<SignupForm> {
             ),
             textInputAction: TextInputAction.next,
             textAlign: TextAlign.left,
-            initialValue: Setup().user.email.toString(),
+            initialValue: Setup().user.phone.toString(),
             style: Theme.of(context).textTheme.bodyLarge,
             onChanged: (text) => setState(() => Setup().user.phone = text),
           )),
+      Padding(
+          padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+          child: TextFormField(
+            decoration: const InputDecoration(
+              border: OutlineInputBorder(),
+              hintText: 'Enter your password',
+              labelText: 'Password',
+            ),
+            textAlign: TextAlign.left,
+            keyboardType: TextInputType.visiblePassword,
+            textInputAction: TextInputAction.done,
+            initialValue: Setup().user.password.toString(),
+            style: Theme.of(context).textTheme.bodyLarge,
+            onChanged: (text) => setState(() => Setup().user.password = text),
+          )),
       if (carData) ...[
-        Padding(
-            padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-            child: TextFormField(
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: 'Enter your password',
-                labelText: 'Password',
-              ),
-              textAlign: TextAlign.left,
-              keyboardType: TextInputType.visiblePassword,
-              textInputAction: TextInputAction.done,
-              initialValue: Setup().user.password.toString(),
-              style: Theme.of(context).textTheme.bodyLarge,
-              onChanged: (text) => setState(() => Setup().user.password = text),
-            )),
         Padding(
             padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
             child: DropdownButtonFormField<String>(
@@ -222,7 +222,7 @@ class _SignupFormState extends State<SignupForm> {
         child: ElevatedButton(
           style: style,
           onPressed: () {
-            postUser(Setup().user);
+            postUser(Setup().user, register: true);
             //  saveUser(Setup().user);
           },
           child: const Text('Register', style: TextStyle(color: Colors.white)),

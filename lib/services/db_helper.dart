@@ -1,13 +1,17 @@
 // import 'dart:js_interop';
 
 // import 'package:flutter/cupertino.dart';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 //import 'package:flutter/widgets.dart';
+import 'package:drives/route.dart' as mt;
 import 'package:drives/models.dart';
+import 'package:drives/services/web_helper.dart';
 import 'dart:async';
 import 'dart:convert';
 // import '../route.dart' as mt;
@@ -72,15 +76,15 @@ Future<Database> initDb() async {
             '''CREATE TABLE setup(id INTEGER PRIMARY KEY AUTOINCREMENT, route_colour INTEGER, good_route_colour INTEGER, 
           waypoint_colour INTEGER, waypoint_colour_2 INTEGER, point_of_interest_colour INTEGER, rotate_map INTEGER,
           point_of_interest_colour_2 INTEGER, selected_colour INTEGER, highlighted_colour INTEGER, 
-          record_detail INTEGER, allow_notifications INTEGER,
+          record_detail INTEGER, allow_notifications INTEGER, jwt TEXT,
           dark INTEGER) ''');
 
         await db.execute(
-            '''CREATE TABLE drives(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, title TEXT, sub_title TEXT, body TEXT, 
-          map_image TEXT, distance REAL, points_of_interest INTEGER, added DATETIME)''');
+            '''CREATE TABLE drives(id INTEGER PRIMARY KEY AUTOINCREMENT, uri TEXT, title TEXT, sub_title TEXT, body TEXT, 
+          distance REAL, points_of_interest INTEGER, added DATETIME)''');
 
         await db.execute(
-            '''CREATE TABLE points_of_interest(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, drive_id INTEGER, type INTEGER, 
+            '''CREATE TABLE points_of_interest(id INTEGER PRIMARY KEY AUTOINCREMENT, drive_id INTEGER, type INTEGER, 
           name TEXT, description TEXT, images TEXT, latitude REAL, longitude REAL)''');
 
         /// SQLite does have JSON capabilities
@@ -265,6 +269,7 @@ Future<int> saveUser(User user) async {
   }
 }
 
+/*
 Future<List<Group>> getGroups() async {
   final db = await dbHelper().db;
   List<Group> groups = [];
@@ -286,7 +291,7 @@ Future<List<Group>> getGroups() async {
 
   return groups;
 }
-
+*/
 Future<List<Group>> loadGroups() async {
   final db = await dbHelper().db;
   List<Group> groups = [];
@@ -309,6 +314,7 @@ Future<List<Group>> loadGroups() async {
 }
 
 Future<int> saveGroupLocal(Group group) async {
+  /*
   final db = await dbHelper().db;
   int id = group.id;
   Map<String, dynamic> grMap = group.toMap();
@@ -335,8 +341,9 @@ Future<int> saveGroupLocal(Group group) async {
         whereArgs: [group.id],
         conflictAlgorithm: ConflictAlgorithm.replace);
   }
-
-  return id;
+*/
+  return 1;
+  //id;
 }
 
 Future<List<GroupMember>> loadGroupMembers() async {
@@ -349,14 +356,10 @@ Future<List<GroupMember>> loadGroupMembers() async {
 
     for (int i = 0; i < maps.length; i++) {
       members.add(GroupMember(
-          stId: maps[i]['id'].toString(),
-          groupIds: maps[i]['group_ids'],
           forename: maps[i]['forename'],
           surname: maps[i]['surname'],
           email: maps[i]['email'],
-          phone: maps[i]['phone'],
-          note: maps[i]['note'],
-          status: maps[i]['status']));
+          phone: maps[i]['phone']));
     }
   } catch (e) {
     debugPrint(e.toString());
@@ -368,7 +371,8 @@ Future<List<GroupMember>> loadGroupMembers() async {
 Future<int> saveGroupMemberLocal(GroupMember groupMember) async {
   final db = await dbHelper().db;
   Map<String, dynamic> grMap = groupMember.toMap();
-  int id = groupMember.id;
+  int id = 1;
+  // groupMember.id;
   if (id == -1) {
     try {
       grMap.remove('id');
@@ -419,11 +423,12 @@ Future<bool> saveGroupMembers(List<GroupMember> groupMembers) async {
 Future<int> saveMessage(Message message) async {
   int memberId = -1;
   final db = await dbHelper().db;
+  /*
   if (message.groupMember.id < 0) {
     memberId = await saveGroupMemberLocal(message.groupMember);
     message.groupMember.id = memberId;
   }
-
+*/
   Map<String, dynamic> meMap = message.toMap();
   int id = message.id;
   if (id == -1) {
@@ -457,41 +462,25 @@ Future<int> saveMessage(Message message) async {
   return id;
 }
 
-Future<Drive> getDrive(int driveId) async {
-  int id = 0;
-  int userId = 0;
-  String title = '';
-  String subTitle = '';
-  String body = '';
-  DateTime added = DateTime.now();
-  double distance = 0.0;
-  int pois = 0;
-
+Future<Map<String, dynamic>> getDrive(int driveId) async {
   final db = await dbHelper().db;
+  var maps;
   try {
-    String query = "SELECT * FROM drives WHERE if = $driveId";
-    var maps = await db.rawQuery(query);
-    id = int.parse(maps[0]['id'].toString());
-    userId = int.parse(maps[0]['user_id'].toString());
-    title = maps[0]['title'].toString();
-    subTitle = maps[0]['sub_title'].toString();
-    body = maps[0]['body'].toString();
-    added = DateTime.parse(maps[0]['date'].toString());
-    distance = double.parse(maps[0]['distance'].toString());
-    pois = int.parse(maps[0]['points_of_interest'].toString());
+    String query = "SELECT * FROM drives WHERE id = $driveId";
+    maps = await db.rawQuery(query);
   } catch (e) {
     debugPrint('dbError:${e.toString()}');
   }
-  return Drive(
-    id: id,
-    userId: userId,
-    title: title,
-    subTitle: subTitle,
-    body: body,
-    added: added,
-    distance: distance,
-    pois: pois,
-  );
+  return {
+    'id': int.parse(maps[0]['id'].toString()),
+    'title': maps[0]['title'].toString(),
+    'subTitle': maps[0]['sub_title'].toString(),
+    'body': maps[0]['body'].toString(),
+    'added': DateTime.parse(maps[0]['added'] as String),
+    'distance': double.parse(maps[0]['distance'].toString()),
+    'pois': int.parse(maps[0]['points_of_interest'].toString()),
+    // 'pois': int.parse(maps[0]['points_of_interest'].toString()),
+  };
 }
 
 Future<void> deleteDriveById(int id) async {
@@ -503,10 +492,12 @@ Future<void> deleteDriveById(int id) async {
   );
 }
 
-Future<void> deleteDriveByTripItem({required int driveId}) async {
-  await deletePolyLinesByDriveId(driveId)
-      .then((_) => deletePointOfInterestByDriveId(driveId))
-      .then((_) => deleteDriveById(driveId));
+//
+Future<void> deleteDriveLocal({required int driveId}) async {
+  await deletePolyLinesByDriveId(driveId);
+  await deletePointOfInterestByDriveId(driveId);
+  await deleteManeuversByDriveId(driveId);
+  await deleteDriveById(driveId);
 }
 
 // "type 'int' is not a subtype of type 'Map<String, dynamic>'"
@@ -549,6 +540,55 @@ Future<int> saveDrive({required Drive drive}) async {
   return id;
 }
 
+Future<int> saveMyTripItem(MyTripItem myTripItem) async {
+  final db = await dbHelper().db;
+  int id = myTripItem.getId();
+  Map<String, dynamic> map = myTripItem.toDrivesMap();
+  try {
+    if (id < 0) {
+      map.remove("id");
+      id = await db.insert('drives', map);
+    } else {
+      await db.update('drives', map,
+          where: 'id = ?',
+          whereArgs: [id],
+          conflictAlgorithm: ConflictAlgorithm.replace);
+    }
+    // Now process Trip images that have been downloaded and are to be save locally
+    if (myTripItem.getDriveUri().isNotEmpty) {
+      final directory = (await getApplicationDocumentsDirectory()).path;
+      for (PointOfInterest pointOfInterest in myTripItem.pointsOfInterest()) {
+        if (pointOfInterest.images.isNotEmpty) {
+          var pics = jsonDecode(pointOfInterest.images);
+          String jsonImages = '';
+          for (String pic in pics) {
+            String url =
+                Uri.parse('${urlBase}v1/drive/images${pointOfInterest.url}$pic')
+                    .toString();
+            bool dirExists = await Directory('$directory/drive$id').exists();
+            if (!dirExists) {
+              await Directory('$directory/drive$id').create();
+            }
+
+            String imagePath = '$directory/drive$id/$pic';
+            await getAndSaveImage(url: url, filePath: imagePath);
+            jsonImages = '$jsonImages,{"url":"$imagePath", "caption":""}';
+          }
+          pointOfInterest.images = '[${jsonImages.substring(1)}]';
+        }
+      }
+    }
+    await savePointsOfInterestLocal(
+        driveId: id, pointsOfInterest: myTripItem.pointsOfInterest());
+    await savePolylinesLocal(driveId: id, polylines: myTripItem.routes());
+    await saveManeuversLocal(driveId: id, maneuvers: myTripItem.maneuvers());
+  } catch (e) {
+    String err = e.toString();
+    debugPrint('Error: $err');
+  }
+  return id;
+}
+
 String pointsToString(List<LatLng> points) {
   String pointsMap = '';
   try {
@@ -571,15 +611,37 @@ String pointsToString(List<LatLng> points) {
           name TEXT, description TEXT, images TEXT, latitude REAL, longitude REAL)''');
 */
 
+Future<List<PointOfInterest>> loadPointsOfInterestLocal(int driveId) async {
+  final db = await dbHelper().db;
+  List<PointOfInterest> pointsOfInterest = [];
+  List<Map<String, dynamic>> maps = await db.query(
+    'points_of_interest',
+    where: 'drive_id = ?',
+    whereArgs: [driveId],
+  );
+  for (int i = 0; i < maps.length; i++) {
+    pointsOfInterest.add(PointOfInterest(
+        maps[i]['id'],
+        driveId,
+        maps[i]['type'],
+        maps[i]['name'],
+        maps[i]['description'],
+        maps[i]['type'] == 12 ? 10 : 30,
+        maps[i]['type'] == 12 ? 10 : 30,
+        maps[i]['images'],
+        markerPoint: LatLng(maps[i]['latitude'], maps[i]['longitude']),
+        marker: MarkerWidget(type: maps[i]['type'])));
+  }
+  return pointsOfInterest;
+}
+
 Future<bool> savePointsOfInterestLocal(
-    {required int userId,
-    required int driveId,
+    {required int driveId,
     required List<PointOfInterest> pointsOfInterest}) async {
   final db = await dbHelper().db;
   for (int i = 0; i < pointsOfInterest.length; i++) {
     int id = -1;
     Map<String, dynamic> poiMap = {
-      'user_id': userId,
       'drive_id': driveId,
       'type': pointsOfInterest[i].type,
       'name': pointsOfInterest[i].name,
@@ -636,7 +698,6 @@ Future<void> deletePointOfInterestByDriveId(int driveId) async {
 ///
 
 Future<bool> saveManeuversLocal({
-  required int id,
   required int driveId,
   required List<Maneuver> maneuvers,
 }) async {
@@ -713,11 +774,10 @@ Future<void> deleteManeuversByDriveId(int driveId) async {
 }
 
 Future<bool> savePolylinesLocal(
-    {required int id,
-    required int driveId,
-    required List<Polyline> polylines}) async {
+    {required int driveId, required List<mt.Route> polylines}) async {
   final db = await dbHelper().db;
   for (int i = 0; i < polylines.length; i++) {
+    int id = polylines[i].id;
     Map<String, dynamic> plMap = {
       'id': id,
       'drive_id': driveId,
@@ -743,11 +803,15 @@ Future<bool> savePolylinesLocal(
       } catch (e) {
         debugPrint('Map.remove() error: ${e.toString()}');
       }
-      await db.insert(
-        'polylines',
-        plMap,
-        conflictAlgorithm: ConflictAlgorithm.replace,
-      );
+      try {
+        await db.insert(
+          'polylines',
+          plMap,
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
+      } catch (e) {
+        debugPrint('Error inserting polylines: ${e.toString}');
+      }
     }
   }
   return true;

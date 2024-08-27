@@ -1,13 +1,19 @@
 // import 'package:flutter/cupertino.dart';
 import 'dart:convert';
-import 'dart:ffi';
+//import 'dart:ffi';
+import 'dart:ui' as ui;
+import 'dart:io';
+import 'dart:math';
+import 'dart:typed_data';
 import 'package:drives/utilities.dart';
 import 'package:drives/screens/dialogs.dart';
 import 'package:drives/screens/painters.dart';
 import 'package:drives/services/db_helper.dart';
+import 'package:drives/services/web_helper.dart' as wh;
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 // import 'package:geolocator/geolocator.dart';
 import 'route.dart' as mt;
 // import 'dart:ui' as ui;
@@ -271,6 +277,7 @@ class Setup {
         highlightedColour = maps[0]['highlighted_colour'];
         recordDetail = maps[0]['record_detail'];
         allowNotifications = maps[0]['allow_notifications'] == 1;
+        jwt = maps[0]['jwt'];
         dark = maps[0]['dark'] == 1;
         rotateMap = maps[0]['rotate_map'] == 1;
       } catch (e) {
@@ -307,6 +314,7 @@ class Setup {
       'highlighted_colour': highlightedColour,
       'selected_colour': selectedColour,
       'record_detail': recordDetail,
+      'jwt': jwt,
       'allow_notifications': allowNotifications ? 1 : 0,
       'dark': dark ? 1 : 0,
       'rotate_map': rotateMap ? 1 : 0,
@@ -348,40 +356,19 @@ class MarkerLabel extends Marker {
 class PointOfInterest extends Marker {
   int id;
   String images;
-
-  /// Json [{'image': imageUrl, 'caption': imageCaption}, ...]
-  int userId;
   int driveId;
   int type;
   String name;
   String description;
-  // IconData iconData;
-  // late BuildContext ctx;
+  String url;
+  double score;
+  int scored;
   late Widget marker;
-
-  /*
-  @override
-  late Widget child;
-  */
   LatLng markerPoint = const LatLng(52.05884, -1.345583);
-  // @override
-/*
-  WidgetBuilder markerBuilder = (ctx) => RawMaterialButton(
-      onPressed: () => myFunc(),
-      elevation: 1.0,
-      fillColor: uiColours.keys.toList()[Setup().waypointColour],
-      padding: const EdgeInsets.all(2.0),
-      shape: const CircleBorder(),
-      child: const Icon(
-        Icons.pin_drop,
-        size: 60,
-        color: Colors.blueAccent,
-      ));
- */
+
   PointOfInterest(
       //  this.ctx,
       this.id,
-      this.userId,
       this.driveId,
       this.type,
       this.name,
@@ -389,14 +376,11 @@ class PointOfInterest extends Marker {
       double width,
       double height,
       this.images,
-      // RawMaterialButton button,
-      //    this.iconData,
-      // Key key,
       {required LatLng markerPoint,
-      required Widget marker
-
-      /*required this.xchild*/
-      })
+      required Widget marker,
+      this.url = '',
+      this.score = 1,
+      this.scored = 0})
       : super(
           child: marker,
           point: markerPoint,
@@ -415,7 +399,6 @@ class PointOfInterest extends Marker {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
-      'useId': userId,
       'driveId': driveId,
       'type': type,
       'name': name,
@@ -518,80 +501,151 @@ IconData markerIcon(int type) {
   return IconData(poiTypes.toList()[type]['iconMaterial'],
       fontFamily: 'MaterialIcons');
 }
-/*
-            '''CREATE TABLE groups(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, description TEXT, 
-            created DATETIME)'''); //, locationId INTEGER, vehicleId INTEGER)');
-        await db.execute(
-            '''CREATE TABLE group_members(id INTEGER PRIMARY KEY AUTOINCREMENT, forename TEXT, surname TEXT, 
-            email TEXT, status Integer, joined DATETIME, note TEXT, uri TEXT)''');
-*/
 
 class Group {
-  int id = -1;
+  String id = '';
   String name = '';
   String description = '';
+  List<GroupMember> _members = [];
   DateTime created = DateTime.now();
   bool edited = false;
+  bool selected = true;
+  String userId = '';
   Group(
-      {this.id = 0,
+      {this.id = '',
       required this.name,
       this.description = '',
-      this.edited = false});
+      List<GroupMember> members = const [],
+      DateTime? created,
+      this.edited = false,
+      this.userId = ''})
+      : created = created ?? DateTime.now(),
+        _members = List.from(members);
+
   set groupName(String value) => name = value;
+
   Map<String, dynamic> toMap() {
     return {
       'id': id,
       'name': name,
       'description': description,
+      'members': _members.map((member) => member.toMap()).toList(),
       'created': created.toString(),
+      //  'edited': edited ? 1 : 0,
+      'user_id': userId,
     };
+  }
+
+  factory Group.fromMap(var map) {
+    return Group(
+        name: map['name'],
+        description: map['description'],
+        members: <GroupMember>[
+          for (Map<String, dynamic> memberMap in map['members'])
+            GroupMember.fromMap(memberMap)
+        ],
+        created: DateTime.parse(map['created']),
+        userId: map['user_id'],
+        id: map['id']);
+  }
+
+  List<GroupMember> membersFromMap(List<Map<String, dynamic>> maps) {
+    List<GroupMember> members = [];
+    for (Map<String, dynamic> map in maps) {
+      members.add(GroupMember.fromMap(map));
+    }
+    return members;
+  }
+
+  void addMember(GroupMember member) {
+    _members.add(member);
+  }
+
+  void removeMember(int index) {
+    _members.removeAt(index);
+  }
+
+  List<GroupMember> groupMembers() {
+    return _members;
+  }
+
+  void setGroupMembers(List<GroupMember> members) {
+    _members = members;
   }
 }
 
 class GroupMember {
-  // int id = -1;
+  String id = '';
   String stId = '-1';
+  String userId = '';
   String groupIds = '';
+  String groupId = '';
   String forename = '';
   String surname = '';
   String email = '';
   String phone = '';
-  String status = '';
-  DateTime joined = DateTime.now();
-  String note = '';
-  String uri = '';
   String isEdited = 'false';
   bool selected = false;
   int index = 0;
   GroupMember(
-      {required this.groupIds,
-      required this.forename,
+      {required this.forename,
       required this.surname,
+      this.id = '',
+      this.userId = '',
+      this.groupId = '',
       this.email = '',
-      this.phone = '',
-      this.status = '',
-      this.stId = '-1',
-      note = ''});
+      this.phone = ''});
+
+  factory GroupMember.fromMap(Map<String, dynamic> map) {
+    return GroupMember(
+      id: map['id'],
+      userId: map['member'],
+      groupId: map['groups'],
+      forename: map['forename'],
+      surname: map['surname'],
+      email: map['email'],
+      phone: map['phone'],
+    );
+  }
+
+  factory GroupMember.fromUserMap(Map<String, dynamic> map) {
+    return GroupMember(
+      id: '', // It's not yet defined as a group member
+      userId: map['userId'],
+      forename: map['forename'],
+      surname: map['surname'],
+      email: map['email'],
+      phone: map['phone'],
+    );
+  }
 // Getter for edited have to use this because ints are passed by value not by reference
   bool get edited => isEdited == 'true';
 // Setter for edited
   set edited(bool value) => isEdited = value ? 'true' : 'false';
-// Getter for id
-  int get id => int.parse(stId);
-// Setter for id
-  set id(int value) => stId = value.toString();
+
   Map<String, dynamic> toMap() {
+    return {'user_id': userId, 'group_id': groupId};
+  }
+
+  Map<String, dynamic> toFullMap() {
     return {
-      'id': stId,
-      'group_ids': groupIds,
+      // 'id': stId,
+      'user_id': userId,
       'forename': forename,
       'surname': surname,
       'email': email,
       'phone': phone,
-      'status': status,
-      'joined': joined.toString(),
-      'note': note,
-      'uri': uri
+      'id': userId
+    };
+  }
+
+  Map<String, dynamic> toApiMap() {
+    return {
+      'user_id': '',
+      'forename': forename,
+      'surname': surname,
+      'email': email,
+      'phone': phone
     };
   }
 }
@@ -618,13 +672,15 @@ class Photo {
 
 List<Photo> photosFromJson(String photoString) {
   List<Photo> photos = [];
-  try {
-    photos = (json.decode(photoString) as List<dynamic>)
-        .map((jsonObject) => Photo.fromJson(jsonObject))
-        .toList();
-  } catch (e) {
-    String err = e.toString();
-    debugPrint('Error converting image data: $err ($photoString)');
+  if (photoString.isNotEmpty) {
+    try {
+      photos = (json.decode(photoString) as List<dynamic>)
+          .map((jsonObject) => Photo.fromJson(jsonObject))
+          .toList();
+    } catch (e) {
+      String err = e.toString();
+      debugPrint('Error converting image data: $err ($photoString)');
+    }
   }
   return photos;
 }
@@ -788,20 +844,6 @@ class Follower extends Marker {
     reported = DateTime.now();
   }
 
-/**
- *       {required LatLng markerPoint,
-      required Widget marker
-
-      /*required this.xchild*/
-      })
-      : super(
-          child: marker,
-          point: markerPoint,
-          width: width,
-          height: height, /*key: key*/
-        );
- */
-
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -907,57 +949,339 @@ class TripItem {
 
 /// class MyTripItem
 /// covers both points of interest and waypoints
+///
+/// class StudentsList extends StatefulWidget {
 
 class MyTripItem {
-  int id = 0;
-  int driveId = 0;
-  String heading = '';
-  String subHeading = '';
-  String body = '';
-  String published = '';
-  List<PointOfInterest> pointsOfInterest = [];
-  List<Maneuver> maneuvers = [];
-  List<mt.Route> routes = [];
-  String images = '';
-  double score = 5;
-  double distance = 0;
-  int closest = 12;
+  int _id = -1;
+  int _driveId = -1;
+  int _index = -1;
+  String _driveUri = '';
+  String _heading = '';
+  String _subHeading = '';
+  String _body = '';
+  String _published = '';
+  List<PointOfInterest> _pointsOfInterest = [];
+  List<Maneuver> _maneuvers = [];
+  List<mt.Route> _routes = [];
+  String _images = '';
+  double _score = 5;
+  double _distance = 0;
+  int _closest = 12;
   int highlights = 0;
   bool showMethods = true;
+  late ui.Image _mapImage;
 
   MyTripItem({
-    this.id = 0,
-    this.driveId = 0,
-    required this.heading,
-    this.subHeading = '',
-    this.body = '',
-    this.published = '',
-    this.pointsOfInterest = const [],
-    this.maneuvers = const [],
-    this.routes = const [],
-    this.images = '',
-    this.score = 5,
-    this.distance = 0,
-    this.closest = 12,
-  });
+    int id = -1,
+    int driveId = -1,
+    String driveUri = '',
+    required String heading,
+    String subHeading = '',
+    String body = '',
+    String published = '',
+    List<PointOfInterest> pointsOfInterest = const [],
+    List<Maneuver> maneuvers = const [],
+    List<mt.Route> routes = const [],
+    String images = '',
+    double score = 5,
+    double distance = 0,
+    int closest = 12,
+  })  : _id = id,
+        _driveId = driveId,
+        _heading = heading,
+        _subHeading = subHeading,
+        _body = body,
+        _published = published,
+        _pointsOfInterest = List.from(pointsOfInterest),
+        _maneuvers = List.from(maneuvers),
+        _routes = List.from(routes),
+        _images = images,
+        _score = score,
+        _distance = distance,
+        _closest = closest;
+
+  void clearAll() {
+    _driveId = -1;
+    _heading = '';
+    _subHeading = '';
+    _body = '';
+    _published = '';
+    _pointsOfInterest.clear();
+    _maneuvers.clear();
+    _routes.clear();
+    _images = '';
+    _score = 0;
+    _distance = 0;
+  }
+
+  int getId() {
+    return _id;
+  }
+
+  void setId(int id) {
+    _id = id;
+  }
+
+  int getIndex() {
+    return _index;
+  }
+
+  void setIndex(int index) {
+    _index = index;
+  }
+
+  int getDriveId() {
+    return _driveId;
+  }
+
+  void setDriveId(int driveId) {
+    _driveId = driveId;
+  }
+
+  String getDriveUri() {
+    return _driveUri;
+  }
+
+  void setDriveUri(String driveUri) {
+    _driveUri = driveUri;
+  }
+
+  String getHeading() {
+    return _heading;
+  }
+
+  void setHeading(String heading) {
+    _heading = heading;
+  }
+
+  String getSubHeading() {
+    return _subHeading;
+  }
+
+  void setSubHeading(String subHeading) {
+    _subHeading = subHeading;
+  }
+
+  void setBody(String body) {
+    _body = body;
+  }
+
+  String getBody() {
+    return _body;
+  }
+
+  String getPublished() {
+    return _published;
+  }
+
+  void setPublished(String published) {
+    _published = published;
+  }
+
+  String getImages() {
+    return _images;
+  }
+
+  void setImages(String images) {
+    _images = images;
+  }
+
+  double getScore() {
+    return _score;
+  }
+
+  void setScore(double score) {
+    _score = score;
+  }
+
+  int getClosest() {
+    return _closest;
+  }
+
+  void setClosest(int closest) {
+    _closest = closest;
+  }
+
+  double getDistance() {
+    return _distance;
+  }
+
+  void setDistance(double distance) {
+    _distance = distance;
+  }
+
+  List<PointOfInterest> pointsOfInterest() {
+    return _pointsOfInterest;
+  }
+
+  void addPointOfInterest(PointOfInterest pointOfInterest) {
+    _pointsOfInterest.add(pointOfInterest);
+  }
+
+  void insertPointOfInterest(PointOfInterest pointOfInterest, int index) {
+    _pointsOfInterest.insert(index, pointOfInterest);
+  }
+
+  void removePointOfInterestAt(int index) {
+    int id = _pointsOfInterest[index].id;
+    _pointsOfInterest.removeAt(index);
+    if (id > -1) {
+      deletePointOfInterestById(id);
+    }
+  }
+
+  void movePointOfInterest(int oldIndex, int newIndex) {
+    PointOfInterest pointOfInterest = _pointsOfInterest.removeAt(oldIndex);
+    _pointsOfInterest.insert(newIndex, pointOfInterest);
+  }
+
+  void clearPointsOfInterest() {
+    _pointsOfInterest.clear();
+  }
+
+  List<Maneuver> maneuvers() {
+    return _maneuvers;
+  }
+
+  void addManeuver(Maneuver maneuver) {
+    _maneuvers.add(maneuver);
+  }
+
+  void addManeuvers(List<Maneuver> maneuvers) {
+    _maneuvers = maneuvers;
+  }
+
+  void clearManeuvers() {
+    _maneuvers.clear();
+  }
+
+  List<mt.Route> routes() {
+    return _routes;
+  }
+
+  void addRoute(mt.Route route) {
+    _routes.add(route);
+  }
+
+  void clearRoutes() {
+    _routes.clear();
+  }
+
+  void insertRoute(mt.Route route, int index) {
+    _routes.insert(index, route);
+  }
+
+  void setImage(ui.Image image) {
+    _mapImage = image;
+  }
+
+  ui.Image getImage() {
+    return _mapImage;
+  }
 
   Map<String, dynamic> toMap() {
     return {
-      'id': id,
-      'heading': heading,
-      'subHeading': subHeading,
-      'body': body,
-      'published': published,
-      'pointsOfInterest': pointsOfInterest,
-      'images': images,
-      'score': score,
-      'distance': distance,
-      'closest': closest,
+      'id': _id,
+      'driveUri': _driveUri,
+      'heading': _heading,
+      'subHeading': _subHeading,
+      'body': _body,
+      'published': _published,
+      'pointsOfInterest': _pointsOfInterest.length,
+      'images': _images,
+      'score': _score,
+      'distance': _distance,
+      'closest': _closest,
     };
   }
 
-  Future<int> saveLocally() async {
-    return -1;
+  /*
+            '''CREATE TABLE drives(id INTEGER PRIMARY KEY AUTOINCREMENT, uri INTEGER, title TEXT, sub_title TEXT, body TEXT, 
+          map_image TEXT, distance REAL, points_of_interest INTEGER, added DATETIME)''');
+  */
+
+  Map<String, dynamic> toDrivesMap() {
+    return {
+      'id': _id,
+      'uri': _driveUri,
+      'title': _heading,
+      'sub_title': _subHeading,
+      'body': _body,
+      'added': DateTime.now().toIso8601String(),
+      'points_of_interest': _pointsOfInterest.length,
+      'distance': _distance,
+    };
+  }
+
+  Future<int> saveLocal() async {
+    int result = -1;
+    _driveId = await saveMyTripItem(this);
+    try {
+      final directory = (await getApplicationDocumentsDirectory()).path;
+      Uint8List? pngBytes = Uint8List.fromList([]);
+      if (_driveUri.isEmpty) {
+        final byteData =
+            await _mapImage.toByteData(format: ui.ImageByteFormat.png);
+        pngBytes = byteData?.buffer.asUint8List();
+      } else {
+        String url =
+            Uri.parse('${wh.urlBase}v1/drive/images/$_driveUri/map.png')
+                .toString();
+        pngBytes = await wh.getImageBytes(url: url);
+      }
+      String url = '$directory/drive$_driveId.png';
+      final imgFile = File(url);
+      imgFile.writeAsBytes(pngBytes!);
+      if (imgFile.existsSync()) {
+        result = 1;
+        debugPrint('Image file $url exists');
+      }
+    } catch (e) {
+      String err = e.toString();
+      debugPrint('Error: $err');
+    }
+    //  loadLocal(_driveId);
+    return result;
+  }
+
+  Future<void> loadLocal(int driveId) async {
+    clearAll();
+    Map<String, dynamic> map = await getDrive(driveId);
+    LatLng pos = const LatLng(0, 0);
+    int distance = 99999;
+    await getPosition().then((currentPosition) {
+      pos = LatLng(currentPosition.latitude, currentPosition.longitude);
+    });
+    final directory = (await getApplicationDocumentsDirectory()).path;
+    _id = driveId;
+    _driveId = driveId;
+    _heading = map['title'];
+    _subHeading = map['subTitle'];
+    _body = map['body'];
+    _published = map['added'].toString();
+    _distance = map['distance'];
+    _images = '{"url": "$directory/drive$_id.png", "caption": ""}';
+    _pointsOfInterest = await loadPointsOfInterestLocal(driveId);
+    for (int i = 0; i < _pointsOfInterest.length; i++) {
+      distance = min(
+          distanceBetween(_pointsOfInterest[i].point, pos).toInt(), distance);
+      if (_pointsOfInterest[i].images.isNotEmpty) {
+        _images = '$_images,${unList(_pointsOfInterest[i].images)}';
+      }
+    }
+    _closest = distance;
+    _images = '[$_images]';
+    _maneuvers = await loadManeuversLocal(driveId);
+    List<Polyline> polyLines = await loadPolyLinesLocal(driveId);
+    for (int i = 0; i < polyLines.length; i++) {
+      addRoute(mt.Route(
+          id: -1,
+          points: polyLines[i].points,
+          color: polyLines[i].color,
+          borderColor: polyLines[i].color,
+          strokeWidth: polyLines[i].strokeWidth));
+    }
   }
 
   Future<bool> publish() async {
@@ -1001,7 +1325,7 @@ Future<List<MyTripItem>> tripItemFromDb({int driveId = -1}) async {
     pos = LatLng(currentPosition.latitude, currentPosition.longitude);
   });
   String drivesQuery =
-      '''SELECT drives.title, drives.sub_title, drives.body, drives.map_image, drives.distance, drives.points_of_interest,
+      '''SELECT drives.id, drives.title, drives.sub_title, drives.body, drives.distance, drives.points_of_interest,
     points_of_interest.*  
     FROM drives
     JOIN points_of_interest 
@@ -1013,6 +1337,7 @@ Future<List<MyTripItem>> tripItemFromDb({int driveId = -1}) async {
   List<MyTripItem> trips = [];
   try {
     List<Map<String, dynamic>> maps = await db.rawQuery(drivesQuery);
+    final directory = (await getApplicationDocumentsDirectory()).path;
     int driveId = -1;
     int highlights = 0;
     String tripImages = '';
@@ -1020,28 +1345,31 @@ Future<List<MyTripItem>> tripItemFromDb({int driveId = -1}) async {
     for (int i = 0; i < maps.length; i++) {
       if (maps[i]['drive_id'] != driveId) {
         if (trips.isNotEmpty) {
-          trips[trips.length - 1].closest = closestWaypoint(
-                  pointsOfInterest: trips[trips.length - 1].pointsOfInterest,
+          int distance = closestWaypoint(
+                  pointsOfInterest: trips[trips.length - 1].pointsOfInterest(),
                   location: pos)
               .toInt();
+          trips[trips.length - 1].setClosest(distance);
           if (tripImages.isNotEmpty) {
-            trips[trips.length - 1].images = '[$tripImages]';
+            trips[trips.length - 1].setImages('[$tripImages]');
           }
           trips[trips.length - 1].highlights = highlights;
         }
         driveId = maps[i]['drive_id'];
-        tripImages = unList(maps[i]['map_image']);
+        tripImages = '{"url": "$directory/drive$driveId.png", "caption": ""}';
+        //  '$directory/drive$driveId.png'; //unList(maps[i]['map_image']);
         trips.add(MyTripItem(
+            id: driveId,
             driveId: driveId,
             heading: maps[i]['title'],
             subHeading: maps[i]['sub_title'],
             body: maps[i]['body'],
-            images: maps[i]['map_image'],
+            images:
+                '{"url": "$directory/drive$driveId.png", "caption": ""}', //maps[i]['map_image'],
             distance: double.parse(maps[i]['distance'].toString()),
             pointsOfInterest: [
               PointOfInterest(
                   maps[i]['id'],
-                  maps[i]['user_id'],
                   driveId,
                   maps[i]['type'],
                   maps[i]['name'],
@@ -1056,9 +1384,8 @@ Future<List<MyTripItem>> tripItemFromDb({int driveId = -1}) async {
             closest: 15));
         if (maps[i]['type'] != 12) highlights++;
       } else {
-        trips[trips.length - 1].pointsOfInterest.add(PointOfInterest(
+        trips[trips.length - 1].addPointOfInterest(PointOfInterest(
             maps[i]['id'],
-            maps[i]['user_id'],
             driveId,
             maps[i]['type'],
             maps[i]['name'],
@@ -1076,12 +1403,13 @@ Future<List<MyTripItem>> tripItemFromDb({int driveId = -1}) async {
       }
     } //
     if (trips.isNotEmpty) {
-      trips[trips.length - 1].closest = closestWaypoint(
-              pointsOfInterest: trips[trips.length - 1].pointsOfInterest,
+      int distance = closestWaypoint(
+              pointsOfInterest: trips[trips.length - 1].pointsOfInterest(),
               location: pos)
           .toInt();
+      trips[trips.length - 1].setClosest(distance);
       if (tripImages.isNotEmpty) {
-        trips[trips.length - 1].images = '[$tripImages]';
+        trips[trips.length - 1].setImages('[$tripImages]');
       }
       trips[trips.length - 1].highlights = highlights;
     }
@@ -1139,7 +1467,7 @@ class Drive {
     }
 
     try {
-      await savePolylinesLocal(id: 0, driveId: id, polylines: polyLines);
+      // await savePolylinesLocal(id: 0, driveId: id, polylines: polyLines);
     } catch (e) {
       debugPrint('Error in savePolyLinesLocal: ${e.toString()}');
     }
@@ -1244,7 +1572,6 @@ Future<List<Message>> messagesFromDb({int driveId = -1}) async {
           groupMember: GroupMember(
               forename: maps[i]['forename'],
               surname: maps[i]['surname'],
-              groupIds: maps[i]['group_ids'],
               email: maps[i]['email'],
               phone: maps[i]['phone']),
           message: maps[i]['message'],

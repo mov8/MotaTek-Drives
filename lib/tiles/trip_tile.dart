@@ -2,11 +2,14 @@ import 'package:drives/utilities.dart';
 import 'package:flutter/material.dart';
 import 'package:drives/models.dart';
 import 'package:drives/screens/star_ratings.dart';
+import 'package:drives/services/web_helper.dart';
 // import 'dart:io';
 
 class TripTile extends StatefulWidget {
   final TripItem tripItem;
   final Future<void> Function(int) onGetTrip;
+  final Function(int, int) onRatingChanged;
+
   final int index;
 
   const TripTile({
@@ -14,6 +17,7 @@ class TripTile extends StatefulWidget {
     required this.tripItem,
     required this.index,
     required this.onGetTrip,
+    required this.onRatingChanged,
   });
 
   @override
@@ -41,53 +45,9 @@ class _tripTileState extends State<TripTile> {
                                       child: ListView(
                                         scrollDirection: Axis.horizontal,
                                         children: [
-                                          for (int i = 0;
-                                              i <
-                                                  widget.tripItem.imageUrls
-                                                      .length;
-                                              i++)
-                                            SizedBox(
-                                                width: 200,
-                                                child: Padding(
-                                                    padding: const EdgeInsets
-                                                        .symmetric(
-                                                        horizontal: 10),
-                                                    child: Image.network(
-                                                      widget.tripItem
-                                                          .imageUrls[i],
-
-                                                      loadingBuilder: (BuildContext
-                                                              context,
-                                                          Widget child,
-                                                          ImageChunkEvent?
-                                                              loadingProgress) {
-                                                        if (loadingProgress ==
-                                                            null) {
-                                                          return child;
-                                                        }
-                                                        return Center(
-                                                          child:
-                                                              CircularProgressIndicator(
-                                                            value: loadingProgress
-                                                                        .expectedTotalBytes !=
-                                                                    null
-                                                                ? loadingProgress
-                                                                        .cumulativeBytesLoaded /
-                                                                    (loadingProgress
-                                                                            .expectedTotalBytes ??
-                                                                        1)
-                                                                : null,
-                                                          ),
-                                                        );
-                                                      },
-
-                                                      //   image: AssetImage(widget
-                                                      //       .tripItem
-                                                      //       .imageUrls[i])
-                                                    ))),
-                                          const SizedBox(
-                                            width: 30,
-                                          ),
+                                          for (String url
+                                              in widget.tripItem.imageUrls)
+                                            showWebImage(url)
                                         ],
                                       )))
                             ]),
@@ -168,7 +128,7 @@ class _tripTileState extends State<TripTile> {
                                   textAlign: TextAlign.left),
                             ),
                           )),
-                          if (widget.tripItem.author != '')
+                          if (widget.tripItem.author.isNotEmpty)
                             SizedBox(
                                 child: Padding(
                                     padding:
@@ -250,8 +210,6 @@ class _tripTileState extends State<TripTile> {
   }
 
   changeRating(value) {
-    //  setState(() {
-    //    widget.tripItem.score = value;
-    //  });
+    widget.onRatingChanged(value, widget.index);
   }
 }

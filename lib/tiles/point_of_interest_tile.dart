@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:drives/models.dart';
+import 'package:drives/services/web_helper.dart';
 // import 'package:drives/services/db_helper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:drives/screens/star_ratings.dart';
 import 'dart:io';
+import 'dart:convert';
 
 /// An example of a widget with a controller.
 /// The controller allows to the widget to be controlled externally
@@ -48,6 +51,7 @@ class PointOfInterestTile extends StatefulWidget {
   final Function onIconTap;
   final Function onExpandChange;
   final Function onDelete;
+  final Function onRated;
   // final Key key;
   final bool expanded;
   final bool canEdit;
@@ -61,6 +65,7 @@ class PointOfInterestTile extends StatefulWidget {
     required this.onIconTap,
     required this.onExpandChange,
     required this.onDelete,
+    required this.onRated,
     this.expanded = false,
     this.canEdit = true,
   }); // : super(key: key);
@@ -275,7 +280,8 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                         ),
                       ],
                     ),
-                    if (widget.pointOfInterest.images.isNotEmpty)
+                    if (widget.pointOfInterest.images.isNotEmpty &&
+                        widget.pointOfInterest.url.isEmpty)
                       Row(children: <Widget>[
                         Expanded(
                             flex: 8,
@@ -284,26 +290,25 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                                 child: ListView(
                                   scrollDirection: Axis.horizontal,
                                   children: [
-                                    for (int i = 0;
-                                        i <
-                                            photosFromJson(widget
-                                                    .pointOfInterest.images)
-                                                .length;
-                                        i++)
-                                      Row(
-                                        children: [
-                                          SizedBox(
-                                              width: 160,
-                                              child: Image.file(File(
-                                                  photosFromJson(widget
-                                                          .pointOfInterest
-                                                          .images)[i]
-                                                      .url))),
-                                          const SizedBox(
-                                            width: 30,
-                                          )
-                                        ],
-                                      ),
+                                    for (Photo photo in photosFromJson(
+                                        widget.pointOfInterest.images))
+                                      showLocalImage(photo.url)
+                                  ],
+                                )))
+                      ]),
+                    if (widget.pointOfInterest.images.isNotEmpty &&
+                        widget.pointOfInterest.url.isNotEmpty)
+                      Row(children: <Widget>[
+                        Expanded(
+                            flex: 8,
+                            child: SizedBox(
+                                height: 175,
+                                child: ListView(
+                                  scrollDirection: Axis.horizontal,
+                                  children: [
+                                    for (String url
+                                        in getImageUrls(widget.pointOfInterest))
+                                      showWebImage(url)
                                   ],
                                 )))
                       ]),
@@ -321,6 +326,31 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                           backgroundColor: Colors.blueAccent,
                         ),
                       )
+                    ] else if (widget.pointOfInterest.url.isNotEmpty) ...[
+                      Row(children: [
+                        Expanded(
+                            flex: 1,
+                            child: Padding(
+                                padding: const EdgeInsets.fromLTRB(10, 0, 5, 0),
+                                child: Row(children: [
+                                  StarRating(
+                                      onRatingChanged: changeRating,
+                                      rating: widget.pointOfInterest.score),
+                                  Align(
+                                      alignment: Alignment.topLeft,
+                                      child: Text(
+                                          '(${widget.pointOfInterest.scored})',
+                                          style: const TextStyle(
+                                              color: Colors.black,
+                                              fontSize: 15)))
+                                ]))),
+                        Expanded(
+                          flex: 1,
+                          child: IconButton(
+                              icon: const Icon(Icons.share),
+                              onPressed: () => (setState(() {}))),
+                        )
+                      ]),
                     ],
                   ]))),
         ],
@@ -384,5 +414,23 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
 
   expand(bool state, bool canEdit) {
     expanded = state;
+  }
+
+  List<String> getImageUrls(PointOfInterest pointOfInterest) {
+    var pics = jsonDecode(pointOfInterest.images);
+    return [
+      for (String pic in pics)
+        Uri.parse('${urlBase}v1/drive/images${pointOfInterest.url}$pic')
+            .toString()
+    ];
+  }
+
+  Widget showLocalImage(String url) {
+    return SizedBox(width: 160, child: Image.file(File(url)));
+  }
+
+  changeRating(value) {
+    widget.onRated(value, widget.index);
+    setState(() => widget.pointOfInterest.score = value.toDouble());
   }
 }

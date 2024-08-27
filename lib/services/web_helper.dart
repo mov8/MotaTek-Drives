@@ -1,11 +1,17 @@
 import 'dart:async';
+import 'dart:io';
+import 'dart:math';
+import 'dart:typed_data';
+import 'package:drives/main.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
 import 'package:latlong2/latlong.dart';
 import 'dart:convert';
 import 'package:intl/intl.dart';
 import 'package:drives/models.dart';
+import 'package:drives/utilities.dart' as utils;
 import 'package:drives/services/db_helper.dart';
 import 'package:drives/route.dart' as mt;
 
@@ -18,6 +24,9 @@ import 'package:drives/route.dart' as mt;
 
 const List<String> settlementTypes = ['city', 'town', 'village', 'hamlet'];
 DateFormat dateFormat = DateFormat('dd/MM/yy HH:mm');
+RegExp emailRegex = RegExp(r'[a-zA-Z0-9.]+@[a-zA-Z0-9]+\.[a-zA-Z]+');
+
+enum LoginState { ok, badPassword, badEmail }
 
 Future<List<String>> getSuggestions(String value) async {
   String baseURL = 'https://photon.komoot.io/api/?q=$value';
@@ -143,16 +152,17 @@ class _searchLocationState extends State<SearchLocation> {
 }
 
 //final apiUrl = 'http://10.101.1.150:5000/v1/user/register/';
-const urlBase = 'http://10.101.1.150:5000/';
+const urlBase = 'http://10.101.1.150:5000/'; // Home network
+// const urlBase = 'http://192.168.1.13:5000/'; // Boston
 
-Future<String> postUser(User user) async {
+Future<String> postUser(User user, {bool register = false}) async {
   Map<String, dynamic> userMap = user.toMap();
-  final http.Response response =
-      await http.post(Uri.parse('${urlBase}v1/user/register/'),
-          headers: <String, String>{
-            "Content-Type": "application/json; charset=UTF-8",
-          },
-          body: jsonEncode(userMap));
+  var url = Uri.parse('${urlBase}v1/user/${register ? "register" : "login"}');
+  final http.Response response = await http.post(url,
+      headers: <String, String>{
+        "Content-Type": "application/json; charset=UTF-8",
+      },
+      body: jsonEncode(userMap));
   if (response.statusCode == 201) {
     // 201 = Created
     debugPrint('User posted OK');
@@ -194,9 +204,98 @@ Future<String> postUser(User user) async {
       'downloads': downloads,      
 */
 
+Future<bool> login(BuildContext context) async {
+  bool result = false;
+  String email = '';
+  String password = '';
+
+  showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => StatefulBuilder(
+          builder: (context, setState) => AlertDialog(
+                title: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.key,
+                        size: 30,
+                      ),
+                      SizedBox(
+                        width: 10,
+                      ),
+                      Text('Login'),
+                    ]),
+                content: SizedBox(
+                    height: 100,
+                    width: 200,
+                    child: Column(children: [
+                      Row(children: [
+                        Expanded(
+                            child: TextField(
+                          //        validator: (value) {
+                          //          if (!emailRegex.hasMatch(value!)) {
+                          //            // _emailSizedBoxHeight = 110;
+                          //            return ('not a valid email address');
+                          //          }
+                          //          return null;
+                          //        },
+                          textInputAction: TextInputAction.next,
+                          keyboardType: TextInputType.emailAddress,
+                          decoration: const InputDecoration(
+                              hintText: 'Enter email address'),
+                          onChanged: (value) => email = value,
+                        ))
+                      ]),
+                      Row(children: [
+                        Expanded(
+                            child: TextField(
+                          //     validator: (value) {
+                          //       if (value!.length < 4) {
+                          //         return ('password must be at least 4 characters long');
+                          //       }
+                          //       return null;
+                          //     },
+                          textInputAction: TextInputAction.done,
+                          keyboardType: TextInputType.visiblePassword,
+                          decoration:
+                              const InputDecoration(hintText: 'Enter password'),
+                          onChanged: (value) => password = value,
+                        ))
+                      ]),
+                    ])),
+                actions: [
+                  TextButton(
+                      onPressed: () async {
+                        tryLogin(email, password);
+                        Navigator.pop(context);
+                      },
+                      child: const Text(
+                        'Ok',
+                        style: TextStyle(fontSize: 20),
+                      )),
+                  TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text(
+                        'Cancel',
+                        style: TextStyle(fontSize: 20),
+                      ))
+                ],
+              )));
+
+  return result;
+}
+
+Future<bool> tryLogin(String email, String password) async {
+  User user = User(
+      email: email, password: password, forename: '', surname: '', phone: '');
+  await postUser(user);
+  return true;
+}
+
 Future<dynamic> postTrip(MyTripItem tripItem) async {
   Map<String, dynamic> map = tripItem.toMap();
-  List<Photo> photos = photosFromJson(tripItem.images);
+  List<Photo> photos = photosFromJson(tripItem.getImages());
 
   var request =
       http.MultipartRequest('POST', Uri.parse('${urlBase}v1/drive/add'));
@@ -213,7 +312,7 @@ Future<dynamic> postTrip(MyTripItem tripItem) async {
     request.fields['sub_title'] = map['subHeading'];
     request.fields['body'] = map['body'];
     request.fields['distance'] = map['distance'].toString();
-    request.fields['pois'] = map['pointsOfInterest'].length.toString();
+    request.fields['pois'] = map['pointsOfInterest'].toString();
     request.fields['score'] = '5';
     // map['scored'] ?? '5';
     request.fields['added'] = DateTime.now().toString();
@@ -261,7 +360,7 @@ Future<String> postPointOfInterest(
   for (Photo photo in photos) {
     request.files.add(await http.MultipartFile.fromPath('files', photo.url));
   }
-  var response;
+  dynamic response;
   String jwToken = Setup().jwt;
   try {
     request.fields['drive_id'] = tripUri;
@@ -292,11 +391,6 @@ Future<String> postPointOfInterest(
     return jsonEncode({'token': '', 'code': response.statusCode});
   }
 }
-
-///      'drive_id': driveId,
-///      'points': pointsToString(polylines[i].points),
-///      'stroke': polylines[i].strokeWidth,
-///      'color': uiColours.keys
 
 Future<String> postPolyline(Polyline polyline, String driveUid) async {
   Map<String, dynamic> map = {
@@ -372,7 +466,7 @@ Future<String> postManeuver(Maneuver maneuver, String driveUid) async {
             "Content-Type": "application/json; charset=UTF-8",
           },
           body: jsonEncode(map));
-  if (response.statusCode == 201) {
+  if ([200, 201].contains(response.statusCode)) {
     // 201 = Created
     debugPrint('Maneuver posted OK');
     return jsonEncode({'code': response.statusCode});
@@ -422,6 +516,9 @@ Future<String> postManeuvers(List<Maneuver> maneuvers, String driveUid) async {
 Future<List<TripItem>> getTrips() async {
   List<TripItem> trips = [];
   String jwToken = Setup().jwt;
+  var currentPosition = await utils.getPosition();
+  LatLng pos = LatLng(currentPosition.latitude, currentPosition.longitude);
+
   final http.Response response = await http.get(
     Uri.parse('${urlBase}v1/drive/all'),
     headers: {
@@ -432,12 +529,15 @@ Future<List<TripItem>> getTrips() async {
   if (response.statusCode == 200) {
     List<dynamic> tripsJson = jsonDecode(response.body);
     //  List<String> images = ['map'];
-
+    // "http://10.101.1.150:5000/v1/drive/images/0175c09062b7485aaf8356f3770b7ca8/map.png"
+    // "http://10.101.1.150:5000/v1/drive/images/0175c09062b7485aaf8356f3770b7ca8/b56dc5ebfe35450f9077cb5dce53e0d4/2a6bf728-8f4e-4993-9c…"
+    // pics[j] "2a6bf728-8f4e-4993-9c00-9f2512bf0edf.jpg"
     for (Map<String, dynamic> trip in tripsJson) {
       List<String> images = [
         Uri.parse('${urlBase}v1/drive/images/${trip['id']}/map.png').toString()
       ];
       try {
+        int distance = 99999;
         for (int i = 0; i < trip['points_of_interest'].length; i++) {
           if (trip['points_of_interest'][i]['images'].length > 0) {
             var pics = jsonDecode(trip['points_of_interest'][i]['images']);
@@ -448,6 +548,9 @@ Future<List<TripItem>> getTrips() async {
               debugPrint(images[images.length - 1]);
             }
           }
+          LatLng poiPos = LatLng(trip['points_of_interest'][i]['latitude'],
+              trip['points_of_interest'][i]['longitude']);
+          distance = min(utils.distanceBetween(poiPos, pos).toInt(), distance);
         }
         trips.add(TripItem(
             heading: trip['title'],
@@ -456,12 +559,12 @@ Future<List<TripItem>> getTrips() async {
             author: trip['author'],
             published: trip['added'],
             imageUrls: images,
-            score: trip['score'] ?? 5.0,
+            score: trip['average_rating'].toDouble() ?? 5.0,
             distance: trip['distance'],
             pointsOfInterest: trip['points_of_interest'].length,
-            closest: 12,
-            scored: trip['scored'] ?? 1,
-            downloads: trip['downloads'] ?? 0,
+            closest: distance,
+            scored: trip['ratings_count'] ?? 1,
+            downloads: trip['download_count'] ?? 0,
             uri: trip['id']));
       } catch (e) {
         String err = e.toString();
@@ -472,8 +575,86 @@ Future<List<TripItem>> getTrips() async {
   return trips;
 }
 
+Future<Uint8List> getImageBytes({required String url}) async {
+  Uint8List data = Uint8List.fromList([]);
+  final response =
+      await http.get(Uri.parse(url)).timeout(const Duration(seconds: 5));
+  if (response.statusCode == 200) {
+    data = response.bodyBytes;
+  }
+  return data;
+}
+
+Future<void> getAndSaveImage(
+    {required String url, required String filePath}) async {
+  final response =
+      await http.get(Uri.parse(url)).timeout(const Duration(seconds: 5));
+  if (response.statusCode == 200) {
+    // Get the document directory path
+    // final directory = await getApplicationDocumentsDirectory();
+    // Construct the file path for saving the image
+    // final filePath = '${directory.path}/saved_image.png';
+
+    // Write the image data to the file
+    // "/data/user/0/com.example.drives/app_flutter/drive3/3f6c5f2e-d164-4349-8a30-1085d643387c.jpg"
+    try {
+      final file = File(filePath);
+      await file.writeAsBytes(response.bodyBytes);
+      if (file.existsSync()) {
+        debugPrint('Image file $url exists');
+      }
+    } catch (e) {
+      debugPrint('Error writing image file: ${e.toString()}');
+    }
+  }
+
+  return;
+}
+
+putDriveRating(String uri, int score) async {
+  String jwToken = Setup().jwt;
+  Map<String, dynamic> map = {
+    'drive_id': uri,
+    'rating': score,
+    'comment': '',
+    'rated': DateTime.now().toString()
+  };
+  final http.Response response =
+      await http.post(Uri.parse('${urlBase}v1/drive_rating/add'),
+          headers: {
+            'Authorization': 'Bearer $jwToken', // $Setup().jwt',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode(map));
+  if ([200, 201].contains(response.statusCode)) {
+    debugPrint('Score added OK: ${response.statusCode}');
+  }
+}
+
+putPointOfInterestRating(String uri, int score) async {
+  String jwToken = Setup().jwt;
+  uri = uri.substring(1, uri.length - 1);
+  uri = uri.substring(uri.indexOf('/') + 1);
+  Map<String, dynamic> map = {
+    'point_of_interest_id': uri,
+    'rating': score,
+    'comment': '',
+    'rated': DateTime.now().toString()
+  };
+  final http.Response response =
+      await http.post(Uri.parse('${urlBase}v1/point_of_interest_rating/add'),
+          headers: {
+            'Authorization': 'Bearer $jwToken', // $Setup().jwt',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode(map));
+  if ([200, 201].contains(response.statusCode)) {
+    debugPrint('Score added OK: ${response.statusCode}');
+  }
+}
+
 Future<MyTripItem> getTrip(String tripUuid) async {
-  MyTripItem trip = MyTripItem(heading: '', subHeading: '');
+  MyTripItem myTrip = MyTripItem(heading: '', subHeading: '');
   String jwToken = Setup().jwt;
   final http.Response response = await http.get(
     Uri.parse('${urlBase}v1/drive/$tripUuid'),
@@ -552,13 +733,15 @@ Future<MyTripItem> getTrip(String tripUuid) async {
           gotPointsOfInterest.add(PointOfInterest(
             -1,
             -1,
-            -1,
             trip['points_of_interest'][i]['_type'],
             trip['points_of_interest'][i]['name'],
             trip['points_of_interest'][i]['description'],
             trip['points_of_interest'][i]['_type'] == 12 ? 10 : 30,
             trip['points_of_interest'][i]['_type'] == 12 ? 10 : 30,
             trip['points_of_interest'][i]['images'],
+            url: '/${trip['id']}/${trip['points_of_interest'][i]['id']}/',
+            score: trip['points_of_interest'][i]['average_rating'] ?? 1,
+            scored: trip['points_of_interest'][i]['ratings_count'] ?? 0,
             markerPoint: posn,
             marker: marker,
           ));
@@ -573,6 +756,7 @@ Future<MyTripItem> getTrip(String tripUuid) async {
     try {
       MyTripItem myTripItem = MyTripItem(
         heading: trip['title'],
+        driveUri: tripUuid,
         subHeading: trip['sub_title'],
         body: trip['body'],
         published: trip['added'],
@@ -591,5 +775,188 @@ Future<MyTripItem> getTrip(String tripUuid) async {
       debugPrint('Error: $err');
     }
   }
-  return trip;
+  return myTrip;
+}
+
+Future<List<GroupMember>> getIntroduced() async {
+  List<GroupMember> introduced = [];
+  String jwToken = Setup().jwt;
+  try {
+    final http.Response response = await http.get(
+      Uri.parse('${urlBase}v1/introduced/get'),
+      headers: {
+        'Authorization': 'Bearer $jwToken', // $Setup().jwt',
+        'Content-Type': 'application/json',
+      },
+    ).timeout(const Duration(seconds: 10));
+    if (response.statusCode == 200) {
+      var members = jsonDecode(response.body);
+
+      introduced = [
+        for (Map<String, dynamic> memberMap in members)
+          GroupMember.fromMap(memberMap)
+      ];
+    }
+  } catch (e) {
+    debugPrint("Can't access data on the web");
+  }
+  return introduced;
+}
+
+putIntroduced(List<GroupMember> members) async {
+  String jwToken = Setup().jwt;
+  List<Map<String, dynamic>> maps = [];
+  for (int i = 0; i < members.length; i++) {
+    if (members[i].selected) {
+      maps.add(members[i].toApiMap());
+    }
+  }
+
+  final http.Response response =
+      await http.post(Uri.parse('${urlBase}v1/introduced/put'),
+          headers: {
+            'Authorization': 'Bearer $jwToken', // $Setup().jwt',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode(maps));
+  if ([200, 201].contains(response.statusCode)) {
+    debugPrint('Member added OK: ${response.statusCode}');
+  }
+}
+
+Widget showWebImage(String imageUrl, {double width = 200}) {
+  return SizedBox(
+      width: width,
+      child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          child: Image.network(
+            imageUrl,
+            loadingBuilder: (BuildContext context, Widget child,
+                ImageChunkEvent? loadingProgress) {
+              if (loadingProgress == null) {
+                return child;
+              }
+              return Center(
+                child: CircularProgressIndicator(
+                  value: loadingProgress.expectedTotalBytes != null
+                      ? loadingProgress.cumulativeBytesLoaded /
+                          (loadingProgress.expectedTotalBytes ?? 1)
+                      : null,
+                ),
+              );
+            },
+          )));
+}
+
+Future<List<Group>> getGroups() async {
+  List<Group> groupsSent = [];
+  String jwToken = Setup().jwt;
+  try {
+    final http.Response response = await http.get(
+      Uri.parse('${urlBase}v1/group/get'),
+      headers: {
+        'Authorization': 'Bearer $jwToken', // $Setup().jwt',
+        'Content-Type': 'application/json',
+      },
+    ).timeout(const Duration(seconds: 10));
+    if (response.statusCode == 200) {
+      var groups = jsonDecode(response.body);
+      groupsSent = [
+        for (Map<String, dynamic> groupData in groups) Group.fromMap(groupData)
+      ];
+    }
+  } catch (e) {
+    debugPrint("Can't access data on the web");
+  }
+  return groupsSent;
+}
+
+Future<List<Group>> getMyGroups() async {
+  List<Group> groupsSent = [];
+  String jwToken = Setup().jwt;
+  try {
+    final http.Response response = await http.get(
+      Uri.parse('${urlBase}v1/group/mine'),
+      headers: {
+        'Authorization': 'Bearer $jwToken', // $Setup().jwt',
+        'Content-Type': 'application/json',
+      },
+    ).timeout(const Duration(seconds: 10));
+    if (response.statusCode == 200) {
+      var groups = jsonDecode(response.body);
+      groupsSent = [
+        for (Map<String, dynamic> groupData in groups)
+          Group(id: groupData['group_data'], name: groupData['group_name'])
+      ];
+    }
+  } catch (e) {
+    debugPrint("Can't access data on the web");
+  }
+  return groupsSent;
+}
+
+Future<String> putGroup(Group group) async {
+  String jwToken = Setup().jwt;
+  Map<String, dynamic> map = group.toMap();
+  final http.Response response =
+      await http.post(Uri.parse('${urlBase}v1/group/add'),
+          headers: {
+            'Authorization': 'Bearer $jwToken', // $Setup().jwt',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode(map));
+  if ([200, 201].contains(response.statusCode)) {
+    var responseData = jsonDecode(String.fromCharCodes(response.bodyBytes));
+    debugPrint('Server response: $responseData');
+    group.id = responseData['id'];
+    return responseData.toString();
+  }
+  return '';
+}
+
+Future<GroupMember> getUserByEmail(String email) async {
+  String jwToken = Setup().jwt;
+  GroupMember member = GroupMember(forename: '', surname: '');
+  Map<String, dynamic> map = {'email': email};
+  try {
+    final http.Response response = await http
+        .post(Uri.parse('${urlBase}v1/user/get_user_by_email'),
+            headers: {
+              'Authorization': 'Bearer $jwToken', // $Setup().jwt',
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode(map))
+        .timeout(const Duration(seconds: 10));
+    if (response.statusCode == 200) {
+      var responseData = jsonDecode(String.fromCharCodes(response.bodyBytes));
+      member = GroupMember.fromUserMap(responseData);
+    }
+  } catch (e) {
+    debugPrint("Can't access data on the web: ${e.toString()}");
+  }
+  return member;
+}
+
+Future<List<GroupMember>> getGroupMembers() async {
+  List<GroupMember> introduced = [];
+  String jwToken = Setup().jwt;
+  try {
+    final http.Response response = await http.get(
+      Uri.parse('${urlBase}v1/introduced/get'),
+      headers: {
+        'Authorization': 'Bearer $jwToken', // $Setup().jwt',
+        'Content-Type': 'application/json',
+      },
+    ).timeout(const Duration(seconds: 10));
+    if (response.statusCode == 200) {
+      var members = jsonDecode(response.body);
+      introduced = [
+        for (Map<String, dynamic> memberMap in members)
+          GroupMember.fromMap(memberMap)
+      ];
+    }
+  } catch (e) {
+    debugPrint("Can't access data on the web");
+  }
+  return introduced;
 }

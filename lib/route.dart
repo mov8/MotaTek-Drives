@@ -7,7 +7,7 @@ import 'package:latlong2/latlong.dart';
 
 /// A polyline with an id
 class Route extends Polyline {
-  final int? id;
+  final int id;
   List<Offset> offsets = [];
   @override
   Color color;

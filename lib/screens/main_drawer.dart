@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:drives/screens/sign_up.dart';
 import 'package:drives/screens/setup.dart';
 import 'package:drives/screens/group.dart';
+import 'package:drives/screens/introduce.dart';
+import 'package:drives/screens/my_groups.dart';
+import 'package:drives/services/web_helper.dart';
 import 'package:drives/models.dart';
 
 class MainDrawer extends StatefulWidget {
@@ -53,10 +56,27 @@ class _MainDrawerState extends State<MainDrawer> {
               MaterialPageRoute(builder: (context) => const SetupForm()),
             );
           }),
-      //  if (Setup().jwt.isEmpty) ...[
+      if (Setup().jwt.isEmpty) ...[
+        ListTile(
+            leading: const Icon(Icons.how_to_reg, size: 30),
+            title: const Text('Register Your Details',
+                style: TextStyle(
+                  color: Colors.blue,
+                  fontSize: 20,
+                )),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SignupForm()),
+              );
+            }),
+      ],
       ListTile(
-          leading: const Icon(Icons.how_to_reg, size: 30),
-          title: const Text('Register Your Details',
+          leading: const Icon(
+            Icons.groups,
+            size: 30,
+          ),
+          title: const Text('Groups I manage',
               style: TextStyle(
                 color: Colors.blue,
                 fontSize: 20,
@@ -64,16 +84,49 @@ class _MainDrawerState extends State<MainDrawer> {
           onTap: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const SignupForm()),
+              MaterialPageRoute(builder: (context) => const GroupForm()),
             );
           }),
-      //  ],
       ListTile(
           leading: const Icon(
-            Icons.groups,
+            Icons.group,
             size: 30,
           ),
-          title: const Text('Groups',
+          title: const Text("Groups I'm a member of",
+              style: TextStyle(
+                color: Colors.blue,
+                fontSize: 20,
+              )),
+          onTap: () {
+            // getMyGroups();
+
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const MyGroupsForm()),
+            );
+          }),
+      ListTile(
+          leading: const Icon(
+            Icons.person_add,
+            size: 30,
+          ),
+          title: const Text('Introduce new user',
+              style: TextStyle(
+                color: Colors.blue,
+                fontSize: 20,
+              )),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const IntroduceForm()),
+            );
+          }),
+      ListTile(
+          leading: const Icon(
+            Icons.rsvp,
+            size: 30,
+          ),
+          title: const Text('Invitations',
               style: TextStyle(
                 color: Colors.blue,
                 fontSize: 20,
@@ -89,17 +142,18 @@ class _MainDrawerState extends State<MainDrawer> {
             Icons.directions_car,
             size: 30,
           ),
-          title: const Text('Group trip',
+          title: const Text('Events',
               style: TextStyle(
                 color: Colors.blue,
                 fontSize: 20,
               )),
           onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const GroupForm()),
-            );
-          }),
+            login(context);
+          }
+          //  Navigator.push(
+          //    context,
+          //    MaterialPageRoute(builder: (context) => const GroupForm()),
+          ),
     ]));
   }
 }

@@ -30,7 +30,7 @@ class MyTripTile extends StatefulWidget {
 class _myTripTileState extends State<MyTripTile> {
   @override
   Widget build(BuildContext context) {
-    List<Photo> photos = photosFromJson(widget.myTripItem.images);
+    List<Photo> photos = photosFromJson(widget.myTripItem.getImages());
     return SingleChildScrollView(
         child: Material(
             child: ClipRRect(
@@ -58,7 +58,7 @@ class _myTripTileState extends State<MyTripTile> {
                                         */
                         Expanded(
                             flex: 8,
-                            child: Text(widget.myTripItem.heading,
+                            child: Text(widget.myTripItem.getHeading(),
                                 style: const TextStyle(
                                     color: Colors.black,
                                     fontSize: 20,
@@ -71,7 +71,8 @@ class _myTripTileState extends State<MyTripTile> {
                               flex: 1,
                               child: Column(children: [
                                 const Icon(Icons.route),
-                                Text('${widget.myTripItem.distance} miles long')
+                                Text(
+                                    '${widget.myTripItem.getDistance()} miles long')
                               ]),
                             ),
                             Expanded(
@@ -79,14 +80,15 @@ class _myTripTileState extends State<MyTripTile> {
                               child: Column(children: [
                                 const Icon(Icons.landscape),
                                 Text(
-                                    '${widget.myTripItem.pointsOfInterest.length} highlights')
+                                    '${widget.myTripItem.pointsOfInterest().length} highlights')
                               ]),
                             ),
                             Expanded(
                               flex: 1,
                               child: Column(children: [
                                 const Icon(Icons.social_distance),
-                                Text('${widget.myTripItem.closest} miles away')
+                                Text(
+                                    '${widget.myTripItem.getClosest()} miles away')
                               ]),
                             ),
                           ]))
@@ -119,7 +121,8 @@ class _myTripTileState extends State<MyTripTile> {
                                               child: Align(
                                                 alignment: Alignment.topLeft,
                                                 child: Text(
-                                                  widget.myTripItem.subHeading,
+                                                  widget.myTripItem
+                                                      .getSubHeading(),
                                                   style: const TextStyle(
                                                       color: Colors.black,
                                                       fontSize: 18,
@@ -132,7 +135,9 @@ class _myTripTileState extends State<MyTripTile> {
                                         const SizedBox(
                                           height: 10,
                                         ),
-                                        if (widget.myTripItem.images.isNotEmpty)
+                                        if (widget.myTripItem
+                                            .getImages()
+                                            .isNotEmpty)
                                           Row(children: <Widget>[
                                             Expanded(
                                                 flex: 8,
@@ -168,7 +173,8 @@ class _myTripTileState extends State<MyTripTile> {
                                               5, 0, 5, 10),
                                           child: Align(
                                             alignment: Alignment.topLeft,
-                                            child: Text(widget.myTripItem.body,
+                                            child: Text(
+                                                widget.myTripItem.getBody(),
                                                 style: const TextStyle(
                                                     color: Colors.black,
                                                     fontSize: 20),
@@ -208,7 +214,7 @@ class _myTripTileState extends State<MyTripTile> {
                                                       children: [
                                                         Icon(Icons
                                                             .directions_car_outlined),
-                                                        Text('Arrange Trip')
+                                                        Text('Group Trip')
                                                       ]),
 
                                                   // icon: const Icon(Icons.upload),

@@ -179,7 +179,7 @@ class _groupMemberFormState extends State<GroupMemberForm> {
                       child: Card(
                           child: CheckboxListTile(
                               title: Text(widget.groups![index].name),
-                              value: isMember(widget.groups![index].id),
+                              value: true, //isMember(widget.groups![index].id),
                               onChanged: (value) {
                                 widget.groupMember?.edited = true;
                                 setState(() {
@@ -188,13 +188,14 @@ class _groupMemberFormState extends State<GroupMemberForm> {
                               })
                           // ToDo: calculate how far away
                           ))))),
-      if (widget.groupMember!.id >= 0) ...[
+      if (widget.groupMember!.id != '') ...[
+        //]>= 0) ...[
         Align(
             alignment: Alignment.bottomLeft,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 10),
               child: ActionChip(
-                onPressed: () => deleteMember(widget.groupMember!.id),
+                onPressed: () => (), // deleteMember(widget.groupMember!.id),
                 backgroundColor: Colors.blue,
                 avatar: const Icon(
                   Icons.delete,
@@ -246,7 +247,7 @@ class _groupMemberFormState extends State<GroupMemberForm> {
         alertTitle: 'Permanently delete member?',
         alertMessage:
             '${widget.groupMember?.forename} ${widget.groupMember?.surname}',
-        okValue: widget.groupMember!.id,
+        okValue: 1, //widget.groupMember!.id,
         callback: onConfirmDeleteMember);
   }
 

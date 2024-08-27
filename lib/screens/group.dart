@@ -1,10 +1,7 @@
-import 'dart:convert';
 import 'package:drives/tiles/group_member_tile.dart';
-import 'package:drives/screens/group_member.dart';
 import 'package:flutter/material.dart';
 import 'package:drives/models.dart';
-import 'package:drives/drives_classes.dart';
-import 'package:drives/screens/dialogs.dart';
+import 'package:drives/services/web_helper.dart';
 import 'package:drives/services/db_helper.dart';
 
 class GroupForm extends StatefulWidget {
@@ -18,56 +15,94 @@ class GroupForm extends StatefulWidget {
 
 class _GroupFormState extends State<GroupForm> {
   int group = 0;
-  bool choosing = true;
   late Future<bool> dataloaded;
   late FocusNode fn1;
 
+  late GroupMember newMember;
+  late Group newGroup;
   List<GroupMember> groupMembers = [];
   List<Group> groups = [];
 
+  RegExp emailRegex = RegExp(r'[a-zA-Z0-9.]+@[a-zA-Z0-9]+\.[a-zA-Z]+');
+  final _formKey = GlobalKey<FormState>();
   String groupName = 'Driving Group';
   bool edited = false;
   int groupIndex = 0;
-  int _chosen = 0;
+  double _emailSizedBoxHeight = 70;
+  bool _validate = false;
+  String _validateMessage = '';
   String testString = '';
+  bool addingMember = false;
+  bool addingGroup = false;
+  bool editingGroup = false;
 
-  List<GroupMember> filteredGroupMembers = [];
-  List<String> groupNames = ['New group', 'Un-grouped'];
+  List<GroupMember> allMembers = [];
 
   @override
   void initState() {
     super.initState();
     fn1 = FocusNode();
-    dataloaded = dataFromDatabase();
+    // dataloaded = dataFromDatabase();
+    dataloaded = dataFromWeb();
   }
 
   @override
   void dispose() {
     // Clean up the focus node when the Form is disposed.
     fn1.dispose();
-
     super.dispose();
   }
 
   Future<bool> dataFromDatabase() async {
     groups = await loadGroups();
     groupMembers = await loadGroupMembers();
-    if (groups.isNotEmpty) {
-      for (int i = 0; i < groups.length; i++) {
-        groupNames.add(groups[i].name);
-      }
-    } else {
-      groups.add(Group(id: -1, name: '', edited: true));
+    if (groups.isEmpty) {
+      groups.add(Group(id: '', name: '', edited: true));
       groupIndex = 0;
       edited = true;
-      choosing = false;
     }
     return true;
   }
 
+  Future<bool> dataFromWeb() async {
+    groups = await getGroups();
+    if (groups.isNotEmpty) {
+      for (Group group in groups) {
+        for (GroupMember member in group.groupMembers()) {
+          member.selected = true;
+          allMembers.add(member);
+        }
+      }
+      allMembers.sort((a, b) => '${a.forename} ${a.surname}'
+          .toLowerCase()
+          .compareTo('${b.forename} ${b.surname}'.toLowerCase()));
+
+      groupIndex = 0;
+      membersOfGroup(groups[groupIndex]);
+    } else {
+      groups.add(Group(id: '', name: '', edited: true));
+      groupIndex = 0;
+      edited = true;
+    }
+    return true;
+  }
+
+  membersOfGroup(Group group) {
+    for (GroupMember member in allMembers) {
+      member.selected = group.groupMembers().contains(member);
+    }
+  }
+
+  addMembersToGroup(Group group) {
+    List<GroupMember> members = [
+      for (GroupMember member in allMembers)
+        if (member.selected) member
+    ];
+    group.setGroupMembers(members);
+  }
+
   @override
   Widget build(BuildContext context) {
-    // groups = [];
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.blue,
@@ -88,11 +123,11 @@ class _GroupFormState extends State<GroupForm> {
               padding: const EdgeInsets.fromLTRB(5, 10, 5, 10),
               child: Text(
                   groups.isNotEmpty
-                      ? '$groupName${groupIndex >= 0 && groups[groupIndex].edited ? '*' : ''}'
+                      ? '${groups[groupIndex].name}${groups[groupIndex].edited ? '*' : ''}'
                       : 'Create groups',
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 38,
+                    fontSize: 30,
                     fontWeight: FontWeight.bold,
                   ))),
         ),
@@ -123,112 +158,57 @@ class _GroupFormState extends State<GroupForm> {
           throw ('Error - FutureBuilder group.dart');
         },
       ),
-      // body: MediaQuery.of(context).orientation == Orientation.portrait ? portraitView() : landscapeView()
     );
   }
 
   Widget portraitView() {
-    // setup =  Settings().setup;
-
-    return /* KeyboardVisibilityListener(
-      listener: _listener,
-      child: */
-        Column(children: [
-      if (choosing) ...[
-        Padding(
-            padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-            child: DropdownButtonFormField<String>(
-              style: const TextStyle(fontSize: 18),
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                labelText: 'Group name',
-              ),
-              value: groupNames[_chosen],
-              items: groupNames
-                  .map((item) => DropdownMenuItem<String>(
-                        value: item,
-                        child: Text(item,
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleLarge!), // bodyLarge!),
-                      ))
-                  .toList(),
-              onChanged: (item) => {
-                setState(() {
-                  filteredGroupMembers.clear();
-                  groupName = item.toString();
-                  group = groupNames.indexOf(item.toString());
-                  if (group == 0) {
-                    var id = -1;
-                    for (int i = 0; i < groups.length; i++) {
-                      if (groups[i].id <= id) --id;
-                    }
-                    groups.add(Group(id: id, name: '', edited: true));
-                    groupIndex = groups.length - 1;
-                    edited = true;
-                    choosing = false;
-                  } else {
-                    groupIndex = group - 2;
-                    if (groupIndex >= 0) {
-                      edited = groups[groupIndex].edited;
-                    }
-                    filterGroup();
-                  }
-                })
-              },
-            )),
-      ] else ...[
-        Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
-            child: TextFormField(
-              textInputAction: TextInputAction.done,
-              onFieldSubmitted: (val) => setState(() {
-                groups[groupIndex].groupName = val;
-
-                if (groups[groupIndex].name.isNotEmpty) {
-                  if (groupNames.length - groups.length < 2) {
-                    groupNames.add(groups[groups.length - 1].name);
-                  } else {
-                    groupNames[groupIndex + 2] = groups[groupIndex].name;
-                  }
-                  _chosen = groupIndex + 2;
-                  groupName = groups[groupIndex].name;
-                  choosing = true;
-                }
-              }),
-              autofocus: true,
-              focusNode: fn1,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w400),
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: 'Enter group name',
-                labelText: 'Group name',
-              ),
-              textCapitalization: TextCapitalization.words,
-              textAlign: TextAlign.left,
-              initialValue: groups[groupIndex].name,
-              //     style: Theme.of(context).textTheme.bodyLarge,
-              onChanged: (text) => groups[groupIndex].edited = true,
-            ))
+    return Column(children: [
+      Padding(
+          padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+          child: DropdownButtonFormField<String>(
+            style: const TextStyle(fontSize: 18),
+            decoration: const InputDecoration(
+              border: OutlineInputBorder(),
+              labelText: 'Group name',
+            ),
+            value: groups[groupIndex].name,
+            items: groups
+                .map((item) => DropdownMenuItem<String>(
+                      value: item.name,
+                      child: Text(item.name,
+                          style: Theme.of(context).textTheme.titleLarge!),
+                    ))
+                .toList(),
+            onChanged: (item) => {
+              setState(() {
+                groupIndex =
+                    groups.indexWhere((group) => group.name == item.toString());
+                membersOfGroup(groups[groupIndex]);
+              })
+            },
+          )),
+      if (addingMember) ...[
+        handleNewMember(),
       ],
-      Expanded(
-          child: SizedBox(
-              height: (MediaQuery.of(context).size.height -
-                  AppBar().preferredSize.height -
-                  kBottomNavigationBarHeight -
-                  20 * 0.93), // 200,
-              child: ListView.builder(
-                  itemCount: filteredGroupMembers.length,
-                  itemBuilder: (context, index) => Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10.0, vertical: 5.0),
-                      child: GroupMemberTile(
-                        groupMember: filteredGroupMembers[index],
-                        index: index,
-                        onDelete: onDelete,
-                        onEdit: onEdit,
-                        // ToDo: calculate how far away
-                      ))))),
+      if (addingGroup) ...[
+        handleNewGroup(),
+      ],
+      if (editingGroup) ...[
+        handleEditGroup(),
+      ],
+      if (allMembers.isNotEmpty) ...[
+        Expanded(
+            child: ListView.builder(
+                itemCount: allMembers.length,
+                itemBuilder: (context, index) => Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10.0, vertical: 5.0),
+                    child: GroupMemberTile(
+                      groupMember: allMembers[index],
+                      index: index,
+                      onSelect: onSelect,
+                    ))))
+      ],
       Align(
         alignment: Alignment.bottomLeft,
         child: _handleChips(),
@@ -236,39 +216,298 @@ class _GroupFormState extends State<GroupForm> {
     ]);
   }
 
-  void _listener(bool value) {
-    if (value) {
-      debugPrint('Listener called true');
-    } else {
-      debugPrint('Listener called false');
-      if (groups[groupIndex].name.isNotEmpty) {
-        if (groupNames.length - groups.length < 2) {
-          groupNames.add(groups[groups.length - 1].name);
-        } else {
-          groupNames[groupIndex + 2] = groups[groupIndex].name;
-        }
-        _chosen = groupIndex + 2;
-        groupName = groups[groupIndex].name;
-      }
-      setState(() => choosing = true);
-    }
-    return;
+  Widget handleNewGroup() {
+    return Form(
+        key: _formKey,
+        child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+            child: SizedBox(
+                height: _emailSizedBoxHeight,
+                child: TextFormField(
+                  textInputAction: TextInputAction.done,
+                  keyboardType: TextInputType.name,
+                  textCapitalization: TextCapitalization.words,
+                  validator: (value) {
+                    _emailSizedBoxHeight = 70;
+                    if (!_validate) {
+                      return null;
+                    }
+                    if (_validateMessage.isNotEmpty) {
+                      _emailSizedBoxHeight = 100;
+                      return (_validateMessage);
+                    }
+                    if (value!.isEmpty) {
+                      _emailSizedBoxHeight = 100;
+                      return ("Group name can't be empty");
+                    }
+                    return null;
+                  },
+                  onFieldSubmitted: (val) => setState(() {
+                    newGroup.name = val;
+
+                    if (newGroup.name.isNotEmpty) {
+                      groups.add(newGroup);
+                      groupIndex = groups.length - 1;
+                      groupName = groups[groupIndex].name;
+                    }
+                  }),
+                  autofocus: true,
+                  focusNode: fn1,
+                  style: const TextStyle(
+                      fontSize: 20, fontWeight: FontWeight.w400),
+                  decoration: InputDecoration(
+                      border: const OutlineInputBorder(),
+                      hintText: "Enter the name of the new group",
+                      labelText: "New group's name",
+                      suffix: IconButton(
+                          onPressed: () async {
+                            if (_validate) {
+                              setState(() {
+                                _validate = false;
+                                addingGroup = false;
+                              });
+                            } else {
+                              _validate = true;
+                              for (Group group in groups) {
+                                if (group.name == newGroup.name) {
+                                  _validateMessage =
+                                      'You already have a group called ${newGroup.name}';
+                                  break;
+                                }
+                              }
+
+                              if (_formKey.currentState!.validate()) {
+                                setState(() {
+                                  if (newGroup.name.isNotEmpty) {
+                                    groups.add(newGroup);
+                                    groupIndex = groups.length - 1;
+                                    groups[groupIndex].edited = true;
+                                    membersOfGroup(groups[groupIndex]);
+                                    addingGroup = false;
+                                  } else {
+                                    _validateMessage =
+                                        'You must enter the new group name';
+                                    _formKey.currentState!.validate();
+                                  }
+                                });
+                              } else {
+                                setState(() {});
+                              }
+                            }
+                          },
+                          icon: Icon(_validate
+                              ? Icons.cancel_outlined
+                              : Icons.add_circle_outline))),
+                  textAlign: TextAlign.left,
+                  initialValue: newGroup.name,
+                  onChanged: (text) {
+                    if (_validate) {
+                      _validate = false;
+                      _formKey.currentState!.validate();
+                    }
+                    newGroup.name = text;
+                  },
+                ))));
+  }
+
+  Widget handleEditGroup() {
+    return Form(
+        key: _formKey,
+        child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+            child: SizedBox(
+                height: _emailSizedBoxHeight,
+                child: TextFormField(
+                  textInputAction: TextInputAction.done,
+                  keyboardType: TextInputType.name,
+                  textCapitalization: TextCapitalization.words,
+                  validator: (value) {
+                    _emailSizedBoxHeight = 70;
+                    if (!_validate) {
+                      return null;
+                    }
+                    if (_validateMessage.isNotEmpty) {
+                      _emailSizedBoxHeight = 100;
+                      return (_validateMessage);
+                    }
+                    if (value!.isEmpty) {
+                      _emailSizedBoxHeight = 100;
+                      return ("Group name can't be empty");
+                    }
+                    return null;
+                  },
+                  onFieldSubmitted: (val) => setState(() {
+                    groupName = val;
+                    groups[groupIndex].name = val;
+                  }),
+                  autofocus: true,
+                  focusNode: fn1,
+                  style: const TextStyle(
+                      fontSize: 20, fontWeight: FontWeight.w400),
+                  decoration: InputDecoration(
+                      border: const OutlineInputBorder(),
+                      hintText:
+                          "Enter the new name for ${groups[groupIndex].name}",
+                      labelText: "${groups[groupIndex].name}'s new name",
+                      suffix: IconButton(
+                          onPressed: () async {
+                            if (_validate) {
+                              setState(() {
+                                _validate = false;
+                                addingGroup = false;
+                              });
+                            } else {
+                              _validate = true;
+                              for (int i = 0; i < groups.length; i++) {
+                                if (groups[i].name == groups[groupIndex].name &&
+                                    i != groupIndex) {
+                                  _validateMessage =
+                                      'You already have a group called ${groups[groupIndex].name}';
+                                  break;
+                                }
+                              }
+
+                              if (_formKey.currentState!.validate()) {
+                                setState(() {
+                                  if (groups[groupIndex].name.isNotEmpty) {
+                                    groups[groupIndex].edited = true;
+                                    editingGroup = false;
+                                  } else {
+                                    _validateMessage =
+                                        'You must enter the new group name';
+                                    _formKey.currentState!.validate();
+                                  }
+                                });
+                              } else {
+                                setState(() {});
+                              }
+                            }
+                          },
+                          icon: Icon(_validate
+                              ? Icons.cancel_outlined
+                              : Icons.check_circle_outline))),
+                  textAlign: TextAlign.left,
+                  initialValue: groups[groupIndex].name,
+                  onChanged: (text) {
+                    if (_validate) {
+                      _validate = false;
+                      _formKey.currentState!.validate();
+                    }
+                    groups[groupIndex].name = text;
+                  },
+                ))));
+  }
+
+  Widget handleNewMember() {
+    return Form(
+        key: _formKey,
+        child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+            child: SizedBox(
+                height: _emailSizedBoxHeight,
+                child: TextFormField(
+                  textInputAction: TextInputAction.done,
+                  keyboardType: TextInputType.emailAddress,
+                  validator: (value) {
+                    _emailSizedBoxHeight = 70;
+                    if (!_validate) {
+                      return null;
+                    }
+                    if (_validateMessage.isNotEmpty) {
+                      _emailSizedBoxHeight = 100;
+                      return (_validateMessage);
+                    }
+                    if (value!.isEmpty) {
+                      _emailSizedBoxHeight = 100;
+                      return ("email can't be empty");
+                    }
+                    if (!emailRegex.hasMatch(value)) {
+                      _emailSizedBoxHeight = 110;
+                      return ('not a valid email address');
+                    }
+                    return null;
+                  },
+                  onFieldSubmitted: (val) => setState(() {
+                    newMember.email = val;
+
+                    if (groups[groupIndex].name.isNotEmpty) {
+                      groupName = groups[groupIndex].name;
+                    }
+                  }),
+                  autofocus: true,
+                  focusNode: fn1,
+                  style: const TextStyle(
+                      fontSize: 20, fontWeight: FontWeight.w400),
+                  decoration: InputDecoration(
+                      border: const OutlineInputBorder(),
+                      hintText: "Enter member's email address",
+                      labelText: "New member's email",
+                      suffix: IconButton(
+                          onPressed: () async {
+                            if (_validate) {
+                              setState(() {
+                                _validate = false;
+                                addingMember = false;
+                              });
+                            } else {
+                              _validate = true;
+                              for (GroupMember member
+                                  in groups[groupIndex].groupMembers()) {
+                                if (member.email == newMember.email) {
+                                  _validateMessage =
+                                      '${member.forename} ${member.surname} is already in ${groups[groupIndex].name}';
+                                  break;
+                                }
+                              }
+
+                              if (_formKey.currentState!.validate()) {
+                                newMember =
+                                    await getUserByEmail(newMember.email);
+                                setState(() {
+                                  if (newMember.forename.isNotEmpty &&
+                                      newMember.surname.isNotEmpty) {
+                                    newMember.selected = true;
+                                    groups[groupIndex].addMember(newMember);
+                                    groups[groupIndex].edited = true;
+                                    allMembers.add(newMember);
+                                    addingMember = false;
+                                  } else {
+                                    _validateMessage = 'User email not found';
+                                    _formKey.currentState!.validate();
+                                  }
+                                });
+                              } else {
+                                setState(() {});
+                              }
+                            }
+                          },
+                          icon: Icon(_validate
+                              ? Icons.cancel_outlined
+                              : Icons.search))),
+                  textAlign: TextAlign.left,
+                  initialValue: newMember.email,
+                  onChanged: (text) {
+                    if (_validate) {
+                      _validate = false;
+                      _formKey.currentState!.validate();
+                    }
+                    newMember.email = text;
+                  },
+                ))));
   }
 
   Widget _handleChips() {
     return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 10),
         child: Wrap(spacing: 10, children: [
-          if (!choosing && groups.length > 1) ...[
+          if (addingMember || addingGroup || editingGroup) ...[
             ActionChip(
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20)),
               onPressed: () => setState(() {
-                choosing = true;
-                if (groupIndex >= 0 && groups[groupIndex].name.isEmpty) {
-                  groups.removeAt(groupIndex);
-                }
-                groupIndex = groups.isNotEmpty ? -1 : 0;
+                addingMember = false;
+                addingGroup = false;
+                editingGroup = false;
               }),
               backgroundColor: Colors.blue,
               avatar: const Icon(
@@ -278,12 +517,19 @@ class _GroupFormState extends State<GroupForm> {
               label: const Text('Back',
                   style: TextStyle(fontSize: 18, color: Colors.white)),
             ),
-          ] else if (choosing && groupIndex >= 0) ...[
+          ] else if (groupIndex >= 0) ...[
             if (groups[groupIndex].name.isNotEmpty) ...[
               ActionChip(
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20)),
-                onPressed: () => newMember(),
+                onPressed: () => setState(() {
+                  fn1.requestFocus();
+                  addingMember = true;
+                  _validate = false;
+                  _validateMessage = '';
+                  _emailSizedBoxHeight = 70;
+                  newMember = GroupMember(forename: '', surname: '');
+                }),
                 backgroundColor: Colors.blue,
                 avatar: const Icon(
                   Icons.group_add,
@@ -293,8 +539,29 @@ class _GroupFormState extends State<GroupForm> {
                     style: TextStyle(fontSize: 18, color: Colors.white)),
               ),
               ActionChip(
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20)),
                 onPressed: () => setState(() {
-                  choosing = false;
+                  fn1.requestFocus();
+                  addingGroup = true;
+                  _validate = false;
+                  _validateMessage = '';
+                  _emailSizedBoxHeight = 70;
+                  newGroup = Group(name: '');
+                }),
+                backgroundColor: Colors.blue,
+                avatar: const Icon(
+                  Icons.groups,
+                  color: Colors.white,
+                ),
+                label: const Text('New Group',
+                    style: TextStyle(fontSize: 18, color: Colors.white)),
+              ),
+              ActionChip(
+                onPressed: () => setState(() {
+                  editingGroup = true;
+                  _validateMessage = '';
+                  _emailSizedBoxHeight = 70;
                   fn1.requestFocus();
                 }),
                 backgroundColor: Colors.blue,
@@ -304,19 +571,22 @@ class _GroupFormState extends State<GroupForm> {
                   Icons.edit,
                   color: Colors.white,
                 ),
-                label: const Text('Edit Group Name',
+                label: const Text('Edit Name',
                     style: TextStyle(fontSize: 18, color: Colors.white)),
               ),
-            ],
-            if (groups[groupIndex].edited &&
-                groups[groupIndex].name.isNotEmpty) ...[
               ActionChip(
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20)),
-                onPressed: () => saveGroup(),
+                onPressed: () async {
+                  for (Group group in groups) {
+                    if (group.edited) {
+                      await putGroup(groups[groupIndex]);
+                    }
+                  }
+                },
                 backgroundColor: Colors.blue,
                 avatar: const Icon(Icons.save, color: Colors.white),
-                label: const Text('Save Group',
+                label: const Text('Save Changes',
                     style: TextStyle(fontSize: 18, color: Colors.white)),
               ),
             ],
@@ -342,124 +612,17 @@ class _GroupFormState extends State<GroupForm> {
     return;
   }
 
-  Future<bool> saveGroup() async {
-    int currentId = groups[groupIndex].id;
-    saveGroupLocal(groups[groupIndex]).then((id) {
-      if (currentId < 0) {
-        for (int i = 0; i < filteredGroupMembers.length; i++) {
-          updateGroupMembers(filteredGroupMembers[i], currentId, id);
-        }
+  void onSelect(int index) {
+    int idx = groups[groupIndex].groupMembers().indexOf(allMembers[index]);
+    if (allMembers[index].selected) {
+      if (idx >= 0) {
+        groups[groupIndex].removeMember(idx);
+        groups[groupIndex].edited = true;
       }
-      groups[groupIndex].id = id;
-      for (int i = 0; i < filteredGroupMembers.length; i++) {
-        saveGroupMemberLocal(filteredGroupMembers[i]).then((id) {
-          groupMembers[filteredGroupMembers[i].index].id = id;
-          groupMembers[filteredGroupMembers[i].index].edited = false;
-          setState(() {});
-        });
-      }
-    });
-    setState(() {
-      groups[groupIndex].edited = false;
-      groupName = groups[groupIndex].name;
-      filterGroup();
-    });
-    return true;
-  }
-
-  updateGroupMembers(GroupMember member, int oldValue, int newValue) {
-    String result = '';
-    if (member.groupIds.isNotEmpty) {
-      var groupIds = jsonDecode(member.groupIds);
-      groupIds.removeWhere((element) => element['groupId'] == oldValue);
-      for (int i = 0; i < groupIds.length; i++) {
-        result = '$result, {"groupId": ${groupIds[i]['groupId']}}';
-      }
+    } else if (idx < 0) {
+      groups[groupIndex].addMember(allMembers[index]);
+      groups[groupIndex].edited = true;
     }
-    result = '$result, {"groupId": $newValue}';
-    result = '[${result.substring(2)}]';
-    member.groupIds = result;
-    debugPrint(result);
-  }
-
-  void newMember() {
-    groupMembers.add(GroupMember(
-        stId: '-1',
-        groupIds:
-            groupIndex >= 0 ? '[{"groupId": ${groups[groupIndex].id}}]' : '',
-        forename: '',
-        surname: ''));
-    filterGroup();
-    onEdit(filteredGroupMembers.length - 1);
-  }
-
-  void onEdit(int index) async {
-    // edited = true;
-    int parentIndex = filteredGroupMembers[index].index;
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-          builder: (context) => GroupMemberForm(
-                groupMember: filteredGroupMembers[index],
-                groupName: groupIndex >= 0
-                    ? groups[groupIndex].name
-                    : 'Un-grouped', // groupName,
-                groups: groups,
-              )),
-    ).then((value) {
-      setState(() {
-        /// if deleted in GroupMemberForm filteredGroupMembers[index].index is set to -1
-        if (filteredGroupMembers[index].index == -1) {
-          groupMembers.removeAt(parentIndex);
-        } else if (filteredGroupMembers[index].forename.isEmpty &&
-            filteredGroupMembers[index].surname.isEmpty) {
-          Utility().showConfirmDialog(context, "Missing information",
-              "Records without a forename and surname can't be saved");
-          groupMembers.removeAt(filteredGroupMembers[index].index);
-        } else {
-          edited = filteredGroupMembers[index].edited ? true : edited;
-          if (groupIndex >= 0) {
-            groups[groupIndex].edited = filteredGroupMembers[index].edited
-                ? true
-                : groups[groupIndex].edited;
-          }
-        }
-        filterGroup();
-      });
-    });
     return;
   }
-
-  filterGroup() {
-    filteredGroupMembers.clear();
-    bool isEdited = groupIndex >= 0 ? groups[groupIndex].edited : false;
-    for (int i = 0; i < groupMembers.length; i++) {
-      if (groupMembers[i].groupIds.isEmpty) {
-        if (group == 1) {
-          isEdited = groupMembers[i].edited ? true : isEdited;
-          groupMembers[i].index = i;
-          filteredGroupMembers.add(groupMembers[i]);
-        }
-      } else if (group != 1) {
-        var groupIds = jsonDecode(groupMembers[i].groupIds);
-        for (int j = 0; j < groupIds.length; j++) {
-          if (groupIds[j]['groupId'] == groups[groupIndex].id) {
-            isEdited = groupMembers[i].edited ? true : isEdited;
-            groupMembers[i].index = i;
-            filteredGroupMembers.add(groupMembers[i]);
-          }
-        }
-      }
-    }
-    setState(() {
-      if (groupIndex >= 0) {
-        groups[groupIndex].edited = isEdited;
-      }
-    });
-    return;
-  }
-}
-
-int test() {
-  return 1;
 }
