@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
 import 'package:drives/main.dart';
+import 'package:drives/models/my_trip_item.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:http/http.dart' as http;
@@ -10,7 +11,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:latlong2/latlong.dart';
 import 'dart:convert';
 import 'package:intl/intl.dart';
-import 'package:drives/models.dart';
+import 'package:drives/models/other_models.dart';
 import 'package:drives/utilities.dart' as utils;
 import 'package:drives/services/db_helper.dart';
 import 'package:drives/route.dart' as mt;
@@ -352,7 +353,7 @@ Future<dynamic> postTrip(MyTripItem tripItem) async {
 Future<String> postPointOfInterest(
     PointOfInterest pointOfInterest, String tripUri) async {
   Map<String, dynamic> map = pointOfInterest.toMap();
-  List<Photo> photos = photosFromJson(pointOfInterest.images);
+  List<Photo> photos = photosFromJson(pointOfInterest.getImages());
 
   var request = http.MultipartRequest(
       'POST', Uri.parse('${urlBase}v1/point_of_interest/add'));
@@ -738,7 +739,7 @@ Future<MyTripItem> getTrip(String tripUuid) async {
             trip['points_of_interest'][i]['description'],
             trip['points_of_interest'][i]['_type'] == 12 ? 10 : 30,
             trip['points_of_interest'][i]['_type'] == 12 ? 10 : 30,
-            trip['points_of_interest'][i]['images'],
+            images: trip['points_of_interest'][i]['images'],
             url: '/${trip['id']}/${trip['points_of_interest'][i]['id']}/',
             score: trip['points_of_interest'][i]['average_rating'] ?? 1,
             scored: trip['points_of_interest'][i]['ratings_count'] ?? 0,
@@ -859,7 +860,7 @@ Future<List<Group>> getGroups() async {
         'Content-Type': 'application/json',
       },
     ).timeout(const Duration(seconds: 10));
-    if (response.statusCode == 200) {
+    if ([200, 201].contains(response.statusCode)) {
       var groups = jsonDecode(response.body);
       groupsSent = [
         for (Map<String, dynamic> groupData in groups) Group.fromMap(groupData)
@@ -886,7 +887,35 @@ Future<List<Group>> getMyGroups() async {
       var groups = jsonDecode(response.body);
       groupsSent = [
         for (Map<String, dynamic> groupData in groups)
-          Group(id: groupData['group_data'], name: groupData['group_name'])
+          Group(id: groupData['group_id'], name: groupData['group_name'])
+      ];
+    }
+  } catch (e) {
+    debugPrint("Can't access data on the web");
+  }
+  return groupsSent;
+}
+
+Future<List<Group>> getMessagesByGroup() async {
+  List<Group> groupsSent = [];
+  String jwToken = Setup().jwt;
+  try {
+    final http.Response response = await http.get(
+      Uri.parse('${urlBase}v1/message/group'),
+      headers: {
+        'Authorization': 'Bearer $jwToken', // $Setup().jwt',
+        'Content-Type': 'application/json',
+      },
+    ).timeout(const Duration(seconds: 10));
+    if ([200, 201].contains(response.statusCode)) {
+      var groups = jsonDecode(response.body);
+      groupsSent = [
+        for (Map<String, dynamic> groupData in groups)
+          Group(
+            id: groupData['group_id'],
+            name: groupData['group_name'],
+            unreadMessages: groupData['unread_count'],
+          )
       ];
     }
   } catch (e) {

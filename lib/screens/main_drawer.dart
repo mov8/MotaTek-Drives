@@ -5,7 +5,7 @@ import 'package:drives/screens/group.dart';
 import 'package:drives/screens/introduce.dart';
 import 'package:drives/screens/my_groups.dart';
 import 'package:drives/services/web_helper.dart';
-import 'package:drives/models.dart';
+import 'package:drives/models/other_models.dart';
 
 class MainDrawer extends StatefulWidget {
   const MainDrawer({super.key});
@@ -132,10 +132,11 @@ class _MainDrawerState extends State<MainDrawer> {
                 fontSize: 20,
               )),
           onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const GroupForm()),
-            );
+            getMessagesByGroup();
+//            Navigator.push(
+//              context,
+//              MaterialPageRoute(builder: (context) => const GroupForm()),
+//            );
           }),
       ListTile(
           leading: const Icon(

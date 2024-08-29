@@ -6,14 +6,14 @@ import 'package:intl/intl.dart';
 
 import 'dart:math';
 // import 'dart:developer';
-import 'dart:io';
+// import 'dart:io';
 
 import 'package:drives/screens/main_drawer.dart';
 import 'package:drives/screens/group_member.dart';
 import 'package:drives/screens/share.dart';
 import 'package:drives/utilities.dart';
 // import 'package:flutter/services.dart';
-import 'package:path_provider/path_provider.dart';
+//import 'package:path_provider/path_provider.dart';
 // import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -29,7 +29,7 @@ import 'package:flutter_map_animations/flutter_map_animations.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:drives/models.dart';
+import 'package:drives/models/other_models.dart';
 import 'package:drives/drives_classes.dart';
 import 'package:drives/route.dart' as mt;
 import 'package:drives/screens/splash_screen.dart';
@@ -46,6 +46,7 @@ import 'package:drives/tiles/trip_tile.dart';
 import 'package:drives/tiles/my_trip_tile.dart';
 import 'package:drives/screens/dialogs.dart';
 import 'package:drives/screens/painters.dart';
+import 'package:drives/models/my_trip_item.dart';
 // import 'screens/dialogs.dart';
 import 'package:flutter_map_location_marker/flutter_map_location_marker.dart';
 import 'package:image_picker/image_picker.dart';
@@ -191,9 +192,9 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   bool _showSearch = false;
   int _editPointOfInterest = -1;
   late Position _currentPosition;
-  double _tripDistance = 0;
+  // double _tripDistance = 0;
   int _resizeDelay = 0;
-  double _totalDistance = 0;
+  // double _totalDistance = 0;
   DateTime _start = DateTime.now();
   // DateTime _lastCheck = DateTime.now();
   double _speed = 0.0;
@@ -258,7 +259,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
         hint,
         size,
         size,
-        images,
+        images: images,
         markerPoint: latLng,
         marker: MarkerWidget(
           type: iconIdx,
@@ -288,7 +289,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       hint,
       size,
       size,
-      images,
+      images: images,
       //   markerIcon(iconIdx),
       /* ValueKey(id),*/
       markerPoint: latLng,
@@ -323,7 +324,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
           '$distance miles - ($time minutes)',
           10,
           10,
-          images,
+          images: images,
           //   markerIcon(type),
           markerPoint: latLng,
           marker: MarkerWidget(
@@ -439,7 +440,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     int next = -1;
     String waypoints = '';
     for (int i = 0; i < _currentTrip.pointsOfInterest().length; i++) {
-      if (_currentTrip.pointsOfInterest()[i].type == 12) {
+      if (_currentTrip.pointsOfInterest()[i].getType() == 12) {
         if (prior == -1) {
           prior = i;
         } else if (next == -1) {
@@ -687,7 +688,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   String waypointsFromPointsOfInterest() {
     String waypoints = '';
     for (int i = 0; i < _currentTrip.pointsOfInterest().length; i++) {
-      if (_currentTrip.pointsOfInterest()[i].type == 12) {
+      if (_currentTrip.pointsOfInterest()[i].getType() == 12) {
         waypoints =
             '$waypoints;${_currentTrip.pointsOfInterest()[i].point.longitude},${_currentTrip.pointsOfInterest()[i].point.latitude}';
       }
@@ -879,7 +880,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     Map<String, dynamic> data;
     if (insertAfter == -1 &&
         _currentTrip.pointsOfInterest().isNotEmpty &&
-        _currentTrip.pointsOfInterest()[0].type == 12) {
+        _currentTrip.pointsOfInterest()[0].getType() == 12) {
       data = await appendRoute(pos);
       await _addPointOfInterest(
           id, userId, 12, '${data["name"]}', '${data["summary"]}', 15.0, pos);
@@ -921,15 +922,15 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
 
   List<String> getTitles(int i) {
     List<String> result = [];
-    if (_currentTrip.pointsOfInterest()[i].type < 12) {
-      result.add(_currentTrip.pointsOfInterest()[i].description == ''
-          ? 'Point of interest - ${poiTypes[_currentTrip.pointsOfInterest()[i].type]["name"]}'
-          : _currentTrip.pointsOfInterest()[i].description);
-      result.add(_currentTrip.pointsOfInterest()[i].description);
+    if (_currentTrip.pointsOfInterest()[i].getType() < 12) {
+      result.add(_currentTrip.pointsOfInterest()[i].getDescription() == ''
+          ? 'Point of interest - ${poiTypes[_currentTrip.pointsOfInterest()[i].getType()]["name"]}'
+          : _currentTrip.pointsOfInterest()[i].getDescription());
+      result.add(_currentTrip.pointsOfInterest()[i].getDescription());
     } else {
       result.add(
-          'Waypoint ${i + 1} -  ${_currentTrip.pointsOfInterest()[i].name}');
-      result.add(_currentTrip.pointsOfInterest()[i].description);
+          'Waypoint ${i + 1} -  ${_currentTrip.pointsOfInterest()[i].getName()}');
+      result.add(_currentTrip.pointsOfInterest()[i].getDescription());
     }
     return result;
   }
@@ -2337,7 +2338,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       'Stopping for a break',
       'Stuck in traffic'
     ];
-    String chosen;
+    //   String chosen;
     showDialog<void>(
       context: context,
       builder: (BuildContext context) {
@@ -2370,8 +2371,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                             .bodyLarge!),
                                   ))
                               .toList(),
-                          onChanged: (item) =>
-                              setState(() => chosen = item.toString()),
+                          onChanged: (item) => setState(() {}),
+                          //   setState(() => chosen = item.toString()),
                         )),
                   ),
                 ]),
@@ -2444,9 +2445,10 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
             SliverReorderableList(
                 itemBuilder: (context, index) {
                   //   debugPrint('Index: $index');
-                  if (_currentTrip.pointsOfInterest()[index].type != 16) {
+                  if (_currentTrip.pointsOfInterest()[index].getType() != 16) {
                     // filter out followers
-                    return _currentTrip.pointsOfInterest()[index].type == 12
+                    return _currentTrip.pointsOfInterest()[index].getType() ==
+                            12
                         ? waypointTile(index)
                         : PointOfInterestTile(
                             key: ValueKey(index),
@@ -3061,7 +3063,8 @@ You can also publish your trips for others to enjoy. You can invite a group of f
     await picker.pickImage(source: source).then((pickedFile) {
       setState(() {
         if (pickedFile != null) {
-          poi.images = "${poi.images},{'url': ${pickedFile.path}, 'caption':}";
+          poi.setImages(
+              "${poi.getImages()},{'url': ${pickedFile.path}, 'caption':}");
         }
       });
     });
@@ -3101,8 +3104,8 @@ You can also publish your trips for others to enjoy. You can invite a group of f
         _travelled = 0.0;
         _start = DateTime.now();
         // _lastCheck = DateTime.now();
-        _tripDistance = 0;
-        _totalDistance = 0;
+        //  _tripDistance = 0;
+        //    _totalDistance = 0;
       });
     }
 
@@ -3139,7 +3142,7 @@ You can also publish your trips for others to enjoy. You can invite a group of f
       if (_tripState == TripState.recording) {
         if (_lastLatLng == const LatLng(0.00, 0.00)) {
           _lastLatLng = pos;
-          _tripDistance = 0;
+          // _tripDistance = 0;
           _currentTrip.clearRoutes();
           _currentTrip.addRoute(mt.Route(
               id: -1,
@@ -3151,11 +3154,11 @@ You can also publish your trips for others to enjoy. You can invite a group of f
         _currentTrip.routes()[_currentTrip.routes().length - 1].points.add(pos);
         debugPrint(
             '_currentTrip.routes().length: ${_currentTrip.routes().length}  points: ${_currentTrip.routes()[_currentTrip.routes().length - 1].points.length}');
-        _tripDistance += Geolocator.distanceBetween(
-            _lastLatLng.latitude,
-            _lastLatLng.longitude,
-            _currentPosition.latitude,
-            _currentPosition.longitude);
+        // _tripDistance += Geolocator.distanceBetween(
+        //     _lastLatLng.latitude,
+        //     _lastLatLng.longitude,
+        //     _currentPosition.latitude,
+        //     _currentPosition.longitude);
 
         _lastLatLng =
             LatLng(_currentPosition.latitude, _currentPosition.longitude);

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:drives/models.dart';
+import 'package:drives/models/other_models.dart';
 
 class ManeuverTile extends StatefulWidget {
   final Maneuver maneuver;

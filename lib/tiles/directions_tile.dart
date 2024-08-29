@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:drives/models.dart';
+import 'package:drives/models/other_models.dart';
 
 class DirectionTile extends StatefulWidget {
   final Maneuver direction;

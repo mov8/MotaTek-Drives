@@ -1,5 +1,5 @@
 import 'dart:math';
-import 'package:drives/models.dart';
+import 'package:drives/models/other_models.dart';
 import 'package:drives/route.dart' as mtRt;
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';

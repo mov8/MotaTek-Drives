@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'package:intl/intl.dart';
 import 'package:drives/screens/group_member.dart';
+import 'package:drives/models/my_trip_item.dart';
 import 'package:drives/tiles/my_trip_tile.dart';
 import 'package:flutter/material.dart';
-import 'package:drives/models.dart';
+import 'package:drives/models/other_models.dart';
 import 'package:drives/utilities.dart';
 import 'package:drives/screens/dialogs.dart';
 import 'package:drives/services/db_helper.dart';

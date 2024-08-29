@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:drives/models.dart';
+import 'package:drives/models/other_models.dart';
 
 /// https://www.youtube.com/watch?v=MSv38jO4EJk
 
@@ -30,10 +30,10 @@ class _PoiDetails extends State<PoiDetails> {
   @override
   initState() {
     super.initState();
-    _contentControllerTitle.text = widget.pointOfInterest.description == ''
-        ? 'Point of interest - ${poiTypes[widget.pointOfInterest.type]["name"]}'
-        : widget.pointOfInterest.description;
-    _contentControllerBody.text = widget.pointOfInterest.description;
+    _contentControllerTitle.text = widget.pointOfInterest.getDescription() == ''
+        ? 'Point of interest - ${poiTypes[widget.pointOfInterest.getType()]["name"]}'
+        : widget.pointOfInterest.getDescription();
+    _contentControllerBody.text = widget.pointOfInterest.getDescription();
   }
 
   @override
@@ -80,10 +80,10 @@ class _PoiDetails extends State<PoiDetails> {
                           icon: const Icon(Icons.cancel),
                           onPressed: () {
                             //  debugPrint('onPressed pressed');
-                            widget.pointOfInterest.description =
-                                _contentControllerTitle.text;
-                            widget.pointOfInterest.description =
-                                _contentControllerBody.text;
+                            widget.pointOfInterest
+                                .setDescription(_contentControllerTitle.text);
+                            widget.pointOfInterest
+                                .setDescription(_contentControllerBody.text);
                             widget.onClose();
                           }, //widget.onClose(),
                         )),
@@ -114,7 +114,7 @@ class _PoiDetails extends State<PoiDetails> {
                               )),
                         ))
                   ]),
-              if (widget.pointOfInterest.images.isNotEmpty)
+              if (widget.pointOfInterest.getImages().isNotEmpty)
                 Row(children: <Widget>[
                   Expanded(
                       flex: 8,
@@ -125,14 +125,15 @@ class _PoiDetails extends State<PoiDetails> {
                             children: [
                               for (int i = 0;
                                   i <
-                                      photosFromJson(
-                                              widget.pointOfInterest.images)
+                                      photosFromJson(widget.pointOfInterest
+                                              .getImages())
                                           .length;
                                   i++)
                                 SizedBox(
                                     width: 160,
-                                    child: Image.file(File(photosFromJson(
-                                            widget.pointOfInterest.images)[i]
+                                    child: Image.file(File(photosFromJson(widget
+                                            .pointOfInterest
+                                            .getImages())[i]
                                         .url))),
                               const SizedBox(
                                 width: 30,
@@ -210,8 +211,8 @@ class _PoiDetails extends State<PoiDetails> {
     final pickedFile = await ImagePicker().pickImage(source: source);
     setState(() {
       if (pickedFile != null) {
-        widget.pointOfInterest.images =
-            "${widget.pointOfInterest.images}, {'url': ${pickedFile.path}, 'caption':}";
+        widget.pointOfInterest.setImages(
+            "${widget.pointOfInterest.getImages()}, {'url': ${pickedFile.path}, 'caption':}");
         // _image = File(pickedFile.path);
       }
     });

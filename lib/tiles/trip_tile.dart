@@ -1,6 +1,6 @@
 import 'package:drives/utilities.dart';
 import 'package:flutter/material.dart';
-import 'package:drives/models.dart';
+import 'package:drives/models/other_models.dart';
 import 'package:drives/screens/star_ratings.dart';
 import 'package:drives/services/web_helper.dart';
 // import 'dart:io';

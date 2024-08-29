@@ -14,8 +14,9 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:drives/models/my_trip_item.dart';
 // import 'package:geolocator/geolocator.dart';
-import 'route.dart' as mt;
+import '../route.dart' as mt;
 // import 'dart:ui' as ui;
 
 /// https://api.flutter.dev/flutter/material/Icons-class.html  get the icon codepoint from here
@@ -354,34 +355,39 @@ class MarkerLabel extends Marker {
 // class PolyLine
 
 class PointOfInterest extends Marker {
-  int id;
-  String images;
-  int driveId;
-  int type;
-  String name;
-  String description;
-  String url;
-  double score;
-  int scored;
-  late Widget marker;
-  LatLng markerPoint = const LatLng(52.05884, -1.345583);
+  final int id;
+  String _images;
+  final int driveId;
+  late final int _type;
+  late final String _name;
+  late final String _description;
+  final String url;
+  late final double _score;
+  final int scored;
+  late final Widget marker;
+  late LatLng markerPoint = const LatLng(52.05884, -1.345583);
 
   PointOfInterest(
       //  this.ctx,
       this.id,
       this.driveId,
-      this.type,
-      this.name,
-      this.description,
+      int type,
+      String name,
+      String description,
       double width,
       double height,
-      this.images,
-      {required LatLng markerPoint,
+      {String images = '',
+      required LatLng markerPoint,
       required Widget marker,
       this.url = '',
-      this.score = 1,
+      double score = 1,
       this.scored = 0})
-      : super(
+      : _images = images,
+        _type = type,
+        _name = name,
+        _description = description,
+        _score = score,
+        super(
           child: marker,
           point: markerPoint,
           width: width,
@@ -396,13 +402,53 @@ class PointOfInterest extends Marker {
     markerPoint = pos;
   }
 
+  void setImages(String images) {
+    _images = images;
+  }
+
+  String getImages() {
+    return _images;
+  }
+
+  void setType(int type) {
+    _type = type;
+  }
+
+  int getType() {
+    return _type;
+  }
+
+  String getName() {
+    return _name;
+  }
+
+  void setName(String name) {
+    _name = name;
+  }
+
+  String getDescription() {
+    return _description;
+  }
+
+  void setDescription(String description) {
+    _description = description;
+  }
+
+  void setScore(double score) {
+    _score = score;
+  }
+
+  double getScore() {
+    return _score;
+  }
+
   Map<String, dynamic> toMap() {
     return {
       'id': id,
       'driveId': driveId,
-      'type': type,
-      'name': name,
-      'description': description,
+      'type': _type,
+      'name': _name,
+      'description': _description,
       'latitude': point.latitude, //markerPoint.latitude,
       'longitude': point.longitude, //markerPoint.longitude,
     };
@@ -423,19 +469,12 @@ Marker(
 */
 
 class MarkerWidget extends StatelessWidget {
-  set iconType(int poiType) {
-    // setState(() {
-    type = poiType;
-    // });
-    // _context = context;
-  }
+  final int type; // default type 12 => waypoint
+  final String description;
+  final double angle;
+  final int colourIdx;
 
-  int type = 12; // default type 12 => waypoint
-  String description;
-  double angle = 0;
-  int colourIdx = -1;
-
-  MarkerWidget(
+  const MarkerWidget(
       {super.key,
       required this.type,
       this.description = '',
@@ -511,6 +550,7 @@ class Group {
   bool edited = false;
   bool selected = true;
   String userId = '';
+  int unreadMessages = 0;
   Group(
       {this.id = '',
       required this.name,
@@ -518,7 +558,8 @@ class Group {
       List<GroupMember> members = const [],
       DateTime? created,
       this.edited = false,
-      this.userId = ''})
+      this.userId = '',
+      this.unreadMessages = 0})
       : created = created ?? DateTime.now(),
         _members = List.from(members);
 
@@ -952,7 +993,7 @@ class TripItem {
 ///
 /// class StudentsList extends StatefulWidget {
 
-class MyTripItem {
+class MyTripItem2 {
   int _id = -1;
   int _driveId = -1;
   int _index = -1;
@@ -972,7 +1013,7 @@ class MyTripItem {
   bool showMethods = true;
   late ui.Image _mapImage;
 
-  MyTripItem({
+  MyTripItem2({
     int id = -1,
     int driveId = -1,
     String driveUri = '',
@@ -1216,7 +1257,7 @@ class MyTripItem {
 
   Future<int> saveLocal() async {
     int result = -1;
-    _driveId = await saveMyTripItem(this);
+    // _driveId = await saveMyTripItem(this);
     try {
       final directory = (await getApplicationDocumentsDirectory()).path;
       Uint8List? pngBytes = Uint8List.fromList([]);
@@ -1266,8 +1307,8 @@ class MyTripItem {
     for (int i = 0; i < _pointsOfInterest.length; i++) {
       distance = min(
           distanceBetween(_pointsOfInterest[i].point, pos).toInt(), distance);
-      if (_pointsOfInterest[i].images.isNotEmpty) {
-        _images = '$_images,${unList(_pointsOfInterest[i].images)}';
+      if (_pointsOfInterest[i].getImages().isNotEmpty) {
+        _images = '$_images,${unList(_pointsOfInterest[i].getImages())}';
       }
     }
     _closest = distance;
@@ -1376,7 +1417,7 @@ Future<List<MyTripItem>> tripItemFromDb({int driveId = -1}) async {
                   maps[i]['description'],
                   maps[i]['type'] == 12 ? 10 : 30,
                   maps[i]['type'] == 12 ? 10 : 30,
-                  maps[i]['images'],
+                  images: maps[i]['images'],
                   markerPoint:
                       LatLng(maps[i]['latitude'], maps[i]['longitude']),
                   marker: MarkerWidget(type: maps[i]['type']))
@@ -1392,7 +1433,7 @@ Future<List<MyTripItem>> tripItemFromDb({int driveId = -1}) async {
             maps[i]['description'],
             maps[i]['type'] == 12 ? 10 : 30,
             maps[i]['type'] == 12 ? 10 : 30,
-            maps[i]['images'],
+            images: maps[i]['images'],
             markerPoint: LatLng(maps[i]['latitude'], maps[i]['longitude']),
             marker: MarkerWidget(type: maps[i]['type'])));
         if (maps[i]['type'] != 12) highlights++;

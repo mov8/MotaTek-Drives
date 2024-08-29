@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:drives/tiles/group_member_tile.dart';
 import 'package:drives/screens/group_member.dart';
 import 'package:flutter/material.dart';
-import 'package:drives/models.dart';
+import 'package:drives/models/other_models.dart';
 import 'package:drives/screens/dialogs.dart';
 
 import 'package:drives/services/web_helper.dart';

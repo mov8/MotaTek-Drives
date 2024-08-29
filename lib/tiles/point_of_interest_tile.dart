@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:drives/models.dart';
+import 'package:drives/models/other_models.dart';
 import 'package:drives/services/web_helper.dart';
 // import 'package:drives/services/db_helper.dart';
 import 'package:image_picker/image_picker.dart';
@@ -114,7 +114,7 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
         controller: ExpansionTileController(),
         shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.all(Radius.circular(5))),
-        title: widget.pointOfInterest.name == ''
+        title: widget.pointOfInterest.getName() == ''
             ? const Text(
                 'Add a point of interest',
                 style: TextStyle(
@@ -123,7 +123,7 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                   fontWeight: FontWeight.bold,
                 ),
               )
-            : Text(widget.pointOfInterest.name,
+            : Text(widget.pointOfInterest.getName(),
                 style: const TextStyle(
                     color: Colors.black)), //getTitles(index)[0]),
         collapsedBackgroundColor: widget.index.isOdd
@@ -138,7 +138,7 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
         },
         leading: IconButton(
           iconSize: 25,
-          icon: Icon(markerIcon(widget.pointOfInterest.type)),
+          icon: Icon(markerIcon(widget.pointOfInterest.getType())),
           onPressed: widget.onIconTap(widget.index),
         ),
 
@@ -164,7 +164,8 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                                   border: OutlineInputBorder(),
                                   labelText: 'Type',
                                 ),
-                                value: widget.pointOfInterest.type.toString(),
+                                value:
+                                    widget.pointOfInterest.getType().toString(),
                                 items: poiTypes
                                     .map((item) => DropdownMenuItem<String>(
                                           value: item['id'].toString(),
@@ -179,9 +180,11 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                                           ]),
                                         ))
                                     .toList(),
-                                onChanged: (item) =>
-                                    widget.pointOfInterest.type =
-                                        item == null ? -1 : int.parse(item))),
+                                onChanged: (item) {
+                                  int type =
+                                      item == null ? -1 : int.parse(item);
+                                  widget.pointOfInterest.setType(type);
+                                })),
                         Expanded(
                           flex: 8,
                           child: SizedBox(
@@ -207,15 +210,15 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                               child: Row(children: [
                                 Icon(
                                   IconData(
-                                      poiTypes[widget.pointOfInterest.type]
+                                      poiTypes[widget.pointOfInterest.getType()]
                                           ['iconMaterial'],
                                       fontFamily: 'MaterialIcons'),
                                   color: Color(
-                                      poiTypes[widget.pointOfInterest.type]
+                                      poiTypes[widget.pointOfInterest.getType()]
                                           ['colourMaterial']),
                                 ),
                                 Text(
-                                    '    ${poiTypes[widget.pointOfInterest.type]['name']}')
+                                    '    ${poiTypes[widget.pointOfInterest.getType()]['name']}')
                               ])),
                         ),
                       ],
@@ -228,7 +231,8 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                                     const EdgeInsets.fromLTRB(0, 10, 10, 10),
                                 child: TextFormField(
                                     readOnly: !canEdit,
-                                    initialValue: widget.pointOfInterest.name,
+                                    initialValue:
+                                        widget.pointOfInterest.getName(),
                                     autofocus: canEdit,
                                     textInputAction: TextInputAction.next,
                                     textAlign: TextAlign.start,
@@ -246,7 +250,7 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                                     autovalidateMode:
                                         AutovalidateMode.onUserInteraction,
                                     onFieldSubmitted: (text) =>
-                                        widget.pointOfInterest.name = text)))
+                                        widget.pointOfInterest.setName(text))))
                       ],
                     ),
                     Row(
@@ -260,7 +264,7 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                                   textInputAction: TextInputAction.done,
                                   //     expands: true,
                                   initialValue:
-                                      widget.pointOfInterest.description,
+                                      widget.pointOfInterest.getDescription(),
                                   textAlign: TextAlign.start,
                                   keyboardType: TextInputType.streetAddress,
                                   textCapitalization:
@@ -275,12 +279,12 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                                       AutovalidateMode.onUserInteraction,
                                   onFieldSubmitted: (text) => widget
                                       .pointOfInterest
-                                      .description = text //body = text
+                                      .setDescription(text) //body = text
                                   )),
                         ),
                       ],
                     ),
-                    if (widget.pointOfInterest.images.isNotEmpty &&
+                    if (widget.pointOfInterest.getImages().isNotEmpty &&
                         widget.pointOfInterest.url.isEmpty)
                       Row(children: <Widget>[
                         Expanded(
@@ -291,12 +295,12 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                                   scrollDirection: Axis.horizontal,
                                   children: [
                                     for (Photo photo in photosFromJson(
-                                        widget.pointOfInterest.images))
+                                        widget.pointOfInterest.getImages()))
                                       showLocalImage(photo.url)
                                   ],
                                 )))
                       ]),
-                    if (widget.pointOfInterest.images.isNotEmpty &&
+                    if (widget.pointOfInterest.getImages().isNotEmpty &&
                         widget.pointOfInterest.url.isNotEmpty)
                       Row(children: <Widget>[
                         Expanded(
@@ -335,7 +339,8 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                                 child: Row(children: [
                                   StarRating(
                                       onRatingChanged: changeRating,
-                                      rating: widget.pointOfInterest.score),
+                                      rating:
+                                          widget.pointOfInterest.getScore()),
                                   Align(
                                       alignment: Alignment.topLeft,
                                       child: Text(
@@ -372,17 +377,19 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
 
               /// Don't know what type of image so have to get file extension from picker file
               int num = 1;
-              if (widget.pointOfInterest.images.isNotEmpty) {
+              if (widget.pointOfInterest.getImages().isNotEmpty) {
                 /// count number of images
-                num = '{'.allMatches(widget.pointOfInterest.images).length + 1;
+                num =
+                    '{'.allMatches(widget.pointOfInterest.getImages()).length +
+                        1;
               }
               debugPrint('Image count: $num');
               String imagePath =
                   '$directory/point_of_interest_${id}_$num.${pickedFile.path.split('.').last}';
               File(pickedFile.path).copy(imagePath);
               setState(() {
-                widget.pointOfInterest.images =
-                    '[${widget.pointOfInterest.images.isNotEmpty ? '${widget.pointOfInterest.images.substring(1, widget.pointOfInterest.images.length - 1)},' : ''}{"url":"$imagePath","caption":"image $num"}]';
+                widget.pointOfInterest.setImages(
+                    '[${widget.pointOfInterest.getImages().isNotEmpty ? '${widget.pointOfInterest.getImages().substring(1, widget.pointOfInterest.getImages().length - 1)},' : ''}{"url":"$imagePath","caption":"image $num"}]');
                 debugPrint('Images: $widget.pointOfInterest.images');
               });
             }
@@ -401,14 +408,15 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
   save(int id) {
     if (widget.index == id) {
       expanded = false;
-      debugPrint(
-          'Updating the pointofinterest: ${widget.pointOfInterest.name} [${widget.pointOfInterest.type}]');
 
-      widget.pointOfInterest.name = widget.pointOfInterest.name;
-      widget.pointOfInterest.description = widget.pointOfInterest.description;
-      widget.pointOfInterest.type = widget.pointOfInterest.type;
-      widget.pointOfInterest.images = widget.pointOfInterest.images;
-      //   widget.pointOfInterest.iconData = markerIcon(type);
+      ///     debugPrint(
+      ///         'Updating the pointofinterest: ${widget.pointOfInterest.name} [${widget.pointOfInterest.type}]');
+
+      ///     widget.pointOfInterest.name = widget.pointOfInterest.name;
+      ///     widget.pointOfInterest.description = widget.pointOfInterest.description;
+      ///     widget.pointOfInterest.setType(widget.pointOfInterest.type;
+      ///     widget.pointOfInterest.images = widget.pointOfInterest.images;
+      ///   widget.pointOfInterest.iconData = markerIcon(type);
     }
   }
 
@@ -417,7 +425,7 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
   }
 
   List<String> getImageUrls(PointOfInterest pointOfInterest) {
-    var pics = jsonDecode(pointOfInterest.images);
+    var pics = jsonDecode(pointOfInterest.getImages());
     return [
       for (String pic in pics)
         Uri.parse('${urlBase}v1/drive/images${pointOfInterest.url}$pic')
@@ -431,6 +439,6 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
 
   changeRating(value) {
     widget.onRated(value, widget.index);
-    setState(() => widget.pointOfInterest.score = value.toDouble());
+    setState(() => widget.pointOfInterest.setScore(value.toDouble()));
   }
 }

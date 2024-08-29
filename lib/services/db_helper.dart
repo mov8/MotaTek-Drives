@@ -10,8 +10,9 @@ import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 //import 'package:flutter/widgets.dart';
 import 'package:drives/route.dart' as mt;
-import 'package:drives/models.dart';
+import 'package:drives/models/other_models.dart';
 import 'package:drives/services/web_helper.dart';
+import 'package:drives/models/my_trip_item.dart';
 import 'dart:async';
 import 'dart:convert';
 // import '../route.dart' as mt;
@@ -558,8 +559,8 @@ Future<int> saveMyTripItem(MyTripItem myTripItem) async {
     if (myTripItem.getDriveUri().isNotEmpty) {
       final directory = (await getApplicationDocumentsDirectory()).path;
       for (PointOfInterest pointOfInterest in myTripItem.pointsOfInterest()) {
-        if (pointOfInterest.images.isNotEmpty) {
-          var pics = jsonDecode(pointOfInterest.images);
+        if (pointOfInterest.getImages().isNotEmpty) {
+          var pics = jsonDecode(pointOfInterest.getImages());
           String jsonImages = '';
           for (String pic in pics) {
             String url =
@@ -574,7 +575,7 @@ Future<int> saveMyTripItem(MyTripItem myTripItem) async {
             await getAndSaveImage(url: url, filePath: imagePath);
             jsonImages = '$jsonImages,{"url":"$imagePath", "caption":""}';
           }
-          pointOfInterest.images = '[${jsonImages.substring(1)}]';
+          pointOfInterest.setImages('[${jsonImages.substring(1)}]');
         }
       }
     }
@@ -628,7 +629,7 @@ Future<List<PointOfInterest>> loadPointsOfInterestLocal(int driveId) async {
         maps[i]['description'],
         maps[i]['type'] == 12 ? 10 : 30,
         maps[i]['type'] == 12 ? 10 : 30,
-        maps[i]['images'],
+        images: maps[i]['images'],
         markerPoint: LatLng(maps[i]['latitude'], maps[i]['longitude']),
         marker: MarkerWidget(type: maps[i]['type'])));
   }
@@ -643,10 +644,10 @@ Future<bool> savePointsOfInterestLocal(
     int id = -1;
     Map<String, dynamic> poiMap = {
       'drive_id': driveId,
-      'type': pointsOfInterest[i].type,
-      'name': pointsOfInterest[i].name,
-      'description': pointsOfInterest[i].description,
-      'images': pointsOfInterest[i].images,
+      'type': pointsOfInterest[i].getType(),
+      'name': pointsOfInterest[i].getName(),
+      'description': pointsOfInterest[i].getDescription(),
+      'images': pointsOfInterest[i].getImages(),
       'latitude': pointsOfInterest[i].point.latitude,
       'longitude': pointsOfInterest[i].point.longitude,
     };
