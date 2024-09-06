@@ -9,7 +9,8 @@ import 'dart:math';
 // import 'dart:io';
 
 import 'package:drives/screens/main_drawer.dart';
-import 'package:drives/screens/group_member.dart';
+import 'package:drives/screens/group_messages.dart';
+import 'package:drives/screens/message_by_groups.dart';
 import 'package:drives/screens/share.dart';
 import 'package:drives/utilities.dart';
 // import 'package:flutter/services.dart';
@@ -159,6 +160,9 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   List<Message> _filteredMessages = [];
   MessageActions _messageActions = MessageActions.read;
   List<Group> _groups = [];
+  Group _messageGroup = Group(
+    name: '',
+  );
   List<GroupMember> _groupMembers = [];
   List<GroupMember> _filteredGroupMembers = [];
   int id = -1;
@@ -702,7 +706,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
         drawer: const MainDrawer(),
         appBar: AppBar(
           title: Text(
-            _title,
+            '$_title ${_messageGroup.name}',
             style: const TextStyle(
                 fontSize: 20, color: Colors.white, fontWeight: FontWeight.w700),
           ),
@@ -715,17 +719,19 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
               ? PreferredSize(
                   preferredSize: const ui.Size.fromHeight(60),
                   child: AnimatedContainer(
-                      height: 60,
-                      curve: Curves.easeInOut,
-                      duration: const Duration(seconds: 3),
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(5, 10, 5, 10),
-                        child: SearchLocation(
-                            onSelect:
-                                locationLatLng), /*SearchBar(
+                    height: 60,
+                    curve: Curves.easeInOut,
+                    duration: const Duration(seconds: 3),
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(5, 10, 5, 10),
+                      child: SearchLocation(
+                          onSelect:
+                              locationLatLng), /*SearchBar(
                     leading: Icon(Icons.search),
                   )*/
-                      )))
+                    ),
+                  ),
+                )
               : null, //Text('Flexible Space')),
           actions: <Widget>[
             if (_appState == AppState.createTrip ||
@@ -828,19 +834,40 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
             child: _showTripTiles(),
           ),
         ] else if (_appState == AppState.messages) ...[
-          AnimatedContainer(
-            duration: Duration(milliseconds: _resizeDelay),
-            curve: Curves.easeInOut, // fastOutSlowIn,
-            height: mapHeight,
-            width: MediaQuery.of(context).size.width,
-            child: _showMessages(),
-          ),
-
-          _handleBottomSheetDivider(), // grab rail - GesureDetector()
-          const SizedBox(
-            height: 5,
-          ),
-          _handleMessages(), // Allows the trip to be planned
+          if (_messageGroup.name == '') ...[
+            SizedBox(
+              height: MediaQuery.of(context).size.height -
+                  AppBar().preferredSize.height -
+                  kBottomNavigationBarHeight -
+                  50,
+              width: MediaQuery.of(context).size.width,
+              child: MessageByGroups(
+                onSelect: (idx) => setState(
+                  () {
+                    debugPrint('Message index: ${idx.name}');
+                    _messageGroup = idx;
+                  },
+                ),
+              ),
+            ),
+          ] else ...[
+            SizedBox(
+              height: MediaQuery.of(context).size.height -
+                  AppBar().preferredSize.height -
+                  kBottomNavigationBarHeight -
+                  50,
+              width: MediaQuery.of(context).size.width,
+              child: GroupMessages(
+                group: _messageGroup,
+                onSelect: (idx) => debugPrint('Message index: $idx'),
+                onCancel: (_) => setState(
+                  () {
+                    _messageGroup = Group(name: '');
+                  },
+                ),
+              ),
+            ),
+          ]
         ] else if (_appState == AppState.createTrip ||
             _appState == AppState.driveTrip) ...[
           AnimatedContainer(
@@ -954,7 +981,6 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
             case 0:
               //  home
               _appState = AppState.home;
-
               break;
             case 1:
               // Web routes
@@ -979,18 +1005,10 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
               break;
             case 4:
               _appState = AppState.shop;
+              break;
             case 5:
-              // // Messages
-              loadGroups()
-                  .then((v) => _groups = v)
-                  .then((_) => loadGroupMembers())
-                  .then((v) => _groupMembers = v)
-                  .then((_) => _getMessages())
-                  .then((_) => setState(() {
-                        _appState = AppState.messages;
-                        adjustMapHeight(MapHeights.full);
-                      }));
-
+              _appState = AppState.messages;
+              _messageGroup = Group(name: '');
               break;
           }
         });
@@ -1319,10 +1337,6 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       editRoute,
       tripData,
       back,
-      writeMessage,
-      readMessages,
-      reply,
-      send,
     ];
 
     final List<IconData> avatars = [
@@ -1346,101 +1360,82 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       Icons.edit,
       Icons.map,
       Icons.arrow_back,
-      Icons.add_comment,
-      Icons.mark_chat_read,
-      Icons.quickreply,
-      Icons.send
     ];
-    if (_appState == AppState.messages) {
-      if ([MessageActions.none, MessageActions.read]
-          .contains(_messageActions)) {
-        chipNames.add('Write message');
-      }
-      if ([MessageActions.none, MessageActions.write]
-          .contains(_messageActions)) {
-        chipNames.add('Read messages');
-      }
-      if (_messageActions == MessageActions.writing) {
-        chipNames
-          ..add('Send')
-          ..add('Read messages');
-      }
-    } else {
-      if ([TripActions.saving, TripActions.saved].contains(_tripActions)) {
-        _tripActions = TripActions.saved;
-        return chips;
-      }
-      if (_tripState == TripState.none) {
-        chipNames
-          ..add('Create manually')
-          ..add('Track drive');
-      }
-      if (_tripState == TripState.manual) {
-        chipNames
-          ..add('Waypoint')
-          ..add('Point of interest')
-          ..add('Great road');
-      }
 
-      if (_tripState == TripState.manual &&
-          _currentTrip.pointsOfInterest().isEmpty) {
-        chipNames.add('Back');
-      }
+    if ([TripActions.saving, TripActions.saved].contains(_tripActions)) {
+      _tripActions = TripActions.saved;
+      return chips;
+    }
+    if (_tripState == TripState.none) {
+      chipNames
+        ..add('Create manually')
+        ..add('Track drive');
+    }
+    if (_tripState == TripState.manual) {
+      chipNames
+        ..add('Waypoint')
+        ..add('Point of interest')
+        ..add('Great road');
+    }
 
-      if ([TripState.automatic, TripState.stoppedRecording, TripState.paused]
-          .contains(_tripState)) {
+    if (_tripState == TripState.manual &&
+        _currentTrip.pointsOfInterest().isEmpty) {
+      chipNames.add('Back');
+    }
+
+    if ([TripState.automatic, TripState.stoppedRecording, TripState.paused]
+        .contains(_tripState)) {
+      chipNames
+        ..add('Start recording')
+        ..add('Back');
+    }
+    if (_tripState == TripState.recording) {
+      chipNames
+        ..add('Stop recording')
+        ..add('Pause recording');
+    }
+    if (_currentTrip.pointsOfInterest().isNotEmpty &&
+        [TripState.manual, TripState.stoppedRecording].contains(_tripState)) {
+      chipNames
+        ..add('Save trip')
+        ..add('Clear trip');
+    }
+    if (_tripActions == TripActions.routeHighlited) {
+      chipNames
+        ..add('Split route')
+        ..add('Remove section');
+    }
+    if (_tripActions == TripActions.greatRoadStart) {
+      chipNames.add('Great road end');
+    }
+
+    if ([TripState.stoppedFollowing, TripState.notFollowing]
+        .contains(_tripState)) {
+      chipNames.add('Follow route');
+    }
+    if (_tripState == TripState.following) {
+      chipNames.add('Stop following');
+    }
+    if ([
+      TripState.following,
+      TripState.stoppedFollowing,
+      TripState.notFollowing
+    ].contains(_tripState)) {
+      if (_tripActions == TripActions.showGroup) {
+        chipNames.add('Trip info');
+      } else {
+        chipNames.add('Group');
+      }
+      if (_tripActions == TripActions.showSteps) {
+        chipNames.add('Trip info');
+      } else {
+        chipNames.add('Steps');
+      }
+      if (_tripState != TripState.following) {
         chipNames
-          ..add('Start recording')
+          ..add('Edit route')
+          //    ..add('Clear trip')
           ..add('Back');
-      }
-      if (_tripState == TripState.recording) {
-        chipNames
-          ..add('Stop recording')
-          ..add('Pause recording');
-      }
-      if (_currentTrip.pointsOfInterest().isNotEmpty &&
-          [TripState.manual, TripState.stoppedRecording].contains(_tripState)) {
-        chipNames
-          ..add('Save trip')
-          ..add('Clear trip');
-      }
-      if (_tripActions == TripActions.routeHighlited) {
-        chipNames
-          ..add('Split route')
-          ..add('Remove section');
-      }
-      if (_tripActions == TripActions.greatRoadStart) {
-        chipNames.add('Great road end');
-      }
-
-      if ([TripState.stoppedFollowing, TripState.notFollowing]
-          .contains(_tripState)) {
-        chipNames.add('Follow route');
-      }
-      if (_tripState == TripState.following) {
-        chipNames.add('Stop following');
-      }
-      if ([
-        TripState.following,
-        TripState.stoppedFollowing,
-        TripState.notFollowing
-      ].contains(_tripState)) {
-        if (_tripActions == TripActions.showGroup) {
-          chipNames.add('Trip info');
-        } else {
-          chipNames.add('Group');
-        }
-        if (_tripActions == TripActions.showSteps) {
-          chipNames.add('Trip info');
-        } else {
-          chipNames.add('Steps');
-        }
-        if (_tripState != TripState.following) {
-          chipNames
-            ..add('Edit route')
-            //    ..add('Clear trip')
-            ..add('Back');
-        }
       }
     }
 
@@ -1777,50 +1772,6 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     });
   }
 
-  void writeMessage() {
-    setState(() {
-      _title = 'Write message';
-      if (_messageActions == MessageActions.writing) {
-        adjustMapHeight(MapHeights.headers);
-        fn1.requestFocus();
-      }
-      _messageActions = MessageActions.write;
-    });
-  }
-
-  void readMessages() {
-    setState(() {
-      _title = 'Read messages';
-      adjustMapHeight(MapHeights.full);
-      fn1.unfocus();
-      _messageActions = MessageActions.read;
-    });
-  }
-
-  void reply() {
-    setState(() {
-      adjustMapHeight(MapHeights.headers);
-      _messageActions = MessageActions.reply;
-    });
-  }
-
-  void send() {
-    setState(() {
-      for (int i = 0; i < _groupMembers.length; i++) {
-        if (_groupMembers[i].selected) {
-          Message message = Message(
-            id: -1,
-            groupMember: _groupMembers[i],
-            message: _message,
-          );
-          saveMessage(message);
-        }
-        adjustMapHeight(MapHeights.full);
-        fn1.unfocus();
-      }
-    });
-  }
-
   /// _splitR
   /// oute() splits a route putting the two split parts contiguously in _currentTrip.routes array
   /// if being used to split a goodRoad then on the 2nd split it sets the colour and borderColour
@@ -2000,6 +1951,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
         ]));
   }
 
+/*
   Widget _filterMessages() {
     int chosen = 0;
     List<String> groupNames = ['All members'];
@@ -2108,7 +2060,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       ]),
     ]);
   }
-
+*/
+/*
   List<Message> filterMessages(int type) {
     List<Message> messages = [];
     try {
@@ -2164,7 +2117,9 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     // setState(() {});
     return members;
   }
+*/
 
+/*
   void onEditMember(int index) async {
     GroupMember member;
     int parentIndex;
@@ -2207,12 +2162,12 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
           _groupMembers.removeAt(_filteredMessages[index].groupMember.index);
         }
   */
-        filterMessages(type);
+       // filterMessages(type);
       });
     });
     return;
   }
-
+*/
   void onSelectMember(int index) {
     if (_messageActions != MessageActions.writing) {
       setState(() {
@@ -2616,6 +2571,7 @@ You can also publish your trips for others to enjoy. You can invite a group of f
   }
 
   _getMessages() async {
+    /*
     _messages = await messagesFromDb();
     if (_messages.isEmpty) {
       // _messages.clear();
@@ -2633,13 +2589,16 @@ You can also publish your trips for others to enjoy. You can invite a group of f
       ));
     }
     _filteredMessages = filterMessages(0);
+    */
   }
 
+/*
   Widget _showMessages() {
     /// https://www.dhiwise.com/post/flutter-pull-to-refresh-how-to-implement-customize
     /// https://www.youtube.com/watch?app=desktop&v=X_hQijCqaKA  handling bottom system nav visibility
     /// https://www.youtube.com/watch?v=bWehAFTFc9o  share on social media
-
+    /// 
+    
     if ([MessageActions.read, MessageActions.none].contains(_messageActions)) {
       if (_messages.isEmpty) {
         _getMessages();
@@ -2709,8 +2668,9 @@ You can also publish your trips for others to enjoy. You can invite a group of f
                 )),
           ]));
     }
+  
   }
-
+*/
   Future<void> _handleRefresh() async {
     // Simulate network fetch or database query
 

@@ -901,7 +901,7 @@ Future<List<Group>> getMessagesByGroup() async {
   String jwToken = Setup().jwt;
   try {
     final http.Response response = await http.get(
-      Uri.parse('${urlBase}v1/message/group'),
+      Uri.parse('${urlBase}v1/message/group_messages'),
       headers: {
         'Authorization': 'Bearer $jwToken', // $Setup().jwt',
         'Content-Type': 'application/json',
@@ -912,9 +912,11 @@ Future<List<Group>> getMessagesByGroup() async {
       groupsSent = [
         for (Map<String, dynamic> groupData in groups)
           Group(
-            id: groupData['group_id'],
-            name: groupData['group_name'],
-            unreadMessages: groupData['unread_count'],
+            id: groupData['id'],
+            name: groupData['name'],
+            unreadMessages:
+                groupData['messages'] - int.parse(groupData['read']),
+            messages: groupData['messages'],
           )
       ];
     }
@@ -922,6 +924,50 @@ Future<List<Group>> getMessagesByGroup() async {
     debugPrint("Can't access data on the web");
   }
   return groupsSent;
+}
+
+Future<List<Message>> getGroupMessages(Group group) async {
+  List<Message> messagesSent = [];
+  String jwToken = Setup().jwt;
+  try {
+    final http.Response response = await http.get(
+      Uri.parse('${urlBase}v1/message/group/${group.id}'),
+      headers: {
+        'Authorization': 'Bearer $jwToken', // $Setup().jwt',
+        'Content-Type': 'application/json',
+      },
+    ).timeout(const Duration(seconds: 10));
+    if ([200, 201].contains(response.statusCode)) {
+      var messages = jsonDecode(response.body);
+      messagesSent = [
+        for (Map<String, dynamic> messageData in messages)
+          Message.fromMap(
+            messageData,
+          )
+      ];
+    }
+  } catch (e) {
+    debugPrint("Can't access data on the web");
+  }
+  return messagesSent;
+}
+
+Future<String> putMessage(Group group, Message message) async {
+  String jwToken = Setup().jwt;
+  Map<String, dynamic> map = {'group_id': group.id, 'message': message.message};
+  final http.Response response =
+      await http.post(Uri.parse('${urlBase}v1/message/add'),
+          headers: {
+            'Authorization': 'Bearer $jwToken', // $Setup().jwt',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode(map));
+  if ([200, 201].contains(response.statusCode)) {
+    var responseData = jsonDecode(String.fromCharCodes(response.bodyBytes));
+    debugPrint('Server response: $responseData');
+    return responseData.toString();
+  }
+  return '';
 }
 
 Future<String> putGroup(Group group) async {

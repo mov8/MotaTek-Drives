@@ -4,7 +4,7 @@ import 'package:drives/utilities.dart';
 import 'package:intl/intl.dart';
 
 class MessageTile extends StatefulWidget {
-  final Message message;
+  final MessageLocal message;
   final Function(int) onEdit;
   final Function(int) onSelect;
 

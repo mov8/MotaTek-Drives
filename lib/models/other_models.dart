@@ -5,6 +5,7 @@ import 'dart:ui' as ui;
 import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
+import 'package:intl/intl.dart';
 import 'package:drives/utilities.dart';
 import 'package:drives/screens/dialogs.dart';
 import 'package:drives/screens/painters.dart';
@@ -550,6 +551,7 @@ class Group {
   bool edited = false;
   bool selected = true;
   String userId = '';
+  int messages = 0;
   int unreadMessages = 0;
   Group(
       {this.id = '',
@@ -559,6 +561,7 @@ class Group {
       DateTime? created,
       this.edited = false,
       this.userId = '',
+      this.messages = 0,
       this.unreadMessages = 0})
       : created = created ?? DateTime.now(),
         _members = List.from(members);
@@ -1543,6 +1546,48 @@ class Drive {
 }
 
 class Message {
+  String id = '';
+  String senderId = '';
+  String sender = '';
+  String message = '';
+  String userTargetId = '';
+  String groupTargetId = '';
+  bool read = false;
+  String dated = '';
+  DateTime received; // = DateTime.now();
+  DateFormat dateFormat = DateFormat("dd MMM yyyy");
+
+  Message(
+      {required this.id,
+      required this.sender,
+      required this.message,
+      this.read = false,
+      this.userTargetId = '',
+      this.groupTargetId = '',
+      this.dated = '',
+      DateTime? received})
+      : received = received ?? DateTime.now();
+
+  factory Message.fromMap(Map<String, dynamic> map) {
+    return Message(
+      id: map['id'],
+      sender: map['sender'],
+      message: map['message'],
+      read: map['read'] == 1,
+      userTargetId: map['target_id'] ?? '',
+      groupTargetId: map['group_target_id'] ?? '',
+      dated: map['received'],
+      received: DateTime.now(),
+    );
+  }
+}
+
+/*
+  factory GroupMember.fromMap(Map<String, dynamic> map) {
+    return GroupMember(
+      id: map['id'],
+*/
+class MessageLocal {
   int id = -1;
   GroupMember groupMember;
   String message = '';
@@ -1551,7 +1596,7 @@ class Message {
   int targetId = 0;
   DateTime received = DateTime.now();
   int index = 0;
-  Message(
+  MessageLocal(
       {required this.id,
       required this.groupMember,
       required this.message,
@@ -1576,7 +1621,7 @@ class Message {
   }
 }
 
-Future<List<Message>> messagesFromDb({int driveId = -1}) async {
+Future<List<MessageLocal>> messagesFromDb({int driveId = -1}) async {
   final db = await dbHelper().db;
   // int records = await recordCount('setup');
   // if (records > 0){
@@ -1600,7 +1645,7 @@ Future<List<Message>> messagesFromDb({int driveId = -1}) async {
     JOIN messages 
     ON group_members.id = messages.user_id''';
 
-  List<Message> messages = [];
+  List<MessageLocal> messages = [];
   try {
     List<Map<String, dynamic>> maps = await db.rawQuery(messagesQuery);
     int memberId = -1;
@@ -1608,7 +1653,7 @@ Future<List<Message>> messagesFromDb({int driveId = -1}) async {
     for (int i = 0; i < maps.length; i++) {
       try {
         memberId = maps[i]['user_id'];
-        messages.add(Message(
+        messages.add(MessageLocal(
           id: maps[i]['id'],
           groupMember: GroupMember(
               forename: maps[i]['forename'],

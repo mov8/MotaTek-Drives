@@ -1,0 +1,192 @@
+import 'dart:io';
+import 'dart:convert';
+import 'package:drives/tiles/group_message_tile.dart';
+import 'package:flutter/material.dart';
+import 'package:drives/models/other_models.dart';
+import 'package:drives/services/web_helper.dart';
+import 'package:drives/services/stream_data.dart';
+//import 'package:drives/services/db_helper.dart';
+//import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:socket_io_client/socket_io_client.dart' as IO;
+
+class GroupMessages extends StatefulWidget {
+  // var setup;
+  final Function(int)? onSelect;
+  final Function(int)? onCancel;
+  final Group group;
+  const GroupMessages({
+    super.key,
+    required this.group,
+    this.onSelect,
+    this.onCancel,
+  });
+
+  @override
+  State<GroupMessages> createState() => _GroupMessagesState();
+}
+
+class _GroupMessagesState extends State<GroupMessages> {
+  int group = 0;
+  late Future<bool> dataloaded;
+  late FocusNode fn1;
+
+  List<Message> messages = [];
+
+  String groupName = 'Driving Group';
+  bool edited = false;
+  int groupIndex = 0;
+  String testString = '';
+  bool addingMember = false;
+  bool addingGroup = false;
+  bool editingGroup = false;
+
+  List<GroupMember> allMembers = [];
+  StreamSocket streamSocket = StreamSocket();
+
+  // final _channel = WebSocketChannel.connect(
+  // Uri.parse('wss://echo.websocket.events'),
+  //  'http://10.101.1.150:5000/'
+  //  Uri.parse('ws://10.101.1.150:5000/socket.io/'),
+  // );
+
+  IO.Socket socket = IO.io('http://10.101.1.150:5000', <String, dynamic>{
+    'transports': ['websocket'], // Specify WebSocket transport
+    'autoConnect': false, // Prevent auto-connection
+  });
+
+  @override
+  void initState() {
+    super.initState();
+    fn1 = FocusNode();
+    // dataloaded = dataFromDatabase();
+    dataloaded = dataFromWeb();
+
+    socket.onConnecting((_) => debugPrint('connecting'));
+    socket.onConnectError((_) => debugPrint('connect error'));
+    socket.onConnectTimeout((_) => debugPrint('connect timeout'));
+
+    socket.onError((data) => debugPrint('Error: ${data.toString()}'));
+
+    socket.onConnect((_) {
+      debugPrint('onConnect connected');
+      socket
+          .emit('group_join', {'token': Setup().jwt, 'group': widget.group.id});
+    });
+    socket.on('message_from_group', (data) {
+      debugPrint('socket data ${data.toString()}');
+      streamSocket.addResponse;
+    });
+    socket.connect();
+    debugPrint('should have connected');
+  }
+
+  @override
+  void dispose() {
+    // Clean up the focus node when the Form is disposed.
+    fn1.dispose();
+    streamSocket.dispose();
+    //  _channel.sink.close();
+    // _controller.dispose();
+    super.dispose();
+  }
+
+  Future<bool> dataFromDatabase() async {
+    return true;
+  }
+
+  Future<bool> dataFromWeb() async {
+    messages = await getGroupMessages(widget.group);
+    messages.add(Message(
+        id: '',
+        sender: '${Setup().user.forename} ${Setup().user.surname}',
+        message: ''));
+    return true;
+  }
+
+  void onGroupSelect(int index) {
+    debugPrint('Slected index: $index');
+    // putMessage(widget.group, messages[index]);
+    //  _channel.sink.add(messages[index].message);
+    // streamSocket.addResponse(messages[index].message);
+    socket.emit('group_message', messages[index].message);
+    widget.onSelect!(index);
+    return;
+  }
+
+  Widget portraitView() {
+    debugPrint('PortraitView() called...');
+    return RefreshIndicator(
+        onRefresh: () async {
+          messages = await getGroupMessages(widget.group);
+        },
+        child: Padding(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
+            child: Column(children: [
+              Expanded(
+                child: ListView.builder(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  itemCount: messages.length,
+                  itemBuilder: (context, index) => GroupMessageTile(
+                    index: index,
+                    message: messages[index],
+                    onEdit: (_) => (),
+                    onSelect: (_) => onGroupSelect(index),
+                    readOnly: index < messages.length - 1,
+                  ),
+                ),
+              ),
+              StreamBuilder(
+                  stream: streamSocket.getResponse,
+                  builder: (context, snapshot) {
+                    return Text(snapshot.hasData ? '${snapshot.data}' : '>');
+                  }),
+              // ]),
+              Align(
+                  alignment: Alignment.bottomLeft,
+                  child: Wrap(
+                    spacing: 5,
+                    children: [
+                      ActionChip(
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20)),
+                        onPressed: () {
+                          widget.onCancel!(1);
+                          debugPrint('Back chip pressed');
+                        },
+                        backgroundColor: Colors.blue,
+                        avatar: const Icon(
+                          Icons.arrow_back,
+                          color: Colors.white,
+                        ),
+                        label: const Text('Back',
+                            style:
+                                TextStyle(fontSize: 18, color: Colors.white)),
+                      )
+                    ],
+                  ))
+            ])));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<bool>(
+        future: dataloaded,
+        builder: (BuildContext context, snapshot) {
+          if (snapshot.hasError) {
+            debugPrint('Snapshot has error: ${snapshot.error}');
+          } else if (snapshot.hasData) {
+            debugPrint('Snapshot has data:');
+            return portraitView();
+          } else {
+            return const SizedBox(
+                width: double.infinity,
+                height: double.infinity,
+                child: Align(
+                    alignment: Alignment.center,
+                    child: CircularProgressIndicator()));
+          }
+          throw ('Error - FutureBuilder group_messages.dart');
+        });
+  }
+}

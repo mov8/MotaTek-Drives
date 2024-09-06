@@ -421,7 +421,7 @@ Future<bool> saveGroupMembers(List<GroupMember> groupMembers) async {
   return true;
 }
 
-Future<int> saveMessage(Message message) async {
+Future<int> saveMessage(MessageLocal message) async {
   int memberId = -1;
   final db = await dbHelper().db;
   /*
