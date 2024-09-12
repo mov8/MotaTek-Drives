@@ -198,16 +198,19 @@ class _GroupFormState extends State<GroupForm> {
       ],
       if (allMembers.isNotEmpty) ...[
         Expanded(
-            child: ListView.builder(
-                itemCount: allMembers.length,
-                itemBuilder: (context, index) => Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10.0, vertical: 5.0),
-                    child: GroupMemberTile(
-                      groupMember: allMembers[index],
-                      index: index,
-                      onSelect: onSelect,
-                    ))))
+          child: ListView.builder(
+            itemCount: allMembers.length,
+            itemBuilder: (context, index) => Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
+              child: GroupMemberTile(
+                groupMember: allMembers[index],
+                index: index,
+                onSelect: onSelect,
+              ),
+            ),
+          ),
+        )
       ],
       Align(
         alignment: Alignment.bottomLeft,
@@ -218,288 +221,294 @@ class _GroupFormState extends State<GroupForm> {
 
   Widget handleNewGroup() {
     return Form(
-        key: _formKey,
-        child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
-            child: SizedBox(
-                height: _emailSizedBoxHeight,
-                child: TextFormField(
-                  textInputAction: TextInputAction.done,
-                  keyboardType: TextInputType.name,
-                  textCapitalization: TextCapitalization.words,
-                  validator: (value) {
-                    _emailSizedBoxHeight = 70;
-                    if (!_validate) {
-                      return null;
-                    }
-                    if (_validateMessage.isNotEmpty) {
-                      _emailSizedBoxHeight = 100;
-                      return (_validateMessage);
-                    }
-                    if (value!.isEmpty) {
-                      _emailSizedBoxHeight = 100;
-                      return ("Group name can't be empty");
-                    }
-                    return null;
-                  },
-                  onFieldSubmitted: (val) => setState(() {
-                    newGroup.name = val;
+      key: _formKey,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+        child: SizedBox(
+          height: _emailSizedBoxHeight,
+          child: TextFormField(
+            textInputAction: TextInputAction.done,
+            keyboardType: TextInputType.name,
+            textCapitalization: TextCapitalization.words,
+            validator: (value) {
+              _emailSizedBoxHeight = 70;
+              if (!_validate) {
+                return null;
+              }
+              if (_validateMessage.isNotEmpty) {
+                _emailSizedBoxHeight = 100;
+                return (_validateMessage);
+              }
+              if (value!.isEmpty) {
+                _emailSizedBoxHeight = 100;
+                return ("Group name can't be empty");
+              }
+              return null;
+            },
+            onFieldSubmitted: (val) => setState(() {
+              newGroup.name = val;
 
-                    if (newGroup.name.isNotEmpty) {
-                      groups.add(newGroup);
-                      groupIndex = groups.length - 1;
-                      groupName = groups[groupIndex].name;
-                    }
-                  }),
-                  autofocus: true,
-                  focusNode: fn1,
-                  style: const TextStyle(
-                      fontSize: 20, fontWeight: FontWeight.w400),
-                  decoration: InputDecoration(
-                      border: const OutlineInputBorder(),
-                      hintText: "Enter the name of the new group",
-                      labelText: "New group's name",
-                      suffix: IconButton(
-                          onPressed: () async {
-                            if (_validate) {
-                              setState(() {
-                                _validate = false;
-                                addingGroup = false;
-                              });
+              if (newGroup.name.isNotEmpty) {
+                groups.add(newGroup);
+                groupIndex = groups.length - 1;
+                groupName = groups[groupIndex].name;
+              }
+            }),
+            autofocus: true,
+            focusNode: fn1,
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w400),
+            decoration: InputDecoration(
+                border: const OutlineInputBorder(),
+                hintText: "Enter the name of the new group",
+                labelText: "New group's name",
+                suffix: IconButton(
+                    onPressed: () async {
+                      if (_validate) {
+                        setState(() {
+                          _validate = false;
+                          addingGroup = false;
+                        });
+                      } else {
+                        _validate = true;
+                        for (Group group in groups) {
+                          if (group.name == newGroup.name) {
+                            _validateMessage =
+                                'You already have a group called ${newGroup.name}';
+                            break;
+                          }
+                        }
+
+                        if (_formKey.currentState!.validate()) {
+                          setState(() {
+                            if (newGroup.name.isNotEmpty) {
+                              groups.add(newGroup);
+                              groupIndex = groups.length - 1;
+                              groups[groupIndex].edited = true;
+                              membersOfGroup(groups[groupIndex]);
+                              addingGroup = false;
                             } else {
-                              _validate = true;
-                              for (Group group in groups) {
-                                if (group.name == newGroup.name) {
-                                  _validateMessage =
-                                      'You already have a group called ${newGroup.name}';
-                                  break;
-                                }
-                              }
-
-                              if (_formKey.currentState!.validate()) {
-                                setState(() {
-                                  if (newGroup.name.isNotEmpty) {
-                                    groups.add(newGroup);
-                                    groupIndex = groups.length - 1;
-                                    groups[groupIndex].edited = true;
-                                    membersOfGroup(groups[groupIndex]);
-                                    addingGroup = false;
-                                  } else {
-                                    _validateMessage =
-                                        'You must enter the new group name';
-                                    _formKey.currentState!.validate();
-                                  }
-                                });
-                              } else {
-                                setState(() {});
-                              }
+                              _validateMessage =
+                                  'You must enter the new group name';
+                              _formKey.currentState!.validate();
                             }
-                          },
-                          icon: Icon(_validate
-                              ? Icons.cancel_outlined
-                              : Icons.add_circle_outline))),
-                  textAlign: TextAlign.left,
-                  initialValue: newGroup.name,
-                  onChanged: (text) {
-                    if (_validate) {
-                      _validate = false;
-                      _formKey.currentState!.validate();
-                    }
-                    newGroup.name = text;
-                  },
-                ))));
+                          });
+                        } else {
+                          setState(() {});
+                        }
+                      }
+                    },
+                    icon: Icon(_validate
+                        ? Icons.cancel_outlined
+                        : Icons.add_circle_outline))),
+            textAlign: TextAlign.left,
+            initialValue: newGroup.name,
+            onChanged: (text) {
+              if (_validate) {
+                _validate = false;
+                _formKey.currentState!.validate();
+              }
+              newGroup.name = text;
+            },
+          ),
+        ),
+      ),
+    );
   }
 
   Widget handleEditGroup() {
     return Form(
-        key: _formKey,
-        child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
-            child: SizedBox(
-                height: _emailSizedBoxHeight,
-                child: TextFormField(
-                  textInputAction: TextInputAction.done,
-                  keyboardType: TextInputType.name,
-                  textCapitalization: TextCapitalization.words,
-                  validator: (value) {
-                    _emailSizedBoxHeight = 70;
-                    if (!_validate) {
-                      return null;
-                    }
-                    if (_validateMessage.isNotEmpty) {
-                      _emailSizedBoxHeight = 100;
-                      return (_validateMessage);
-                    }
-                    if (value!.isEmpty) {
-                      _emailSizedBoxHeight = 100;
-                      return ("Group name can't be empty");
-                    }
-                    return null;
-                  },
-                  onFieldSubmitted: (val) => setState(() {
-                    groupName = val;
-                    groups[groupIndex].name = val;
-                  }),
-                  autofocus: true,
-                  focusNode: fn1,
-                  style: const TextStyle(
-                      fontSize: 20, fontWeight: FontWeight.w400),
-                  decoration: InputDecoration(
-                      border: const OutlineInputBorder(),
-                      hintText:
-                          "Enter the new name for ${groups[groupIndex].name}",
-                      labelText: "${groups[groupIndex].name}'s new name",
-                      suffix: IconButton(
-                          onPressed: () async {
-                            if (_validate) {
-                              setState(() {
-                                _validate = false;
-                                addingGroup = false;
-                              });
-                            } else {
-                              _validate = true;
-                              for (int i = 0; i < groups.length; i++) {
-                                if (groups[i].name == groups[groupIndex].name &&
-                                    i != groupIndex) {
-                                  _validateMessage =
-                                      'You already have a group called ${groups[groupIndex].name}';
-                                  break;
-                                }
-                              }
+      key: _formKey,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+        child: SizedBox(
+          height: _emailSizedBoxHeight,
+          child: TextFormField(
+            textInputAction: TextInputAction.done,
+            keyboardType: TextInputType.name,
+            textCapitalization: TextCapitalization.words,
+            validator: (value) {
+              _emailSizedBoxHeight = 70;
+              if (!_validate) {
+                return null;
+              }
+              if (_validateMessage.isNotEmpty) {
+                _emailSizedBoxHeight = 100;
+                return (_validateMessage);
+              }
+              if (value!.isEmpty) {
+                _emailSizedBoxHeight = 100;
+                return ("Group name can't be empty");
+              }
+              return null;
+            },
+            onFieldSubmitted: (val) => setState(() {
+              groupName = val;
+              groups[groupIndex].name = val;
+            }),
+            autofocus: true,
+            focusNode: fn1,
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w400),
+            decoration: InputDecoration(
+                border: const OutlineInputBorder(),
+                hintText: "Enter the new name for ${groups[groupIndex].name}",
+                labelText: "${groups[groupIndex].name}'s new name",
+                suffix: IconButton(
+                    onPressed: () async {
+                      if (_validate) {
+                        setState(() {
+                          _validate = false;
+                          addingGroup = false;
+                        });
+                      } else {
+                        _validate = true;
+                        for (int i = 0; i < groups.length; i++) {
+                          if (groups[i].name == groups[groupIndex].name &&
+                              i != groupIndex) {
+                            _validateMessage =
+                                'You already have a group called ${groups[groupIndex].name}';
+                            break;
+                          }
+                        }
 
-                              if (_formKey.currentState!.validate()) {
-                                setState(() {
-                                  if (groups[groupIndex].name.isNotEmpty) {
-                                    groups[groupIndex].edited = true;
-                                    editingGroup = false;
-                                  } else {
-                                    _validateMessage =
-                                        'You must enter the new group name';
-                                    _formKey.currentState!.validate();
-                                  }
-                                });
-                              } else {
-                                setState(() {});
-                              }
+                        if (_formKey.currentState!.validate()) {
+                          setState(() {
+                            if (groups[groupIndex].name.isNotEmpty) {
+                              groups[groupIndex].edited = true;
+                              editingGroup = false;
+                            } else {
+                              _validateMessage =
+                                  'You must enter the new group name';
+                              _formKey.currentState!.validate();
                             }
-                          },
-                          icon: Icon(_validate
-                              ? Icons.cancel_outlined
-                              : Icons.check_circle_outline))),
-                  textAlign: TextAlign.left,
-                  initialValue: groups[groupIndex].name,
-                  onChanged: (text) {
-                    if (_validate) {
-                      _validate = false;
-                      _formKey.currentState!.validate();
-                    }
-                    groups[groupIndex].name = text;
-                  },
-                ))));
+                          });
+                        } else {
+                          setState(() {});
+                        }
+                      }
+                    },
+                    icon: Icon(_validate
+                        ? Icons.cancel_outlined
+                        : Icons.check_circle_outline))),
+            textAlign: TextAlign.left,
+            initialValue: groups[groupIndex].name,
+            onChanged: (text) {
+              if (_validate) {
+                _validate = false;
+                _formKey.currentState!.validate();
+              }
+              groups[groupIndex].name = text;
+            },
+          ),
+        ),
+      ),
+    );
   }
 
   Widget handleNewMember() {
     return Form(
-        key: _formKey,
-        child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
-            child: SizedBox(
-                height: _emailSizedBoxHeight,
-                child: TextFormField(
-                  textInputAction: TextInputAction.done,
-                  keyboardType: TextInputType.emailAddress,
-                  validator: (value) {
-                    _emailSizedBoxHeight = 70;
-                    if (!_validate) {
-                      return null;
-                    }
-                    if (_validateMessage.isNotEmpty) {
-                      _emailSizedBoxHeight = 100;
-                      return (_validateMessage);
-                    }
-                    if (value!.isEmpty) {
-                      _emailSizedBoxHeight = 100;
-                      return ("email can't be empty");
-                    }
-                    if (!emailRegex.hasMatch(value)) {
-                      _emailSizedBoxHeight = 110;
-                      return ('not a valid email address');
-                    }
-                    return null;
-                  },
-                  onFieldSubmitted: (val) => setState(() {
-                    newMember.email = val;
+      key: _formKey,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+        child: SizedBox(
+          height: _emailSizedBoxHeight,
+          child: TextFormField(
+            textInputAction: TextInputAction.done,
+            keyboardType: TextInputType.emailAddress,
+            validator: (value) {
+              _emailSizedBoxHeight = 70;
+              if (!_validate) {
+                return null;
+              }
+              if (_validateMessage.isNotEmpty) {
+                _emailSizedBoxHeight = 100;
+                return (_validateMessage);
+              }
+              if (value!.isEmpty) {
+                _emailSizedBoxHeight = 100;
+                return ("email can't be empty");
+              }
+              if (!emailRegex.hasMatch(value)) {
+                _emailSizedBoxHeight = 110;
+                return ('not a valid email address');
+              }
+              return null;
+            },
+            onFieldSubmitted: (val) => setState(() {
+              newMember.email = val;
 
-                    if (groups[groupIndex].name.isNotEmpty) {
-                      groupName = groups[groupIndex].name;
-                    }
-                  }),
-                  autofocus: true,
-                  focusNode: fn1,
-                  style: const TextStyle(
-                      fontSize: 20, fontWeight: FontWeight.w400),
-                  decoration: InputDecoration(
-                      border: const OutlineInputBorder(),
-                      hintText: "Enter member's email address",
-                      labelText: "New member's email",
-                      suffix: IconButton(
-                          onPressed: () async {
-                            if (_validate) {
-                              setState(() {
-                                _validate = false;
-                                addingMember = false;
-                              });
+              if (groups[groupIndex].name.isNotEmpty) {
+                groupName = groups[groupIndex].name;
+              }
+            }),
+            autofocus: true,
+            focusNode: fn1,
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w400),
+            decoration: InputDecoration(
+                border: const OutlineInputBorder(),
+                hintText: "Enter member's email address",
+                labelText: "New member's email",
+                suffix: IconButton(
+                    onPressed: () async {
+                      if (_validate) {
+                        setState(() {
+                          _validate = false;
+                          addingMember = false;
+                        });
+                      } else {
+                        _validate = true;
+                        for (GroupMember member
+                            in groups[groupIndex].groupMembers()) {
+                          if (member.email == newMember.email) {
+                            _validateMessage =
+                                '${member.forename} ${member.surname} is already in ${groups[groupIndex].name}';
+                            break;
+                          }
+                        }
+
+                        if (_formKey.currentState!.validate()) {
+                          newMember = await getUserByEmail(newMember.email);
+                          setState(() {
+                            if (newMember.forename.isNotEmpty &&
+                                newMember.surname.isNotEmpty) {
+                              newMember.selected = true;
+                              newMember.groupId = groups[groupIndex].id;
+                              groups[groupIndex].addMember(newMember);
+                              groups[groupIndex].edited = true;
+                              allMembers.add(newMember);
+                              addingMember = false;
                             } else {
-                              _validate = true;
-                              for (GroupMember member
-                                  in groups[groupIndex].groupMembers()) {
-                                if (member.email == newMember.email) {
-                                  _validateMessage =
-                                      '${member.forename} ${member.surname} is already in ${groups[groupIndex].name}';
-                                  break;
-                                }
-                              }
-
-                              if (_formKey.currentState!.validate()) {
-                                newMember =
-                                    await getUserByEmail(newMember.email);
-                                setState(() {
-                                  if (newMember.forename.isNotEmpty &&
-                                      newMember.surname.isNotEmpty) {
-                                    newMember.selected = true;
-                                    groups[groupIndex].addMember(newMember);
-                                    groups[groupIndex].edited = true;
-                                    allMembers.add(newMember);
-                                    addingMember = false;
-                                  } else {
-                                    _validateMessage = 'User email not found';
-                                    _formKey.currentState!.validate();
-                                  }
-                                });
-                              } else {
-                                setState(() {});
-                              }
+                              _validateMessage = 'User email not found';
+                              _formKey.currentState!.validate();
                             }
-                          },
-                          icon: Icon(_validate
-                              ? Icons.cancel_outlined
-                              : Icons.search))),
-                  textAlign: TextAlign.left,
-                  initialValue: newMember.email,
-                  onChanged: (text) {
-                    if (_validate) {
-                      _validate = false;
-                      _formKey.currentState!.validate();
-                    }
-                    newMember.email = text;
-                  },
-                ))));
+                          });
+                        } else {
+                          setState(() {});
+                        }
+                      }
+                    },
+                    icon: Icon(
+                        _validate ? Icons.cancel_outlined : Icons.search))),
+            textAlign: TextAlign.left,
+            initialValue: newMember.email,
+            onChanged: (text) {
+              if (_validate) {
+                _validate = false;
+                _formKey.currentState!.validate();
+              }
+              newMember.email = text;
+            },
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _handleChips() {
     return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10),
-        child: Wrap(spacing: 10, children: [
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      child: Wrap(
+        spacing: 10,
+        children: [
           if (addingMember || addingGroup || editingGroup) ...[
             ActionChip(
               shape: RoundedRectangleBorder(
@@ -522,14 +531,16 @@ class _GroupFormState extends State<GroupForm> {
               ActionChip(
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20)),
-                onPressed: () => setState(() {
-                  fn1.requestFocus();
-                  addingMember = true;
-                  _validate = false;
-                  _validateMessage = '';
-                  _emailSizedBoxHeight = 70;
-                  newMember = GroupMember(forename: '', surname: '');
-                }),
+                onPressed: () => setState(
+                  () {
+                    fn1.requestFocus();
+                    addingMember = true;
+                    _validate = false;
+                    _validateMessage = '';
+                    _emailSizedBoxHeight = 70;
+                    newMember = GroupMember(forename: '', surname: '');
+                  },
+                ),
                 backgroundColor: Colors.blue,
                 avatar: const Icon(
                   Icons.group_add,
@@ -605,7 +616,9 @@ class _GroupFormState extends State<GroupForm> {
               ),
             ],
           ],
-        ]));
+        ],
+      ),
+    );
   }
 
   void onDelete(int index) {

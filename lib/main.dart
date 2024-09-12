@@ -37,6 +37,7 @@ import 'package:drives/screens/splash_screen.dart';
 import 'package:drives/services/web_helper.dart';
 import 'package:drives/services/db_helper.dart';
 import 'package:drives/tiles/point_of_interest_tile.dart';
+import 'package:drives/classes/leading_widget.dart';
 import 'package:drives/tiles/message_tile.dart';
 import 'package:drives/tiles/directions_tile.dart';
 import 'package:drives/tiles/group_member_tile.dart';
@@ -139,6 +140,7 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   GlobalKey mapKey = GlobalKey();
+  final GlobalKey _scaffoldKey = GlobalKey();
   DateFormat dateFormat = DateFormat('dd/MM/yy HH:mm');
   List<double> mapHeights = [0, 0, 0, 0];
   // List<PointOfInterest> pointsOfInterest = [];
@@ -148,6 +150,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   final start = TextEditingController();
   final end = TextEditingController();
   final mapController = MapController();
+  final GroupMessagesController groupMessagesController =
+      GroupMessagesController();
   bool isVisible = false;
   PopupValue popValue = PopupValue(-1, '', '');
   final navigatorKey = GlobalKey<NavigatorState>();
@@ -237,6 +241,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
 
   late final StreamController<double?> _allignPositionStreamController;
   late final StreamController<void> _allignDirectionStreamController;
+  LeadingWidgetController _leadingWidgetController = LeadingWidgetController();
   // late final StreamSubscription<double?> _positionSubscription;
   late AlignOnUpdate _alignPositionOnUpdate;
   late AlignOnUpdate _alignDirectionOnUpdate;
@@ -390,7 +395,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       _allignDirectionStreamController = StreamController<void>.broadcast();
       _alignPositionOnUpdate = AlignOnUpdate.never;
       _alignDirectionOnUpdate = AlignOnUpdate.never; // never;
-
+      // _leadingWidgetController = LeadingWidgetController();
       fn1 = FocusNode();
     } catch (e) {
       debugPrint('Error initialising Drives: ${e.toString()}');
@@ -703,8 +708,17 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+        key: _scaffoldKey,
         drawer: const MainDrawer(),
         appBar: AppBar(
+          automaticallyImplyLeading: false,
+          leading: LeadingWidget(
+              controller: _leadingWidgetController,
+              onMenuTap: () =>
+                  _leadingWidget(_scaffoldKey.currentState)), // IconButton(
+          // icon: const Icon(Icons.menu),
+          // onPressed: () => leadingWidget(_scaffoldKey.currentState),
+          //  ),
           title: Text(
             '$_title ${_messageGroup.name}',
             style: const TextStyle(
@@ -772,6 +786,10 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
             throw ('Error - FutureBuilder in main.dart');
           },
         ));
+  }
+
+  _leadingWidget(context) {
+    return context?.openDrawer();
   }
 
   Future<bool> dataFromDatabase() async {
@@ -846,6 +864,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                   () {
                     debugPrint('Message index: ${idx.name}');
                     _messageGroup = idx;
+                    _leadingWidgetController.changeWidget(1);
                   },
                 ),
               ),
@@ -858,6 +877,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                   50,
               width: MediaQuery.of(context).size.width,
               child: GroupMessages(
+                controller: groupMessagesController,
                 group: _messageGroup,
                 onSelect: (idx) => debugPrint('Message index: $idx'),
                 onCancel: (_) => setState(
@@ -3189,19 +3209,18 @@ You can also publish your trips for others to enjoy. You can invite a group of f
 
   expandChange(var details) {
     if (details != null) {
-      setState(() {
-        debugPrint('ExpandChanged: $details');
-        _editPointOfInterest = details;
-        if (details >= 0) {
-          adjustMapHeight(MapHeights.pointOfInterest);
-        } else {
-          FocusManager.instance.primaryFocus?.unfocus(); // dismiss keyboard
-          adjustMapHeight(MapHeights.full);
-        }
-      });
-      //  Future.delayed(const Duration(milliseconds: 500), () {
-      //    setState(() {});
-      //  });
+      setState(
+        () {
+          debugPrint('ExpandChanged: $details');
+          _editPointOfInterest = details;
+          if (details >= 0) {
+            adjustMapHeight(MapHeights.pointOfInterest);
+          } else {
+            FocusManager.instance.primaryFocus?.unfocus(); // dismiss keyboard
+            adjustMapHeight(MapHeights.full);
+          }
+        },
+      );
     }
   }
 

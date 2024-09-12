@@ -20,6 +20,8 @@ class _SignupFormState extends State<SignupForm> {
   int manufacturer = 0;
   int model = 0;
   bool carData = false;
+  bool userExists = false;
+  String savedPassword = '';
 
   final ButtonStyle style = ElevatedButton.styleFrom(
       minimumSize: const Size.fromHeight(60),
@@ -29,14 +31,16 @@ class _SignupFormState extends State<SignupForm> {
       textStyle: const TextStyle(fontSize: 30, color: Colors.white));
 
   @override
-/*
   @override
   void initState() {
     super.initState;
+    userExists =
+        Setup().user.email.isNotEmpty && Setup().user.password.isNotEmpty;
+    savedPassword = Setup().user.password;
+    Setup().user.password = '';
   }
 
   @override
-*/
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -47,28 +51,36 @@ class _SignupFormState extends State<SignupForm> {
 
         /// Removes Shadow
         toolbarHeight: 40,
-        title: const Text('MotaTrip signup',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            )),
+        title: const Text(
+          'MotaTrip signup',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         bottom: const PreferredSize(
           preferredSize: Size.fromHeight(60),
           child: Padding(
-              padding: EdgeInsets.fromLTRB(5, 10, 5, 10),
-              child: Text('Register ',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 38,
-                    fontWeight: FontWeight.bold,
-                  ))),
+            padding: EdgeInsets.fromLTRB(5, 10, 5, 10),
+            child: Text(
+              'Register ',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 38,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
         ),
 
         /// Shrink height a bit
         leading: BackButton(
           onPressed: () {
             try {
+              if (Setup().user.password.isEmpty) {
+                Setup().user.password = savedPassword;
+              }
               insertSetup(Setup());
               Navigator.pop(context);
             } catch (e) {
@@ -179,6 +191,24 @@ class _SignupFormState extends State<SignupForm> {
             style: Theme.of(context).textTheme.bodyLarge,
             onChanged: (text) => setState(() => Setup().user.password = text),
           )),
+      if (userExists) ...[
+        Padding(
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+            child: TextFormField(
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                hintText: 'Change password',
+                labelText: 'New password',
+              ),
+              textAlign: TextAlign.left,
+              keyboardType: TextInputType.visiblePassword,
+              textInputAction: TextInputAction.done,
+              initialValue: Setup().user.password.toString(),
+              style: Theme.of(context).textTheme.bodyLarge,
+              onChanged: (text) =>
+                  setState(() => Setup().user.newPassword = text),
+            ))
+      ],
       if (carData) ...[
         Padding(
             padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),

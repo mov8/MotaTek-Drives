@@ -204,9 +204,11 @@ class _shareFormState extends State<ShareForm> {
                             .map((item) => DropdownMenuItem<String>(
                                   value: item,
                                   child: Text(item,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .titleLarge!), // bodyLarge!),
+                                      style: const TextStyle(
+                                          color: Colors.black,
+                                          fontSize: 20,
+                                          fontWeight:
+                                              FontWeight.w400)), // bodyLarge!),
                                 ))
                             .toList(),
                         onChanged: (item) => {

@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:convert';
 import 'package:drives/tiles/group_message_tile.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:drives/models/other_models.dart';
 import 'package:drives/services/web_helper.dart';
 import 'package:drives/services/stream_data.dart';
@@ -9,13 +10,35 @@ import 'package:drives/services/stream_data.dart';
 //import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 
+class GroupMessagesController {
+  _GroupMessagesState? _groupMessagesState;
+
+  void _addState(_GroupMessagesState groupMessagesState) {
+    _groupMessagesState = groupMessagesState;
+  }
+
+  bool get isAttached => _groupMessagesState != null;
+
+  void leave() {
+    assert(isAttached, 'Controller must be attached to widget');
+    try {
+      _groupMessagesState?.leave();
+    } catch (e) {
+      String err = e.toString();
+      debugPrint('Error loading image: $err');
+    }
+  }
+}
+
 class GroupMessages extends StatefulWidget {
   // var setup;
+  final GroupMessagesController controller;
   final Function(int)? onSelect;
   final Function(int)? onCancel;
   final Group group;
   const GroupMessages({
     super.key,
+    required this.controller,
     required this.group,
     this.onSelect,
     this.onCancel,
@@ -43,6 +66,7 @@ class _GroupMessagesState extends State<GroupMessages> {
   List<GroupMember> allMembers = [];
   StreamSocket streamSocket = StreamSocket();
 
+  DateFormat dateFormat = DateFormat('dd/MM/yy HH:mm');
   // final _channel = WebSocketChannel.connect(
   // Uri.parse('wss://echo.websocket.events'),
   //  'http://10.101.1.150:5000/'
@@ -60,6 +84,7 @@ class _GroupMessagesState extends State<GroupMessages> {
     fn1 = FocusNode();
     // dataloaded = dataFromDatabase();
     dataloaded = dataFromWeb();
+    widget.controller._addState(this);
 
     socket.onConnecting((_) => debugPrint('connecting'));
     socket.onConnectError((_) => debugPrint('connect error'));
@@ -72,10 +97,27 @@ class _GroupMessagesState extends State<GroupMessages> {
       socket
           .emit('group_join', {'token': Setup().jwt, 'group': widget.group.id});
     });
+
     socket.on('message_from_group', (data) {
-      debugPrint('socket data ${data.toString()}');
-      streamSocket.addResponse;
+      try {
+        messages[messages.length - 1] = Message.fromSocketMap(data);
+        messages.add(Message(
+          id: '',
+          sender: '${Setup().user.forename} ${Setup().user.surname}',
+          message: '',
+        ));
+        widget.group.messages = messages.length;
+        setState(() {});
+      } catch (e) {
+        debugPrint('Error: ${e.toString()}');
+      }
     });
+
+    if (socket.connected) {
+      socket
+          .emit('group_join', {'token': Setup().jwt, 'group': widget.group.id});
+    }
+
     socket.connect();
     debugPrint('should have connected');
   }
@@ -83,11 +125,18 @@ class _GroupMessagesState extends State<GroupMessages> {
   @override
   void dispose() {
     // Clean up the focus node when the Form is disposed.
+    if (socket.connected) {
+      socket.emit('group_leave', {'group': widget.group.id});
+      socket.emit('disconnect');
+    }
+
     fn1.dispose();
     streamSocket.dispose();
-    //  _channel.sink.close();
-    // _controller.dispose();
     super.dispose();
+  }
+
+  void leave() {
+    widget.onCancel!(1);
   }
 
   Future<bool> dataFromDatabase() async {
@@ -97,14 +146,14 @@ class _GroupMessagesState extends State<GroupMessages> {
   Future<bool> dataFromWeb() async {
     messages = await getGroupMessages(widget.group);
     messages.add(Message(
-        id: '',
-        sender: '${Setup().user.forename} ${Setup().user.surname}',
-        message: ''));
+      id: '',
+      sender: '${Setup().user.forename} ${Setup().user.surname}',
+      message: '',
+    ));
     return true;
   }
 
-  void onGroupSelect(int index) {
-    debugPrint('Slected index: $index');
+  void onSendMessage(int index) {
     // putMessage(widget.group, messages[index]);
     //  _channel.sink.add(messages[index].message);
     // streamSocket.addResponse(messages[index].message);
@@ -116,77 +165,81 @@ class _GroupMessagesState extends State<GroupMessages> {
   Widget portraitView() {
     debugPrint('PortraitView() called...');
     return RefreshIndicator(
-        onRefresh: () async {
-          messages = await getGroupMessages(widget.group);
-        },
-        child: Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
-            child: Column(children: [
-              Expanded(
-                child: ListView.builder(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  itemCount: messages.length,
-                  itemBuilder: (context, index) => GroupMessageTile(
-                    index: index,
-                    message: messages[index],
-                    onEdit: (_) => (),
-                    onSelect: (_) => onGroupSelect(index),
-                    readOnly: index < messages.length - 1,
-                  ),
+      onRefresh: () async {
+        await dataFromWeb();
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
+        child: Column(
+          children: [
+            Expanded(
+              child: ListView.builder(
+                physics: const AlwaysScrollableScrollPhysics(),
+                itemCount: messages.length,
+                itemBuilder: (context, index) => GroupMessageTile(
+                  index: index,
+                  message: messages[index],
+                  onEdit: (_) => (),
+                  onSelect: (_) => onSendMessage(index),
+                  readOnly: (index < messages.length - 1),
                 ),
               ),
-              StreamBuilder(
-                  stream: streamSocket.getResponse,
-                  builder: (context, snapshot) {
-                    return Text(snapshot.hasData ? '${snapshot.data}' : '>');
-                  }),
-              // ]),
-              Align(
-                  alignment: Alignment.bottomLeft,
-                  child: Wrap(
-                    spacing: 5,
-                    children: [
-                      ActionChip(
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20)),
-                        onPressed: () {
-                          widget.onCancel!(1);
-                          debugPrint('Back chip pressed');
-                        },
-                        backgroundColor: Colors.blue,
-                        avatar: const Icon(
-                          Icons.arrow_back,
-                          color: Colors.white,
-                        ),
-                        label: const Text('Back',
-                            style:
-                                TextStyle(fontSize: 18, color: Colors.white)),
-                      )
-                    ],
-                  ))
-            ])));
+            ),
+            //     StreamBuilder(
+            //        stream: streamSocket.getResponse,
+            //         builder: (context, snapshot) {
+            //           return Text(snapshot.hasData ? '${snapshot.data}' : '>');
+            //         }),
+            // ]),
+            Align(
+              alignment: Alignment.bottomLeft,
+              child: Wrap(
+                spacing: 5,
+                children: [
+                  ActionChip(
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20)),
+                    onPressed: () {
+                      widget.onCancel!(1);
+                      debugPrint('Back chip pressed');
+                    },
+                    backgroundColor: Colors.blue,
+                    avatar: const Icon(
+                      Icons.arrow_back,
+                      color: Colors.white,
+                    ),
+                    label: const Text('Back',
+                        style: TextStyle(fontSize: 18, color: Colors.white)),
+                  )
+                ],
+              ),
+            )
+          ],
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<bool>(
-        future: dataloaded,
-        builder: (BuildContext context, snapshot) {
-          if (snapshot.hasError) {
-            debugPrint('Snapshot has error: ${snapshot.error}');
-          } else if (snapshot.hasData) {
-            debugPrint('Snapshot has data:');
-            return portraitView();
-          } else {
-            return const SizedBox(
-                width: double.infinity,
-                height: double.infinity,
-                child: Align(
-                    alignment: Alignment.center,
-                    child: CircularProgressIndicator()));
-          }
-          throw ('Error - FutureBuilder group_messages.dart');
-        });
+      future: dataloaded,
+      builder: (BuildContext context, snapshot) {
+        if (snapshot.hasError) {
+          debugPrint('Snapshot has error: ${snapshot.error}');
+        } else if (snapshot.hasData) {
+          debugPrint('Snapshot has data:');
+          return portraitView();
+        } else {
+          return const SizedBox(
+              width: double.infinity,
+              height: double.infinity,
+              child: Align(
+                  alignment: Alignment.center,
+                  child: CircularProgressIndicator()));
+        }
+        throw ('Error - FutureBuilder group_messages.dart');
+      },
+    );
   }
 }

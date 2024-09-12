@@ -359,12 +359,12 @@ class PointOfInterest extends Marker {
   final int id;
   String _images;
   final int driveId;
-  late final int _type;
-  late final String _name;
-  late final String _description;
-  final String url;
-  late final double _score;
-  final int scored;
+  int _type;
+  String _name;
+  String _description;
+  String url;
+  double _score;
+  int scored;
   late final Widget marker;
   late LatLng markerPoint = const LatLng(52.05884, -1.345583);
 
@@ -743,6 +743,7 @@ class User {
   String forename;
   String surname;
   String password;
+  String newPassword = '';
   String phone;
   String email;
   String imageUrl;
@@ -782,6 +783,7 @@ class User {
       'email': email,
       'phone': phone,
       'password': password,
+      'new_password': newPassword,
       'imageUrl': imageUrl,
     };
   }
@@ -1570,14 +1572,25 @@ class Message {
 
   factory Message.fromMap(Map<String, dynamic> map) {
     return Message(
-      id: map['id'],
+      id: map['id'] ?? '',
       sender: map['sender'],
       message: map['message'],
-      read: map['read'] == 1,
+      read: map['read'] == 0,
       userTargetId: map['target_id'] ?? '',
       groupTargetId: map['group_target_id'] ?? '',
       dated: map['received'],
       received: DateTime.now(),
+    );
+  }
+
+  factory Message.fromSocketMap(Map<String, dynamic> map) {
+    return Message(
+      id: '',
+      sender: map['sender'] ?? 'unknown sender',
+      message: map['message'] ?? 'test',
+      dated: DateFormat("dd MMM yy HH:mm").format(DateTime.now()),
+      received: DateTime.now(),
+      read: false,
     );
   }
 }

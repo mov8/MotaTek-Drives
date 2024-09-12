@@ -156,7 +156,8 @@ class _searchLocationState extends State<SearchLocation> {
 const urlBase = 'http://10.101.1.150:5000/'; // Home network
 // const urlBase = 'http://192.168.1.13:5000/'; // Boston
 
-Future<String> postUser(User user, {bool register = false}) async {
+Future<Map<String, dynamic>> postUser(User user,
+    {bool register = false}) async {
   Map<String, dynamic> userMap = user.toMap();
   var url = Uri.parse('${urlBase}v1/user/${register ? "register" : "login"}');
   final http.Response response = await http.post(url,
@@ -164,17 +165,20 @@ Future<String> postUser(User user, {bool register = false}) async {
         "Content-Type": "application/json; charset=UTF-8",
       },
       body: jsonEncode(userMap));
+  Map<String, dynamic> map = jsonDecode(response.body);
   if (response.statusCode == 201) {
-    // 201 = Created
-    debugPrint('User posted OK');
-    Map<String, dynamic> map = jsonDecode(response.body);
     Setup().jwt = map['token'];
+    if (!register) {
+      Setup().user.forename = map['forename'];
+      Setup().user.surname = map['surname'];
+      Setup().user.email = user.email;
+      Setup().user.password = user.password;
+    }
     await updateSetup();
 
-    return jsonEncode({'token': Setup().jwt, 'code': response.statusCode});
+    return {'msg': 'OK'};
   } else {
-    debugPrint('Failed to post user');
-    return jsonEncode({'token': '', 'code': response.statusCode});
+    return map;
   }
 }
 
@@ -209,89 +213,98 @@ Future<bool> login(BuildContext context) async {
   bool result = false;
   String email = '';
   String password = '';
+  String status = '';
 
   showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => StatefulBuilder(
-          builder: (context, setState) => AlertDialog(
-                title: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.key,
-                        size: 30,
-                      ),
-                      SizedBox(
-                        width: 10,
-                      ),
-                      Text('Login'),
-                    ]),
-                content: SizedBox(
-                    height: 100,
-                    width: 200,
-                    child: Column(children: [
-                      Row(children: [
-                        Expanded(
-                            child: TextField(
-                          //        validator: (value) {
-                          //          if (!emailRegex.hasMatch(value!)) {
-                          //            // _emailSizedBoxHeight = 110;
-                          //            return ('not a valid email address');
-                          //          }
-                          //          return null;
-                          //        },
-                          textInputAction: TextInputAction.next,
-                          keyboardType: TextInputType.emailAddress,
-                          decoration: const InputDecoration(
-                              hintText: 'Enter email address'),
-                          onChanged: (value) => email = value,
-                        ))
-                      ]),
-                      Row(children: [
-                        Expanded(
-                            child: TextField(
-                          //     validator: (value) {
-                          //       if (value!.length < 4) {
-                          //         return ('password must be at least 4 characters long');
-                          //       }
-                          //       return null;
-                          //     },
-                          textInputAction: TextInputAction.done,
-                          keyboardType: TextInputType.visiblePassword,
-                          decoration:
-                              const InputDecoration(hintText: 'Enter password'),
-                          onChanged: (value) => password = value,
-                        ))
-                      ]),
-                    ])),
-                actions: [
-                  TextButton(
-                      onPressed: () async {
-                        tryLogin(email, password);
-                        Navigator.pop(context);
-                      },
-                      child: const Text(
-                        'Ok',
-                        style: TextStyle(fontSize: 20),
-                      )),
-                  TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text(
-                        'Cancel',
-                        style: TextStyle(fontSize: 20),
-                      ))
-                ],
-              )));
+    context: context,
+    barrierDismissible: false,
+    builder: (context) => StatefulBuilder(
+      builder: (context, setState) => AlertDialog(
+        title:
+            const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Icon(
+            Icons.key,
+            size: 30,
+          ),
+          SizedBox(
+            width: 10,
+          ),
+          Text('Login'),
+        ]),
+        content: SizedBox(
+          height: 150,
+          width: 200,
+          child: Column(children: [
+            Row(children: [
+              Expanded(
+                child: TextField(
+                  textInputAction: TextInputAction.next,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration:
+                      const InputDecoration(hintText: 'Enter email address'),
+                  onChanged: (value) => email = value,
+                ),
+              )
+            ]),
+            Row(children: [
+              Expanded(
+                  child: TextField(
+                textInputAction: TextInputAction.done,
+                keyboardType: TextInputType.visiblePassword,
+                decoration: const InputDecoration(hintText: 'Enter password'),
+                onChanged: (value) => password = value,
+              ))
+            ]),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    status,
+                    style: const TextStyle(
+                        color: Colors.red,
+                        fontSize: 18,
+                        fontWeight: FontWeight.normal),
+                  ),
+                )
+              ],
+            ),
+          ]),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () async {
+                Map<String, dynamic> response = await tryLogin(email, password);
+                status = response['msg'];
+                if (status == 'OK' && context.mounted) {
+                  Navigator.pop(context);
+                } else {
+                  setState(() {});
+                }
+              },
+              child: const Text(
+                'Ok',
+                style: TextStyle(fontSize: 20),
+              )),
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(fontSize: 20),
+              ))
+        ],
+      ),
+    ),
+  );
 
   return result;
 }
 
-Future<bool> tryLogin(String email, String password) async {
+Future<Map<String, dynamic>> tryLogin(String email, String password) async {
   User user = User(
       email: email, password: password, forename: '', surname: '', phone: '');
-  await postUser(user);
-  return true;
+  Map<String, dynamic> response = await postUser(user);
+  return response;
 }
 
 Future<dynamic> postTrip(MyTripItem tripItem) async {
@@ -981,7 +994,8 @@ Future<String> putGroup(Group group) async {
           },
           body: jsonEncode(map));
   if ([200, 201].contains(response.statusCode)) {
-    var responseData = jsonDecode(String.fromCharCodes(response.bodyBytes));
+    // var responseData = jsonDecode(String.fromCharCodes(response.bodyBytes));
+    var responseData = jsonDecode(response.body);
     debugPrint('Server response: $responseData');
     group.id = responseData['id'];
     return responseData.toString();
@@ -1003,7 +1017,8 @@ Future<GroupMember> getUserByEmail(String email) async {
             body: jsonEncode(map))
         .timeout(const Duration(seconds: 10));
     if (response.statusCode == 200) {
-      var responseData = jsonDecode(String.fromCharCodes(response.bodyBytes));
+      var responseData = jsonDecode(response.body);
+      // var responseData = jsonDecode(String.fromCharCodes(response.bodyBytes));
       member = GroupMember.fromUserMap(responseData);
     }
   } catch (e) {

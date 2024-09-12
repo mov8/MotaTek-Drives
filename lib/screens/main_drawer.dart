@@ -56,21 +56,22 @@ class _MainDrawerState extends State<MainDrawer> {
               MaterialPageRoute(builder: (context) => const SetupForm()),
             );
           }),
-      if (Setup().jwt.isEmpty) ...[
-        ListTile(
-            leading: const Icon(Icons.how_to_reg, size: 30),
-            title: const Text('Register Your Details',
-                style: TextStyle(
-                  color: Colors.blue,
-                  fontSize: 20,
-                )),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const SignupForm()),
-              );
-            }),
-      ],
+      ListTile(
+          leading: const Icon(Icons.manage_accounts, size: 30),
+          title: Text(
+              Setup().jwt.isEmpty
+                  ? 'Register your details'
+                  : 'Change your details',
+              style: const TextStyle(
+                color: Colors.blue,
+                fontSize: 20,
+              )),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const SignupForm()),
+            );
+          }),
       ListTile(
           leading: const Icon(
             Icons.groups,
@@ -144,6 +145,23 @@ class _MainDrawerState extends State<MainDrawer> {
             size: 30,
           ),
           title: const Text('Events',
+              style: TextStyle(
+                color: Colors.blue,
+                fontSize: 20,
+              )),
+          onTap: () {
+            login(context);
+          }
+          //  Navigator.push(
+          //    context,
+          //    MaterialPageRoute(builder: (context) => const GroupForm()),
+          ),
+      ListTile(
+          leading: const Icon(
+            Icons.password,
+            size: 30,
+          ),
+          title: const Text('Login',
               style: TextStyle(
                 color: Colors.blue,
                 fontSize: 20,
