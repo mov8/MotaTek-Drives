@@ -6,6 +6,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:flutter/widgets.dart';
 
 Future<Position> getPosition() async {
+  debugPrint('Starting getPosition...');
   bool serviceEnabled;
   LocationPermission permission;
 
@@ -25,7 +26,9 @@ Future<Position> getPosition() async {
           'Location permissions are permanently denied. Check your settings');
     }
   }
-  return await Geolocator.getCurrentPosition();
+  Position pos = await Geolocator.getCurrentPosition();
+  debugPrint('getPosition retuning position');
+  return pos;
 }
 
 double distanceBetween(LatLng point1, LatLng point2, {bool miles = true}) {

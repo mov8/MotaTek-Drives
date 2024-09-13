@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:drives/main.dart';
+import 'package:drives/routes/home.dart';
 import 'package:flutter/services.dart'; // Import your main app file
 
 class SplashScreen extends StatefulWidget {
@@ -17,7 +17,7 @@ class _SplashScreenState extends State<SplashScreen> {
 
     Future.delayed(const Duration(seconds: 4), () {
       Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const MyHomePage()));
+          MaterialPageRoute(builder: (_) => const HomeScreen()));
     });
 
     // Navigate to the main screen after 3 seconds

@@ -539,7 +539,7 @@ Future<List<TripItem>> getTrips() async {
       'Authorization': 'Bearer $jwToken', // $Setup().jwt',
       'Content-Type': 'application/json',
     },
-  );
+  ).timeout(const Duration(seconds: 20));
   if (response.statusCode == 200) {
     List<dynamic> tripsJson = jsonDecode(response.body);
     //  List<String> images = ['map'];

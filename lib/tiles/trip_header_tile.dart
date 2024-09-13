@@ -1,4 +1,4 @@
-import 'package:drives/main.dart';
+import 'package:drives/routes/create_trip.dart';
 import 'package:flutter/material.dart';
 import 'package:drives/models/other_models.dart';
 
