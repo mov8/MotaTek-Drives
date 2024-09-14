@@ -137,6 +137,11 @@ class _GroupMessagesState extends State<GroupMessages> {
 
   void leave() {
     widget.onCancel!(1);
+    if (socket.connected) {
+      socket.emit('group_leave', {'group': widget.group.id});
+      socket.emit('disconnect');
+    }
+    // Navigator.pop(context);
   }
 
   Future<bool> dataFromDatabase() async {
@@ -191,6 +196,7 @@ class _GroupMessagesState extends State<GroupMessages> {
             //           return Text(snapshot.hasData ? '${snapshot.data}' : '>');
             //         }),
             // ]),
+            /*
             Align(
               alignment: Alignment.bottomLeft,
               child: Wrap(
@@ -213,7 +219,7 @@ class _GroupMessagesState extends State<GroupMessages> {
                   )
                 ],
               ),
-            )
+            ) */
           ],
         ),
       ),

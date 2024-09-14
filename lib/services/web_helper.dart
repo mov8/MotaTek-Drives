@@ -160,11 +160,13 @@ Future<Map<String, dynamic>> postUser(User user,
     {bool register = false}) async {
   Map<String, dynamic> userMap = user.toMap();
   var url = Uri.parse('${urlBase}v1/user/${register ? "register" : "login"}');
-  final http.Response response = await http.post(url,
-      headers: <String, String>{
-        "Content-Type": "application/json; charset=UTF-8",
-      },
-      body: jsonEncode(userMap));
+  final http.Response response = await http
+      .post(url,
+          headers: <String, String>{
+            "Content-Type": "application/json; charset=UTF-8",
+          },
+          body: jsonEncode(userMap))
+      .timeout(const Duration(seconds: 20));
   Map<String, dynamic> map = jsonDecode(response.body);
   if (response.statusCode == 201) {
     Setup().jwt = map['token'];

@@ -724,7 +724,7 @@ class _CreateTripState extends State<CreateTripScreen>
           automaticallyImplyLeading: false,
           leading: LeadingWidget(
               controller: _leadingWidgetController,
-              onMenuTap: () =>
+              onMenuTap: (index) =>
                   _leadingWidget(_scaffoldKey.currentState)), // IconButton(
           // icon: const Icon(Icons.menu),
           // onPressed: () => leadingWidget(_scaffoldKey.currentState),

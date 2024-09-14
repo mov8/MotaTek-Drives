@@ -108,7 +108,7 @@ You can also publish your trips for others to enjoy. You can invite a group of f
         automaticallyImplyLeading: false,
         leading: LeadingWidget(
             controller: _leadingWidgetController,
-            onMenuTap: () =>
+            onMenuTap: (index) =>
                 _leadingWidget(_scaffoldKey.currentState)), // IconButton(
         title: const Text(
           'MotaTrip store',

@@ -23,7 +23,7 @@ class LeadingWidgetController {
 }
 
 class LeadingWidget extends StatefulWidget {
-  final Function() onMenuTap;
+  final Function(int) onMenuTap;
   final LeadingWidgetController controller;
   const LeadingWidget(
       {super.key, required this.controller, required this.onMenuTap});
@@ -34,6 +34,7 @@ class LeadingWidget extends StatefulWidget {
 class _LeadingWidgetState extends State<LeadingWidget>
     with TickerProviderStateMixin {
   late AnimationController _animationIconController;
+  late Animation<double> animation;
   bool isarrowmenu = false;
   int _widgetId = 0; // 0 = hamburger 1 = back
 
@@ -43,9 +44,10 @@ class _LeadingWidgetState extends State<LeadingWidget>
     widget.controller._addState(this);
     _animationIconController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 750),
-      reverseDuration: const Duration(milliseconds: 750),
+      duration: const Duration(seconds: 1),
     );
+    animation =
+        Tween<double>(begin: 0.0, end: 1.0).animate(_animationIconController);
   }
 
   @override
@@ -55,7 +57,16 @@ class _LeadingWidgetState extends State<LeadingWidget>
   }
 
   void changeWidget(id) {
-    setState(() => _widgetId = id);
+    setState(() {
+      _widgetId = id;
+      if (_widgetId == 0) {
+        _animationIconController.reverse();
+      } else {
+        _animationIconController.forward();
+      }
+      animation =
+          Tween<double>(begin: 0.0, end: 1.0).animate(_animationIconController);
+    });
   }
 
   @override
@@ -64,7 +75,7 @@ class _LeadingWidgetState extends State<LeadingWidget>
       //GestureDetector(
       onTap: () {
         setState(() {
-          widget.onMenuTap();
+          widget.onMenuTap(_widgetId);
         });
       },
       child: ClipOval(
@@ -73,10 +84,8 @@ class _LeadingWidgetState extends State<LeadingWidget>
           height: 45,
           child: Center(
             child: AnimatedIcon(
-              icon: _widgetId == 0
-                  ? AnimatedIcons.menu_arrow
-                  : AnimatedIcons.arrow_menu,
-              progress: _animationIconController,
+              icon: AnimatedIcons.menu_arrow,
+              progress: animation,
               color: Colors.white,
               size: 30,
             ),
@@ -86,42 +95,3 @@ class _LeadingWidgetState extends State<LeadingWidget>
     );
   }
 }
-  /*
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          isarrowmenu
-              ? _animationIconController1.reverse()
-              : _animationIconController1.forward();
-          isarrowmenu = !isarrowmenu;
-          widget.onMenuTap();
-        });
-      },
-      child: ClipOval(
-        child: Container(
-          decoration: BoxDecoration(
-            border: Border.all(
-              width: 2.5,
-              color: Colors.green,
-            ),
-            borderRadius: BorderRadius.all(
-              Radius.circular(50.0),
-            ),
-          ),
-          width: 75,
-          height: 75,
-          child: Center(
-            child: AnimatedIcon(
-              icon: AnimatedIcons.arrow_menu,
-              progress: _animationIconController1,
-              color: Colors.red,
-              size: 60,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-  */
-

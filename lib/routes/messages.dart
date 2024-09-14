@@ -98,8 +98,15 @@ class _messagesScreenState extends State<MessagesScreen> {
         automaticallyImplyLeading: false,
         leading: LeadingWidget(
             controller: _leadingWidgetController,
-            onMenuTap: () =>
-                _leadingWidget(_scaffoldKey.currentState)), // IconButton(
+            onMenuTap: (index) {
+              if (index == 0) {
+                _leadingWidget(_scaffoldKey.currentState);
+              } else {
+                setState(() => _messageGroup.name = '');
+                _groupMessagesController.leave();
+                _leadingWidgetController.changeWidget(0);
+              }
+            }), // IconButton(
         title: const Text(
           'Messages',
           style: TextStyle(

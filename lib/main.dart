@@ -1,3 +1,4 @@
+import 'package:drives/routes/splash_screen.dart';
 import 'package:drives/routes/home.dart';
 import 'package:drives/routes/create_trip.dart';
 import 'package:drives/routes/messages.dart';
@@ -21,8 +22,9 @@ void main() {
   runApp(
     MaterialApp(
       debugShowCheckedModeBanner: false,
-      initialRoute: 'home',
+      initialRoute: 'splash',
       routes: {
+        'splash': (BuildContext context) => const SplashScreen(),
         'home': (BuildContext context) => const HomeScreen(),
         'trips': (BuildContext context) => const TripsScreen(),
         'createTrip': (BuildContext context) => CreateTripScreen(),

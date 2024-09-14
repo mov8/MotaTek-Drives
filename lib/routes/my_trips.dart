@@ -102,7 +102,7 @@ class _myTripsScreenState extends State<MyTripsScreen> {
         automaticallyImplyLeading: false,
         leading: LeadingWidget(
             controller: _leadingWidgetController,
-            onMenuTap: () =>
+            onMenuTap: (index) =>
                 _leadingWidget(_scaffoldKey.currentState)), // IconButton(
         title: const Text(
           'Trips available to download',

@@ -4,6 +4,7 @@ import 'package:drives/tiles/home_tile.dart';
 import 'package:drives/screens/main_drawer.dart';
 import 'package:drives/classes/leading_widget.dart';
 import 'package:drives/classes/routes_bottom_nav.dart';
+import 'package:drives/services/web_helper.dart';
 import 'package:wakelock/wakelock.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -34,7 +35,29 @@ class _homeScreenState extends State<HomeScreen> {
   }
 
   Future<bool> _getWebData() async {
+    await tryLoggingIn();
     return true;
+  }
+
+  tryLoggingIn() async {
+    try {
+      Map<String, dynamic> response = {'msg': 'Not logged in'};
+
+      debugPrint('Splash message: ${response['msg']}');
+      Future.delayed(const Duration(seconds: 4), () async {
+        debugPrint('About to try logging in..');
+        if (Setup().jwt.isNotEmpty && Setup().user.email.isNotEmpty) {
+          debugPrint('JWT not empty - about to try logging in..');
+          response = await tryLogin(Setup().user.email, Setup().user.password);
+        }
+        if (response['msg'] != 'OK' && context.mounted) {
+          debugPrint('tryLogin() failed About to use login()..');
+          await login(context);
+        }
+      });
+    } catch (e) {
+      debugPrint('Splash login error: ${e.toString()}');
+    }
   }
 
   Widget _getPortraitBody() {
@@ -110,7 +133,7 @@ You can also publish your trips for others to enjoy. You can invite a group of f
         automaticallyImplyLeading: false,
         leading: LeadingWidget(
             controller: _leadingWidgetController,
-            onMenuTap: () =>
+            onMenuTap: (index) =>
                 _leadingWidget(_scaffoldKey.currentState)), // IconButton(
         title: const Text(
           'MotaTrip Trip planning app',
