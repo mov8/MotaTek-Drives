@@ -374,8 +374,8 @@ class _CreateTripState extends State<CreateTripScreen>
       _currentTrip.addRoute(mt.Route(
           id: -1,
           points: points, // Route,
-          color: _routeColour(_goodRoad.isGood),
-          borderColor: _routeColour(_goodRoad.isGood),
+          colour: _routeColour(_goodRoad.isGood),
+          borderColour: _routeColour(_goodRoad.isGood),
           strokeWidth: 5));
     }
     setState(() {});
@@ -411,8 +411,8 @@ class _CreateTripState extends State<CreateTripScreen>
     _currentTrip.addRoute(mt.Route(
         id: -1,
         points: apiData["points"], // Route,
-        color: _routeColour(_goodRoad.isGood),
-        borderColor: _routeColour(_goodRoad.isGood),
+        colour: _routeColour(_goodRoad.isGood),
+        borderColour: _routeColour(_goodRoad.isGood),
         strokeWidth: 5));
 
     _currentTrip.setDistance(_currentTrip.getDistance() +
@@ -878,10 +878,10 @@ class _CreateTripState extends State<CreateTripScreen>
                           LatLng(_currentPosition.latitude,
                               _currentPosition.longitude)
                         ],
-                        borderColor: uiColours.keys.toList()[_goodRoad.isGood
+                        borderColour: uiColours.keys.toList()[_goodRoad.isGood
                             ? Setup().goodRouteColour
                             : Setup().routeColour],
-                        color: uiColours.keys.toList()[_goodRoad.isGood
+                        colour: uiColours.keys.toList()[_goodRoad.isGood
                             ? Setup().goodRouteColour
                             : Setup().routeColour],
                         strokeWidth: 5));
@@ -948,11 +948,11 @@ class _CreateTripState extends State<CreateTripScreen>
                       //  _currentTrip.routes()[i].borderColor = _currentTrip.routes()[i].color;
                       if (i == routeIdx) {
                         _tripActions = TripActions.routeHighlited;
-                        _currentTrip.routes()[i].color =
+                        _currentTrip.routes()[i].colour =
                             uiColours.keys.toList()[Setup().selectedColour];
                       } else {
-                        _currentTrip.routes()[i].color =
-                            _currentTrip.routes()[i].borderColor;
+                        _currentTrip.routes()[i].colour =
+                            _currentTrip.routes()[i].borderColour;
                       }
                     }
 
@@ -1566,8 +1566,8 @@ class _CreateTripState extends State<CreateTripScreen>
       mt.Route newRoute = mt.Route(
           id: -1,
           points: [],
-          color: _routeColour(false),
-          borderColor: _routeColour(false),
+          colour: _routeColour(false),
+          borderColour: _routeColour(false),
           strokeWidth: 5);
 
       if (_routeAtCenter.routeIndex < _currentTrip.routes().length - 1) {
@@ -1627,8 +1627,8 @@ class _CreateTripState extends State<CreateTripScreen>
         /// 1) X < b      2nd bit of a + all b are good
         if (_goodRoad.routeIdx2 < _goodRoad.routeIdx1) {
           for (int i = _goodRoad.routeIdx2 + 1; i < _goodRoad.routeIdx1; i++) {
-            _currentTrip.routes()[i].color = _routeColour(true);
-            _currentTrip.routes()[i].borderColor = _routeColour(true);
+            _currentTrip.routes()[i].colour = _routeColour(true);
+            _currentTrip.routes()[i].borderColour = _routeColour(true);
             for (int j = 0; j < _currentTrip.routes()[i].points.length; j++) {
               goodPoints.add(_currentTrip.routes()[i].points[j]);
             }
@@ -1636,9 +1636,9 @@ class _CreateTripState extends State<CreateTripScreen>
 
           /// 2) X == b     2nd bit of b is
         } else if (_goodRoad.routeIdx2 == _goodRoad.routeIdx1) {
-          _currentTrip.routes()[_goodRoad.routeIdx2 + 1].color =
+          _currentTrip.routes()[_goodRoad.routeIdx2 + 1].colour =
               _routeColour(true);
-          _currentTrip.routes()[_goodRoad.routeIdx2 + 1].borderColor =
+          _currentTrip.routes()[_goodRoad.routeIdx2 + 1].borderColour =
               _routeColour(true);
           for (int j = 0;
               j < _currentTrip.routes()[_goodRoad.routeIdx2 + 1].points.length;
@@ -1649,8 +1649,9 @@ class _CreateTripState extends State<CreateTripScreen>
 
           /// 3) X == b+1   1st bit of b2 is good
         } else if (_goodRoad.routeIdx2 == _goodRoad.routeIdx1 + 1) {
-          _currentTrip.routes()[_goodRoad.routeIdx2].color = _routeColour(true);
-          _currentTrip.routes()[_goodRoad.routeIdx2].borderColor =
+          _currentTrip.routes()[_goodRoad.routeIdx2].colour =
+              _routeColour(true);
+          _currentTrip.routes()[_goodRoad.routeIdx2].borderColour =
               _routeColour(true);
           for (int j = 0;
               j < _currentTrip.routes()[_goodRoad.routeIdx2].points.length;
@@ -1662,8 +1663,8 @@ class _CreateTripState extends State<CreateTripScreen>
           /// 4) X > b+1    all from b2 to c are good
         } else if (_goodRoad.routeIdx2 > _goodRoad.routeIdx1) {
           for (int i = _goodRoad.routeIdx1 + 1; i < _goodRoad.routeIdx2; i++) {
-            _currentTrip.routes()[i].color = _routeColour(true);
-            _currentTrip.routes()[i].borderColor = _routeColour(true);
+            _currentTrip.routes()[i].colour = _routeColour(true);
+            _currentTrip.routes()[i].borderColour = _routeColour(true);
             for (int j = 0; j < _currentTrip.routes()[i].points.length; j++) {
               goodPoints.add(_currentTrip.routes()[i].points[j]);
             }
@@ -2022,8 +2023,8 @@ class _CreateTripState extends State<CreateTripScreen>
       _currentTrip.addRoute(mt.Route(
           id: -1,
           points: polyLines[i].points,
-          color: polyLines[i].color,
-          borderColor: polyLines[i].color,
+          colour: polyLines[i].color,
+          borderColour: polyLines[i].color,
           strokeWidth: polyLines[i].strokeWidth));
     }
 
@@ -2315,8 +2316,8 @@ class _CreateTripState extends State<CreateTripScreen>
             points: [
               LatLng(_currentPosition.latitude, _currentPosition.longitude)
             ], // Route,
-            color: _routeColour(_goodRoad.isGood),
-            borderColor: _routeColour(_goodRoad.isGood),
+            colour: _routeColour(_goodRoad.isGood),
+            borderColour: _routeColour(_goodRoad.isGood),
             strokeWidth: 5));
         _startLatLng = pos;
         _lastLatLng = pos;
@@ -2366,8 +2367,8 @@ class _CreateTripState extends State<CreateTripScreen>
           _currentTrip.addRoute(mt.Route(
               id: -1,
               points: [pos],
-              borderColor: uiColours.keys.toList()[Setup().routeColour],
-              color: uiColours.keys.toList()[Setup().routeColour],
+              borderColour: uiColours.keys.toList()[Setup().routeColour],
+              colour: uiColours.keys.toList()[Setup().routeColour],
               strokeWidth: 5));
         }
         _currentTrip.routes()[_currentTrip.routes().length - 1].points.add(pos);

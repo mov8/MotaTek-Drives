@@ -340,8 +340,8 @@ class MyTripItem {
       addRoute(mt.Route(
           id: -1,
           points: polyLines[i].points,
-          color: polyLines[i].color,
-          borderColor: polyLines[i].color,
+          colour: polyLines[i].color,
+          borderColour: polyLines[i].color,
           strokeWidth: polyLines[i].strokeWidth));
     }
   }

@@ -686,8 +686,8 @@ Future<MyTripItem> getTrip(String tripUuid) async {
           id: -1,
           points:
               stringToPoints(trip['polylines'][i]['points']), // routePoints,
-          color: uiColours.keys.toList()[trip['polylines'][i]['colour']],
-          borderColor: uiColours.keys.toList()[trip['polylines'][i]['colour']],
+          colour: uiColours.keys.toList()[trip['polylines'][i]['colour']],
+          borderColour: uiColours.keys.toList()[trip['polylines'][i]['colour']],
           strokeWidth: (trip['polylines'][i]['stroke']).toDouble()));
     }
 

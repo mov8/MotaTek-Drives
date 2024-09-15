@@ -9,21 +9,21 @@ import 'package:latlong2/latlong.dart';
 class Route extends Polyline {
   final int id;
   List<Offset> offsets = [];
-  @override
-  Color color;
-  Color borderColor;
+
+  Color colour;
+  Color borderColour;
 
   Route({
     required super.points,
     super.strokeWidth = 1.0,
-    this.color = const Color(0xFF00FF00),
+    this.colour = const Color(0xFF00FF00),
     super.borderStrokeWidth = 0.0,
-    this.borderColor = const Color(0xFFFFFF00),
+    this.borderColour = const Color(0xFFFFFF00),
     super.gradientColors,
     super.colorsStop,
     super.isDotted = false,
     this.id = -1,
-  });
+  }) : super(borderColor: borderColour, color: colour);
 
   /*
   List<Offset> get offsets {

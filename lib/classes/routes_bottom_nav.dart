@@ -64,7 +64,6 @@ class _RoutesBottomNavState extends State<RoutesBottomNav>
     super.initState();
     widget.controller._addState(this);
     _index = widget.initialValue;
-
     _messageCount =
         widget.messageCount == null ? '0' : widget.messageCount.toString();
   }
