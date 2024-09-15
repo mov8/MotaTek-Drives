@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:drives/models/other_models.dart';
-import 'package:drives/classes/routes_bottom_nav.dart';
-import 'package:drives/models/my_trip_item.dart';
+import 'package:drives/models/models.dart';
+import 'package:drives/classes/classes.dart';
 import 'package:drives/tiles/my_trip_tile.dart';
-import 'package:drives/screens/main_drawer.dart';
-import 'package:drives/classes/leading_widget.dart';
-// import 'package:drives/services/web_helper.dart';
-//import 'package:drives/services/db_helper.dart';
+import 'package:drives/screens/screens.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:drives/services/services.dart';
 
 class MyTripsScreen extends StatefulWidget {
   const MyTripsScreen({
@@ -43,10 +41,70 @@ class _myTripsScreenState extends State<MyTripsScreen> {
 
   Future<void> onGetTrip(int index) async {}
 
-  Future<void> loadTrip(int index) async {}
-  Future<void> shareTrip(int index) async {}
-  Future<void> deleteTrip(int index) async {}
-  Future<void> publishTrip(int index) async {}
+  Future<void> loadTrip(int index) async {
+    int driveId = _myTripItems[index].getId();
+
+    MyTripItem dbTrip = _myTripItems[index];
+    await dbTrip.loadLocal(driveId);
+    if (context.mounted) {
+      Navigator.pushNamed(context, 'createTrip',
+          arguments: TripArguments(dbTrip, 'db'));
+    }
+  }
+
+  Future<void> shareTrip(int index) async {
+    MyTripItem currentTrip = _myTripItems[index];
+    currentTrip.showMethods = false;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+          builder: (context) => ShareForm(
+                tripItem: currentTrip,
+              )),
+    ).then((value) {
+      setState(() {
+        currentTrip.showMethods = true;
+      });
+    });
+    return;
+  }
+
+  Future<void> deleteTrip(int index) async {
+    Utility().showOkCancelDialog(
+        context: context,
+        alertTitle: 'Permanently delete trip?',
+        alertMessage: _myTripItems[index].getHeading(),
+        okValue: index, // _myTripItems[index].getDriveId(),
+        callback: onConfirmDeleteTrip);
+  }
+
+  void onConfirmDeleteTrip(int value) {
+    debugPrint('Returned value: ${value.toString()}');
+    if (value > -1) {
+      int driveId = _myTripItems[value].getDriveId();
+      deleteDriveLocal(driveId: driveId);
+      setState(() => _myTripItems.removeAt(value));
+    }
+  }
+
+  Future<void> publishTrip(int index) async {
+    String driveUI = '';
+    int driveId = _myTripItems[index].getDriveId();
+    postTrip(_myTripItems[index]).then((driveUi) {
+      driveUI = driveUi['id'];
+      for (PointOfInterest pointOfInterest
+          in _myTripItems[index].pointsOfInterest()) {
+        postPointOfInterest(pointOfInterest, driveUI);
+      }
+    }).then((_) async {
+      List<Polyline> polylines = await loadPolyLinesLocal(driveId);
+      postPolylines(polylines, driveUI);
+
+      List<Maneuver> maneuvers = await loadManeuversLocal(driveId);
+      postManeuvers(maneuvers, driveUI);
+    });
+    return;
+  }
 
   Widget _getPortraitBody() {
     return ListView(

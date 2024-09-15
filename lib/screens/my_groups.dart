@@ -1,8 +1,6 @@
-import 'package:drives/tiles/group_member_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:drives/models/other_models.dart';
-import 'package:drives/services/web_helper.dart';
-import 'package:drives/services/db_helper.dart';
+import 'package:drives/services/services.dart';
 
 class MyGroupsForm extends StatefulWidget {
   // var setup;
@@ -24,13 +22,13 @@ class _MyGroupsFormState extends State<MyGroupsForm> {
   List<Group> groups = [];
 
   RegExp emailRegex = RegExp(r'[a-zA-Z0-9.]+@[a-zA-Z0-9]+\.[a-zA-Z]+');
-  final _formKey = GlobalKey<FormState>();
+  // final _formKey = GlobalKey<FormState>();
   String groupName = 'Driving Group';
   bool edited = false;
   int groupIndex = 0;
-  double _emailSizedBoxHeight = 70;
-  bool _validate = false;
-  String _validateMessage = '';
+  // double _emailSizedBoxHeight = 70;
+  // bool _validate = false;
+  // String _validateMessage = '';
   String testString = '';
   bool addingMember = false;
   bool addingGroup = false;

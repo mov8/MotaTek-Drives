@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:drives/models/other_models.dart';
 import 'package:drives/tiles/home_tile.dart';
 import 'package:drives/screens/main_drawer.dart';
-import 'package:drives/classes/leading_widget.dart';
-import 'package:drives/classes/routes_bottom_nav.dart';
+import 'package:drives/classes/classes.dart';
 import 'package:drives/services/web_helper.dart';
 import 'package:wakelock/wakelock.dart';
 
@@ -46,7 +45,8 @@ class _homeScreenState extends State<HomeScreen> {
       debugPrint('Splash message: ${response['msg']}');
       Future.delayed(const Duration(seconds: 4), () async {
         debugPrint('About to try logging in..');
-        if (Setup().jwt.isNotEmpty && Setup().user.email.isNotEmpty) {
+        bool loaded = await Setup().loaded;
+        if (loaded && Setup().jwt.isNotEmpty && Setup().user.email.isNotEmpty) {
           debugPrint('JWT not empty - about to try logging in..');
           response = await tryLogin(Setup().user.email, Setup().user.password);
         }

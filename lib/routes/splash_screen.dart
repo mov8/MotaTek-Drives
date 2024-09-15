@@ -1,8 +1,6 @@
 import 'dart:async';
-import 'package:drives/services/web_helper.dart';
 import 'package:flutter/material.dart';
-import 'package:drives/models/other_models.dart';
-import 'package:flutter/services.dart'; // Import your main app file
+import 'package:flutter/services.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -15,23 +13,15 @@ class _SplashScreenState extends State<SplashScreen> {
   void initState() {
     super.initState();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
-
-    // tryLoggingIn();
     Future.delayed(const Duration(seconds: 4), () {
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual,
+          overlays: SystemUiOverlay.values);
       Navigator.pushNamed(context, 'home');
-      //  Navigator.of(context).pushReplacement(
-      //      MaterialPageRoute(builder: (_) => const HomeScreen()));
     });
-
-    // "dependOnInheritedWidgetOfExactType<_LocalizationsScope>() or dependOnInheritedElement() was called before _SplashScreenState.ini…"
-
-    // Navigate to the main screen after 3 seconds
   }
 
   @override
   void dispose() {
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual,
-        overlays: SystemUiOverlay.values);
     super.dispose();
   }
 

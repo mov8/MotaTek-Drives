@@ -1,6 +1,6 @@
 import 'dart:math';
-import 'package:drives/models/other_models.dart';
-import 'package:drives/route.dart' as mtRt;
+import 'package:drives/models/models.dart';
+import 'package:drives/classes/route.dart' as mtRt;
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter/widgets.dart';

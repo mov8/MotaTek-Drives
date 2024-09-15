@@ -4,18 +4,15 @@ import 'dart:ui' as ui;
 import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
-import 'package:drives/utilities.dart';
-// import 'package:drives/screens/dialogs.dart';
-// import 'package:drives/screens/painters.dart';
+import 'package:drives/classes/utilities.dart';
 import 'package:drives/services/db_helper.dart';
+import 'package:drives/classes/route.dart' as mt;
+import 'package:drives/models/other_models.dart';
 import 'package:drives/services/web_helper.dart' as wh;
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
-// import 'package:geolocator/geolocator.dart';
-import 'package:drives/route.dart' as mt;
-import 'package:drives/models/other_models.dart';
 
 class MyTripItem {
   int _id = -1;

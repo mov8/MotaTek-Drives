@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:drives/models/other_models.dart';
 import 'package:drives/services/db_helper.dart';
-// import 'package:drives/services/web_helper.dart';
 
 class SetupForm extends StatefulWidget {
   // var setup;

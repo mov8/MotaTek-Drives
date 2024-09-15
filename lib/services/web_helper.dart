@@ -2,19 +2,16 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
-import 'package:drives/main.dart';
-import 'package:drives/models/my_trip_item.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:http/http.dart' as http;
-import 'package:path_provider/path_provider.dart';
 import 'package:latlong2/latlong.dart';
 import 'dart:convert';
 import 'package:intl/intl.dart';
-import 'package:drives/models/other_models.dart';
-import 'package:drives/utilities.dart' as utils;
+import 'package:drives/models/models.dart';
+import 'package:drives/classes/utilities.dart' as utils;
 import 'package:drives/services/db_helper.dart';
-import 'package:drives/route.dart' as mt;
+import 'package:drives/classes/route.dart' as mt;
 
 /// Autocomplete API uses https://photon.komoot.io
 /// eg - https://photon.komoot.io/api/?q=staines
@@ -175,6 +172,7 @@ Future<Map<String, dynamic>> postUser(User user,
       Setup().user.surname = map['surname'];
       Setup().user.email = user.email;
       Setup().user.password = user.password;
+      Setup().setupToDb();
     }
     await updateSetup();
 
@@ -377,7 +375,7 @@ Future<String> postPointOfInterest(
     request.files.add(await http.MultipartFile.fromPath('files', photo.url));
   }
   dynamic response;
-  String jwToken = Setup().jwt;
+  // String jwToken = Setup().jwt;
   try {
     request.fields['drive_id'] = tripUri;
     request.fields['name'] = map['name'];
@@ -561,7 +559,7 @@ Future<List<TripItem>> getTrips() async {
               images.add(Uri.parse(
                       '${urlBase}v1/drive/images/${trip['id']}/${trip['points_of_interest'][i]['id']}/${pics[j]}')
                   .toString());
-              debugPrint(images[images.length - 1]);
+              // debugPrint(images[images.length - 1]);
             }
           }
           LatLng poiPos = LatLng(trip['points_of_interest'][i]['latitude'],

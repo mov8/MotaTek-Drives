@@ -2,12 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:drives/models/other_models.dart';
 import 'package:drives/tiles/home_tile.dart';
 import 'package:drives/screens/main_drawer.dart';
-import 'package:drives/classes/leading_widget.dart';
-import 'package:drives/classes/routes_bottom_nav.dart';
+import 'package:drives/classes/classes.dart';
 
 class ShopScreen extends StatefulWidget {
-  // var setup;
-
   const ShopScreen({super.key});
 
   @override

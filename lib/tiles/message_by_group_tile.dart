@@ -18,39 +18,46 @@ class _messageByGroupTileState extends State<MessageByGroupTile> {
   @override
   Widget build(BuildContext context) {
     return Card(
-        elevation: 5,
-        child: ListTile(
-            onTap: () => widget.onSelect!(widget.index),
-            leading: Badge(
-              label: widget.group.unreadMessages == 0
-                  ? null
-                  : Text(widget.group.unreadMessages.toString()),
-              child: const Icon(Icons.messenger_outlined),
-            ),
-            title: Text(
-              '${widget.group.name} ',
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              overflow: TextOverflow.ellipsis,
-            ),
-            subtitle: Column(children: [
-              Row(
-                children: [
-                  Expanded(
-                      flex: 1,
-                      child: Text('messages: ${widget.group.messages} ',
-                          style: const TextStyle(fontSize: 14)))
-                ],
-              ),
-              Row(children: [
+      elevation: 5,
+      child: ListTile(
+        onTap: () => widget.onSelect!(widget.index),
+        leading: Badge(
+          label: Text(widget.group.unreadMessages.toString()),
+          child: const Icon(Icons.messenger_outlined),
+        ),
+        title: Text(
+          '${widget.group.name} ',
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          overflow: TextOverflow.ellipsis,
+        ),
+        subtitle: Column(
+          children: [
+            Row(
+              children: [
                 Expanded(
-                    flex: 1,
-                    child: Text(
-                        'unread messages: ${widget.group.unreadMessages}',
-                        style: const TextStyle(fontSize: 18))),
-              ]),
-            ])
-
-            // onLongPress: () => widget.onLongPress(widget.index),
-            ));
+                  flex: 1,
+                  child: Text(
+                    'messages: ${widget.group.messages} ',
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                )
+              ],
+            ),
+            Row(
+              children: [
+                Expanded(
+                  flex: 1,
+                  child: Text(
+                    'unread messages: ${widget.group.unreadMessages}',
+                    style: const TextStyle(fontSize: 18),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        // onLongPress: () => widget.onLongPress(widget.index),
+      ),
+    );
   }
 }

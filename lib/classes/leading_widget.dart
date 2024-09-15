@@ -25,8 +25,12 @@ class LeadingWidgetController {
 class LeadingWidget extends StatefulWidget {
   final Function(int) onMenuTap;
   final LeadingWidgetController controller;
+  final int initialValue;
   const LeadingWidget(
-      {super.key, required this.controller, required this.onMenuTap});
+      {super.key,
+      required this.controller,
+      required this.onMenuTap,
+      this.initialValue = 0});
   @override
   State<LeadingWidget> createState() => _LeadingWidgetState();
 }
@@ -48,6 +52,7 @@ class _LeadingWidgetState extends State<LeadingWidget>
     );
     animation =
         Tween<double>(begin: 0.0, end: 1.0).animate(_animationIconController);
+    changeWidget(widget.initialValue);
   }
 
   @override

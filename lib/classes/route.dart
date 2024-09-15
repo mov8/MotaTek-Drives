@@ -1,5 +1,5 @@
 import 'dart:math';
-import 'dart:ui';
+// import 'dart:ui';
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -174,7 +174,7 @@ class RouteAtCenter {
 class RouteLayer extends PolylineLayer {
   /// The list of [Route] which could be tapped
   @override
-  final List<Route> polylines;
+  final List<Route> polylines = [];
 
   /// The tolerated distance between pointer and user tap to trigger the [onTap] callback
   final double pointerDistanceTolerance;
@@ -189,14 +189,14 @@ class RouteLayer extends PolylineLayer {
   final RouteAtCenter? routeAtCenter;
 
   RouteLayer({
-    this.polylines = const [],
+    super.polylines = const [],
     this.onTap,
     this.onMiss,
     this.pointerDistanceTolerance = 15,
-    polylineCulling = false,
+    super.polylineCulling = false,
     this.routeAtCenter,
-    key,
-  }) : super(key: key, polylines: polylines, polylineCulling: polylineCulling);
+    super.key,
+  }); // : super(key: key, polylines: polylines, polylineCulling: polylineCulling);
 
   @override
   Widget build(BuildContext context) {

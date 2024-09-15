@@ -1,6 +1,3 @@
-// import 'dart:js_interop';
-
-// import 'package:flutter/cupertino.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
@@ -8,14 +5,11 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
-//import 'package:flutter/widgets.dart';
-import 'package:drives/route.dart' as mt;
-import 'package:drives/models/other_models.dart';
+import 'package:drives/classes/route.dart' as mt;
+import 'package:drives/models/models.dart';
 import 'package:drives/services/web_helper.dart';
-import 'package:drives/models/my_trip_item.dart';
 import 'dart:async';
 import 'dart:convert';
-// import '../route.dart' as mt;
 
 class dbHelper {
   Database? _db;
@@ -422,14 +416,7 @@ Future<bool> saveGroupMembers(List<GroupMember> groupMembers) async {
 }
 
 Future<int> saveMessage(MessageLocal message) async {
-  int memberId = -1;
   final db = await dbHelper().db;
-  /*
-  if (message.groupMember.id < 0) {
-    memberId = await saveGroupMemberLocal(message.groupMember);
-    message.groupMember.id = memberId;
-  }
-*/
   Map<String, dynamic> meMap = message.toMap();
   int id = message.id;
   if (id == -1) {

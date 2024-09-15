@@ -3,7 +3,6 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'dart:async';
 import 'package:drives/services/web_helper.dart';
-// import 'package:flutter/widgets.dart';
 
 ///
 /// https://stackoverflow.com/questions/53844052/how-to-make-an-alertdialog-in-flutter
@@ -72,62 +71,6 @@ List<TextButton> actionButtons(
   return textButtons;
 }
 
-class LoadingIndicatorDialog {
-  static final LoadingIndicatorDialog _singleton =
-      LoadingIndicatorDialog._internal();
-  late BuildContext _context;
-  bool isDisplayed = false;
-
-  factory LoadingIndicatorDialog() {
-    return _singleton;
-  }
-
-  LoadingIndicatorDialog._internal();
-
-  show(BuildContext context, {String text = 'Loading...'}) {
-    if (isDisplayed) {
-      return;
-    }
-    showDialog<void>(
-        context: context,
-        barrierDismissible: false,
-        builder: (BuildContext context) {
-          _context = context;
-          isDisplayed = true;
-          return WillPopScope(
-            onWillPop: () async => false,
-            child: SimpleDialog(
-              backgroundColor: Colors.white,
-              children: [
-                Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Padding(
-                        padding: EdgeInsets.only(left: 16, top: 16, right: 16),
-                        child: CircularProgressIndicator(),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Text(text),
-                      )
-                    ],
-                  ),
-                )
-              ],
-            ),
-          );
-        });
-  }
-
-  dismiss() {
-    if (isDisplayed) {
-      Navigator.of(_context).pop();
-      isDisplayed = false;
-    }
-  }
-}
-
 class Utility {
   Utility._privateConstructor();
   static final _instance = Utility._privateConstructor();
@@ -137,7 +80,7 @@ class Utility {
 
   showAlertDialog(
       BuildContext context, String alertTitle, String alertMessage) async {
-    bool result = false;
+    // bool result = false;
     // set up the buttons
     Widget cancelButton = TextButton(
       child: const Text("Cancel"),

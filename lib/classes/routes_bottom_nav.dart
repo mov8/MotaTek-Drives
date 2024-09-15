@@ -3,8 +3,13 @@ import 'package:flutter/material.dart';
 class RoutesBottomNavController {
   _RoutesBottomNavState? _routesBottomNavState;
 
-  void _addState(_RoutesBottomNavState leadingWidgetState) {
-    _routesBottomNavState = leadingWidgetState;
+  void _addState(_RoutesBottomNavState navState) {
+    try {
+      _routesBottomNavState = navState;
+      debugPrint('_routesBottomNavState attached OK');
+    } catch (e) {
+      debugPrint('Attachment error: ${e.toString()}');
+    }
   }
 
   bool get isAttached => _routesBottomNavState != null;
@@ -15,7 +20,17 @@ class RoutesBottomNavController {
       _routesBottomNavState?.setValue(id);
     } catch (e) {
       String err = e.toString();
-      debugPrint('Error loading image: $err');
+      debugPrint('Error RoutesBottomNavController: $err');
+    }
+  }
+
+  void navigate() {
+    assert(isAttached, 'Controller must be attached to widget');
+    try {
+      _routesBottomNavState?.navigate();
+    } catch (e) {
+      String err = e.toString();
+      debugPrint('Error RoutesBottomNavController: $err');
     }
   }
 }
@@ -52,11 +67,6 @@ class _RoutesBottomNavState extends State<RoutesBottomNav>
 
     _messageCount =
         widget.messageCount == null ? '0' : widget.messageCount.toString();
-    // _animationIconController = AnimationController(
-    //   vsync: this,
-    //   duration: const Duration(milliseconds: 750),
-    //   reverseDuration: const Duration(milliseconds: 750),
-    // );
   }
 
   @override
@@ -67,6 +77,11 @@ class _RoutesBottomNavState extends State<RoutesBottomNav>
 
   void setValue(id) {
     setState(() => _index = id);
+  }
+
+  void navigate() {
+    Navigator.pushNamed(context, routes[_index]);
+    return;
   }
 
   @override

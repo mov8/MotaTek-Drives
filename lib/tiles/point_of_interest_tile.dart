@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:drives/models/other_models.dart';
 import 'package:drives/services/web_helper.dart';
-// import 'package:drives/services/db_helper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:drives/screens/star_ratings.dart';

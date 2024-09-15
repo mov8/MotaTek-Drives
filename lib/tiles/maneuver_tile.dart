@@ -29,19 +29,19 @@ class _maneuverTileState extends State<ManeuverTile> {
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.all(Radius.circular(10))),
       contentPadding: const EdgeInsets.fromLTRB(5, 5, 5, 5),
-      leading: getNavIcon(widget.maneuver.modifier, widget.maneuver.type,
+      leading: _getNavIcon(widget.maneuver.modifier, widget.maneuver.type,
           widget.index, widget.maneuvers),
       title: Text(
-          '${modifyModifier(widget.maneuver.modifier, widget.maneuver.type, widget.index, widget.maneuvers)} ${widget.maneuver.roadFrom}'),
+          '${_modifyModifier(widget.maneuver.modifier, widget.maneuver.type, widget.index, widget.maneuvers)} ${widget.maneuver.roadFrom}'),
       subtitle: Text(widget.maneuver.type.contains('arrive')
           ? ''
-          : 'drive ${modifyDistance(widget.maneuver.distance)} towards ${widget.maneuver.roadTo}'),
+          : 'drive ${_modifyDistance(widget.maneuver.distance)} towards ${widget.maneuver.roadTo}'),
       onLongPress: () => widget.onLongPress(widget.index),
     ));
   }
 }
 
-String modifyDistance(double distance) {
+String _modifyDistance(double distance) {
 // 1 M = 1.0936133 yards
 // 160.934 M = 0.1
 // num3 = double.parse((-12.3412).toStringAsFixed(2));
@@ -53,7 +53,7 @@ String modifyDistance(double distance) {
   }
 }
 
-String modifyModifier(String modifier, String type, int index, int maneuvers) {
+String _modifyModifier(String modifier, String type, int index, int maneuvers) {
   if (index == 0) {
     modifier = 'depart from';
   } else if (modifier == 'depart') {
@@ -72,7 +72,7 @@ String modifyModifier(String modifier, String type, int index, int maneuvers) {
   return modifier;
 }
 
-Icon getNavIcon(String modifier, String type, int index, int maneuvers) {
+Icon _getNavIcon(String modifier, String type, int index, int maneuvers) {
   Icon navIcon = const Icon(
     Icons.arrow_upward,
     size: 40,

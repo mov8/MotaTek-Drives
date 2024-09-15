@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:drives/models/other_models.dart';
-import 'package:drives/classes/routes_bottom_nav.dart';
-import 'package:drives/screens/message_by_groups.dart';
-import 'package:drives/screens/group_messages.dart';
-import 'package:drives/screens/main_drawer.dart';
-import 'package:drives/classes/leading_widget.dart';
+import 'package:drives/classes/classes.dart';
+import 'package:drives/screens/screens.dart';
 
 class MessagesScreen extends StatefulWidget {
   const MessagesScreen({
@@ -36,6 +33,7 @@ class _messagesScreenState extends State<MessagesScreen> {
   }
 
   Future<bool> getMessages() async {
+    // await getMessagesByGroup();
     return true;
   }
 
@@ -98,6 +96,7 @@ class _messagesScreenState extends State<MessagesScreen> {
         automaticallyImplyLeading: false,
         leading: LeadingWidget(
             controller: _leadingWidgetController,
+            initialValue: 0,
             onMenuTap: (index) {
               if (index == 0) {
                 _leadingWidget(_scaffoldKey.currentState);

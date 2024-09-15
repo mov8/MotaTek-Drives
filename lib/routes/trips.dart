@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:drives/models/other_models.dart';
-import 'package:drives/classes/routes_bottom_nav.dart';
+import 'package:drives/classes/classes.dart';
+import 'package:drives/models/models.dart';
 import 'package:drives/tiles/trip_tile.dart';
 import 'package:drives/screens/main_drawer.dart';
-import 'package:drives/classes/leading_widget.dart';
 import 'package:drives/services/web_helper.dart';
-
-import 'package:geolocator/geolocator.dart';
 
 class TripsScreen extends StatefulWidget {
   const TripsScreen({
@@ -33,19 +30,7 @@ class _tripsScreenState extends State<TripsScreen> {
   }
 
   Future<bool> tripsFromWeb() async {
-    int tries = 0;
-
-    //  Position _currentPosition = await Geolocator.getCurrentPosition();
-
-    //  while (Setup().jwt.isEmpty && ++tries < 4) {
-    //    await login(context);
-    //    if (Setup().jwt.isEmpty) {
-    //      debugPrint('Login failed');
-    //    }
-    //  }
     tripItems = await getTrips();
-    for (int i = 0; i < tripItems.length; i++) {}
-    // setState(() {});
     return true;
   }
 
@@ -53,7 +38,15 @@ class _tripsScreenState extends State<TripsScreen> {
     return context?.openDrawer();
   }
 
-  Future<void> onGetTrip(int index) async {}
+  Future<void> onGetTrip(int index) async {
+    MyTripItem webTrip = await getTrip(tripItems[index].uri);
+    webTrip.setId(-1);
+    webTrip.setDriveUri(tripItems[index].uri);
+    if (context.mounted) {
+      Navigator.pushNamed(context, 'createTrip',
+          arguments: TripArguments(webTrip, 'web'));
+    }
+  }
 
   onTripRatingChanged(int value, int index) async {
     setState(

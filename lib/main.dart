@@ -1,11 +1,5 @@
-import 'package:drives/routes/splash_screen.dart';
-import 'package:drives/routes/home.dart';
-import 'package:drives/routes/create_trip.dart';
-import 'package:drives/routes/messages.dart';
-import 'package:drives/routes/my_trips.dart';
-import 'package:drives/routes/trips.dart';
-import 'package:drives/routes/shop.dart';
 import 'package:flutter/material.dart';
+import 'package:drives/routes/routes.dart';
 
 /*
 https://techblog.geekyants.com/implementing-flutter-maps-with-osm     /// Shows how to implement markers and group them
@@ -27,7 +21,7 @@ void main() {
         'splash': (BuildContext context) => const SplashScreen(),
         'home': (BuildContext context) => const HomeScreen(),
         'trips': (BuildContext context) => const TripsScreen(),
-        'createTrip': (BuildContext context) => CreateTripScreen(),
+        'createTrip': (BuildContext context) => const CreateTripScreen(),
         'myTrips': (BuildContext context) => const MyTripsScreen(),
         'shop': (BuildContext context) => const ShopScreen(),
         'messages': (BuildContext context) => const MessagesScreen(),

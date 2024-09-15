@@ -1,9 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:drives/screens/sign_up.dart';
-import 'package:drives/screens/setup.dart';
-import 'package:drives/screens/group.dart';
-import 'package:drives/screens/introduce.dart';
-import 'package:drives/screens/my_groups.dart';
+import 'package:drives/screens/screens.dart';
 import 'package:drives/services/web_helper.dart';
 import 'package:drives/models/other_models.dart';
 

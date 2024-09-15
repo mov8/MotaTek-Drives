@@ -6,18 +6,21 @@ import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
 import 'package:intl/intl.dart';
-import 'package:drives/utilities.dart';
-import 'package:drives/screens/dialogs.dart';
-import 'package:drives/screens/painters.dart';
+import 'package:drives/classes/utilities.dart';
+import 'package:drives/screens/screens.dart';
+import 'package:drives/classes/route.dart' as mt;
+//import 'package:drives/screens/dialogs.dart';
+//import 'package:drives/screens/painters.dart';
 import 'package:drives/services/db_helper.dart';
 import 'package:drives/services/web_helper.dart' as wh;
+import 'package:drives/models/my_trip_item.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:drives/models/my_trip_item.dart';
+
 // import 'package:geolocator/geolocator.dart';
-import '../route.dart' as mt;
+
 // import 'dart:ui' as ui;
 
 /// https://api.flutter.dev/flutter/material/Icons-class.html  get the icon codepoint from here

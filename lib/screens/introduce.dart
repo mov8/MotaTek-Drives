@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'package:drives/tiles/group_member_tile.dart';
-import 'package:drives/screens/group_member.dart';
+import 'package:drives/screens/screens.dart';
 import 'package:flutter/material.dart';
 import 'package:drives/models/other_models.dart';
-import 'package:drives/screens/dialogs.dart';
+// import 'package:drives/screens/dialogs.dart';
 
 import 'package:drives/services/web_helper.dart';
 
@@ -220,7 +220,7 @@ class _introduceFormState extends State<IntroduceForm> {
   }
 
   Future<bool> saveintroduce() async {
-    int currentId = 1;
+    //int currentId = 1;
     //introduceMembers[introduceIndex].id;
     /* saveintroduceLocal(introduces[introduceIndex]).then((id) {
       if (currentId < 0) {

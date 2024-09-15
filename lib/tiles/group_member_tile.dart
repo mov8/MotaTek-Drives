@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:drives/models/other_models.dart';
-import 'package:drives/utilities.dart';
+import 'package:drives/classes/utilities.dart';
 
 class GroupMemberTile extends StatefulWidget {
   final GroupMember groupMember;
