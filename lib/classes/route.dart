@@ -174,7 +174,7 @@ class RouteAtCenter {
 class RouteLayer extends PolylineLayer {
   /// The list of [Route] which could be tapped
   @override
-  final List<Route> polylines = [];
+  final List<Route> polylines;
 
   /// The tolerated distance between pointer and user tap to trigger the [onTap] callback
   final double pointerDistanceTolerance;
@@ -188,15 +188,15 @@ class RouteLayer extends PolylineLayer {
   ///
   final RouteAtCenter? routeAtCenter;
 
-  RouteLayer({
-    super.polylines = const [],
+  const RouteLayer({
+    this.polylines = const [],
     this.onTap,
     this.onMiss,
     this.pointerDistanceTolerance = 15,
     super.polylineCulling = false,
     this.routeAtCenter,
     super.key,
-  }); // : super(key: key, polylines: polylines, polylineCulling: polylineCulling);
+  }) : super(polylines: polylines); // Have to have a this.polylines
 
   @override
   Widget build(BuildContext context) {

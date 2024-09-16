@@ -176,25 +176,7 @@ const List<Map> poiTypes = [
 
 const List<String> manufacturers = ['Triumph', 'MG', 'Reliant'];
 const List<String> models = ['TR2', 'TR3', 'TR5', 'TR6', 'TR7', 'Stag'];
-/*
-const List<Color> uiColours.keys.toList() = [
-  Colors.white,
-  Color.fromARGB(255, 25, 65, 26),
-  Colors.red,
-  Colors.orange,
-  Colors.amber,
-  Colors.lime,
-  Colors.yellow,
-  Colors.green,
-  Colors.blue,
-  Colors.indigo,
-  Colors.deepPurple,
-  Colors.cyan,
-  Colors.grey,
-  Colors.brown,
-  Colors.black,
-];
-*/
+
 Map<Color, String> uiColours = {
   Colors.white: 'white',
   const Color.fromARGB(255, 28, 77, 30): 'olive',
@@ -214,10 +196,6 @@ Map<Color, String> uiColours = {
   Colors.brown: 'brown',
   Colors.black: 'black',
 };
-
-// const List<UiColour> uiColours = [
-//  UiColour(0, uiColours.keys.toList()[0], uiColours.keys.toList()[0].toString())
-//]
 
 void myFunc() {}
 

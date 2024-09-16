@@ -222,7 +222,6 @@ class MyTripItem {
     return _routes;
   }
 
-//MaterialColor (MaterialColor(primary value: Color(0xffffc107)))
   void addRoute(mt.Route route) {
     _routes.add(route);
   }

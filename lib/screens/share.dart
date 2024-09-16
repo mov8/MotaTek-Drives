@@ -195,9 +195,10 @@ class _shareFormState extends State<ShareForm> {
               ),
             ),
             Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
-                child: Row(children: [
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
+              child: Row(
+                children: [
                   Expanded(
                     flex: 1,
                     child: Padding(
@@ -266,72 +267,75 @@ class _shareFormState extends State<ShareForm> {
                       ),
                     ),
                   )
-                ])),
+                ],
+              ),
+            ),
             Expanded(
-                child: ListView.builder(
-                    itemCount: filteredGroupMembers.length,
-                    itemBuilder: (context, index) => Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10.0, vertical: 5.0),
-                        child: Card(
-                            elevation: 5,
-                            child: CheckboxListTile(
-                              title: Row(children: [
-                                Expanded(
-                                  flex: 1,
-                                  child: Padding(
-                                    padding:
-                                        const EdgeInsets.fromLTRB(0, 0, 7, 0),
-                                    child: CircleAvatar(
-                                      backgroundColor: Colors.blue,
-                                      child: Text(
-                                        getInitials(
-                                            name:
-                                                '${filteredGroupMembers[index].forename} ${filteredGroupMembers[index].surname}'),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                Expanded(
-                                  flex: 6,
-                                  child: Column(children: [
-                                    Row(children: [
-                                      Text(
-                                        '${filteredGroupMembers[index].forename} ${filteredGroupMembers[index].surname}',
-                                        style: const TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold),
-                                        overflow: TextOverflow.ellipsis,
-                                      )
-                                    ]),
-                                    Row(children: [
-                                      Text(
-                                        'email: ${filteredGroupMembers[index].email}',
-                                        style: const TextStyle(fontSize: 14),
-                                        overflow: TextOverflow.ellipsis,
-                                      )
-                                    ]),
-                                    Row(children: [
-                                      Text(
-                                        'phone: ${filteredGroupMembers[index].phone}',
-                                        style: const TextStyle(fontSize: 14),
-                                        overflow: TextOverflow.ellipsis,
-                                      )
-                                    ]),
-                                  ]),
-                                )
-                              ]),
-                              onChanged: (value) {
-                                setState(() {
-                                  filteredGroupMembers[index].selected = value!;
-                                  groupMembers[
-                                          filteredGroupMembers[index].index]
-                                      .selected = value;
-                                });
-                              },
-                              value: filteredGroupMembers[index].selected,
-                            ))))),
+              child: ListView.builder(
+                itemCount: filteredGroupMembers.length,
+                itemBuilder: (context, index) => Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10.0, vertical: 5.0),
+                  child: Card(
+                    elevation: 5,
+                    child: CheckboxListTile(
+                      title: Row(children: [
+                        Expanded(
+                          flex: 1,
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(0, 0, 7, 0),
+                            child: CircleAvatar(
+                              backgroundColor: Colors.blue,
+                              child: Text(
+                                getInitials(
+                                    name:
+                                        '${filteredGroupMembers[index].forename} ${filteredGroupMembers[index].surname}'),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          flex: 6,
+                          child: Column(children: [
+                            Row(children: [
+                              Text(
+                                '${filteredGroupMembers[index].forename} ${filteredGroupMembers[index].surname}',
+                                style: const TextStyle(
+                                    fontSize: 18, fontWeight: FontWeight.bold),
+                                overflow: TextOverflow.ellipsis,
+                              )
+                            ]),
+                            Row(children: [
+                              Text(
+                                'email: ${filteredGroupMembers[index].email}',
+                                style: const TextStyle(fontSize: 14),
+                                overflow: TextOverflow.ellipsis,
+                              )
+                            ]),
+                            Row(children: [
+                              Text(
+                                'phone: ${filteredGroupMembers[index].phone}',
+                                style: const TextStyle(fontSize: 14),
+                                overflow: TextOverflow.ellipsis,
+                              )
+                            ]),
+                          ]),
+                        )
+                      ]),
+                      onChanged: (value) {
+                        setState(() {
+                          filteredGroupMembers[index].selected = value!;
+                          groupMembers[filteredGroupMembers[index].index]
+                              .selected = value;
+                        });
+                      },
+                      value: filteredGroupMembers[index].selected,
+                    ),
+                  ),
+                ),
+              ),
+            ),
             const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 11),
                 child: Row(children: [
@@ -392,9 +396,11 @@ class _shareFormState extends State<ShareForm> {
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             onPressed: () {
-              for (GroupMember member in filteredGroupMembers) {
-                member.selected = true;
-              }
+              setState(() {
+                for (GroupMember member in filteredGroupMembers) {
+                  member.selected = true;
+                }
+              });
             },
             backgroundColor: Colors.blue,
             avatar: const Icon(Icons.check_circle, color: Colors.white),
@@ -405,9 +411,11 @@ class _shareFormState extends State<ShareForm> {
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             onPressed: () {
-              for (GroupMember member in filteredGroupMembers) {
-                member.selected = false;
-              }
+              setState(() {
+                for (GroupMember member in filteredGroupMembers) {
+                  member.selected = false;
+                }
+              });
             },
             backgroundColor: Colors.blue,
             avatar:
