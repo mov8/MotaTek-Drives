@@ -1459,12 +1459,14 @@ class _CreateTripState extends State<CreateTripScreen>
     });
   }
 
-  void stopFollowing() async {
-    setState(() {
-      _alignPositionOnUpdate = AlignOnUpdate.never;
-      _alignDirectionOnUpdate = AlignOnUpdate.never;
-      _tripState = TripState.stoppedFollowing;
-    });
+  void stopFollowing() {
+    if (_tripState == TripState.following) {
+      setState(() {
+        _alignPositionOnUpdate = AlignOnUpdate.never;
+        _alignDirectionOnUpdate = AlignOnUpdate.never;
+        _tripState = TripState.stoppedFollowing;
+      });
+    }
   }
 
   void steps() {

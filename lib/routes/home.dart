@@ -46,6 +46,7 @@ class _homeScreenState extends State<HomeScreen> {
       Future.delayed(const Duration(seconds: 4), () async {
         debugPrint('About to try logging in..');
         bool loaded = await Setup().loaded;
+
         if (loaded && Setup().jwt.isNotEmpty && Setup().user.email.isNotEmpty) {
           debugPrint('JWT not empty - about to try logging in..');
           response = await tryLogin(Setup().user.email, Setup().user.password);

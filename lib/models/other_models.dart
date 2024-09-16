@@ -286,7 +286,7 @@ class Setup {
         dark = maps[0]['dark'] == 1;
         rotateMap = maps[0]['rotate_map'] == 1;
       } catch (e) {
-        debugPrint(e.toString());
+        debugPrint('Failed to load Setup() from db: ${e.toString()}');
       }
     }
     user = await getUser();
