@@ -1,3 +1,4 @@
+import 'package:drives/screens/invitations.dart';
 import 'package:flutter/material.dart';
 import 'package:drives/screens/screens.dart';
 import 'package:drives/services/web_helper.dart';
@@ -55,9 +56,7 @@ class _MainDrawerState extends State<MainDrawer> {
       ListTile(
           leading: const Icon(Icons.manage_accounts, size: 30),
           title: Text(
-              Setup().jwt.isEmpty
-                  ? 'Register your details'
-                  : 'Change your details',
+              Setup().jwt.isEmpty ? 'Register my details' : 'Change my details',
               style: const TextStyle(
                 color: Colors.blue,
                 fontSize: 20,
@@ -119,45 +118,50 @@ class _MainDrawerState extends State<MainDrawer> {
             );
           }),
       ListTile(
-          leading: const Icon(
-            Icons.rsvp,
-            size: 30,
-          ),
-          title: const Text('Invitations',
-              style: TextStyle(
-                color: Colors.blue,
-                fontSize: 20,
-              )),
-          onTap: () {
-            getMessagesByGroup();
-//            Navigator.push(
-//              context,
-//              MaterialPageRoute(builder: (context) => const GroupForm()),
-//            );
-          }),
+        leading: const Icon(
+          Icons.directions_car,
+          size: 30,
+        ),
+        title: const Text("Events I've organised",
+            style: TextStyle(
+              color: Colors.blue,
+              fontSize: 20,
+            )),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const GroupDriveForm()),
+          );
+        },
+      ),
       ListTile(
-          leading: const Icon(
-            Icons.directions_car,
-            size: 30,
+          leading: const Badge(
+            label: Text('3'), //widget.group.unreadMessages.toString()),
+            child: Icon(
+              Icons.mail_outline,
+              size: 30,
+            ),
           ),
-          title: const Text('Events',
+          title: const Text('My invitations to events',
               style: TextStyle(
                 color: Colors.blue,
                 fontSize: 20,
               )),
           onTap: () {
-            login(context);
-          }
-          //  Navigator.push(
-          //    context,
-          //    MaterialPageRoute(builder: (context) => const GroupForm()),
-          ),
+            //   getMessagesByGroup();
+            // getInvitationssByUser();
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (context) => const InvitationsScreen()),
+            );
+          }),
       ListTile(
           leading: const Icon(
             Icons.password,
             size: 30,
           ),
-          title: const Text('Login',
+          title: const Text('Log in',
               style: TextStyle(
                 color: Colors.blue,
                 fontSize: 20,

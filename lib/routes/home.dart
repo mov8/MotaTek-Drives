@@ -41,11 +41,11 @@ class _homeScreenState extends State<HomeScreen> {
   tryLoggingIn() async {
     try {
       Map<String, dynamic> response = {'msg': 'Not logged in'};
-
-      debugPrint('Splash message: ${response['msg']}');
-      Future.delayed(const Duration(seconds: 4), () async {
+      debugPrint('Home message: ${response['msg']}');
+      bool loaded = await Setup().loaded;
+      // Future.delayed(const Duration(seconds: 4), () async {
+      if (Setup().jwt.isEmpty) {
         debugPrint('About to try logging in..');
-        bool loaded = await Setup().loaded;
 
         if (loaded && Setup().jwt.isNotEmpty && Setup().user.email.isNotEmpty) {
           debugPrint('JWT not empty - about to try logging in..');
@@ -55,7 +55,7 @@ class _homeScreenState extends State<HomeScreen> {
           debugPrint('tryLogin() failed About to use login()..');
           await login(context);
         }
-      });
+      }
     } catch (e) {
       debugPrint('Splash login error: ${e.toString()}');
     }

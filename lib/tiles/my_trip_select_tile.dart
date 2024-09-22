@@ -3,14 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:drives/models/other_models.dart';
 import 'package:drives/models/my_trip_item.dart';
 
-class MyTripTile extends StatefulWidget {
+class MyTripSelectTile extends StatefulWidget {
   final MyTripItem myTripItem;
   final Future<void> Function(int) onLoadTrip;
   final Future<void> Function(int) onShareTrip;
   final Future<void> Function(int) onDeleteTrip;
   final Future<void> Function(int)? onPublishTrip;
   final int index;
-  const MyTripTile({
+  const MyTripSelectTile({
     super.key,
     required this.index,
     required this.myTripItem,
@@ -21,10 +21,10 @@ class MyTripTile extends StatefulWidget {
   });
 
   @override
-  State<MyTripTile> createState() => _myTripTileState();
+  State<MyTripSelectTile> createState() => _myTripSelectTileState();
 }
 
-class _myTripTileState extends State<MyTripTile> {
+class _myTripSelectTileState extends State<MyTripSelectTile> {
   @override
   Widget build(BuildContext context) {
     List<Photo> photos = photosFromJson(widget.myTripItem.getImages());
@@ -36,12 +36,28 @@ class _myTripTileState extends State<MyTripTile> {
           title: Column(children: [
             Row(children: [
               Expanded(
-                  flex: 8,
-                  child: Text(widget.myTripItem.getHeading(),
-                      style: const TextStyle(
-                          color: Colors.black,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold))),
+                flex: 1,
+                child: Text(
+                  widget.myTripItem.getHeading(),
+                  style: const TextStyle(
+                      color: Colors.black,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold),
+                ),
+              ),
+            ]),
+            Row(children: [
+              Expanded(
+                flex: 8,
+                child: Text(
+                  widget.myTripItem.getPublishedDate(
+                      noPrompt: 'not yet published - will be if chosen'),
+                  style: const TextStyle(
+                      color: Colors.black,
+                      fontSize: 16,
+                      fontWeight: FontWeight.normal),
+                ),
+              ),
             ]),
             Padding(
               padding: const EdgeInsets.fromLTRB(5, 0, 5, 15),
@@ -71,7 +87,6 @@ class _myTripTileState extends State<MyTripTile> {
               ]),
             )
           ]),
-          // backgroundColor: Colors.white,
           onExpansionChanged: (expanded) {
             setState(() {});
           },
@@ -110,95 +125,81 @@ class _myTripTileState extends State<MyTripTile> {
                       if (widget.myTripItem.getImages().isNotEmpty)
                         Row(children: <Widget>[
                           Expanded(
-                              flex: 8,
-                              child: SizedBox(
-                                  height: 200,
-                                  child: ListView(
-                                    scrollDirection: Axis.horizontal,
-                                    children: [
-                                      for (int i = 0; i < photos.length; i++)
-                                        Row(children: [
-                                          SizedBox(
-                                            width: 200,
-                                            child: Image.file(
-                                              File(photos[i].url),
-                                            ),
+                            flex: 8,
+                            child: SizedBox(
+                              height: 200,
+                              child: ListView(
+                                scrollDirection: Axis.horizontal,
+                                children: [
+                                  for (int i = 0; i < photos.length; i++)
+                                    Row(
+                                      children: [
+                                        SizedBox(
+                                          width: 200,
+                                          child: Image.file(
+                                            File(photos[i].url),
                                           ),
-                                          const SizedBox(
-                                            width: 20,
-                                          )
-                                        ]),
-                                    ],
-                                  )))
+                                        ),
+                                        const SizedBox(
+                                          width: 20,
+                                        )
+                                      ],
+                                    ),
+                                ],
+                              ),
+                            ),
+                          )
                         ]),
                       const SizedBox(
                         height: 10,
                       ),
                       SizedBox(
-                          child: Padding(
-                        padding: const EdgeInsets.fromLTRB(5, 0, 5, 10),
-                        child: Align(
-                          alignment: Alignment.topLeft,
-                          child: Text(widget.myTripItem.getBody(),
-                              style: const TextStyle(
-                                  color: Colors.black, fontSize: 20),
-                              textAlign: TextAlign.left),
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(5, 0, 5, 10),
+                          child: Align(
+                            alignment: Alignment.topLeft,
+                            child: Text(widget.myTripItem.getBody(),
+                                style: const TextStyle(
+                                    color: Colors.black, fontSize: 20),
+                                textAlign: TextAlign.left),
+                          ),
                         ),
-                      )),
+                      ),
                       if (widget.myTripItem.showMethods) ...[
                         SizedBox(
-                            child: Padding(
-                          padding: const EdgeInsets.fromLTRB(5, 0, 5, 10),
-                          child: Row(children: [
-                            Expanded(
-                              flex: 1,
-                              child: TextButton(
-                                onPressed: () async =>
-                                    widget.onLoadTrip(widget.index),
-                                child: const Column(children: [
-                                  Icon(Icons.file_open_outlined),
-                                  Text('Load Trip')
-                                ]),
-                              ),
-                            ),
-                            Expanded(
-                              flex: 1,
-                              child: TextButton(
-                                onPressed: () async =>
-                                    widget.onShareTrip(widget.index),
-                                child: const Column(children: [
-                                  Icon(Icons.directions_car_outlined),
-                                  Text('Group Trip')
-                                ]),
-                              ),
-                            ),
-                            if (widget.onPublishTrip != null) ...[
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(5, 0, 5, 10),
+                            child: Row(children: [
                               Expanded(
                                 flex: 1,
                                 child: TextButton(
                                   onPressed: () async =>
-                                      widget.onPublishTrip!(widget.index),
+                                      widget.onShareTrip(widget.index),
                                   child: const Column(children: [
-                                    Icon(Icons.cloud_upload_outlined),
-                                    Text('Publish Trip')
+                                    Icon(Icons.directions_car_outlined),
+                                    Text('Group Trip')
                                   ]),
                                 ),
-                              )
-                            ],
-                            Expanded(
-                              flex: 1,
-                              child: TextButton(
-                                onPressed: () async =>
-                                    widget.onDeleteTrip(widget.index),
-                                child: const Column(children: [
-                                  Icon(Icons.delete_forever),
-                                  Text('Delete Trip')
-                                ]),
                               ),
-                            )
-                          ]),
-                        )),
-                      ]
+                              if (widget.myTripItem.getPublished().isEmpty) ...[
+                                Expanded(
+                                  flex: 1,
+                                  child: TextButton(
+                                    onPressed: () async =>
+                                        widget.onPublishTrip!(widget.index),
+                                    child: const Column(
+                                      children: [
+                                        Icon(Icons.cloud_upload_outlined),
+                                        Text('Publish Trip')
+                                      ],
+                                    ),
+                                  ),
+                                )
+                              ],
+                            ]),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),

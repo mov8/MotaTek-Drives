@@ -8,7 +8,7 @@ export 'package:drives/screens/main_drawer.dart';
 export 'package:drives/screens/message_by_groups.dart';
 export 'package:drives/screens/my_groups.dart';
 export 'package:drives/screens/painters.dart';
-// export 'package:drives/screens/point_of_interest_layer.dart';
+export 'package:drives/screens/group_drives.dart';
 export 'package:drives/screens/setup.dart';
 export 'package:drives/screens/share.dart';
 export 'package:drives/screens/sign_up.dart';

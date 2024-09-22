@@ -589,6 +589,69 @@ Future<List<TripItem>> getTrips() async {
   return trips;
 }
 
+Future<TripItem> getTrip({required tripId}) async {
+  TripItem gotTrip = TripItem(heading: '');
+  if (tripId.length == 32) {
+    String jwToken = Setup().jwt;
+    var currentPosition = await utils.getPosition();
+    LatLng pos = LatLng(currentPosition.latitude, currentPosition.longitude);
+
+    final http.Response response = await http.get(
+      Uri.parse('${urlBase}v1/drive/summary/$tripId'),
+      headers: {
+        'Authorization': 'Bearer $jwToken', // $Setup().jwt',
+        'Content-Type': 'application/json',
+      },
+    ).timeout(const Duration(seconds: 20));
+    if (response.statusCode == 200) {
+      var trip = jsonDecode(response.body);
+      //  List<String> images = ['map'];
+      // "http://10.101.1.150:5000/v1/drive/images/0175c09062b7485aaf8356f3770b7ca8/map.png"
+      // "http://10.101.1.150:5000/v1/drive/images/0175c09062b7485aaf8356f3770b7ca8/b56dc5ebfe35450f9077cb5dce53e0d4/2a6bf728-8f4e-4993-9c…"
+      // pics[j] "2a6bf728-8f4e-4993-9c00-9f2512bf0edf.jpg"
+
+      List<String> images = [
+        Uri.parse('${urlBase}v1/drive/images/${trip['id']}/map.png').toString()
+      ];
+      try {
+        int distance = 99999;
+        for (int i = 0; i < trip['points_of_interest'].length; i++) {
+          if (trip['points_of_interest'][i]['images'].length > 0) {
+            var pics = jsonDecode(trip['points_of_interest'][i]['images']);
+            for (int j = 0; j < pics.length; j++) {
+              images.add(Uri.parse(
+                      '${urlBase}v1/drive/images/${trip['id']}/${trip['points_of_interest'][i]['id']}/${pics[j]}')
+                  .toString());
+              // debugPrint(images[images.length - 1]);
+            }
+          }
+          LatLng poiPos = LatLng(trip['points_of_interest'][i]['latitude'],
+              trip['points_of_interest'][i]['longitude']);
+          distance = min(utils.distanceBetween(poiPos, pos).toInt(), distance);
+        }
+        gotTrip = TripItem(
+            heading: trip['title'],
+            subHeading: trip['sub_title'],
+            body: trip['body'],
+            author: trip['author'],
+            published: trip['added'],
+            imageUrls: images,
+            score: trip['average_rating'].toDouble() ?? 5.0,
+            distance: trip['distance'],
+            pointsOfInterest: trip['points_of_interest'].length,
+            closest: distance,
+            scored: trip['ratings_count'] ?? 1,
+            downloads: trip['download_count'] ?? 0,
+            uri: trip['id']);
+      } catch (e) {
+        String err = e.toString();
+        debugPrint('Error: $err');
+      }
+    }
+  }
+  return gotTrip;
+}
+
 Future<Uint8List> getImageBytes({required String url}) async {
   Uint8List data = Uint8List.fromList([]);
   final response =
@@ -667,7 +730,74 @@ putPointOfInterestRating(String uri, int score) async {
   }
 }
 
-Future<MyTripItem> getTrip(String tripUuid) async {
+Future<MyTripItem> getTripSummary(String tripUuid) async {
+  MyTripItem myTrip = MyTripItem(heading: '', subHeading: '');
+  String jwToken = Setup().jwt;
+  final http.Response response = await http.get(
+    Uri.parse('${urlBase}v1/drive/$tripUuid'),
+    headers: {
+      'Authorization': 'Bearer $jwToken', // $Setup().jwt',
+      'Content-Type': 'application/json',
+    },
+  );
+  if (response.statusCode == 200) {
+    Map<String, dynamic> trip = jsonDecode(response.body);
+    List<PointOfInterest> gotPointsOfInterest = [];
+
+    try {
+      for (int i = 0; i < trip['points_of_interest'].length; i++) {
+        try {
+          LatLng posn = LatLng(trip['points_of_interest'][i]['latitude'],
+              trip['points_of_interest'][i]['longitude']);
+          Widget marker =
+              MarkerWidget(type: trip['points_of_interest'][i]['_type']);
+          gotPointsOfInterest.add(PointOfInterest(
+            -1,
+            -1,
+            trip['points_of_interest'][i]['_type'],
+            trip['points_of_interest'][i]['name'],
+            trip['points_of_interest'][i]['description'],
+            trip['points_of_interest'][i]['_type'] == 12 ? 10 : 30,
+            trip['points_of_interest'][i]['_type'] == 12 ? 10 : 30,
+            images: trip['points_of_interest'][i]['images'],
+            url: '/${trip['id']}/${trip['points_of_interest'][i]['id']}/',
+            score: trip['points_of_interest'][i]['average_rating'] ?? 1,
+            scored: trip['points_of_interest'][i]['ratings_count'] ?? 0,
+            markerPoint: posn,
+            marker: marker,
+          ));
+        } catch (e) {
+          debugPrint('Error: ${e.toString()}');
+        }
+      }
+    } catch (e) {
+      String err = e.toString();
+      debugPrint('PointsOfInterest error: $err');
+    }
+    try {
+      MyTripItem myTripItem = MyTripItem(
+        heading: trip['title'],
+        driveUri: tripUuid,
+        subHeading: trip['sub_title'],
+        body: trip['body'],
+        published: trip['added'],
+        images: Uri.parse('${urlBase}v1/drive/images/${trip['id']}/map.png')
+            .toString(),
+        score: trip['score'] ?? 5.0,
+        distance: trip['distance'],
+        pointsOfInterest: gotPointsOfInterest,
+        closest: 12,
+      );
+      return myTripItem;
+    } catch (e) {
+      String err = e.toString();
+      debugPrint('Error: $err');
+    }
+  }
+  return myTrip;
+}
+
+Future<MyTripItem> getMyTrip(String tripUuid) async {
   MyTripItem myTrip = MyTripItem(heading: '', subHeading: '');
   String jwToken = Setup().jwt;
   final http.Response response = await http.get(
@@ -909,6 +1039,29 @@ Future<List<Group>> getMyGroups() async {
   return groupsSent;
 }
 
+Future<List<GroupDrive>> getGroupDrives() async {
+  List<GroupDrive> groupsSent = [];
+  String jwToken = Setup().jwt;
+  try {
+    final http.Response response = await http.get(
+      Uri.parse('${urlBase}v1/group_drive/pending'),
+      headers: {
+        'Authorization': 'Bearer $jwToken', // $Setup().jwt',
+        'Content-Type': 'application/json',
+      },
+    ).timeout(const Duration(seconds: 30));
+    if ([200, 201].contains(response.statusCode)) {
+      List<dynamic> groups = jsonDecode(response.body);
+      groupsSent = [
+        for (Map<String, dynamic> map in groups) GroupDrive.fromMap(map)
+      ];
+    }
+  } catch (e) {
+    debugPrint("getGroupDrives error: ${e.toString()}");
+  }
+  return groupsSent;
+}
+
 Future<List<Group>> getMessagesByGroup() async {
   List<Group> groupsSent = [];
   String jwToken = Setup().jwt;
@@ -1001,6 +1154,98 @@ Future<String> putGroup(Group group) async {
     return responseData.toString();
   }
   return '';
+}
+
+Future<List<EventInvitation>> getInvitationssByUser() async {
+  List<EventInvitation> invitationsSent = [];
+  String jwToken = Setup().jwt;
+  try {
+    final http.Response response = await http.get(
+      Uri.parse('${urlBase}v1/group_drive_invitation/user'),
+      headers: {
+        'Authorization': 'Bearer $jwToken', // $Setup().jwt',
+        'Content-Type': 'application/json',
+      },
+    ).timeout(const Duration(seconds: 10));
+    if ([200, 201].contains(response.statusCode)) {
+      var invitations = jsonDecode(response.body);
+      invitationsSent = [
+        for (Map<String, dynamic> invitation in invitations)
+          EventInvitation.fromByUserMap(invitation)
+      ];
+    }
+  } catch (e) {
+    debugPrint("Can't access data on the web");
+  }
+  return invitationsSent;
+}
+
+Future<List<EventInvitation>> getInvitationssByEvent(
+    {String eventId = ''}) async {
+  List<EventInvitation> invitationsSent = [];
+  String jwToken = Setup().jwt;
+  try {
+    final http.Response response = await http.get(
+      Uri.parse('${urlBase}v1/group_drive_invitation/trip/$eventId'),
+      headers: {
+        'Authorization': 'Bearer $jwToken', // $Setup().jwt',
+        'Content-Type': 'application/json',
+      },
+    ).timeout(const Duration(seconds: 10));
+    if ([200, 201].contains(response.statusCode)) {
+      var invitations = jsonDecode(response.body);
+      invitationsSent = [
+        for (Map<String, dynamic> invitation in invitations)
+          EventInvitation.fromByEventMap(invitation)
+      ];
+    }
+  } catch (e) {
+    debugPrint("Can't access data on the web: ${e.toString()}");
+  }
+  return invitationsSent;
+}
+
+Future<String> postInvitation(GroupDriveInvitation invitation) async {
+  String jwToken = Setup().jwt;
+  Map<String, dynamic> map = invitation.toMap();
+  final http.Response response =
+      await http.post(Uri.parse('${urlBase}v1/group_drive/add'),
+          headers: {
+            'Authorization': 'Bearer $jwToken', // $Setup().jwt',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode(map));
+  if ([200, 201].contains(response.statusCode)) {
+    // var responseData = jsonDecode(String.fromCharCodes(response.bodyBytes));
+    var responseData = jsonDecode(response.body);
+    debugPrint('Server response: $responseData');
+    // group.id = responseData['id'];
+    return responseData.toString();
+  }
+  return '';
+}
+
+Future<bool> answerInvitation(EventInvitation invitation) async {
+  bool result = false;
+  String jwToken = Setup().jwt;
+  Map<String, dynamic> map = {
+    'invitation_id': invitation.id,
+    'response': invitation.accepted.toString()
+  };
+
+  final http.Response response =
+      await http.post(Uri.parse('${urlBase}v1/group_drive_invitation/respond'),
+          headers: {
+            'Authorization': 'Bearer $jwToken', // $Setup().jwt',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode(map));
+  if ([200, 201].contains(response.statusCode)) {
+    debugPrint('invitation status updated OK: ${response.statusCode}');
+    result = true;
+  }
+
+  return result;
 }
 
 Future<GroupMember> getUserByEmail(String email) async {

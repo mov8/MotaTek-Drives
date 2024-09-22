@@ -2082,7 +2082,7 @@ class _CreateTripState extends State<CreateTripScreen>
 
   Future<void> onGetTrip(int index) async {
     _currentTrip = MyTripItem(heading: '');
-    _currentTrip = await getTrip(tripItems[index].uri);
+    _currentTrip = await getMyTrip(tripItems[index].uri);
     _currentTrip.setId(-1);
     _currentTrip.setDriveUri(tripItems[index].uri);
     setState(() {

@@ -4,7 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:drives/models/other_models.dart';
 import 'package:drives/services/services.dart';
 
-import 'package:socket_io_client/socket_io_client.dart' as IO;
+import 'package:socket_io_client/socket_io_client.dart' as sio;
 
 class GroupMessagesController {
   _GroupMessagesState? _groupMessagesState;
@@ -69,7 +69,7 @@ class _GroupMessagesState extends State<GroupMessages> {
   //  Uri.parse('ws://10.101.1.150:5000/socket.io/'),
   // );
 
-  IO.Socket socket = IO.io('http://10.101.1.150:5000', <String, dynamic>{
+  sio.Socket socket = sio.io('http://10.101.1.150:5000', <String, dynamic>{
     'transports': ['websocket'], // Specify WebSocket transport
     'autoConnect': false, // Prevent auto-connection
   });

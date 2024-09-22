@@ -675,6 +675,123 @@ class GroupMember {
   }
 }
 
+class GroupDrive {
+  String driveId;
+  String name;
+  int accepted;
+  int pending;
+  DateTime driveDate;
+  int index = 0;
+  bool selected = false;
+  GroupDrive(
+      {this.driveId = '',
+      this.name = '',
+      this.accepted = 0,
+      this.pending = 0,
+      driveDate})
+      : driveDate = driveDate ?? DateTime.now();
+
+  factory GroupDrive.fromMap(Map<String, dynamic> map) {
+    return GroupDrive(
+      driveId: map['drive_id'],
+      name: map['drive_name'],
+      accepted: int.parse(map['accepted']),
+      pending: int.parse(map['pending']),
+      driveDate: DateTime.parse(map['drive_date']),
+    );
+  }
+}
+
+class EventInvitation {
+  String driveId;
+  String name;
+  DateTime eventDate;
+  String forename;
+  String surname;
+  String email;
+  String id;
+  DateTime invitationDate;
+  int accepted;
+  int index = 0;
+  bool selected = false;
+  EventInvitation({
+    this.driveId = '',
+    this.name = '',
+    eventDate,
+    this.forename = '',
+    this.surname = '',
+    this.email = '',
+    this.id = '',
+    invitationDate,
+    this.accepted = 0,
+  })  : eventDate = eventDate ?? DateTime.now(),
+        invitationDate = invitationDate ?? DateTime.now();
+
+  factory EventInvitation.fromByUserMap(Map<String, dynamic> map) {
+    return EventInvitation(
+      driveId: map['event_id'],
+      name: map['event_name'],
+      eventDate: DateTime.parse(map['event_date']),
+      forename: map['inviter_forename'],
+      surname: map['inviter_surname'],
+      email: map['inviter_email'],
+      id: map['invitation_id'],
+      invitationDate: DateTime.parse(map['invitation_date']),
+      accepted: int.parse(map['accepted']),
+    );
+  }
+
+  factory EventInvitation.fromByEventMap(Map<String, dynamic> map) {
+    return EventInvitation(
+      forename: map['invitee_forename'],
+      surname: map['invitee_surname'],
+      email: map['invitee_email'],
+      id: map['invitation_id'],
+      invitationDate: DateTime.parse(map['invitation_date']),
+      accepted: int.parse(map['accepted']),
+    );
+  }
+}
+
+class GroupDriveInvitation {
+  String driveId;
+  String title;
+  String message;
+  DateTime invitationDate;
+  DateTime driveDate;
+  List<Map<String, dynamic>> invited;
+
+  GroupDriveInvitation(
+      {required this.driveId,
+      required this.title,
+      this.message = '',
+      invitationDate,
+      driveDate,
+      this.invited = const []})
+      : invitationDate = invitationDate ?? DateTime.now(),
+        driveDate = driveDate ?? DateTime.now();
+
+  factory GroupDriveInvitation.fromMap(Map<String, dynamic> map) {
+    return GroupDriveInvitation(
+        driveId: map['drive_id'],
+        title: map['title'],
+        message: map['message'],
+        invitationDate: DateTime.parse(map['invitation_date']),
+        driveDate: DateTime.parse(map['drive_date']));
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'drive_id': driveId,
+      'title': title,
+      'message': message,
+      'invitation_date': invitationDate.toString(),
+      'drive_date': driveDate.toString(),
+      'invited': invited
+    };
+  }
+}
+
 class Photo {
   String url;
   String caption;
@@ -1352,7 +1469,7 @@ Future<List<MyTripItem>> tripItemFromDb({int driveId = -1}) async {
     pos = LatLng(currentPosition.latitude, currentPosition.longitude);
   });
   String drivesQuery =
-      '''SELECT drives.id, drives.title, drives.sub_title, drives.body, drives.distance, drives.points_of_interest,
+      '''SELECT drives.id, drives.uri, drives.title, drives.sub_title, drives.body, drives.distance, drives.points_of_interest, drives.added,
     points_of_interest.*  
     FROM drives
     JOIN points_of_interest 
@@ -1388,9 +1505,11 @@ Future<List<MyTripItem>> tripItemFromDb({int driveId = -1}) async {
         trips.add(MyTripItem(
             id: driveId,
             driveId: driveId,
+            driveUri: maps[i]['uri'],
             heading: maps[i]['title'],
             subHeading: maps[i]['sub_title'],
             body: maps[i]['body'],
+            published: maps[i]['added'],
             images:
                 '{"url": "$directory/drive$driveId.png", "caption": ""}', //maps[i]['map_image'],
             distance: double.parse(maps[i]['distance'].toString()),

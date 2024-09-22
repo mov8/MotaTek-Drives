@@ -10,7 +10,8 @@ class GroupMemberForm extends StatefulWidget {
   final String? groupName;
   final List<Group>? groups;
 
-  GroupMemberForm({super.key, this.groupMember, this.groupName, this.groups});
+  const GroupMemberForm(
+      {super.key, this.groupMember, this.groupName, this.groups});
 
   @override
   State<GroupMemberForm> createState() => _groupMemberFormState();

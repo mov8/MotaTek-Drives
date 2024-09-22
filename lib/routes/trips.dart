@@ -39,7 +39,7 @@ class _tripsScreenState extends State<TripsScreen> {
   }
 
   Future<void> onGetTrip(int index) async {
-    MyTripItem webTrip = await getTrip(tripItems[index].uri);
+    MyTripItem webTrip = await getMyTrip(tripItems[index].uri);
     webTrip.setId(-1);
     webTrip.setDriveUri(tripItems[index].uri);
     if (context.mounted) {

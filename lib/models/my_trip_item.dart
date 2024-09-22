@@ -1,9 +1,19 @@
 // import 'dart:convert';
 //import 'dart:ffi';
+/*
+import 'dart:convert';
+//import 'dart:ffi';
 import 'dart:ui' as ui;
 import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
+
+ */
+import 'dart:ui' as ui;
+import 'dart:io';
+import 'dart:math';
+import 'dart:typed_data';
+import 'package:intl/intl.dart';
 import 'package:drives/classes/utilities.dart';
 import 'package:drives/services/db_helper.dart';
 import 'package:drives/classes/route.dart' as mt;
@@ -18,11 +28,13 @@ class MyTripItem {
   int _id = -1;
   int _driveId = -1;
   int _index = -1;
+  bool _groupTrip = false;
   String _driveUri = '';
   String _heading = '';
   String _subHeading = '';
   String _body = '';
   String _published = '';
+  String _publisher = '';
   List<PointOfInterest> _pointsOfInterest = [];
   List<Maneuver> _maneuvers = [];
   List<mt.Route> _routes = [];
@@ -42,6 +54,7 @@ class MyTripItem {
     String subHeading = '',
     String body = '',
     String published = '',
+    String publisher = '',
     List<PointOfInterest> pointsOfInterest = const [],
     List<Maneuver> maneuvers = const [],
     List<mt.Route> routes = const [],
@@ -49,12 +62,16 @@ class MyTripItem {
     double score = 5,
     double distance = 0,
     int closest = 12,
+    groupTrip = false,
   })  : _id = id,
         _driveId = driveId,
+        _driveUri = driveUri,
+        _groupTrip = groupTrip,
         _heading = heading,
         _subHeading = subHeading,
         _body = body,
         _published = published,
+        _publisher = publisher,
         _pointsOfInterest = List.from(pointsOfInterest),
         _maneuvers = List.from(maneuvers),
         _routes = List.from(routes),
@@ -76,6 +93,8 @@ class MyTripItem {
     _score = 0;
     _distance = 0;
   }
+
+  DateFormat dateFormat = DateFormat("dd MMM yyyy");
 
   int getId() {
     return _id;
@@ -109,6 +128,14 @@ class MyTripItem {
     _driveUri = driveUri;
   }
 
+  void setGroupTrip(bool groupTrip) {
+    _groupTrip = groupTrip;
+  }
+
+  bool getGroupTrip() {
+    return _groupTrip;
+  }
+
   String getHeading() {
     return _heading;
   }
@@ -137,8 +164,25 @@ class MyTripItem {
     return _published;
   }
 
+  String getPublisher() {
+    return _publisher;
+  }
+
+  String getPublishedDate(
+      {String yesPrompt = 'published on', String noPrompt = 'not published'}) {
+    try {
+      return '$yesPrompt ${dateFormat.format(DateTime.parse(_published))}';
+    } catch (e) {
+      return noPrompt;
+    }
+  }
+
   void setPublished(String published) {
     _published = published;
+  }
+
+  void setPublisher(String publisher) {
+    _publisher = publisher;
   }
 
   String getImages() {

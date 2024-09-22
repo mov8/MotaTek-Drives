@@ -30,6 +30,7 @@ class _shareFormState extends State<ShareForm> {
   List<GroupMember> filteredGroupMembers = [];
   List<GroupMember> allMembers = [];
   List<String> groupNames = ['All members'];
+  late GroupDriveInvitation invitation;
 
   DateFormat dateFormat = DateFormat('dd/MM/yyy');
 
@@ -40,6 +41,9 @@ class _shareFormState extends State<ShareForm> {
     super.initState();
     dataloaded = dataFromWeb(); //dataFromDatabase();
     dateTxt.text = dateFormat.format(_tripDate);
+    invitation = GroupDriveInvitation(
+        driveId: widget.tripItem.getDriveUri(),
+        title: widget.tripItem.getHeading());
   }
 
   Future<bool> dataFromDatabase() async {
@@ -66,10 +70,13 @@ class _shareFormState extends State<ShareForm> {
     if (groups.isNotEmpty) {
       for (Group group in groups) {
         groupNames.add(group.name);
+
         for (GroupMember member in group.groupMembers()) {
           member.selected = true;
           allMembers.add(member);
           filteredGroupMembers.add(member);
+          filteredGroupMembers[filteredGroupMembers.length - 1].index =
+              filteredGroupMembers.length - 1;
         }
       }
     } else {
@@ -326,7 +333,7 @@ class _shareFormState extends State<ShareForm> {
                       onChanged: (value) {
                         setState(() {
                           filteredGroupMembers[index].selected = value!;
-                          groupMembers[filteredGroupMembers[index].index]
+                          allMembers[filteredGroupMembers[index].index]
                               .selected = value;
                         });
                       },
@@ -353,6 +360,7 @@ class _shareFormState extends State<ShareForm> {
                 keyboardType: TextInputType.multiline,
                 minLines: 5,
                 maxLines: 15,
+                onChanged: (val) => invitation.message = val,
                 decoration: const InputDecoration(
                   filled: true,
                   fillColor: Color(0xFFF2F2F2),
@@ -381,11 +389,14 @@ class _shareFormState extends State<ShareForm> {
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             onPressed: () async {
-              for (Group group in groups) {
-                if (group.edited) {
-                  // await putGroup(groups[groupIndex]);
+              List<Map<String, dynamic>> attendees = [];
+              for (GroupMember member in allMembers) {
+                if (member.selected) {
+                  attendees.add({'email': member.email});
                 }
               }
+              invitation.invited = attendees;
+              await postInvitation(invitation);
             },
             backgroundColor: Colors.blue,
             avatar: const Icon(Icons.send, color: Colors.white),
@@ -438,6 +449,7 @@ class _shareFormState extends State<ShareForm> {
       lastDate: DateTime(2028),
     ).then((date) => setState(() {
           _tripDate = date ?? _tripDate;
+          invitation.driveDate = _tripDate;
           dateTxt.text = dateFormat.format(_tripDate);
         }));
 
