@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 class RoutesBottomNavController {
   _RoutesBottomNavState? _routesBottomNavState;
-
   void _addState(_RoutesBottomNavState navState) {
     try {
       _routesBottomNavState = navState;
@@ -113,7 +112,7 @@ class _RoutesBottomNavState extends State<RoutesBottomNav>
             Icons.map,
           ),
           icon: Icon(Icons.map_outlined),
-          label: 'Create Trip',
+          label: 'New Trip',
         ),
         const NavigationDestination(
           selectedIcon: Icon(Icons.person),
@@ -122,20 +121,20 @@ class _RoutesBottomNavState extends State<RoutesBottomNav>
         ),
         const NavigationDestination(
           selectedIcon: Icon(
-            Icons.storefront,
+            Icons.shopping_bag,
           ),
-          icon: Icon(Icons.storefront_outlined),
+          icon: Icon(Icons.shopping_bag_outlined),
           label: 'Shop',
         ),
         NavigationDestination(
           icon: Badge(
             label: Text(
                 _messageCount), // _messages.isEmpty ? null : Text(_messages.length.toString()),
-            child: const Icon(Icons.messenger_outlined),
+            child: const Icon(Icons.chat_bubble_outline),
           ),
           selectedIcon: Badge(
             label: Text(_messageCount),
-            child: const Icon(Icons.messenger),
+            child: const Icon(Icons.chat_bubble),
           ),
           label: 'Messages',
         ),

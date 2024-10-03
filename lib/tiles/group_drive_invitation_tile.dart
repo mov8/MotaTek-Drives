@@ -71,28 +71,34 @@ class _groupDriveInvitationTileState extends State<GroupDriveInvitationTile> {
               Row(
                 children: [
                   Expanded(
-                      flex: 1,
-                      child: Text(
-                          'Drive date: ${dateFormat.format(widget.eventInvitation.eventDate)} ',
-                          style: const TextStyle(fontSize: 16)))
+                    flex: 1,
+                    child: Text(
+                      'Drive date: ${dateFormat.format(widget.eventInvitation.eventDate)} ',
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                  )
                 ],
               ),
               Row(
                 children: [
                   Expanded(
-                      flex: 1,
-                      child: Text(
-                          'invited: ${dateFormat.format(widget.eventInvitation.invitationDate)}',
-                          style: const TextStyle(fontSize: 16))),
+                    flex: 1,
+                    child: Text(
+                      'invited: ${dateFormat.format(widget.eventInvitation.invitationDate)}',
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                  ),
                 ],
               ),
               Row(
                 children: [
                   Expanded(
-                      flex: 1,
-                      child: Text(
-                          'by: ${widget.eventInvitation.forename} ${widget.eventInvitation.surname}',
-                          style: const TextStyle(fontSize: 18))),
+                    flex: 1,
+                    child: Text(
+                      'by: ${widget.eventInvitation.forename} ${widget.eventInvitation.surname}',
+                      style: const TextStyle(fontSize: 18),
+                    ),
+                  ),
                 ],
               ),
             ],
@@ -115,23 +121,26 @@ class _groupDriveInvitationTileState extends State<GroupDriveInvitationTile> {
               if (_tripSummary!.imageUrls.isNotEmpty)
                 Row(children: <Widget>[
                   Expanded(
-                      flex: 8,
-                      child: SizedBox(
-                          height: 200,
-                          child: ListView(
-                            scrollDirection: Axis.horizontal,
-                            children: [
-                              for (String url in _tripSummary!.imageUrls)
-                                showWebImage(url)
-                            ],
-                          )))
+                    flex: 8,
+                    child: SizedBox(
+                      height: 200,
+                      child: ListView(
+                        scrollDirection: Axis.horizontal,
+                        children: [
+                          for (String url in _tripSummary!.imageUrls)
+                            showWebImage(url)
+                        ],
+                      ),
+                    ),
+                  ),
                 ]),
               const SizedBox(
                 height: 10,
               ),
               Padding(
-                  padding: const EdgeInsets.fromLTRB(5, 0, 5, 15),
-                  child: Row(children: [
+                padding: const EdgeInsets.fromLTRB(5, 0, 5, 15),
+                child: Row(
+                  children: [
                     Expanded(
                       flex: 1,
                       child: Column(children: [
@@ -160,21 +169,24 @@ class _groupDriveInvitationTileState extends State<GroupDriveInvitationTile> {
                         Text('${_tripSummary!.closest} miles away')
                       ]),
                     ),
-                  ])),
+                  ],
+                ),
+              ),
               SizedBox(
                 child: Padding(
-                    padding: const EdgeInsets.fromLTRB(5, 0, 5, 10),
-                    child: Align(
-                      alignment: Alignment.topLeft,
-                      child: Text(
-                        _tripSummary!.subHeading,
-                        style: const TextStyle(
-                            color: Colors.black,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold),
-                        textAlign: TextAlign.left,
-                      ),
-                    )),
+                  padding: const EdgeInsets.fromLTRB(5, 0, 5, 10),
+                  child: Align(
+                    alignment: Alignment.topLeft,
+                    child: Text(
+                      _tripSummary!.subHeading,
+                      style: const TextStyle(
+                          color: Colors.black,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold),
+                      textAlign: TextAlign.left,
+                    ),
+                  ),
+                ),
               ),
               SizedBox(
                   child: Padding(

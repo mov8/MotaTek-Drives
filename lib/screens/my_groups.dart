@@ -111,11 +111,13 @@ class _MyGroupsFormState extends State<MyGroupsForm> {
             return portraitView();
           } else {
             return const SizedBox(
-                width: double.infinity,
-                height: double.infinity,
-                child: Align(
-                    alignment: Alignment.center,
-                    child: CircularProgressIndicator()));
+              width: double.infinity,
+              height: double.infinity,
+              child: Align(
+                alignment: Alignment.center,
+                child: CircularProgressIndicator(),
+              ),
+            );
           }
 
           throw ('Error - FutureBuilder group.dart');
@@ -127,24 +129,57 @@ class _MyGroupsFormState extends State<MyGroupsForm> {
   Widget portraitView() {
     return Column(children: [
       Expanded(
-          child: ListView.builder(
-              itemCount: groups.length,
-              itemBuilder: (context, index) => Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10.0, vertical: 5.0),
-                  child: Card(
-                      elevation: 5,
-                      child: CheckboxListTile(
-                        title: Text(groups[index].name,
-                            style: const TextStyle(
-                              color: Colors.black,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            )),
-                        value: groups[index].selected,
-                        onChanged: (value) => setState(() =>
-                            groups[index].selected = !groups[index].selected),
-                      ))))),
+        child: ListView.builder(
+          itemCount: groups.length,
+          itemBuilder: (context, index) => Padding(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
+            child: Card(
+              elevation: 5,
+              child: CheckboxListTile(
+                title: Text(
+                  groups[index].name,
+                  style: const TextStyle(
+                    color: Colors.black,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                subtitle: Column(children: [
+                  Row(children: [
+                    Expanded(
+                      flex: 1,
+                      child: Text(
+                          'Organiser: ${groups[index].ownerForename} ${groups[index].ownerSurname}'),
+                    ),
+                  ]),
+                  Row(children: [
+                    Expanded(
+                      flex: 1,
+                      child: Text('email: ${groups[index].ownerEmail}'),
+                    ),
+                  ]),
+                  Row(children: [
+                    Expanded(
+                      flex: 1,
+                      child: Text('tel: ${groups[index].ownerPhone}'),
+                    ),
+                  ]),
+                  Row(children: [
+                    Expanded(
+                      flex: 1,
+                      child: Text('Members: ${groups[index].memberCount}'),
+                    ),
+                  ])
+                ]),
+                value: groups[index].selected,
+                onChanged: (value) => setState(
+                    () => groups[index].selected = !groups[index].selected),
+              ),
+            ),
+          ),
+        ),
+      ),
       Align(
         alignment: Alignment.bottomLeft,
         child: _handleChips(),

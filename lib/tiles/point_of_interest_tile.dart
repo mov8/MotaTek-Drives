@@ -112,7 +112,10 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
       child: ExpansionTile(
         controller: ExpansionTileController(),
         shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(5))),
+          borderRadius: BorderRadius.all(
+            Radius.circular(5),
+          ),
+        ),
         title: widget.pointOfInterest.getName() == ''
             ? const Text(
                 'Add a point of interest',
@@ -122,9 +125,10 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                   fontWeight: FontWeight.bold,
                 ),
               )
-            : Text(widget.pointOfInterest.getName(),
-                style: const TextStyle(
-                    color: Colors.black)), //getTitles(index)[0]),
+            : Text(
+                widget.pointOfInterest.getName(),
+                style: const TextStyle(color: Colors.black),
+              ), //getTitles(index)[0]),
         collapsedBackgroundColor: widget.index.isOdd
             ? Colors.white
             : const Color.fromARGB(255, 174, 211, 241),
@@ -137,7 +141,11 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
         },
         leading: IconButton(
           iconSize: 25,
-          icon: Icon(markerIcon(widget.pointOfInterest.getType())),
+          icon: Icon(
+            markerIcon(
+              widget.pointOfInterest.getType(),
+            ),
+          ),
           onPressed: widget.onIconTap(widget.index),
         ),
 
@@ -150,213 +158,223 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
         */
         children: [
           SizedBox(
-              height: 500,
-              child: Padding(
-                  padding: const EdgeInsets.fromLTRB(5, 5, 0, 30),
-                  child: Column(children: <Widget>[
-                    Row(children: [
-                      if (canEdit) ...[
-                        Expanded(
-                            flex: 10,
-                            child: DropdownButtonFormField<String>(
-                                decoration: const InputDecoration(
-                                  border: OutlineInputBorder(),
-                                  labelText: 'Type',
-                                ),
-                                value:
-                                    widget.pointOfInterest.getType().toString(),
-                                items: poiTypes
-                                    .map((item) => DropdownMenuItem<String>(
-                                          value: item['id'].toString(),
-                                          child: Row(children: [
-                                            Icon(
-                                              IconData(item['iconMaterial'],
-                                                  fontFamily: 'MaterialIcons'),
-                                              color:
-                                                  Color(item['colourMaterial']),
-                                            ),
-                                            Text('    ${item['name']}')
-                                          ]),
-                                        ))
-                                    .toList(),
-                                onChanged: (item) {
-                                  int type =
-                                      item == null ? -1 : int.parse(item);
-                                  widget.pointOfInterest.setType(type);
-                                })),
-                        Expanded(
-                          flex: 8,
-                          child: SizedBox(
-                              child: Align(
-                                  alignment: Alignment.bottomCenter,
-                                  child: ActionChip(
-                                    label: const Text(
-                                      'Image',
-                                      style: TextStyle(
-                                          fontSize: 18, color: Colors.white),
-                                    ),
-                                    avatar: const Icon(Icons.photo_album,
-                                        size: 20, color: Colors.white),
-                                    onPressed: () => loadImage(index),
-                                    backgroundColor: Colors.blueAccent,
-                                  ))),
-                        ),
-                      ] else ...[
-                        Expanded(
-                          flex: 10,
-                          child: Padding(
-                              padding: const EdgeInsets.fromLTRB(10, 5, 5, 20),
-                              child: Row(children: [
-                                Icon(
-                                  IconData(
-                                      poiTypes[widget.pointOfInterest.getType()]
-                                          ['iconMaterial'],
-                                      fontFamily: 'MaterialIcons'),
-                                  color: Color(
-                                      poiTypes[widget.pointOfInterest.getType()]
-                                          ['colourMaterial']),
-                                ),
-                                Text(
-                                    '    ${poiTypes[widget.pointOfInterest.getType()]['name']}')
-                              ])),
-                        ),
-                      ],
-                    ]),
-                    Row(
-                      children: [
-                        Expanded(
-                            child: Padding(
-                                padding:
-                                    const EdgeInsets.fromLTRB(0, 10, 10, 10),
-                                child: TextFormField(
-                                    readOnly: !canEdit,
-                                    initialValue:
-                                        widget.pointOfInterest.getName(),
-                                    autofocus: canEdit,
-                                    textInputAction: TextInputAction.next,
-                                    textAlign: TextAlign.start,
-                                    keyboardType: TextInputType.streetAddress,
-                                    textCapitalization:
-                                        TextCapitalization.sentences,
-                                    decoration: const InputDecoration(
-                                      border: OutlineInputBorder(),
-                                      hintText:
-                                          "What is the point of interest's name...",
-                                      labelText: 'Point of interest name',
-                                    ),
-                                    style:
-                                        Theme.of(context).textTheme.bodyLarge,
-                                    autovalidateMode:
-                                        AutovalidateMode.onUserInteraction,
-                                    onFieldSubmitted: (text) =>
-                                        widget.pointOfInterest.setName(text))))
-                      ],
-                    ),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Padding(
-                              padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
-                              child: TextFormField(
-                                  readOnly: !canEdit,
-                                  maxLines: null,
-                                  textInputAction: TextInputAction.done,
-                                  //     expands: true,
-                                  initialValue:
-                                      widget.pointOfInterest.getDescription(),
-                                  textAlign: TextAlign.start,
-                                  keyboardType: TextInputType.streetAddress,
-                                  textCapitalization:
-                                      TextCapitalization.sentences,
-                                  decoration: const InputDecoration(
-                                    border: OutlineInputBorder(),
-                                    hintText: 'Describe Point of Interest...',
-                                    labelText: 'Point of interest description',
-                                  ),
-                                  style: Theme.of(context).textTheme.bodyLarge,
-                                  autovalidateMode:
-                                      AutovalidateMode.onUserInteraction,
-                                  onFieldSubmitted: (text) => widget
-                                      .pointOfInterest
-                                      .setDescription(text) //body = text
-                                  )),
-                        ),
-                      ],
-                    ),
-                    if (widget.pointOfInterest.getImages().isNotEmpty &&
-                        widget.pointOfInterest.url.isEmpty)
-                      Row(children: <Widget>[
-                        Expanded(
-                            flex: 8,
-                            child: SizedBox(
-                                height: 175,
-                                child: ListView(
-                                  scrollDirection: Axis.horizontal,
-                                  children: [
-                                    for (Photo photo in photosFromJson(
-                                        widget.pointOfInterest.getImages()))
-                                      showLocalImage(photo.url)
-                                  ],
-                                )))
-                      ]),
-                    if (widget.pointOfInterest.getImages().isNotEmpty &&
-                        widget.pointOfInterest.url.isNotEmpty)
-                      Row(children: <Widget>[
-                        Expanded(
-                            flex: 8,
-                            child: SizedBox(
-                                height: 175,
-                                child: ListView(
-                                  scrollDirection: Axis.horizontal,
-                                  children: [
-                                    for (String url
-                                        in getImageUrls(widget.pointOfInterest))
-                                      showWebImage(url)
-                                  ],
-                                )))
-                      ]),
+            height: 500,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(5, 5, 0, 30),
+              child: Column(
+                children: <Widget>[
+                  Row(children: [
                     if (canEdit) ...[
-                      Align(
-                        alignment: Alignment.bottomLeft,
-                        child: ActionChip(
-                          label: const Text(
-                            'Delete',
-                            style: TextStyle(fontSize: 18, color: Colors.white),
+                      Expanded(
+                          flex: 10,
+                          child: DropdownButtonFormField<String>(
+                              decoration: const InputDecoration(
+                                border: OutlineInputBorder(),
+                                labelText: 'Type',
+                              ),
+                              value:
+                                  widget.pointOfInterest.getType().toString(),
+                              items: poiTypes
+                                  .map((item) => DropdownMenuItem<String>(
+                                        value: item['id'].toString(),
+                                        child: Row(children: [
+                                          Icon(
+                                            IconData(item['iconMaterial'],
+                                                fontFamily: 'MaterialIcons'),
+                                            color:
+                                                Color(item['colourMaterial']),
+                                          ),
+                                          Text('    ${item['name']}')
+                                        ]),
+                                      ))
+                                  .toList(),
+                              onChanged: (item) {
+                                int type = item == null ? -1 : int.parse(item);
+                                widget.pointOfInterest.setType(type);
+                              })),
+                      Expanded(
+                        flex: 8,
+                        child: SizedBox(
+                            child: Align(
+                                alignment: Alignment.bottomCenter,
+                                child: ActionChip(
+                                  label: const Text(
+                                    'Image',
+                                    style: TextStyle(
+                                        fontSize: 18, color: Colors.white),
+                                  ),
+                                  avatar: const Icon(Icons.photo_album,
+                                      size: 20, color: Colors.white),
+                                  onPressed: () => loadImage(index),
+                                  backgroundColor: Colors.blueAccent,
+                                ))),
+                      ),
+                    ] else ...[
+                      Expanded(
+                        flex: 10,
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(10, 5, 5, 20),
+                          child: Row(
+                            children: [
+                              Icon(
+                                IconData(
+                                    poiTypes[widget.pointOfInterest.getType()]
+                                        ['iconMaterial'],
+                                    fontFamily: 'MaterialIcons'),
+                                color: Color(
+                                    poiTypes[widget.pointOfInterest.getType()]
+                                        ['colourMaterial']),
+                              ),
+                              Text(
+                                  '    ${poiTypes[widget.pointOfInterest.getType()]['name']}')
+                            ],
                           ),
-                          avatar: const Icon(Icons.delete,
-                              size: 20, color: Colors.white),
-                          onPressed: () => widget.onDelete,
-                          backgroundColor: Colors.blueAccent,
+                        ),
+                      ),
+                    ],
+                  ]),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
+                          child: TextFormField(
+                              readOnly: !canEdit,
+                              initialValue: widget.pointOfInterest.getName(),
+                              autofocus: canEdit,
+                              textInputAction: TextInputAction.next,
+                              textAlign: TextAlign.start,
+                              keyboardType: TextInputType.streetAddress,
+                              textCapitalization: TextCapitalization.sentences,
+                              decoration: const InputDecoration(
+                                border: OutlineInputBorder(),
+                                hintText:
+                                    "What is the point of interest's name...",
+                                labelText: 'Point of interest name',
+                              ),
+                              style: Theme.of(context).textTheme.bodyLarge,
+                              autovalidateMode:
+                                  AutovalidateMode.onUserInteraction,
+                              onFieldSubmitted: (text) =>
+                                  widget.pointOfInterest.setName(text)),
                         ),
                       )
-                    ] else if (widget.pointOfInterest.url.isNotEmpty) ...[
-                      Row(children: [
-                        Expanded(
-                            flex: 1,
-                            child: Padding(
-                                padding: const EdgeInsets.fromLTRB(10, 0, 5, 0),
-                                child: Row(children: [
-                                  StarRating(
-                                      onRatingChanged: changeRating,
-                                      rating:
-                                          widget.pointOfInterest.getScore()),
-                                  Align(
-                                      alignment: Alignment.topLeft,
-                                      child: Text(
-                                          '(${widget.pointOfInterest.scored})',
-                                          style: const TextStyle(
-                                              color: Colors.black,
-                                              fontSize: 15)))
-                                ]))),
-                        Expanded(
-                          flex: 1,
-                          child: IconButton(
-                              icon: const Icon(Icons.share),
-                              onPressed: () => (setState(() {}))),
-                        )
-                      ]),
                     ],
-                  ]))),
+                  ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
+                          child: TextFormField(
+                              readOnly: !canEdit,
+                              maxLines: null,
+                              textInputAction: TextInputAction.done,
+                              //     expands: true,
+                              initialValue:
+                                  widget.pointOfInterest.getDescription(),
+                              textAlign: TextAlign.start,
+                              keyboardType: TextInputType.streetAddress,
+                              textCapitalization: TextCapitalization.sentences,
+                              decoration: const InputDecoration(
+                                border: OutlineInputBorder(),
+                                hintText: 'Describe Point of Interest...',
+                                labelText: 'Point of interest description',
+                              ),
+                              style: Theme.of(context).textTheme.bodyLarge,
+                              autovalidateMode:
+                                  AutovalidateMode.onUserInteraction,
+                              onFieldSubmitted: (text) => widget.pointOfInterest
+                                  .setDescription(text) //body = text
+                              ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (widget.pointOfInterest.getImages().isNotEmpty &&
+                      widget.pointOfInterest.url.isEmpty)
+                    Row(children: <Widget>[
+                      Expanded(
+                        flex: 8,
+                        child: SizedBox(
+                          height: 175,
+                          child: ListView(
+                            scrollDirection: Axis.horizontal,
+                            children: [
+                              for (Photo photo in photosFromJson(
+                                widget.pointOfInterest.getImages(),
+                              ))
+                                showLocalImage(photo.url)
+                            ],
+                          ),
+                        ),
+                      ),
+                    ]),
+                  if (widget.pointOfInterest.getImages().isNotEmpty &&
+                      widget.pointOfInterest.url.isNotEmpty)
+                    Row(children: <Widget>[
+                      Expanded(
+                        flex: 8,
+                        child: SizedBox(
+                          height: 175,
+                          child: ListView(
+                            scrollDirection: Axis.horizontal,
+                            children: [
+                              for (String url
+                                  in getImageUrls(widget.pointOfInterest))
+                                showWebImage(url)
+                            ],
+                          ),
+                        ),
+                      ),
+                    ]),
+                  if (canEdit) ...[
+                    Align(
+                      alignment: Alignment.bottomLeft,
+                      child: ActionChip(
+                        label: const Text(
+                          'Delete',
+                          style: TextStyle(fontSize: 18, color: Colors.white),
+                        ),
+                        avatar: const Icon(Icons.delete,
+                            size: 20, color: Colors.white),
+                        onPressed: () => widget.onDelete,
+                        backgroundColor: Colors.blueAccent,
+                      ),
+                    )
+                  ] else if (widget.pointOfInterest.url.isNotEmpty) ...[
+                    Row(children: [
+                      Expanded(
+                        flex: 1,
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(10, 0, 5, 0),
+                          child: Row(
+                            children: [
+                              StarRating(
+                                  onRatingChanged: changeRating,
+                                  rating: widget.pointOfInterest.getScore()),
+                              Align(
+                                  alignment: Alignment.topLeft,
+                                  child: Text(
+                                      '(${widget.pointOfInterest.scored})',
+                                      style: const TextStyle(
+                                          color: Colors.black, fontSize: 15)))
+                            ],
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        flex: 1,
+                        child: IconButton(
+                            icon: const Icon(Icons.share),
+                            onPressed: () => (setState(() {}))),
+                      )
+                    ]),
+                  ],
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -367,36 +385,38 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
       try {
         ImagePicker picker = ImagePicker();
         await //ImagePicker()
-            picker
-                .pickImage(source: ImageSource.gallery)
-                .then((pickedFile) async {
-          try {
-            if (pickedFile != null) {
-              final directory = (await getApplicationDocumentsDirectory()).path;
+            picker.pickImage(source: ImageSource.gallery).then(
+          (pickedFile) async {
+            try {
+              if (pickedFile != null) {
+                final directory =
+                    (await getApplicationDocumentsDirectory()).path;
 
-              /// Don't know what type of image so have to get file extension from picker file
-              int num = 1;
-              if (widget.pointOfInterest.getImages().isNotEmpty) {
-                /// count number of images
-                num =
-                    '{'.allMatches(widget.pointOfInterest.getImages()).length +
-                        1;
+                /// Don't know what type of image so have to get file extension from picker file
+                int num = 1;
+                if (widget.pointOfInterest.getImages().isNotEmpty) {
+                  /// count number of images
+                  num = '{'
+                          .allMatches(widget.pointOfInterest.getImages())
+                          .length +
+                      1;
+                }
+                debugPrint('Image count: $num');
+                String imagePath =
+                    '$directory/point_of_interest_${id}_$num.${pickedFile.path.split('.').last}';
+                File(pickedFile.path).copy(imagePath);
+                setState(() {
+                  widget.pointOfInterest.setImages(
+                      '[${widget.pointOfInterest.getImages().isNotEmpty ? '${widget.pointOfInterest.getImages().substring(1, widget.pointOfInterest.getImages().length - 1)},' : ''}{"url":"$imagePath","caption":"image $num"}]');
+                  debugPrint('Images: $widget.pointOfInterest.images');
+                });
               }
-              debugPrint('Image count: $num');
-              String imagePath =
-                  '$directory/point_of_interest_${id}_$num.${pickedFile.path.split('.').last}';
-              File(pickedFile.path).copy(imagePath);
-              setState(() {
-                widget.pointOfInterest.setImages(
-                    '[${widget.pointOfInterest.getImages().isNotEmpty ? '${widget.pointOfInterest.getImages().substring(1, widget.pointOfInterest.getImages().length - 1)},' : ''}{"url":"$imagePath","caption":"image $num"}]');
-                debugPrint('Images: $widget.pointOfInterest.images');
-              });
+            } catch (e) {
+              String err = e.toString();
+              debugPrint('Error getting image: $err');
             }
-          } catch (e) {
-            String err = e.toString();
-            debugPrint('Error getting image: $err');
-          }
-        });
+          },
+        );
       } catch (e) {
         String err = e.toString();
         debugPrint('Error loading image: $err');
@@ -407,15 +427,6 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
   save(int id) {
     if (widget.index == id) {
       expanded = false;
-
-      ///     debugPrint(
-      ///         'Updating the pointofinterest: ${widget.pointOfInterest.name} [${widget.pointOfInterest.type}]');
-
-      ///     widget.pointOfInterest.name = widget.pointOfInterest.name;
-      ///     widget.pointOfInterest.description = widget.pointOfInterest.description;
-      ///     widget.pointOfInterest.setType(widget.pointOfInterest.type;
-      ///     widget.pointOfInterest.images = widget.pointOfInterest.images;
-      ///   widget.pointOfInterest.iconData = markerIcon(type);
     }
   }
 

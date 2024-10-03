@@ -9,6 +9,7 @@ class MyTripSelectTile extends StatefulWidget {
   final Future<void> Function(int) onShareTrip;
   final Future<void> Function(int) onDeleteTrip;
   final Future<void> Function(int)? onPublishTrip;
+  final void Function(int, bool)? onExpandChange;
   final int index;
   const MyTripSelectTile({
     super.key,
@@ -18,6 +19,7 @@ class MyTripSelectTile extends StatefulWidget {
     required this.onShareTrip,
     required this.onDeleteTrip,
     this.onPublishTrip,
+    this.onExpandChange,
   });
 
   @override
@@ -88,7 +90,7 @@ class _myTripSelectTileState extends State<MyTripSelectTile> {
             )
           ]),
           onExpansionChanged: (expanded) {
-            setState(() {});
+            widget.onExpandChange!(widget.index, expanded);
           },
           children: [
             SizedBox(

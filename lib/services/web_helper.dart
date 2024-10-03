@@ -84,63 +84,67 @@ class _searchLocationState extends State<SearchLocation> {
   @override
   Widget build(BuildContext context) {
     return Container(
-        height: 45,
-        width: MediaQuery.of(context).size.width - 50,
-        decoration: BoxDecoration(
-            color: Colors.white,
-            border: Border.all(
-              color: Colors.blue,
+      height: 45,
+      width: MediaQuery.of(context).size.width - 50,
+      decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(
+            color: Colors.blue,
+          ),
+          borderRadius: const BorderRadius.all(Radius.circular(20))),
+      // color: Colors.white,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 5, 20, 5),
+        child: Row(
+          children: [
+            const Expanded(
+              flex: 1,
+              child: Icon(Icons.search),
             ),
-            borderRadius: const BorderRadius.all(Radius.circular(20))),
-        // color: Colors.white,
-        child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 5, 20, 5),
-            child: Row(children: [
-              const Expanded(
-                flex: 1,
-                child: Icon(Icons.search),
-              ),
-              const SizedBox(
-                width: 10,
-              ),
-              Expanded(
-                  flex: 14,
-                  child: Autocomplete(
-                    optionsBuilder: (TextEditingValue textEditingValue) async {
-                      autoCompleteData =
-                          await getSuggestions(textEditingValue.text);
-                      setState(() {
-                        waypoint = textEditingValue.text;
-                      });
-                      if (textEditingValue.text.isEmpty) {
-                        return const Iterable<String>.empty();
-                      } else {
-                        return autoCompleteData.where((word) => word
-                            .toLowerCase()
-                            .contains(textEditingValue.text.toLowerCase()));
-                      }
-                    },
-                    fieldViewBuilder:
-                        (context, controller, focusNode, onEditingComplete) {
-                      textEditingController = controller;
-                      return TextFormField(
-                          textCapitalization: TextCapitalization.characters,
-                          controller: controller,
-                          focusNode: focusNode,
-                          onEditingComplete: onEditingComplete,
-                          decoration: const InputDecoration(
-                              hintText: 'Search for place name'));
-                    },
-                    onSelected: (String selection) async {
-                      clearSelections();
-                      LatLng pos = await getPosition(selection);
-                      widget.onSelect(pos);
-                    },
-                  )),
-              const SizedBox(
-                width: 10,
-              ),
-            ])));
+            const SizedBox(
+              width: 10,
+            ),
+            Expanded(
+                flex: 14,
+                child: Autocomplete(
+                  optionsBuilder: (TextEditingValue textEditingValue) async {
+                    autoCompleteData =
+                        await getSuggestions(textEditingValue.text);
+                    setState(() {
+                      waypoint = textEditingValue.text;
+                    });
+                    if (textEditingValue.text.isEmpty) {
+                      return const Iterable<String>.empty();
+                    } else {
+                      return autoCompleteData.where((word) => word
+                          .toLowerCase()
+                          .contains(textEditingValue.text.toLowerCase()));
+                    }
+                  },
+                  fieldViewBuilder:
+                      (context, controller, focusNode, onEditingComplete) {
+                    textEditingController = controller;
+                    return TextFormField(
+                        textCapitalization: TextCapitalization.characters,
+                        controller: controller,
+                        focusNode: focusNode,
+                        onEditingComplete: onEditingComplete,
+                        decoration: const InputDecoration(
+                            hintText: 'Search for place name'));
+                  },
+                  onSelected: (String selection) async {
+                    clearSelections();
+                    LatLng pos = await getPosition(selection);
+                    widget.onSelect(pos);
+                  },
+                )),
+            const SizedBox(
+              width: 10,
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void clearSelections() {
@@ -152,34 +156,41 @@ class _searchLocationState extends State<SearchLocation> {
 //final apiUrl = 'http://10.101.1.150:5000/v1/user/register/';
 const urlBase = 'http://10.101.1.150:5000/'; // Home network
 // const urlBase = 'http://192.168.1.13:5000/'; // Boston
+// const urlBase = 'http://192.168.1.10:5000/'; // Boston
 
 Future<Map<String, dynamic>> postUser(User user,
     {bool register = false}) async {
   Map<String, dynamic> userMap = user.toMap();
-  var url = Uri.parse('${urlBase}v1/user/${register ? "register" : "login"}');
-  final http.Response response = await http
-      .post(url,
-          headers: <String, String>{
-            "Content-Type": "application/json; charset=UTF-8",
-          },
-          body: jsonEncode(userMap))
-      .timeout(const Duration(seconds: 20));
-  Map<String, dynamic> map = jsonDecode(response.body);
-  if (response.statusCode == 201) {
-    Setup().jwt = map['token'];
-    if (!register) {
-      Setup().user.forename = map['forename'];
-      Setup().user.surname = map['surname'];
-      Setup().user.email = user.email;
-      Setup().user.password = user.password;
-      Setup().setupToDb();
-    }
-    await updateSetup();
+  Map<String, dynamic> map = {'message': ''};
+  try {
+    var url = Uri.parse('${urlBase}v1/user/${register ? "register" : "login"}');
+    final http.Response response = await http
+        .post(url,
+            headers: <String, String>{
+              "Content-Type": "application/json; charset=UTF-8",
+            },
+            body: jsonEncode(userMap))
+        .timeout(const Duration(seconds: 20));
+    Map<String, dynamic> map = jsonDecode(response.body);
+    if (response.statusCode == 201) {
+      Setup().jwt = map['token'];
+      if (!register) {
+        Setup().user.forename = map['forename'];
+        Setup().user.surname = map['surname'];
+        Setup().user.email = user.email;
+        Setup().user.password = user.password;
+        Setup().setupToDb();
+      }
+      await updateSetup();
 
-    return {'msg': 'OK'};
-  } else {
-    return map;
+      return {'msg': 'OK'};
+    } else {
+      return map;
+    }
+  } catch (e) {
+    debugPrint('Login error: ${e.toString()}');
   }
+  return map;
 }
 
 /*
@@ -273,25 +284,27 @@ Future<bool> login(BuildContext context) async {
         ),
         actions: [
           TextButton(
-              onPressed: () async {
-                Map<String, dynamic> response = await tryLogin(email, password);
-                status = response['msg'];
-                if (status == 'OK' && context.mounted) {
-                  Navigator.pop(context);
-                } else {
-                  setState(() {});
-                }
-              },
-              child: const Text(
-                'Ok',
-                style: TextStyle(fontSize: 20),
-              )),
+            onPressed: () async {
+              Map<String, dynamic> response = await tryLogin(email, password);
+              status = response['msg'];
+              if (status == 'OK' && context.mounted) {
+                Navigator.pop(context);
+              } else {
+                setState(() {});
+              }
+            },
+            child: const Text(
+              'Ok',
+              style: TextStyle(fontSize: 20),
+            ),
+          ),
           TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text(
-                'Cancel',
-                style: TextStyle(fontSize: 20),
-              ))
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(fontSize: 20),
+            ),
+          )
         ],
       ),
     ),
@@ -992,6 +1005,60 @@ Widget showWebImage(String imageUrl, {double width = 200}) {
           )));
 }
 
+Future<List<Group>> getManagedGroups() async {
+  List<Group> groupsSent = [];
+  String jwToken = Setup().jwt;
+  try {
+    final http.Response response = await http.get(
+      Uri.parse('${urlBase}v1/group/managed'),
+      headers: {
+        'Authorization': 'Bearer $jwToken', // $Setup().jwt',
+        'Content-Type': 'application/json',
+      },
+    ).timeout(const Duration(seconds: 10));
+    if ([200, 201].contains(response.statusCode)) {
+      var groups = jsonDecode(response.body);
+      groupsSent = [
+        for (Map<String, dynamic> groupData in groups)
+          Group.fromGroupSummaryMap(groupData)
+      ];
+    }
+  } catch (e) {
+    debugPrint("Can't access data on the web");
+  }
+  return groupsSent;
+}
+
+Future<List<GroupMember>> getManagedGroupMembers(String groupId) async {
+  List<GroupMember> groupMembersSent = [];
+  String jwToken = Setup().jwt;
+  try {
+    Uri uri = Uri.parse('${urlBase}v1/group_member/members/$groupId');
+    final http.Response response = await http.get(
+      uri,
+      //  Uri.parse('${urlBase}v1/group_member/group/$groupId'),
+      // "http://10.101.1.150:5000/v1/group_member/group/a9c4c22094b94dd58f852125b912487d"
+      headers: {
+        'Authorization': 'Bearer $jwToken', // $Setup().jwt',
+        'Content-Type': 'application/json',
+      },
+    ).timeout(const Duration(seconds: 10));
+    if ([200, 201].contains(response.statusCode)) {
+      var groups = jsonDecode(response.body);
+      for (Map<String, dynamic> groupData in groups) {
+        debugPrint(groupData.toString());
+      }
+      groupMembersSent = [
+        for (Map<String, dynamic> groupData in groups)
+          GroupMember.fromApiMap(groupData)
+      ];
+    }
+  } catch (e) {
+    debugPrint("Can't access data on the web");
+  }
+  return groupMembersSent;
+}
+
 Future<List<Group>> getGroups() async {
   List<Group> groupsSent = [];
   String jwToken = Setup().jwt;
@@ -1030,7 +1097,7 @@ Future<List<Group>> getMyGroups() async {
       var groups = jsonDecode(response.body);
       groupsSent = [
         for (Map<String, dynamic> groupData in groups)
-          Group(id: groupData['group_id'], name: groupData['group_name'])
+          Group.fromMyGroupsMap(groupData)
       ];
     }
   } catch (e) {
@@ -1060,6 +1127,28 @@ Future<List<GroupDrive>> getGroupDrives() async {
     debugPrint("getGroupDrives error: ${e.toString()}");
   }
   return groupsSent;
+}
+
+Future<Map<String, dynamic>> deleteGroupDrive(
+    {required String groupDriveId}) async {
+  Map<String, dynamic> resp = {'msg': 'Failed'};
+  String jwToken = Setup().jwt;
+  var uri = Uri.parse('${urlBase}v1/group_drive/delete');
+
+  final http.Response response = await http
+      .post(uri,
+          headers: {
+            'Authorization': 'Bearer $jwToken', // $Setup().jwt',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode({'group_drive_id': groupDriveId}))
+      .timeout(const Duration(seconds: 10));
+  if ([200, 201].contains(response.statusCode)) {
+    resp = {'msg': 'OK'};
+    debugPrint('Member added OK: ${response.statusCode}');
+  }
+
+  return resp;
 }
 
 Future<List<Group>> getMessagesByGroup() async {
@@ -1180,7 +1269,7 @@ Future<List<EventInvitation>> getInvitationssByUser() async {
   return invitationsSent;
 }
 
-Future<List<EventInvitation>> getInvitationssByEvent(
+Future<List<EventInvitation>> getInvitationsByEvent(
     {String eventId = ''}) async {
   List<EventInvitation> invitationsSent = [];
   String jwToken = Setup().jwt;
@@ -1205,7 +1294,56 @@ Future<List<EventInvitation>> getInvitationssByEvent(
   return invitationsSent;
 }
 
-Future<String> postInvitation(GroupDriveInvitation invitation) async {
+Future<List<EventInvitation>> getInvitationsToAlter(
+    {String eventId = ''}) async {
+  List<EventInvitation> invitationsSent = [];
+  String jwToken = Setup().jwt;
+  try {
+    final http.Response response = await http.get(
+      Uri.parse('${urlBase}v1/group_drive_invitation/alter/$eventId'),
+      headers: {
+        'Authorization': 'Bearer $jwToken', // $Setup().jwt',
+        'Content-Type': 'application/json',
+      },
+    ).timeout(const Duration(seconds: 10));
+    if ([200, 201].contains(response.statusCode)) {
+      var invitations = jsonDecode(response.body);
+      invitationsSent = [
+        for (Map<String, dynamic> invitation in invitations)
+          EventInvitation.fromByUserToAlterMap(invitation)
+      ];
+    }
+  } catch (e) {
+    debugPrint("Can't access data on the web: ${e.toString()}");
+  }
+  return invitationsSent;
+}
+
+Future<String> postGroupDriveInvitations(
+    List<EventInvitation> invitations) async {
+  String jwToken = Setup().jwt;
+  List<Map<String, dynamic>> map = [
+    for (EventInvitation invite in invitations)
+      if (invite.selected) invite.toMap()
+  ];
+  final http.Response response =
+      await http.post(Uri.parse('${urlBase}v1/group_drive_invitation/update'),
+          headers: {
+            'Authorization': 'Bearer $jwToken', // $Setup().jwt',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode(map));
+  if ([200, 201].contains(response.statusCode)) {
+    // var responseData = jsonDecode(String.fromCharCodes(response.bodyBytes));
+    var responseData = jsonDecode(response.body);
+    debugPrint('Server response: $responseData');
+    // group.id = responseData['id'];
+    return responseData.toString();
+  }
+  return '';
+}
+
+Future<String> postGroupDrive(GroupDriveInvitation invitation) async {
   String jwToken = Setup().jwt;
   Map<String, dynamic> map = invitation.toMap();
   final http.Response response =

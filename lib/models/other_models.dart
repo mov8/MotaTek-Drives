@@ -527,6 +527,11 @@ class Group {
   String id = '';
   String name = '';
   String description = '';
+  String ownerForename;
+  String ownerSurname;
+  String ownerPhone;
+  String ownerEmail;
+  int memberCount;
   List<GroupMember> _members = [];
   DateTime created = DateTime.now();
   bool edited = false;
@@ -543,7 +548,12 @@ class Group {
       this.edited = false,
       this.userId = '',
       this.messages = 0,
-      this.unreadMessages = 0})
+      this.unreadMessages = 0,
+      this.ownerForename = '',
+      this.ownerSurname = '',
+      this.ownerPhone = '',
+      this.ownerEmail = '',
+      this.memberCount = 0})
       : created = created ?? DateTime.now(),
         _members = List.from(members);
 
@@ -572,6 +582,27 @@ class Group {
         created: DateTime.parse(map['created']),
         userId: map['user_id'],
         id: map['id']);
+  }
+
+  factory Group.fromGroupSummaryMap(var map) {
+    return Group(
+      id: map['group_id'],
+      name: map['group_name'],
+      created: DateTime.parse(map['created']),
+      memberCount: int.parse(map['members']),
+    );
+  }
+
+  factory Group.fromMyGroupsMap(var map) {
+    return Group(
+      id: map['group_id'],
+      name: map['group_name'],
+      ownerForename: map['owner_forename'],
+      ownerSurname: map['owner_surname'],
+      ownerPhone: map['owner_phone'],
+      ownerEmail: map['owner_email'],
+      memberCount: int.parse(map['members']),
+    );
   }
 
   List<GroupMember> membersFromMap(List<Map<String, dynamic>> maps) {
@@ -619,7 +650,8 @@ class GroupMember {
       this.userId = '',
       this.groupId = '',
       this.email = '',
-      this.phone = ''});
+      this.phone = '',
+      this.selected = false});
 
   factory GroupMember.fromMap(Map<String, dynamic> map) {
     return GroupMember(
@@ -643,6 +675,20 @@ class GroupMember {
       phone: map['phone'],
     );
   }
+
+  factory GroupMember.fromApiMap(Map<String, dynamic> map) {
+    return GroupMember(
+      id: map['group_member_id'],
+      userId: map['user_id'],
+      groupId: map['group_id'],
+      forename: map['member_forename'],
+      surname: map['member_surname'],
+      email: map['member_email'],
+      phone: map['member_phone'],
+      selected: true,
+    );
+  }
+
 // Getter for edited have to use this because ints are passed by value not by reference
   bool get edited => isEdited == 'true';
 // Setter for edited
@@ -670,13 +716,15 @@ class GroupMember {
       'forename': forename,
       'surname': surname,
       'email': email,
-      'phone': phone
+      'phone': phone,
+      'added': DateTime.now().toIso8601String(),
     };
   }
 }
 
 class GroupDrive {
   String driveId;
+  String groupDriveId;
   String name;
   int accepted;
   int pending;
@@ -685,6 +733,7 @@ class GroupDrive {
   bool selected = false;
   GroupDrive(
       {this.driveId = '',
+      this.groupDriveId = '',
       this.name = '',
       this.accepted = 0,
       this.pending = 0,
@@ -694,6 +743,7 @@ class GroupDrive {
   factory GroupDrive.fromMap(Map<String, dynamic> map) {
     return GroupDrive(
       driveId: map['drive_id'],
+      groupDriveId: map['group_drive_id'],
       name: map['drive_name'],
       accepted: int.parse(map['accepted']),
       pending: int.parse(map['pending']),
@@ -708,6 +758,7 @@ class EventInvitation {
   DateTime eventDate;
   String forename;
   String surname;
+  String phone;
   String email;
   String id;
   DateTime invitationDate;
@@ -720,6 +771,7 @@ class EventInvitation {
     eventDate,
     this.forename = '',
     this.surname = '',
+    this.phone = '',
     this.email = '',
     this.id = '',
     invitationDate,
@@ -745,11 +797,36 @@ class EventInvitation {
     return EventInvitation(
       forename: map['invitee_forename'],
       surname: map['invitee_surname'],
+      phone: map['invitee_phone'],
       email: map['invitee_email'],
       id: map['invitation_id'],
       invitationDate: DateTime.parse(map['invitation_date']),
       accepted: int.parse(map['accepted']),
     );
+  }
+  factory EventInvitation.fromByUserToAlterMap(Map<String, dynamic> map) {
+    return EventInvitation(
+      forename: map['invitee_forename'],
+      surname: map['invitee_surname'],
+      phone: map['invitee_phone'],
+      email: map['invitee_email'],
+      id: map['invitation_id'],
+      accepted: int.parse(map['accepted']),
+      driveId: map['group_drive_id'],
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'title': name,
+      'forname': forename,
+      'surname': surname,
+      'email': email,
+      'invitation_id': id,
+      'drive_id': driveId,
+      'drive_date': eventDate.toString(),
+      'invited': invitationDate.toString(),
+    };
   }
 }
 

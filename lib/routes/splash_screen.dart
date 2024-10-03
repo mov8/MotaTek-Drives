@@ -42,22 +42,26 @@ class _SplashScreenState extends State<SplashScreen> {
         Positioned(
           top: 50,
           left: 120,
-          child: Text('MotaTrip',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 52,
-                fontWeight: FontWeight.bold,
-              )),
+          child: Text(
+            'MotaTrip',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 52,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ),
         Positioned(
           top: 700,
-          left: 170,
-          child: Text('Explore your world',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-              )),
+          left: 140,
+          child: Text(
+            'Explore your world',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         )
       ]),
     );

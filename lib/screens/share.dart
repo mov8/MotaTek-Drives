@@ -26,6 +26,7 @@ class _shareFormState extends State<ShareForm> {
   bool edited = false;
   int groupIndex = 0;
   String testString = '';
+  bool _expanded = false;
 
   List<GroupMember> filteredGroupMembers = [];
   List<GroupMember> allMembers = [];
@@ -135,7 +136,7 @@ class _shareFormState extends State<ShareForm> {
             }
           },
         ),
-        actions: <Widget>[
+        /*   actions: <Widget>[
           IconButton(
             icon: const Icon(Icons.save),
             tooltip: 'Back to main screen',
@@ -155,6 +156,7 @@ class _shareFormState extends State<ShareForm> {
             },
           )
         ],
+        */
       ),
       //  bottomNavigationBar: _handleBottomNavigationBar(),
       body: FutureBuilder<bool>(
@@ -199,84 +201,89 @@ class _shareFormState extends State<ShareForm> {
                 onDeleteTrip: deleteTrip,
                 onLoadTrip: loadTrip,
                 onShareTrip: shareTrip,
+                onExpandChange: (expanded) {
+                  setState(() => (_expanded = expanded));
+                },
               ),
             ),
-            Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
-              child: Row(
-                children: [
-                  Expanded(
-                    flex: 1,
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(0, 0, 2, 0),
-                      child: DropdownButtonFormField<String>(
-                        style: const TextStyle(fontSize: 18),
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                          labelText: 'Filter by group',
-                        ),
-                        value: groupNames[0],
-                        items: groupNames
-                            .map(
-                              (item) => DropdownMenuItem<String>(
-                                value: item,
-                                child: Text(item,
-                                    style: const TextStyle(
-                                        color: Colors.black,
-                                        fontSize: 20,
-                                        fontWeight:
-                                            FontWeight.w400)), // bodyLarge!),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (item) => {
-                          setState(() {
-                            filteredGroupMembers.clear();
-                            groupName = item.toString();
-                            // group =
-                            //     groups.indexWhere((grp) => grp.name == item);
-                            group = groupNames.indexOf(item.toString());
-                            groupIndex = group - 1;
-                            if (group == 0) {
-                              filteredGroupMembers = allMembers;
-                            } else {
-                              filteredGroupMembers =
-                                  groups[groupIndex].groupMembers();
-                            }
-                          })
-                        },
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    flex: 1,
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(2, 0, 0, 0),
-                      child: TextFormField(
-                        controller: dateTxt,
-                        textInputAction: TextInputAction.done,
-                        autofocus: false,
-                        //    focusNode: fn1,
-                        style: const TextStyle(
-                            fontSize: 20, fontWeight: FontWeight.w400),
-                        decoration: InputDecoration(
-                          border: const OutlineInputBorder(),
-                          hintText: 'Trip date',
-                          labelText: 'Trip date',
-                          suffixIcon: IconButton(
-                            onPressed: () => tripDate(),
-                            icon: const Icon(Icons.schedule),
+            if (!_expanded) ...[
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
+                child: Row(
+                  children: [
+                    Expanded(
+                      flex: 1,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(0, 0, 2, 0),
+                        child: DropdownButtonFormField<String>(
+                          style: const TextStyle(fontSize: 18),
+                          decoration: const InputDecoration(
+                            border: OutlineInputBorder(),
+                            labelText: 'Filter by group',
                           ),
+                          value: groupNames[0],
+                          items: groupNames
+                              .map(
+                                (item) => DropdownMenuItem<String>(
+                                  value: item,
+                                  child: Text(item,
+                                      style: const TextStyle(
+                                          color: Colors.black,
+                                          fontSize: 20,
+                                          fontWeight:
+                                              FontWeight.w400)), // bodyLarge!),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (item) => {
+                            setState(() {
+                              filteredGroupMembers.clear();
+                              groupName = item.toString();
+                              // group =
+                              //     groups.indexWhere((grp) => grp.name == item);
+                              group = groupNames.indexOf(item.toString());
+                              groupIndex = group - 1;
+                              if (group == 0) {
+                                filteredGroupMembers = allMembers;
+                              } else {
+                                filteredGroupMembers =
+                                    groups[groupIndex].groupMembers();
+                              }
+                            })
+                          },
                         ),
-                        textCapitalization: TextCapitalization.words,
-                        textAlign: TextAlign.left,
                       ),
                     ),
-                  )
-                ],
+                    Expanded(
+                      flex: 1,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(2, 0, 0, 0),
+                        child: TextFormField(
+                          controller: dateTxt,
+                          textInputAction: TextInputAction.done,
+                          autofocus: false,
+                          //    focusNode: fn1,
+                          style: const TextStyle(
+                              fontSize: 20, fontWeight: FontWeight.w400),
+                          decoration: InputDecoration(
+                            border: const OutlineInputBorder(),
+                            hintText: 'Trip date',
+                            labelText: 'Trip date',
+                            suffixIcon: IconButton(
+                              onPressed: () => tripDate(),
+                              icon: const Icon(Icons.schedule),
+                            ),
+                          ),
+                          textCapitalization: TextCapitalization.words,
+                          textAlign: TextAlign.left,
+                        ),
+                      ),
+                    )
+                  ],
+                ),
               ),
-            ),
+            ],
             Expanded(
               child: ListView.builder(
                 itemCount: filteredGroupMembers.length,
@@ -396,7 +403,7 @@ class _shareFormState extends State<ShareForm> {
                 }
               }
               invitation.invited = attendees;
-              await postInvitation(invitation);
+              await postGroupDrive(invitation);
             },
             backgroundColor: Colors.blue,
             avatar: const Icon(Icons.send, color: Colors.white),

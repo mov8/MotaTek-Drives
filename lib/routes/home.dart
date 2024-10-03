@@ -107,7 +107,7 @@ You can also publish your trips for others to enjoy. You can invite a group of f
                   'the new free trip planning app',
                   style: TextStyle(
                     color: Colors.blue,
-                    fontSize: 28,
+                    fontSize: 25,
                     fontWeight: FontWeight.bold,
                   ),
                   textAlign: TextAlign.left,

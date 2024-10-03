@@ -84,176 +84,195 @@ class _SignupFormState extends State<SignupForm> {
             }
           },
         ),
-        actions: <Widget>[
-          IconButton(
-            icon: const Icon(Icons.save),
-            tooltip: 'Back to main screen',
-            onPressed: () {
-              debugPrint('debug print');
-              try {
-                // insertPort(widget.port);
-                // insertGauge(widget.gauge);
-              } catch (e) {
-                debugPrint('Error saving data : ${e.toString()}');
-              }
-              ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Data has been updated')));
-            },
-          )
-        ],
+        //  actions: <Widget>[
+        //    IconButton(
+        //      icon: const Icon(Icons.save),
+        //      tooltip: 'Back to main screen',
+        //      onPressed: () {
+        //        debugPrint('debug print');
+        //        try {
+        //          // insertPort(widget.port);
+        //         // insertGauge(widget.gauge);
+        //        } catch (e) {
+        //          debugPrint('Error saving data : ${e.toString()}');
+        //        }
+        //        ScaffoldMessenger.of(context).showSnackBar(
+        //            const SnackBar(content: Text('Data has been updated')));
+        //      },
+        //    )
+        //  ],
       ),
       body: portraitView(),
       // body: MediaQuery.of(context).orientation == Orientation.portrait ? portraitView() : landscapeView()
     );
   }
 
-  ListView portraitView() {
+  Widget portraitView() {
     // setup =  Settings().setup;
-    return ListView(children: <Widget>[
-      Padding(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
-          child: TextFormField(
-            autofocus: true,
-            decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-              hintText: 'Enter your forename',
-              labelText: 'Forename',
+    return SingleChildScrollView(
+      child: Expanded(
+        child: Column(
+          children: <Widget>[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+              child: TextFormField(
+                autofocus: true,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  hintText: 'Enter your forename',
+                  labelText: 'Forename',
+                ),
+                textInputAction: TextInputAction.next,
+                textCapitalization: TextCapitalization.words,
+                textAlign: TextAlign.left,
+                initialValue: Setup().user.forename.toString(),
+                style: Theme.of(context).textTheme.bodyLarge,
+                onChanged: (text) =>
+                    setState(() => Setup().user.forename = text),
+              ),
             ),
-            textInputAction: TextInputAction.next,
-            textCapitalization: TextCapitalization.words,
-            textAlign: TextAlign.left,
-            initialValue: Setup().user.forename.toString(),
-            style: Theme.of(context).textTheme.bodyLarge,
-            onChanged: (text) => setState(() => Setup().user.forename = text),
-          )),
-      Padding(
-        padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-        child: TextFormField(
-          decoration: const InputDecoration(
-            border: OutlineInputBorder(),
-            hintText: 'Enter surname',
-            labelText: 'Surname',
-          ),
-          textAlign: TextAlign.left,
-          textInputAction: TextInputAction.next,
-          textCapitalization: TextCapitalization.words,
-          initialValue: Setup().user.surname.toString(),
-          style: Theme.of(context).textTheme.bodyLarge,
-          onChanged: (text) => setState(() => Setup().user.surname = text),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+              child: TextFormField(
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  hintText: 'Enter surname',
+                  labelText: 'Surname',
+                ),
+                textAlign: TextAlign.left,
+                textInputAction: TextInputAction.next,
+                textCapitalization: TextCapitalization.words,
+                initialValue: Setup().user.surname.toString(),
+                style: Theme.of(context).textTheme.bodyLarge,
+                onChanged: (text) =>
+                    setState(() => Setup().user.surname = text),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+              child: TextFormField(
+                keyboardType: TextInputType.emailAddress,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  hintText: 'Enter your email address',
+                  labelText: 'Email address',
+                ),
+                textInputAction: TextInputAction.next,
+                textAlign: TextAlign.left,
+                initialValue: Setup().user.email.toString(),
+                style: Theme.of(context).textTheme.bodyLarge,
+                onChanged: (text) => setState(() => Setup().user.email = text),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+              child: TextFormField(
+                keyboardType: TextInputType.phone,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  hintText: 'Enter your phone number',
+                  labelText: 'Phone number',
+                ),
+                textInputAction: TextInputAction.next,
+                textAlign: TextAlign.left,
+                initialValue: Setup().user.phone.toString(),
+                style: Theme.of(context).textTheme.bodyLarge,
+                onChanged: (text) => setState(() => Setup().user.phone = text),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+              child: TextFormField(
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  hintText: 'Enter your password',
+                  labelText: 'Password',
+                ),
+                textAlign: TextAlign.left,
+                keyboardType: TextInputType.visiblePassword,
+                textInputAction: TextInputAction.done,
+                initialValue: Setup().user.password.toString(),
+                style: Theme.of(context).textTheme.bodyLarge,
+                onChanged: (text) =>
+                    setState(() => Setup().user.password = text),
+              ),
+            ),
+            if (userExists) ...[
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+                child: TextFormField(
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    hintText: 'Change password',
+                    labelText: 'New password',
+                  ),
+                  textAlign: TextAlign.left,
+                  keyboardType: TextInputType.visiblePassword,
+                  textInputAction: TextInputAction.done,
+                  initialValue: Setup().user.password.toString(),
+                  style: Theme.of(context).textTheme.bodyLarge,
+                  onChanged: (text) =>
+                      setState(() => Setup().user.newPassword = text),
+                ),
+              )
+            ],
+            if (carData) ...[
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+                child: DropdownButtonFormField<String>(
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    labelText: 'Car Manufacturer',
+                  ),
+                  value: manufacturers[0],
+                  items: manufacturers
+                      .map(
+                        (item) => DropdownMenuItem<String>(
+                          value: item,
+                          child: Text(item,
+                              style: Theme.of(context).textTheme.bodyLarge!),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (item) => setState(() =>
+                      manufacturer = manufacturers.indexOf(item.toString())),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+                child: DropdownButtonFormField<String>(
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    labelText: 'Car Model',
+                  ),
+                  value: models[0],
+                  items: models
+                      .map((item) => DropdownMenuItem<String>(
+                            value: item,
+                            child: Text(item,
+                                style: Theme.of(context).textTheme.bodyLarge!),
+                          ))
+                      .toList(),
+                  onChanged: (item) =>
+                      setState(() => model = models.indexOf(item.toString())),
+                ),
+              )
+            ],
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 40, 20, 10),
+              child: ElevatedButton(
+                style: style,
+                onPressed: () {
+                  postUser(Setup().user, register: true);
+                  //  saveUser(Setup().user);
+                },
+                child: const Text('Register',
+                    style: TextStyle(color: Colors.white)),
+              ),
+            ),
+          ],
         ),
       ),
-      Padding(
-          padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-          child: TextFormField(
-            keyboardType: TextInputType.emailAddress,
-            decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-              hintText: 'Enter your email address',
-              labelText: 'Email address',
-            ),
-            textInputAction: TextInputAction.next,
-            textAlign: TextAlign.left,
-            initialValue: Setup().user.email.toString(),
-            style: Theme.of(context).textTheme.bodyLarge,
-            onChanged: (text) => setState(() => Setup().user.email = text),
-          )),
-      Padding(
-          padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-          child: TextFormField(
-            keyboardType: TextInputType.phone,
-            decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-              hintText: 'Enter your phone number',
-              labelText: 'Phone number',
-            ),
-            textInputAction: TextInputAction.next,
-            textAlign: TextAlign.left,
-            initialValue: Setup().user.phone.toString(),
-            style: Theme.of(context).textTheme.bodyLarge,
-            onChanged: (text) => setState(() => Setup().user.phone = text),
-          )),
-      Padding(
-          padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-          child: TextFormField(
-            decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-              hintText: 'Enter your password',
-              labelText: 'Password',
-            ),
-            textAlign: TextAlign.left,
-            keyboardType: TextInputType.visiblePassword,
-            textInputAction: TextInputAction.done,
-            initialValue: Setup().user.password.toString(),
-            style: Theme.of(context).textTheme.bodyLarge,
-            onChanged: (text) => setState(() => Setup().user.password = text),
-          )),
-      if (userExists) ...[
-        Padding(
-            padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-            child: TextFormField(
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: 'Change password',
-                labelText: 'New password',
-              ),
-              textAlign: TextAlign.left,
-              keyboardType: TextInputType.visiblePassword,
-              textInputAction: TextInputAction.done,
-              initialValue: Setup().user.password.toString(),
-              style: Theme.of(context).textTheme.bodyLarge,
-              onChanged: (text) =>
-                  setState(() => Setup().user.newPassword = text),
-            ))
-      ],
-      if (carData) ...[
-        Padding(
-            padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-            child: DropdownButtonFormField<String>(
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                labelText: 'Car Manufacturer',
-              ),
-              value: manufacturers[0],
-              items: manufacturers
-                  .map((item) => DropdownMenuItem<String>(
-                        value: item,
-                        child: Text(item,
-                            style: Theme.of(context).textTheme.bodyLarge!),
-                      ))
-                  .toList(),
-              onChanged: (item) => setState(
-                  () => manufacturer = manufacturers.indexOf(item.toString())),
-            )),
-        Padding(
-            padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-            child: DropdownButtonFormField<String>(
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                labelText: 'Car Model',
-              ),
-              value: models[0],
-              items: models
-                  .map((item) => DropdownMenuItem<String>(
-                        value: item,
-                        child: Text(item,
-                            style: Theme.of(context).textTheme.bodyLarge!),
-                      ))
-                  .toList(),
-              onChanged: (item) =>
-                  setState(() => model = models.indexOf(item.toString())),
-            ))
-      ],
-      Padding(
-        padding: const EdgeInsets.fromLTRB(20, 40, 20, 10),
-        child: ElevatedButton(
-          style: style,
-          onPressed: () {
-            postUser(Setup().user, register: true);
-            //  saveUser(Setup().user);
-          },
-          child: const Text('Register', style: TextStyle(color: Colors.white)),
-        ),
-      ),
-    ]);
+    );
   }
 }

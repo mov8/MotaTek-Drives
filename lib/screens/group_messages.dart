@@ -68,8 +68,8 @@ class _GroupMessagesState extends State<GroupMessages> {
   //  'http://10.101.1.150:5000/'
   //  Uri.parse('ws://10.101.1.150:5000/socket.io/'),
   // );
-
-  sio.Socket socket = sio.io('http://10.101.1.150:5000', <String, dynamic>{
+  sio.Socket socket = sio.io(urlBase, <String, dynamic>{
+    // sio.Socket socket = sio.io('http://192.168.1.10:5000', <String, dynamic>{
     'transports': ['websocket'], // Specify WebSocket transport
     'autoConnect': false, // Prevent auto-connection
   });
@@ -155,9 +155,6 @@ class _GroupMessagesState extends State<GroupMessages> {
   }
 
   void onSendMessage(int index) {
-    // putMessage(widget.group, messages[index]);
-    //  _channel.sink.add(messages[index].message);
-    // streamSocket.addResponse(messages[index].message);
     socket.emit('group_message', messages[index].message);
     widget.onSelect!(index);
     return;

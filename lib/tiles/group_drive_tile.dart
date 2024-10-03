@@ -31,15 +31,14 @@ class _groupDriveTileState extends State<GroupDriveTile> {
       child: ListTile(
         leading: IconButton(
           iconSize: 30,
-          icon: const Icon(Icons.list_alt),
-          onPressed: () => widget.onEdit!(widget.index),
+          icon: const Icon(Icons.group),
+          onPressed: () => widget.onSelect!(widget.index),
         ),
-        onLongPress: () => widget.onEdit!(widget.index),
-        //    tileColor: Color(0xFFC2DFE7),
+        onLongPress: () => widget.onSelect!(widget.index),
+        onTap: () => widget.onSelect!(widget.index),
         trailing: IconButton(
-          iconSize: 30,
           icon: const Icon(Icons.delete),
-          onPressed: () => widget.onDelete,
+          onPressed: () => widget.onDelete!(widget.index),
         ),
         title: Text(
           widget.groupDrive.name,
@@ -72,8 +71,6 @@ class _groupDriveTileState extends State<GroupDriveTile> {
             ),
           ],
         ),
-
-        // onLongPress: () => widget.onLongPress(widget.index),
       ),
     );
   }

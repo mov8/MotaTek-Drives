@@ -34,6 +34,9 @@ class _introduceFormState extends State<IntroduceForm> {
     super.initState();
     fn1 = FocusNode();
     dataloaded = dataFromWeb();
+    // if (introduceMembers.isEmpty) {
+    //   newMember();
+    // }
   }
 
   @override
@@ -46,6 +49,7 @@ class _introduceFormState extends State<IntroduceForm> {
 
   Future<bool> dataFromWeb() async {
     introduceMembers = await getIntroduced();
+    // introduceMembers.add(GroupMember(forename: '', surname: ''));
     return true;
   }
 
@@ -91,7 +95,9 @@ class _introduceFormState extends State<IntroduceForm> {
           if (snapshot.hasError) {
             debugPrint('Snapshot has error: ${snapshot.error}');
           } else if (snapshot.hasData) {
-            return portraitView();
+            return introduceMembers.isEmpty
+                ? portraitViewNew()
+                : portraitView();
           } else {
             return const SizedBox(
                 width: double.infinity,
@@ -116,28 +122,217 @@ class _introduceFormState extends State<IntroduceForm> {
       child: */
         Column(children: [
       Expanded(
-          child: SizedBox(
-              height: (MediaQuery.of(context).size.height -
-                  AppBar().preferredSize.height -
-                  kBottomNavigationBarHeight -
-                  20 * 0.93), // 200,
-              child: ListView.builder(
-                  itemCount: introduceMembers.length,
-                  itemBuilder: (context, index) => Card(
-                      elevation: 5,
-                      child: GroupMemberTile(
-                        groupMember: introduceMembers[index],
-                        index: index,
-                        onDelete: onDelete,
-                        onEdit: onEdit,
-                        onSelect: onSelect,
-                        // ToDo: calculate how far away
-                      ))))),
+        child: SizedBox(
+          height: (MediaQuery.of(context).size.height -
+              AppBar().preferredSize.height -
+              kBottomNavigationBarHeight -
+              20 * 0.93), // 200,
+          child: ListView.builder(
+            itemCount: introduceMembers.length,
+            itemBuilder: (context, index) => GroupMemberTile(
+              groupMember: introduceMembers[index],
+              index: index,
+              onDelete: onDelete,
+              onEdit: onEdit,
+              onSelect: onSelect,
+              // ToDo: calculate how far away
+            ),
+          ),
+        ),
+      ),
       Align(
         alignment: Alignment.bottomLeft,
         child: _handleChips(),
       )
     ]);
+  }
+
+  Column portraitViewNew() {
+    introduceMembers.add(GroupMember(forename: '', surname: ''));
+    return Column(
+      children: [
+        Expanded(
+          child: Column(children: <Widget>[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+              child: TextFormField(
+                  //        onFieldSubmitted: (val) => setState(() {
+                  //          val = val.trim();
+                  //          introduceMembers[introduceMembers.length - 1].forename = val;
+                  //        }),
+                  autofocus: true,
+                  textInputAction: TextInputAction.next,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    hintText: 'Enter forename',
+                    labelText: 'Forename',
+                  ),
+                  textCapitalization: TextCapitalization.words,
+                  keyboardType: TextInputType.name,
+                  textAlign: TextAlign.left,
+                  initialValue:
+                      introduceMembers[introduceMembers.length - 1].forename,
+                  style: Theme.of(context).textTheme.bodyLarge,
+                  onChanged: (text) {
+                    introduceMembers[introduceMembers.length - 1].edited = true;
+                    introduceMembers[introduceMembers.length - 1].forename =
+                        text;
+                  }),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+              child: TextFormField(
+                  //       onFieldSubmitted: (val) => setState(() {
+                  //         val = val.trim();
+                  //         introduceMembers[introduceMembers.length - 1].surname = val;
+                  //       }),
+                  textInputAction: TextInputAction.next,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    hintText: 'Enter surname',
+                    labelText: 'Surname',
+                  ),
+                  textAlign: TextAlign.left,
+                  keyboardType: TextInputType.name,
+                  textCapitalization: TextCapitalization.words,
+                  initialValue:
+                      introduceMembers[introduceMembers.length - 1].surname,
+                  style: Theme.of(context).textTheme.bodyLarge,
+                  onChanged: (text) {
+                    introduceMembers[introduceMembers.length - 1].selected =
+                        true;
+                    introduceMembers[introduceMembers.length - 1].edited = true;
+                    introduceMembers[introduceMembers.length - 1].surname =
+                        text;
+                  }),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+              child: TextFormField(
+                  textInputAction: TextInputAction.next,
+                  //         onFieldSubmitted: (val) => setState(() {
+                  //           val = val.trim();
+                  //           introduceMembers[introduceMembers.length - 1].email = val;
+                  //         }),
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    hintText: 'Enter email address',
+                    labelText: 'Email address',
+                  ),
+                  textAlign: TextAlign.left,
+                  initialValue:
+                      introduceMembers[introduceMembers.length - 1].email,
+                  style: Theme.of(context).textTheme.bodyLarge,
+                  onChanged: (text) {
+                    introduceMembers[introduceMembers.length - 1].selected =
+                        true;
+                    introduceMembers[introduceMembers.length - 1].edited = true;
+                    introduceMembers[introduceMembers.length - 1].email =
+                        text.toLowerCase();
+                  }),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+              child: TextFormField(
+                  //onFieldSubmitted: (val) => setState(() {
+                  //      val = val.trim();
+                  //      introduceMembers[introduceMembers.length - 1].phone = val;
+                  //    }),
+                  textInputAction: TextInputAction.done,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    hintText: 'Enter mobile phone number',
+                    labelText: 'Mobile phone number',
+                  ),
+                  textAlign: TextAlign.left,
+                  keyboardType: TextInputType.phone,
+                  initialValue:
+                      introduceMembers[introduceMembers.length - 1].phone,
+                  style: Theme.of(context).textTheme.bodyLarge,
+                  onChanged: (text) {
+                    introduceMembers[introduceMembers.length - 1].selected =
+                        true;
+                    introduceMembers[introduceMembers.length - 1].edited = true;
+                    introduceMembers[introduceMembers.length - 1].phone = text;
+                  }),
+            ),
+            /*
+            Expanded(
+              child: SizedBox(
+                height: (MediaQuery.of(context).size.height -
+                    AppBar().preferredSize.height -
+                    kBottomNavigationBarHeight -
+                    20 * 0.93), // 200,
+                child: ListView.builder(
+                  itemCount: widget.groups?.length,
+                  itemBuilder: (context, index) => Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10.0, vertical: 5.0),
+                    child: Card(
+                      child: CheckboxListTile(
+                        title: Text(widget.groups![index].name),
+                        value: true, //isMember(widget.groups![index].id),
+                        onChanged: (value) {
+                          widget.groupMember?.edited = true;
+                          setState(
+                            () {
+                              updateGroups(value!, index);
+                            },
+                          );
+                        },
+                      ),
+                      // ToDo: calculate how far away
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            if (widget.groupMember!.id != '') ...[
+              //]>= 0) ...[
+              Align(
+                alignment: Alignment.bottomLeft,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: ActionChip(
+                    onPressed: () =>
+                        (), // deleteMember(widget.groupMember!.id),
+                    backgroundColor: Colors.blue,
+                    avatar: const Icon(
+                      Icons.delete,
+                      color: Colors.white,
+                    ),
+                    label: const Text('Delete Member',
+                        style: TextStyle(fontSize: 18, color: Colors.white)),
+                  ),
+                ),
+              ),
+            ] */
+          ]),
+        ),
+        Align(
+          alignment: Alignment.topLeft,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
+            child: ActionChip(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              onPressed: () => setState(() => ()),
+              backgroundColor: Colors.blue,
+              avatar: const Icon(
+                Icons.arrow_back,
+                color: Colors.white,
+              ),
+              label: const Text(
+                'Back',
+                style: TextStyle(fontSize: 18, color: Colors.white),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   void _listener(bool value) {
@@ -152,33 +347,34 @@ class _introduceFormState extends State<IntroduceForm> {
 
   Widget _handleChips() {
     return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10),
-        child: Wrap(spacing: 10, children: [
-          ActionChip(
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            onPressed: () => newMember(),
-            backgroundColor: Colors.blue,
-            avatar: const Icon(
-              Icons.person_add,
-              color: Colors.white,
-            ),
-            label: const Text('Introduce new user',
-                style: TextStyle(fontSize: 18, color: Colors.white)),
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      child: Wrap(spacing: 10, children: [
+        ActionChip(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          onPressed: () => newMember(),
+          backgroundColor: Colors.blue,
+          avatar: const Icon(
+            Icons.person_add,
+            color: Colors.white,
           ),
-          ActionChip(
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            onPressed: () => putIntroduced(introduceMembers),
-            backgroundColor: Colors.blue,
-            avatar: const Icon(
-              Icons.outgoing_mail,
-              color: Colors.white,
-            ),
-            label: const Text('Send introductions',
-                style: TextStyle(fontSize: 18, color: Colors.white)),
+          label: const Text('Introduce new user',
+              style: TextStyle(fontSize: 18, color: Colors.white)),
+        ),
+        ActionChip(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          onPressed: () => putIntroduced(introduceMembers),
+          backgroundColor: Colors.blue,
+          avatar: const Icon(
+            Icons.outgoing_mail,
+            color: Colors.white,
           ),
-        ]));
+          label: const Text('Send introductions',
+              style: TextStyle(fontSize: 18, color: Colors.white)),
+        ),
+      ]),
+    );
   }
 
   void onDelete(int index) {
@@ -204,7 +400,7 @@ class _introduceFormState extends State<IntroduceForm> {
       context,
       MaterialPageRoute(builder: (context) => GroupMemberForm(
           groupMember: introduceMembers[index],
-          groupName: 'Un-grouped', // groupName,
+          groupName: 'Introduce new user', // groupName,
           groups: const [])),
     );
     setState(() {

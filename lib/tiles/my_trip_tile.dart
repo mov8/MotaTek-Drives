@@ -9,6 +9,7 @@ class MyTripTile extends StatefulWidget {
   final Future<void> Function(int) onShareTrip;
   final Future<void> Function(int) onDeleteTrip;
   final Future<void> Function(int)? onPublishTrip;
+  final void Function(bool)? onExpandChange;
   final int index;
   const MyTripTile({
     super.key,
@@ -18,6 +19,7 @@ class MyTripTile extends StatefulWidget {
     required this.onShareTrip,
     required this.onDeleteTrip,
     this.onPublishTrip,
+    this.onExpandChange,
   });
 
   @override
@@ -73,7 +75,7 @@ class _myTripTileState extends State<MyTripTile> {
           ]),
           // backgroundColor: Colors.white,
           onExpansionChanged: (expanded) {
-            setState(() {});
+            widget.onExpandChange!(expanded);
           },
           children: [
             SizedBox(
@@ -147,57 +149,58 @@ class _myTripTileState extends State<MyTripTile> {
                       )),
                       if (widget.myTripItem.showMethods) ...[
                         SizedBox(
-                            child: Padding(
-                          padding: const EdgeInsets.fromLTRB(5, 0, 5, 10),
-                          child: Row(children: [
-                            Expanded(
-                              flex: 1,
-                              child: TextButton(
-                                onPressed: () async =>
-                                    widget.onLoadTrip(widget.index),
-                                child: const Column(children: [
-                                  Icon(Icons.file_open_outlined),
-                                  Text('Load Trip')
-                                ]),
-                              ),
-                            ),
-                            Expanded(
-                              flex: 1,
-                              child: TextButton(
-                                onPressed: () async =>
-                                    widget.onShareTrip(widget.index),
-                                child: const Column(children: [
-                                  Icon(Icons.directions_car_outlined),
-                                  Text('Group Trip')
-                                ]),
-                              ),
-                            ),
-                            if (widget.onPublishTrip != null) ...[
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(5, 0, 5, 10),
+                            child: Row(children: [
                               Expanded(
                                 flex: 1,
                                 child: TextButton(
                                   onPressed: () async =>
-                                      widget.onPublishTrip!(widget.index),
+                                      widget.onLoadTrip(widget.index),
                                   child: const Column(children: [
-                                    Icon(Icons.cloud_upload_outlined),
-                                    Text('Publish Trip')
+                                    Icon(Icons.file_open_outlined),
+                                    Text('Load Trip')
+                                  ]),
+                                ),
+                              ),
+                              Expanded(
+                                flex: 1,
+                                child: TextButton(
+                                  onPressed: () async =>
+                                      widget.onShareTrip(widget.index),
+                                  child: const Column(children: [
+                                    Icon(Icons.directions_car_outlined),
+                                    Text('Group Trip')
+                                  ]),
+                                ),
+                              ),
+                              if (widget.onPublishTrip != null) ...[
+                                Expanded(
+                                  flex: 1,
+                                  child: TextButton(
+                                    onPressed: () async =>
+                                        widget.onPublishTrip!(widget.index),
+                                    child: const Column(children: [
+                                      Icon(Icons.cloud_upload_outlined),
+                                      Text('Publish Trip')
+                                    ]),
+                                  ),
+                                )
+                              ],
+                              Expanded(
+                                flex: 1,
+                                child: TextButton(
+                                  onPressed: () async =>
+                                      widget.onDeleteTrip(widget.index),
+                                  child: const Column(children: [
+                                    Icon(Icons.delete_forever),
+                                    Text('Delete Trip')
                                   ]),
                                 ),
                               )
-                            ],
-                            Expanded(
-                              flex: 1,
-                              child: TextButton(
-                                onPressed: () async =>
-                                    widget.onDeleteTrip(widget.index),
-                                child: const Column(children: [
-                                  Icon(Icons.delete_forever),
-                                  Text('Delete Trip')
-                                ]),
-                              ),
-                            )
-                          ]),
-                        )),
+                            ]),
+                          ),
+                        ),
                       ]
                     ],
                   ),
