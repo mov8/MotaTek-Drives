@@ -5,10 +5,12 @@ import 'dart:ui' as ui;
 import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
+// import 'package:drives/services/services.dart';
 import 'package:intl/intl.dart';
 import 'package:drives/classes/utilities.dart';
 import 'package:drives/screens/screens.dart';
 import 'package:drives/classes/route.dart' as mt;
+import 'package:drives/tiles/tiles.dart';
 //import 'package:drives/screens/dialogs.dart';
 //import 'package:drives/screens/painters.dart';
 import 'package:drives/services/db_helper.dart';
@@ -17,6 +19,7 @@ import 'package:drives/models/my_trip_item.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter/material.dart';
+import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 
 // import 'package:geolocator/geolocator.dart';
@@ -218,18 +221,23 @@ class CutRoute {
 
 class Setup {
   int id = 0;
-  int routeColour = 5;
-  int goodRouteColour = 6;
+  int routeColour = 12;
+  int goodRouteColour = 3;
   int waypointColour = 2;
-  int pointOfInterestColour = 3;
+  int pointOfInterestColour = 8;
   int waypointColour2 = 14;
   int pointOfInterestColour2 = 14;
   int selectedColour = 7;
-  int highlightedColour = 8;
+  int highlightedColour = 13;
   int recordDetail = 5;
   bool allowNotifications = true;
   bool dark = false;
-  bool rotateMap = true;
+  bool rotateMap = false;
+  bool avoidMotorways = false;
+  bool avoidAroads = false;
+  bool avoidBroads = false;
+  bool avoidTollRoads = false;
+  bool avoidFerries = false;
 
   String jwt = '';
   User user = User(
@@ -263,6 +271,11 @@ class Setup {
         jwt = maps[0]['jwt'];
         dark = maps[0]['dark'] == 1;
         rotateMap = maps[0]['rotate_map'] == 1;
+        avoidMotorways = maps[0]['avoid_motorways'] == 1;
+        avoidAroads = maps[0]['avoid_a_roads'] == 1;
+        avoidBroads = maps[0]['avoid_b_roads'] == 1;
+        avoidTollRoads = maps[0]['avoid_toll_roads'] == 1;
+        avoidFerries = maps[0]['avoid_ferries'] == 1;
       } catch (e) {
         debugPrint('Failed to load Setup() from db: ${e.toString()}');
       }
@@ -301,6 +314,11 @@ class Setup {
       'allow_notifications': allowNotifications ? 1 : 0,
       'dark': dark ? 1 : 0,
       'rotate_map': rotateMap ? 1 : 0,
+      'avoid_motorways': avoidMotorways ? 1 : 0,
+      'avoid_a_roads': avoidAroads ? 1 : 0,
+      'avoid_b_roads': avoidBroads ? 1 : 0,
+      'avoid_toll_roads': avoidTollRoads ? 1 : 0,
+      'avoid_ferries': avoidFerries ? 1 : 0,
     };
   }
 
@@ -452,16 +470,32 @@ Marker(
 
 class MarkerWidget extends StatelessWidget {
   final int type; // default type 12 => waypoint
-  final String description;
+  String name;
+  String description;
+  String images;
+  String url;
+  List<String> imageUrls;
   final double angle;
+  double score;
+  int scored;
   final int colourIdx;
+  int list;
+  int listIndex;
 
-  const MarkerWidget(
+  MarkerWidget(
       {super.key,
       required this.type,
+      this.name = '',
       this.description = '',
+      this.images = '',
+      this.url = ' ',
+      this.imageUrls = const [],
       this.angle = 0,
-      this.colourIdx = -1});
+      this.score = 0,
+      this.scored = 0,
+      this.colourIdx = -1,
+      this.list = -1,
+      this.listIndex = -1});
 
   @override
   Widget build(BuildContext context) {
@@ -484,21 +518,98 @@ class MarkerWidget extends StatelessWidget {
     // Want to counter rotate the icons so that they are vertical when the map rotates
     // -_mapRotation * pi / 180 to convert from _mapRotation in degrees to radians
     return Transform.rotate(
-        angle: angle,
-        child: RawMaterialButton(
-            onPressed: () => Utility().showAlertDialog(
-                context, poiTypes.toList()[type]['name'], description),
-            elevation: 2.0,
-            fillColor: buttonFillColor,
-            shape: const CircleBorder(),
-            child: Padding(
-                padding: const EdgeInsets.fromLTRB(0, 0, 1, 2),
-                child: Icon(
-                  markerIcon(type),
-                  size: iconWidth,
-                  color: iconColor,
-                ))));
+      angle: angle,
+      child: RawMaterialButton(
+        onPressed: () {
+          //   if (list == -1) {
+          //     Utility().showAlertDialog(
+          //         context, poiTypes.toList()[type]['name'], description);
+          //   } else if (pointOfInterest != null) {
+          pointOfInterestDialog(context, name, description, images, url,
+              imageUrls, score, scored, type);
+          //   }
+        },
+        elevation: 2.0,
+        fillColor: buttonFillColor,
+        shape: const CircleBorder(),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(0, 0, 1, 2),
+          child: Icon(
+            markerIcon(type),
+            size: iconWidth,
+            color: iconColor,
+          ),
+        ),
+      ),
+    );
   }
+}
+
+pointOfInterestDialog(
+    BuildContext context,
+    String name,
+    String description,
+    String images,
+    String url,
+    List<String> imageUrls,
+    double score,
+    int scored,
+    int type) async {
+  // bool result = false;
+  // set up the buttons
+  Widget okButton = TextButton(
+    child: const Text("Ok"),
+    onPressed: () {
+      Navigator.pop(context, true);
+    },
+  );
+
+  // set up the AlertDialog
+  AlertDialog alert = AlertDialog(
+    title: Text(
+      name,
+      style: const TextStyle(fontSize: 20),
+      textAlign: TextAlign.center,
+    ),
+    // scrollable: true,
+    elevation: 5,
+    content: // SingleChildScrollView(
+        //child:
+        MarkerTile(
+      index: -1,
+      name: name,
+      description: description,
+      images: images,
+      url: url,
+      imageUrls: imageUrls,
+      type: type,
+      score: score,
+      scored: scored,
+      //  onIconTap: () => {},
+      //  onExpandChange: () => {},
+      //  onDelete: () => {},
+      onRated: () => {},
+      canEdit: false,
+      expanded: false,
+    ),
+
+    //     child: ListBody(
+    //       children: <Widget>[Text(alertMessage)],
+    // ),
+    actions: [
+      okButton,
+    ],
+  );
+
+  // show the dialog
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      // result = alert;
+
+      return alert;
+    },
+  );
 }
 
 class LabelWidget extends StatelessWidget {
@@ -1592,17 +1703,24 @@ Future<List<MyTripItem>> tripItemFromDb({int driveId = -1}) async {
             distance: double.parse(maps[i]['distance'].toString()),
             pointsOfInterest: [
               PointOfInterest(
-                  maps[i]['id'],
-                  driveId,
-                  maps[i]['type'],
-                  maps[i]['name'],
-                  maps[i]['description'],
-                  maps[i]['type'] == 12 ? 10 : 30,
-                  maps[i]['type'] == 12 ? 10 : 30,
+                maps[i]['id'],
+                driveId,
+                maps[i]['type'],
+                maps[i]['name'],
+                maps[i]['description'],
+                maps[i]['type'] == 12 ? 10 : 30,
+                maps[i]['type'] == 12 ? 10 : 30,
+                images: maps[i]['images'],
+                markerPoint: LatLng(maps[i]['latitude'], maps[i]['longitude']),
+                marker: MarkerWidget(
+                  type: maps[i]['type'],
+                  list: -1,
+                  listIndex: i,
+                  name: maps[i]['name'],
+                  description: maps[i]['description'],
                   images: maps[i]['images'],
-                  markerPoint:
-                      LatLng(maps[i]['latitude'], maps[i]['longitude']),
-                  marker: MarkerWidget(type: maps[i]['type']))
+                ),
+              ),
             ],
             closest: 15));
         if (maps[i]['type'] != 12) highlights++;
@@ -1887,6 +2005,7 @@ class GoodRoad {
   int pointIdx1 = -1;
   int pointIdx2 = -1;
   int markerIdx = -1;
+  mt.Route? route;
   GoodRoad();
   bool get isGood => _isGood;
   set isGood(bool value) {

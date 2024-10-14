@@ -97,8 +97,13 @@ class _myTripsScreenState extends State<MyTripsScreen> {
         postPointOfInterest(pointOfInterest, driveUI);
       }
     }).then((_) async {
-      List<Polyline> polylines = await loadPolyLinesLocal(driveId);
-      postPolylines(polylines, driveUI);
+      List<Polyline> polylines = await loadPolyLinesLocal(driveId, type: 0);
+      postPolylines(polylines, driveUI, 0);
+
+      polylines = await loadPolyLinesLocal(driveId, type: 1);
+      if (polylines.isNotEmpty) {
+        postPolylines(polylines, driveUI, 1);
+      }
 
       List<Maneuver> maneuvers = await loadManeuversLocal(driveId);
       postManeuvers(maneuvers, driveUI);

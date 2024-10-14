@@ -56,9 +56,7 @@ class PointOfInterestTile extends StatefulWidget {
   final bool canEdit;
 
   const PointOfInterestTile({
-    //required this.key,
     super.key,
-//    required this.pointOfInterestController,
     required this.index,
     required this.pointOfInterest,
     required this.onIconTap,
@@ -67,7 +65,7 @@ class PointOfInterestTile extends StatefulWidget {
     required this.onRated,
     this.expanded = false,
     this.canEdit = true,
-  }); // : super(key: key);
+  });
   @override
   State<PointOfInterestTile> createState() => _PointOfInterestTileState();
 }

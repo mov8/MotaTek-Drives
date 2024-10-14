@@ -6,6 +6,7 @@ export 'package:drives/tiles/group_drive_invitation_tile.dart';
 export 'package:drives/tiles/group_drive_invitee_tile.dart';
 export 'package:drives/tiles/home_tile.dart';
 export 'package:drives/tiles/maneuver_tile.dart';
+export 'package:drives/tiles/marker_tile.dart';
 export 'package:drives/tiles/message_by_group_tile.dart';
 export 'package:drives/tiles/message_tile.dart';
 export 'package:drives/tiles/my_trip_tile.dart';

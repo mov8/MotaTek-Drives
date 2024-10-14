@@ -92,7 +92,9 @@ class RouteAtCenter {
       Offset center = mapState.project(mapController.camera.center).toOffset();
       center = (center * mapState.getZoomScale(mapState.zoom, mapState.zoom)) -
           mapState.pixelOrigin.toOffset();
+      //   debugPrint('getPolyLineNearestCente() context is NOT null');
       if (_routes.isNotEmpty) {
+        //  debugPrint('getPolyLineNearestCente() _routes.isNotEmpty');
         Route currentPolyline = _routes[0];
         for (int i = 0; i < _routes.length; i++) {
           currentPolyline = _routes[i];
@@ -157,6 +159,8 @@ class RouteAtCenter {
       }
 
       // debugPrint('Polyline index $idx');
+    } else {
+      //  debugPrint('getPolyLineNearestCente() context is null');
     }
     return idx;
   }

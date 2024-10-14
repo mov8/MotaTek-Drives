@@ -18,6 +18,7 @@ class _messagesScreenState extends State<MessagesScreen> {
   final GlobalKey _scaffoldKey = GlobalKey();
   late Future<bool> _dataLoaded;
   List<TripItem> tripItems = [];
+  String _title = 'Messages - by group';
   Group _messageGroup = Group(
     name: '',
   );
@@ -58,6 +59,7 @@ class _messagesScreenState extends State<MessagesScreen> {
                   onSelect: (idx) => setState(
                     () {
                       debugPrint('Message index: ${idx.name}');
+                      _title = 'Messages - ${idx.name}';
                       _messageGroup = idx;
                       _leadingWidgetController.changeWidget(1);
                     },
@@ -98,17 +100,19 @@ class _messagesScreenState extends State<MessagesScreen> {
             controller: _leadingWidgetController,
             initialValue: 0,
             onMenuTap: (index) {
-              if (index == 0) {
-                _leadingWidget(_scaffoldKey.currentState);
-              } else {
-                setState(() => _messageGroup.name = '');
-                _groupMessagesController.leave();
-                _leadingWidgetController.changeWidget(0);
-              }
+              setState(() {
+                if (index == 0) {
+                  _leadingWidget(_scaffoldKey.currentState);
+                } else {
+                  _groupMessagesController.leave();
+                  _leadingWidgetController.changeWidget(0);
+                  _title = 'Messages - by group';
+                }
+              });
             }), // IconButton(
-        title: const Text(
-          'Messages',
-          style: TextStyle(
+        title: Text(
+          _title,
+          style: const TextStyle(
               fontSize: 20, color: Colors.white, fontWeight: FontWeight.w700),
         ),
         iconTheme: const IconThemeData(color: Colors.white),

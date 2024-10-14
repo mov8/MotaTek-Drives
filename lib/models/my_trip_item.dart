@@ -38,6 +38,7 @@ class MyTripItem {
   List<PointOfInterest> _pointsOfInterest = [];
   List<Maneuver> _maneuvers = [];
   List<mt.Route> _routes = [];
+  List<mt.Route> _goodRoads = [];
   String _images = '';
   double _score = 5;
   double _distance = 0;
@@ -58,6 +59,7 @@ class MyTripItem {
     List<PointOfInterest> pointsOfInterest = const [],
     List<Maneuver> maneuvers = const [],
     List<mt.Route> routes = const [],
+    List<mt.Route> goodRoads = const [],
     String images = '',
     double score = 5,
     double distance = 0,
@@ -75,6 +77,7 @@ class MyTripItem {
         _pointsOfInterest = List.from(pointsOfInterest),
         _maneuvers = List.from(maneuvers),
         _routes = List.from(routes),
+        _goodRoads = List.from(goodRoads),
         _images = images,
         _score = score,
         _distance = distance,
@@ -89,6 +92,7 @@ class MyTripItem {
     _pointsOfInterest.clear();
     _maneuvers.clear();
     _routes.clear();
+    _goodRoads.clear();
     _images = '';
     _score = 0;
     _distance = 0;
@@ -278,6 +282,22 @@ class MyTripItem {
     _routes.insert(index, route);
   }
 
+  List<mt.Route> goodRoads() {
+    return _goodRoads;
+  }
+
+  void addGoodRoad(mt.Route route) {
+    _goodRoads.add(route);
+  }
+
+  void clearGoodRoads() {
+    _goodRoads.clear();
+  }
+
+  void insertGoodRoad(mt.Route route, int index) {
+    _goodRoads.insert(index, route);
+  }
+
   void setImage(ui.Image image) {
     _mapImage = image;
   }
@@ -379,14 +399,27 @@ class MyTripItem {
     _closest = distance;
     _images = '[$_images]';
     _maneuvers = await loadManeuversLocal(driveId);
-    List<Polyline> polyLines = await loadPolyLinesLocal(driveId);
+    List<Polyline> polyLines = await loadPolyLinesLocal(driveId, type: 0);
     for (int i = 0; i < polyLines.length; i++) {
-      addRoute(mt.Route(
-          id: -1,
-          points: polyLines[i].points,
-          colour: polyLines[i].color,
-          borderColour: polyLines[i].color,
-          strokeWidth: polyLines[i].strokeWidth));
+      addRoute(
+        mt.Route(
+            id: -1,
+            points: polyLines[i].points,
+            colour: polyLines[i].color,
+            borderColour: polyLines[i].color,
+            strokeWidth: polyLines[i].strokeWidth),
+      );
+    }
+    polyLines = await loadPolyLinesLocal(driveId, type: 1);
+    for (int i = 0; i < polyLines.length; i++) {
+      addGoodRoad(
+        mt.Route(
+            id: -1,
+            points: polyLines[i].points,
+            colour: polyLines[i].color,
+            borderColour: polyLines[i].color,
+            strokeWidth: polyLines[i].strokeWidth),
+      );
     }
   }
 

@@ -71,8 +71,8 @@ Future<Database> initDb() async {
             '''CREATE TABLE setup(id INTEGER PRIMARY KEY AUTOINCREMENT, route_colour INTEGER, good_route_colour INTEGER, 
           waypoint_colour INTEGER, waypoint_colour_2 INTEGER, point_of_interest_colour INTEGER, rotate_map INTEGER,
           point_of_interest_colour_2 INTEGER, selected_colour INTEGER, highlighted_colour INTEGER, 
-          record_detail INTEGER, allow_notifications INTEGER, jwt TEXT,
-          dark INTEGER) ''');
+          record_detail INTEGER, allow_notifications INTEGER, jwt TEXT, dark INTEGER, avoid_motorways INTEGER, 
+          avoid_a_roads INTEGER, avoid_b_roads INTEGER, avoid_toll_roads INTEGER, avoid_ferries INTEGER)''');
 
         await db.execute(
             '''CREATE TABLE drives(id INTEGER PRIMARY KEY AUTOINCREMENT, uri TEXT, title TEXT, sub_title TEXT, body TEXT, 
@@ -568,7 +568,10 @@ Future<int> saveMyTripItem(MyTripItem myTripItem) async {
     }
     await savePointsOfInterestLocal(
         driveId: id, pointsOfInterest: myTripItem.pointsOfInterest());
-    await savePolylinesLocal(driveId: id, polylines: myTripItem.routes());
+    await savePolylinesLocal(
+        driveId: id, polylines: myTripItem.routes(), type: 0);
+    await savePolylinesLocal(
+        driveId: id, polylines: myTripItem.goodRoads(), type: 1);
     await saveManeuversLocal(driveId: id, maneuvers: myTripItem.maneuvers());
   } catch (e) {
     String err = e.toString();
@@ -608,7 +611,8 @@ Future<List<PointOfInterest>> loadPointsOfInterestLocal(int driveId) async {
     whereArgs: [driveId],
   );
   for (int i = 0; i < maps.length; i++) {
-    pointsOfInterest.add(PointOfInterest(
+    pointsOfInterest.add(
+      PointOfInterest(
         maps[i]['id'],
         driveId,
         maps[i]['type'],
@@ -618,7 +622,9 @@ Future<List<PointOfInterest>> loadPointsOfInterestLocal(int driveId) async {
         maps[i]['type'] == 12 ? 10 : 30,
         images: maps[i]['images'],
         markerPoint: LatLng(maps[i]['latitude'], maps[i]['longitude']),
-        marker: MarkerWidget(type: maps[i]['type'])));
+        marker: MarkerWidget(type: maps[i]['type'], list: 0, listIndex: i),
+      ),
+    );
   }
   return pointsOfInterest;
 }
@@ -762,13 +768,14 @@ Future<void> deleteManeuversByDriveId(int driveId) async {
 }
 
 Future<bool> savePolylinesLocal(
-    {required int driveId, required List<mt.Route> polylines}) async {
+    {required int driveId, required List<mt.Route> polylines, type = 0}) async {
   final db = await dbHelper().db;
   for (int i = 0; i < polylines.length; i++) {
     int id = polylines[i].id;
     Map<String, dynamic> plMap = {
       'id': id,
       'drive_id': driveId,
+      'type': type,
       'points': pointsToString(polylines[i].points),
       'stroke': polylines[i].strokeWidth,
       'colour': uiColours.keys
@@ -836,7 +843,8 @@ Future<List<Follower>> loadFollowers(int driveId) async {
   for (int i = 0; i < maps.length; i++) {
     jsonPos = jsonDecode(maps[i]['position']);
     pos = LatLng(jsonPos['lat'], jsonPos['long']);
-    followers.add(Follower(
+    followers.add(
+      Follower(
         id: maps[i]['id'],
         driveId: driveId,
         forename: maps[i]['forename'],
@@ -851,7 +859,9 @@ Future<List<Follower>> loadFollowers(int driveId) async {
           type: 16,
           description: '',
           angle: 0,
-        )));
+        ),
+      ),
+    );
   }
   return followers;
 }
@@ -910,13 +920,13 @@ Future<void> deleteFollowerByDriveId(int driveId) async {
 /// Will initially only load the descriptive details and only
 /// load the details if the drive is selected
 
-Future<List<Polyline>> loadPolyLinesLocal(int driveId) async {
+Future<List<Polyline>> loadPolyLinesLocal(int driveId, {type = 0}) async {
   final db = await dbHelper().db;
   List<Polyline> polylines = [];
   List<Map<String, dynamic>> maps = await db.query(
     'polylines',
-    where: 'drive_id = ?',
-    whereArgs: [driveId],
+    where: 'drive_id = ? and type = ?',
+    whereArgs: [driveId, type],
   );
 
   for (int i = 0; i < maps.length; i++) {

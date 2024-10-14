@@ -154,7 +154,7 @@ class _searchLocationState extends State<SearchLocation> {
 }
 
 //final apiUrl = 'http://10.101.1.150:5000/v1/user/register/';
-const urlBase = 'http://10.101.1.150:5000/'; // Home network
+const urlBase = 'http://10.101.1.150:5001/'; // Home network
 // const urlBase = 'http://192.168.1.13:5000/'; // Boston
 // const urlBase = 'http://192.168.1.10:5000/'; // Boston
 
@@ -323,6 +323,18 @@ Future<Map<String, dynamic>> tryLogin(String email, String password) async {
 Future<dynamic> postTrip(MyTripItem tripItem) async {
   Map<String, dynamic> map = tripItem.toMap();
   List<Photo> photos = photosFromJson(tripItem.getImages());
+  double maxLat = -90;
+  double minLat = 90;
+  double maxLong = -180;
+  double minLong = 180;
+  for (mt.Route polyline in tripItem.routes()) {
+    for (LatLng point in polyline.points) {
+      maxLat = point.latitude > maxLat ? point.latitude : maxLat;
+      minLat = point.latitude < minLat ? point.latitude : minLat;
+      maxLong = point.longitude > maxLong ? point.longitude : maxLong;
+      minLong = point.longitude < minLong ? point.longitude : minLong;
+    }
+  }
 
   var request =
       http.MultipartRequest('POST', Uri.parse('${urlBase}v1/drive/add'));
@@ -341,7 +353,10 @@ Future<dynamic> postTrip(MyTripItem tripItem) async {
     request.fields['distance'] = map['distance'].toString();
     request.fields['pois'] = map['pointsOfInterest'].toString();
     request.fields['score'] = '5';
-    // map['scored'] ?? '5';
+    request.fields['max_lat'] = maxLat.toString();
+    request.fields['min_lat'] = minLat.toString();
+    request.fields['max_long'] = maxLong.toString();
+    request.fields['min_long'] = minLong.toString();
     request.fields['added'] = DateTime.now().toString();
 
     request.headers['Authorization'] = 'Bearer $jwToken';
@@ -419,6 +434,7 @@ Future<String> postPointOfInterest(
   }
 }
 
+/*
 Future<String> postPolyline(Polyline polyline, String driveUid) async {
   Map<String, dynamic> map = {
     'drive_id': driveUid,
@@ -442,8 +458,9 @@ Future<String> postPolyline(Polyline polyline, String driveUid) async {
     return jsonEncode({'token': '', 'code': response.statusCode});
   }
 }
-
-Future<String> postPolylines(List<Polyline> polylines, String driveUid) async {
+*/
+Future<String> postPolylines(
+    List<Polyline> polylines, String driveUid, int type) async {
   List<Map<String, dynamic>> maps = [];
   for (Polyline polyline in polylines) {
     maps.add({
@@ -453,16 +470,32 @@ Future<String> postPolylines(List<Polyline> polylines, String driveUid) async {
       'colour':
           uiColours.keys.toList().indexWhere((col) => col == polyline.color),
     });
+    if (type == 1) {
+      double maxLat = -90;
+      double minLat = 90;
+      double maxLong = -180;
+      double minLong = 180;
+      for (LatLng point in polyline.points) {
+        maxLat = point.latitude > maxLat ? point.latitude : maxLat;
+        minLat = point.latitude < minLat ? point.latitude : minLat;
+        maxLong = point.longitude > maxLong ? point.longitude : maxLong;
+        minLong = point.longitude < minLong ? point.longitude : minLong;
+      }
+      maps[maps.length - 1]['max_lat'] = maxLat.toString();
+      maps[maps.length - 1]['min_lat'] = minLat.toString();
+      maps[maps.length - 1]['max_long'] = maxLong.toString();
+      maps[maps.length - 1]['min_long'] = minLong.toString();
+    }
   }
   if (polylines.isEmpty) {
     return jsonEncode({'message': 'no polylines to post'});
   }
-  final http.Response response =
-      await http.post(Uri.parse('${urlBase}v1/polyline/add'),
-          headers: <String, String>{
-            "Content-Type": "application/json; charset=UTF-8",
-          },
-          body: jsonEncode(maps));
+  final http.Response response = await http.post(
+      Uri.parse('${urlBase}v1/${type == 0 ? 'polyline' : 'good_road'}/add'),
+      headers: <String, String>{
+        "Content-Type": "application/json; charset=UTF-8",
+      },
+      body: jsonEncode(maps));
   if (response.statusCode == 201) {
     // 201 = Created
     debugPrint('Polyline posted OK');
@@ -473,6 +506,99 @@ Future<String> postPolylines(List<Polyline> polylines, String driveUid) async {
   }
 }
 
+Future<List<mt.Route>> getGoodRoads(LatLng ne, LatLng sw) async {
+  List<mt.Route> goodRoads = [];
+  String jwToken = Setup().jwt;
+  final http.Response response = await http.get(
+    Uri.parse(
+        '${urlBase}v1/good_road/location/${sw.latitude}/${ne.latitude}/${sw.longitude}/${ne.longitude}'),
+    //'/location/<min_lat>/<max_lat>/<min_long>/<max_long>'
+    headers: {
+      'Authorization': 'Bearer $jwToken', // $Setup().jwt',
+      'Content-Type': 'application/json',
+    },
+  ).timeout(const Duration(seconds: 20));
+  if ([200, 201].contains(response.statusCode) && response.body.length > 10) {
+    List polyline = jsonDecode(response.body);
+    for (int i = 0; i < polyline.length; i++) {
+      goodRoads.add(
+        mt.Route(
+          id: -1,
+          points: stringToPoints(polyline[i]['points']), // routePoints,
+          colour: uiColours.keys.toList()[Setup()
+              .goodRouteColour], //     int.parse(polyline[i]['colour'])],
+          borderColour: uiColours.keys.toList()[Setup().goodRouteColour],
+          strokeWidth: (int.parse(polyline[i]['stroke'])).toDouble(),
+        ),
+      );
+    }
+  }
+
+  return goodRoads;
+}
+
+Future<List<PointOfInterest>> getPointsOfInterest(ne, sw) async {
+  List<PointOfInterest> pointsOfInterest = [];
+
+  String jwToken = Setup().jwt;
+  final http.Response response = await http.get(
+    Uri.parse(
+        '${urlBase}v1/point_of_interest/location/${sw.latitude}/${ne.latitude}/${sw.longitude}/${ne.longitude}'),
+    //'/location/<min_lat>/<max_lat>/<min_long>/<max_long>'
+    headers: {
+      'Authorization': 'Bearer $jwToken', // $Setup().jwt',
+      'Content-Type': 'application/json',
+    },
+  ).timeout(const Duration(seconds: 20));
+  if ([200, 201].contains(response.statusCode) && response.body.length > 10) {
+    List pois = jsonDecode(response.body);
+    for (int i = 0; i < pois.length; i++) {
+      pointsOfInterest.add(
+        PointOfInterest(
+          -1,
+          -1,
+          pois[i]['_type'],
+          pois[i]['name'],
+          pois[i]['description'],
+          30,
+          30,
+          images: pois[i]['images'],
+          markerPoint: LatLng(pois[i]['latitude'], pois[i]['longitude']),
+          marker: MarkerWidget(
+            type: pois[i]['_type'],
+            name: pois[i]['name'],
+            description: pois[i]['description'],
+            url: pois[i]['id'],
+            images: pois[i]['images'],
+//'${urlBase}v1/drive/images${pointOfInterest.url}$pic')
+            imageUrls:
+                webUrls(pois[i]['drive_id'], pois[i]['id'], pois[i]['images']),
+            angle: 0, // degrees to radians
+            list: 1,
+            listIndex: i,
+          ),
+        ),
+      );
+    }
+  }
+
+  return pointsOfInterest;
+}
+
+List<String> webUrls(
+    String driveUri, String pointOfInterestUri, String uriString) {
+  if (uriString.length > 4) {
+    List<String> files = [uriString.substring(2, uriString.length - 2)];
+    List<String> urls = [
+      for (String file in files)
+        '${urlBase}v1/drive/images/$driveUri/$pointOfInterestUri/$file'
+    ];
+    return urls;
+  }
+  return [];
+}
+
+// "http://10.101.1.150:5000/v1/drive/images/712c8d58e7d84491bba6fdb5507ea5ac/0081b165074f4d218c2db5ecafffd1b3/e9cbc367-236b-4dde-994d-e19fb43c1092.jpg"
 Future<String> postManeuver(Maneuver maneuver, String driveUid) async {
   Map<String, dynamic> map = {
     'drive_id': driveUid,
@@ -723,7 +849,7 @@ putDriveRating(String uri, int score) async {
 
 putPointOfInterestRating(String uri, int score) async {
   String jwToken = Setup().jwt;
-  uri = uri.substring(1, uri.length - 1);
+  // uri = uri.substring(1, uri.length - 1);
   uri = uri.substring(uri.indexOf('/') + 1);
   Map<String, dynamic> map = {
     'point_of_interest_id': uri,
@@ -741,6 +867,23 @@ putPointOfInterestRating(String uri, int score) async {
   if ([200, 201].contains(response.statusCode)) {
     debugPrint('Score added OK: ${response.statusCode}');
   }
+}
+
+Future<Map<String, dynamic>> getPointOfInterestRating(String uri) async {
+  Map<String, dynamic> rating = {'rating': '0'};
+  String jwToken = Setup().jwt;
+  final http.Response response = await http.get(
+    Uri.parse('${urlBase}v1/point_of_interest_rating/$uri'),
+    headers: {
+      'Authorization': 'Bearer $jwToken', // $Setup().jwt',
+      'Content-Type': 'application/json',
+    },
+  ).timeout(const Duration(seconds: 10));
+  if (response.statusCode == 200) {
+    rating = jsonDecode(response.body);
+  }
+
+  return rating;
 }
 
 Future<MyTripItem> getTripSummary(String tripUuid) async {
@@ -762,8 +905,11 @@ Future<MyTripItem> getTripSummary(String tripUuid) async {
         try {
           LatLng posn = LatLng(trip['points_of_interest'][i]['latitude'],
               trip['points_of_interest'][i]['longitude']);
-          Widget marker =
-              MarkerWidget(type: trip['points_of_interest'][i]['_type']);
+          Widget marker = MarkerWidget(
+            type: trip['points_of_interest'][i]['_type'],
+            list: 0,
+            listIndex: i,
+          );
           gotPointsOfInterest.add(PointOfInterest(
             -1,
             -1,
@@ -885,8 +1031,11 @@ Future<MyTripItem> getMyTrip(String tripUuid) async {
         try {
           LatLng posn = LatLng(trip['points_of_interest'][i]['latitude'],
               trip['points_of_interest'][i]['longitude']);
-          Widget marker =
-              MarkerWidget(type: trip['points_of_interest'][i]['_type']);
+          Widget marker = MarkerWidget(
+            type: trip['points_of_interest'][i]['_type'],
+            list: 0,
+            listIndex: i,
+          );
           gotPointsOfInterest.add(PointOfInterest(
             -1,
             -1,
@@ -983,26 +1132,28 @@ putIntroduced(List<GroupMember> members) async {
 
 Widget showWebImage(String imageUrl, {double width = 200}) {
   return SizedBox(
-      width: width,
-      child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          child: Image.network(
-            imageUrl,
-            loadingBuilder: (BuildContext context, Widget child,
-                ImageChunkEvent? loadingProgress) {
-              if (loadingProgress == null) {
-                return child;
-              }
-              return Center(
-                child: CircularProgressIndicator(
-                  value: loadingProgress.expectedTotalBytes != null
-                      ? loadingProgress.cumulativeBytesLoaded /
-                          (loadingProgress.expectedTotalBytes ?? 1)
-                      : null,
-                ),
-              );
-            },
-          )));
+    width: width,
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      child: Image.network(
+        imageUrl,
+        loadingBuilder: (BuildContext context, Widget child,
+            ImageChunkEvent? loadingProgress) {
+          if (loadingProgress == null) {
+            return child;
+          }
+          return Center(
+            child: CircularProgressIndicator(
+              value: loadingProgress.expectedTotalBytes != null
+                  ? loadingProgress.cumulativeBytesLoaded /
+                      (loadingProgress.expectedTotalBytes ?? 1)
+                  : null,
+            ),
+          );
+        },
+      ),
+    ),
+  );
 }
 
 Future<List<Group>> getManagedGroups() async {

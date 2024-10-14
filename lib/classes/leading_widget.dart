@@ -26,11 +26,13 @@ class LeadingWidget extends StatefulWidget {
   final Function(int) onMenuTap;
   final LeadingWidgetController controller;
   final int initialValue;
-  const LeadingWidget(
+  int value;
+  LeadingWidget(
       {super.key,
       required this.controller,
       required this.onMenuTap,
-      this.initialValue = 0});
+      this.initialValue = 0,
+      this.value = 0});
   @override
   State<LeadingWidget> createState() => _LeadingWidgetState();
 }
@@ -39,31 +41,38 @@ class _LeadingWidgetState extends State<LeadingWidget>
     with TickerProviderStateMixin {
   late AnimationController _animationIconController;
   late Animation<double> animation;
+  AnimatedIconData _animatedIcon = AnimatedIcons.menu_arrow;
   bool isarrowmenu = false;
-  int _widgetId = 0; // 0 = hamburger 1 = back
+  late int _widgetId; // 0 = hamburger 1 = back
 
   @override
   void initState() {
     super.initState();
+    // bool changeId = _widgetId != widget.initialValue;
+    _widgetId = widget.initialValue;
     widget.controller._addState(this);
     _animationIconController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 1),
     );
+    _animatedIcon = //AnimatedIcons.arrow_menu;
+        widget.initialValue == 0 || widget.value == 0
+            ? AnimatedIcons.menu_arrow
+            : AnimatedIcons.arrow_menu;
     animation =
         Tween<double>(begin: 0.0, end: 1.0).animate(_animationIconController);
-    changeWidget(widget.initialValue);
   }
 
   @override
   void dispose() {
-    // _leadingWidgetController.dispose();
+    _animationIconController.dispose();
     super.dispose();
   }
 
   void changeWidget(id) {
     setState(() {
       _widgetId = id;
+      widget.value = id;
       if (_widgetId == 0) {
         _animationIconController.reverse();
       } else {
@@ -77,19 +86,15 @@ class _LeadingWidgetState extends State<LeadingWidget>
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      //GestureDetector(
-      onTap: () {
-        setState(() {
-          widget.onMenuTap(_widgetId);
-        });
-      },
+      customBorder: const CircleBorder(),
+      onTap: () => setState(() => widget.onMenuTap(_widgetId)),
       child: ClipOval(
         child: SizedBox(
           width: 45,
           height: 45,
           child: Center(
             child: AnimatedIcon(
-              icon: AnimatedIcons.menu_arrow,
+              icon: _animatedIcon,
               progress: animation,
               color: Colors.white,
               size: 30,
