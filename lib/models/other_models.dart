@@ -875,7 +875,7 @@ class EventInvitation {
   DateTime invitationDate;
   int accepted;
   int index = 0;
-  bool selected = false;
+  bool selected;
   EventInvitation({
     this.driveId = '',
     this.name = '',
@@ -887,6 +887,7 @@ class EventInvitation {
     this.id = '',
     invitationDate,
     this.accepted = 0,
+    this.selected = false,
   })  : eventDate = eventDate ?? DateTime.now(),
         invitationDate = invitationDate ?? DateTime.now();
 

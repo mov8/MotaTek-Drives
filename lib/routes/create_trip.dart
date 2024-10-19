@@ -34,9 +34,20 @@ https://pub.dev/packages/flutter_map_animations/example  shows how to animate ma
 https://medium.com/cf-tech/mastering-offline-maps-in-flutter-a-deep-dive-part-2-flutter-map-fmtc-c3c153ecd3c7
 
 VECTOR MAP TILES
+The obvious big advantage of vector tiles is that the labels will rotate with the map when navigating
+However there appear to be speed issues with vector rendering. One of the
+approaches to investigate is the rasterisation of the vector map apart
+from any text. Then the text could remain as a vector layer to be correctly
+rotated over the rotated raster layer - getting the best of both worlds.
+There appear to be moves to improve the vector performance - flutter-gpu 
+that implements Impeller - the vector-map-tiles/issues/120 gives an overview
+
 https://github.com/organicmaps/organicmaps/tree/master/search/pysearch
 https://github.com/greensopinion/flutter-vector-map-tiles?tab=readme-ov-file
 https://project-osrm.org/docs/v5.5.1/api/#general-options
+https://github.com/greensopinion/flutter-vector-map-tiles/issues/120
+https://medium.com/flutter/getting-started-with-flutter-gpu-f33d497b7c11
+
 
 TILE CACHING objectbox looks really useful it stores Dart objects and is really fast
 https://pub.dev/packages/objectbox - looks really neat with cross-device synchronisation
@@ -875,13 +886,6 @@ class _CreateTripState extends State<CreateTripScreen>
   }
 
   Widget setPreferences() {
-    // int delta = 60;
-    // if (_preferences.isLeft || _preferences.isRight) {
-    ///   delta = 35;
-    //   setState(() {});
-    //   debugPrint('_preferences endstop reached');
-    // }
-
     return SizedBox(
       height: 20,
       width: MediaQuery.of(context).size.width,
@@ -943,10 +947,6 @@ class _CreateTripState extends State<CreateTripScreen>
         //  ],
       ]),
     );
-    //  ],
-    //  ),
-    //   ),
-    //);
   }
 
   addWaypoint() async {
@@ -1982,18 +1982,22 @@ class _CreateTripState extends State<CreateTripScreen>
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
       child: AbsorbPointer(
-          child: Container(
-        // margin: const EdgeInsets.fromLTRB(0, 0, 0, 10),
-        color: const Color.fromARGB(255, 158, 158, 158),
-        height: _dividerHeight,
-        width: MediaQuery.of(context).size.width,
-        //  padding: const EdgeInsets.fromLTRB(5, 0, 5, 15),
-        child: Icon(
-          Icons.drag_handle,
-          size: _dividerHeight,
-          color: Colors.blue,
+        child: Container(
+          // margin: const EdgeInsets.fromLTRB(0, 0, 0, 10),
+          color: const Color.fromARGB(255, 158, 158, 158),
+          height: _dividerHeight,
+          width: MediaQuery.of(context).size.width,
+          //  padding: const EdgeInsets.fromLTRB(5, 0, 5, 15),
+          child: Icon(
+            Icons.drag_handle,
+            size: _dividerHeight,
+            color: Colors.blue,
+          ),
         ),
-      )),
+      ),
+      onTap: () => setState(() => adjustMapHeight(mapHeight > mapHeights[0] - 50
+          ? MapHeights.pointOfInterest
+          : MapHeights.full)),
       onVerticalDragUpdate: (DragUpdateDetails details) {
         setState(() {
           if (mapHeights[0] == 0) {
@@ -2197,45 +2201,42 @@ class _CreateTripState extends State<CreateTripScreen>
             SliverToBoxAdapter(
               child: _exploreDetailsHeader(),
             ),
-            //      if (_editPointOfInterest <
-            //          0) // && _currentTrip.pointsOfInterest()[index].type != 12)
             SliverReorderableList(
-                itemBuilder: (context, index) {
-                  //   debugPrint('Index: $index');
-                  if (_currentTrip.pointsOfInterest()[index].getType() != 16) {
-                    // filter out followers
-                    return _currentTrip.pointsOfInterest()[index].getType() ==
-                            12
-                        ? waypointTile(index)
-                        : PointOfInterestTile(
-                            key: ValueKey(index),
-                            //   pointOfInterestController:
-                            // _pointOfInterestController,
-                            index: index,
-                            pointOfInterest:
-                                _currentTrip.pointsOfInterest()[index],
-                            onExpandChange: expandChange,
-                            onIconTap: iconButtonTapped,
-                            onDelete: removePointOfInterest,
-                            onRated: onPointOfInterestRatingChanged,
-                            canEdit: _appState != AppState.driveTrip,
-                          ); //   pointOfInterestTile(index);
-                  } else {
-                    return SizedBox(
-                      key: ValueKey(index),
-                      height: 1,
-                    );
-                  }
-                },
-                itemCount: _currentTrip.pointsOfInterest().length,
-                onReorder: (int oldIndex, int newIndex) {
-                  setState(() {
+              itemBuilder: (context, index) {
+                if (_currentTrip.pointsOfInterest()[index].getType() != 16) {
+                  // filter out followers
+                  return _currentTrip.pointsOfInterest()[index].getType() == 12
+                      ? waypointTile(index)
+                      : PointOfInterestTile(
+                          key: ValueKey(index),
+                          index: index,
+                          pointOfInterest:
+                              _currentTrip.pointsOfInterest()[index],
+                          onExpandChange: expandChange,
+                          onIconTap: iconButtonTapped,
+                          onDelete: removePointOfInterest,
+                          onRated: onPointOfInterestRatingChanged,
+                          canEdit: _appState != AppState.driveTrip,
+                        );
+                } else {
+                  return SizedBox(
+                    key: ValueKey(index),
+                    height: 1,
+                  );
+                }
+              },
+              itemCount: _currentTrip.pointsOfInterest().length,
+              onReorder: (int oldIndex, int newIndex) {
+                setState(
+                  () {
                     if (oldIndex < newIndex) {
                       newIndex = -1;
                     }
                     _currentTrip.movePointOfInterest(oldIndex, newIndex);
-                  });
-                })
+                  },
+                );
+              },
+            )
           ],
           if (_editPointOfInterest > -1) ...[
             SliverToBoxAdapter(

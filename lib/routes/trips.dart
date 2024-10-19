@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:ui' as ui;
 import 'package:drives/classes/classes.dart';
 import 'package:drives/models/models.dart';
 import 'package:drives/tiles/trip_tile.dart';
@@ -20,6 +21,9 @@ class _tripsScreenState extends State<TripsScreen> {
   final GlobalKey _scaffoldKey = GlobalKey();
   late Future<bool> _dataLoaded;
   List<TripItem> tripItems = [];
+  bool _showPreferences = false;
+  final TripsPreferences _preferences = TripsPreferences();
+  final ScrollController _preferencesScrollController = ScrollController();
 
   @override
   void initState() {
@@ -27,6 +31,30 @@ class _tripsScreenState extends State<TripsScreen> {
     _leadingWidgetController = LeadingWidgetController();
     _bottomNavController = RoutesBottomNavController();
     _dataLoaded = tripsFromWeb();
+    _preferencesScrollController.addListener(
+      () {
+        if (_preferencesScrollController.position.atEdge) {
+          bool isTop = _preferencesScrollController.position.pixels == 0;
+          if (isTop) {
+            setState(() {
+              _preferences.isRight = true;
+              _preferences.isLeft = false;
+            });
+          } else {
+            setState(() {
+              _preferences.isLeft = true;
+              _preferences.isRight = false;
+            });
+          }
+        } else if (_preferences.isRight || _preferences.isLeft) {
+          setState(() {
+            _preferences.isLeft = false;
+            _preferences.isRight = false;
+          });
+        }
+        //  setState(() {});
+      },
+    );
   }
 
   Future<bool> tripsFromWeb() async {
@@ -107,16 +135,38 @@ class _tripsScreenState extends State<TripsScreen> {
       appBar: AppBar(
         automaticallyImplyLeading: false,
         leading: LeadingWidget(
-            controller: _leadingWidgetController,
-            onMenuTap: (index) =>
-                _leadingWidget(_scaffoldKey.currentState)), // IconButton(
+          controller: _leadingWidgetController,
+          onMenuTap: (index) => _leadingWidget(_scaffoldKey.currentState),
+        ), // IconButton(
         title: const Text(
           'Trips available to download',
           style: TextStyle(
               fontSize: 20, color: Colors.white, fontWeight: FontWeight.w700),
         ),
         iconTheme: const IconThemeData(color: Colors.white),
+
         backgroundColor: Colors.blue,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.more_vert), //keyboard_arrow_down),
+            onPressed: () =>
+                setState(() => _showPreferences = !_showPreferences),
+          ),
+        ],
+        bottom: (_showPreferences)
+            ? PreferredSize(
+                preferredSize: const ui.Size.fromHeight(60),
+                child: AnimatedContainer(
+                  height: 60,
+                  curve: Curves.easeInOut,
+                  duration: const Duration(seconds: 3),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(5, 10, 5, 10),
+                    child: setPreferences(),
+                  ),
+                ),
+              )
+            : null,
       ),
       body: FutureBuilder<bool>(
         future: _dataLoaded,
@@ -143,6 +193,95 @@ class _tripsScreenState extends State<TripsScreen> {
           controller: _bottomNavController,
           initialValue: 1,
           onMenuTap: (_) => {}),
+    );
+  }
+
+  Widget setPreferences() {
+    return SizedBox(
+      height: 20,
+      width: MediaQuery.of(context).size.width,
+      child: Row(
+        children: [
+          //  if (!_preferences.isLeft) ...[
+          Icon(_preferences.isLeft ? null : Icons.arrow_back_ios,
+              color: Colors.white),
+          //  ],
+          SizedBox(
+            width: MediaQuery.of(context).size.width - 60, //delta,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              controller: _preferencesScrollController,
+              children: <Widget>[
+                SizedBox(
+                  width: 210,
+                  child: CheckboxListTile(
+                    checkColor: Colors.white,
+                    title: const Text('Current location',
+                        style: TextStyle(color: Colors.white)),
+                    value: _preferences.currentLocation,
+                    onChanged: (value) =>
+                        setState(() => _preferences.currentLocation = value!),
+                    controlAffinity: ListTileControlAffinity.leading,
+                  ),
+                ),
+                SizedBox(
+                  width: 210,
+                  child: CheckboxListTile(
+                    //  activeColor: Colors.white,
+                    hoverColor: Colors.white,
+                    title: const Text('North West',
+                        style: TextStyle(color: Colors.white)),
+                    value: _preferences.northWest,
+                    onChanged: (value) =>
+                        setState(() => _preferences.northWest = value!),
+                    controlAffinity: ListTileControlAffinity.leading,
+                  ),
+                ),
+                SizedBox(
+                  width: 210,
+                  child: CheckboxListTile(
+                    title: const Text('North East',
+                        style: TextStyle(color: Colors.white)),
+                    value: _preferences.northEast,
+                    onChanged: (value) =>
+                        setState(() => _preferences.northEast = value!),
+                    controlAffinity: ListTileControlAffinity.leading,
+                  ),
+                ),
+                SizedBox(
+                  width: 210,
+                  child: CheckboxListTile(
+                    //  activeColor: Colors.white,
+                    hoverColor: Colors.white,
+                    title: const Text('South West',
+                        style: TextStyle(color: Colors.white)),
+                    value: _preferences.southWest,
+                    onChanged: (value) =>
+                        setState(() => _preferences.southWest = value!),
+                    controlAffinity: ListTileControlAffinity.leading,
+                  ),
+                ),
+                SizedBox(
+                  width: 210,
+                  child: CheckboxListTile(
+                    title: const Text('South East',
+                        style: TextStyle(color: Colors.white)),
+                    value: _preferences.southEast,
+                    onChanged: (value) =>
+                        setState(() => _preferences.southEast = value!),
+                    controlAffinity: ListTileControlAffinity.leading,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          //  if (!_preferences.isRight) ...[
+          Icon(
+            _preferences.isRight ? null : Icons.arrow_forward_ios,
+            color: Colors.white,
+          ),
+        ],
+      ),
     );
   }
 }

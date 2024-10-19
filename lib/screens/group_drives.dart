@@ -23,6 +23,7 @@ class _GroupDriveFormState extends State<GroupDriveForm> {
   int _index = 0;
   bool _adding = false;
   bool _expanded = false;
+  int toInvite = 0;
 
   String _alterDriveId = '';
 
@@ -57,16 +58,11 @@ class _GroupDriveFormState extends State<GroupDriveForm> {
     return true;
   }
 
-  Future<bool> loadInvitees() async {
-    _invitees =
-        await getInvitationsByEvent(eventId: _groups[_groupIndex].groupDriveId);
-    return true;
-  }
-
   Future<bool> loadInviteesToAlter(
       String eventId, String currentEventId) async {
     if (eventId != currentEventId) {
       _invitees = await getInvitationsToAlter(eventId: eventId);
+      toInvite = 0;
     }
     return true;
   }
@@ -287,8 +283,9 @@ class _GroupDriveFormState extends State<GroupDriveForm> {
                   child: GroupDriveEnviteeTile(
                     index: i,
                     invitation: _invitees[i],
+                    onSelect: (i) => inviteOnSelect(i),
                   ),
-                )
+                ),
               ],
             const SizedBox(
               height: 40,
@@ -306,6 +303,14 @@ class _GroupDriveFormState extends State<GroupDriveForm> {
 
   Future<void> loadTrip(val) async {
     return;
+  }
+
+  inviteOnSelect(int idx) {
+    setState(() {
+      debugPrint('toInvite: $toInvite');
+      _invitees[idx].selected = !_invitees[idx].selected; //select;
+      toInvite += _invitees[idx].selected ? 1 : -1;
+    });
   }
 
   Future<void> shareTrip(index) async {
@@ -382,11 +387,13 @@ class _GroupDriveFormState extends State<GroupDriveForm> {
                 color: Colors.white,
               ),
               label: Text(
-                '${_adding ? "Invited" : "All"} Members', // - ${_action.toString()}',
+                _adding
+                    ? "Only Invited"
+                    : "Include Uninvited", // - ${_action.toString()}',
                 style: const TextStyle(fontSize: 18, color: Colors.white),
               ),
             ),
-            if (_adding) ...[
+            if (_adding && toInvite > 0) ...[
               ActionChip(
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
@@ -399,7 +406,7 @@ class _GroupDriveFormState extends State<GroupDriveForm> {
                   color: Colors.white,
                 ),
                 label: const Text(
-                  'Save Changes', // - ${_action.toString()}',
+                  'Invite Checked', // - ${_action.toString()}',
                   style: TextStyle(fontSize: 18, color: Colors.white),
                 ),
               ),

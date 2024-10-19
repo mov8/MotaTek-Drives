@@ -39,6 +39,23 @@ class TripPreferences {
       this.maxSpeed = 70});
 }
 
+class TripsPreferences {
+  bool northWest;
+  bool northEast;
+  bool southWest;
+  bool southEast;
+  bool currentLocation;
+  bool isLeft = true;
+  bool isRight = false;
+  TripsPreferences({
+    this.northWest = false,
+    this.northEast = false,
+    this.southWest = false,
+    this.southEast = false,
+    this.currentLocation = false,
+  });
+}
+
 class ViewportFence {
   LatLng topRight;
   LatLng bottomLeft;
@@ -70,5 +87,10 @@ class ViewportFence {
 }
 
 LatLng setFence({required LatLng location, required double margin}) {
-  return LatLng(location.latitude + margin, location.longitude + margin);
+  /// One degree latitude is ~ 69.172 miles
+  /// One degree longitude at the Equator is ~ 69.172 miles
+  /// E-W delta * degree long = (Lat degrees decimal - 90) * Pi / 180
+  double longMargin =
+      1 / ((90 - (location.latitude + margin)) * pi / 180).abs() * margin;
+  return LatLng(location.latitude + margin, location.longitude + longMargin);
 }

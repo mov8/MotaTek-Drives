@@ -131,36 +131,43 @@ class _tripTileState extends State<TripTile> {
                 ),
                 if (widget.tripItem.author.isNotEmpty)
                   SizedBox(
-                      child: Padding(
-                          padding: const EdgeInsets.fromLTRB(5, 0, 5, 15),
-                          child: Row(children: [
-                            Expanded(
-                              flex: 1,
-                              child: CircleAvatar(
-                                backgroundColor: Colors.blue,
-                                child: Text(
-                                    getInitials(name: widget.tripItem.author)),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              flex: 7,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(5, 0, 5, 15),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            flex: 1,
+                            child: CircleAvatar(
+                              backgroundColor: Colors.blue,
                               child: Text(
-                                widget.tripItem.author,
-                                style: const TextStyle(
-                                    color: Colors.black, fontSize: 20),
-                              ),
+                                  getInitials(name: widget.tripItem.author)),
                             ),
-                            Expanded(
-                                flex: 2,
-                                child: Column(children: [
-                                  IconButton(
-                                    icon: const Icon(Icons.group_add),
-                                    onPressed: () => (setState(() {})),
-                                  ),
-                                  //   const Text('follow'),
-                                ]))
-                          ]))),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            flex: 7,
+                            child: Text(
+                              widget.tripItem.author,
+                              style: const TextStyle(
+                                  color: Colors.black, fontSize: 20),
+                            ),
+                          ),
+                          Expanded(
+                            flex: 2,
+                            child: Column(
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.group_add),
+                                  onPressed: () => (setState(() {})),
+                                ),
+                                //   const Text('follow'),
+                              ],
+                            ),
+                          )
+                        ],
+                      ),
+                    ),
+                  ),
                 SizedBox(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(5, 0, 5, 15),

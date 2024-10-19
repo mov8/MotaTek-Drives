@@ -99,11 +99,10 @@ class _groupDriveEnviteeTileState extends State<GroupDriveEnviteeTile> {
     if (widget.invitation.accepted < 3) {
       iconIdx = widget.invitation.accepted;
     } else {
-      iconIdx = widget.invitation.selected ? 3 : 4;
+      iconIdx = widget.invitation.selected ? 3 : 4; // 4 = un-checked
     }
     return IconButton(
         icon: Icon(invIcons[iconIdx]),
-        onPressed: () =>
-            setState(() => widget.invitation.selected = iconIdx == 4));
+        onPressed: () => widget.onSelect!(widget.index));
   }
 }
