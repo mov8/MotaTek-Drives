@@ -19,7 +19,7 @@ import 'package:drives/models/my_trip_item.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter/material.dart';
-import 'package:path/path.dart';
+//import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 
 // import 'package:geolocator/geolocator.dart';
@@ -983,11 +983,20 @@ class GroupDriveInvitation {
 
 class Photo {
   String url;
+  int index;
   String caption;
-  Photo({required this.url, this.caption = ''});
+  String endPoint;
+  Photo(
+      {required this.url,
+      this.index = -1,
+      this.caption = '',
+      this.endPoint = ''});
 
   factory Photo.fromJson(Map<String, dynamic> json) {
-    return Photo(url: json['url'], caption: json['caption']);
+    return Photo(url: json['url'], caption: json['caption'] ?? '');
+  }
+  factory Photo.fromJsonMap(Map<String, String> json) {
+    return Photo(url: json['url'] ?? '', caption: json['caption'] ?? '');
   }
 
   String toJson() {
@@ -1003,16 +1012,28 @@ class Photo {
 
 List<Photo> photosFromJson(String photoString) {
   List<Photo> photos = [];
+
   if (photoString.isNotEmpty) {
     try {
       photos = (json.decode(photoString) as List<dynamic>)
           .map((jsonObject) => Photo.fromJson(jsonObject))
           .toList();
+      for (int i = 0; i < photos.length; i++) {
+        photos[i].index = i;
+      }
     } catch (e) {
       String err = e.toString();
       debugPrint('Error converting image data: $err ($photoString)');
     }
   }
+
+  return photos;
+}
+
+List<Photo> photosFromMap(String photoString) {
+  List<Photo> photos = [
+    for (Map<String, String> url in jsonDecode(photoString)) Photo.fromJson(url)
+  ];
   return photos;
 }
 
@@ -1046,19 +1067,13 @@ class User {
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
-    final id = json['id'];
-    final forename = json['forename'];
-    final surname = json['surname'];
-    final email = json['email'];
-    final phone = json['phone'];
-    final password = json['password'];
     return User(
-        id: id,
-        forename: forename,
-        surname: surname,
-        email: email,
-        phone: phone,
-        password: password,
+        id: json['id'],
+        forename: json['forename'],
+        surname: json['surname'],
+        email: json['email'],
+        phone: json['phone'],
+        password: json['password'],
         imageUrl: json['imageUrl']);
   }
 
@@ -1195,31 +1210,123 @@ class Follower extends Marker {
 }
 
 /// class HomeItem
+///
+
+/// Api sends image urls as a list of filenames
+/// To simplify handling of local and web images the
+/// API url list is converted to {"url": "uuid.jpd", "caption": ""}, {...}
+String handleWebImages(String urls) {
+  String mappedUrls = urls;
+  if (urls.isNotEmpty && !urls.contains('{') && !urls.contains('assets')) {
+    mappedUrls = urls.replaceAll(RegExp(r','), ', "caption":""},{"url": ');
+    mappedUrls =
+        '[{"url":${mappedUrls.substring(1, mappedUrls.length - 1)}, "caption": ""}]';
+  }
+  return mappedUrls;
+}
 
 class HomeItem {
-  int id = 0;
+  String uri = '';
   String heading = '';
   String subHeading = '';
   String body = '';
   String imageUrl = '';
   int score = 5;
-  HomeItem({
-    this.id = 0,
-    required this.heading,
-    this.subHeading = '',
-    this.body = '',
-    this.imageUrl = '',
-    this.score = 5,
-  });
+  String coverage;
+  DateTime added;
+  HomeItem(
+      {this.uri = '',
+      required this.heading,
+      this.subHeading = '',
+      this.body = '',
+      imageUrl = '',
+      this.score = 5,
+      this.coverage = 'all',
+      DateTime? added})
+      : added = added ?? DateTime.now(),
+        imageUrl = handleWebImages(imageUrl);
+
+  factory HomeItem.fromMap({required Map<String, dynamic> map}) {
+    return HomeItem(
+      uri: map['uri'],
+      heading: map['heading'],
+      subHeading: map['subHeading'],
+      body: map['body'],
+      imageUrl: map['imageUrl'], //jsonEncode(map['imageUrl']),
+      coverage: map['coverage'],
+      score: int.parse(map['score']),
+    );
+  }
 
   Map<String, dynamic> toMap() {
     return {
-      'id': id,
+      'uri': uri,
       'heading': heading,
       'subHeading': subHeading,
       'body': body,
       'imageUrl': imageUrl,
+      'coverage': coverage,
       'score': score,
+    };
+  }
+}
+
+/// class ShopItem
+
+class ShopItem {
+  String uri = '';
+  String heading = '';
+  String subHeading = '';
+  String body = '';
+  String imageUrl = '';
+  String coverage;
+  int score = 5;
+  String buttonText1;
+  String url1;
+  String buttonText2;
+  String url2;
+  ShopItem(
+      {this.uri = '',
+      required this.heading,
+      this.subHeading = '',
+      this.body = '',
+      this.imageUrl = '',
+      this.coverage = 'all',
+      this.score = 5,
+      this.buttonText1 = '',
+      this.url1 = '',
+      this.buttonText2 = '',
+      this.url2 = ''});
+
+  factory ShopItem.fromMap({required Map<String, dynamic> map}) {
+    return ShopItem(
+      uri: map['uri'],
+      heading: map['heading'],
+      subHeading: map['subHeading'],
+      body: map['body'],
+      coverage: map['coverage'],
+      imageUrl: map['imageUrl'],
+      score: int.parse(map['score']),
+      buttonText1: map['button_text_1'],
+      url1: map['url_1'],
+      buttonText2: map['button_text_2'],
+      url2: map['url_2'],
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'uri': uri,
+      'heading': heading,
+      'subheading': subHeading,
+      'body': body,
+      'coverage': coverage,
+      'image_url': imageUrl,
+      'score': score,
+      'button_text_1': buttonText1,
+      'url_1': url1,
+      'button_text_2': buttonText2,
+      'url_2': url2,
     };
   }
 }

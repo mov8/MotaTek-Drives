@@ -2,7 +2,7 @@ import 'package:drives/services/services.dart';
 import 'package:flutter/material.dart';
 import 'package:drives/models/models.dart';
 import 'package:drives/screens/star_ratings.dart';
-import 'package:drives/classes/utilities.dart';
+//import 'package:drives/classes/utilities.dart';
 import 'package:intl/intl.dart';
 
 class GroupDriveInvitationTile extends StatefulWidget {

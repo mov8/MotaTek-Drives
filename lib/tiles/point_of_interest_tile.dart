@@ -164,32 +164,32 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                   Row(children: [
                     if (canEdit) ...[
                       Expanded(
-                          flex: 10,
-                          child: DropdownButtonFormField<String>(
-                              decoration: const InputDecoration(
-                                border: OutlineInputBorder(),
-                                labelText: 'Type',
-                              ),
-                              value:
-                                  widget.pointOfInterest.getType().toString(),
-                              items: poiTypes
-                                  .map((item) => DropdownMenuItem<String>(
-                                        value: item['id'].toString(),
-                                        child: Row(children: [
-                                          Icon(
-                                            IconData(item['iconMaterial'],
-                                                fontFamily: 'MaterialIcons'),
-                                            color:
-                                                Color(item['colourMaterial']),
-                                          ),
-                                          Text('    ${item['name']}')
-                                        ]),
-                                      ))
-                                  .toList(),
-                              onChanged: (item) {
-                                int type = item == null ? -1 : int.parse(item);
-                                widget.pointOfInterest.setType(type);
-                              })),
+                        flex: 10,
+                        child: DropdownButtonFormField<String>(
+                          decoration: const InputDecoration(
+                            border: OutlineInputBorder(),
+                            labelText: 'Type',
+                          ),
+                          value: widget.pointOfInterest.getType().toString(),
+                          items: poiTypes
+                              .map((item) => DropdownMenuItem<String>(
+                                    value: item['id'].toString(),
+                                    child: Row(children: [
+                                      Icon(
+                                        IconData(item['iconMaterial'],
+                                            fontFamily: 'MaterialIcons'),
+                                        color: Color(item['colourMaterial']),
+                                      ),
+                                      Text('    ${item['name']}')
+                                    ]),
+                                  ))
+                              .toList(),
+                          onChanged: (item) {
+                            int type = item == null ? -1 : int.parse(item);
+                            widget.pointOfInterest.setType(type);
+                          },
+                        ),
+                      ),
                       Expanded(
                         flex: 8,
                         child: SizedBox(

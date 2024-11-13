@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:drives/models/other_models.dart';
-import 'package:drives/tiles/home_tile.dart';
+import 'package:drives/tiles/tiles.dart';
 import 'package:drives/screens/main_drawer.dart';
 import 'package:drives/classes/classes.dart';
 
@@ -34,8 +34,8 @@ class _shopScreenState extends State<ShopScreen> {
   }
 
   Widget _getPortraitBody() {
-    List<HomeItem> homeItems = [];
-    homeItems.add(HomeItem(
+    List<ShopItem> shopItems = [];
+    shopItems.add(ShopItem(
         heading: 'New trip planning app',
         subHeading: 'Stop polishing your car and start driving it...',
         body:
@@ -43,7 +43,7 @@ class _shopScreenState extends State<ShopScreen> {
 You can plan trips either on your own or you can explore in a group''',
         imageUrl: 'assets/images/splash.png'));
 
-    homeItems.add(HomeItem(
+    shopItems.add(ShopItem(
         heading: 'Share your trips',
         subHeading: 'Let others know about your beautiful trip',
         body: '''MotaTrip lets you enjoy trips other users have saved. 
@@ -87,8 +87,8 @@ You can also publish your trips for others to enjoy. You can invite a group of f
               )),
         ),
       ])),
-      for (int i = 0; i < homeItems.length; i++) ...[
-        HomeTile(homeItem: homeItems[i])
+      for (int i = 0; i < shopItems.length; i++) ...[
+        ShopTile(shopItem: shopItems[i])
       ],
       const SizedBox(
         height: 40,
@@ -136,9 +136,10 @@ You can also publish your trips for others to enjoy. You can invite a group of f
         },
       ),
       bottomNavigationBar: RoutesBottomNav(
-          controller: _bottomNavController,
-          initialValue: 4,
-          onMenuTap: (_) => {}),
+        controller: _bottomNavController,
+        initialValue: 4,
+        onMenuTap: (_) => {},
+      ),
     );
   }
 }

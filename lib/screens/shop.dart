@@ -7,19 +7,19 @@ import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'package:drives/services/services.dart';
 
-class HomeForm extends StatefulWidget {
+class ShopForm extends StatefulWidget {
   // var setup;
 
-  const HomeForm({super.key, setup});
+  const ShopForm({super.key, setup});
 
   @override
-  State<HomeForm> createState() => _HomeFormState();
+  State<ShopForm> createState() => _ShopFormState();
 }
 
-class _HomeFormState extends State<HomeForm> {
+class _ShopFormState extends State<ShopForm> {
   int _groupIndex = 0;
   late Future<bool> _dataloaded;
-  List<HomeItem> _items = [];
+  List<ShopItem> _items = [];
   List<EventInvitation> _invitees = [];
   int _action = 0;
   int _index = 0;
@@ -30,7 +30,7 @@ class _HomeFormState extends State<HomeForm> {
   String _alterDriveId = '';
 
   final List<String> _titles = [
-    "Home page articles",
+    "Shop page articles",
     "Article - ",
     "Trips I've saved to share",
   ];
@@ -56,10 +56,10 @@ class _HomeFormState extends State<HomeForm> {
   }
 
   Future<bool> dataFromWeb() async {
-    _items = await getHomeItems(0);
+    _items = await getShopItems(0);
     if (_items.isEmpty) {
       _items.add(
-        HomeItem(
+        ShopItem(
           heading: 'New trip planning app',
           subHeading: 'Stop polishing your car and start driving it...',
           body:
@@ -70,7 +70,7 @@ You can plan trips either on your own or you can explore in a group''',
         ),
       );
 
-      //  _items.add(HomeItem(heading: ''));
+      //  _items.add(ShopItem(heading: ''));
     }
     return true;
   }
@@ -96,8 +96,8 @@ You can plan trips either on your own or you can explore in a group''',
                   itemBuilder: (context, index) => Padding(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 10.0, vertical: 5.0),
-                    child: HomeItemTile(
-                      homeItem: _items[index],
+                    child: ShopItemTile(
+                      shopItem: _items[index],
                       index: index,
                       onExpandChange: (index) => expandCallBack(index),
                       onRated: (index, rate) => rating(rate, index),
@@ -298,7 +298,7 @@ You can plan trips either on your own or you can explore in a group''',
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
               ),
-              onPressed: () => postHomeItem(_items[_index]), //_action = 2),
+              onPressed: () => postShopItem(_items[_index]), //_action = 2),
               backgroundColor: Colors.blue,
               avatar: const Icon(
                 Icons.image,

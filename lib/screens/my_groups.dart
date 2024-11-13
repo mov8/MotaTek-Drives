@@ -33,6 +33,7 @@ class _MyGroupsFormState extends State<MyGroupsForm> {
   bool addingMember = false;
   bool addingGroup = false;
   bool editingGroup = false;
+  int _changed = 0;
 
   List<GroupMember> allMembers = [];
 
@@ -173,8 +174,11 @@ class _MyGroupsFormState extends State<MyGroupsForm> {
                   ])
                 ]),
                 value: groups[index].selected,
-                onChanged: (value) => setState(
-                    () => groups[index].selected = !groups[index].selected),
+                onChanged: (value) => setState(() {
+                  groups[index].selected = !groups[index].selected;
+                  _changed += groups[index].selected ? index + 1 : -(index + 1);
+                  debugPrint('_changed = $_changed');
+                }),
               ),
             ),
           ),
@@ -182,7 +186,7 @@ class _MyGroupsFormState extends State<MyGroupsForm> {
       ),
       Align(
         alignment: Alignment.bottomLeft,
-        child: _handleChips(),
+        child: _changed == 0 ? null : _handleChips(),
       )
     ]);
   }

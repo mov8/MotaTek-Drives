@@ -34,7 +34,7 @@ class _GroupFormState extends State<GroupForm> {
   bool addingMember = false;
   bool addingGroup = false;
   bool editingGroup = false;
-
+  int _changes = 0;
   List<GroupMember> allMembers = [];
 
   @override
@@ -309,6 +309,9 @@ class _GroupFormState extends State<GroupForm> {
       setState(() {
         groups[groupIndex].groupMembers()[idx].selected =
             !groups[groupIndex].groupMembers()[idx].selected;
+        _changes += groups[groupIndex].groupMembers()[idx].selected
+            ? idx + 1
+            : -(idx + 1);
         groups[groupIndex].edited = true;
       });
     }
@@ -636,7 +639,7 @@ class _GroupFormState extends State<GroupForm> {
                 label: const Text('New Member',
                     style: TextStyle(fontSize: 18, color: Colors.white)),
               ),
-              if (!addingMember) ...[
+              if (!addingMember && _changes != 0) ...[
                 ActionChip(
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20)),

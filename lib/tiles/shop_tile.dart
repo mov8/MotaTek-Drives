@@ -2,25 +2,25 @@ import 'package:flutter/material.dart';
 import 'package:drives/models/other_models.dart';
 import 'package:drives/services/services.dart';
 
-class HomeTile extends StatefulWidget {
-  final HomeItem homeItem;
+class ShopTile extends StatefulWidget {
+  final ShopItem shopItem;
   final Function(int)? onSelect;
   final Function(int)? onDelete;
   final int index;
 
-  const HomeTile({
+  const ShopTile({
     super.key,
-    required this.homeItem,
+    required this.shopItem,
     this.onSelect,
     this.onDelete,
     this.index = 0,
   });
 
   @override
-  State<HomeTile> createState() => _homeTileState();
+  State<ShopTile> createState() => _ShopTileState();
 }
 
-class _homeTileState extends State<HomeTile> {
+class _ShopTileState extends State<ShopTile> {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -36,7 +36,7 @@ class _homeTileState extends State<HomeTile> {
                   width: MediaQuery.of(context).size.width,
                   height: 400,
 
-                  //    if (widget.homeItem.imageUrl.isNotEmpty)
+                  //    if (widget.shopItem.imageUrl.isNotEmpty)
                   child: Row(
                     children: <Widget>[
                       Expanded(
@@ -47,11 +47,11 @@ class _homeTileState extends State<HomeTile> {
                             scrollDirection: Axis.horizontal,
                             children: [
                               for (Photo photo in photosFromJson(
-                                widget.homeItem.imageUrl,
+                                widget.shopItem.imageUrl,
                               ))
                                 showWebImage(
                                     Uri.parse(
-                                            '${urlBase}v1/home_page_item/images/${widget.homeItem.uri}/${photo.url}')
+                                            '${urlBase}v1/home_page_item/images/${widget.shopItem.uri}/${photo.url}')
                                         .toString(),
                                     width: MediaQuery.of(context).size.width -
                                         10, //400,
@@ -72,7 +72,7 @@ class _homeTileState extends State<HomeTile> {
                   padding: const EdgeInsets.fromLTRB(5, 0, 5, 10),
                   child: Align(
                     alignment: Alignment.topLeft,
-                    child: Text(widget.homeItem.heading,
+                    child: Text(widget.shopItem.heading,
                         style: const TextStyle(
                             color: Colors.black,
                             fontSize: 24,
@@ -87,7 +87,7 @@ class _homeTileState extends State<HomeTile> {
                   child: Align(
                     alignment: Alignment.topLeft,
                     child: Text(
-                      widget.homeItem.subHeading,
+                      widget.shopItem.subHeading,
                       style: const TextStyle(
                           color: Colors.black,
                           fontSize: 18,
@@ -102,7 +102,7 @@ class _homeTileState extends State<HomeTile> {
                 padding: const EdgeInsets.fromLTRB(5, 0, 5, 10),
                 child: Align(
                   alignment: Alignment.topLeft,
-                  child: Text(widget.homeItem.body,
+                  child: Text(widget.shopItem.body,
                       style: const TextStyle(color: Colors.black, fontSize: 20),
                       textAlign: TextAlign.left),
                 ),

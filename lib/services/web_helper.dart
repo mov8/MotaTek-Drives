@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
+import 'package:drives/screens/dialogs.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:http/http.dart' as http;
@@ -19,6 +20,14 @@ import 'package:drives/classes/route.dart' as mt;
 ///
 
 // Future<Map<String, dynamic>> getSuggestions(String value) async {
+
+Map<String, String> secureHeader() {
+  String jwToken = Setup().jwt;
+  return {
+    'Authorization': 'Bearer $jwToken', // $Setup().jwt',
+    'Content-Type': 'application/json',
+  };
+}
 
 const List<String> settlementTypes = ['city', 'town', 'village', 'hamlet'];
 DateFormat dateFormat = DateFormat('dd/MM/yy HH:mm');
@@ -157,6 +166,8 @@ class _searchLocationState extends State<SearchLocation> {
 const urlBase = 'http://10.101.1.150:5001/'; // Home network
 // const urlBase = 'http://192.168.1.13:5000/'; // Boston
 // const urlBase = 'http://192.168.1.10:5000/'; // Boston
+// const urlBase = 'http://192.168.68.104:5001/'; // Douglas Lodge
+// const urlBase = 'http://192.168.0.10:5001/'; // Nikki's place
 
 Future<Map<String, dynamic>> postUser(User user,
     {bool register = false}) async {
@@ -175,10 +186,11 @@ Future<Map<String, dynamic>> postUser(User user,
     if (response.statusCode == 201) {
       Setup().jwt = map['token'];
       if (!register) {
-        Setup().user.forename = map['forename'];
-        Setup().user.surname = map['surname'];
-        Setup().user.email = user.email;
-        Setup().user.password = user.password;
+        Setup().user
+          ..forename = map['forename']
+          ..surname = map['surname']
+          ..email = user.email
+          ..password = user.password;
         Setup().setupToDb();
       }
       await updateSetup();
@@ -192,33 +204,6 @@ Future<Map<String, dynamic>> postUser(User user,
   }
   return map;
 }
-
-/*
-      'id': id,
-      'user_id': userId,
-      'title': title,
-      'sub_title': subTitle,
-      'body': body,
-      'added': added.toString(),
-      'map_image': images,
-      'distance': distance,
-      'points_of_interest': pois,
-
-      'id': id,
-      'heading': heading,
-      'subHeading': subHeading,
-      'body': body,
-      'author': author,
-      'authorUrl': authorUrl,
-      'published': published,
-      'imageUrls': imageUrls,
-      'score': score,
-      'distance': distance,
-      'pointsOfInterest': pointsOfInterest,
-      'closest': closest,
-      'scrored': scored,
-      'downloads': downloads,      
-*/
 
 Future<bool> login(BuildContext context) async {
   bool result = false;
@@ -249,6 +234,7 @@ Future<bool> login(BuildContext context) async {
             Row(children: [
               Expanded(
                 child: TextField(
+                  autofocus: true,
                   textInputAction: TextInputAction.next,
                   keyboardType: TextInputType.emailAddress,
                   decoration:
@@ -508,16 +494,15 @@ Future<String> postPolylines(
 
 Future<List<mt.Route>> getGoodRoads(LatLng ne, LatLng sw) async {
   List<mt.Route> goodRoads = [];
-  String jwToken = Setup().jwt;
-  final http.Response response = await http.get(
-    Uri.parse(
-        '${urlBase}v1/good_road/location/${sw.latitude}/${ne.latitude}/${sw.longitude}/${ne.longitude}'),
-    //'/location/<min_lat>/<max_lat>/<min_long>/<max_long>'
-    headers: {
-      'Authorization': 'Bearer $jwToken', // $Setup().jwt',
-      'Content-Type': 'application/json',
-    },
-  ).timeout(const Duration(seconds: 20));
+  // String jwToken = Setup().jwt;
+  final http.Response response = await http
+      .get(
+        Uri.parse(
+            '${urlBase}v1/good_road/location/${sw.latitude}/${ne.latitude}/${sw.longitude}/${ne.longitude}'),
+        //'/location/<min_lat>/<max_lat>/<min_long>/<max_long>'
+        headers: secureHeader(),
+      )
+      .timeout(const Duration(seconds: 20));
   if ([200, 201].contains(response.statusCode) && response.body.length > 10) {
     List polyline = jsonDecode(response.body);
     for (int i = 0; i < polyline.length; i++) {
@@ -540,16 +525,14 @@ Future<List<mt.Route>> getGoodRoads(LatLng ne, LatLng sw) async {
 Future<List<PointOfInterest>> getPointsOfInterest(ne, sw) async {
   List<PointOfInterest> pointsOfInterest = [];
 
-  String jwToken = Setup().jwt;
-  final http.Response response = await http.get(
-    Uri.parse(
-        '${urlBase}v1/point_of_interest/location/${sw.latitude}/${ne.latitude}/${sw.longitude}/${ne.longitude}'),
-    //'/location/<min_lat>/<max_lat>/<min_long>/<max_long>'
-    headers: {
-      'Authorization': 'Bearer $jwToken', // $Setup().jwt',
-      'Content-Type': 'application/json',
-    },
-  ).timeout(const Duration(seconds: 20));
+  final http.Response response = await http
+      .get(
+        Uri.parse(
+            '${urlBase}v1/point_of_interest/location/${sw.latitude}/${ne.latitude}/${sw.longitude}/${ne.longitude}'),
+        //'/location/<min_lat>/<max_lat>/<min_long>/<max_long>'
+        headers: secureHeader(),
+      )
+      .timeout(const Duration(seconds: 20));
   if ([200, 201].contains(response.statusCode) && response.body.length > 10) {
     List pois = jsonDecode(response.body);
     for (int i = 0; i < pois.length; i++) {
@@ -668,17 +651,15 @@ Future<String> postManeuvers(List<Maneuver> maneuvers, String driveUid) async {
 
 Future<List<TripItem>> getTrips() async {
   List<TripItem> trips = [];
-  String jwToken = Setup().jwt;
   var currentPosition = await utils.getPosition();
   LatLng pos = LatLng(currentPosition.latitude, currentPosition.longitude);
 
-  final http.Response response = await http.get(
-    Uri.parse('${urlBase}v1/drive/all'),
-    headers: {
-      'Authorization': 'Bearer $jwToken', // $Setup().jwt',
-      'Content-Type': 'application/json',
-    },
-  ).timeout(const Duration(seconds: 20));
+  final http.Response response = await http
+      .get(
+        Uri.parse('${urlBase}v1/drive/all'),
+        headers: secureHeader(),
+      )
+      .timeout(const Duration(seconds: 20));
   if (response.statusCode == 200) {
     List<dynamic> tripsJson = jsonDecode(response.body);
     //  List<String> images = ['map'];
@@ -731,17 +712,15 @@ Future<List<TripItem>> getTrips() async {
 Future<TripItem> getTrip({required tripId}) async {
   TripItem gotTrip = TripItem(heading: '');
   if (tripId.length == 32) {
-    String jwToken = Setup().jwt;
     var currentPosition = await utils.getPosition();
     LatLng pos = LatLng(currentPosition.latitude, currentPosition.longitude);
 
-    final http.Response response = await http.get(
-      Uri.parse('${urlBase}v1/drive/summary/$tripId'),
-      headers: {
-        'Authorization': 'Bearer $jwToken', // $Setup().jwt',
-        'Content-Type': 'application/json',
-      },
-    ).timeout(const Duration(seconds: 20));
+    final http.Response response = await http
+        .get(
+          Uri.parse('${urlBase}v1/drive/summary/$tripId'),
+          headers: secureHeader(),
+        )
+        .timeout(const Duration(seconds: 20));
     if (response.statusCode == 200) {
       var trip = jsonDecode(response.body);
       //  List<String> images = ['map'];
@@ -828,27 +807,22 @@ Future<void> getAndSaveImage(
 }
 
 putDriveRating(String uri, int score) async {
-  String jwToken = Setup().jwt;
   Map<String, dynamic> map = {
     'drive_id': uri,
     'rating': score,
     'comment': '',
     'rated': DateTime.now().toString()
   };
-  final http.Response response =
-      await http.post(Uri.parse('${urlBase}v1/drive_rating/add'),
-          headers: {
-            'Authorization': 'Bearer $jwToken', // $Setup().jwt',
-            'Content-Type': 'application/json',
-          },
-          body: jsonEncode(map));
+  final http.Response response = await http.post(
+      Uri.parse('${urlBase}v1/drive_rating/add'),
+      headers: secureHeader(),
+      body: jsonEncode(map));
   if ([200, 201].contains(response.statusCode)) {
     debugPrint('Score added OK: ${response.statusCode}');
   }
 }
 
 putPointOfInterestRating(String uri, int score) async {
-  String jwToken = Setup().jwt;
   // uri = uri.substring(1, uri.length - 1);
   uri = uri.substring(uri.indexOf('/') + 1);
   Map<String, dynamic> map = {
@@ -857,13 +831,10 @@ putPointOfInterestRating(String uri, int score) async {
     'comment': '',
     'rated': DateTime.now().toString()
   };
-  final http.Response response =
-      await http.post(Uri.parse('${urlBase}v1/point_of_interest_rating/add'),
-          headers: {
-            'Authorization': 'Bearer $jwToken', // $Setup().jwt',
-            'Content-Type': 'application/json',
-          },
-          body: jsonEncode(map));
+  final http.Response response = await http.post(
+      Uri.parse('${urlBase}v1/point_of_interest_rating/add'),
+      headers: secureHeader(),
+      body: jsonEncode(map));
   if ([200, 201].contains(response.statusCode)) {
     debugPrint('Score added OK: ${response.statusCode}');
   }
@@ -871,14 +842,12 @@ putPointOfInterestRating(String uri, int score) async {
 
 Future<Map<String, dynamic>> getPointOfInterestRating(String uri) async {
   Map<String, dynamic> rating = {'rating': '0'};
-  String jwToken = Setup().jwt;
-  final http.Response response = await http.get(
-    Uri.parse('${urlBase}v1/point_of_interest_rating/$uri'),
-    headers: {
-      'Authorization': 'Bearer $jwToken', // $Setup().jwt',
-      'Content-Type': 'application/json',
-    },
-  ).timeout(const Duration(seconds: 10));
+  final http.Response response = await http
+      .get(
+        Uri.parse('${urlBase}v1/point_of_interest_rating/$uri'),
+        headers: secureHeader(),
+      )
+      .timeout(const Duration(seconds: 10));
   if (response.statusCode == 200) {
     rating = jsonDecode(response.body);
   }
@@ -888,13 +857,10 @@ Future<Map<String, dynamic>> getPointOfInterestRating(String uri) async {
 
 Future<MyTripItem> getTripSummary(String tripUuid) async {
   MyTripItem myTrip = MyTripItem(heading: '', subHeading: '');
-  String jwToken = Setup().jwt;
+
   final http.Response response = await http.get(
     Uri.parse('${urlBase}v1/drive/$tripUuid'),
-    headers: {
-      'Authorization': 'Bearer $jwToken', // $Setup().jwt',
-      'Content-Type': 'application/json',
-    },
+    headers: secureHeader(),
   );
   if (response.statusCode == 200) {
     Map<String, dynamic> trip = jsonDecode(response.body);
@@ -958,13 +924,10 @@ Future<MyTripItem> getTripSummary(String tripUuid) async {
 
 Future<MyTripItem> getMyTrip(String tripUuid) async {
   MyTripItem myTrip = MyTripItem(heading: '', subHeading: '');
-  String jwToken = Setup().jwt;
+
   final http.Response response = await http.get(
     Uri.parse('${urlBase}v1/drive/$tripUuid'),
-    headers: {
-      'Authorization': 'Bearer $jwToken', // $Setup().jwt',
-      'Content-Type': 'application/json',
-    },
+    headers: secureHeader(),
   );
   if (response.statusCode == 200) {
     Map<String, dynamic> trip = jsonDecode(response.body);
@@ -1086,15 +1049,13 @@ Future<MyTripItem> getMyTrip(String tripUuid) async {
 
 Future<List<GroupMember>> getIntroduced() async {
   List<GroupMember> introduced = [];
-  String jwToken = Setup().jwt;
   try {
-    final http.Response response = await http.get(
-      Uri.parse('${urlBase}v1/introduced/get'),
-      headers: {
-        'Authorization': 'Bearer $jwToken', // $Setup().jwt',
-        'Content-Type': 'application/json',
-      },
-    ).timeout(const Duration(seconds: 10));
+    final http.Response response = await http
+        .get(
+          Uri.parse('${urlBase}v1/introduced/get'),
+          headers: secureHeader(),
+        )
+        .timeout(const Duration(seconds: 10));
     if (response.statusCode == 200) {
       var members = jsonDecode(response.body);
 
@@ -1110,7 +1071,6 @@ Future<List<GroupMember>> getIntroduced() async {
 }
 
 putIntroduced(List<GroupMember> members) async {
-  String jwToken = Setup().jwt;
   List<Map<String, dynamic>> maps = [];
   for (int i = 0; i < members.length; i++) {
     if (members[i].selected) {
@@ -1118,39 +1078,57 @@ putIntroduced(List<GroupMember> members) async {
     }
   }
 
-  final http.Response response =
-      await http.post(Uri.parse('${urlBase}v1/introduced/put'),
-          headers: {
-            'Authorization': 'Bearer $jwToken', // $Setup().jwt',
-            'Content-Type': 'application/json',
-          },
-          body: jsonEncode(maps));
+  final http.Response response = await http.post(
+      Uri.parse('${urlBase}v1/introduced/put'),
+      headers: secureHeader(),
+      body: jsonEncode(maps));
   if ([200, 201].contains(response.statusCode)) {
     debugPrint('Member added OK: ${response.statusCode}');
   }
 }
 
-Widget showWebImage(String imageUrl, {double width = 200}) {
+deleteWebImage(String url) async {
+  final http.Response response = await http.post(Uri.parse(url),
+      headers: secureHeader(), body: jsonEncode('"id": "delete_image"'));
+  if ([200, 201].contains(response.statusCode)) {
+    debugPrint('Member added OK: ${response.statusCode}');
+  }
+}
+
+Widget showWebImage(String imageUrl,
+    {double width = 200,
+    bool canDelete = false,
+    int index = -1,
+    Function(int)? onDelete}) {
   return SizedBox(
     width: width,
     child: Padding(
       padding: const EdgeInsets.symmetric(horizontal: 10),
-      child: Image.network(
-        imageUrl,
-        loadingBuilder: (BuildContext context, Widget child,
-            ImageChunkEvent? loadingProgress) {
-          if (loadingProgress == null) {
-            return child;
+      child: InkWell(
+        onTap: () {
+          deleteWebImage(imageUrl);
+          if (onDelete != null && index > -1) {
+            // Utility().showConfirmDialog(context, )
+            onDelete(index);
           }
-          return Center(
-            child: CircularProgressIndicator(
-              value: loadingProgress.expectedTotalBytes != null
-                  ? loadingProgress.cumulativeBytesLoaded /
-                      (loadingProgress.expectedTotalBytes ?? 1)
-                  : null,
-            ),
-          );
-        },
+        }, // {debugPrint('Inkwell onTap url: $imageUrl')},
+        child: Image.network(
+          imageUrl,
+          loadingBuilder: (BuildContext context, Widget child,
+              ImageChunkEvent? loadingProgress) {
+            if (loadingProgress == null) {
+              return child;
+            }
+            return Center(
+              child: CircularProgressIndicator(
+                value: loadingProgress.expectedTotalBytes != null
+                    ? loadingProgress.cumulativeBytesLoaded /
+                        (loadingProgress.expectedTotalBytes ?? 1)
+                    : null,
+              ),
+            );
+          },
+        ),
       ),
     ),
   );
@@ -1158,15 +1136,13 @@ Widget showWebImage(String imageUrl, {double width = 200}) {
 
 Future<List<Group>> getManagedGroups() async {
   List<Group> groupsSent = [];
-  String jwToken = Setup().jwt;
   try {
-    final http.Response response = await http.get(
-      Uri.parse('${urlBase}v1/group/managed'),
-      headers: {
-        'Authorization': 'Bearer $jwToken', // $Setup().jwt',
-        'Content-Type': 'application/json',
-      },
-    ).timeout(const Duration(seconds: 10));
+    final http.Response response = await http
+        .get(
+          Uri.parse('${urlBase}v1/group/managed'),
+          headers: secureHeader(),
+        )
+        .timeout(const Duration(seconds: 10));
     if ([200, 201].contains(response.statusCode)) {
       var groups = jsonDecode(response.body);
       groupsSent = [
@@ -1182,18 +1158,16 @@ Future<List<Group>> getManagedGroups() async {
 
 Future<List<GroupMember>> getManagedGroupMembers(String groupId) async {
   List<GroupMember> groupMembersSent = [];
-  String jwToken = Setup().jwt;
   try {
     Uri uri = Uri.parse('${urlBase}v1/group_member/members/$groupId');
-    final http.Response response = await http.get(
-      uri,
-      //  Uri.parse('${urlBase}v1/group_member/group/$groupId'),
-      // "http://10.101.1.150:5000/v1/group_member/group/a9c4c22094b94dd58f852125b912487d"
-      headers: {
-        'Authorization': 'Bearer $jwToken', // $Setup().jwt',
-        'Content-Type': 'application/json',
-      },
-    ).timeout(const Duration(seconds: 10));
+    final http.Response response = await http
+        .get(
+          uri,
+          //  Uri.parse('${urlBase}v1/group_member/group/$groupId'),
+          // "http://10.101.1.150:5000/v1/group_member/group/a9c4c22094b94dd58f852125b912487d"
+          headers: secureHeader(),
+        )
+        .timeout(const Duration(seconds: 10));
     if ([200, 201].contains(response.statusCode)) {
       var groups = jsonDecode(response.body);
       for (Map<String, dynamic> groupData in groups) {
@@ -1212,15 +1186,14 @@ Future<List<GroupMember>> getManagedGroupMembers(String groupId) async {
 
 Future<List<Group>> getGroups() async {
   List<Group> groupsSent = [];
-  String jwToken = Setup().jwt;
+
   try {
-    final http.Response response = await http.get(
-      Uri.parse('${urlBase}v1/group/get'),
-      headers: {
-        'Authorization': 'Bearer $jwToken', // $Setup().jwt',
-        'Content-Type': 'application/json',
-      },
-    ).timeout(const Duration(seconds: 10));
+    final http.Response response = await http
+        .get(
+          Uri.parse('${urlBase}v1/group/get'),
+          headers: secureHeader(),
+        )
+        .timeout(const Duration(seconds: 10));
     if ([200, 201].contains(response.statusCode)) {
       var groups = jsonDecode(response.body);
       groupsSent = [
@@ -1235,15 +1208,14 @@ Future<List<Group>> getGroups() async {
 
 Future<List<Group>> getMyGroups() async {
   List<Group> groupsSent = [];
-  String jwToken = Setup().jwt;
+
   try {
-    final http.Response response = await http.get(
-      Uri.parse('${urlBase}v1/group/mine'),
-      headers: {
-        'Authorization': 'Bearer $jwToken', // $Setup().jwt',
-        'Content-Type': 'application/json',
-      },
-    ).timeout(const Duration(seconds: 10));
+    final http.Response response = await http
+        .get(
+          Uri.parse('${urlBase}v1/group/mine'),
+          headers: secureHeader(),
+        )
+        .timeout(const Duration(seconds: 10));
     if (response.statusCode == 200) {
       var groups = jsonDecode(response.body);
       groupsSent = [
@@ -1259,15 +1231,13 @@ Future<List<Group>> getMyGroups() async {
 
 Future<List<GroupDrive>> getGroupDrives() async {
   List<GroupDrive> groupsSent = [];
-  String jwToken = Setup().jwt;
   try {
-    final http.Response response = await http.get(
-      Uri.parse('${urlBase}v1/group_drive/pending'),
-      headers: {
-        'Authorization': 'Bearer $jwToken', // $Setup().jwt',
-        'Content-Type': 'application/json',
-      },
-    ).timeout(const Duration(seconds: 30));
+    final http.Response response = await http
+        .get(
+          Uri.parse('${urlBase}v1/group_drive/pending'),
+          headers: secureHeader(),
+        )
+        .timeout(const Duration(seconds: 30));
     if ([200, 201].contains(response.statusCode)) {
       List<dynamic> groups = jsonDecode(response.body);
       groupsSent = [
@@ -1283,15 +1253,12 @@ Future<List<GroupDrive>> getGroupDrives() async {
 Future<Map<String, dynamic>> deleteGroupDrive(
     {required String groupDriveId}) async {
   Map<String, dynamic> resp = {'msg': 'Failed'};
-  String jwToken = Setup().jwt;
+
   var uri = Uri.parse('${urlBase}v1/group_drive/delete');
 
   final http.Response response = await http
       .post(uri,
-          headers: {
-            'Authorization': 'Bearer $jwToken', // $Setup().jwt',
-            'Content-Type': 'application/json',
-          },
+          headers: secureHeader(),
           body: jsonEncode({'group_drive_id': groupDriveId}))
       .timeout(const Duration(seconds: 10));
   if ([200, 201].contains(response.statusCode)) {
@@ -1304,15 +1271,14 @@ Future<Map<String, dynamic>> deleteGroupDrive(
 
 Future<List<Group>> getMessagesByGroup() async {
   List<Group> groupsSent = [];
-  String jwToken = Setup().jwt;
+
   try {
-    final http.Response response = await http.get(
-      Uri.parse('${urlBase}v1/message/group_messages'),
-      headers: {
-        'Authorization': 'Bearer $jwToken', // $Setup().jwt',
-        'Content-Type': 'application/json',
-      },
-    ).timeout(const Duration(seconds: 10));
+    final http.Response response = await http
+        .get(
+          Uri.parse('${urlBase}v1/message/group_messages'),
+          headers: secureHeader(),
+        )
+        .timeout(const Duration(seconds: 10));
     if ([200, 201].contains(response.statusCode)) {
       var groups = jsonDecode(response.body);
       groupsSent = [
@@ -1334,15 +1300,13 @@ Future<List<Group>> getMessagesByGroup() async {
 
 Future<List<Message>> getGroupMessages(Group group) async {
   List<Message> messagesSent = [];
-  String jwToken = Setup().jwt;
   try {
-    final http.Response response = await http.get(
-      Uri.parse('${urlBase}v1/message/group/${group.id}'),
-      headers: {
-        'Authorization': 'Bearer $jwToken', // $Setup().jwt',
-        'Content-Type': 'application/json',
-      },
-    ).timeout(const Duration(seconds: 10));
+    final http.Response response = await http
+        .get(
+          Uri.parse('${urlBase}v1/message/group/${group.id}'),
+          headers: secureHeader(),
+        )
+        .timeout(const Duration(seconds: 10));
     if ([200, 201].contains(response.statusCode)) {
       var messages = jsonDecode(response.body);
       messagesSent = [
@@ -1359,15 +1323,11 @@ Future<List<Message>> getGroupMessages(Group group) async {
 }
 
 Future<String> putMessage(Group group, Message message) async {
-  String jwToken = Setup().jwt;
   Map<String, dynamic> map = {'group_id': group.id, 'message': message.message};
-  final http.Response response =
-      await http.post(Uri.parse('${urlBase}v1/message/add'),
-          headers: {
-            'Authorization': 'Bearer $jwToken', // $Setup().jwt',
-            'Content-Type': 'application/json',
-          },
-          body: jsonEncode(map));
+  final http.Response response = await http.post(
+      Uri.parse('${urlBase}v1/message/add'),
+      headers: secureHeader(),
+      body: jsonEncode(map));
   if ([200, 201].contains(response.statusCode)) {
     var responseData = jsonDecode(String.fromCharCodes(response.bodyBytes));
     debugPrint('Server response: $responseData');
@@ -1377,15 +1337,11 @@ Future<String> putMessage(Group group, Message message) async {
 }
 
 Future<String> putGroup(Group group) async {
-  String jwToken = Setup().jwt;
   Map<String, dynamic> map = group.toMap();
-  final http.Response response =
-      await http.post(Uri.parse('${urlBase}v1/group/add'),
-          headers: {
-            'Authorization': 'Bearer $jwToken', // $Setup().jwt',
-            'Content-Type': 'application/json',
-          },
-          body: jsonEncode(map));
+  final http.Response response = await http.post(
+      Uri.parse('${urlBase}v1/group/add'),
+      headers: secureHeader(),
+      body: jsonEncode(map));
   if ([200, 201].contains(response.statusCode)) {
     // var responseData = jsonDecode(String.fromCharCodes(response.bodyBytes));
     var responseData = jsonDecode(response.body);
@@ -1396,17 +1352,160 @@ Future<String> putGroup(Group group) async {
   return '';
 }
 
+/// getHomeItems gets a list of home articles for the home screen
+/// The scope parameter isn't yet implemented, but is to allow
+/// some selection of who sees what on the home page
+///
+Future<List<HomeItem>> getHomeItems(int scope) async {
+  List<HomeItem> itemsSent = [];
+  try {
+    final http.Response response = await http
+        .get(
+          Uri.parse('${urlBase}v1/home_page_item/get/$scope'),
+          headers: secureHeader(),
+        )
+        .timeout(const Duration(seconds: 30));
+    if ([200, 201].contains(response.statusCode)) {
+      List<dynamic> items = jsonDecode(response.body);
+      if (items.isNotEmpty) {
+        itemsSent = [
+          for (Map<String, dynamic> map in items) HomeItem.fromMap(map: map)
+        ];
+      }
+    }
+  } catch (e) {
+    debugPrint("getGroupDrives error: ${e.toString()}");
+  }
+  return itemsSent;
+}
+
+Future<String> postHomeItem(HomeItem homeItem) async {
+  Map<String, dynamic> map = homeItem.toMap();
+  List<Photo> photos = photosFromJson(homeItem.imageUrl);
+
+  var request = http.MultipartRequest(
+      'POST', Uri.parse('${urlBase}v1/home_page_item/add'));
+
+  for (Photo photo in photos) {
+    if (photo.url.contains('drives')) {
+      request.files.add(await http.MultipartFile.fromPath('files', photo.url));
+    }
+  }
+  dynamic response;
+  // String jwToken = Setup().jwt;
+  try {
+    request.fields['id'] = map['uri'];
+    request.fields['title'] = map['heading'];
+    request.fields['sub_title'] = map['subHeading'];
+    request.fields['body'] = map['body'];
+    request.fields['added'] = map['added'] ?? DateTime.now().toString();
+    request.fields['score'] = map['score'].toString();
+    request.fields['coverage'] = map['coverage'];
+
+    response = await request.send().timeout(const Duration(seconds: 30));
+  } catch (e) {
+    String err = e.toString();
+    if (e is TimeoutException) {
+      debugPrint('Request timed out');
+    } else {
+      debugPrint('Error posting article: $err');
+    }
+  }
+
+  if (response.statusCode == 201) {
+    // 201 = Created
+    debugPrint('Home article posted OK');
+    var responseData = await response.stream.bytesToString();
+    debugPrint('Server response: $responseData');
+    return jsonEncode(responseData);
+  } else {
+    debugPrint('Failed to post home article: ${response.statusCode}');
+    return jsonEncode({'token': '', 'code': response.statusCode});
+  }
+}
+
+/// getShopItems gets a list of shop items for the shop screen
+/// The scope parameter isn't yet implemented, but is to allow
+/// some selection of who sees what on the shop page
+///
+Future<List<ShopItem>> getShopItems(int scope) async {
+  List<ShopItem> itemsSent = [];
+  try {
+    final http.Response response = await http
+        .get(
+          Uri.parse('${urlBase}v1/shop_item/get/$scope'),
+          headers: secureHeader(),
+        )
+        .timeout(const Duration(seconds: 30));
+    if ([200, 201].contains(response.statusCode)) {
+      List<dynamic> items = jsonDecode(response.body);
+      if (items.isNotEmpty) {
+        itemsSent = [
+          for (Map<String, dynamic> map in items) ShopItem.fromMap(map: map)
+        ];
+      }
+    }
+  } catch (e) {
+    debugPrint("getGroupDrives error: ${e.toString()}");
+  }
+  return itemsSent;
+}
+
+Future<String> postShopItem(ShopItem shopItem) async {
+  Map<String, dynamic> map = shopItem.toMap();
+  List<Photo> photos = photosFromJson(shopItem.imageUrl);
+
+  var request =
+      http.MultipartRequest('POST', Uri.parse('${urlBase}v1/shop_item/add'));
+
+  for (Photo photo in photos) {
+    if (photo.url.contains('drives')) {
+      request.files.add(await http.MultipartFile.fromPath('files', photo.url));
+    }
+  }
+  dynamic response;
+  // String jwToken = Setup().jwt;
+  try {
+    request.fields['id'] = map['uri'];
+    request.fields['title'] = map['heading'];
+    request.fields['sub_title'] = map['subHeading'];
+    request.fields['body'] = map['body'];
+    request.fields['added'] = map['added'] ?? DateTime.now().toString();
+    request.fields['score'] = map['score'].toString();
+    request.fields['coverage'] = map['coverage'];
+
+    response = await request.send().timeout(const Duration(seconds: 30));
+  } catch (e) {
+    String err = e.toString();
+    if (e is TimeoutException) {
+      debugPrint('Request timed out');
+    } else {
+      debugPrint('Error posting article: $err');
+    }
+  }
+
+  if (response.statusCode == 201) {
+    // 201 = Created
+    debugPrint('Shop item posted OK');
+    var responseData = await response.stream.bytesToString();
+    debugPrint('Server response: $responseData');
+    return jsonEncode(responseData);
+  } else {
+    debugPrint('Failed to post shop item: ${response.statusCode}');
+    return jsonEncode({'token': '', 'code': response.statusCode});
+  }
+}
+
 Future<List<EventInvitation>> getInvitationssByUser() async {
   List<EventInvitation> invitationsSent = [];
-  String jwToken = Setup().jwt;
+
   try {
-    final http.Response response = await http.get(
-      Uri.parse('${urlBase}v1/group_drive_invitation/user'),
-      headers: {
-        'Authorization': 'Bearer $jwToken', // $Setup().jwt',
-        'Content-Type': 'application/json',
-      },
-    ).timeout(const Duration(seconds: 10));
+    final http.Response response = await http
+        .get(
+          Uri.parse('${urlBase}v1/group_drive_invitation/user'),
+          headers: secureHeader(),
+        )
+        .timeout(const Duration(seconds: 10));
     if ([200, 201].contains(response.statusCode)) {
       var invitations = jsonDecode(response.body);
       invitationsSent = [
@@ -1423,15 +1522,13 @@ Future<List<EventInvitation>> getInvitationssByUser() async {
 Future<List<EventInvitation>> getInvitationsByEvent(
     {String eventId = ''}) async {
   List<EventInvitation> invitationsSent = [];
-  String jwToken = Setup().jwt;
   try {
-    final http.Response response = await http.get(
-      Uri.parse('${urlBase}v1/group_drive_invitation/trip/$eventId'),
-      headers: {
-        'Authorization': 'Bearer $jwToken', // $Setup().jwt',
-        'Content-Type': 'application/json',
-      },
-    ).timeout(const Duration(seconds: 10));
+    final http.Response response = await http
+        .get(
+          Uri.parse('${urlBase}v1/group_drive_invitation/trip/$eventId'),
+          headers: secureHeader(),
+        )
+        .timeout(const Duration(seconds: 10));
     if ([200, 201].contains(response.statusCode)) {
       var invitations = jsonDecode(response.body);
       invitationsSent = [
@@ -1448,15 +1545,13 @@ Future<List<EventInvitation>> getInvitationsByEvent(
 Future<List<EventInvitation>> getInvitationsToAlter(
     {String eventId = ''}) async {
   List<EventInvitation> invitationsSent = [];
-  String jwToken = Setup().jwt;
   try {
-    final http.Response response = await http.get(
-      Uri.parse('${urlBase}v1/group_drive_invitation/alter/$eventId'),
-      headers: {
-        'Authorization': 'Bearer $jwToken', // $Setup().jwt',
-        'Content-Type': 'application/json',
-      },
-    ).timeout(const Duration(seconds: 10));
+    final http.Response response = await http
+        .get(
+          Uri.parse('${urlBase}v1/group_drive_invitation/alter/$eventId'),
+          headers: secureHeader(),
+        )
+        .timeout(const Duration(seconds: 10));
     if ([200, 201].contains(response.statusCode)) {
       var invitations = jsonDecode(response.body);
       invitationsSent = [
@@ -1472,18 +1567,14 @@ Future<List<EventInvitation>> getInvitationsToAlter(
 
 Future<String> postGroupDriveInvitations(
     List<EventInvitation> invitations) async {
-  String jwToken = Setup().jwt;
   List<Map<String, dynamic>> map = [
     for (EventInvitation invite in invitations)
       if (invite.selected) invite.toMap()
   ];
-  final http.Response response =
-      await http.post(Uri.parse('${urlBase}v1/group_drive_invitation/update'),
-          headers: {
-            'Authorization': 'Bearer $jwToken', // $Setup().jwt',
-            'Content-Type': 'application/json',
-          },
-          body: jsonEncode(map));
+  final http.Response response = await http.post(
+      Uri.parse('${urlBase}v1/group_drive_invitation/update'),
+      headers: secureHeader(),
+      body: jsonEncode(map));
   if ([200, 201].contains(response.statusCode)) {
     // var responseData = jsonDecode(String.fromCharCodes(response.bodyBytes));
     var responseData = jsonDecode(response.body);
@@ -1495,15 +1586,11 @@ Future<String> postGroupDriveInvitations(
 }
 
 Future<String> postGroupDrive(GroupDriveInvitation invitation) async {
-  String jwToken = Setup().jwt;
   Map<String, dynamic> map = invitation.toMap();
-  final http.Response response =
-      await http.post(Uri.parse('${urlBase}v1/group_drive/add'),
-          headers: {
-            'Authorization': 'Bearer $jwToken', // $Setup().jwt',
-            'Content-Type': 'application/json',
-          },
-          body: jsonEncode(map));
+  final http.Response response = await http.post(
+      Uri.parse('${urlBase}v1/group_drive/add'),
+      headers: secureHeader(),
+      body: jsonEncode(map));
   if ([200, 201].contains(response.statusCode)) {
     // var responseData = jsonDecode(String.fromCharCodes(response.bodyBytes));
     var responseData = jsonDecode(response.body);
@@ -1516,19 +1603,15 @@ Future<String> postGroupDrive(GroupDriveInvitation invitation) async {
 
 Future<bool> answerInvitation(EventInvitation invitation) async {
   bool result = false;
-  String jwToken = Setup().jwt;
   Map<String, dynamic> map = {
     'invitation_id': invitation.id,
     'response': invitation.accepted.toString()
   };
 
-  final http.Response response =
-      await http.post(Uri.parse('${urlBase}v1/group_drive_invitation/respond'),
-          headers: {
-            'Authorization': 'Bearer $jwToken', // $Setup().jwt',
-            'Content-Type': 'application/json',
-          },
-          body: jsonEncode(map));
+  final http.Response response = await http.post(
+      Uri.parse('${urlBase}v1/group_drive_invitation/respond'),
+      headers: secureHeader(),
+      body: jsonEncode(map));
   if ([200, 201].contains(response.statusCode)) {
     debugPrint('invitation status updated OK: ${response.statusCode}');
     result = true;
@@ -1538,17 +1621,12 @@ Future<bool> answerInvitation(EventInvitation invitation) async {
 }
 
 Future<GroupMember> getUserByEmail(String email) async {
-  String jwToken = Setup().jwt;
   GroupMember member = GroupMember(forename: '', surname: '');
   Map<String, dynamic> map = {'email': email};
   try {
     final http.Response response = await http
         .post(Uri.parse('${urlBase}v1/user/get_user_by_email'),
-            headers: {
-              'Authorization': 'Bearer $jwToken', // $Setup().jwt',
-              'Content-Type': 'application/json',
-            },
-            body: jsonEncode(map))
+            headers: secureHeader(), body: jsonEncode(map))
         .timeout(const Duration(seconds: 10));
     if (response.statusCode == 200) {
       var responseData = jsonDecode(response.body);
@@ -1563,15 +1641,13 @@ Future<GroupMember> getUserByEmail(String email) async {
 
 Future<List<GroupMember>> getGroupMembers() async {
   List<GroupMember> introduced = [];
-  String jwToken = Setup().jwt;
   try {
-    final http.Response response = await http.get(
-      Uri.parse('${urlBase}v1/introduced/get'),
-      headers: {
-        'Authorization': 'Bearer $jwToken', // $Setup().jwt',
-        'Content-Type': 'application/json',
-      },
-    ).timeout(const Duration(seconds: 10));
+    final http.Response response = await http
+        .get(
+          Uri.parse('${urlBase}v1/introduced/get'),
+          headers: secureHeader(),
+        )
+        .timeout(const Duration(seconds: 10));
     if (response.statusCode == 200) {
       var members = jsonDecode(response.body);
       introduced = [

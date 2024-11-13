@@ -20,6 +20,7 @@ class _homeScreenState extends State<HomeScreen> {
   late final RoutesBottomNavController _bottomNavController;
   final GlobalKey _scaffoldKey = GlobalKey();
   late Future<bool> _dataLoaded;
+  List<HomeItem> homeItems = [];
 
   @override
   void initState() {
@@ -35,6 +36,8 @@ class _homeScreenState extends State<HomeScreen> {
 
   Future<bool> _getWebData() async {
     await tryLoggingIn();
+    // await homeI
+    homeItems = await getHomeItems(1);
     return true;
   }
 
@@ -62,6 +65,7 @@ class _homeScreenState extends State<HomeScreen> {
   }
 
   Widget _getPortraitBody() {
+    /*
     List<HomeItem> homeItems = [];
     homeItems.add(HomeItem(
         heading: 'New trip planning app',
@@ -78,7 +82,7 @@ You can plan trips either on your own or you can explore in a group''',
 You can also publish your trips for others to enjoy. You can invite a group of friends to share your trip and track their progress as they drive with you. You can rate pubs and other points of interest to help others enjoy their trip.
 ''',
         imageUrl: 'assets/images/CarGroup.png'));
-
+*/
     return ListView(children: [
       const Card(
           child: Column(children: [

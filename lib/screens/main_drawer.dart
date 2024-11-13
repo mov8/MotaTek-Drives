@@ -1,3 +1,4 @@
+// import 'package:drives/routes/home.dart';
 import 'package:drives/screens/invitations.dart';
 import 'package:flutter/material.dart';
 import 'package:drives/screens/screens.dart';
@@ -201,6 +202,35 @@ class _MainDrawerState extends State<MainDrawer> {
                 Icons.admin_panel_settings_outlined,
                 size: 30,
               ),
+              trailing: PopupMenuButton(
+                  itemBuilder: (context) => adminOptions
+                      .map<PopupMenuEntry<String>>(
+                        (e) => PopupMenuItem(
+                          value: e['value'],
+                          onTap: () {
+                            debugPrint('Admin Option: ${e['text']}');
+                            if (e['value'] == 'shop') {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const ShopForm(),
+                                ),
+                              );
+                            } else {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const HomeForm(),
+                                ),
+                              );
+                            }
+                          },
+                          child: Row(
+                            children: [e['iconData'], Text(e['text'])],
+                          ),
+                        ),
+                      )
+                      .toList()),
               title: const Text(
                 'Admin',
                 style: TextStyle(
@@ -220,4 +250,17 @@ class _MainDrawerState extends State<MainDrawer> {
       ),
     );
   }
+
+  List<Map<String, dynamic>> adminOptions = [
+    {
+      'text': 'Home Page Content',
+      'iconData': const Icon(Icons.home_outlined),
+      'value': 'home'
+    },
+    {
+      'text': 'Shop Content',
+      'iconData': const Icon(Icons.shopping_bag_outlined),
+      'value': 'shop'
+    }
+  ];
 }
