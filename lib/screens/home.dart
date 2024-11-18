@@ -23,8 +23,8 @@ class _HomeFormState extends State<HomeForm> {
   List<EventInvitation> _invitees = [];
   int _action = 0;
   int _index = 0;
-  bool _adding = false;
-  bool _expanded = false;
+  // bool _adding = false;
+  // bool _expanded = false;
   int toInvite = 0;
 
   String _alterDriveId = '';
@@ -35,8 +35,8 @@ class _HomeFormState extends State<HomeForm> {
     "Trips I've saved to share",
   ];
 
-  List<GroupMember> allMembers = [];
-  List<MyTripItem> _myTripItems = [];
+  // List<GroupMember> allMembers = [];
+  // List<MyTripItem> _myTripItems = [];
 
   @override
   void initState() {
@@ -71,15 +71,6 @@ You can plan trips either on your own or you can explore in a group''',
       );
 
       //  _items.add(HomeItem(heading: ''));
-    }
-    return true;
-  }
-
-  Future<bool> loadInviteesToAlter(
-      String eventId, String currentEventId) async {
-    if (eventId != currentEventId) {
-      _invitees = await getInvitationsToAlter(eventId: eventId);
-      toInvite = 0;
     }
     return true;
   }
@@ -208,38 +199,6 @@ You can plan trips either on your own or you can explore in a group''',
     );
   }
 
-  Future<void> loadTrip(val) async {
-    return;
-  }
-
-  inviteOnSelect(int idx) {
-    setState(() {
-      debugPrint('toInvite: $toInvite');
-      _invitees[idx].selected = !_invitees[idx].selected; //select;
-      toInvite += _invitees[idx].selected ? 1 : -1;
-    });
-  }
-
-  Future<void> shareTrip(index) async {
-    MyTripItem currentTrip = _myTripItems[index];
-    currentTrip.showMethods = false;
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ShareForm(
-          tripItem: currentTrip,
-        ),
-      ),
-    ).then((value) {
-      setState(() {});
-    });
-    return;
-  }
-
-  Future<void> publishTrip(val) async {
-    return;
-  }
-
   Widget _handleChips() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -254,7 +213,7 @@ You can plan trips either on your own or you can explore in a group''',
               onPressed: () => setState(() => _action = 2),
               backgroundColor: Colors.blue,
               avatar: const Icon(
-                Icons.group_add,
+                Icons.note_add_sharp,
                 color: Colors.white,
               ),
               label: const Text(
@@ -286,7 +245,7 @@ You can plan trips either on your own or you can explore in a group''',
               onPressed: () => loadImage(_index), //_action = 2),
               backgroundColor: Colors.blue,
               avatar: const Icon(
-                Icons.image,
+                Icons.delete,
                 color: Colors.white,
               ),
               label: const Text(
@@ -301,7 +260,7 @@ You can plan trips either on your own or you can explore in a group''',
               onPressed: () => postHomeItem(_items[_index]), //_action = 2),
               backgroundColor: Colors.blue,
               avatar: const Icon(
-                Icons.image,
+                Icons.cloud_upload,
                 color: Colors.white,
               ),
               label: const Text(
@@ -351,13 +310,5 @@ You can plan trips either on your own or you can explore in a group''',
       String err = e.toString();
       debugPrint('Error loading image: $err');
     }
-  }
-
-  Future<void> deleteMyTrip(int index) async {
-    return;
-  }
-
-  void onSelect(int index) {
-    _groupIndex = index;
   }
 }

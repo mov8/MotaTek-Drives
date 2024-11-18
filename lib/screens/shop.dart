@@ -20,23 +20,19 @@ class _ShopFormState extends State<ShopForm> {
   int _groupIndex = 0;
   late Future<bool> _dataloaded;
   List<ShopItem> _items = [];
-  List<EventInvitation> _invitees = [];
+  // List<EventInvitation> _invitees = [];
   int _action = 0;
   int _index = 0;
-  bool _adding = false;
-  bool _expanded = false;
+  int _links = 0;
   int toInvite = 0;
 
-  String _alterDriveId = '';
-
   final List<String> _titles = [
-    "Shop page articles",
-    "Article - ",
+    "Shop page adverts",
+    "Ad - ",
     "Trips I've saved to share",
   ];
 
   List<GroupMember> allMembers = [];
-  List<MyTripItem> _myTripItems = [];
 
   @override
   void initState() {
@@ -51,10 +47,6 @@ class _ShopFormState extends State<ShopForm> {
     super.dispose();
   }
 
-  Future<bool> dataFromDatabase() async {
-    return true;
-  }
-
   Future<bool> dataFromWeb() async {
     _items = await getShopItems(0);
     if (_items.isEmpty) {
@@ -65,6 +57,7 @@ class _ShopFormState extends State<ShopForm> {
           body:
               '''MotaTrip is a new app to help you make the most of the countryside around you. 
 You can plan trips either on your own or you can explore in a group''',
+          links: 0,
           //  imageUrl:
           //      '[{"url": "assets/images/splash.png","caption":"image 1"}]'),
         ),
@@ -75,16 +68,7 @@ You can plan trips either on your own or you can explore in a group''',
     return true;
   }
 
-  Future<bool> loadInviteesToAlter(
-      String eventId, String currentEventId) async {
-    if (eventId != currentEventId) {
-      _invitees = await getInvitationsToAlter(eventId: eventId);
-      toInvite = 0;
-    }
-    return true;
-  }
-
-  Widget portraitView() {
+  Widget portraitView({required BuildContext context}) {
     return Column(children: [
       Expanded(
         child: Column(
@@ -152,7 +136,7 @@ You can plan trips either on your own or you can explore in a group''',
         /// Removes Shadow
         toolbarHeight: 40,
         title: const Text(
-          'MotaTrip News Items',
+          'MotaTrip Shop Items',
           style: TextStyle(
             color: Colors.white,
             fontSize: 18,
@@ -191,7 +175,7 @@ You can plan trips either on your own or you can explore in a group''',
           if (snapshot.hasError) {
             debugPrint('Snapshot has error: ${snapshot.error}');
           } else if (snapshot.hasData) {
-            return portraitView();
+            return portraitView(context: context);
           } else {
             return const SizedBox(
               width: double.infinity,
@@ -206,38 +190,6 @@ You can plan trips either on your own or you can explore in a group''',
         },
       ),
     );
-  }
-
-  Future<void> loadTrip(val) async {
-    return;
-  }
-
-  inviteOnSelect(int idx) {
-    setState(() {
-      debugPrint('toInvite: $toInvite');
-      _invitees[idx].selected = !_invitees[idx].selected; //select;
-      toInvite += _invitees[idx].selected ? 1 : -1;
-    });
-  }
-
-  Future<void> shareTrip(index) async {
-    MyTripItem currentTrip = _myTripItems[index];
-    currentTrip.showMethods = false;
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ShareForm(
-          tripItem: currentTrip,
-        ),
-      ),
-    ).then((value) {
-      setState(() {});
-    });
-    return;
-  }
-
-  Future<void> publishTrip(val) async {
-    return;
   }
 
   Widget _handleChips() {
@@ -286,7 +238,7 @@ You can plan trips either on your own or you can explore in a group''',
               onPressed: () => loadImage(_index), //_action = 2),
               backgroundColor: Colors.blue,
               avatar: const Icon(
-                Icons.image,
+                Icons.delete,
                 color: Colors.white,
               ),
               label: const Text(
@@ -298,10 +250,28 @@ You can plan trips either on your own or you can explore in a group''',
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
               ),
+              onPressed: () => setState(() => _items[_index].links =
+                  _items[_index].links < 2
+                      ? ++_items[_index].links
+                      : _items[_index].links), //_action = 2),
+              backgroundColor: Colors.blue,
+              avatar: const Icon(
+                Icons.add_link,
+                color: Colors.white,
+              ),
+              label: const Text(
+                "Link", // - ${_action.toString()}',
+                style: TextStyle(fontSize: 18, color: Colors.white),
+              ),
+            ),
+            ActionChip(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
               onPressed: () => postShopItem(_items[_index]), //_action = 2),
               backgroundColor: Colors.blue,
               avatar: const Icon(
-                Icons.image,
+                Icons.cloud_upload,
                 color: Colors.white,
               ),
               label: const Text(
@@ -338,7 +308,7 @@ You can plan trips either on your own or you can explore in a group''',
               setState(() {
                 _items[id].imageUrl =
                     '[${_items[id].imageUrl.isNotEmpty ? '${_items[id].imageUrl.substring(1, _items[id].imageUrl.length - 1)},' : ''}{"url":"$imagePath","caption":"image $num"}]';
-                debugPrint('Images: $widget.pointOfInterest.images');
+                debugPrint('Images: ${_items[id].imageUrl}');
               });
             }
           } catch (e) {

@@ -42,11 +42,12 @@ class HomeItemTile extends StatefulWidget {
 
 class _HomeItemTileState extends State<HomeItemTile> {
   late int index;
+  int imageUrlLength = 0;
   bool expanded = true;
   bool canEdit = true;
   DateFormat dateFormat = DateFormat("dd MMM yy");
   List<Photo> photos = [];
-  List<String> covers = [
+  final List<String> covers = [
     'all',
     'North',
     'North West',
@@ -58,17 +59,27 @@ class _HomeItemTileState extends State<HomeItemTile> {
     'South East'
   ];
 
+  List<DropdownMenuItem<String>> dropDownMenuItems = [];
+
   @override
   void initState() {
     super.initState();
     expanded = widget.expanded;
     canEdit = widget.canEdit;
     index = widget.index;
-    photos = photosFromJson(widget.homeItem.imageUrl);
+    dropDownMenuItems = covers
+        .map(
+          (item) => DropdownMenuItem<String>(value: item, child: Text(item)),
+        )
+        .toList();
   }
 
   @override
   Widget build(BuildContext context) {
+    if (widget.homeItem.imageUrl.length != imageUrlLength) {
+      photos = photosFromJson(widget.homeItem.imageUrl);
+      imageUrlLength = widget.homeItem.imageUrl.length;
+    }
     return Card(
       key: Key('$widget.key'),
       child: Padding(
@@ -122,12 +133,7 @@ class _HomeItemTileState extends State<HomeItemTile> {
                             labelText: 'Coverage',
                           ),
                           value: widget.homeItem.coverage,
-                          items: covers
-                              .map(
-                                (item) => DropdownMenuItem<String>(
-                                    value: item, child: Text(item)),
-                              )
-                              .toList(),
+                          items: dropDownMenuItems,
                           onChanged: (item) {
                             widget.homeItem.coverage = item ?? 'all';
                           },
@@ -185,23 +191,6 @@ class _HomeItemTileState extends State<HomeItemTile> {
                                   widget.homeItem.heading = text),
                         ),
                       ),
-                      /*   Expanded(
-                        flex: 8,
-                        child: SizedBox(
-                            child: Align(
-                                alignment: Alignment.bottomCenter,
-                                child: ActionChip(
-                                  label: const Text(
-                                    'Image',
-                                    style: TextStyle(
-                                        fontSize: 18, color: Colors.white),
-                                  ),
-                                  avatar: const Icon(Icons.photo_album,
-                                      size: 20, color: Colors.white),
-                                  onPressed: () => loadImage(index),
-                                  backgroundColor: Colors.blueAccent,
-                                ))),
-                      ), */
                     ]),
                     Row(
                       children: [
@@ -269,7 +258,7 @@ class _HomeItemTileState extends State<HomeItemTile> {
                             flex: 8,
                             child: SizedBox(
                               height: 175,
-                              child: ListView(
+                              child: ReorderableListView(
                                 scrollDirection: Axis.horizontal,
                                 children: [
                                   for (Photo photo in photos)
@@ -277,15 +266,33 @@ class _HomeItemTileState extends State<HomeItemTile> {
                                       showLocalImage(photo.url)
                                     ] else ...[
                                       showWebImage(
-                                          Uri.parse(
-                                                  '${urlBase}v1/home_page_item/images/${widget.homeItem.uri}/${photo.url}')
-                                              .toString(),
-                                          canDelete: true,
-                                          index: photo.index,
-                                          onDelete: (idx) => onDeleteImage(
-                                              idx)) //        {debugPrint('onDelete $idx')})
+                                        context: context,
+                                        Uri.parse(
+                                                '${urlBase}v1/home_page_item/images/${widget.homeItem.uri}/${photo.url}')
+                                            .toString(),
+                                        // canDelete: true,
+                                        index: photo.index,
+                                        onDelete: (idx) => onDeleteImage(idx),
+                                      ), //        {debugPrint('onDelete $idx')})
                                     ]
                                 ],
+                                onReorder: (int oldIndex, int newIndex) {
+                                  setState(() {
+                                    if (oldIndex < newIndex) {
+                                      newIndex -= 1;
+                                    }
+                                    final Photo item =
+                                        photos.removeAt(oldIndex);
+                                    photos.insert(newIndex, item);
+                                    List<String> urls = [
+                                      for (Photo photo in photos)
+                                        photo.toMapString()
+                                    ];
+                                    widget.homeItem.imageUrl = urls.toString();
+                                    debugPrint(
+                                        'reordered: ${widget.homeItem.imageUrl}');
+                                  });
+                                },
                               ),
                             ),
                           ),

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:drives/models/other_models.dart';
 import 'package:drives/services/services.dart';
+import 'package:drives/classes/classes.dart';
+import 'package:drives/models/models.dart';
 
 class HomeTile extends StatefulWidget {
   final HomeItem homeItem;
@@ -21,6 +23,34 @@ class HomeTile extends StatefulWidget {
 }
 
 class _homeTileState extends State<HomeTile> {
+  List<Photo> photos = [];
+  String endPoint = '';
+  int imageIndex = 0;
+  final PageController _pageController = PageController();
+  final ImageListIndicatorController _imageListIndicatorController =
+      ImageListIndicatorController();
+
+  @override
+  void initState() {
+    super.initState();
+    photos = photosFromJson(widget.homeItem.imageUrl);
+    endPoint = '${urlBase}v1/home_page_item/images/${widget.homeItem.uri}/';
+    _pageController.addListener(() => pageControlListener());
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    // _imageListIndicatorController.dispose();
+    super.dispose();
+  }
+
+  pageControlListener() {
+    setState(() => _imageListIndicatorController
+        .changeImageIndex(_pageController.page!.round()));
+    // setState(() => imageIndex = _pageController.page!.round());
+  }
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -43,20 +73,20 @@ class _homeTileState extends State<HomeTile> {
                         flex: 8,
                         child: SizedBox(
                           height: MediaQuery.of(context).size.width, // 375,
-                          child: ListView(
+                          child: PageView.builder(
+                            itemCount: photos.length,
                             scrollDirection: Axis.horizontal,
-                            children: [
-                              for (Photo photo in photosFromJson(
-                                widget.homeItem.imageUrl,
-                              ))
-                                showWebImage(
-                                    Uri.parse(
-                                            '${urlBase}v1/home_page_item/images/${widget.homeItem.uri}/${photo.url}')
-                                        .toString(),
-                                    width: MediaQuery.of(context).size.width -
-                                        10, //400,
-                                    canDelete: false)
-                            ],
+                            controller: _pageController,
+                            itemBuilder: (BuildContext context, int index) {
+                              imageIndex = index;
+                              return showWebImage(
+                                  '$endPoint${photos[index].url}',
+                                  width: MediaQuery.of(context).size.width -
+                                      10, //400,
+                                  onDelete: (response) =>
+                                      debugPrint('Response: $response'));
+                              //   ],
+                            },
                           ),
                         ),
                       ),
@@ -67,6 +97,8 @@ class _homeTileState extends State<HomeTile> {
               const SizedBox(
                 height: 10,
               ),
+              ImageListIndicator(
+                  controller: _imageListIndicatorController, photos: photos),
               SizedBox(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(5, 0, 5, 10),

@@ -15,6 +15,7 @@ import 'dart:convert';
 
 class ShopItemTile extends StatefulWidget {
 //  final PointOfInterestController? pointOfInterestController;
+//  final BuildContext context;
   final ShopItem shopItem;
   final int index;
   final Function(int)? onIconTap;
@@ -27,6 +28,7 @@ class ShopItemTile extends StatefulWidget {
 
   const ShopItemTile(
       {super.key,
+      // required this.context,
       required this.index,
       required this.shopItem,
       this.onIconTap,
@@ -42,6 +44,8 @@ class ShopItemTile extends StatefulWidget {
 
 class _ShopItemTileState extends State<ShopItemTile> {
   late int index;
+  int imageUrlLength = 0;
+  int _links = 0;
   bool expanded = true;
   bool canEdit = true;
   DateFormat dateFormat = DateFormat("dd MMM yy");
@@ -58,17 +62,29 @@ class _ShopItemTileState extends State<ShopItemTile> {
     'South East'
   ];
 
+  List<DropdownMenuItem<String>> dropDownMenuItems = [];
+
   @override
   void initState() {
     super.initState();
     expanded = widget.expanded;
     canEdit = widget.canEdit;
     index = widget.index;
-    photos = photosFromJson(widget.shopItem.imageUrl);
+    dropDownMenuItems = covers
+        .map(
+          (item) => DropdownMenuItem<String>(value: item, child: Text(item)),
+        )
+        .toList();
   }
 
   @override
   Widget build(BuildContext context) {
+    if (widget.shopItem.imageUrl.length != imageUrlLength) {
+      photos = photosFromJson(widget.shopItem.imageUrl);
+      imageUrlLength = widget.shopItem.imageUrl.length;
+    }
+    _links = widget.shopItem.url1.isNotEmpty ? 1 : 0;
+    _links = widget.shopItem.url2.isNotEmpty ? 2 : _links;
     return Card(
       key: Key('$widget.key'),
       child: Padding(
@@ -108,7 +124,7 @@ class _ShopItemTileState extends State<ShopItemTile> {
           ),
           children: [
             SizedBox(
-              height: 750,
+              height: 950,
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(5, 5, 0, 30),
                 child: Column(
@@ -122,12 +138,7 @@ class _ShopItemTileState extends State<ShopItemTile> {
                             labelText: 'Coverage',
                           ),
                           value: widget.shopItem.coverage,
-                          items: covers
-                              .map(
-                                (item) => DropdownMenuItem<String>(
-                                    value: item, child: Text(item)),
-                              )
-                              .toList(),
+                          items: dropDownMenuItems,
                           onChanged: (item) {
                             widget.shopItem.coverage = item ?? 'all';
                           },
@@ -150,7 +161,7 @@ class _ShopItemTileState extends State<ShopItemTile> {
                               decoration: const InputDecoration(
                                 border: OutlineInputBorder(),
                                 hintText: "-1 invisible higher the better",
-                                labelText: 'Article ranking',
+                                labelText: 'Ad ranking',
                               ),
                               style: Theme.of(context).textTheme.bodyLarge,
                               autovalidateMode:
@@ -175,8 +186,8 @@ class _ShopItemTileState extends State<ShopItemTile> {
                               textCapitalization: TextCapitalization.sentences,
                               decoration: const InputDecoration(
                                 border: OutlineInputBorder(),
-                                hintText: "What is the home item's heading...",
-                                labelText: 'Home item heading',
+                                hintText: "What is the shop item's heading...",
+                                labelText: 'Shop item heading',
                               ),
                               style: Theme.of(context).textTheme.bodyLarge,
                               autovalidateMode:
@@ -220,8 +231,8 @@ class _ShopItemTileState extends State<ShopItemTile> {
                                 decoration: const InputDecoration(
                                   border: OutlineInputBorder(),
                                   hintText:
-                                      "What is the home item's sub-heading...",
-                                  labelText: 'Home item sub-heading',
+                                      "What is the shop item's sub-heading...",
+                                  labelText: 'Shop item sub-heading',
                                 ),
                                 style: Theme.of(context).textTheme.bodyLarge,
                                 autovalidateMode:
@@ -249,8 +260,8 @@ class _ShopItemTileState extends State<ShopItemTile> {
                                     TextCapitalization.sentences,
                                 decoration: const InputDecoration(
                                   border: OutlineInputBorder(),
-                                  hintText: 'Article content...',
-                                  labelText: 'Home page article',
+                                  hintText: 'Ad content...',
+                                  labelText: 'Adverisment body',
                                 ),
                                 style: Theme.of(context).textTheme.bodyLarge,
                                 autovalidateMode:
@@ -269,7 +280,7 @@ class _ShopItemTileState extends State<ShopItemTile> {
                             flex: 8,
                             child: SizedBox(
                               height: 175,
-                              child: ListView(
+                              child: ReorderableListView(
                                 scrollDirection: Axis.horizontal,
                                 children: [
                                   for (Photo photo in photos)
@@ -277,20 +288,155 @@ class _ShopItemTileState extends State<ShopItemTile> {
                                       showLocalImage(photo.url)
                                     ] else ...[
                                       showWebImage(
-                                          Uri.parse(
-                                                  '${urlBase}v1/home_page_item/images/${widget.shopItem.uri}/${photo.url}')
-                                              .toString(),
-                                          canDelete: true,
-                                          index: photo.index,
-                                          onDelete: (idx) => onDeleteImage(
-                                              idx)) //        {debugPrint('onDelete $idx')})
+                                        context: context,
+                                        Uri.parse(
+                                                '${urlBase}v1/shop_item/images/${widget.shopItem.uri}/${photo.url}')
+                                            .toString(),
+                                        // canDelete: true,
+                                        index: photo.index,
+                                        onDelete: (idx) => onDeleteImage(idx),
+                                      ), //        {debugPrint('onDelete $idx')})
                                     ]
                                 ],
+                                onReorder: (int oldIndex, int newIndex) {
+                                  setState(() {
+                                    if (oldIndex < newIndex) {
+                                      newIndex -= 1;
+                                    }
+                                    final Photo item =
+                                        photos.removeAt(oldIndex);
+                                    photos.insert(newIndex, item);
+                                    List<String> urls = [
+                                      for (Photo photo in photos)
+                                        photo.toMapString()
+                                    ];
+                                    widget.shopItem.imageUrl = urls.toString();
+                                    debugPrint(
+                                        'reordered: ${widget.shopItem.imageUrl}');
+                                  });
+                                },
                               ),
                             ),
                           ),
                         ],
                       ),
+                    if (widget.shopItem.links > 0) ...[
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
+                              child: TextFormField(
+                                  readOnly: !canEdit,
+                                  initialValue: widget.shopItem.buttonText1,
+                                  autofocus: canEdit,
+                                  textInputAction: TextInputAction.next,
+                                  textAlign: TextAlign.start,
+                                  keyboardType: TextInputType.streetAddress,
+                                  textCapitalization:
+                                      TextCapitalization.sentences,
+                                  decoration: const InputDecoration(
+                                    border: OutlineInputBorder(),
+                                    hintText: "Link button label",
+                                    labelText: 'Button 1 label',
+                                  ),
+                                  style: Theme.of(context).textTheme.bodyLarge,
+                                  autovalidateMode:
+                                      AutovalidateMode.onUserInteraction,
+                                  onChanged: (text) =>
+                                      widget.shopItem.buttonText1 = text),
+                            ),
+                          )
+                        ],
+                      ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
+                              child: TextFormField(
+                                  readOnly: !canEdit,
+                                  initialValue: widget.shopItem.url1,
+                                  autofocus: canEdit,
+                                  textInputAction: TextInputAction.next,
+                                  textAlign: TextAlign.start,
+                                  keyboardType: TextInputType.url,
+                                  textCapitalization: TextCapitalization.none,
+                                  decoration: const InputDecoration(
+                                    border: OutlineInputBorder(),
+                                    hintText:
+                                        "What is the link url for button 1",
+                                    labelText: 'Link 1 url',
+                                  ),
+                                  style: Theme.of(context).textTheme.bodyLarge,
+                                  autovalidateMode:
+                                      AutovalidateMode.onUserInteraction,
+                                  onChanged: (text) =>
+                                      widget.shopItem.url1 = text),
+                            ),
+                          )
+                        ],
+                      ),
+                    ],
+                    if (widget.shopItem.links > 1) ...[
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
+                              child: TextFormField(
+                                  readOnly: !canEdit,
+                                  initialValue: widget.shopItem.buttonText1,
+                                  autofocus: canEdit,
+                                  textInputAction: TextInputAction.next,
+                                  textAlign: TextAlign.start,
+                                  keyboardType: TextInputType.streetAddress,
+                                  textCapitalization:
+                                      TextCapitalization.sentences,
+                                  decoration: const InputDecoration(
+                                    border: OutlineInputBorder(),
+                                    hintText: "Link button label",
+                                    labelText: 'Button 2 label',
+                                  ),
+                                  style: Theme.of(context).textTheme.bodyLarge,
+                                  autovalidateMode:
+                                      AutovalidateMode.onUserInteraction,
+                                  onChanged: (text) =>
+                                      widget.shopItem.buttonText2 = text),
+                            ),
+                          )
+                        ],
+                      ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
+                              child: TextFormField(
+                                  readOnly: !canEdit,
+                                  initialValue: widget.shopItem.url1,
+                                  autofocus: canEdit,
+                                  textInputAction: TextInputAction.next,
+                                  textAlign: TextAlign.start,
+                                  keyboardType: TextInputType.streetAddress,
+                                  textCapitalization:
+                                      TextCapitalization.sentences,
+                                  decoration: const InputDecoration(
+                                    border: OutlineInputBorder(),
+                                    hintText:
+                                        "What is the link url for button 2",
+                                    labelText: 'Link 2 url',
+                                  ),
+                                  style: Theme.of(context).textTheme.bodyLarge,
+                                  autovalidateMode:
+                                      AutovalidateMode.onUserInteraction,
+                                  onChanged: (text) =>
+                                      widget.shopItem.url2 = text),
+                            ),
+                          )
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -366,8 +512,9 @@ class _ShopItemTileState extends State<ShopItemTile> {
     ];
   }
 
-  Widget showLocalImage(String url) {
-    return SizedBox(width: 160, child: Image.file(File(url)));
+  Widget showLocalImage(String url, {index = -1}) {
+    return SizedBox(
+        key: Key('sli$index'), width: 160, child: Image.file(File(url)));
   }
 
   changeRating(value) {

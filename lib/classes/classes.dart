@@ -1,4 +1,5 @@
 export 'package:drives/classes/drives_classes.dart';
+export 'package:drives/classes/image_list_indicator.dart';
 export 'package:drives/classes/leading_widget.dart';
 export 'package:drives/classes/other_classes.dart';
 export 'package:drives/classes/route.dart';

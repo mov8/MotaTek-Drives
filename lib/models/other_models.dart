@@ -1002,12 +1002,16 @@ class Photo {
   String toJson() {
     return '{"url": $url, "caption": $caption}';
   }
+
+  String toMapString() {
+    return '{"url": "$url", "caption": "$caption"}';
+  }
 }
 
 /// Creates a list of photos from a json string of the following format:
 ///  '[{"url": "assets/images/map.png", "caption": ""}, {"url": "assets/images/splash.png", "caption": ""},
 ///   {"url": "assets/images/CarGroup.png", "caption": "" }]',
-///
+///  post-constructor function handleWebImages converts a simple image file name to a map to reduce web traffic
 ///  for some strange reason the string must start with a single quote.
 
 List<Photo> photosFromJson(String photoString) {
@@ -1026,7 +1030,6 @@ List<Photo> photosFromJson(String photoString) {
       debugPrint('Error converting image data: $err ($photoString)');
     }
   }
-
   return photos;
 }
 
@@ -1214,7 +1217,7 @@ class Follower extends Marker {
 
 /// Api sends image urls as a list of filenames
 /// To simplify handling of local and web images the
-/// API url list is converted to {"url": "uuid.jpd", "caption": ""}, {...}
+/// API url list is converted to {"url": "uuid.jpg", "caption": ""}, {...}
 String handleWebImages(String urls) {
   String mappedUrls = urls;
   if (urls.isNotEmpty && !urls.contains('{') && !urls.contains('assets')) {
@@ -1285,48 +1288,55 @@ class ShopItem {
   String url1;
   String buttonText2;
   String url2;
+  int links;
   ShopItem(
       {this.uri = '',
       required this.heading,
       this.subHeading = '',
       this.body = '',
-      this.imageUrl = '',
+      imageUrl = '',
       this.coverage = 'all',
       this.score = 5,
       this.buttonText1 = '',
       this.url1 = '',
       this.buttonText2 = '',
-      this.url2 = ''});
+      this.url2 = '',
+      this.links = 0})
+      : imageUrl = handleWebImages(imageUrl);
 
   factory ShopItem.fromMap({required Map<String, dynamic> map}) {
     return ShopItem(
-      uri: map['uri'],
-      heading: map['heading'],
-      subHeading: map['subHeading'],
-      body: map['body'],
-      coverage: map['coverage'],
-      imageUrl: map['imageUrl'],
-      score: int.parse(map['score']),
-      buttonText1: map['button_text_1'],
-      url1: map['url_1'],
-      buttonText2: map['button_text_2'],
-      url2: map['url_2'],
-    );
+        uri: map['uri'],
+        heading: map['heading'],
+        subHeading: map['sub_heading'],
+        body: map['body'],
+        coverage: map['coverage'],
+        imageUrl: map['image_url'],
+        score: int.parse(map['score']),
+        buttonText1: map['button_text_1'],
+        url1: map['url_1'],
+        buttonText2: map['button_text_2'],
+        url2: map['url_2'],
+        links: map['url_1'] == ''
+            ? 0
+            : map['url_2'] == ''
+                ? 1
+                : 2);
   }
 
   Map<String, dynamic> toMap() {
     return {
       'uri': uri,
       'heading': heading,
-      'subheading': subHeading,
+      'subHeading': subHeading,
       'body': body,
       'coverage': coverage,
-      'image_url': imageUrl,
+      'imageUrl': imageUrl,
       'score': score,
-      'button_text_1': buttonText1,
-      'url_1': url1,
-      'button_text_2': buttonText2,
-      'url_2': url2,
+      'buttonText1': buttonText1,
+      'url1': url1,
+      'buttonText2': buttonText2,
+      'url2': url2,
     };
   }
 }

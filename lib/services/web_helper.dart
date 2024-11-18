@@ -1095,25 +1095,45 @@ deleteWebImage(String url) async {
   }
 }
 
+/// Returns SizedBox containing Image.network
+/// Implements a circularProgress indicator while loading
+/// Implements a dialog to delete onDoubleTap using InkWell
+/// "http://10.101.1.150:5001/v1/shop_item/images/0673901ecf1e761f8000b9ac02b722d7/6eec1ec3-2c5b-4d7e-9c3b-5a28d1016bd9.jpg"
 Widget showWebImage(String imageUrl,
-    {double width = 200,
-    bool canDelete = false,
+    {BuildContext? context,
+    double width = 200,
     int index = -1,
     Function(int)? onDelete}) {
   return SizedBox(
+    key: Key('swi$index'),
     width: width,
     child: Padding(
       padding: const EdgeInsets.symmetric(horizontal: 10),
       child: InkWell(
-        onTap: () {
-          deleteWebImage(imageUrl);
+        onDoubleTap: () async {
           if (onDelete != null && index > -1) {
-            // Utility().showConfirmDialog(context, )
-            onDelete(index);
+            if (context != null) {
+              bool? canDelete = await showDialog<bool>(
+                context: context,
+                builder: (context) => const OkCancelAlert(
+                  title: 'Remove image?',
+                  message: 'Deletes image on server ',
+                ),
+              );
+              if (canDelete!) {
+                deleteWebImage(imageUrl);
+                onDelete(index);
+              }
+            } else {
+              deleteWebImage(imageUrl);
+              onDelete(index);
+            }
           }
-        }, // {debugPrint('Inkwell onTap url: $imageUrl')},
+        },
+        //  String imageUrl = 'http://10.101.1.150:5001/v1/shop_item/images/0673901ecf1e761f8000b9ac02b722d7/6eec1ec3-2c5b-4d7e-9c3b-5a28d1016bd9.jpg';
         child: Image.network(
           imageUrl,
+          //   "http://10.101.1.150:5001/v1/shop_item/images/0673901ecf1e761f8000b9ac02b722d7/6eec1ec3-2c5b-4d7e-9c3b-5a28d1016bd9.jpg", //imageUrl,
           loadingBuilder: (BuildContext context, Widget child,
               ImageChunkEvent? loadingProgress) {
             if (loadingProgress == null) {
@@ -1132,6 +1152,16 @@ Widget showWebImage(String imageUrl,
       ),
     ),
   );
+}
+
+bool canDelete(bool ok, String url, int index) {
+  if (ok) {
+    debugPrint('Can delete');
+    return true;
+  } else {
+    debugPrint("Can't delete");
+    return false;
+  }
 }
 
 Future<List<Group>> getManagedGroups() async {
@@ -1427,7 +1457,6 @@ Future<String> postHomeItem(HomeItem homeItem) async {
 /// getShopItems gets a list of shop items for the shop screen
 /// The scope parameter isn't yet implemented, but is to allow
 /// some selection of who sees what on the shop page
-///
 Future<List<ShopItem>> getShopItems(int scope) async {
   List<ShopItem> itemsSent = [];
   try {
@@ -1458,13 +1487,21 @@ Future<String> postShopItem(ShopItem shopItem) async {
   var request =
       http.MultipartRequest('POST', Uri.parse('${urlBase}v1/shop_item/add'));
 
+  request.headers['Authorization'] = 'Bearer ${Setup().jwt}';
+  List<String> imageUris = [];
+  int newImageIndex = 0;
   for (Photo photo in photos) {
-    if (photo.url.contains('drives')) {
+    if (photo.url.length > 40) {
+      imageUris.add('new_image_${++newImageIndex}');
       request.files.add(await http.MultipartFile.fromPath('files', photo.url));
+    } else {
+      imageUris.add(photo.url);
     }
   }
   dynamic response;
   // String jwToken = Setup().jwt;
+  //  request.body = jsonEncode(map));
+  // request.fields.map((key, value) => null) = map;
   try {
     request.fields['id'] = map['uri'];
     request.fields['title'] = map['heading'];
@@ -1473,6 +1510,11 @@ Future<String> postShopItem(ShopItem shopItem) async {
     request.fields['added'] = map['added'] ?? DateTime.now().toString();
     request.fields['score'] = map['score'].toString();
     request.fields['coverage'] = map['coverage'];
+    request.fields['image_urls'] = imageUris.toString();
+    request.fields['button_text_1'] = map['buttonText1'];
+    request.fields['url_1'] = map['url1'];
+    request.fields['button_text_2'] = map['buttonText2'];
+    request.fields['url_2'] = map['url2'];
 
     response = await request.send().timeout(const Duration(seconds: 30));
   } catch (e) {

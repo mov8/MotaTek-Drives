@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:drives/models/other_models.dart';
 import 'package:drives/services/services.dart';
+import 'package:drives/classes/classes.dart';
 
 class ShopTile extends StatefulWidget {
   final ShopItem shopItem;
@@ -21,6 +23,34 @@ class ShopTile extends StatefulWidget {
 }
 
 class _ShopTileState extends State<ShopTile> {
+  int imageIndex = 0;
+  List<Photo> photos = [];
+  String endPoint = '';
+  final PageController _pageController = PageController();
+  final ImageListIndicatorController _imageListIndicatorController =
+      ImageListIndicatorController();
+
+  @override
+  void initState() {
+    super.initState();
+    photos = photosFromJson(widget.shopItem.imageUrl);
+    endPoint = '${urlBase}v1/shop_item/images/${widget.shopItem.uri}/';
+    _pageController.addListener(() => pageControlListener());
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    // _imageListIndicatorController.dispose();
+    super.dispose();
+  }
+
+  pageControlListener() {
+    setState(() => _imageListIndicatorController
+        .changeImageIndex(_pageController.page!.round()));
+    // setState(() => imageIndex = _pageController.page!.round());
+  }
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -43,20 +73,20 @@ class _ShopTileState extends State<ShopTile> {
                         flex: 8,
                         child: SizedBox(
                           height: MediaQuery.of(context).size.width, // 375,
-                          child: ListView(
+                          child: PageView.builder(
+                            itemCount: photos.length,
                             scrollDirection: Axis.horizontal,
-                            children: [
-                              for (Photo photo in photosFromJson(
-                                widget.shopItem.imageUrl,
-                              ))
-                                showWebImage(
-                                    Uri.parse(
-                                            '${urlBase}v1/home_page_item/images/${widget.shopItem.uri}/${photo.url}')
-                                        .toString(),
-                                    width: MediaQuery.of(context).size.width -
-                                        10, //400,
-                                    canDelete: false)
-                            ],
+                            controller: _pageController,
+                            itemBuilder: (BuildContext context, int index) {
+                              imageIndex = index;
+                              return showWebImage(
+                                  '$endPoint${photos[index].url}',
+                                  width: MediaQuery.of(context).size.width -
+                                      10, //400,
+                                  onDelete: (response) =>
+                                      debugPrint('Response: $response'));
+                              //   ],
+                            },
                           ),
                         ),
                       ),
@@ -64,9 +94,8 @@ class _ShopTileState extends State<ShopTile> {
                   ),
                 ),
               ),
-              const SizedBox(
-                height: 10,
-              ),
+              ImageListIndicator(
+                  controller: _imageListIndicatorController, photos: photos),
               SizedBox(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(5, 0, 5, 10),
@@ -107,17 +136,25 @@ class _ShopTileState extends State<ShopTile> {
                       textAlign: TextAlign.left),
                 ),
               )),
-              SizedBox(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(5, 0, 5, 15),
-                  child: Align(
-                    alignment: Alignment.topRight,
-                    child: IconButton(
-                        icon: const Icon(Icons.share),
-                        onPressed: () => (setState(() {}))),
+              if (widget.shopItem.url1.isNotEmpty) ...[
+                ActionChip(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
                   ),
-                ),
-              ),
+                  onPressed: () => launchUrl(Uri.parse(widget.shopItem.url1),
+                      mode: LaunchMode.inAppBrowserView),
+                  //  forceSafariVC: false, forceWebView: false),
+                  backgroundColor: Colors.blue,
+                  avatar: const Icon(
+                    Icons.link,
+                    color: Colors.white,
+                  ),
+                  label: Text(
+                    widget.shopItem.buttonText1, // - ${_action.toString()}',
+                    style: const TextStyle(fontSize: 18, color: Colors.white),
+                  ),
+                )
+              ],
             ],
           ),
         ),

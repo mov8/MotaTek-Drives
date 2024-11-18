@@ -120,6 +120,62 @@ class Utility {
     );
   }
 
+  okCancelAlert({
+    required BuildContext context,
+    String title = 'Title',
+    String message = 'Message',
+  }) async {
+    // Function(bool)? response}) async {
+    AlertDialog alert = AlertDialog(
+      title: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 24,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      content: SingleChildScrollView(
+        child: ListBody(
+          children: <Widget>[
+            Text(
+              message,
+              style: const TextStyle(fontSize: 20),
+            )
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          child: const Text(
+            "Ok",
+            style: TextStyle(fontSize: 24),
+          ),
+          onPressed: () {
+            // response!(true);
+            Navigator.pop(context, true);
+          },
+        ),
+        TextButton(
+          child: const Text(
+            "Cancel",
+            style: TextStyle(fontSize: 24),
+          ),
+          onPressed: () {
+            // response!(false);
+            Navigator.pop(context, false);
+          },
+        )
+      ],
+    );
+    // show the dialog
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return alert;
+      },
+    ); //.then((_) => debugPrint('Response $response'));
+  }
+
   showConfirmDialog(
       BuildContext context, String alertTitle, String alertMessage) {
     // set up the buttons
@@ -547,32 +603,6 @@ Widget _addRemoveWaypoint(
           )));
 }
 
-/*
-Widget _addRemoveWaypoint2(
-    BuildContext context, setState, index, var controllers) {
-  return InkWell(
-      onTap: () {
-        if (index == controllers.length - 1) {
-          controllers.add(TextEditingController());
-        } else {
-          controllers.removeAt(index);
-        }
-        setState(() {});
-      },
-      child: Container(
-          width: 30,
-          height: 30,
-          decoration: BoxDecoration(
-            color: index == controllers.length - 1 ? Colors.green : Colors.red,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Icon(
-            index == controllers.length - 1 ? Icons.add : Icons.remove,
-            color: Colors.white,
-          )));
-}
-*/
-
 class _AsyncAutocomplete extends StatefulWidget {
   const _AsyncAutocomplete();
 
@@ -632,84 +662,65 @@ class _AsyncAutocompleteState extends State<_AsyncAutocomplete> {
   }
 }
 
-/*
-  Future<void> _displayTextInputDialog(BuildContext context, LatLng latLng) {
-    return showDialog<void>(
-        context: context,
-        builder: (BuildContext context) {
-          // PopupValue popValue = PopupValue(-1, '', '');
-          return AlertDialog(
-            title: const Text('Location Description'),
-            content: SizedBox(
-                height: 200,
-                child: Column(
-                  children: <Widget>[
-                    DropdownButtonFormField<String>(
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                          labelText: 'Type',
-                        ),
-                        items: poiTypes
-                            .map((item) => DropdownMenuItem<String>(
-                                  value: item['id'].toString(),
-                                  child: Row(children: [
-                                    Icon(
-                                      IconData(item['iconMaterial'],
-                                          fontFamily: 'MaterialIcons'),
-                                      color: Color(item['colourMaterial']),
-                                    ),
-                                    Text('    ${item['name']}')
-                                  ]),
-                                ))
-                            .toList(),
-                        onChanged: (item) => setState(() =>
-                            popValue.dropdownIdx = item == null
-                                ? -1
-                                : int.parse(
-                                    item)) //index of chosen item as a string
-                        ),
-                    TextField(
-                      onChanged: (value) {
-                        setState(() {
-                          popValue.text1 = value;
-                        });
-                      },
-                      controller: _textFieldController,
-                      decoration: const InputDecoration(
-                          hintText: "Describe point of interest.."),
-                    ),
-                  ],
-                )),
-            actions: <Widget>[
-              MaterialButton(
-                color: Colors.red,
-                textColor: Colors.white,
-                child: const Text('CANCEL'),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-              ),
-              MaterialButton(
-                color: Colors.green,
-                textColor: Colors.white,
-                child: const Text('OK'),
-                onPressed: () {
-                  setState(() {
-                    int iconIdx = popValue.dropdownIdx;
-                    if (iconIdx >= 0) {
-                      String desc = popValue.text1;
-                      _addPointOfInterest(
-                          id, userId, iconIdx, desc, '', 30.0, latLng);
-                    }
-                    Navigator.of(context).pop();
-                  });
-                },
-              ),
-            ],
-          );
-        });
+class OkCancelAlert extends StatefulWidget {
+  @override
+  _OkCancelAtertState createState() => _OkCancelAtertState();
+
+  final String title;
+  final String message;
+  const OkCancelAlert({
+    super.key,
+    this.title = '',
+    this.message = '',
+  });
+}
+
+class _OkCancelAtertState extends State<OkCancelAlert> {
+  double value = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(
+        widget.title,
+        style: const TextStyle(
+          fontSize: 24,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      content: SingleChildScrollView(
+        child: ListBody(
+          children: <Widget>[
+            Text(
+              widget.message,
+              style: const TextStyle(fontSize: 20),
+            )
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          child: const Text(
+            "Ok",
+            style: TextStyle(fontSize: 24),
+          ),
+          onPressed: () {
+            Navigator.pop(context, true);
+          },
+        ),
+        TextButton(
+          child: const Text(
+            "Cancel",
+            style: TextStyle(fontSize: 24),
+          ),
+          onPressed: () {
+            Navigator.pop(context, false);
+          },
+        )
+      ],
+    );
   }
-*/
+}
 
 // Mimics a remote API.
 class _FakeAPI {
