@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'dart:async';
-import 'package:drives/services/web_helper.dart';
+import 'package:drives/services/services.dart';
+import 'package:drives/models/models.dart';
+import 'package:drives/screens/screens.dart';
 
 ///
 /// https://stackoverflow.com/questions/53844052/how-to-make-an-alertdialog-in-flutter
@@ -33,6 +35,8 @@ const Duration fakeAPIDuration = Duration(seconds: 1);
 const Duration debounceDuration = Duration(milliseconds: 500);
 
 List<String> autoCompleteData = ['Dotty', 'James', 'Billy', 'Katie'];
+
+enum LoginState { login, createCode, codeOk, resendCode, passwordLost }
 
 AlertDialog buildFlexDialog(
     {required BuildContext context,
@@ -297,6 +301,377 @@ AlertDialog buildColumnDialog(
       content: content,
       actions: actionButtons(context, callbacks, buttonTexts));
 }
+/*
+class DialogLoginRegister extends StatefulWidget {
+  final String email;
+  final String password;
+  final String joinId;
+  final bool joined;
+  @override
+  State<DialogLoginRegister> createState() => _DialogLoginRegister();
+  const DialogLoginRegister({
+    super.key,
+    this.email = '',
+    this.password = '',
+    this.joinId = '',
+    this.joined = true,
+  });
+}
+
+class _DialogLoginRegister extends State<DialogLoginRegister> {
+  String status = '';
+  TextEditingController emController = TextEditingController();
+  TextEditingController pwController = TextEditingController();
+  TextEditingController jiController = TextEditingController();
+  @override
+  void initState() {
+    super.initState();
+    emController.text = widget.email;
+    pwController.text = widget.password;
+    jiController.text = widget.joinId;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+        Icon(
+          Icons.key,
+          size: 30,
+        ),
+        SizedBox(
+          width: 10,
+        ),
+        Text('Login'),
+      ]),
+      content: SizedBox(
+        height: 150,
+        width: 200,
+        child: Column(children: [
+          Row(children: [
+            Expanded(
+              child: TextField(
+                controller: emController,
+                autofocus: true,
+                textInputAction: TextInputAction.next,
+                keyboardType: TextInputType.emailAddress,
+                decoration:
+                    const InputDecoration(hintText: 'Enter email address'),
+                onChanged: (value) => emController.text = value,
+              ),
+            )
+          ]),
+          Row(children: [
+            Expanded(
+                child: TextField(
+              controller: pwController,
+              textInputAction: TextInputAction.done,
+              keyboardType: TextInputType.visiblePassword,
+              decoration: const InputDecoration(hintText: 'Enter password'),
+              onChanged: (value) => pwController.text = value,
+            ))
+          ]),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  status,
+                  style: const TextStyle(
+                      color: Colors.red,
+                      fontSize: 18,
+                      fontWeight: FontWeight.normal),
+                ),
+              )
+            ],
+          ),
+        ]),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () async {
+            Map<String, dynamic> response =
+                await tryLogin(emController.text, pwController.text);
+            status = response['msg'];
+            if (status == 'OK' && context.mounted) {
+              Navigator.pop(context, true);
+            } else {
+              setState(() {});
+            }
+          },
+          child: const Text(
+            'Ok',
+            style: TextStyle(fontSize: 20),
+          ),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text(
+            'Cancel',
+            style: TextStyle(fontSize: 20),
+          ),
+        )
+      ],
+    );
+  }
+}
+*/
+/// LoginDialog(context, user) builds the login dialog:
+///
+///   The app silently logs in if it has stored the user name and password
+///   using the user/login API endpoint
+///   it will retrive a new JWT that it stores in Setup()
+///
+///   If the silent login fails then the dialog will be shown
+///
+///   A) If the app has neither email nor password then the dialog
+///   will be shown because either -
+///     1 It's a new user so they have to register as such
+///       i)   They enter just their email (stored locally).
+///       ii)  The API then emails them a 6 digit code.
+///       iii) The dialog changes to waiting for code
+///
+///     2 It's an existing user on a new device
+///
+///   If the password is left empty is (new user or forgotten pw) the
+///   user/register endpoint will email the user with a 6 digit code
+///
+///   B) If the app knows the email but the password is empty it allows
+///   the user to enter the 6 digit emailed digit code which it stores locally
+///
+///   C) If the user has forgotten their password then the password is
+///   removed locally triggering the sending of an email with the register code
+///
+///   D) If the correct 6 digit code is entered it is stored and the
+///   local password and the SignUpForm class will be invoked to complete
+///   the reistration.
+///
+
+Future<void> loginDialog(BuildContext context, {required User user}) async {
+  Future<bool> result;
+  String status = '';
+  int joiningOffset = user.password.isEmpty && user.email.isNotEmpty ? 2 : 0;
+  user.password = '';
+  int selectedRadio = 0;
+  List<String> rltTitles = [
+    'Login ',
+    'Register as new user',
+    'Register now',
+    'Resend email'
+  ];
+  List<String> titles = [
+    'Login ',
+    'Register',
+    'Validate registration',
+    'Resend code email'
+  ];
+
+  List<IconData> dialogIcons = [
+    Icons.key,
+    Icons.person_add,
+    Icons.how_to_reg,
+    Icons.send
+  ];
+
+  switch (await showDialog<LoginState>(
+    context: context,
+    barrierDismissible: false,
+    builder: (BuildContext context) => StatefulBuilder(
+      builder: (cStateontext, StateSetter setState) => AlertDialog(
+        title: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Icon(
+            dialogIcons[selectedRadio + joiningOffset],
+            //    joinId.isEmpty ? selectedRadio == 0 ? Icons.key : Icons.person_add : ,
+            size: 30,
+          ),
+          const SizedBox(
+            width: 10,
+          ),
+          Text(titles[selectedRadio + joiningOffset]),
+        ]),
+        content: SizedBox(
+          height: selectedRadio == 0 ? 210 : 160,
+          width: 350,
+          child: Column(children: [
+            if (joiningOffset == 0 || (selectedRadio == 1)) ...[
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      autofocus: true,
+                      textInputAction: TextInputAction.next,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: const InputDecoration(
+                          hintText: 'Enter your email address'),
+                      onChanged: (value) => user.email = value,
+                    ),
+                  )
+                ],
+              ),
+            ] else ...[
+              Row(
+                children: [
+                  const Expanded(flex: 3, child: Text('')),
+                  Expanded(
+                    flex: 4,
+                    child: TextField(
+                      autofocus: true,
+                      keyboardType: TextInputType.number,
+                      maxLength: 6,
+                      style: const TextStyle(
+                          fontSize: 26, fontWeight: FontWeight.bold),
+                      textInputAction: TextInputAction.next,
+                      decoration: const InputDecoration(
+                          border: OutlineInputBorder(),
+                          hintText: 'emailed code',
+                          hintStyle: TextStyle(
+                              fontSize: 14, fontWeight: FontWeight.normal)),
+                      onChanged: (value) => user.password = value,
+                    ),
+                  ),
+                  const Expanded(flex: 3, child: Text('')),
+                ],
+              ),
+            ],
+            if (selectedRadio + joiningOffset == 0) ...[
+              Row(
+                children: [
+                  Expanded(
+                      child: TextField(
+                    decoration: const InputDecoration(
+                      hintText: 'Password - leave empty if fogotten',
+                    ),
+                    textInputAction: TextInputAction.done,
+                    keyboardType: TextInputType.visiblePassword,
+                    onChanged: (value) => user.password = value,
+                  ))
+                ],
+              ),
+            ],
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    status,
+                    style: const TextStyle(
+                        color: Colors.red,
+                        fontSize: 18,
+                        fontWeight: FontWeight.normal),
+                  ),
+                )
+              ],
+            ),
+            Row(
+              children: List.generate(
+                2,
+                (index) => Expanded(
+                  flex: index, // == 2 ? 6 : 4,
+                  child: Row(
+                    children: [
+                      Text(rltTitles[joiningOffset + index]),
+                      Radio(
+                        value: index,
+                        groupValue: selectedRadio,
+                        onChanged: (val) => //selectedRadio = val!,
+                            setState(() => selectedRadio = val!),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ]),
+        ),
+        actions: [
+          TextButton(
+            // onPressed: () => Navigator.pop(context, LoginState.login),
+
+            onPressed: () async {
+              try {
+                if (joiningOffset + selectedRadio == 0) {
+                  tryLogin(user: user).then(
+                    (response) {
+                      status = response['msg'];
+                      if (status == 'OK') {
+                        saveUser(user);
+                        if (user.password.isEmpty) {
+                          setState(() {
+                            status =
+                                "Validation code sent. Check for email 'Your MotatTrip valdation code'";
+                            joiningOffset = 2;
+                          });
+                        } else {
+                          Navigator.pop(context, LoginState.login);
+                        }
+                      }
+                    },
+                  );
+                } else {
+                  tryLogin(user: user).then((response) {
+                    status = response['msg'];
+                    if (status == 'OK') {
+                      user.password = '';
+                      saveUser(user);
+                      if (selectedRadio == 1) {
+                        // resend code
+                        setState(() => joiningOffset = 2);
+                      } else {
+                        Navigator.pop(context, LoginState.codeOk);
+                        return true;
+                      }
+                    } else {
+                      setState(() =>
+                          status = 'Code incorrect check or request resend');
+                    }
+                  });
+                }
+              } catch (e) {
+                String err = e.toString();
+                debugPrint('Error: $err');
+              }
+            },
+            child: const Text(
+              'Ok',
+              style: TextStyle(fontSize: 20),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, LoginState.login),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(fontSize: 20),
+            ),
+          ),
+        ],
+      ),
+    ),
+  )) {
+    case LoginState.codeOk:
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const SignupForm()),
+      );
+      break;
+    case LoginState.passwordLost:
+      debugPrint('password lost');
+      break;
+    case LoginState.login:
+      debugPrint('Logged in');
+      break;
+    case LoginState.resendCode:
+      debugPrint('Resend code');
+      break;
+    case LoginState.createCode:
+      debugPrint('Create code');
+      break;
+    case null:
+      debugPrint('Cancel');
+      break;
+  }
+
+  // return result;
+}
 
 class DialogOkCancel extends StatefulWidget {
   @override
@@ -322,52 +697,53 @@ class _DialogOkCancelState extends State<DialogOkCancel> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-        //  context: context,
-        //  barrierDismissible: false,
-        title: Column(children: [
-      Row(children: [
-        Text(widget.title,
-            style: const TextStyle(
-                color: Colors.black,
-                fontSize: 20,
-                fontWeight: FontWeight.bold)),
+      //  context: context,
+      //  barrierDismissible: false,
+      title: Column(children: [
         Row(children: [
-          Text(widget.body,
+          Text(widget.title,
               style: const TextStyle(
-                color: Colors.black,
-                fontSize: 16,
-              )),
-        ]),
-        Row(
-          children: [
-            const Expanded(
-              flex: 4,
-              child: SizedBox(
-                height: 20,
+                  color: Colors.black,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold)),
+          Row(children: [
+            Text(widget.body,
+                style: const TextStyle(
+                  color: Colors.black,
+                  fontSize: 16,
+                )),
+          ]),
+          Row(
+            children: [
+              const Expanded(
+                flex: 4,
+                child: SizedBox(
+                  height: 20,
+                ),
               ),
-            ),
-            Expanded(
-              flex: 2,
-              child: ElevatedButton(
-                  onPressed: () {
-                    widget.onConfirm(widget.id);
-                    Navigator.pop(context);
-                  },
-                  child: const Text('OK')),
-            ),
-            Expanded(
-              flex: 2,
-              child: ElevatedButton(
-                  onPressed: () {
-                    widget.onConfirm(-1);
-                    Navigator.pop(context);
-                  },
-                  child: const Text('Cancel')),
-            )
-          ],
-        )
+              Expanded(
+                flex: 2,
+                child: ElevatedButton(
+                    onPressed: () {
+                      widget.onConfirm(widget.id);
+                      Navigator.pop(context);
+                    },
+                    child: const Text('OK')),
+              ),
+              Expanded(
+                flex: 2,
+                child: ElevatedButton(
+                    onPressed: () {
+                      widget.onConfirm(-1);
+                      Navigator.pop(context);
+                    },
+                    child: const Text('Cancel')),
+              )
+            ],
+          )
+        ]),
       ]),
-    ]));
+    );
   }
 }
 

@@ -145,7 +145,8 @@ Future<List<Map<String, dynamic>>> getSetup(int id) async {
   // if (records > 0){
   try {
     List<Map<String, dynamic>> maps =
-        await db.query('setup', where: 'id >= ?', whereArgs: [id], limit: 1);
+        //  await db.query('setup', where: 'id >= ?', whereArgs: [id], limit: 1);
+        await db.query('setup', limit: 1);
     return maps;
   } catch (e) {
     debugPrint('Error loading Setup ${e.toString()}');
@@ -164,7 +165,7 @@ Future<User> getUser() async {
   String password = '';
   String imageUrl = '';
   try {
-    var maps = await db.rawQuery("SELECT * FROM Users");
+    var maps = await db.rawQuery("SELECT * FROM Users LIMIT 1");
     if (maps.isNotEmpty) {
       id = int.parse(maps[0]['id'].toString());
       forename = maps[0]['forename'].toString();

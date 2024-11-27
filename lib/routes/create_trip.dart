@@ -2268,7 +2268,7 @@ class _CreateTripState extends State<CreateTripScreen>
   void tripsFromWeb() async {
     int tries = 0;
     while (Setup().jwt.isEmpty && ++tries < 4) {
-      await login(context);
+      //  await login(context);
       if (Setup().jwt.isEmpty) {
         debugPrint('Login failed');
       }

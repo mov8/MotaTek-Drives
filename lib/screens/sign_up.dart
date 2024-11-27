@@ -48,20 +48,22 @@ class _SignupFormState extends State<SignupForm> {
         /// Removes Shadow
         toolbarHeight: 40,
         title: const Text(
-          'MotaTrip signup',
+          'MotaTrip user details',
           style: TextStyle(
             color: Colors.white,
             fontSize: 18,
             fontWeight: FontWeight.bold,
           ),
         ),
-        bottom: const PreferredSize(
-          preferredSize: Size.fromHeight(60),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(60),
           child: Padding(
-            padding: EdgeInsets.fromLTRB(5, 10, 5, 10),
+            padding: const EdgeInsets.fromLTRB(5, 10, 5, 10),
             child: Text(
-              'Register ',
-              style: TextStyle(
+              Setup().user.surname.isEmpty
+                  ? 'Complete registration'
+                  : 'Update details',
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 38,
                 fontWeight: FontWeight.bold,
@@ -115,42 +117,51 @@ class _SignupFormState extends State<SignupForm> {
           children: <Widget>[
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
-              child: TextFormField(
-                autofocus: true,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  hintText: 'Enter your forename',
-                  labelText: 'Forename',
-                ),
-                textInputAction: TextInputAction.next,
-                textCapitalization: TextCapitalization.words,
-                textAlign: TextAlign.left,
-                initialValue: Setup().user.forename.toString(),
-                style: Theme.of(context).textTheme.bodyLarge,
-                onChanged: (text) =>
-                    setState(() => Setup().user.forename = text),
+              child: Row(
+                children: [
+                  Expanded(
+                    flex: 1,
+                    child: TextFormField(
+                      autofocus: true,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        hintText: 'Enter your forename',
+                        labelText: 'Forename',
+                      ),
+                      textInputAction: TextInputAction.next,
+                      textCapitalization: TextCapitalization.words,
+                      textAlign: TextAlign.left,
+                      initialValue: Setup().user.forename.toString(),
+                      style: Theme.of(context).textTheme.bodyLarge,
+                      onChanged: (text) =>
+                          setState(() => Setup().user.forename = text),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    flex: 1,
+                    child: TextFormField(
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        hintText: 'Enter surname',
+                        labelText: 'Surname',
+                      ),
+                      textAlign: TextAlign.left,
+                      textInputAction: TextInputAction.next,
+                      textCapitalization: TextCapitalization.words,
+                      initialValue: Setup().user.surname.toString(),
+                      style: Theme.of(context).textTheme.bodyLarge,
+                      onChanged: (text) =>
+                          setState(() => Setup().user.surname = text),
+                    ),
+                  ),
+                ],
               ),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
               child: TextFormField(
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  hintText: 'Enter surname',
-                  labelText: 'Surname',
-                ),
-                textAlign: TextAlign.left,
-                textInputAction: TextInputAction.next,
-                textCapitalization: TextCapitalization.words,
-                initialValue: Setup().user.surname.toString(),
-                style: Theme.of(context).textTheme.bodyLarge,
-                onChanged: (text) =>
-                    setState(() => Setup().user.surname = text),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-              child: TextFormField(
+                readOnly: Setup().user.email.isNotEmpty,
                 keyboardType: TextInputType.emailAddress,
                 decoration: const InputDecoration(
                   border: OutlineInputBorder(),
@@ -193,6 +204,9 @@ class _SignupFormState extends State<SignupForm> {
                 textInputAction: TextInputAction.done,
                 initialValue: Setup().user.password.toString(),
                 style: Theme.of(context).textTheme.bodyLarge,
+                validator: (val) => Setup().user.password.length < 8
+                    ? 'Minimum password length is 8'
+                    : null,
                 onChanged: (text) =>
                     setState(() => Setup().user.password = text),
               ),
@@ -258,18 +272,24 @@ class _SignupFormState extends State<SignupForm> {
                 ),
               )
             ],
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 40, 20, 10),
-              child: ElevatedButton(
-                style: style,
-                onPressed: () {
-                  postUser(Setup().user, register: true);
-                  //  saveUser(Setup().user);
-                },
-                child: const Text('Register',
-                    style: TextStyle(color: Colors.white)),
+            Align(
+              alignment: Alignment.bottomLeft,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 12, 0, 0),
+                child: ActionChip(
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20)),
+                  onPressed: () => postUser(user: Setup().user, register: true),
+                  backgroundColor: Colors.blue,
+                  avatar: const Icon(
+                    Icons.how_to_reg,
+                    color: Colors.white,
+                  ),
+                  label: const Text('Register',
+                      style: TextStyle(fontSize: 18, color: Colors.white)),
+                ),
               ),
-            ),
+            )
           ],
         ),
       ),

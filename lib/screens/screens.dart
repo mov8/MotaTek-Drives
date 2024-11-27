@@ -13,4 +13,4 @@ export 'package:drives/screens/setup.dart';
 export 'package:drives/screens/share.dart';
 export 'package:drives/screens/shop.dart';
 export 'package:drives/screens/sign_up.dart';
-export 'package:drives/screens/star_ratings.dart';
+export 'package:drives/classes/star_ratings.dart';

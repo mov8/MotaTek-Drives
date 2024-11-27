@@ -169,10 +169,11 @@ const urlBase = 'http://10.101.1.150:5001/'; // Home network
 // const urlBase = 'http://192.168.68.104:5001/'; // Douglas Lodge
 // const urlBase = 'http://192.168.0.10:5001/'; // Nikki's place
 
-Future<Map<String, dynamic>> postUser(User user,
-    {bool register = false}) async {
+Future<Map<String, dynamic>> postUser(
+    {required User user, bool register = false}) async {
   Map<String, dynamic> userMap = user.toMap();
   Map<String, dynamic> map = {'message': ''};
+  // bool register = user.password.length <= 6;
   try {
     var url = Uri.parse('${urlBase}v1/user/${register ? "register" : "login"}');
     final http.Response response = await http
@@ -181,20 +182,22 @@ Future<Map<String, dynamic>> postUser(User user,
               "Content-Type": "application/json; charset=UTF-8",
             },
             body: jsonEncode(userMap))
-        .timeout(const Duration(seconds: 20));
+        .timeout(const Duration(seconds: 30));
     Map<String, dynamic> map = jsonDecode(response.body);
-    if (response.statusCode == 201) {
+    if ([200, 201].contains(response.statusCode)) {
       Setup().jwt = map['token'];
+      /*
       if (!register) {
         Setup().user
           ..forename = map['forename']
           ..surname = map['surname']
           ..email = user.email
           ..password = user.password;
-        Setup().setupToDb();
+          _SimpleUri (http://10.101.1.150:5001/v1/user/login)
+        Setup().s etupToDb();
       }
-      await updateSetup();
-
+      await insertSetup(Setup());
+      */
       return {'msg': 'OK'};
     } else {
       return map;
@@ -205,105 +208,30 @@ Future<Map<String, dynamic>> postUser(User user,
   return map;
 }
 
-Future<bool> login(BuildContext context) async {
-  bool result = false;
-  String email = '';
-  String password = '';
-  String status = '';
-
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    builder: (context) => StatefulBuilder(
-      builder: (context, setState) => AlertDialog(
-        title:
-            const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Icon(
-            Icons.key,
-            size: 30,
-          ),
-          SizedBox(
-            width: 10,
-          ),
-          Text('Login'),
-        ]),
-        content: SizedBox(
-          height: 150,
-          width: 200,
-          child: Column(children: [
-            Row(children: [
-              Expanded(
-                child: TextField(
-                  autofocus: true,
-                  textInputAction: TextInputAction.next,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration:
-                      const InputDecoration(hintText: 'Enter email address'),
-                  onChanged: (value) => email = value,
-                ),
-              )
-            ]),
-            Row(children: [
-              Expanded(
-                  child: TextField(
-                textInputAction: TextInputAction.done,
-                keyboardType: TextInputType.visiblePassword,
-                decoration: const InputDecoration(hintText: 'Enter password'),
-                onChanged: (value) => password = value,
-              ))
-            ]),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    status,
-                    style: const TextStyle(
-                        color: Colors.red,
-                        fontSize: 18,
-                        fontWeight: FontWeight.normal),
-                  ),
-                )
-              ],
-            ),
-          ]),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () async {
-              Map<String, dynamic> response = await tryLogin(email, password);
-              status = response['msg'];
-              if (status == 'OK' && context.mounted) {
-                Navigator.pop(context);
-              } else {
-                setState(() {});
-              }
+Future<Map<String, dynamic>> tryLogin({required User user}) async {
+  Map<String, dynamic> userMap = user.toMap();
+  Map<String, dynamic> map = {'message': ''};
+  bool register = user.password.length <= 6;
+  try {
+    var url = Uri.parse('${urlBase}v1/user/${register ? "register" : "login"}');
+    final http.Response response = await http
+        .post(url,
+            headers: <String, String>{
+              "Content-Type": "application/json; charset=UTF-8",
             },
-            child: const Text(
-              'Ok',
-              style: TextStyle(fontSize: 20),
-            ),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text(
-              'Cancel',
-              style: TextStyle(fontSize: 20),
-            ),
-          )
-        ],
-      ),
-    ),
-  );
-
-  return result;
-}
-
-Future<Map<String, dynamic>> tryLogin(String email, String password) async {
-  User user = User(
-      email: email, password: password, forename: '', surname: '', phone: '');
-  Map<String, dynamic> response = await postUser(user);
-  return response;
+            body: jsonEncode(userMap))
+        .timeout(const Duration(seconds: 30));
+    Map<String, dynamic> map = jsonDecode(response.body);
+    if (response.statusCode == 201) {
+      Setup().jwt = map['token'];
+      return {'msg': 'OK'};
+    } else {
+      return {'msg': map['message'] ?? 'error'};
+    }
+  } catch (e) {
+    debugPrint('Login error: ${e.toString()}');
+  }
+  return map;
 }
 
 Future<dynamic> postTrip(MyTripItem tripItem) async {
@@ -1416,9 +1344,14 @@ Future<String> postHomeItem(HomeItem homeItem) async {
   var request = http.MultipartRequest(
       'POST', Uri.parse('${urlBase}v1/home_page_item/add'));
 
+  List<String> imageUris = [];
+  int newImageIndex = 0;
   for (Photo photo in photos) {
-    if (photo.url.contains('drives')) {
+    if (photo.url.length > 40) {
       request.files.add(await http.MultipartFile.fromPath('files', photo.url));
+      imageUris.add('new_image_${++newImageIndex}');
+    } else {
+      imageUris.add(photo.url);
     }
   }
   dynamic response;
@@ -1431,6 +1364,7 @@ Future<String> postHomeItem(HomeItem homeItem) async {
     request.fields['added'] = map['added'] ?? DateTime.now().toString();
     request.fields['score'] = map['score'].toString();
     request.fields['coverage'] = map['coverage'];
+    request.fields['image_urls'] = imageUris.toString();
 
     response = await request.send().timeout(const Duration(seconds: 30));
   } catch (e) {

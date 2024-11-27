@@ -1,9 +1,12 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:drives/models/other_models.dart';
 import 'package:drives/tiles/home_tile.dart';
 import 'package:drives/screens/main_drawer.dart';
 import 'package:drives/classes/classes.dart';
-import 'package:drives/services/web_helper.dart';
+import 'package:drives/services/services.dart';
+import 'package:drives/screens/dialogs.dart';
+
 import 'package:wakelock/wakelock.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -43,20 +46,19 @@ class _homeScreenState extends State<HomeScreen> {
 
   tryLoggingIn() async {
     try {
-      Map<String, dynamic> response = {'msg': 'Not logged in'};
-      debugPrint('Home message: ${response['msg']}');
-      bool loaded = await Setup().loaded;
-      // Future.delayed(const Duration(seconds: 4), () async {
-      if (Setup().jwt.isEmpty) {
-        debugPrint('About to try logging in..');
-
-        if (loaded && Setup().jwt.isNotEmpty && Setup().user.email.isNotEmpty) {
-          debugPrint('JWT not empty - about to try logging in..');
-          response = await tryLogin(Setup().user.email, Setup().user.password);
-        }
-        if (response['msg'] != 'OK' && context.mounted) {
-          debugPrint('tryLogin() failed About to use login()..');
-          await login(context);
+      User user = await getUser();
+      if (user.email.isNotEmpty && user.password.length > 6) {
+        tryLogin(user: user).then(
+          (response) {
+            String status = response['msg'] ?? '';
+            if (status == 'OK') {
+              saveUser(user);
+            }
+          },
+        );
+      } else {
+        if (context.mounted) {
+          await loginDialog(context, user: user);
         }
       }
     } catch (e) {

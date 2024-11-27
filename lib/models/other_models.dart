@@ -254,6 +254,8 @@ class Setup {
   }
 
   Future<bool> setupFromDb() async {
+    var setupRecords = await recordCount('setup');
+    debugPrint('Setup contains $setupRecords records');
     List<Map<String, dynamic>> maps = await getSetup(0);
     if (maps.isNotEmpty) {
       try {
@@ -285,7 +287,7 @@ class Setup {
   }
 
   Future<void> setupToDb() async {
-    await updateSetup();
+    await insertSetup(this);
   }
 
   Future<List<Map<String, dynamic>>> getSetupById(int id) async {
@@ -1088,7 +1090,7 @@ class User {
       'email': email,
       'phone': phone,
       'password': password,
-      'new_password': newPassword,
+//      'new_password': newPassword,
       'imageUrl': imageUrl,
     };
   }
@@ -1267,7 +1269,7 @@ class HomeItem {
       'heading': heading,
       'subHeading': subHeading,
       'body': body,
-      'imageUrl': imageUrl,
+      'image_urls': imageUrl,
       'coverage': coverage,
       'score': score,
     };

@@ -2,7 +2,7 @@
 import 'package:drives/screens/invitations.dart';
 import 'package:flutter/material.dart';
 import 'package:drives/screens/screens.dart';
-import 'package:drives/services/web_helper.dart';
+import 'package:drives/services/services.dart';
 import 'package:drives/models/other_models.dart';
 
 class MainDrawer extends StatefulWidget {
@@ -188,8 +188,16 @@ class _MainDrawerState extends State<MainDrawer> {
                 fontSize: 20,
               ),
             ),
-            onTap: () {
-              login(context);
+            onTap: () async {
+              //   login(context);
+              User user = await getUser();
+              user.email = '';
+              // 'test@test.com';
+              user.password = '';
+              Setup().user = user;
+              if (context.mounted) {
+                await loginDialog(context, user: user);
+              }
               setState(() {});
             },
             //  Navigator.push(
@@ -239,7 +247,7 @@ class _MainDrawerState extends State<MainDrawer> {
                 ),
               ),
               onTap: () {
-                login(context);
+                // tryLogin(user);
               },
               //  Navigator.push(
               //    context,

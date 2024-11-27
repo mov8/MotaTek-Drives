@@ -20,10 +20,8 @@ class _ShopFormState extends State<ShopForm> {
   int _groupIndex = 0;
   late Future<bool> _dataloaded;
   List<ShopItem> _items = [];
-  // List<EventInvitation> _invitees = [];
   int _action = 0;
   int _index = 0;
-  int _links = 0;
   int toInvite = 0;
 
   final List<String> _titles = [

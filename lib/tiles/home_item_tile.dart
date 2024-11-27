@@ -263,7 +263,8 @@ class _HomeItemTileState extends State<HomeItemTile> {
                                 children: [
                                   for (Photo photo in photos)
                                     if (photo.url.contains('drives')) ...[
-                                      showLocalImage(photo.url)
+                                      showLocalImage(photo.url,
+                                          index: photo.index)
                                     ] else ...[
                                       showWebImage(
                                         context: context,
@@ -277,21 +278,24 @@ class _HomeItemTileState extends State<HomeItemTile> {
                                     ]
                                 ],
                                 onReorder: (int oldIndex, int newIndex) {
-                                  setState(() {
-                                    if (oldIndex < newIndex) {
-                                      newIndex -= 1;
-                                    }
-                                    final Photo item =
-                                        photos.removeAt(oldIndex);
-                                    photos.insert(newIndex, item);
-                                    List<String> urls = [
-                                      for (Photo photo in photos)
-                                        photo.toMapString()
-                                    ];
-                                    widget.homeItem.imageUrl = urls.toString();
-                                    debugPrint(
-                                        'reordered: ${widget.homeItem.imageUrl}');
-                                  });
+                                  setState(
+                                    () {
+                                      if (oldIndex < newIndex) {
+                                        newIndex -= 1;
+                                      }
+                                      final Photo item =
+                                          photos.removeAt(oldIndex);
+                                      photos.insert(newIndex, item);
+                                      List<String> urls = [
+                                        for (Photo photo in photos)
+                                          photo.toMapString()
+                                      ];
+                                      widget.homeItem.imageUrl =
+                                          urls.toString();
+                                      debugPrint(
+                                          'reordered: ${widget.homeItem.imageUrl}');
+                                    },
+                                  );
                                 },
                               ),
                             ),
@@ -373,8 +377,14 @@ class _HomeItemTileState extends State<HomeItemTile> {
     ];
   }
 
+/*
   Widget showLocalImage(String url) {
     return SizedBox(width: 160, child: Image.file(File(url)));
+  }
+*/
+  Widget showLocalImage(String url, {index = -1}) {
+    return SizedBox(
+        key: Key('sli$index'), width: 160, child: Image.file(File(url)));
   }
 
   changeRating(value) {

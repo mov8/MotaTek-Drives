@@ -52,36 +52,37 @@ class _ImageListIndicatorState extends State<ImageListIndicator> {
 
   @override
   Widget build(BuildContext context) {
-    return Row(children: [
-      const Expanded(flex: 1, child: SizedBox(height: 10)),
-      Expanded(
-        flex: 1,
-        child: Row(
-          children: [
-            for (int i = 0; i < widget.photos.length; i++)
-              Expanded(
-                flex: 1,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(5, 0, 5, 5),
-                  child: Align(
-                    alignment: Alignment.center,
-                    child: Container(
-                      height: 10,
-                      width: 10,
-                      decoration: BoxDecoration(
-                        color: i == imageIndex
-                            ? widget.selectedColor
-                            : widget.unSelectedColor,
-                        borderRadius: BorderRadius.circular(5),
+    return SizedBox(
+      height: 15,
+      child: Align(
+        child: SizedBox(
+          width: widget.photos.length * 20,
+          child: Row(
+            children: [
+              for (int i = 0; i < widget.photos.length; i++)
+                Expanded(
+                  flex: 1,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(5, 0, 5, 5),
+                    child: Align(
+                      alignment: Alignment.center,
+                      child: Container(
+                        height: 10,
+                        width: 10,
+                        decoration: BoxDecoration(
+                          color: i == imageIndex
+                              ? widget.selectedColor
+                              : widget.unSelectedColor,
+                          borderRadius: BorderRadius.circular(5),
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
-      const Expanded(flex: 1, child: SizedBox(height: 10)),
-    ]);
+    );
   }
 }
