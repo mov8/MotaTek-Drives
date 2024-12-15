@@ -14,6 +14,7 @@ import 'package:geocoding/geocoding.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_animations/flutter_map_animations.dart';
+import 'package:vector_map_tiles/vector_map_tiles.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -42,12 +43,25 @@ rotated over the rotated raster layer - getting the best of both worlds.
 There appear to be moves to improve the vector performance - flutter-gpu 
 that implements Impeller - the vector-map-tiles/issues/120 gives an overview
 
+Stadia Maps: https://client.stadiamaps.com/dashboard/#/property/40497/
+Joined as a free user just to get vector maps going. It is a chargeable API about £20 / a month
+API Key ea533710-31bd-4144-b31b-5cc0578c74d7 
+email used jasme@motatek.com pw rubberduck
+Property MotaTrip - object for usage figures
+
+https://github.com/greensopinion/flutter-vector-map-tiles
 https://github.com/organicmaps/organicmaps/tree/master/search/pysearch
 https://github.com/greensopinion/flutter-vector-map-tiles?tab=readme-ov-file
 https://project-osrm.org/docs/v5.5.1/api/#general-options
 https://github.com/greensopinion/flutter-vector-map-tiles/issues/120
 https://medium.com/flutter/getting-started-with-flutter-gpu-f33d497b7c11
 
+creating vector tiles from osm
+https://osmand.net/docs/technical/map-creation/create-offline-maps-yourself/
+https://wiki.openstreetmap.org/wiki/Osmator
+
+https://openmaptiles.org/osm2vectortiles/ -AndMapCre creating vector tiles from osm
+https://openmaptiles.org/docs/
 
 TILE CACHING objectbox looks really useful it stores Dart objects and is really fast
 https://pub.dev/packages/objectbox - looks really neat with cross-device synchronisation
@@ -55,6 +69,7 @@ https://github.com/JaffaKetchup/flutter_map_tile_caching/blob/main/lib/src/backe
 */
 
 int testInt = 0;
+String stadiaMapsApiKey = 'ea533710-31bd-4144-b31b-5cc0578c74d7';
 
 enum AppState {
   loading,
@@ -202,6 +217,9 @@ class _CreateTripState extends State<CreateTripScreen>
   List<LatLng> routePoints = const [LatLng(51.478815, -0.611477)];
 
   String images = '';
+  String stadiaMapsApiKey = 'ea533710-31bd-4144-b31b-5cc0578c74d7';
+  late StyleReader _styleReader;
+  late Style _style;
 
   /// Routine to add point of interest
   /// Identified as a point
@@ -345,7 +363,6 @@ class _CreateTripState extends State<CreateTripScreen>
     try {
       _loadedOK = dataFromDatabase();
       // tripsFromWeb();
-
       _title = 'Create a new trip';
       _allignPositionStreamController = StreamController<double?>.broadcast();
       _animatedMapController = AnimatedMapController(vsync: this);
@@ -730,6 +747,7 @@ class _CreateTripState extends State<CreateTripScreen>
         listHeight == -1) {
       final args = ModalRoute.of(context)!.settings.arguments as TripArguments;
       _currentTrip = args.trip;
+      Setup().currentTrip = _currentTrip;
       _title = _currentTrip.getHeading();
       _tripState = TripState.startFollowing;
       initialNavBarValue = args.origin == 'web' ? 1 : 3;
@@ -857,9 +875,27 @@ class _CreateTripState extends State<CreateTripScreen>
         debugPrint('Error starting local database: ${e.toString()}');
       }
     }
+    try {
+      _styleReader = StyleReader(
+          uri:
+              'https://tiles.stadiamaps.com/styles/osm_bright.json?api_key={key}',
+          apiKey: stadiaMapsApiKey,
+          logger: null);
+      _style = await _styleReader.read();
+    } catch (e) {
+      debugPrint('Error initiating style: ${e.toString}');
+    }
+
     return true;
   }
 
+  /* Future<Style> _readStyle() => StyleReader(
+          uri:
+              'https://tiles.stadiamaps.com/styles/osm_bright.json?api_key={key}',
+          apiKey: stadiaMapsApiKey,
+          logger: const Logger.console())
+      .read();
+*/
   ///
 
   Widget _getPortraitBody() {
@@ -1172,11 +1208,17 @@ class _CreateTripState extends State<CreateTripScreen>
                         InteractiveFlag.pinchMove),
               ),
               children: [
-                TileLayer(
+                VectorTileLayer(
+                    theme: _style.theme,
+                    sprites: _style.sprites,
+                    tileProviders: _style.providers,
+                    layerMode: VectorTileLayerMode.vector,
+                    tileOffset: TileOffset.DEFAULT),
+                /*     TileLayer(
                   urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                   userAgentPackageName: 'com.example.app',
                   maxZoom: 18,
-                ),
+                ), */
                 CurrentLocationLayer(
                   focalPoint: const FocalPoint(
                     ratio: Point(0.0, 1.0),

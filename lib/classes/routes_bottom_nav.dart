@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:drives/constants.dart';
 
 class RoutesBottomNavController {
   _RoutesBottomNavState? _routesBottomNavState;
@@ -38,6 +39,8 @@ class RoutesBottomNav extends StatefulWidget {
   final Function(int) onMenuTap;
   final RoutesBottomNavController controller;
   final int initialValue;
+  final int? tripCount;
+  final int? shopCount;
   final int? messageCount;
 
   const RoutesBottomNav(
@@ -45,6 +48,8 @@ class RoutesBottomNav extends StatefulWidget {
       required this.controller,
       required this.onMenuTap,
       this.initialValue = 0,
+      this.tripCount,
+      this.shopCount,
       this.messageCount});
   @override
   State<RoutesBottomNav> createState() => _RoutesBottomNavState();
@@ -55,16 +60,18 @@ class _RoutesBottomNavState extends State<RoutesBottomNav>
   // late AnimationController _animationIconController;
   bool isarrowmenu = false;
   int _index = 0; // 0 = hamburger 1 = back
-  String _messageCount = '0';
-  List routes = ['home', 'trips', 'createTrip', 'myTrips', 'shop', 'messages'];
+  int _messageCount = 0;
+  int _shopCount = 0;
+  int _tripCount = 0;
 
   @override
   void initState() {
     super.initState();
     widget.controller._addState(this);
     _index = widget.initialValue;
-    _messageCount =
-        widget.messageCount == null ? '0' : widget.messageCount.toString();
+    _tripCount = widget.tripCount ?? 0;
+    _shopCount = widget.shopCount ?? 0;
+    _messageCount = widget.messageCount ?? 0;
   }
 
   @override
@@ -94,51 +101,48 @@ class _RoutesBottomNavState extends State<RoutesBottomNav>
       },
       indicatorColor: Colors.lightBlue,
       selectedIndex: _index,
-      destinations: <Widget>[
-        const NavigationDestination(
-          selectedIcon: Icon(
-            Icons.home,
-          ),
-          icon: Icon(Icons.home_outlined),
-          label: 'Home',
-        ),
-        const NavigationDestination(
-          selectedIcon: Icon(Icons.route),
-          icon: Icon(Icons.route_outlined),
-          label: 'Trips',
-        ),
-        const NavigationDestination(
-          selectedIcon: Icon(
-            Icons.map,
-          ),
-          icon: Icon(Icons.map_outlined),
-          label: 'New Trip',
-        ),
-        const NavigationDestination(
-          selectedIcon: Icon(Icons.person),
-          icon: Icon(Icons.person_outlined),
-          label: 'My Trips',
-        ),
-        const NavigationDestination(
-          selectedIcon: Icon(
-            Icons.shopping_bag,
-          ),
-          icon: Icon(Icons.shopping_bag_outlined),
-          label: 'Shop',
-        ),
-        NavigationDestination(
-          icon: Badge(
-            label: Text(
-                _messageCount), // _messages.isEmpty ? null : Text(_messages.length.toString()),
-            child: const Icon(Icons.chat_bubble_outline),
-          ),
-          selectedIcon: Badge(
-            label: Text(_messageCount),
-            child: const Icon(Icons.chat_bubble),
-          ),
-          label: 'Messages',
-        ),
-      ],
+      destinations: List<Widget>.generate(
+          5, (index) => _navigationDestination(index: index, badgeValue: 0)),
     );
+  }
+
+  NavigationDestination _navigationDestination(
+      {required int index, badgeValue = 0}) {
+    List<String> labels = ['Home', 'Trips', 'New Trip', 'Shop', 'Messages'];
+    List<IconData> iconsSelected = [
+      Icons.home,
+      Icons.route,
+      Icons.map,
+      Icons.shopping_bag,
+      Icons.chat_bubble
+    ];
+    List<IconData> icons = [
+      Icons.home_outlined,
+      Icons.route_outlined,
+      Icons.map_outlined,
+      Icons.shopping_bag_outlined,
+      Icons.chat_bubble_outlined
+    ];
+
+    if (badgeValue == 0) {
+      return NavigationDestination(
+        selectedIcon: Icon(iconsSelected[index]),
+        icon: Icon(icons[index]),
+        label: labels[index],
+      );
+    } else {
+      return NavigationDestination(
+        icon: Badge(
+          label: Text(badgeValue
+              .toString()), // _messages.isEmpty ? null : Text(_messages.length.toString()),
+          child: Icon(icons[index]),
+        ),
+        selectedIcon: Badge(
+          label: Text(badgeValue.toString()),
+          child: Icon(iconsSelected[index]),
+        ),
+        label: labels[index],
+      );
+    }
   }
 }

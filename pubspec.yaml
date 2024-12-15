@@ -53,6 +53,7 @@ dependencies:
   socket_io_client: ^2.0.3+1
   material_symbols_icons: ^4.2788.0
   url_launcher: ^6.3.0
+  vector_map_tiles: ^7.3.1
   
 
 
@@ -83,6 +84,11 @@ flutter:
     - assets/images/map.png
     - assets/images/splash.png
     - assets/images/CarGroup.png
+    - assets/images/MobileMarketing.png
+    - assets/images/sportscar.png
+    - assets/images/aiaston.png
+    - assets/images/meeting.png
+    
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see

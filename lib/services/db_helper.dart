@@ -2,9 +2,10 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:path_provider/path_provider.dart';
+// import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:drives/constants.dart';
 import 'package:drives/classes/route.dart' as mt;
 import 'package:drives/models/models.dart';
 import 'package:drives/services/web_helper.dart';
@@ -12,14 +13,16 @@ import 'dart:async';
 import 'dart:convert';
 
 class dbHelper {
-  Database? _db;
+  static Database? _db;
+  dbHelper._(); // Private constructor to prevent instantiation
 
-  dbHelper.privateConstructor() {
-    /// Called once
-    WidgetsFlutterBinding.ensureInitialized();
+  static final dbHelper instance = dbHelper._();
+
+  static Database? _database;
+
+  Future<Database> get database async {
+    return _database ??= await initDb();
   }
-
-  static final dbHelper instance = dbHelper.privateConstructor();
 
   factory dbHelper() {
     return instance;
@@ -28,98 +31,45 @@ class dbHelper {
   Future<Database> get db async {
     return _db ??= await initDb();
   }
-}
 
-Future<Database> initDb() async {
-  var dbPath = await getDatabasesPath();
-  int newVersion = 1;
-  String path = join(dbPath, 'drives.db');
-  var newdb = await openDatabase(
-    path,
-    version: newVersion,
-    onCreate: (Database db, int version) async {
-      try {
-        await db.execute(
-            '''CREATE TABLE users(id INTEGER PRIMARY KEY AUTOINCREMENT, forename TEXT, surname TEXT, email TEXT, 
-            phone TEXT, password TEXT, imageUrl Text)'''); //, locationId INTEGER, vehicleId INTEGER)');
-        await db.execute(
-            '''CREATE TABLE groups(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, description TEXT, 
-            created DATETIME)'''); //, locationId INTEGER, vehicleId INTEGER)');
-        await db.execute(
-            '''CREATE TABLE group_members(id INTEGER PRIMARY KEY AUTOINCREMENT, group_ids STRING, forename TEXT, surname TEXT, 
-            email TEXT, phone TEXT, status Integer, joined DATETIME, note TEXT, uri TEXT)'''); //, locationId INTEGER, vehicleId INTEGER)');
-        await db.execute(
-            '''CREATE TABLE notifications(id INTEGER PRIMARY KEY AUTOINCREMENT, sentBy TEXT, message TEXT, 
-            received DATETIME)'''); //, locationId INTEGER, vehicleId INTEGER)');
-        await db.execute(
-            '''CREATE TABLE followers(id INTEGER PRIMARY KEY AUTOINCREMENT, drive_id INTEGER, forename TEXT, 
-            surname TEXT, phone_number TEXT, car TEXT, registration TEXT, icon_colour INTEGER, position TEXT, 
-            reported DATETIME)''');
+  Future<Database> initDb() async {
+    String? path;
+    try {
+      path = join(await getDatabasesPath(), 'drives.db');
+    } catch (e) {
+      debugPrint('Error getDatabasesPath() : ${e.toString()}');
+    }
+    var newdb = await openDatabase(
+      path!,
+      version: dbVersion, // in constants.dart,
+      onCreate: _createDb,
+    );
+    return newdb;
+  }
 
-/*
-      homeItems will only come from the API 
-      await db.execute(
-        'CREATE TABLE homeItems(id INTEGER PRIMARY KEY AUTOINCREMENT,)'
-      );
-*/
-
-        await db.execute(
-            '''CREATE TABLE versions(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, downloaded DATETIME, major INTEGER, 
-            minor INTEGER, patch INTEGER, status INTEGER )''');
-
-        await db.execute(
-            '''CREATE TABLE setup(id INTEGER PRIMARY KEY AUTOINCREMENT, route_colour INTEGER, good_route_colour INTEGER, 
-          waypoint_colour INTEGER, waypoint_colour_2 INTEGER, point_of_interest_colour INTEGER, rotate_map INTEGER,
-          point_of_interest_colour_2 INTEGER, selected_colour INTEGER, highlighted_colour INTEGER, 
-          record_detail INTEGER, allow_notifications INTEGER, jwt TEXT, dark INTEGER, avoid_motorways INTEGER, 
-          avoid_a_roads INTEGER, avoid_b_roads INTEGER, avoid_toll_roads INTEGER, avoid_ferries INTEGER)''');
-
-        await db.execute(
-            '''CREATE TABLE drives(id INTEGER PRIMARY KEY AUTOINCREMENT, uri TEXT, title TEXT, sub_title TEXT, body TEXT, 
-          distance REAL, points_of_interest INTEGER, added DATETIME)''');
-
-        await db.execute(
-            '''CREATE TABLE points_of_interest(id INTEGER PRIMARY KEY AUTOINCREMENT, drive_id INTEGER, type INTEGER, 
-          name TEXT, description TEXT, images TEXT, latitude REAL, longitude REAL)''');
-
-        /// SQLite does have JSON capabilities
-        /// INSERT INTO users (name, data) VALUES ('John', '{"age:": 30, "country": "USA"});
-        /// SELECT name, JSON_EXTRACT(data, '$.age') AS age FROM users; // will return all names and ages
-        /// See JSON_QUERY, JSON_MODIFY
-        /// SELECT * FROM users WHERE data LIKE '%"country":"USA"%';
-
-        await db.execute(
-            '''CREATE TABLE maneuvers(id INTEGER PRIMARY KEY AUTOINCREMENT, drive_id INTEGER, road_from TEXT,
-          road_to TEXT, bearing_before INTEGER, bearing_after INTEGER, exit INTEGER, location TEXT, 
-          modifier TEXT, type TEXT, distance REAL)''');
-
-        await db.execute(
-            '''CREATE TABLE polylines(id INTEGER PRIMARY KEY AUTOINCREMENT, drive_id INTEGER, 
-            type INTEGER, points TEXT, colour Integer, stroke INTEGER)''');
-
-        await db.execute(
-            '''CREATE TABLE messages(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, target_id INTEGER, message TEXT, 
-        read INTEGER, received DATETIME)''');
-
-        await db.execute(
-          '''CREATE TABLE log(id INTEGER PRIMARY KEY AUTOINCREMENT, monitor INTEGER, dateTime DATETIME, portNumber INTEGER, 
-              value REAL, alarm INTEGER)''',
-        );
-      } catch (e) {
-        debugPrint('Error creating tables: ${e.toString()}');
+  /// tableDefs defined in constants.dart
+  void _createDb(Database db, int version) async {
+    try {
+      for (String tableDef in tableDefs) {
+        await db.execute(tableDef);
       }
-    },
-  );
-  return newdb;
+      debugPrint('SQLite tables all created OK');
+    } catch (e) {
+      debugPrint('Error creating tables: ${e.toString()}');
+    }
+  }
 }
 
 Future<int> recordCount(table) async {
-  int? count = 0;
-  final db = await dbHelper().db;
-  count =
-      Sqflite.firstIntValue(await db.rawQuery("SELECT COUNT (*) FROM $table"));
-
-  return count!;
+  int? count;
+  try {
+    Database db = await dbHelper().db;
+    count =
+        Sqflite.firstIntValue(await db.rawQuery("SELECT COUNT(*) FROM $table"));
+  } catch (e) {
+    debugPrint('Error counting records from $table : ${e.toString()}');
+  }
+  return count ?? 0;
 }
 
 alterTable() async {
@@ -416,6 +366,315 @@ Future<bool> saveGroupMembers(List<GroupMember> groupMembers) async {
   return true;
 }
 
+Future<List<HomeItem>> loadHomeItems() async {
+  final db = await dbHelper().db;
+  List<HomeItem> homeItems = [];
+  try {
+    List<Map<String, dynamic>> maps = await db.query(
+      'home_items',
+    );
+    for (Map<String, dynamic> map in maps) {
+      homeItems.add(HomeItem.fromMap(map: map));
+    }
+  } catch (e) {
+    debugPrint(e.toString());
+  }
+
+  return homeItems;
+}
+
+Future<List<HomeItem>> saveHomeItemsLocal(List<HomeItem> homeItems) async {
+  final db = await dbHelper().db;
+
+  /// Empty the cache home_items and remove all the images
+  String appDocDir = Setup().appDocumentDirectory;
+
+  try {
+    await db.execute("delete from home_items");
+
+    final localImageDir = Directory('$appDocDir/home_item_images');
+    bool dirExists = await localImageDir.exists();
+
+    if (dirExists) {
+      final List<FileSystemEntity> entities =
+          await localImageDir.list().toList();
+      final Iterable<File> images = entities.whereType<File>();
+      for (File image in images) {
+        image.delete();
+      }
+    } else {
+      localImageDir.create();
+    }
+  } catch (e) {
+    debugPrint('Error clearing HomeItems cache: ${e.toString()}');
+  }
+
+  /// Reload the cache and download all the image files
+
+  for (HomeItem homeItem in homeItems) {
+    if (homeItem.uri.contains('http')) {
+      // Only save web images
+      Map<String, dynamic> hiMap = homeItem.toMap();
+      if (homeItem.id == -1) {
+        // New record
+        try {
+          hiMap.remove('id');
+          if (hiMap['image_urls'].isNotEmpty) {
+            var files = jsonDecode(hiMap['image_urls']);
+            for (Map file in files) {
+              //  String imagePath = '$appDocDir/home_item_images/${file['url']}';
+              await downloadImage(
+                  apiUrl: '${homeItem.uri}/${file['url']}',
+                  targetFile: '$appDocDir/home_item_images/${file['url']}');
+            }
+            hiMap['uri'] = '$appDocDir/home_item_images/';
+          }
+          homeItem.id = await db.insert(
+            'home_items',
+            hiMap,
+            conflictAlgorithm: ConflictAlgorithm.replace,
+          );
+          homeItem.uri = '$appDocDir/home_item_images/';
+        } catch (e) {
+          String err = e.toString();
+          debugPrint('Error inserting HomeItems: $err');
+          return homeItems;
+        }
+      } else {
+        try {
+          await db.update('home_items', hiMap,
+              where: 'id = ?',
+              whereArgs: [homeItem.id],
+              conflictAlgorithm: ConflictAlgorithm.replace);
+        } catch (e) {
+          String err = e.toString();
+          debugPrint('Error updating HomeItems: $err');
+          return homeItems;
+        }
+      }
+    }
+  }
+  return homeItems;
+}
+
+Future<List<ShopItem>> loadShopItems() async {
+  final db = await dbHelper().db;
+  List<ShopItem> shopItems = [];
+  try {
+    List<Map<String, dynamic>> maps = await db.query(
+      'shop_items',
+    );
+    for (Map<String, dynamic> map in maps) {
+      shopItems.add(ShopItem.fromMap(map: map));
+    }
+  } catch (e) {
+    debugPrint(e.toString());
+  }
+
+  return shopItems;
+}
+
+Future<List<TripItem>> loadTripItems() async {
+  final db = await dbHelper().db;
+  List<TripItem> tripItems = [];
+  try {
+    List<Map<String, dynamic>> maps = await db.query(
+      'trip_items',
+    );
+    for (Map<String, dynamic> map in maps) {
+      tripItems.add(TripItem.fromMap(
+        map: map,
+      ));
+      // endpoint: '${Setup().appDocumentDirectory}/trip_item_images/'));
+    }
+  } catch (e) {
+    debugPrint(e.toString());
+  }
+
+  return tripItems;
+}
+
+/// If the API is online saveShopItemsLocal will refresh the local
+/// cache of shopItems. It will clear the SQLite db and download
+/// all the relevant data again.
+/// ToDo: Add some filtering to only update new or changed data
+
+Future<List<ShopItem>> saveShopItemsLocal(List<ShopItem> shopItems) async {
+  final db = await dbHelper().db;
+
+  /// Empty the cache home_items and remove all the images
+  String appDocDir = Setup().appDocumentDirectory;
+
+  try {
+    await db.execute("delete from shop_items");
+
+    final localImageDir = Directory('$appDocDir/shop_item_images');
+    bool dirExists = await localImageDir.exists();
+
+    if (dirExists) {
+      /// Remove all previously downloaded image files to save space
+      final List<FileSystemEntity> entities =
+          await localImageDir.list().toList();
+      final Iterable<File> images = entities.whereType<File>();
+      for (File image in images) {
+        image.delete();
+      }
+    } else {
+      localImageDir.create();
+    }
+  } catch (e) {
+    debugPrint('Error clearing ShopItems cache: ${e.toString()}');
+  }
+
+  /// Reload the cache and download all the image files
+
+  for (ShopItem shopItem in shopItems) {
+    if (shopItem.uri.contains('http')) {
+      // Only save web images
+      Map<String, dynamic> hiMap = shopItem.toMap();
+      if (shopItem.id == -1) {
+        // New record
+        try {
+          hiMap.remove('id');
+          if (hiMap['image_urls'].isNotEmpty) {
+            var files = jsonDecode(hiMap['image_urls']);
+            for (Map file in files) {
+              //  String imagePath = '$appDocDir/home_item_images/${file['url']}';
+              await downloadImage(
+                  apiUrl: '${shopItem.uri}/${file['url']}',
+                  targetFile: '$appDocDir/shop_item_images/${file['url']}');
+            }
+            hiMap['uri'] = '$appDocDir/shop_item_images/';
+          }
+          shopItem.id = await db.insert(
+            'shop_items',
+            hiMap,
+            conflictAlgorithm: ConflictAlgorithm.replace,
+          );
+          shopItem.uri = '$appDocDir/shop_item_images/';
+        } catch (e) {
+          String err = e.toString();
+          debugPrint('Error inserting ShopItems: $err');
+          return shopItems;
+        }
+      } else {
+        try {
+          await db.update('shop_items', hiMap,
+              where: 'id = ?',
+              whereArgs: [shopItem.id],
+              conflictAlgorithm: ConflictAlgorithm.replace);
+        } catch (e) {
+          String err = e.toString();
+          debugPrint('Error updating ShopItems: $err');
+          return shopItems;
+        }
+      }
+    }
+  }
+  return shopItems;
+}
+
+/// If the API is online saveTripItemsLocal will refresh the local
+/// cache of tripItems. It will clear the SQLite db and download
+/// all the relevant data again.
+/// ToDo: Add some filtering to only update new or changed data
+
+Future<List<TripItem>> saveTripItemsLocal(List<TripItem> tripItems) async {
+  final db = await dbHelper().db;
+
+  /// Empty the cache home_items and remove all the images
+  String appDocDir = Setup().appDocumentDirectory;
+
+  try {
+    await db.execute("delete from trip_items");
+
+    ///data/user/0/com.example.drives/app_flutter/trip_item_images
+    final localImageDir = Directory('$appDocDir/trip_item_images');
+    bool dirExists = await localImageDir.exists();
+
+    if (dirExists) {
+      /// Remove all previously downloaded image files to save space
+      final List<FileSystemEntity> entities =
+          await localImageDir.list().toList();
+      final Iterable<File> images = entities.whereType<File>();
+      for (File image in images) {
+        image.delete();
+      }
+    } else {
+      localImageDir.create();
+    }
+  } catch (e) {
+    debugPrint('Error clearing ShopItems cache: ${e.toString()}');
+  }
+
+  /// Reload the cache and download all the image files
+
+  for (TripItem tripItem in tripItems) {
+    if (tripItem.uri.contains('http')) {
+      // Only save web images
+
+      Map<String, dynamic> tiMap = tripItem.toMap();
+      if (tripItem.id == -1) {
+        // New record
+        try {
+          tiMap.remove('id');
+          String images = '';
+          String apiUrl;
+          String localName;
+
+          if (tiMap['image_urls'].isNotEmpty) {
+            var files = jsonDecode(tiMap['image_urls']);
+            for (Map file in files) {
+              //  String imagePath = '$appDocDir/home_item_images/${file['url']}';
+              // @blueprint.route('/images/<drive_id>/<point_of_interest_id>/<filename>', methods=['GET'])
+              if (file['url'].contains('map.png')) {
+                localName = '${tripItem.driveUri}.png';
+              } else {
+                localName = file['url'].substring(file['url'].length - 40);
+              }
+
+              await downloadImage(
+                  apiUrl:
+                      '${tripItem.uri}images/${tripItem.driveUri}/${file['url']}',
+                  targetFile: '$appDocDir/trip_item_images/$localName');
+              if (images.isEmpty) {
+                images = '{"url": "$localName", "caption": ""}';
+              } else {
+                images = '$images, {"url": "$localName", "caption": ""}';
+              }
+            }
+            tiMap['uri'] = '$appDocDir/trip_item_images/';
+            tiMap['image_urls'] = '[$images]';
+          }
+          tripItem.id = await db.insert(
+            'trip_items',
+            tiMap,
+            conflictAlgorithm: ConflictAlgorithm.replace,
+          );
+          tripItem.uri = '$appDocDir/trip_item_images/';
+          tripItem.imageUrls = '[$images]';
+        } catch (e) {
+          String err = e.toString();
+          debugPrint('Error inserting TripItems: $err');
+          return tripItems;
+        }
+      } else {
+        try {
+          await db.update('trip_items', tiMap,
+              where: 'id = ?',
+              whereArgs: [tripItem.id],
+              conflictAlgorithm: ConflictAlgorithm.replace);
+        } catch (e) {
+          String err = e.toString();
+          debugPrint('Error updating TripItems: $err');
+          return tripItems;
+        }
+      }
+    }
+  }
+  return tripItems;
+}
+
 Future<int> saveMessage(MessageLocal message) async {
   final db = await dbHelper().db;
   Map<String, dynamic> meMap = message.toMap();
@@ -545,15 +804,14 @@ Future<int> saveMyTripItem(MyTripItem myTripItem) async {
     }
     // Now process Trip images that have been downloaded and are to be save locally
     if (myTripItem.getDriveUri().isNotEmpty) {
-      final directory = (await getApplicationDocumentsDirectory()).path;
+      final directory = Setup().appDocumentDirectory;
       for (PointOfInterest pointOfInterest in myTripItem.pointsOfInterest()) {
         if (pointOfInterest.getImages().isNotEmpty) {
           var pics = jsonDecode(pointOfInterest.getImages());
           String jsonImages = '';
           for (String pic in pics) {
-            String url =
-                Uri.parse('${urlBase}v1/drive/images${pointOfInterest.url}$pic')
-                    .toString();
+            String url = Uri.parse('$urlDrive/images${pointOfInterest.url}$pic')
+                .toString();
             bool dirExists = await Directory('$directory/drive$id').exists();
             if (!dirExists) {
               await Directory('$directory/drive$id').create();

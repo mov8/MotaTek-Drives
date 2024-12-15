@@ -1,10 +1,11 @@
+import 'package:drives/constants.dart';
 import 'package:flutter/material.dart';
 import 'dart:ui' as ui;
 import 'package:drives/classes/classes.dart';
 import 'package:drives/models/models.dart';
 import 'package:drives/tiles/trip_tile.dart';
 import 'package:drives/screens/main_drawer.dart';
-import 'package:drives/services/web_helper.dart';
+import 'package:drives/services/services.dart';
 
 class TripsScreen extends StatefulWidget {
   const TripsScreen({
@@ -30,7 +31,7 @@ class _tripsScreenState extends State<TripsScreen> {
     super.initState();
     _leadingWidgetController = LeadingWidgetController();
     _bottomNavController = RoutesBottomNavController();
-    _dataLoaded = tripsFromWeb();
+    _dataLoaded = _getTripData();
     _preferencesScrollController.addListener(
       () {
         if (_preferencesScrollController.position.atEdge) {
@@ -57,8 +58,16 @@ class _tripsScreenState extends State<TripsScreen> {
     );
   }
 
-  Future<bool> tripsFromWeb() async {
-    tripItems = await getTrips();
+  Future<bool> _getTripData() async {
+    if (!Setup().hasRefreshedTrips && Setup().hasLoggedIn) {
+      tripItems = await getTrips();
+      if (tripItems.isNotEmpty) {
+        Setup().hasRefreshedTrips = true;
+        tripItems = await saveTripItemsLocal(tripItems);
+      }
+    } else {
+      tripItems = await loadTripItems();
+    }
     return true;
   }
 
@@ -67,9 +76,9 @@ class _tripsScreenState extends State<TripsScreen> {
   }
 
   Future<void> onGetTrip(int index) async {
-    MyTripItem webTrip = await getMyTrip(tripItems[index].uri);
+    MyTripItem webTrip = await getMyTrip(tripItems[index].driveUri);
     webTrip.setId(-1);
-    webTrip.setDriveUri(tripItems[index].uri);
+    webTrip.setDriveUri(tripItems[index].driveUri);
     if (context.mounted) {
       Navigator.pushNamed(context, 'createTrip',
           arguments: TripArguments(webTrip, 'web'));
@@ -87,19 +96,42 @@ class _tripsScreenState extends State<TripsScreen> {
   }
 
   Widget _getPortraitBody() {
+    if (tripItems.isEmpty) {
+      tripItems.add(TripItem(
+          heading: 'Explore the countryside around you',
+          subHeading: "Register now to enjoy other people's trips",
+          body:
+              '''Finding nice places for a drive can be a bit of a challenge particularly if you're not familiar with an area. 
+You can download trips that other people have enjoyed, stopping at the pubs, restaurants and other points of interest they have rated. 
+You can modify the trips, and publish them yourself for others to enjoy too. 
+          ''',
+          author: 'Alex S',
+          published: '05 Aug 2025',
+          imageUrls:
+              '[{"url": "map.png", "caption": ""}, {"url": "meeting.png", "caption": ""}]',
+          score: 5.0,
+          distance: 15.5,
+          pointsOfInterest: 3,
+          closest: 10,
+          scored: 15,
+          downloads: 25,
+          uri: 'assets/images/'));
+    }
     return ListView(
       children: [
-        const Card(
+        Card(
           child: Column(
             children: [
               SizedBox(
                 child: Padding(
-                  padding: EdgeInsets.fromLTRB(5, 0, 5, 15),
+                  padding: const EdgeInsets.fromLTRB(5, 0, 5, 15),
                   child: Align(
                     alignment: Alignment.topCenter,
                     child: Text(
-                      'Trips for you to enjoy...',
-                      style: TextStyle(
+                      tripItems.isNotEmpty && tripItems[0].uri.contains('http')
+                          ? 'Trips for you to enjoy...'
+                          : 'Sign up to share trips...',
+                      style: const TextStyle(
                         color: Colors.blue,
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
@@ -138,9 +170,11 @@ class _tripsScreenState extends State<TripsScreen> {
           controller: _leadingWidgetController,
           onMenuTap: (index) => _leadingWidget(_scaffoldKey.currentState),
         ), // IconButton(
-        title: const Text(
-          'Trips available to download',
-          style: TextStyle(
+        title: Text(
+          tripItems.isNotEmpty && tripItems[0].uri.contains('http')
+              ? 'Trips available to download'
+              : 'To share trips register for free',
+          style: const TextStyle(
               fontSize: 20, color: Colors.white, fontWeight: FontWeight.w700),
         ),
         iconTheme: const IconThemeData(color: Colors.white),

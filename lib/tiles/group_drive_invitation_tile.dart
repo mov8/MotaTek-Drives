@@ -1,3 +1,4 @@
+import 'package:drives/classes/classes.dart';
 import 'package:drives/services/services.dart';
 import 'package:flutter/material.dart';
 import 'package:drives/models/models.dart';
@@ -35,6 +36,16 @@ class _groupDriveInvitationTileState extends State<GroupDriveInvitationTile> {
     Icons.thumb_up_off_alt_outlined
   ];
   List<String> invState = ['undecided', 'declined', 'accepted'];
+  List<Photo> photos = [];
+
+  @override
+  void initState() {
+    if (_tripSummary != null) {
+      photos = photosFromJson(_tripSummary!.imageUrls);
+    }
+    super.initState();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -124,13 +135,19 @@ class _groupDriveInvitationTileState extends State<GroupDriveInvitationTile> {
                     flex: 8,
                     child: SizedBox(
                       height: 200,
-                      child: ListView(
-                        scrollDirection: Axis.horizontal,
-                        children: [
-                          for (String url in _tripSummary!.imageUrls)
-                            showWebImage(url)
-                        ],
+                      child: PhotoCarousel(
+                        photos: photos,
+                        endPoint: _tripSummary!.uri,
+                        height: 150,
                       ),
+
+                      //ListView(
+                      //scrollDirection: Axis.horizontal,
+                      // children: [
+                      //  for (String url in _tripSummary!.imageUrls)
+                      //    showWebImage(url)
+                      // ],
+                      // ),
                     ),
                   ),
                 ]),
@@ -336,6 +353,7 @@ class _groupDriveInvitationTileState extends State<GroupDriveInvitationTile> {
       if (_tripSummary == null) {
         getTrip(tripId: widget.eventInvitation.driveId).then((trip) {
           _tripSummary = trip;
+          photos = photosFromJson(trip.imageUrls);
           setState(() {});
         });
       }

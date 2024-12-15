@@ -1,0 +1,106 @@
+const urlBase = 'http://10.101.1.150:5001/'; // Home network
+
+const List<String> routes = [
+  'home',
+  'trips',
+  'createTrip',
+  'myTrips',
+  'shop',
+  'messages'
+];
+
+const int dbVersion = 1;
+
+const List<String> tableDefs = [
+  /// DRIVES
+  '''CREATE TABLE drives(id INTEGER PRIMARY KEY AUTOINCREMENT, uri TEXT, title TEXT, sub_title TEXT, body TEXT, 
+  distance REAL, points_of_interest INTEGER, added DATETIME)''',
+
+  /// FOLLOWERS
+  '''CREATE TABLE followers(id INTEGER PRIMARY KEY AUTOINCREMENT, drive_id INTEGER, forename TEXT, 
+  surname TEXT, phone_number TEXT, car TEXT, registration TEXT, icon_colour INTEGER, position TEXT, 
+  reported DATETIME)''',
+
+  /// GROUPS
+  '''CREATE TABLE groups(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, description TEXT, 
+  created DATETIME)''',
+
+  /// GROUP_MEMBERS
+  '''CREATE TABLE group_members(id INTEGER PRIMARY KEY AUTOINCREMENT, group_ids STRING, forename TEXT, surname TEXT, 
+  email TEXT, phone TEXT, status Integer, joined DATETIME, note TEXT, uri TEXT)''',
+
+  /// HOME_ITEMS
+  '''CREATE TABLE home_items(id INTEGER PRIMARY KEY AUTOINCREMENT, 
+  uri TEXT, heading TEXT, sub_heading TEXT, body TEXT, image_urls TEXT, 
+  added DATETIME, score INTEGER, coverage TEXT)''',
+
+  /// LOG
+  '''CREATE TABLE log(id INTEGER PRIMARY KEY AUTOINCREMENT, monitor INTEGER, dateTime DATETIME, portNumber INTEGER, 
+  value REAL, alarm INTEGER)''',
+
+  /// MANEUVERS
+  '''CREATE TABLE maneuvers(id INTEGER PRIMARY KEY AUTOINCREMENT, drive_id INTEGER, road_from TEXT, 
+  road_to TEXT, bearing_before INTEGER, bearing_after INTEGER, exit INTEGER, location TEXT, 
+  modifier TEXT, type TEXT, distance REAL)''',
+
+  /// MESSAGES
+  '''CREATE TABLE messages(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, target_id INTEGER, message TEXT, 
+  read INTEGER, received DATETIME)''',
+
+  /// NOTIFICATIONS
+  '''CREATE TABLE notifications(id INTEGER PRIMARY KEY AUTOINCREMENT, sentBy TEXT, message TEXT, 
+  received DATETIME)''',
+
+  /// POINTS_OF_INTEREST
+  '''CREATE TABLE points_of_interest(id INTEGER PRIMARY KEY AUTOINCREMENT, drive_id INTEGER, type INTEGER, 
+  name TEXT, description TEXT, images TEXT, latitude REAL, longitude REAL)''',
+
+  /// POLYLINES
+  '''CREATE TABLE polylines(id INTEGER PRIMARY KEY AUTOINCREMENT, drive_id INTEGER, 
+  type INTEGER, points TEXT, colour Integer, stroke INTEGER)''',
+
+  /// SETUP
+  '''CREATE TABLE setup(id INTEGER PRIMARY KEY AUTOINCREMENT, route_colour INTEGER, good_route_colour INTEGER, 
+  waypoint_colour INTEGER, waypoint_colour_2 INTEGER, point_of_interest_colour INTEGER, rotate_map INTEGER, 
+  point_of_interest_colour_2 INTEGER, selected_colour INTEGER, highlighted_colour INTEGER, 
+  record_detail INTEGER, allow_notifications INTEGER, jwt TEXT, dark INTEGER, avoid_motorways INTEGER, 
+  avoid_a_roads INTEGER, avoid_b_roads INTEGER, avoid_toll_roads INTEGER, avoid_ferries INTEGER, 
+  bottom_nav_index INTEGER, route TEXT)''',
+
+  /// SHOP_ITEMS
+  '''CREATE TABLE shop_items(id INTEGER PRIMARY KEY AUTOINCREMENT, 
+  uri TEXT, heading TEXT, sub_heading TEXT, body TEXT, image_urls TEXT, 
+  added DATETIME, score INTEGER, coverage TEXT, url_1 TEXT, button_text_1, TEXT, url_2 TEXT, button_text_2 TEXT)''',
+
+  /// TRIP_ITEMS
+  '''CREATE TABLE trip_items(id INTEGER PRIMARY KEY AUTOINCREMENT, heading TEXT, uri TEXT, sub_heading TEXT, 
+  body TEXT, author TEXT, author_url TEXT, published DATETIME, image_urls TEXT, score REAL, 
+  scored INTEGER, distance REAL, points_of_interest INTEGER, closest INTEGER, downloads INTEGER)''',
+
+  /// USERS
+  '''CREATE TABLE users(id INTEGER PRIMARY KEY AUTOINCREMENT, forename TEXT, surname TEXT, email TEXT, 
+  phone TEXT, password TEXT, imageUrl Text)''',
+
+  /// VERSIONS
+  '''CREATE TABLE versions(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, downloaded DATETIME, major INTEGER, 
+  minor INTEGER, patch INTEGER, status INTEGER )''',
+];
+
+/// User Api endpoints:
+
+const String urlDrive = '${urlBase}v1/drive';
+const String urlDriveRating = '${urlBase}v1/drive_rating';
+const String urlGoodRoad = '${urlBase}v1/good_road';
+const String urlGroup = '${urlBase}v1/group';
+const String urlGroupDrive = '${urlBase}v1/group_drive';
+const String urlGroupDriveInvitation = '${urlBase}v1/group_drive_invitation';
+const String urlGroupMember = '${urlBase}v1/group_member';
+const String urlHomePageItem = '${urlBase}v1/home_page_item';
+const String urlIntroduced = '${urlBase}v1/introduced/get';
+const String urlManeuver = '${urlBase}v1/maneuver';
+const String urlMessage = '${urlBase}v1/message';
+const String urlPointOfInterest = '${urlBase}v1/point_of_interest';
+const String urlPointOfInterestRating = '${urlBase}v1/point_of_interest_rating';
+const String urlPolyline = '${urlBase}v1/polyline';
+const String urlShopItem = '${urlBase}v1/shop_item';
+const String urlUser = '${urlBase}v1/user';

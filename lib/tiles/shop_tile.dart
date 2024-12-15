@@ -1,3 +1,4 @@
+import 'package:drives/constants.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:drives/models/other_models.dart';
@@ -25,7 +26,6 @@ class ShopTile extends StatefulWidget {
 class _ShopTileState extends State<ShopTile> {
   int imageIndex = 0;
   List<Photo> photos = [];
-  String endPoint = '';
   final PageController _pageController = PageController();
   final ImageListIndicatorController _imageListIndicatorController =
       ImageListIndicatorController();
@@ -33,22 +33,21 @@ class _ShopTileState extends State<ShopTile> {
   @override
   void initState() {
     super.initState();
-    photos = photosFromJson(widget.shopItem.imageUrl);
-    endPoint = '${urlBase}v1/shop_item/images/${widget.shopItem.uri}/';
+    photos = photosFromJson(widget.shopItem.imageUrls);
     _pageController.addListener(() => pageControlListener());
   }
 
   @override
   void dispose() {
     _pageController.dispose();
-    // _imageListIndicatorController.dispose();
     super.dispose();
   }
 
   pageControlListener() {
-    setState(() => _imageListIndicatorController
-        .changeImageIndex(_pageController.page!.round()));
-    // setState(() => imageIndex = _pageController.page!.round());
+    setState(
+      () => _imageListIndicatorController
+          .changeImageIndex(_pageController.page!.round()),
+    );
   }
 
   @override
@@ -60,53 +59,27 @@ class _ShopTileState extends State<ShopTile> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(5, 10, 5, 10),
-                child: SizedBox(
-                  width: MediaQuery.of(context).size.width,
-                  height: 400,
-
-                  //    if (widget.shopItem.imageUrl.isNotEmpty)
-                  child: Row(
-                    children: <Widget>[
-                      Expanded(
-                        flex: 8,
-                        child: SizedBox(
-                          height: MediaQuery.of(context).size.width, // 375,
-                          child: PageView.builder(
-                            itemCount: photos.length,
-                            scrollDirection: Axis.horizontal,
-                            controller: _pageController,
-                            itemBuilder: (BuildContext context, int index) {
-                              imageIndex = index;
-                              return showWebImage(
-                                  '$endPoint${photos[index].url}',
-                                  width: MediaQuery.of(context).size.width -
-                                      10, //400,
-                                  onDelete: (response) =>
-                                      debugPrint('Response: $response'));
-                              //   ],
-                            },
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+              PhotoCarousel(
+                photos: photos,
+                endPoint: widget.shopItem.uri,
+                // endPoint: '$urlShopItem/images/${widget.shopItem.uri}/',
+                height: 400,
+                width: MediaQuery.of(context).size.width - 20,
               ),
-              ImageListIndicator(
-                  controller: _imageListIndicatorController, photos: photos),
               SizedBox(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(5, 0, 5, 10),
                   child: Align(
                     alignment: Alignment.topLeft,
-                    child: Text(widget.shopItem.heading,
-                        style: const TextStyle(
-                            color: Colors.black,
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold),
-                        textAlign: TextAlign.left),
+                    child: Text(
+                      widget.shopItem.heading,
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.left,
+                    ),
                   ),
                 ),
               ),
@@ -127,22 +100,30 @@ class _ShopTileState extends State<ShopTile> {
                 ),
               ),
               SizedBox(
-                  child: Padding(
-                padding: const EdgeInsets.fromLTRB(5, 0, 5, 10),
-                child: Align(
-                  alignment: Alignment.topLeft,
-                  child: Text(widget.shopItem.body,
-                      style: const TextStyle(color: Colors.black, fontSize: 20),
-                      textAlign: TextAlign.left),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(5, 0, 5, 10),
+                  child: Align(
+                    alignment: Alignment.topLeft,
+                    child: Text(widget.shopItem.body,
+                        style:
+                            const TextStyle(color: Colors.black, fontSize: 20),
+                        textAlign: TextAlign.left),
+                  ),
                 ),
-              )),
+              ),
               if (widget.shopItem.url1.isNotEmpty) ...[
                 ActionChip(
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  onPressed: () => launchUrl(Uri.parse(widget.shopItem.url1),
-                      mode: LaunchMode.inAppBrowserView),
+                  onPressed: () async {
+                    Setup().bottomNavIndex = 4;
+                    await Setup().setupToDb();
+                    launchUrl(
+                      Uri.parse(widget.shopItem.url1),
+                      mode: LaunchMode.inAppBrowserView,
+                    );
+                  },
                   //  forceSafariVC: false, forceWebView: false),
                   backgroundColor: Colors.blue,
                   avatar: const Icon(

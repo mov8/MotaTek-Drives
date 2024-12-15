@@ -229,8 +229,12 @@ class Setup {
   int pointOfInterestColour2 = 14;
   int selectedColour = 7;
   int highlightedColour = 13;
+  int bottomNavIndex = 0;
   int recordDetail = 5;
   bool allowNotifications = true;
+  bool hasLoggedIn = false;
+  bool hasRefreshedShop = false;
+  bool hasRefreshedTrips = false;
   bool dark = false;
   bool rotateMap = false;
   bool avoidMotorways = false;
@@ -238,11 +242,13 @@ class Setup {
   bool avoidBroads = false;
   bool avoidTollRoads = false;
   bool avoidFerries = false;
+  MyTripItem? currentTrip;
 
   String jwt = '';
   User user = User(
       id: 0, forename: '', surname: '', password: '', email: '', phone: '');
   bool? _loaded;
+  String appDocumentDirectory = '';
   Setup._privateConstructor();
   static final _instance = Setup._privateConstructor();
   factory Setup() {
@@ -250,12 +256,13 @@ class Setup {
   }
 
   Future<bool> get loaded async {
+    appDocumentDirectory = (await getApplicationDocumentsDirectory()).path;
     return _loaded ??= await setupFromDb();
   }
 
   Future<bool> setupFromDb() async {
-    var setupRecords = await recordCount('setup');
-    debugPrint('Setup contains $setupRecords records');
+    //  var setupRecords = await recordCount('setup');
+    //  debugPrint('Setup contains $setupRecords records');
     List<Map<String, dynamic>> maps = await getSetup(0);
     if (maps.isNotEmpty) {
       try {
@@ -278,6 +285,7 @@ class Setup {
         avoidBroads = maps[0]['avoid_b_roads'] == 1;
         avoidTollRoads = maps[0]['avoid_toll_roads'] == 1;
         avoidFerries = maps[0]['avoid_ferries'] == 1;
+        bottomNavIndex = maps[0]['bottom_nav_index'];
       } catch (e) {
         debugPrint('Failed to load Setup() from db: ${e.toString()}');
       }
@@ -321,6 +329,7 @@ class Setup {
       'avoid_b_roads': avoidBroads ? 1 : 0,
       'avoid_toll_roads': avoidTollRoads ? 1 : 0,
       'avoid_ferries': avoidFerries ? 1 : 0,
+      'bottom_nav_index': bottomNavIndex,
     };
   }
 
@@ -1231,47 +1240,60 @@ String handleWebImages(String urls) {
 }
 
 class HomeItem {
-  String uri = '';
-  String heading = '';
-  String subHeading = '';
-  String body = '';
-  String imageUrl = '';
-  int score = 5;
+  int id;
+  String uri;
+  String heading;
+  String subHeading;
+  String body;
+  String imageUrls;
+  int score;
   String coverage;
   DateTime added;
   HomeItem(
-      {this.uri = '',
+      {this.id = -1,
+      this.uri = '',
       required this.heading,
       this.subHeading = '',
       this.body = '',
-      imageUrl = '',
+      imageUrls = '',
       this.score = 5,
       this.coverage = 'all',
       DateTime? added})
       : added = added ?? DateTime.now(),
-        imageUrl = handleWebImages(imageUrl);
+        imageUrls = handleWebImages(imageUrls);
 
-  factory HomeItem.fromMap({required Map<String, dynamic> map}) {
+  /// Need to be abple to change the URL as the API doesn't
+  /// send the endpoint address to save web traffic, The app
+  /// adds in the appropriale address as it processes the data
+  /// which is sent as  by the API and read as a map.
+  /// As the fromMap method has to cope with data from both the
+  /// API and the local SQLite db all integer values have to be
+  /// sent as integers and not strings to parse to integer.
+
+  factory HomeItem.fromMap(
+      {required Map<String, dynamic> map, String url = ''}) {
     return HomeItem(
-      uri: map['uri'],
+      id: map['id'] ?? -1,
+      uri: '$url${map['uri']}',
       heading: map['heading'],
-      subHeading: map['subHeading'],
+      subHeading: map['sub_heading'],
       body: map['body'],
-      imageUrl: map['imageUrl'], //jsonEncode(map['imageUrl']),
+      imageUrls: map['image_urls'], //jsonEncode(map['imageUrl']),
       coverage: map['coverage'],
-      score: int.parse(map['score']),
+      score: map['score'] ?? 5,
     );
   }
 
   Map<String, dynamic> toMap() {
     return {
+      'id': id.toString(),
       'uri': uri,
       'heading': heading,
-      'subHeading': subHeading,
+      'sub_heading': subHeading,
       'body': body,
-      'image_urls': imageUrl,
+      'image_urls': imageUrls,
       'coverage': coverage,
-      'score': score,
+      'score': score.toString(),
     };
   }
 }
@@ -1279,11 +1301,12 @@ class HomeItem {
 /// class ShopItem
 
 class ShopItem {
+  int id = -1;
   String uri = '';
   String heading = '';
   String subHeading = '';
   String body = '';
-  String imageUrl = '';
+  String imageUrls = '';
   String coverage;
   int score = 5;
   String buttonText1;
@@ -1292,11 +1315,12 @@ class ShopItem {
   String url2;
   int links;
   ShopItem(
-      {this.uri = '',
+      {this.id = -1,
+      this.uri = '',
       required this.heading,
       this.subHeading = '',
       this.body = '',
-      imageUrl = '',
+      imageUrls = '',
       this.coverage = 'all',
       this.score = 5,
       this.buttonText1 = '',
@@ -1304,17 +1328,19 @@ class ShopItem {
       this.buttonText2 = '',
       this.url2 = '',
       this.links = 0})
-      : imageUrl = handleWebImages(imageUrl);
+      : imageUrls = handleWebImages(imageUrls);
 
-  factory ShopItem.fromMap({required Map<String, dynamic> map}) {
+  factory ShopItem.fromMap(
+      {required Map<String, dynamic> map, String url = ''}) {
     return ShopItem(
-        uri: map['uri'],
+        id: map['id'] ?? -1,
+        uri: '$url${map['uri']}',
         heading: map['heading'],
         subHeading: map['sub_heading'],
         body: map['body'],
         coverage: map['coverage'],
-        imageUrl: map['image_url'],
-        score: int.parse(map['score']),
+        imageUrls: map['image_urls'],
+        score: map['score'] ?? 5,
         buttonText1: map['button_text_1'],
         url1: map['url_1'],
         buttonText2: map['button_text_2'],
@@ -1328,17 +1354,18 @@ class ShopItem {
 
   Map<String, dynamic> toMap() {
     return {
+      'id': id.toString(),
       'uri': uri,
       'heading': heading,
-      'subHeading': subHeading,
+      'sub_heading': subHeading,
       'body': body,
       'coverage': coverage,
-      'imageUrl': imageUrl,
-      'score': score,
-      'buttonText1': buttonText1,
-      'url1': url1,
-      'buttonText2': buttonText2,
-      'url2': url2,
+      'image_urls': imageUrls,
+      'score': score.toString(),
+      'button_text_1': buttonText1,
+      'url_1': url1,
+      'button_text_2': buttonText2,
+      'url_2': url2,
     };
   }
 }
@@ -1349,12 +1376,14 @@ class TripItem {
   int id = 0;
   String heading = '';
   String uri = '';
+  String driveUri = '';
   String subHeading = '';
   String body = '';
   String author = '';
   String authorUrl = '';
   String published = '';
-  List<String> imageUrls = [];
+  // List<String> imageUrls = [];
+  String imageUrls = '';
   double score = 5;
   double distance = 0;
   int pointsOfInterest = 0;
@@ -1363,13 +1392,14 @@ class TripItem {
   int downloads = 18;
   TripItem({
     this.id = 0,
+    this.driveUri = '',
     required this.heading,
     this.subHeading = '',
     this.body = '',
     this.author = '',
     this.authorUrl = '',
     this.published = '',
-    this.imageUrls = const [],
+    this.imageUrls = '', //const [],
     this.score = 5,
     this.distance = 0,
     this.pointsOfInterest = 0,
@@ -1383,20 +1413,85 @@ class TripItem {
     return {
       'id': id,
       'heading': heading,
-      'subHeading': subHeading,
+      'sub_heading': subHeading,
       'body': body,
       'author': author,
-      'authorUrl': authorUrl,
+      'author_url': authorUrl,
       'published': published,
-      'imageUrls': imageUrls,
+      'image_urls': imageUrls,
       'score': score,
       'distance': distance,
-      'pointsOfInterest': pointsOfInterest,
+      'points_of_interest': pointsOfInterest,
       'closest': closest,
       'scored': scored,
       'downloads': downloads,
     };
   }
+
+  Map<String, dynamic> toMapLocal() {
+    return {
+      'id': id,
+      'heading': heading,
+      'sub_heading': subHeading,
+      'body': body,
+      'author': author,
+      'author_url': authorUrl,
+      'published': published,
+      'image_urls': imageUrls,
+      'score': score,
+      'distance': distance,
+      'points_of_interest': pointsOfInterest,
+      'closest': closest,
+      'scored': scored,
+      'downloads': downloads,
+    };
+  }
+
+  factory TripItem.fromMap(
+      {required Map<String, dynamic> map,
+      String endpoint = '',
+      String imageUrls = ''}) {
+    return TripItem(
+      id: map['id'] is int ? map['id'] : -1,
+      driveUri: map['id'] is String
+          ? map['id']
+          : '', // The API sends back the uri as id
+      heading: map['title'] ?? map['heading'],
+      subHeading: map['sub_title'] ?? map['sub_heading'],
+      body: map['body'],
+      author: map['author'],
+      published: map['added'] ?? DateTime.now().toIso8601String(),
+      imageUrls: imageUrls.isEmpty
+          ? map['image_urls'] ?? ''
+          : imageUrls, // has to be calculated
+      score: (map['average_rating'] ?? 5.0).toDouble() ?? 5.0,
+      distance: map['distance'] is double ? map['distance'] : 0.0,
+      pointsOfInterest: map['points_of_interest'] is int
+          ? map['points_of_interest'] ?? 0
+          : (map['points_ofInterest'] ?? []).length,
+      closest: 0, // has to be calculated
+      scored: map['ratings_count'] ?? 1,
+      downloads: map['download_count'] ?? 0,
+      uri: '$endpoint${map['uri'] ?? ''}',
+    );
+  }
+
+/*
+TripItem(
+            heading: trip['title'],
+            subHeading: trip['sub_title'],
+            body: trip['body'],
+            author: trip['author'],
+            published: trip['added'],
+            imageUrls: '[$images]',
+            score: trip['average_rating'].toDouble() ?? 5.0,
+            distance: trip['distance'],
+            pointsOfInterest: trip['points_of_interest'].length,
+            closest: distance,
+            scored: trip['ratings_count'] ?? 1,
+            downloads: trip['download_count'] ?? 0,
+            uri: '$urlDrive/${trip['id']}'));
+*/
 }
 
 /// class MyTripItem

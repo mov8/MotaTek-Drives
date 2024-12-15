@@ -168,7 +168,7 @@ class _myTripsScreenState extends State<MyTripsScreen> {
             onMenuTap: (index) =>
                 _leadingWidget(_scaffoldKey.currentState)), // IconButton(
         title: const Text(
-          'Trips available to download',
+          "Trips I've already saved",
           style: TextStyle(
               fontSize: 20, color: Colors.white, fontWeight: FontWeight.w700),
         ),

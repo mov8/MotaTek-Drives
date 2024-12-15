@@ -1,8 +1,10 @@
+import 'package:drives/classes/photo_carousel.dart';
 import 'package:drives/classes/utilities.dart';
+// import 'package:drives/constants.dart';
 import 'package:flutter/material.dart';
 import 'package:drives/models/other_models.dart';
 import 'package:drives/classes/star_ratings.dart';
-import 'package:drives/services/web_helper.dart';
+// import 'package:drives/services/web_helper.dart';
 
 class TripTile extends StatefulWidget {
   final TripItem tripItem;
@@ -24,6 +26,13 @@ class TripTile extends StatefulWidget {
 }
 
 class _tripTileState extends State<TripTile> {
+  List<Photo> photos = [];
+  @override
+  void initState() {
+    photos = photosFromJson(widget.tripItem.imageUrls);
+    super.initState();
+  }
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -40,13 +49,12 @@ class _tripTileState extends State<TripTile> {
                     Expanded(
                       flex: 8,
                       child: SizedBox(
-                        height: 200,
-                        child: ListView(
-                          scrollDirection: Axis.horizontal,
-                          children: [
-                            for (String url in widget.tripItem.imageUrls)
-                              showWebImage(url)
-                          ],
+                        height: 400,
+                        child: PhotoCarousel(
+                          photos: photos,
+                          endPoint: widget.tripItem.uri,
+                          height: 375,
+                          width: MediaQuery.of(context).size.width - 20,
                         ),
                       ),
                     )

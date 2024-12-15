@@ -24,15 +24,23 @@ class _shopScreenState extends State<ShopScreen> {
     super.initState();
     _leadingWidgetController = LeadingWidgetController();
     _bottomNavController = RoutesBottomNavController();
-    _dataLoaded = _getWebData();
+    _dataLoaded = _getShopData();
   }
 
   _leadingWidget(context) {
     return context?.openDrawer();
   }
 
-  Future<bool> _getWebData() async {
-    shopItems = await getShopItems(1);
+  Future<bool> _getShopData() async {
+    if (!Setup().hasRefreshedShop && Setup().hasLoggedIn) {
+      shopItems = await getShopItems(1);
+      if (shopItems.isNotEmpty) {
+        Setup().hasRefreshedShop = true;
+        shopItems = await saveShopItemsLocal(shopItems);
+      }
+    } else {
+      shopItems = await loadShopItems();
+    }
     for (ShopItem shopItem in shopItems) {
       if (shopItem.url1.isNotEmpty) {
         shopItem.links = 1;
@@ -46,40 +54,39 @@ class _shopScreenState extends State<ShopScreen> {
 
   Widget _getPortraitBody() {
     if (shopItems.isEmpty) {
-      shopItems.add(ShopItem(
-          heading: 'New trip planning app',
-          subHeading: 'Stop polishing your car and start driving it...',
-          body:
-              '''MotaTrip is a new app to help you make the most of the countryside around you. 
-You can plan trips either on your own or you can explore in a group''',
-          imageUrl: 'assets/images/splash.png'));
-
-      shopItems.add(ShopItem(
-          heading: 'Share your trips',
-          subHeading: 'Let others know about your beautiful trip',
-          body: '''MotaTrip lets you enjoy trips other users have saved. 
-You can also publish your trips for others to enjoy. You can invite a group of friends to share your trip and track their progress as they drive with you. You can rate pubs and other points of interest to help others enjoy their trip.
-''',
-          imageUrl: 'assets/images/CarGroup.png'));
+      shopItems.add(
+        ShopItem(
+            id: -2,
+            uri: 'assets/images/',
+            heading: 'Promote your business, club or event.',
+            subHeading: 'Target your audience precisely.',
+            body:
+                '''If you run a business or a club selling to motorists you can promote to them accurately.
+  Audiences can be catigorised by car manufacturer, geographic region, club or group.''',
+            imageUrls: '[{"url": "MobileMarketing.png", "caption": ""}]',
+            url1: 'https://motatek.com/',
+            buttonText1: 'Enquire Now'),
+      );
     }
     return ListView(children: [
       const Card(
           child: Column(children: [
         SizedBox(
           child: Padding(
-              padding: EdgeInsets.fromLTRB(5, 10, 5, 0),
-              child: Align(
-                alignment: Alignment.topCenter,
-                child: Text(
-                  'Offers for you',
-                  style: TextStyle(
-                    color: Colors.blue,
-                    fontSize: 38,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  textAlign: TextAlign.left,
+            padding: EdgeInsets.fromLTRB(5, 10, 5, 0),
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: Text(
+                'Offers for you',
+                style: TextStyle(
+                  color: Colors.blue,
+                  fontSize: 38,
+                  fontWeight: FontWeight.bold,
                 ),
-              )),
+                textAlign: TextAlign.left,
+              ),
+            ),
+          ),
         ),
         /*  SizedBox(
           child: Padding(
@@ -136,11 +143,13 @@ You can also publish your trips for others to enjoy. You can invite a group of f
             return _getPortraitBody();
           } else {
             return const SizedBox(
-                width: double.infinity,
-                height: double.infinity,
-                child: Align(
-                    alignment: Alignment.center,
-                    child: CircularProgressIndicator()));
+              width: double.infinity,
+              height: double.infinity,
+              child: Align(
+                alignment: Alignment.center,
+                child: CircularProgressIndicator(),
+              ),
+            );
           }
 
           throw ('Error - FutureBuilder in main.dart');

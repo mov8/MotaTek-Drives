@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:drives/models/other_models.dart';
 import 'package:drives/services/web_helper.dart';
+import 'package:drives/classes/classes.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
@@ -76,9 +77,9 @@ class _HomeItemTileState extends State<HomeItemTile> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.homeItem.imageUrl.length != imageUrlLength) {
-      photos = photosFromJson(widget.homeItem.imageUrl);
-      imageUrlLength = widget.homeItem.imageUrl.length;
+    if (widget.homeItem.imageUrls.length != imageUrlLength) {
+      photos = photosFromJson(widget.homeItem.imageUrls);
+      imageUrlLength = widget.homeItem.imageUrls.length;
     }
     return Card(
       key: Key('$widget.key'),
@@ -251,53 +252,14 @@ class _HomeItemTileState extends State<HomeItemTile> {
                         ),
                       ],
                     ),
-                    if (widget.homeItem.imageUrl.isNotEmpty)
+                    if (widget.homeItem.imageUrls.isNotEmpty)
                       Row(
                         children: <Widget>[
                           Expanded(
                             flex: 8,
-                            child: SizedBox(
-                              height: 175,
-                              child: ReorderableListView(
-                                scrollDirection: Axis.horizontal,
-                                children: [
-                                  for (Photo photo in photos)
-                                    if (photo.url.contains('drives')) ...[
-                                      showLocalImage(photo.url,
-                                          index: photo.index)
-                                    ] else ...[
-                                      showWebImage(
-                                        context: context,
-                                        Uri.parse(
-                                                '${urlBase}v1/home_page_item/images/${widget.homeItem.uri}/${photo.url}')
-                                            .toString(),
-                                        // canDelete: true,
-                                        index: photo.index,
-                                        onDelete: (idx) => onDeleteImage(idx),
-                                      ), //        {debugPrint('onDelete $idx')})
-                                    ]
-                                ],
-                                onReorder: (int oldIndex, int newIndex) {
-                                  setState(
-                                    () {
-                                      if (oldIndex < newIndex) {
-                                        newIndex -= 1;
-                                      }
-                                      final Photo item =
-                                          photos.removeAt(oldIndex);
-                                      photos.insert(newIndex, item);
-                                      List<String> urls = [
-                                        for (Photo photo in photos)
-                                          photo.toMapString()
-                                      ];
-                                      widget.homeItem.imageUrl =
-                                          urls.toString();
-                                      debugPrint(
-                                          'reordered: ${widget.homeItem.imageUrl}');
-                                    },
-                                  );
-                                },
-                              ),
+                            child: ImageArranger(
+                              photos: photos,
+                              endPoint: widget.homeItem.uri,
                             ),
                           ),
                         ],
@@ -312,6 +274,7 @@ class _HomeItemTileState extends State<HomeItemTile> {
     );
   }
 
+/*
   loadImage(int id) async {
     if (widget.index == id) {
       try {
@@ -352,7 +315,7 @@ class _HomeItemTileState extends State<HomeItemTile> {
       }
     }
   }
-
+*/
   save(int id) {
     if (widget.index == id) {
       expanded = false;
@@ -368,6 +331,7 @@ class _HomeItemTileState extends State<HomeItemTile> {
     expanded = state;
   }
 
+/*
   List<String> getImageUrls(PointOfInterest pointOfInterest) {
     var pics = jsonDecode(pointOfInterest.getImages());
     return [
@@ -376,7 +340,7 @@ class _HomeItemTileState extends State<HomeItemTile> {
             .toString()
     ];
   }
-
+*/
 /*
   Widget showLocalImage(String url) {
     return SizedBox(width: 160, child: Image.file(File(url)));

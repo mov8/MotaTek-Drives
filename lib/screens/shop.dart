@@ -295,18 +295,18 @@ You can plan trips either on your own or you can explore in a group''',
 
               /// Don't know what type of image so have to get file extension from picker file
               int num = 1;
-              if (_items[id].imageUrl.isNotEmpty) {
+              if (_items[id].imageUrls.isNotEmpty) {
                 /// count number of images
-                num = '{'.allMatches(_items[id].imageUrl).length + 1;
+                num = '{'.allMatches(_items[id].imageUrls).length + 1;
               }
               debugPrint('Image count: $num');
               String imagePath =
                   '$directory/point_of_interest_${id}_$num.${pickedFile.path.split('.').last}';
               File(pickedFile.path).copy(imagePath);
               setState(() {
-                _items[id].imageUrl =
-                    '[${_items[id].imageUrl.isNotEmpty ? '${_items[id].imageUrl.substring(1, _items[id].imageUrl.length - 1)},' : ''}{"url":"$imagePath","caption":"image $num"}]';
-                debugPrint('Images: ${_items[id].imageUrl}');
+                _items[id].imageUrls =
+                    '[${_items[id].imageUrls.isNotEmpty ? '${_items[id].imageUrls.substring(1, _items[id].imageUrls.length - 1)},' : ''}{"url":"$imagePath","caption":"image $num"}]';
+                debugPrint('Images: ${_items[id].imageUrls}');
               });
             }
           } catch (e) {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:drives/constants.dart';
 import 'package:drives/models/other_models.dart';
-import 'package:drives/services/services.dart';
+// import 'package:drives/services/services.dart';
 import 'package:drives/classes/classes.dart';
 import 'package:drives/models/models.dart';
 
@@ -25,30 +26,17 @@ class HomeTile extends StatefulWidget {
 class _homeTileState extends State<HomeTile> {
   List<Photo> photos = [];
   String endPoint = '';
-  int imageIndex = 0;
-  final PageController _pageController = PageController();
-  final ImageListIndicatorController _imageListIndicatorController =
-      ImageListIndicatorController();
+  // String endPoint = '';
 
   @override
   void initState() {
     super.initState();
-    photos = photosFromJson(widget.homeItem.imageUrl);
-    endPoint = '${urlBase}v1/home_page_item/images/${widget.homeItem.uri}/';
-    _pageController.addListener(() => pageControlListener());
+    photos = photosFromJson(widget.homeItem.imageUrls);
   }
 
   @override
   void dispose() {
-    _pageController.dispose();
-    // _imageListIndicatorController.dispose();
     super.dispose();
-  }
-
-  pageControlListener() {
-    setState(() => _imageListIndicatorController
-        .changeImageIndex(_pageController.page!.round()));
-    // setState(() => imageIndex = _pageController.page!.round());
   }
 
   @override
@@ -60,45 +48,14 @@ class _homeTileState extends State<HomeTile> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(5, 10, 5, 10),
-                child: SizedBox(
-                  width: MediaQuery.of(context).size.width,
+              SizedBox(
+                child: PhotoCarousel(
+                  photos: photos,
+                  endPoint: widget.homeItem.uri,
                   height: 400,
-
-                  //    if (widget.homeItem.imageUrl.isNotEmpty)
-                  child: Row(
-                    children: <Widget>[
-                      Expanded(
-                        flex: 8,
-                        child: SizedBox(
-                          height: MediaQuery.of(context).size.width, // 375,
-                          child: PageView.builder(
-                            itemCount: photos.length,
-                            scrollDirection: Axis.horizontal,
-                            controller: _pageController,
-                            itemBuilder: (BuildContext context, int index) {
-                              imageIndex = index;
-                              return showWebImage(
-                                  '$endPoint${photos[index].url}',
-                                  width: MediaQuery.of(context).size.width -
-                                      10, //400,
-                                  onDelete: (response) =>
-                                      debugPrint('Response: $response'));
-                              //   ],
-                            },
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                  width: MediaQuery.of(context).size.width - 20,
                 ),
               ),
-              const SizedBox(
-                height: 10,
-              ),
-              ImageListIndicator(
-                  controller: _imageListIndicatorController, photos: photos),
               SizedBox(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(5, 0, 5, 10),

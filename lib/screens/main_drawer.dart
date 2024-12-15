@@ -204,7 +204,8 @@ class _MainDrawerState extends State<MainDrawer> {
             //    context,
             //    MaterialPageRoute(builder: (context) => const GroupForm()),
           ),
-          if (Setup().user.email == 'james@staintonconsultancy.com') ...[
+          if (true) ...[
+            //Setup().user.email == 'james@staintonconsultancy.com') ...[
             ListTile(
               leading: const Icon(
                 Icons.admin_panel_settings_outlined,
