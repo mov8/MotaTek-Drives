@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 
 class GroupDriveInvitationTile extends StatefulWidget {
   final EventInvitation eventInvitation;
+  final ImageRepository imageRepository;
   final Function(int)? onEdit;
   final Function(int)? onDownload;
   final Function(int)? onSelect;
@@ -17,6 +18,7 @@ class GroupDriveInvitationTile extends StatefulWidget {
   const GroupDriveInvitationTile(
       {super.key,
       required this.eventInvitation,
+      required this.imageRepository,
       this.index = 0,
       this.onEdit,
       this.onDownload,
@@ -136,6 +138,7 @@ class _groupDriveInvitationTileState extends State<GroupDriveInvitationTile> {
                     child: SizedBox(
                       height: 200,
                       child: PhotoCarousel(
+                        imageRepository: widget.imageRepository,
                         photos: photos,
                         endPoint: _tripSummary!.uri,
                         height: 150,

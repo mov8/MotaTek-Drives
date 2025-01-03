@@ -5,6 +5,7 @@ import 'package:drives/tiles/my_trip_tile.dart';
 import 'package:drives/screens/screens.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:drives/services/services.dart';
+import 'package:latlong2/latlong.dart';
 
 class MyTripsScreen extends StatefulWidget {
   const MyTripsScreen({
@@ -112,9 +113,40 @@ class _myTripsScreenState extends State<MyTripsScreen> {
   }
 
   Widget _getPortraitBody() {
+    if (_myTripItems.isEmpty) {
+      _myTripItems.add(
+        MyTripItem(
+            heading: 'Save your favourite trips for later or to share',
+            subHeading:
+                'Add points of interest, nice roads, pubs restaurants etc.',
+            body:
+                'Describe the trip and why you liked it. You can share the trip with members of a group. You can also publish a trip for other people to enjoy',
+            pointsOfInterest: [
+              PointOfInterest(
+                -1,
+                -1,
+                1,
+                '',
+                '',
+                30,
+                30,
+                markerPoint: const LatLng(-52, 0),
+                marker: const Icon(Icons.ac_unit),
+              ),
+            ],
+            distance: 35,
+            closest: 10,
+            images:
+                '[{"url": "assets/images/map.png", "caption": ""},{"url": "assets/images/meeting.png", "caption": ""}]',
+            published: '',
+
+            //  DateTime.now().subtract(const Duration(days: 10)).toString(),
+            publisher: ''),
+      );
+    }
     return ListView(
       children: [
-        const Card(
+        Card(
           child: Column(
             children: [
               SizedBox(
@@ -123,8 +155,10 @@ class _myTripsScreenState extends State<MyTripsScreen> {
                     child: Align(
                       alignment: Alignment.topCenter,
                       child: Text(
-                        "Trips I've already explored...",
-                        style: TextStyle(
+                        _myTripItems[0].getImages().contains('assets')
+                            ? 'Save your trips to enjoy again...'
+                            : "Trips I've already explored...",
+                        style: const TextStyle(
                           color: Colors.blue,
                           fontSize: 28,
                           fontWeight: FontWeight.bold,

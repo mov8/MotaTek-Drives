@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ui' as ui;
 import 'package:intl/intl.dart';
 import 'dart:math';
+import 'package:drives/constants.dart';
 import 'package:drives/classes/classes.dart';
 import 'package:drives/classes/route.dart' as mt;
 import 'package:drives/screens/screens.dart';
@@ -49,6 +50,34 @@ API Key ea533710-31bd-4144-b31b-5cc0578c74d7
 email used jasme@motatek.com pw rubberduck
 Property MotaTrip - object for usage figures
 
+
+This might well be a good pat to follow as it uses Flutter_maps
+
+https://www.reddit.com/r/openstreetmap/comments/1ew60cw/how_i_learned_to_create_custom_maps_for_my_mobile/
+https://openmaptiles.org/docs/generate/create-custom-extract/
+https://github.com/maplibre/maputnik/wiki <- map styling
+
+
+https://docs.maptiler.com/flutter/
+
+https://project-osrm.org/docs/v5.5.1/api/#trip-service
+https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames
+
+https://pub.dev/packages/vector_map_tiles
+
+VectorTileLayer(tileProviders: TileProviders(
+                    {'openmaptiles': _tileProvider() },
+                    ...)
+                )
+
+VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
+            urlTemplate: 'https://tiles.example.com/openmaptiles/{z}/{x}/{y}.pbf?api_key=$myApiKey',
+            // this is the maximum zoom of the provider, not the
+            // maximum of the map. vector tiles are rendered
+            // to larger sizes to support higher zoom levels
+            maximumZoom: 14),
+
+
 https://github.com/greensopinion/flutter-vector-map-tiles
 https://github.com/organicmaps/organicmaps/tree/master/search/pysearch
 https://github.com/greensopinion/flutter-vector-map-tiles?tab=readme-ov-file
@@ -69,7 +98,6 @@ https://github.com/JaffaKetchup/flutter_map_tile_caching/blob/main/lib/src/backe
 */
 
 int testInt = 0;
-String stadiaMapsApiKey = 'ea533710-31bd-4144-b31b-5cc0578c74d7';
 
 enum AppState {
   loading,
@@ -254,6 +282,9 @@ class _CreateTripState extends State<CreateTripScreen>
       debugPrint('Error: $err');
     }
   }
+
+  VectorTileProvider _tileProvider() =>
+      NetworkVectorTileProvider(urlTemplate: urlTiler, maximumZoom: 14);
 
   _addGreatRoadStartLabel(int id, int userId, int iconIdx, String desc,
       String hint, double size, LatLng latLng) {
@@ -551,7 +582,7 @@ class _CreateTripState extends State<CreateTripScreen>
     /// http://router.project-osrm.org/route/v1/driving/-0.515525,51.43148;-1.2577262999999999,51.7520209?steps=true&annotations=true&geometries=geojson&overview=full
     var url = Uri.parse(
         // 'http://router.project-osrm.org/route/v1/driving/$waypoints?steps=true&annotations=true&geometries=geojson&overview=full&exclude=motorway');
-        'http://10.101.1.150:5000/route/v1/driving/$waypoints?steps=true&annotations=true&geometries=geojson&overview=full$avoid'); //&exclude=motorway');
+        '$urlRouter$waypoints?steps=true&annotations=true&geometries=geojson&overview=full$avoid'); //&exclude=motorway');
     try {
       var response = await http.get(url);
       jsonResponse = jsonDecode(response.body);
@@ -576,10 +607,14 @@ class _CreateTripState extends State<CreateTripScreen>
     String avoid = setAvoiding();
     var url = Uri.parse(
         // 'http://router.project-osrm.org/route/v1/driving/$waypoints?steps=true&annotations=true&geometries=geojson&overview=full');
-        'http://10.101.1.150:5000/route/v1/driving/$waypoints?steps=true&annotations=true&geometries=geojson&overview=full$avoid');
+        '$urlRouter$waypoints?steps=true&annotations=true&geometries=geojson&overview=full$avoid');
     try {
-      var response = await http.get(url);
-      jsonResponse = jsonDecode(response.body);
+      var response = await http.get(url).timeout(const Duration(seconds: 2));
+      if ([200, 201].contains(response.statusCode)) {
+        jsonResponse = jsonDecode(response.body);
+      } else {
+        return jsonDecode('"msg": "err"}');
+      }
     } catch (e) {
       debugPrint('Http error: ${e.toString()}');
     }
@@ -875,6 +910,7 @@ class _CreateTripState extends State<CreateTripScreen>
         debugPrint('Error starting local database: ${e.toString()}');
       }
     }
+
     try {
       _styleReader = StyleReader(
           uri:
@@ -1062,9 +1098,8 @@ class _CreateTripState extends State<CreateTripScreen>
         mainAxisAlignment: MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          if ([AppState.createTrip, AppState.driveTrip].contains(_appState) &&
-              !_showSearch &&
-              !_showPreferences) ...[
+          if (/*[AppState.createTrip, AppState.driveTrip].contains(_appState) && */
+              !_showSearch && !_showPreferences) ...[
             const SizedBox(
               height: 175,
             ),
@@ -1134,6 +1169,26 @@ class _CreateTripState extends State<CreateTripScreen>
         ]);
   }
 
+/*
+ 
+This looks like the way of implementing the vector tile layer from
+OSRM
+
+https://pub.dev/packages/vector_map_tiles
+
+  VectorTileLayer(tileProviders: TileProviders(
+                    {'openmaptiles': _tileProvider() },
+                    ...)
+                )
+
+VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
+            urlTemplate: 'https://tiles.example.com/openmaptiles/{z}/{x}/{y}.pbf?api_key=$myApiKey',
+            // this is the maximum zoom of the provider, not the
+            // maximum of the map. vector tiles are rendered
+            // to larger sizes to support higher zoom levels
+            maximumZoom: 14),
+*/
+
   ///
   /// handlMap()
   /// does all the map UI
@@ -1145,149 +1200,153 @@ class _CreateTripState extends State<CreateTripScreen>
       adjustMapHeight(MapHeights.full);
     }
     return RepaintBoundary(
-        key: mapKey,
-        child: Stack(
-          children: [
-            FlutterMap(
-              mapController: _animatedMapController.mapController,
-              options: MapOptions(
-                onMapEvent: checkMapEvent,
-                onMapReady: () {
-                  mapController.mapEventStream.listen((event) {});
-                },
-                onPositionChanged: (position, hasGesure) {
-                  if (_tripState == TripState.manual) {
-                    _tripActions = TripActions.none;
-                    // _routeAtCenter.context =
-                    _routeAtCenter.routes = _currentTrip.routes();
-                    int routeIdx = _routeAtCenter.getPolyLineNearestCenter();
-                    // if (routeIdx > -1) {
-                    for (int i = 0; i < _currentTrip.routes().length; i++) {
-                      //  _currentTrip.routes()[i].borderColor = _currentTrip.routes()[i].color;
-                      if (i == routeIdx) {
-                        _tripActions = TripActions.routeHighlited;
-                        _currentTrip.routes()[i].colour =
-                            uiColours.keys.toList()[Setup().selectedColour];
-                      } else {
-                        _currentTrip.routes()[i].colour =
-                            _currentTrip.routes()[i].borderColour;
-                      }
-                    }
-
-                    highlightedIndex = routeIdx;
-                  } else {
-                    //      updateTracking();
-                  }
-                  if (hasGesure) {
-                    _updateMarkerSize(position.zoom ?? 13.0);
-                  }
-
-                  LatLng northEast = _animatedMapController
-                      .mapController.camera.visibleBounds.northEast;
-                  LatLng southWest = _animatedMapController
-                      .mapController.camera.visibleBounds.southWest;
-                  if (_updateOverlays) {
-                    if (_viewportFence.fenceUpdated(
-                        northEast: northEast, southWest: southWest)) {
-                      updateOverlays(
-                          _viewportFence.topRight, _viewportFence.bottomLeft);
+      key: mapKey,
+      child: Stack(
+        children: [
+          FlutterMap(
+            mapController: _animatedMapController.mapController,
+            options: MapOptions(
+              onMapEvent: checkMapEvent,
+              onMapReady: () {
+                mapController.mapEventStream.listen((event) {});
+              },
+              onPositionChanged: (position, hasGesure) {
+                if (_tripState == TripState.manual) {
+                  _tripActions = TripActions.none;
+                  // _routeAtCenter.context =
+                  _routeAtCenter.routes = _currentTrip.routes();
+                  int routeIdx = _routeAtCenter.getPolyLineNearestCenter();
+                  // if (routeIdx > -1) {
+                  for (int i = 0; i < _currentTrip.routes().length; i++) {
+                    //  _currentTrip.routes()[i].borderColor = _currentTrip.routes()[i].color;
+                    if (i == routeIdx) {
+                      _tripActions = TripActions.routeHighlited;
+                      _currentTrip.routes()[i].colour =
+                          uiColours.keys.toList()[Setup().selectedColour];
+                    } else {
+                      _currentTrip.routes()[i].colour =
+                          _currentTrip.routes()[i].borderColour;
                     }
                   }
-                  _mapRotation =
-                      _animatedMapController.mapController.camera.rotation;
-                },
-                initialCenter: routePoints[0],
-                initialZoom: 15,
-                maxZoom: 18,
-                interactionOptions: const InteractionOptions(
-                    enableMultiFingerGestureRace: true,
-                    flags: InteractiveFlag.doubleTapDragZoom |
-                        InteractiveFlag.doubleTapZoom |
-                        InteractiveFlag.drag |
-                        InteractiveFlag.pinchZoom |
-                        InteractiveFlag.pinchMove),
-              ),
-              children: [
-                VectorTileLayer(
-                    theme: _style.theme,
-                    sprites: _style.sprites,
-                    tileProviders: _style.providers,
-                    layerMode: VectorTileLayerMode.vector,
-                    tileOffset: TileOffset.DEFAULT),
-                /*     TileLayer(
+
+                  highlightedIndex = routeIdx;
+                } else {
+                  //      updateTracking();
+                }
+                if (hasGesure) {
+                  _updateMarkerSize(position.zoom ?? 13.0);
+                }
+
+                LatLng northEast = _animatedMapController
+                    .mapController.camera.visibleBounds.northEast;
+                LatLng southWest = _animatedMapController
+                    .mapController.camera.visibleBounds.southWest;
+                if (_updateOverlays) {
+                  if (_viewportFence.fenceUpdated(
+                      northEast: northEast, southWest: southWest)) {
+                    updateOverlays(
+                        _viewportFence.topRight, _viewportFence.bottomLeft);
+                  }
+                }
+                _mapRotation =
+                    _animatedMapController.mapController.camera.rotation;
+              },
+              initialCenter: routePoints[0],
+              initialZoom: 15,
+              maxZoom: 18,
+              interactionOptions: const InteractionOptions(
+                  enableMultiFingerGestureRace: true,
+                  flags: InteractiveFlag.doubleTapDragZoom |
+                      InteractiveFlag.doubleTapZoom |
+                      InteractiveFlag.drag |
+                      InteractiveFlag.pinchZoom |
+                      InteractiveFlag.pinchMove),
+            ),
+            children: [
+              VectorTileLayer(
+                  theme: _style.theme,
+                  sprites: _style.sprites,
+                  //          tileProviders:
+                  //              TileProviders({'openmaptiles': _tileProvider()}),
+                  tileProviders: _style.providers,
+                  layerMode: VectorTileLayerMode.vector,
+                  tileOffset: TileOffset.DEFAULT),
+              /*     TileLayer(
                   urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                   userAgentPackageName: 'com.example.app',
                   maxZoom: 18,
                 ), */
-                CurrentLocationLayer(
-                  focalPoint: const FocalPoint(
-                    ratio: Point(0.0, 1.0),
-                    offset: Point(0.0, -60.0),
-                  ),
-                  alignPositionStream: _allignPositionStreamController.stream,
-                  alignDirectionStream: _allignDirectionStreamController.stream,
-                  alignPositionOnUpdate: _alignPositionOnUpdate,
-                  alignDirectionOnUpdate: _alignDirectionOnUpdate,
-                  style: const LocationMarkerStyle(
-                    marker: DefaultLocationMarker(
-                      child: Icon(
-                        Icons.navigation,
-                        color: Colors.white,
-                      ),
+              CurrentLocationLayer(
+                focalPoint: const FocalPoint(
+                  ratio: Point(0.0, 1.0),
+                  offset: Point(0.0, -60.0),
+                ),
+                alignPositionStream: _allignPositionStreamController.stream,
+                alignDirectionStream: _allignDirectionStreamController.stream,
+                alignPositionOnUpdate: _alignPositionOnUpdate,
+                alignDirectionOnUpdate: _alignDirectionOnUpdate,
+                style: const LocationMarkerStyle(
+                  marker: DefaultLocationMarker(
+                    child: Icon(
+                      Icons.navigation,
+                      color: Colors.white,
                     ),
-                    markerSize: ui.Size(30, 30),
-                    markerDirection: MarkerDirection.heading,
                   ),
+                  markerSize: ui.Size(30, 30),
+                  markerDirection: MarkerDirection.heading,
                 ),
-                mt.RouteLayer(
-                  polylineCulling: false, //true,
-                  polylines: _currentTrip.routes(),
-                  onTap: routeTapped,
-                  onMiss: routeMissed,
-                  routeAtCenter: _routeAtCenter,
-                ),
-                mt.RouteLayer(
-                  polylineCulling: false, //true,
-                  polylines: _currentTrip.goodRoads(),
-                  onTap: routeTapped,
-                  onMiss: routeMissed,
-                  routeAtCenter: _routeAtCenter,
-                ),
-                mt.RouteLayer(
-                  polylineCulling: false, //true,
-                  polylines: _goodRoads,
-                  onTap: routeTapped,
-                  onMiss: routeMissed,
-                  routeAtCenter: _routeAtCenter,
-                ),
-                MarkerLayer(markers: _currentTrip.pointsOfInterest()),
-                MarkerLayer(markers: _pointsOfInterest),
-                MarkerLayer(markers: _following),
-              ],
-            ),
-            Align(
-              alignment: Alignment.bottomLeft,
-              child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 5),
-                  child: Wrap(
-                    spacing: 5,
-                    children: getChips(),
-                  )),
-            ),
-            if (_showTarget) ...[
-              CustomPaint(
-                painter: TargetPainter(
-                    top: mapHeight / 2,
-                    left: MediaQuery.of(context).size.width / 2,
-                    color: insertAfter == -1 ? Colors.black : Colors.red),
-              )
+              ),
+              mt.RouteLayer(
+                polylineCulling: false, //true,
+                polylines: _currentTrip.routes(),
+                onTap: routeTapped,
+                onMiss: routeMissed,
+                routeAtCenter: _routeAtCenter,
+              ),
+              mt.RouteLayer(
+                polylineCulling: false, //true,
+                polylines: _currentTrip.goodRoads(),
+                onTap: routeTapped,
+                onMiss: routeMissed,
+                routeAtCenter: _routeAtCenter,
+              ),
+              mt.RouteLayer(
+                polylineCulling: false, //true,
+                polylines: _goodRoads,
+                onTap: routeTapped,
+                onMiss: routeMissed,
+                routeAtCenter: _routeAtCenter,
+              ),
+              MarkerLayer(markers: _currentTrip.pointsOfInterest()),
+              MarkerLayer(markers: _pointsOfInterest),
+              MarkerLayer(markers: _following),
             ],
-            getDirections(_directionsIndex),
-            if (_showMask) ...[
-              _getOverlay2(),
-            ]
+          ),
+          Align(
+            alignment: Alignment.bottomLeft,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 5),
+              child: Wrap(
+                spacing: 5,
+                children: getChips(),
+              ),
+            ),
+          ),
+          if (_showTarget) ...[
+            CustomPaint(
+              painter: TargetPainter(
+                  top: mapHeight / 2,
+                  left: MediaQuery.of(context).size.width / 2,
+                  color: insertAfter == -1 ? Colors.black : Colors.red),
+            )
           ],
-        ));
+          getDirections(_directionsIndex),
+          if (_showMask) ...[
+            _getOverlay2(),
+          ]
+        ],
+      ),
+    );
   }
 
   Align getDirections(int index) {
@@ -1648,10 +1707,10 @@ class _CreateTripState extends State<CreateTripScreen>
       adjustMapHeight(MapHeights.full);
     });
     int tries = 0;
-    while (_tripActions != TripActions.saved && tries < 5) {
+    while (_tripActions != TripActions.saved && ++tries < 5) {
       await Future.delayed(const Duration(seconds: 1));
       setState(() {});
-      tries++;
+      // tries++;
     }
 
     if (_tripActions != TripActions.saved) {

@@ -1,3 +1,4 @@
+import 'package:drives/classes/caches.dart';
 import 'package:drives/classes/photo_carousel.dart';
 import 'package:drives/classes/utilities.dart';
 // import 'package:drives/constants.dart';
@@ -8,6 +9,7 @@ import 'package:drives/classes/star_ratings.dart';
 
 class TripTile extends StatefulWidget {
   final TripItem tripItem;
+  final ImageRepository imageRepository;
   final Future<void> Function(int) onGetTrip;
   final Function(int, int) onRatingChanged;
 
@@ -16,6 +18,7 @@ class TripTile extends StatefulWidget {
   const TripTile({
     super.key,
     required this.tripItem,
+    required this.imageRepository,
     required this.index,
     required this.onGetTrip,
     required this.onRatingChanged,
@@ -51,6 +54,7 @@ class _tripTileState extends State<TripTile> {
                       child: SizedBox(
                         height: 400,
                         child: PhotoCarousel(
+                          imageRepository: widget.imageRepository,
                           photos: photos,
                           endPoint: widget.tripItem.uri,
                           height: 375,

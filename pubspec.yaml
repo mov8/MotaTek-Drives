@@ -55,8 +55,6 @@ dependencies:
   url_launcher: ^6.3.0
   vector_map_tiles: ^7.3.1
   
-
-
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -88,6 +86,7 @@ flutter:
     - assets/images/sportscar.png
     - assets/images/aiaston.png
     - assets/images/meeting.png
+    - assets/images/message.png
     
   #   - images/a_dot_ham.jpeg
 

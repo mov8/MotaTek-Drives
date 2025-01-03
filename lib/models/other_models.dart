@@ -1,5 +1,6 @@
 // import 'package:flutter/cupertino.dart';
 import 'dart:convert';
+import 'dart:ffi';
 //import 'dart:ffi';
 import 'dart:ui' as ui;
 import 'dart:io';
@@ -7,6 +8,7 @@ import 'dart:math';
 import 'dart:typed_data';
 // import 'package:drives/services/services.dart';
 import 'package:intl/intl.dart';
+import 'package:drives/constants.dart';
 import 'package:drives/classes/utilities.dart';
 import 'package:drives/screens/screens.dart';
 import 'package:drives/classes/route.dart' as mt;
@@ -21,6 +23,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:flutter/material.dart';
 //import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:geolocator/geolocator.dart';
 
 // import 'package:geolocator/geolocator.dart';
 
@@ -200,6 +203,13 @@ Map<Color, String> uiColours = {
   Colors.black: 'black',
 };
 
+const List<Color> pinColours = [
+  Colors.red,
+  Colors.blue,
+  Colors.green,
+  Colors.orange
+];
+
 void myFunc() {}
 
 class CutRoute {
@@ -243,12 +253,28 @@ class Setup {
   bool avoidTollRoads = false;
   bool avoidFerries = false;
   MyTripItem? currentTrip;
+  Position lastPosition = Position(
+    longitude: 0.0,
+    latitude: 0.0,
+    timestamp: DateTime.timestamp(),
+    accuracy: 0.0,
+    altitude: 0.0,
+    altitudeAccuracy: 0.0,
+    heading: 0.0,
+    headingAccuracy: 0.0,
+    speed: 0.0,
+    speedAccuracy: 0.0,
+    floor: 0,
+    isMocked: false,
+  );
 
   String jwt = '';
   User user = User(
       id: 0, forename: '', surname: '', password: '', email: '', phone: '');
   bool? _loaded;
   String appDocumentDirectory = '';
+  late Directory cacheDirectory;
+
   Setup._privateConstructor();
   static final _instance = Setup._privateConstructor();
   factory Setup() {
@@ -257,6 +283,10 @@ class Setup {
 
   Future<bool> get loaded async {
     appDocumentDirectory = (await getApplicationDocumentsDirectory()).path;
+    cacheDirectory = Directory('$appDocumentDirectory/cache');
+    if (!await cacheDirectory.exists()) {
+      await Directory('$appDocumentDirectory/cache').create();
+    }
     return _loaded ??= await setupFromDb();
   }
 
@@ -341,6 +371,84 @@ class Setup {
       whereArgs: [id],
     );
   }
+}
+
+class Feature extends Marker {
+  final int row;
+  final String uri;
+  final int id;
+  final int featureId;
+  final int type;
+  Function ontap;
+  //final double width;
+  // final double height;
+  final Color iconColor;
+  // late IconButton super.child;
+
+  Feature(
+      {this.row = -1,
+      this.uri = '',
+      this.id = -1,
+      this.featureId = -1,
+      this.type = 0,
+      required this.ontap,
+      super.point = const LatLng(-50.0, -0.2),
+      double height = 30,
+      double width = 30,
+      double iconSize = 30,
+      this.iconColor = Colors.red})
+      : super(
+            width: width,
+            height: height,
+            child: FeatureMarker(
+                index: id, width: width, color: iconColor, angle: 0));
+
+  factory Feature.fromMap(
+      {required Map<String, dynamic> map,
+      int row = -1,
+      double size = 30,
+      required Function onTap}) {
+    return Feature(
+      row: row == -1 ? map['row'] ?? -1 : row,
+      uri: map['uri'],
+      id: map['id'] ?? -1,
+      featureId: map['feature_id'] ?? -1,
+      type: map['type'] ?? 0,
+      point: LatLng(map['lat'] ?? 50.0, map['lng'] ?? 0.0),
+      width: size,
+      height: size,
+      ontap: onTap,
+      iconColor: pinColours[map['type']],
+    );
+  }
+
+  toMap() {
+    return {
+      'row': row,
+      'id': id,
+      'uri': uri,
+      'feature_id': id,
+      'type': type,
+      'latitude': point.latitude,
+      'longitude': point.longitude
+    };
+  }
+
+  zoomIcon(double zoom) {
+    super.child =
+        FeatureMarker(index: id, width: zoom * 10, color: iconColor, angle: 0);
+
+    // super.child = IconButton(
+    //     onPressed: () => ontap, //debugPrint('Button $row pressed'),
+    //     icon: Icon(Icons.pin_drop, size: zoom * 4, color: iconColor));
+    // debugPrint('Zoom is $zoom -> size of ${zoom * 4}');
+  }
+
+  // {url: 7575, id: -1, lat:9898, long:97899, type:2}
+}
+
+buttonPress(int row) {
+  debugPrint('Button $row pressed');
 }
 
 class MarkerLabel extends Marker {
@@ -551,6 +659,39 @@ class MarkerWidget extends StatelessWidget {
             color: iconColor,
           ),
         ),
+      ),
+    );
+  }
+}
+
+class FeatureMarker extends StatelessWidget {
+  int index;
+  double width;
+  double angle;
+  Color color;
+  FeatureMarker({
+    super.key,
+    this.index = -1,
+    this.width = 50,
+    this.color = Colors.red,
+    this.angle = 0,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    //double width = zoom * 4;
+    return Transform.rotate(
+      angle: angle,
+      child: SizedBox(
+        width: width,
+        child: FittedBox(
+            child: IconButton(
+          iconSize: width,
+          icon: Icon(Icons.pin_drop, color: color),
+          onPressed: () {
+            debugPrint('Pin pressed - width: $width');
+          },
+        )),
       ),
     );
   }
@@ -994,20 +1135,35 @@ class GroupDriveInvitation {
 
 class Photo {
   String url;
+  int id;
+  int key;
   int index;
+
   String caption;
   String endPoint;
   Photo(
       {required this.url,
+      this.id = -1,
+      this.key = -1,
       this.index = -1,
       this.caption = '',
       this.endPoint = ''});
 
-  factory Photo.fromJson(Map<String, dynamic> json) {
-    return Photo(url: json['url'], caption: json['caption'] ?? '');
+  factory Photo.fromJson(Map<String, dynamic> json,
+      {int index = -1, String endPoint = ''}) {
+    return Photo(
+        url: '$endPoint${json['url']}',
+        id: json['id'] ?? -1,
+        caption: json['caption'] ?? '',
+        key: -1,
+        index: index);
   }
+
   factory Photo.fromJsonMap(Map<String, String> json) {
-    return Photo(url: json['url'] ?? '', caption: json['caption'] ?? '');
+    return Photo(
+        url: json['url'] ?? '',
+        id: int.parse(json['id'] ?? '-1'),
+        caption: json['caption'] ?? '');
   }
 
   String toJson() {
@@ -1019,16 +1175,44 @@ class Photo {
   }
 }
 
+class ImageCacheItem {
+  int index;
+  int localId;
+  String url;
+  double lat;
+  double lng;
+  ImageCacheItem(
+      {this.localId = -1,
+      this.url = '',
+      this.lat = 0,
+      this.lng = 0,
+      this.index = -1});
+
+  factory ImageCacheItem.fromMap(
+      {required Map<String, dynamic> map, row = -1}) {
+    return ImageCacheItem(
+        index: row,
+        localId: map['id'] ?? -1,
+        url: map['uri'] ?? '',
+        lat: map['lat'] ?? 50.0,
+        lng: map['lng'] ?? 0);
+  }
+}
+
 /// Creates a list of photos from a json string of the following format:
 ///  '[{"url": "assets/images/map.png", "caption": ""}, {"url": "assets/images/splash.png", "caption": ""},
 ///   {"url": "assets/images/CarGroup.png", "caption": "" }]',
 ///  post-constructor function handleWebImages converts a simple image file name to a map to reduce web traffic
 ///  for some strange reason the string must start with a single quote.
 
-List<Photo> photosFromJson(String photoString) {
-  List<Photo> photos = [];
-
+List<Photo> photosFromJson(String photoString, {String endPoint = ''}) {
   if (photoString.isNotEmpty) {
+    int index = 0;
+    return [
+      for (Map<String, dynamic> urlData in jsonDecode(photoString))
+        Photo.fromJson(urlData, endPoint: endPoint, index: index++)
+    ];
+/*    
     try {
       photos = (json.decode(photoString) as List<dynamic>)
           .map((jsonObject) => Photo.fromJson(jsonObject))
@@ -1040,8 +1224,9 @@ List<Photo> photosFromJson(String photoString) {
       String err = e.toString();
       debugPrint('Error converting image data: $err ($photoString)');
     }
+*/
   }
-  return photos;
+  return [];
 }
 
 List<Photo> photosFromMap(String photoString) {
@@ -1158,6 +1343,18 @@ class Maneuver {
       'distance': distance,
     };
   }
+/*
+    'drive_id': driveUid,
+    'road_from': maneuver.roadFrom,
+    'road_to': maneuver.roadTo,
+    'bearing_before': maneuver.bearingBefore,
+    'bearing_after': maneuver.bearingAfter,
+    'exit': maneuver.exit,
+    'location': maneuver.location.toString(),
+    'modifier': maneuver.modifier,
+    'type': maneuver.type,
+    'distance': maneuver.distance
+*/
 
   /// ...['steps'][n]['name'] => the current road name
   /// ...['steps'][n]['maneuver'][bearing_before'] => approach bearing
@@ -1297,7 +1494,17 @@ class HomeItem {
     };
   }
 }
-
+/*
+0672e44bdbde72a3800016e24cce4769/907af30a-077a-4d24-9f37-31ec9a7b82ef.jpg
+    request.fields['id'] = map['uri'];
+    request.fields['title'] = map['heading'];
+    request.fields['sub_title'] = map['subHeading'];
+    request.fields['body'] = map['body'];
+    request.fields['added'] = map['added'] ?? DateTime.now().toString();
+    request.fields['score'] = map['score'].toString();
+    request.fields['coverage'] = map['coverage'];
+    request.fields['image_urls'] = imageUris.toString();
+*/
 /// class ShopItem
 
 class ShopItem {
@@ -1371,8 +1578,55 @@ class ShopItem {
 }
 
 /// class TripItem
+///
+
+class TripSummary extends Marker {
+  int id = -1;
+  String uri;
+  String title;
+  String subTitle;
+  double minLat;
+  double maxLat;
+  double minLong;
+  double maxLong;
+  double score;
+  int scored;
+
+  // late final Widget marker;
+  // late LatLng markerPoint = const LatLng(52.05884, -1.345583);
+  TripSummary(
+      {this.uri = '',
+      this.title = '',
+      this.subTitle = '',
+      this.minLat = -180.0,
+      this.maxLat = 180,
+      this.minLong = -180,
+      this.maxLong = 180,
+      this.score = 5.0,
+      this.scored = 1,
+      super.child = const Icon(Icons.location_pin),
+      super.point = const LatLng(-50.0, -0.2),
+      super.width = 20,
+      super.height = 20});
+
+  factory TripSummary.fromMap({required Map<String, dynamic> map}) {
+    return TripSummary(
+      uri: map['uri'],
+      title: map['title'],
+      subTitle: map['sub_title'],
+      minLat: map['min_lat'],
+      maxLat: map['max_lat'],
+      minLong: map['min_long'],
+      maxLong: map['max_long'],
+      score: map['score'],
+      scored: map['scored'],
+      point: LatLng(map['min_lat'], map['min_long']),
+    );
+  }
+}
 
 class TripItem {
+  int key = 0;
   int id = 0;
   String heading = '';
   String uri = '';
@@ -1390,24 +1644,25 @@ class TripItem {
   int closest = 12;
   int scored = 10;
   int downloads = 18;
-  TripItem({
-    this.id = 0,
-    this.driveUri = '',
-    required this.heading,
-    this.subHeading = '',
-    this.body = '',
-    this.author = '',
-    this.authorUrl = '',
-    this.published = '',
-    this.imageUrls = '', //const [],
-    this.score = 5,
-    this.distance = 0,
-    this.pointsOfInterest = 0,
-    this.closest = 12,
-    this.scored = 10,
-    this.downloads = 18,
-    this.uri = '',
-  });
+  List<Polyline> polylines;
+  TripItem(
+      {this.id = 0,
+      this.driveUri = '',
+      required this.heading,
+      this.subHeading = '',
+      this.body = '',
+      this.author = '',
+      this.authorUrl = '',
+      this.published = '',
+      this.imageUrls = '', //const [],
+      this.score = 5,
+      this.distance = 0,
+      this.pointsOfInterest = 0,
+      this.closest = 12,
+      this.scored = 10,
+      this.downloads = 18,
+      this.uri = '',
+      this.polylines = const []});
 
   Map<String, dynamic> toMap() {
     return {
@@ -1471,7 +1726,7 @@ class TripItem {
           : (map['points_ofInterest'] ?? []).length,
       closest: 0, // has to be calculated
       scored: map['ratings_count'] ?? 1,
-      downloads: map['download_count'] ?? 0,
+      downloads: map['downloads'] ?? 0,
       uri: '$endpoint${map['uri'] ?? ''}',
     );
   }
@@ -1772,9 +2027,8 @@ class MyTripItem2 {
             await _mapImage.toByteData(format: ui.ImageByteFormat.png);
         pngBytes = byteData?.buffer.asUint8List();
       } else {
-        String url =
-            Uri.parse('${wh.urlBase}v1/drive/images/$_driveUri/map.png')
-                .toString();
+        String url = Uri.parse('${urlBase}v1/drive/images/$_driveUri/map.png')
+            .toString();
         pngBytes = await wh.getImageBytes(url: url);
       }
       String url = '$directory/drive$_driveId.png';
@@ -1797,6 +2051,7 @@ class MyTripItem2 {
     Map<String, dynamic> map = await getDrive(driveId);
     LatLng pos = const LatLng(0, 0);
     int distance = 99999;
+
     await getPosition().then((currentPosition) {
       pos = LatLng(currentPosition.latitude, currentPosition.longitude);
     });

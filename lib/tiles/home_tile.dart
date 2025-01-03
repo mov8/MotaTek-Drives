@@ -7,6 +7,7 @@ import 'package:drives/models/models.dart';
 
 class HomeTile extends StatefulWidget {
   final HomeItem homeItem;
+  final ImageRepository imageRepository;
   final Function(int)? onSelect;
   final Function(int)? onDelete;
   final int index;
@@ -14,6 +15,7 @@ class HomeTile extends StatefulWidget {
   const HomeTile({
     super.key,
     required this.homeItem,
+    required this.imageRepository,
     this.onSelect,
     this.onDelete,
     this.index = 0,
@@ -31,7 +33,8 @@ class _homeTileState extends State<HomeTile> {
   @override
   void initState() {
     super.initState();
-    photos = photosFromJson(widget.homeItem.imageUrls);
+    photos = photosFromJson(widget.homeItem.imageUrls,
+        endPoint: '${widget.homeItem.uri}/'); //images/${widget.homeItem.uri}');
   }
 
   @override
@@ -50,6 +53,7 @@ class _homeTileState extends State<HomeTile> {
             children: [
               SizedBox(
                 child: PhotoCarousel(
+                  imageRepository: widget.imageRepository,
                   photos: photos,
                   endPoint: widget.homeItem.uri,
                   height: 400,

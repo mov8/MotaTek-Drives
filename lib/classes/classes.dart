@@ -8,3 +8,4 @@ export 'package:drives/classes/photo_carousel.dart';
 export 'package:drives/classes/route.dart';
 export 'package:drives/classes/routes_bottom_nav.dart';
 export 'package:drives/classes/utilities.dart';
+export 'package:drives/classes/caches.dart';

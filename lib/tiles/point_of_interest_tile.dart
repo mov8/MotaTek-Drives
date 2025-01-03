@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:drives/constants.dart';
 import 'package:drives/models/other_models.dart';
 import 'package:drives/services/web_helper.dart';
 import 'package:image_picker/image_picker.dart';
@@ -436,8 +437,7 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
     var pics = jsonDecode(pointOfInterest.getImages());
     return [
       for (String pic in pics)
-        Uri.parse('${urlBase}v1/drive/images${pointOfInterest.url}$pic')
-            .toString()
+        Uri.parse('$urlDrive/images${pointOfInterest.url}$pic').toString()
     ];
   }
 

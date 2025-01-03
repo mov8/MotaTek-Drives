@@ -102,26 +102,35 @@ class _RoutesBottomNavState extends State<RoutesBottomNav>
       indicatorColor: Colors.lightBlue,
       selectedIndex: _index,
       destinations: List<Widget>.generate(
-          5, (index) => _navigationDestination(index: index, badgeValue: 0)),
+          6, (index) => _navigationDestination(index: index, badgeValue: 0)),
     );
   }
 
   NavigationDestination _navigationDestination(
       {required int index, badgeValue = 0}) {
-    List<String> labels = ['Home', 'Trips', 'New Trip', 'Shop', 'Messages'];
-    List<IconData> iconsSelected = [
+    const List<String> labels = [
+      'Home',
+      'Trips',
+      'New Trip',
+      'My Trips',
+      'Shop',
+      'Messages'
+    ];
+    const List<IconData> iconsSelected = [
       Icons.home,
       Icons.route,
       Icons.map,
+      Icons.person,
       Icons.shopping_bag,
       Icons.chat_bubble
     ];
-    List<IconData> icons = [
+    const List<IconData> icons = [
       Icons.home_outlined,
       Icons.route_outlined,
       Icons.map_outlined,
+      Icons.person_outlined,
       Icons.shopping_bag_outlined,
-      Icons.chat_bubble_outlined
+      Icons.chat_bubble_outline_outlined,
     ];
 
     if (badgeValue == 0) {

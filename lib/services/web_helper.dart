@@ -23,12 +23,32 @@ import 'package:drives/classes/route.dart' as mt;
 
 // Future<Map<String, dynamic>> getSuggestions(String value) async {
 
-Map<String, String> secureHeader() {
+Map<String, String> webHeader({bool secure = false}) {
   String jwToken = Setup().jwt;
-  return {
-    'Authorization': 'Bearer $jwToken', // $Setup().jwt',
-    'Content-Type': 'application/json',
-  };
+  Map<String, String> header = {'Content-Type': 'application/json'};
+  if (secure) {
+    header['Autorization'] = 'Bearer $jwToken';
+  }
+  return header;
+}
+
+Future<http.Response> getWebData(
+    {required Uri uri, bool secure = false, int timeout = 5}) async {
+  http.Response response = await http
+      .get(uri, headers: webHeader(secure: secure))
+      .timeout(Duration(seconds: timeout));
+  return response;
+}
+
+Future<http.Response> postWebData(
+    {required Uri uri,
+    required String body,
+    bool secure = true,
+    int timeout = 10}) async {
+  final http.Response response = await http
+      .post(uri, headers: webHeader(secure: secure), body: body)
+      .timeout(Duration(seconds: timeout));
+  return response;
 }
 
 const List<String> settlementTypes = ['city', 'town', 'village', 'hamlet'];
@@ -74,7 +94,7 @@ Future<LatLng> getPosition(String value) async {
       }
     } catch (e) {
       String error = e.toString();
-      debugPrint('getPosition() error: $error');
+      debugPrint('web_helper.getPosition() error: $error');
     }
   }
   return pos;
@@ -166,42 +186,15 @@ class _searchLocationState extends State<SearchLocation> {
   }
 }
 
-//final apiUrl = 'http://10.101.1.150:5000/v1/user/register/';
-const urlBase = 'http://10.101.1.150:5001/'; // Home network
-// const urlBase = 'http://192.168.1.11:5001/'; // Boston
-// const urlBase = 'http://192.168.1.10:5000/'; // Boston
-// const urlBase = 'http://192.168.68.104:5001/'; // Douglas Lodge
-// const urlBase = 'http://192.168.0.10:5001/'; // Nikki's place
-
 Future<Map<String, dynamic>> postUser(
     {required User user, bool register = false}) async {
-  Map<String, dynamic> userMap = user.toMap();
-  Map<String, dynamic> map = {'message': ''};
-  // bool register = user.password.length <= 6;
   try {
-    var url = Uri.parse('$urlUser/${register ? "register" : "login"}');
-    final http.Response response = await http
-        .post(url,
-            headers: <String, String>{
-              "Content-Type": "application/json; charset=UTF-8",
-            },
-            body: jsonEncode(userMap))
-        .timeout(const Duration(seconds: 30));
+    var uri = Uri.parse('$urlUser/${register ? "register" : "login"}');
+    http.Response response =
+        await postWebData(uri: uri, body: jsonEncode(user.toMap()));
     Map<String, dynamic> map = jsonDecode(response.body);
     if ([200, 201].contains(response.statusCode)) {
       Setup().jwt = map['token'];
-      /*
-      if (!register) {
-        Setup().user
-          ..forename = map['forename']
-          ..surname = map['surname']
-          ..email = user.email
-          ..password = user.password;
-          _SimpleUri (http://10.101.1.150:5001/v1/user/login)
-        Setup().s etupToDb();
-      }
-      await insertSetup(Setup());
-      */
       return {'msg': 'OK'};
     } else {
       return map;
@@ -209,22 +202,16 @@ Future<Map<String, dynamic>> postUser(
   } catch (e) {
     debugPrint('Login error: ${e.toString()}');
   }
-  return map;
+  return {'message': 'error'};
 }
 
 Future<Map<String, dynamic>> tryLogin({required User user}) async {
-  Map<String, dynamic> userMap = user.toMap();
-  Map<String, dynamic> map = {'message': ''};
   bool register = user.password.length <= 6;
   try {
-    var url = Uri.parse('$urlUser/${register ? "register" : "login"}');
-    final http.Response response = await http
-        .post(url,
-            headers: <String, String>{
-              "Content-Type": "application/json; charset=UTF-8",
-            },
-            body: jsonEncode(userMap))
-        .timeout(const Duration(seconds: 30));
+    var uri = Uri.parse('$urlUser/${register ? "register" : "login"}');
+    final http.Response response =
+        await postWebData(uri: uri, body: jsonEncode(user.toMap()));
+
     Map<String, dynamic> map = jsonDecode(response.body);
     if (response.statusCode == 201) {
       Setup().jwt = map['token'];
@@ -235,7 +222,7 @@ Future<Map<String, dynamic>> tryLogin({required User user}) async {
   } catch (e) {
     debugPrint('Login error: ${e.toString()}');
   }
-  return map;
+  return {'message': 'error'};
 }
 
 Future<dynamic> postTrip(MyTripItem tripItem) async {
@@ -351,31 +338,6 @@ Future<String> postPointOfInterest(
   }
 }
 
-/*
-Future<String> postPolyline(Polyline polyline, String driveUid) async {
-  Map<String, dynamic> map = {
-    'drive_id': driveUid,
-    'points': pointsToString(polyline.points),
-    'stroke': polyline.strokeWidth,
-    'color': uiColours.keys.toList().indexWhere((col) => col == polyline.color),
-  };
-
-  final http.Response response =
-      await http.post(Uri.parse('${urlBase}v1/polyline/add'),
-          headers: <String, String>{
-            "Content-Type": "application/json; charset=UTF-8",
-          },
-          body: jsonEncode(map));
-  if (response.statusCode == 201) {
-    // 201 = Created
-    debugPrint('Polyline posted OK');
-    return jsonEncode({'code': response.statusCode});
-  } else {
-    debugPrint('Failed to post user');
-    return jsonEncode({'token': '', 'code': response.statusCode});
-  }
-}
-*/
 Future<String> postPolylines(
     List<Polyline> polylines, String driveUid, int type) async {
   List<Map<String, dynamic>> maps = [];
@@ -423,34 +385,68 @@ Future<String> postPolylines(
   }
 }
 
-Future<List<mt.Route>> getGoodRoads(LatLng ne, LatLng sw) async {
-  List<mt.Route> goodRoads = [];
-  // String jwToken = Setup().jwt;
-  final http.Response response = await http
-      .get(
-        Uri.parse(
-            '$urlGoodRoad/location/${sw.latitude}/${ne.latitude}/${sw.longitude}/${ne.longitude}'),
-        //'/location/<min_lat>/<max_lat>/<min_long>/<max_long>'
-        headers: secureHeader(),
-      )
-      .timeout(const Duration(seconds: 20));
-  if ([200, 201].contains(response.statusCode) && response.body.length > 10) {
-    List polyline = jsonDecode(response.body);
-    for (int i = 0; i < polyline.length; i++) {
-      goodRoads.add(
-        mt.Route(
-          id: -1,
-          points: stringToPoints(polyline[i]['points']), // routePoints,
-          colour: uiColours.keys.toList()[Setup()
-              .goodRouteColour], //     int.parse(polyline[i]['colour'])],
-          borderColour: uiColours.keys.toList()[Setup().goodRouteColour],
-          strokeWidth: (int.parse(polyline[i]['stroke'])).toDouble(),
-        ),
-      );
-    }
-  }
+Future<List<mt.Route>> getPolylines(String driveUri) async {
+  // http://10.101.1.150:5001/v1/polyline/drive/9fadee54c71d48b1b667a5ea13c4bea4
 
-  return goodRoads;
+  final url = '$urlPolyline/drive/$driveUri';
+  debugPrint('url: $url');
+  final http.Response response = await getWebData(
+      uri: Uri.parse(
+          'http://10.101.1.150:5001/v1/polyline/drive/9fadee54c71d48b1b667a5ea13c4bea4')); //'$urlPolyline/drive/$driveUri'));
+  if ([200, 201].contains(response.statusCode)) {
+    try {
+      List<dynamic> maps = jsonDecode(response.body);
+      return [
+        for (Map<String, dynamic> map in maps)
+          polylineFromMap(map: map, goodRoad: false)
+      ];
+    } catch (e) {
+      debugPrint('Error getPolylines: ${e.toString()}');
+      return [];
+    }
+  } else {
+    return [];
+  }
+}
+
+Future<List<mt.Route>> getGoodRoads(LatLng ne, LatLng sw) async {
+  final Uri uri = Uri.parse(
+      '$urlGoodRoad/location/${sw.latitude}/${ne.latitude}/${sw.longitude}/${ne.longitude}');
+
+  final http.Response response = await getWebData(uri: uri);
+  if ([200, 201].contains(response.statusCode) && response.body.length > 10) {
+    List<Map<String, dynamic>> maps = jsonDecode(response.body);
+    return [
+      for (Map<String, dynamic> map in maps)
+        polylineFromMap(map: map, goodRoad: true)
+    ];
+  }
+  return [];
+}
+
+Future<mt.Route?> getRoute(
+    {required String uriString, bool goodRoad = false}) async {
+  String stringUri =
+      goodRoad ? '$urlGoodRoad/$uriString' : '$urlPolyline/$uriString';
+  final http.Response response = await getWebData(uri: Uri.parse(stringUri));
+  if ([200, 201].contains(response.statusCode)) {
+    Map<String, dynamic> map = jsonDecode(response.body);
+    return polylineFromMap(map: map, goodRoad: goodRoad);
+  }
+  // Polyline(points: [const LatLng(0, 0)]);
+}
+
+mt.Route polylineFromMap(
+    {required Map<String, dynamic> map, bool goodRoad = false}) {
+  int colour = goodRoad ? Setup().goodRouteColour : map['colour'];
+  Color routeColor = uiColours.keys.toList()[colour];
+  return mt.Route(
+    id: -1,
+    points: stringToPoints(map['points']), // routePoints,
+    colour: routeColor,
+    borderColour: routeColor,
+    strokeWidth: (map['stroke']).toDouble(),
+  );
 }
 
 Future<List<PointOfInterest>> getPointsOfInterest(ne, sw) async {
@@ -461,7 +457,7 @@ Future<List<PointOfInterest>> getPointsOfInterest(ne, sw) async {
         Uri.parse(
             '$urlPointOfInterest/location/${sw.latitude}/${ne.latitude}/${sw.longitude}/${ne.longitude}'),
         //'/location/<min_lat>/<max_lat>/<min_long>/<max_long>'
-        headers: secureHeader(),
+        headers: webHeader(),
       )
       .timeout(const Duration(seconds: 20));
   if ([200, 201].contains(response.statusCode) && response.body.length > 10) {
@@ -505,7 +501,7 @@ List<String> webUrls(
     List<String> files = [uriString.substring(2, uriString.length - 2)];
     List<String> urls = [
       for (String file in files)
-        '${urlBase}v1/drive/images/$driveUri/$pointOfInterestUri/$file'
+        '$urlDrive/images/$driveUri/$pointOfInterestUri/$file'
     ];
     return urls;
   }
@@ -514,26 +510,9 @@ List<String> webUrls(
 
 // "http://10.101.1.150:5000/v1/drive/images/712c8d58e7d84491bba6fdb5507ea5ac/0081b165074f4d218c2db5ecafffd1b3/e9cbc367-236b-4dde-994d-e19fb43c1092.jpg"
 Future<String> postManeuver(Maneuver maneuver, String driveUid) async {
-  Map<String, dynamic> map = {
-    'drive_id': driveUid,
-    'road_from': maneuver.roadFrom,
-    'road_to': maneuver.roadTo,
-    'bearing_before': maneuver.bearingBefore,
-    'bearing_after': maneuver.bearingAfter,
-    'exit': maneuver.exit,
-    'location': maneuver.location.toString(),
-    'modifier': maneuver.modifier,
-    'type': maneuver.type,
-    'distance': maneuver.distance
-  };
-
-  final http.Response response = await http.post(Uri.parse('$urlManeuver/add'),
-      headers: <String, String>{
-        "Content-Type": "application/json; charset=UTF-8",
-      },
-      body: jsonEncode(map));
+  final http.Response response = await postWebData(
+      uri: Uri.parse('$urlManeuver/add'), body: jsonEncode(maneuver.toMap()));
   if ([200, 201].contains(response.statusCode)) {
-    // 201 = Created
     debugPrint('Maneuver posted OK');
     return jsonEncode({'code': response.statusCode});
   } else {
@@ -543,33 +522,15 @@ Future<String> postManeuver(Maneuver maneuver, String driveUid) async {
 }
 
 Future<String> postManeuvers(List<Maneuver> maneuvers, String driveUid) async {
-  List<Map<String, dynamic>> maps = [];
-  for (Maneuver maneuver in maneuvers) {
-    String pos =
-        '{"lat":${maneuver.location.latitude}, "long":${maneuver.location.longitude}}';
-    maps.add({
-      'drive_id': driveUid,
-      'road_from': maneuver.roadFrom,
-      'road_to': maneuver.roadTo,
-      'bearing_before': maneuver.bearingBefore,
-      'bearing_after': maneuver.bearingAfter,
-      'exit': maneuver.exit,
-      'location': pos,
-      'modifier': maneuver.modifier,
-      'type': maneuver.type,
-      'distance': maneuver.distance
-    });
-  }
+  List<Map<String, dynamic>> maps = [
+    for (Maneuver maneuver in maneuvers) maneuver.toMap()
+  ];
   if (maps.isEmpty) {
     return jsonEncode({'message': 'no maneuvers to post'});
   }
-  final http.Response response = await http.post(Uri.parse('$urlManeuver/add'),
-      headers: <String, String>{
-        "Content-Type": "application/json; charset=UTF-8",
-      },
-      body: jsonEncode(maps));
+  final http.Response response = await postWebData(
+      uri: Uri.parse('$urlManeuver/add'), body: jsonEncode(maps), secure: true);
   if (response.statusCode == 201) {
-    // 201 = Created
     debugPrint('Maneuver posted OK');
     return jsonEncode({'code': response.statusCode});
   } else {
@@ -578,15 +539,75 @@ Future<String> postManeuvers(List<Maneuver> maneuvers, String driveUid) async {
   }
 }
 
+Future<List<Feature>> getFeatures(
+    {double zoom = 12, required Function onTap}) async {
+  http.Response response =
+      await getWebData(uri: Uri.parse('$urlDrive/features'));
+  if (response.statusCode == 200) {
+    List<dynamic> dataJson = jsonDecode(response.body);
+    int row = 0;
+    return [
+      for (Map<String, dynamic> map in dataJson)
+        Feature.fromMap(
+            map: map, row: row++, size: zoom * 5, onTap: () => onTap)
+    ];
+  }
+  return [];
+}
+
+Future<List<ImageCacheItem>> getImages() async {
+  http.Response response = await getWebData(uri: Uri.parse('$urlDrive/images'));
+  if (response.statusCode == 200) {
+    List<dynamic> dataJson = jsonDecode(response.body);
+    int row = 0;
+    return [
+      for (Map<String, dynamic> map in dataJson)
+        ImageCacheItem.fromMap(map: map, row: row++)
+    ];
+  }
+  return [];
+}
+
+Future<List<TripSummary>> getTripSummaries(
+    {required LatLng northEast,
+    required LatLng southWest,
+    double zoom = 8}) async {
+  List<TripSummary> summaries = [];
+  final http.Response response = await http
+      .get(
+        Uri.parse(
+            '$urlDrive/summary/${southWest.latitude}/${northEast.latitude}/${southWest.longitude}/${northEast.longitude}/$zoom'),
+      )
+      .timeout(const Duration(seconds: 5));
+
+  if (response.statusCode == 200) {
+    try {
+      List<dynamic> tripsJson = jsonDecode(response.body);
+      for (Map<String, dynamic> trip in tripsJson) {
+        summaries.add(TripSummary.fromMap(map: trip));
+      }
+    } catch (e) {
+      debugPrint('Error processing summaries: ${e.toString()}');
+    }
+  }
+  debugPrint('Summaries returned from API: ${summaries.length}');
+  return summaries;
+}
+
 Future<List<TripItem>> getTrips() async {
   List<TripItem> trips = [];
-  var currentPosition = await utils.getPosition();
-  LatLng pos = LatLng(currentPosition.latitude, currentPosition.longitude);
+  LatLng pos = const LatLng(-52, 0);
+  try {
+    var currentPosition = await utils.getPosition();
+    pos = LatLng(currentPosition.latitude, currentPosition.longitude);
+  } catch (e) {
+    debugPrint('getPosition() error: ${e.toString()}');
+  }
 
   final http.Response response = await http
       .get(
         Uri.parse('$urlDrive/all'),
-        headers: secureHeader(),
+        headers: webHeader(),
       )
       .timeout(const Duration(seconds: 20));
   if (response.statusCode == 200) {
@@ -634,7 +655,8 @@ Future<List<TripItem>> getTrips() async {
   return trips;
 }
 
-Future<TripItem> getTrip({required tripId}) async {
+Future<TripItem> getTrip(
+    {required tripId, bool updateImageUris = false}) async {
   TripItem gotTrip = TripItem(heading: '');
   if (tripId.length == 32) {
     var currentPosition = await utils.getPosition();
@@ -643,7 +665,7 @@ Future<TripItem> getTrip({required tripId}) async {
     final http.Response response = await http
         .get(
           Uri.parse('$urlDrive/summary/$tripId'),
-          headers: secureHeader(),
+          headers: webHeader(),
         )
         .timeout(const Duration(seconds: 20));
     if (response.statusCode == 200) {
@@ -678,13 +700,13 @@ Future<TripItem> getTrip({required tripId}) async {
             body: trip['body'],
             author: trip['author'],
             published: trip['added'],
-            imageUrls: trip['image_urls'],
+            imageUrls: trip['image_urls'] ?? '',
             score: trip['average_rating'].toDouble() ?? 5.0,
             distance: trip['distance'],
             pointsOfInterest: trip['points_of_interest'].length,
             closest: distance,
             scored: trip['ratings_count'] ?? 1,
-            downloads: trip['download_count'] ?? 0,
+            downloads: trip['download_count'] ?? trip['downloads'] ?? 0,
             uri: trip['id']);
       } catch (e) {
         String err = e.toString();
@@ -698,7 +720,7 @@ Future<TripItem> getTrip({required tripId}) async {
 Future<Uint8List> getImageBytes({required String url}) async {
   Uint8List data = Uint8List.fromList([]);
   final response =
-      await http.get(Uri.parse(url)).timeout(const Duration(seconds: 5));
+      await http.get(Uri.parse(url)).timeout(const Duration(seconds: 10));
   if (response.statusCode == 200) {
     data = response.bodyBytes;
   }
@@ -708,7 +730,7 @@ Future<Uint8List> getImageBytes({required String url}) async {
 Future<void> getAndSaveImage(
     {required String url, required String filePath}) async {
   final response =
-      await http.get(Uri.parse(url)).timeout(const Duration(seconds: 5));
+      await http.get(Uri.parse(url)).timeout(const Duration(seconds: 10));
   if (response.statusCode == 200) {
     // Get the document directory path
     // final directory = await getApplicationDocumentsDirectory();
@@ -740,7 +762,7 @@ putDriveRating(String uri, int score) async {
   };
   final http.Response response = await http.post(
       Uri.parse('$urlDriveRating/add'),
-      headers: secureHeader(),
+      headers: webHeader(),
       body: jsonEncode(map));
   if ([200, 201].contains(response.statusCode)) {
     debugPrint('Score added OK: ${response.statusCode}');
@@ -758,7 +780,7 @@ putPointOfInterestRating(String uri, int score) async {
   };
   final http.Response response = await http.post(
       Uri.parse('$urlPointOfInterestRating/add'),
-      headers: secureHeader(),
+      headers: webHeader(),
       body: jsonEncode(map));
   if ([200, 201].contains(response.statusCode)) {
     debugPrint('Score added OK: ${response.statusCode}');
@@ -770,7 +792,7 @@ Future<Map<String, dynamic>> getPointOfInterestRating(String uri) async {
   final http.Response response = await http
       .get(
         Uri.parse('$urlPointOfInterestRating/$uri'),
-        headers: secureHeader(),
+        headers: webHeader(),
       )
       .timeout(const Duration(seconds: 10));
   if (response.statusCode == 200) {
@@ -785,7 +807,7 @@ Future<MyTripItem> getTripSummary(String tripUuid) async {
 
   final http.Response response = await http.get(
     Uri.parse('$urlDrive/$tripUuid'),
-    headers: secureHeader(),
+    headers: webHeader(),
   );
   if (response.statusCode == 200) {
     Map<String, dynamic> trip = jsonDecode(response.body);
@@ -851,7 +873,7 @@ Future<MyTripItem> getMyTrip(String tripUuid) async {
 
   final http.Response response = await http.get(
     Uri.parse('$urlDrive/$tripUuid'),
-    headers: secureHeader(),
+    headers: webHeader(),
   );
   if (response.statusCode == 200) {
     Map<String, dynamic> trip = jsonDecode(response.body);
@@ -976,7 +998,7 @@ Future<List<GroupMember>> getIntroduced() async {
     final http.Response response = await http
         .get(
           Uri.parse('$urlIntroduced/get'),
-          headers: secureHeader(),
+          headers: webHeader(),
         )
         .timeout(const Duration(seconds: 10));
     if (response.statusCode == 200) {
@@ -1003,7 +1025,7 @@ putIntroduced(List<GroupMember> members) async {
 
   final http.Response response = await http.post(
       Uri.parse('$urlIntroduced/put'),
-      headers: secureHeader(),
+      headers: webHeader(),
       body: jsonEncode(maps));
   if ([200, 201].contains(response.statusCode)) {
     debugPrint('Member added OK: ${response.statusCode}');
@@ -1012,7 +1034,7 @@ putIntroduced(List<GroupMember> members) async {
 
 deleteWebImage(String url) async {
   final http.Response response = await http.post(Uri.parse(url),
-      headers: secureHeader(), body: jsonEncode('"id": "delete_image"'));
+      headers: webHeader(), body: jsonEncode('"id": "delete_image"'));
   if ([200, 201].contains(response.statusCode)) {
     debugPrint('Member added OK: ${response.statusCode}');
   }
@@ -1118,17 +1140,12 @@ bool canDelete(bool ok, String url, int index) {
 }
 
 Future<List<Group>> getManagedGroups() async {
-  List<Group> groupsSent = [];
   try {
-    final http.Response response = await http
-        .get(
-          Uri.parse('$urlGroup/managed'),
-          headers: secureHeader(),
-        )
-        .timeout(const Duration(seconds: 10));
+    final http.Response response =
+        await getWebData(uri: Uri.parse('$urlGroup/managed'));
     if ([200, 201].contains(response.statusCode)) {
       var groups = jsonDecode(response.body);
-      groupsSent = [
+      return [
         for (Map<String, dynamic> groupData in groups)
           Group.fromGroupSummaryMap(groupData)
       ];
@@ -1136,27 +1153,16 @@ Future<List<Group>> getManagedGroups() async {
   } catch (e) {
     debugPrint("Can't access data on the web");
   }
-  return groupsSent;
+  return [];
 }
 
 Future<List<GroupMember>> getManagedGroupMembers(String groupId) async {
-  List<GroupMember> groupMembersSent = [];
   try {
-    Uri uri = Uri.parse('$urlGroupMember/members/$groupId');
-    final http.Response response = await http
-        .get(
-          uri,
-          //  Uri.parse('${urlBase}v1/group_member/group/$groupId'),
-          // "http://10.101.1.150:5000/v1/group_member/group/a9c4c22094b94dd58f852125b912487d"
-          headers: secureHeader(),
-        )
-        .timeout(const Duration(seconds: 10));
+    final http.Response response =
+        await getWebData(uri: Uri.parse('$urlGroupMember/members/$groupId'));
     if ([200, 201].contains(response.statusCode)) {
       var groups = jsonDecode(response.body);
-      for (Map<String, dynamic> groupData in groups) {
-        debugPrint(groupData.toString());
-      }
-      groupMembersSent = [
+      return [
         for (Map<String, dynamic> groupData in groups)
           GroupMember.fromApiMap(groupData)
       ];
@@ -1164,29 +1170,23 @@ Future<List<GroupMember>> getManagedGroupMembers(String groupId) async {
   } catch (e) {
     debugPrint("Can't access data on the web");
   }
-  return groupMembersSent;
+  return [];
 }
 
 Future<List<Group>> getGroups() async {
-  List<Group> groupsSent = [];
-
   try {
-    final http.Response response = await http
-        .get(
-          Uri.parse('$urlGroup/get'),
-          headers: secureHeader(),
-        )
-        .timeout(const Duration(seconds: 10));
+    final http.Response response =
+        await getWebData(uri: Uri.parse('$urlGroup/get'));
     if ([200, 201].contains(response.statusCode)) {
       var groups = jsonDecode(response.body);
-      groupsSent = [
+      return [
         for (Map<String, dynamic> groupData in groups) Group.fromMap(groupData)
       ];
     }
   } catch (e) {
     debugPrint("Can't access data on the web");
   }
-  return groupsSent;
+  return [];
 }
 
 Future<bool> serverListening() async {
@@ -1195,7 +1195,7 @@ Future<bool> serverListening() async {
         .get(
           Uri.parse('$urlUser/test'),
         )
-        .timeout(const Duration(seconds: 10));
+        .timeout(const Duration(seconds: 20));
     return (response.statusCode == 200);
   } catch (e) {
     debugPrint('Error checking for server: ${e.toString()}');
@@ -1204,18 +1204,12 @@ Future<bool> serverListening() async {
 }
 
 Future<List<Group>> getMyGroups() async {
-  List<Group> groupsSent = [];
-
   try {
-    final http.Response response = await http
-        .get(
-          Uri.parse('$urlGroup/mine'),
-          headers: secureHeader(),
-        )
-        .timeout(const Duration(seconds: 10));
+    final http.Response response =
+        await getWebData(uri: Uri.parse('$urlGroup/mine'));
     if (response.statusCode == 200) {
       var groups = jsonDecode(response.body);
-      groupsSent = [
+      return [
         for (Map<String, dynamic> groupData in groups)
           Group.fromMyGroupsMap(groupData)
       ];
@@ -1223,62 +1217,41 @@ Future<List<Group>> getMyGroups() async {
   } catch (e) {
     debugPrint("Can't access data on the web");
   }
-  return groupsSent;
+  return [];
 }
 
 Future<List<GroupDrive>> getGroupDrives() async {
-  List<GroupDrive> groupsSent = [];
   try {
-    final http.Response response = await http
-        .get(
-          Uri.parse('$urlGroupDrive/pending'),
-          headers: secureHeader(),
-        )
-        .timeout(const Duration(seconds: 30));
+    final http.Response response =
+        await getWebData(uri: Uri.parse('$urlGroupDrive/pending'));
     if ([200, 201].contains(response.statusCode)) {
       List<dynamic> groups = jsonDecode(response.body);
-      groupsSent = [
-        for (Map<String, dynamic> map in groups) GroupDrive.fromMap(map)
-      ];
+      return [for (Map<String, dynamic> map in groups) GroupDrive.fromMap(map)];
     }
   } catch (e) {
     debugPrint("getGroupDrives error: ${e.toString()}");
   }
-  return groupsSent;
+  return [];
 }
 
 Future<Map<String, dynamic>> deleteGroupDrive(
     {required String groupDriveId}) async {
-  Map<String, dynamic> resp = {'msg': 'Failed'};
-
-  var uri = Uri.parse('$urlGroupDrive/delete');
-
-  final http.Response response = await http
-      .post(uri,
-          headers: secureHeader(),
-          body: jsonEncode({'group_drive_id': groupDriveId}))
-      .timeout(const Duration(seconds: 10));
+  final http.Response response = await postWebData(
+      uri: Uri.parse('$urlGroupDrive/delete'),
+      body: jsonEncode({'group_drive_id': groupDriveId}));
   if ([200, 201].contains(response.statusCode)) {
-    resp = {'msg': 'OK'};
-    debugPrint('Member added OK: ${response.statusCode}');
+    return {'msg': 'OK'};
   }
-
-  return resp;
+  return {'msf': 'error'};
 }
 
 Future<List<Group>> getMessagesByGroup() async {
-  List<Group> groupsSent = [];
-
   try {
-    final http.Response response = await http
-        .get(
-          Uri.parse('$urlMessage/group_messages'),
-          headers: secureHeader(),
-        )
-        .timeout(const Duration(seconds: 10));
+    final http.Response response =
+        await getWebData(uri: Uri.parse('$urlMessage/group_messages'));
     if ([200, 201].contains(response.statusCode)) {
       var groups = jsonDecode(response.body);
-      groupsSent = [
+      return [
         for (Map<String, dynamic> groupData in groups)
           Group(
             id: groupData['id'],
@@ -1292,21 +1265,16 @@ Future<List<Group>> getMessagesByGroup() async {
   } catch (e) {
     debugPrint("Can't access data on the web");
   }
-  return groupsSent;
+  return [];
 }
 
 Future<List<Message>> getGroupMessages(Group group) async {
-  List<Message> messagesSent = [];
   try {
-    final http.Response response = await http
-        .get(
-          Uri.parse('$urlMessage/group/${group.id}'),
-          headers: secureHeader(),
-        )
-        .timeout(const Duration(seconds: 10));
+    final http.Response response =
+        await getWebData(uri: Uri.parse('$urlMessage/group/${group.id}'));
     if ([200, 201].contains(response.statusCode)) {
       var messages = jsonDecode(response.body);
-      messagesSent = [
+      return [
         for (Map<String, dynamic> messageData in messages)
           Message.fromMap(
             messageData,
@@ -1316,31 +1284,25 @@ Future<List<Message>> getGroupMessages(Group group) async {
   } catch (e) {
     debugPrint("Can't access data on the web");
   }
-  return messagesSent;
+  return [];
 }
 
 Future<String> putMessage(Group group, Message message) async {
-  Map<String, dynamic> map = {'group_id': group.id, 'message': message.message};
-  final http.Response response = await http.post(Uri.parse('$urlMessage/add'),
-      headers: secureHeader(), body: jsonEncode(map));
+  final http.Response response = await postWebData(
+      uri: Uri.parse('$urlMessage/add'),
+      body: '{"group_id": ${group.id}, "message": ${message.message}}');
   if ([200, 201].contains(response.statusCode)) {
-    dynamic responseData = jsonDecode(String.fromCharCodes(response.bodyBytes));
-    debugPrint('Server response: $responseData');
-    return responseData.toString();
+    return jsonDecode(response.body);
   }
   return '';
 }
 
 Future<String> putGroup(Group group) async {
-  Map<String, dynamic> map = group.toMap();
-  final http.Response response = await http.post(
-      Uri.parse('${urlBase}v1/group/add'),
-      headers: secureHeader(),
-      body: jsonEncode(map));
+  final http.Response response = await postWebData(
+      uri: Uri.parse('${urlBase}v1/group/add'),
+      body: jsonEncode(group.toMap()));
   if ([200, 201].contains(response.statusCode)) {
-    // dynamic responseData = jsonDecode(String.fromCharCodes(response.bodyBytes));
     dynamic responseData = jsonDecode(response.body);
-    debugPrint('Server response: $responseData');
     group.id = responseData['id'];
     return responseData.toString();
   }
@@ -1352,18 +1314,13 @@ Future<String> putGroup(Group group) async {
 /// some selection of who sees what on the home page
 
 Future<List<HomeItem>> getHomeItems(int scope) async {
-  List<HomeItem> itemsSent = [];
   try {
-    final http.Response response = await http
-        .get(
-          Uri.parse('$urlHomePageItem/get/$scope'),
-          headers: secureHeader(),
-        )
-        .timeout(const Duration(seconds: 10));
+    final http.Response response =
+        await getWebData(uri: Uri.parse('$urlHomePageItem/get/$scope'));
     if ([200, 201].contains(response.statusCode)) {
       List<dynamic> items = jsonDecode(response.body);
       if (items.isNotEmpty) {
-        itemsSent = [
+        return [
           for (Map<String, dynamic> map in items)
             HomeItem.fromMap(map: map, url: '$urlHomePageItem/images/')
         ];
@@ -1372,7 +1329,7 @@ Future<List<HomeItem>> getHomeItems(int scope) async {
   } catch (e) {
     debugPrint("getHomeItems error: ${e.toString()}");
   }
-  return itemsSent;
+  return [];
 }
 
 Future<String> postHomeItem(HomeItem homeItem) async {
@@ -1435,7 +1392,7 @@ Future<List<ShopItem>> getShopItems(int scope) async {
     final http.Response response = await http
         .get(
           Uri.parse('$urlShopItem/get/$scope'),
-          headers: secureHeader(),
+          headers: webHeader(),
         )
         .timeout(const Duration(seconds: 30));
     if ([200, 201].contains(response.statusCode)) {
@@ -1511,18 +1468,13 @@ Future<String> postShopItem(ShopItem shopItem) async {
 }
 
 Future<List<EventInvitation>> getInvitationssByUser() async {
-  List<EventInvitation> invitationsSent = [];
-
   try {
-    final http.Response response = await http
-        .get(
-          Uri.parse('$urlGroupDriveInvitation/user'),
-          headers: secureHeader(),
-        )
-        .timeout(const Duration(seconds: 10));
+    final http.Response response =
+        await getWebData(uri: Uri.parse('$urlGroupDriveInvitation/user'));
+
     if ([200, 201].contains(response.statusCode)) {
       var invitations = jsonDecode(response.body);
-      invitationsSent = [
+      return [
         for (Map<String, dynamic> invitation in invitations)
           EventInvitation.fromByUserMap(invitation)
       ];
@@ -1530,22 +1482,17 @@ Future<List<EventInvitation>> getInvitationssByUser() async {
   } catch (e) {
     debugPrint("Can't access data on the web");
   }
-  return invitationsSent;
+  return [];
 }
 
 Future<List<EventInvitation>> getInvitationsByEvent(
     {String eventId = ''}) async {
-  List<EventInvitation> invitationsSent = [];
   try {
-    final http.Response response = await http
-        .get(
-          Uri.parse('$urlGroupDriveInvitation/trip/$eventId'),
-          headers: secureHeader(),
-        )
-        .timeout(const Duration(seconds: 10));
+    final http.Response response = await getWebData(
+        uri: Uri.parse('$urlGroupDriveInvitation/trip/$eventId'));
     if ([200, 201].contains(response.statusCode)) {
       var invitations = jsonDecode(response.body);
-      invitationsSent = [
+      return [
         for (Map<String, dynamic> invitation in invitations)
           EventInvitation.fromByEventMap(invitation)
       ];
@@ -1553,22 +1500,17 @@ Future<List<EventInvitation>> getInvitationsByEvent(
   } catch (e) {
     debugPrint("Can't access data on the web: ${e.toString()}");
   }
-  return invitationsSent;
+  return [];
 }
 
 Future<List<EventInvitation>> getInvitationsToAlter(
     {String eventId = ''}) async {
-  List<EventInvitation> invitationsSent = [];
   try {
-    final http.Response response = await http
-        .get(
-          Uri.parse('$urlGroupDriveInvitation/alter/$eventId'),
-          headers: secureHeader(),
-        )
-        .timeout(const Duration(seconds: 10));
+    final http.Response response = await getWebData(
+        uri: Uri.parse('$urlGroupDriveInvitation/alter/$eventId'));
     if ([200, 201].contains(response.statusCode)) {
       var invitations = jsonDecode(response.body);
-      invitationsSent = [
+      return [
         for (Map<String, dynamic> invitation in invitations)
           EventInvitation.fromByUserToAlterMap(invitation)
       ];
@@ -1576,7 +1518,7 @@ Future<List<EventInvitation>> getInvitationsToAlter(
   } catch (e) {
     debugPrint("Can't access data on the web: ${e.toString()}");
   }
-  return invitationsSent;
+  return [];
 }
 
 Future<String> postGroupDriveInvitations(
@@ -1585,86 +1527,53 @@ Future<String> postGroupDriveInvitations(
     for (EventInvitation invite in invitations)
       if (invite.selected) invite.toMap()
   ];
-  final http.Response response = await http.post(
-      Uri.parse('$urlGroupDriveInvitation/update'),
-      headers: secureHeader(),
-      body: jsonEncode(map));
+  final http.Response response = await postWebData(
+      uri: Uri.parse('$urlGroupDriveInvitation/update'), body: jsonEncode(map));
   if ([200, 201].contains(response.statusCode)) {
-    // dynamic responseData = jsonDecode(String.fromCharCodes(response.bodyBytes));
-    dynamic responseData = jsonDecode(response.body);
-    debugPrint('Server response: $responseData');
-    // group.id = responseData['id'];
-    return responseData.toString();
+    return response.body;
   }
   return '';
 }
 
 Future<String> postGroupDrive(GroupDriveInvitation invitation) async {
-  Map<String, dynamic> map = invitation.toMap();
-  final http.Response response = await http.post(
-      Uri.parse('$urlGroupDrive/add'),
-      headers: secureHeader(),
-      body: jsonEncode(map));
+  final http.Response response = await postWebData(
+      uri: Uri.parse('$urlGroupDrive/add'),
+      body: jsonEncode(invitation.toMap()));
   if ([200, 201].contains(response.statusCode)) {
-    // dynamic responseData = jsonDecode(String.fromCharCodes(response.bodyBytes));
-    dynamic responseData = jsonDecode(response.body);
-    debugPrint('Server response: $responseData');
-    // group.id = responseData['id'];
-    return responseData.toString();
+    return response.body;
   }
   return '';
 }
 
 Future<bool> answerInvitation(EventInvitation invitation) async {
-  bool result = false;
-  Map<String, dynamic> map = {
-    'invitation_id': invitation.id,
-    'response': invitation.accepted.toString()
-  };
-
-  final http.Response response = await http.post(
-      Uri.parse('$urlGroupDriveInvitation/respond'),
-      headers: secureHeader(),
-      body: jsonEncode(map));
-  if ([200, 201].contains(response.statusCode)) {
-    debugPrint('invitation status updated OK: ${response.statusCode}');
-    result = true;
-  }
-
-  return result;
+  final http.Response response = await postWebData(
+      uri: Uri.parse('$urlGroupDriveInvitation/respond'),
+      body:
+          '{"invitation_id": ${invitation.id}, "response":${invitation.accepted.toString()}}');
+  return [200, 201].contains(response.statusCode);
 }
 
 Future<GroupMember> getUserByEmail(String email) async {
-  GroupMember member = GroupMember(forename: '', surname: '');
-  Map<String, dynamic> map = {'email': email};
   try {
-    final http.Response response = await http
-        .post(Uri.parse('$urlUser/get_user_by_email'),
-            headers: secureHeader(), body: jsonEncode(map))
-        .timeout(const Duration(seconds: 10));
+    final http.Response response = await postWebData(
+        uri: Uri.parse('$urlUser/get_user_by_email'), body: '"email": $email');
+
     if (response.statusCode == 200) {
-      dynamic responseData = jsonDecode(response.body);
-      // dynamic responseData = jsonDecode(String.fromCharCodes(response.bodyBytes));
-      member = GroupMember.fromUserMap(responseData);
+      return GroupMember.fromUserMap(jsonDecode(response.body));
     }
   } catch (e) {
     debugPrint("Can't access data on the web: ${e.toString()}");
   }
-  return member;
+  return GroupMember(forename: '', surname: '');
 }
 
 Future<List<GroupMember>> getGroupMembers() async {
-  List<GroupMember> introduced = [];
   try {
-    final http.Response response = await http
-        .get(
-          Uri.parse('$urlIntroduced/get'),
-          headers: secureHeader(),
-        )
-        .timeout(const Duration(seconds: 10));
+    final http.Response response =
+        await getWebData(uri: Uri.parse('$urlIntroduced/get'));
     if (response.statusCode == 200) {
       var members = jsonDecode(response.body);
-      introduced = [
+      return [
         for (Map<String, dynamic> memberMap in members)
           GroupMember.fromMap(memberMap)
       ];
@@ -1672,5 +1581,5 @@ Future<List<GroupMember>> getGroupMembers() async {
   } catch (e) {
     debugPrint("Can't access data on the web");
   }
-  return introduced;
+  return [];
 }

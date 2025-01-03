@@ -14,6 +14,7 @@ https://pub.dev/packages/flutter_map_animations/example  shows how to animate ma
 
 void main() {
   runApp(
+    // debugInvertOversizedImages = true;
     MaterialApp(
       debugShowCheckedModeBanner: false,
       initialRoute: 'splash',

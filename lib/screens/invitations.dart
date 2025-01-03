@@ -23,7 +23,7 @@ class _invitationsScreenState extends State<InvitationsScreen> {
   late FocusNode fn1;
 
   List<EventInvitation> invitations = [];
-
+  final ImageRepository _imageRepository = ImageRepository();
   String introduceName = 'Invitations';
   bool edited = false;
   int introduceIndex = 0;
@@ -124,6 +124,7 @@ class _invitationsScreenState extends State<InvitationsScreen> {
           child: ListView.builder(
             itemCount: invitations.length,
             itemBuilder: (context, index) => GroupDriveInvitationTile(
+              imageRepository: _imageRepository,
               eventInvitation: invitations[index],
               index: index,
               onDownload: onDownload,

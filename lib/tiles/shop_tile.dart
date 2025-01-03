@@ -7,6 +7,7 @@ import 'package:drives/classes/classes.dart';
 
 class ShopTile extends StatefulWidget {
   final ShopItem shopItem;
+  final ImageRepository imageRepository;
   final Function(int)? onSelect;
   final Function(int)? onDelete;
   final int index;
@@ -14,6 +15,7 @@ class ShopTile extends StatefulWidget {
   const ShopTile({
     super.key,
     required this.shopItem,
+    required this.imageRepository,
     this.onSelect,
     this.onDelete,
     this.index = 0,
@@ -60,6 +62,7 @@ class _ShopTileState extends State<ShopTile> {
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
               PhotoCarousel(
+                imageRepository: widget.imageRepository,
                 photos: photos,
                 endPoint: widget.shopItem.uri,
                 // endPoint: '$urlShopItem/images/${widget.shopItem.uri}/',

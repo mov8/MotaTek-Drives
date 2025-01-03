@@ -15,6 +15,7 @@ class ShopScreen extends StatefulWidget {
 class _shopScreenState extends State<ShopScreen> {
   late final LeadingWidgetController _leadingWidgetController;
   late final RoutesBottomNavController _bottomNavController;
+  final ImageRepository _imageRepository = ImageRepository();
   final GlobalKey _scaffoldKey = GlobalKey();
   late Future<bool> _dataLoaded;
   List<ShopItem> shopItems = [];
@@ -106,7 +107,10 @@ class _shopScreenState extends State<ShopScreen> {
         ),*/
       ])),
       for (int i = 0; i < shopItems.length; i++) ...[
-        ShopTile(shopItem: shopItems[i])
+        ShopTile(
+          shopItem: shopItems[i],
+          imageRepository: _imageRepository,
+        )
       ],
       const SizedBox(
         height: 40,

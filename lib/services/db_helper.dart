@@ -1,4 +1,7 @@
 import 'dart:io';
+import 'dart:typed_data';
+import 'dart:convert';
+import 'package:drives/classes/classes.dart';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -213,6 +216,73 @@ Future<int> saveUser(User user) async {
     debugPrint('Error witing user : ${e.toString()}');
     return -1;
   }
+}
+
+/*
+class LocalImage {
+  // extends StatelessWidget {
+  int id;
+  double width;
+  bool imageLoaded = false;
+  LocalImage({required this.id, this.width = 50});
+  // @override
+  // Widget build(BuildContext context) {
+
+  getImage() {
+    return FutureBuilder(
+      future: loadImageByIdLocal(id: id),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return ImageMissing(width: width);
+        } else if (snapshot.hasData) {
+          return snapshot.data as Image;
+        } else {
+          return const Center(
+            child: CircularProgressIndicator(),
+          );
+        }
+      },
+    );
+  }
+}
+*/
+Future<Uint8List?> loadImageByIdLocal({required int id}) async {
+  final db = await dbHelper().db;
+  List<Map<String, dynamic>> imageRecord =
+      await db.query('images', where: 'id = ?', whereArgs: [id]);
+
+  if (imageRecord.isNotEmpty) {
+    return imageRecord.first['image'];
+  }
+
+  return null;
+}
+
+Future<int> saveImageLocal(
+    {required Image image,
+    driveId = -1,
+    pointOfInterestId = -1,
+    caption = ''}) async {
+  final db = await dbHelper().db;
+
+  try {
+    int id = await db.insert(
+      'groups',
+      {
+        'image': image,
+        'drive_id': driveId,
+        'point_of_interest_id': pointOfInterestId,
+        'caption': caption,
+        'added': DateTime.now()
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+    return id;
+  } catch (err) {
+    String tError = err.toString();
+    debugPrint('Error saving groups: $tError');
+  }
+  return -1;
 }
 
 /*
@@ -494,6 +564,20 @@ Future<List<TripItem>> loadTripItems() async {
   return tripItems;
 }
 
+Future<TripItem?> loadTripItemLocal({int id = -1}) async {
+  if (id > -1) {
+    var maps;
+    final db = await dbHelper().db;
+    try {
+      String query = "SELECT * FROM trip_items WHERE id = $id";
+      maps = await db.rawQuery(query);
+      return TripItem.fromMap(map: maps[0]);
+    } catch (e) {
+      debugPrint('dbError:${e.toString()}');
+    }
+  }
+}
+
 /// If the API is online saveShopItemsLocal will refresh the local
 /// cache of shopItems. It will clear the SQLite db and download
 /// all the relevant data again.
@@ -619,7 +703,7 @@ Future<List<TripItem>> saveTripItemsLocal(List<TripItem> tripItems) async {
         try {
           tiMap.remove('id');
           String images = '';
-          String apiUrl;
+          //  String apiUrl;
           String localName;
 
           if (tiMap['image_urls'].isNotEmpty) {
@@ -721,6 +805,7 @@ Future<Map<String, dynamic>> getDrive(int driveId) async {
   }
   return {
     'id': int.parse(maps[0]['id'].toString()),
+    'uri': maps[0]['uri'].toString(),
     'title': maps[0]['title'].toString(),
     'subTitle': maps[0]['sub_title'].toString(),
     'body': maps[0]['body'].toString(),
@@ -1196,6 +1281,46 @@ Future<List<Polyline>> loadPolyLinesLocal(int driveId, {type = 0}) async {
         strokeWidth: (maps[i]['stroke']).toDouble()));
   }
   return polylines;
+}
+
+Future<mt.Route> loadPolyLineLocal(int id, {type = 0}) async {
+  final db = await dbHelper().db;
+  List<Map<String, dynamic>> map = await db.query(
+    'polylines',
+    where: 'id = ? and type = ?',
+    whereArgs: [id, type],
+  );
+  return mt.Route(
+      points: stringToPoints(map[0]['points']), // routePoints,
+      colour: uiColours.keys.toList()[map[0]['colour']],
+      borderColour: uiColours.keys.toList()[map[0]['colour']],
+      strokeWidth: (map[0]['stroke']).toDouble());
+}
+
+Future<List<mt.Route>> loadRoutesLocal(int id, {type = 0}) async {
+  final db = await dbHelper().db;
+  List<Map<String, dynamic>> maps = await db.query(
+    'polylines',
+    where: 'drive_id = ? and type = ?',
+    whereArgs: [id, type],
+  );
+  return [
+    for (Map<String, dynamic> map in maps)
+      mt.Route(
+          points: stringToPoints(map['points']), // routePoints,
+          colour: uiColours.keys.toList()[map['colour']],
+          borderColour: uiColours.keys.toList()[map['colour']],
+          strokeWidth: (map['stroke']).toDouble())
+  ];
+}
+
+Future<Uint8List> loadImageBytesLocal({required int id}) async {
+  final db = await dbHelper().db;
+  List<Map<String, dynamic>> map = await db.query(
+    'images',
+    where: 'id = ?',
+  );
+  return map[0]['image'];
 }
 
 List<LatLng> stringToPoints(String pointsString) {

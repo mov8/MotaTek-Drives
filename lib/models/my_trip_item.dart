@@ -14,6 +14,7 @@ import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
 import 'package:intl/intl.dart';
+import 'package:drives/constants.dart';
 import 'package:drives/classes/utilities.dart';
 import 'package:drives/services/db_helper.dart';
 import 'package:drives/classes/route.dart' as mt;
@@ -344,7 +345,8 @@ class MyTripItem {
     int result = -1;
     _driveId = await saveMyTripItem(this);
     try {
-      final directory = (await getApplicationDocumentsDirectory()).path;
+      // final directory = Setup().appDocumentDirectory;
+      // (await getApplicationDocumentsDirectory()).path;
       Uint8List? pngBytes = Uint8List.fromList([]);
       if (_driveUri.isEmpty) {
         final byteData =
@@ -352,11 +354,10 @@ class MyTripItem {
         pngBytes = byteData?.buffer.asUint8List();
       } else {
         String url =
-            Uri.parse('${wh.urlBase}v1/drive/images/$_driveUri/map.png')
-                .toString();
+            Uri.parse('$urlDrive/images/$_driveUri/map.png').toString();
         pngBytes = await wh.getImageBytes(url: url);
       }
-      String url = '$directory/drive$_driveId.png';
+      String url = '${Setup().appDocumentDirectory}/drive$_driveId.png';
       final imgFile = File(url);
       imgFile.writeAsBytes(pngBytes!);
       if (imgFile.existsSync()) {
@@ -365,7 +366,7 @@ class MyTripItem {
       }
     } catch (e) {
       String err = e.toString();
-      debugPrint('Error: $err');
+      debugPrint('saveLocal().Error: $err');
     }
     //  loadLocal(_driveId);
     return result;
@@ -376,10 +377,12 @@ class MyTripItem {
     Map<String, dynamic> map = await getDrive(driveId);
     LatLng pos = const LatLng(0, 0);
     int distance = 99999;
+
     await getPosition().then((currentPosition) {
       pos = LatLng(currentPosition.latitude, currentPosition.longitude);
     });
-    final directory = (await getApplicationDocumentsDirectory()).path;
+
+    final directory = Setup().appDocumentDirectory;
     _id = driveId;
     _driveId = driveId;
     _heading = map['title'];

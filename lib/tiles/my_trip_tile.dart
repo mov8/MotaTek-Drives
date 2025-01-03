@@ -80,7 +80,9 @@ class _myTripTileState extends State<MyTripTile> {
           ]),
           // backgroundColor: Colors.white,
           onExpansionChanged: (expanded) {
-            widget.onExpandChange!(expanded);
+            if (widget.onExpandChange != null) {
+              widget.onExpandChange!(expanded);
+            }
           },
           children: [
             SizedBox(
@@ -120,12 +122,14 @@ class _myTripTileState extends State<MyTripTile> {
                           Expanded(
                             flex: 8,
                             child: SizedBox(
-                                height: 200,
-                                child: ImageArranger(
-                                  photos: photos,
-                                  endPoint: widget.myTripItem.getDriveUri(),
-                                )
-                                /*
+                              height: 200,
+                              child: ImageArranger(
+                                photos: photos,
+                                endPoint: widget.myTripItem.getDriveUri(),
+                              ),
+                            ),
+                          ),
+                          /*
                               child: ListView(
                                 scrollDirection: Axis.horizontal,
                                 children: [
@@ -147,8 +151,8 @@ class _myTripTileState extends State<MyTripTile> {
                               ),
 
                               */
-                                ),
-                          )
+//),
+                          //)
                         ]),
                       const SizedBox(
                         height: 10,

@@ -55,17 +55,19 @@ class _ImageArrangerState extends State<ImageArranger> {
         scrollDirection: Axis.horizontal,
         children: [
           for (Photo photo in widget.photos)
-            if (photo.url.length > widget.webUrlMaxLength) ...[
-              showLocalImage(photo.url, index: photo.index)
-            ] else ...[
+            if (photo.url.contains('http')) ...[
               showWebImage(
                 context: context,
                 Uri.parse('${widget.endPoint}/${photo.url}').toString(),
                 // canDelete: true,
                 index: photo.index,
                 onDelete: (idx) => onDeleteImage(idx),
-              ), //        {debugPrint('onDelete $idx')})
+              ),
+            ] else ...[
+              showLocalImage(photo.url, index: photo.index),
             ]
+
+          //  {debugPrint('onDelete $idx')}
         ],
         onReorder: (int oldIndex, int newIndex) {
           setState(
@@ -94,14 +96,30 @@ class _ImageArrangerState extends State<ImageArranger> {
 
   Widget showLocalImage(String url, {index = -1}) {
     return SizedBox(
-        key: Key('sli$index'),
-        width: 160,
-        child: Image.file(
-          File(url),
-          errorBuilder:
-              (BuildContext context, Object exception, StackTrace? stackTrace) {
-            return const ImageMissing(width: 30);
-          },
-        ));
+      key: Key('sli$index'),
+
+      width: 175,
+      // height: 170,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(5, 0, 5, 0),
+        child: url.contains('assets/images')
+            ? Image(
+                image: AssetImage(url),
+                errorBuilder: (BuildContext context, Object exception,
+                    StackTrace? stackTrace) {
+                  return const ImageMissing(width: 30);
+                },
+                //  width: 30,
+              )
+            : Image.file(
+                File(url),
+                errorBuilder: (BuildContext context, Object exception,
+                    StackTrace? stackTrace) {
+                  return const ImageMissing(width: 30);
+                },
+                // width: 30,
+              ),
+      ),
+    );
   }
 }

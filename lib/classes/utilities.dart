@@ -26,9 +26,13 @@ Future<Position> getPosition() async {
           'Location permissions are permanently denied. Check your settings');
     }
   }
-  Position pos = await Geolocator.getCurrentPosition();
-  debugPrint('getPosition retuning position');
-  return pos;
+  try {
+    Setup().lastPosition = await Geolocator.getCurrentPosition();
+    debugPrint('utilities.getPosition() retuning position');
+  } catch (e) {
+    debugPrint('utilities.getPosition() error: ${e.toString()}');
+  }
+  return Setup().lastPosition;
 }
 
 double distanceBetween(LatLng point1, LatLng point2, {bool miles = true}) {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:drives/models/other_models.dart';
 import 'package:drives/classes/classes.dart';
 import 'package:drives/screens/screens.dart';
+import 'package:drives/tiles/tiles.dart';
 
 class MessagesScreen extends StatefulWidget {
   const MessagesScreen({
@@ -15,9 +16,17 @@ class _messagesScreenState extends State<MessagesScreen> {
   late final LeadingWidgetController _leadingWidgetController;
   late final RoutesBottomNavController _bottomNavController;
   late final GroupMessagesController _groupMessagesController;
+  final ImageRepository _imageRepository = ImageRepository();
   final GlobalKey _scaffoldKey = GlobalKey();
   late Future<bool> _dataLoaded;
-  List<TripItem> tripItems = [];
+  // List<TripItem> tripItems = [];
+  HomeItem homeItem = HomeItem(
+      heading: 'Keep in contact ',
+      subHeading: 'Message group members or individuals.',
+      body:
+          'Tell members about new events, or keep in contact on a group drive',
+      uri: 'assets/images/',
+      imageUrls: '[{"url": "message.png", "caption": ""}]');
   String _title = 'Messages - by group';
   Group _messageGroup = Group(
     name: '',
@@ -28,7 +37,6 @@ class _messagesScreenState extends State<MessagesScreen> {
     super.initState();
     _leadingWidgetController = LeadingWidgetController();
     _bottomNavController = RoutesBottomNavController();
-    // _bottomNavController.setValue(4);
     _groupMessagesController = GroupMessagesController();
     _dataLoaded = getMessages();
   }
@@ -43,12 +51,18 @@ class _messagesScreenState extends State<MessagesScreen> {
   }
 
   Widget _getPortraitBody() {
-    return SingleChildScrollView(
-      child: Column(
+    if (Setup().user.email.isEmpty) {
+      return HomeTile(
+        homeItem: homeItem,
+        imageRepository: _imageRepository,
+      );
+    } else {
+      return SingleChildScrollView(
+        child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            if (_messageGroup.name == '') ...[
+            if (_messageGroup.name.isEmpty) ...[
               SizedBox(
                 height: MediaQuery.of(context).size.height -
                     AppBar().preferredSize.height -
@@ -77,16 +91,15 @@ class _messagesScreenState extends State<MessagesScreen> {
                   controller: _groupMessagesController,
                   group: _messageGroup,
                   onSelect: (idx) => debugPrint('Message index: $idx'),
-                  onCancel: (_) => setState(
-                    () {
-                      _messageGroup = Group(name: '');
-                    },
-                  ),
+                  onCancel: (_) =>
+                      setState(() => _messageGroup = Group(name: '')),
                 ),
               ),
             ]
-          ]),
-    );
+          ],
+        ),
+      );
+    }
   }
 
   @override
@@ -97,10 +110,11 @@ class _messagesScreenState extends State<MessagesScreen> {
       appBar: AppBar(
         automaticallyImplyLeading: false,
         leading: LeadingWidget(
-            controller: _leadingWidgetController,
-            initialValue: 0,
-            onMenuTap: (index) {
-              setState(() {
+          controller: _leadingWidgetController,
+          initialValue: 0,
+          onMenuTap: (index) {
+            setState(
+              () {
                 if (index == 0) {
                   _leadingWidget(_scaffoldKey.currentState);
                 } else {
@@ -108,8 +122,10 @@ class _messagesScreenState extends State<MessagesScreen> {
                   _leadingWidgetController.changeWidget(0);
                   _title = 'Messages - by group';
                 }
-              });
-            }), // IconButton(
+              },
+            );
+          },
+        ), // IconButton(
         title: Text(
           _title,
           style: const TextStyle(
