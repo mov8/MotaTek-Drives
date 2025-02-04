@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:drives/constants.dart';
 import 'package:drives/models/other_models.dart';
-import 'package:drives/services/web_helper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:drives/classes/star_ratings.dart';
+import 'package:drives/classes/classes.dart';
 import 'dart:io';
 import 'dart:convert';
 
@@ -13,7 +12,13 @@ import 'dart:convert';
 /// In this case I wanted the widget to edit the data independantly
 /// of the external data and update the external data when the save method is called
 /// accessing the save method is achieved through the controller
-/*
+
+//class ExpandNotifier extends ValueNotifier<int> {//
+// ExpandNotifier(super.value);
+//  void targetValue({int target = -1}) {/
+//    value = target;
+//  }
+//}
 
 class PointOfInterestController {
   _PointOfInterestTileState? _pointOfInterestTileState;
@@ -23,43 +28,37 @@ class PointOfInterestController {
 
   bool get isAttached => _pointOfInterestTileState != null;
 
-  void loadImage(int id) {
-    assert(isAttached, 'Controller must be attached to widget');
-    try {
-      _pointOfInterestTileState?.loadImage(id);
-    } catch (e) {
-      String err = e.toString();
-      debugPrint('Error loading image: $err');
-    }
-  }
-
-  void save(int id) {
-    assert(isAttached, 'Controller must be attached to widget');
-    _pointOfInterestTileState?.save(id);
-  }
-
   void expand(bool state, bool canEdit) {
-    assert(isAttached, 'Controller must be atexpandtached to widget');
+    assert(isAttached, 'Controller must be attached to widget');
     _pointOfInterestTileState?.expand(state, canEdit);
   }
+
+  void expandChange({required bool expanded}) {
+    assert(isAttached, 'Controller must be attached to widget');
+    _pointOfInterestTileState?.expandChange(expanded: expanded);
+  }
 }
-*/
+
 class PointOfInterestTile extends StatefulWidget {
-//  final PointOfInterestController? pointOfInterestController;
+  final PointOfInterestController? controller;
+  final ExpandNotifier? expandNotifier;
   final PointOfInterest pointOfInterest;
   final int index;
   final Function onIconTap;
   final Function onExpandChange;
   final Function onDelete;
   final Function onRated;
-  // final Key key;
+  final ImageRepository imageRepository;
   final bool expanded;
   final bool canEdit;
 
   const PointOfInterestTile({
     super.key,
+    this.controller,
+    this.expandNotifier,
     required this.index,
     required this.pointOfInterest,
+    required this.imageRepository,
     required this.onIconTap,
     required this.onExpandChange,
     required this.onDelete,
@@ -72,194 +71,241 @@ class PointOfInterestTile extends StatefulWidget {
 }
 
 class _PointOfInterestTileState extends State<PointOfInterestTile> {
-  // late String name;
-  //  late String description;
-  //   late int type;
-  /// late String images;
   late int index;
+  late String endpoint;
   bool expanded = true;
   bool canEdit = true;
-  // final _key = GlobalKey();
-
+  bool isExpanded = false;
+  final ExpansionTileController _expansionTileController =
+      ExpansionTileController();
+  late final ExpandNotifier _expandNotifier;
+  //late final PageStorageKey _key;
   @override
   void initState() {
     super.initState();
-    //   widget.pointOfInterestController?._addState(this);
-
-    /// add to controller if instantiated
+    widget.controller?._addState(this);
     expanded = widget.expanded;
     canEdit = widget.canEdit;
     index = widget.index;
-    //  name = widget.pointOfInterest.name;
-    //  description = widget.pointOfInterest.description;
-    //  type = widget.pointOfInterest.type;
-    //  images = widget.pointOfInterest.images;
-    // images =
-    //     '[{"url":"/data/user/0/com.example.drives/app_flutter/point_of_interest_0_1.jpg","caption":"image 1"},{"url":"/data/user/0/com.example.drives/app_flutter/point_of_interest_0_1.jpg","caption":"image 1"}]';
-
-    /*
-        '''[{"url":"/data/user/0/com.example.drives/app_flutter/point_of_interest_0_1.jpg","caption":"image 1"},
-           {"url":"/data/user/0/com.example.drives/app_flutter/point_of_interest_0_1.jpg","caption":"image 1"},
-        {"url":"/data/user/0/com.example.drives/app_flutter/point_of_interest_0_1.jpg","caption":"image 1"}]''';
-    */
+    // _expansionTileController = ExpansionTileController();
+    //  _key = PageStorageKey('poiKey${widget.index}');
+    if (widget.expandNotifier == null) {
+      debugPrint('widget.expandNotifier is null');
+    }
+    _expandNotifier = widget.expandNotifier ?? ExpandNotifier(-1);
+    _expandNotifier.addListener(() {
+      _setExpanded(index: widget.index, target: _expandNotifier.value);
+    });
   }
 
   @override
+  void dispose() {
+    debugPrint('Disposing of PointOfInterestTile #$index');
+    super.dispose();
+  }
+
+  _setExpanded({required int index, required int target}) {
+    debugPrint('@@@ - _setExpanded(index: $index, target: $target}) - @@@');
+    try {
+      if (index == target) {
+        debugPrint('@@@ - _setExpanded calling expand - @@@');
+        _expansionTileController.expand();
+      } else {
+        debugPrint('@@@ - _setExpanded calling collapse - @@@');
+        _expansionTileController.collapse();
+      }
+    } catch (e) {
+      debugPrint(
+          '@@@@ - pointOfInterestTile._setExpanded error ${e.toString} - @@@@');
+    }
+  }
+
+  // final PageStorageKey _key = PageStorageKey('poiKey${widget.index}');
+
+  @override
   Widget build(BuildContext context) {
-    return Material(
-      key: Key('$widget.key'),
-      child: ExpansionTile(
-        controller: ExpansionTileController(),
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(
-            Radius.circular(5),
-          ),
-        ),
-        title: widget.pointOfInterest.getName() == ''
-            ? const Text(
-                'Add a point of interest',
-                style: TextStyle(
-                  color: Colors.black,
+    //return Material(
+    return ExpansionTile(
+      // key: Key('$widget.key'),
+      //  key: _key,
+      controller: _expansionTileController,
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Align(
+            alignment: AlignmentDirectional.topStart,
+            child: Text(widget.pointOfInterest.getName(),
+                style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
-              )
-            : Text(
-                widget.pointOfInterest.getName(),
-                style: const TextStyle(color: Colors.black),
-              ), //getTitles(index)[0]),
-        collapsedBackgroundColor: widget.index.isOdd
-            ? Colors.white
-            : const Color.fromARGB(255, 174, 211, 241),
-        backgroundColor: Colors.white,
-        initiallyExpanded: expanded,
-        onExpansionChanged: (expanded) {
-          setState(() {
-            widget.onExpandChange(expanded ? index : -1);
-          });
-        },
-        leading: IconButton(
-          iconSize: 25,
-          icon: Icon(
-            markerIcon(
-              widget.pointOfInterest.getType(),
-            ),
+                textAlign: TextAlign.left),
           ),
-          onPressed: widget.onIconTap(widget.index),
-        ),
+          Row(children: [
+            Expanded(
+              flex: 1,
+              child: StarRating(
+                  onRatingChanged: () {},
+                  rating: widget.pointOfInterest.getScore()),
+            ),
+            Expanded(
+              flex: 1,
+              child: Align(
+                alignment: Alignment.bottomLeft,
+                child: Text('published ${widget.pointOfInterest.published}',
+                    style: const TextStyle(fontSize: 12)),
+              ),
+            ),
+          ]),
+        ],
+      ),
+      collapsedBackgroundColor: Colors.transparent,
+      backgroundColor: Colors.transparent,
+      initiallyExpanded: expanded,
+      onExpansionChanged: (expanded) {
+        isExpanded = expanded;
+        debugPrint(
+            '+++ PointOfInterestTile[$index].ExpansionTile.${expanded ? 'expanded' : 'collapsed'}');
+        setState(() {
+          widget.onExpandChange(expanded ? index : -1);
+        });
+      },
 
-        /*
-        trailing: IconButton(
-          iconSize: 25,
-          icon: const Icon(Icons.delete),
-          onPressed: widget.onIconTap(widget.index),
-        ),
-        */
-        children: [
-          SizedBox(
-            height: 500,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(5, 5, 0, 30),
+      leading: Icon(
+          markerIcon(
+            getIconIndex(iconIndex: widget.pointOfInterest.getType()),
+          ),
+          color: colourList[Setup().pointOfInterestColour]),
+
+      children: [
+        SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(5, 15, 5, 10),
+            child: Align(
+              alignment: Alignment.topLeft,
               child: Column(
+                mainAxisAlignment: MainAxisAlignment.start,
                 children: <Widget>[
-                  Row(children: [
-                    if (canEdit) ...[
-                      Expanded(
-                        flex: 10,
-                        child: DropdownButtonFormField<String>(
-                          decoration: const InputDecoration(
-                            border: OutlineInputBorder(),
-                            labelText: 'Type',
-                          ),
-                          value: widget.pointOfInterest.getType().toString(),
-                          items: poiTypes
-                              .map((item) => DropdownMenuItem<String>(
-                                    value: item['id'].toString(),
-                                    child: Row(children: [
-                                      Icon(
-                                        IconData(item['iconMaterial'],
-                                            fontFamily: 'MaterialIcons'),
-                                        color: Color(item['colourMaterial']),
-                                      ),
-                                      Text('    ${item['name']}')
-                                    ]),
-                                  ))
-                              .toList(),
-                          onChanged: (item) {
-                            int type = item == null ? -1 : int.parse(item);
-                            widget.pointOfInterest.setType(type);
-                          },
-                        ),
-                      ),
-                      Expanded(
-                        flex: 8,
-                        child: SizedBox(
-                            child: Align(
-                                alignment: Alignment.bottomCenter,
-                                child: ActionChip(
-                                  label: const Text(
-                                    'Image',
-                                    style: TextStyle(
-                                        fontSize: 18, color: Colors.white),
-                                  ),
-                                  avatar: const Icon(Icons.photo_album,
-                                      size: 20, color: Colors.white),
-                                  onPressed: () => loadImage(index),
-                                  backgroundColor: Colors.blueAccent,
-                                ))),
-                      ),
-                    ] else ...[
-                      Expanded(
-                        flex: 10,
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(10, 5, 5, 20),
-                          child: Row(
-                            children: [
-                              Icon(
-                                IconData(
-                                    poiTypes[widget.pointOfInterest.getType()]
-                                        ['iconMaterial'],
-                                    fontFamily: 'MaterialIcons'),
-                                color: Color(
-                                    poiTypes[widget.pointOfInterest.getType()]
-                                        ['colourMaterial']),
-                              ),
-                              Text(
-                                  '    ${poiTypes[widget.pointOfInterest.getType()]['name']}')
-                            ],
+                  if (canEdit) ...[
+                    Row(
+                      children: [
+                        //    if (canEdit) ...[
+                        Expanded(
+                          flex: 10,
+                          child: DropdownButtonFormField<String>(
+                            decoration: const InputDecoration(
+                              border: OutlineInputBorder(),
+                              labelText: 'Type',
+                            ),
+                            value: getIconIndex(
+                                    iconIndex: widget.pointOfInterest.getType())
+                                .toString(),
+                            items: poiTypes
+                                .map((item) => DropdownMenuItem<String>(
+                                      value: item['id'].toString(),
+                                      child: Row(children: [
+                                        Icon(
+                                          IconData(item['iconMaterial'],
+                                              fontFamily: 'MaterialIcons'),
+                                          color: Color(item['colourMaterial']),
+                                        ),
+                                        Text('    ${item['name']}')
+                                      ]),
+                                    ))
+                                .toList(),
+                            onChanged: (item) {
+                              int type = item == null ? -1 : int.parse(item);
+                              widget.pointOfInterest.setType(type);
+                            },
                           ),
                         ),
-                      ),
-                    ],
-                  ]),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
-                          child: TextFormField(
-                              readOnly: !canEdit,
-                              initialValue: widget.pointOfInterest.getName(),
-                              autofocus: canEdit,
-                              textInputAction: TextInputAction.next,
-                              textAlign: TextAlign.start,
-                              keyboardType: TextInputType.streetAddress,
-                              textCapitalization: TextCapitalization.sentences,
-                              decoration: const InputDecoration(
-                                border: OutlineInputBorder(),
-                                hintText:
-                                    "What is the point of interest's name...",
-                                labelText: 'Point of interest name',
-                              ),
-                              style: Theme.of(context).textTheme.bodyLarge,
-                              autovalidateMode:
-                                  AutovalidateMode.onUserInteraction,
-                              onFieldSubmitted: (text) =>
-                                  widget.pointOfInterest.setName(text)),
+                        Expanded(
+                          flex: 8,
+                          child: SizedBox(
+                              child: Align(
+                                  alignment: Alignment.bottomCenter,
+                                  child: ActionChip(
+                                    label: const Text(
+                                      'Image',
+                                      style: TextStyle(
+                                          fontSize: 18, color: Colors.white),
+                                    ),
+                                    avatar: const Icon(Icons.photo_album,
+                                        size: 20, color: Colors.white),
+                                    onPressed: () => loadImage(index),
+                                    backgroundColor: Colors.blueAccent,
+                                  ))),
                         ),
-                      )
-                    ],
-                  ),
+                        //    ] else ...[
+                        Expanded(
+                          flex: 10,
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(0, 5, 5, 0),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  IconData(
+                                      poiTypes[getIconIndex(
+                                          iconIndex: widget.pointOfInterest
+                                              .getType())]['iconMaterial'],
+                                      fontFamily: 'MaterialIcons'),
+                                  color: Color(poiTypes[getIconIndex(
+                                      iconIndex: widget.pointOfInterest
+                                          .getType())]['colourMaterial']),
+                                ),
+                                Text(
+                                    '    ${poiTypes[getIconIndex(iconIndex: widget.pointOfInterest.getType())]['name']}')
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
+                            child: TextFormField(
+                                readOnly: !canEdit,
+                                initialValue: widget.pointOfInterest.getName(),
+                                autofocus: canEdit,
+                                textInputAction: TextInputAction.next,
+                                textAlign: TextAlign.start,
+                                keyboardType: TextInputType.streetAddress,
+                                textCapitalization:
+                                    TextCapitalization.sentences,
+                                decoration: const InputDecoration(
+                                  border: OutlineInputBorder(),
+                                  hintText:
+                                      "What is the point of interest's name...",
+                                  labelText: 'Point of interest name',
+                                ),
+                                style: Theme.of(context).textTheme.bodyLarge,
+                                autovalidateMode:
+                                    AutovalidateMode.onUserInteraction,
+                                onFieldSubmitted: (text) =>
+                                    widget.pointOfInterest.setName(text)),
+                          ),
+                        )
+                      ],
+                    )
+                  ] else ...[
+                    const Align(
+                      alignment: Alignment.topLeft,
+                      child: Padding(
+                        padding: EdgeInsets.fromLTRB(10, 0, 0, 0),
+                        child: Text(
+                          'Description:',
+                          style: TextStyle(
+                              color: Colors.black,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              decoration: TextDecoration.underline),
+                        ),
+                      ),
+                    ),
+                  ], // change added ]
                   Row(
                     children: [
                       Expanded(
@@ -275,11 +321,14 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                               textAlign: TextAlign.start,
                               keyboardType: TextInputType.streetAddress,
                               textCapitalization: TextCapitalization.sentences,
-                              decoration: const InputDecoration(
-                                border: OutlineInputBorder(),
-                                hintText: 'Describe Point of Interest...',
-                                labelText: 'Point of interest description',
-                              ),
+                              decoration: canEdit
+                                  ? const InputDecoration(
+                                      border: OutlineInputBorder(),
+                                      hintText: 'Describe Point of Interest...',
+                                      labelText:
+                                          'Point of interest description',
+                                    )
+                                  : null,
                               style: Theme.of(context).textTheme.bodyLarge,
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
@@ -296,15 +345,12 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                       Expanded(
                         flex: 8,
                         child: SizedBox(
-                          height: 175,
-                          child: ListView(
-                            scrollDirection: Axis.horizontal,
-                            children: [
-                              for (Photo photo in photosFromJson(
-                                widget.pointOfInterest.getImages(),
-                              ))
-                                showLocalImage(photo.url)
-                            ],
+                          height: 350,
+                          child: PhotoCarousel(
+                            imageRepository: widget.imageRepository,
+                            photos: widget.pointOfInterest.photos,
+                            height: 200,
+                            width: 200,
                           ),
                         ),
                       ),
@@ -315,14 +361,12 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                       Expanded(
                         flex: 8,
                         child: SizedBox(
-                          height: 175,
-                          child: ListView(
-                            scrollDirection: Axis.horizontal,
-                            children: [
-                              for (String url
-                                  in getImageUrls(widget.pointOfInterest))
-                                showWebImage(url)
-                            ],
+                          height: 350,
+                          child: PhotoCarousel(
+                            imageRepository: widget.imageRepository,
+                            photos: widget.pointOfInterest.photos,
+                            height: 200,
+                            width: 200,
                           ),
                         ),
                       ),
@@ -353,11 +397,13 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                                   onRatingChanged: changeRating,
                                   rating: widget.pointOfInterest.getScore()),
                               Align(
-                                  alignment: Alignment.topLeft,
-                                  child: Text(
-                                      '(${widget.pointOfInterest.scored})',
-                                      style: const TextStyle(
-                                          color: Colors.black, fontSize: 15)))
+                                alignment: Alignment.topLeft,
+                                child: Text(
+                                  '(${widget.pointOfInterest.scored})',
+                                  style: const TextStyle(
+                                      color: Colors.black, fontSize: 15),
+                                ),
+                              )
                             ],
                           ),
                         ),
@@ -365,8 +411,10 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                       Expanded(
                         flex: 1,
                         child: IconButton(
-                            icon: const Icon(Icons.share),
-                            onPressed: () => (setState(() {}))),
+                          icon: const Icon(Icons.share),
+                          onPressed: () =>
+                              widget.onIconTap, // () => (setState(() {}),),
+                        ),
                       )
                     ]),
                   ],
@@ -374,8 +422,9 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
               ),
             ),
           ),
-        ],
-      ),
+        ),
+      ],
+      //   ),
     );
   }
 
@@ -430,15 +479,41 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
   }
 
   expand(bool state, bool canEdit) {
-    expanded = state;
+    if (state) {
+      _expansionTileController.expand();
+    } else {
+      _expansionTileController.collapse();
+    }
+    setState(() => expanded = state);
+  }
+
+  expandChange({required bool expanded}) {
+    debugPrint(
+        '+++ pointOfInterestTile[$index].expandChange(${expanded ? 'expand' : 'collapse'}) called');
+    //   if (isExpanded != expanded) {
+    if (expanded) {
+      _expansionTileController.expand();
+    } else {
+      _expansionTileController.collapse();
+    }
+    setState(() => isExpanded = expanded);
+    //  }
   }
 
   List<String> getImageUrls(PointOfInterest pointOfInterest) {
     var pics = jsonDecode(pointOfInterest.getImages());
     return [
-      for (String pic in pics)
-        Uri.parse('$urlDrive/images${pointOfInterest.url}$pic').toString()
+      for (var pic in pics)
+        Uri.parse('$urlDrive/images${pointOfInterest.url}${pic['url']}')
+            .toString()
     ];
+  }
+
+  int getIconIndex({required int iconIndex, int fallback = 0}) {
+    if (iconIndex == -1) {
+      iconIndex = fallback;
+    }
+    return iconIndex;
   }
 
   Widget showLocalImage(String url) {

@@ -35,13 +35,15 @@ class _ShopTileState extends State<ShopTile> {
   @override
   void initState() {
     super.initState();
-    photos = photosFromJson(widget.shopItem.imageUrls);
+    photos = photosFromJson(widget.shopItem.imageUrls,
+        endPoint: '${widget.shopItem.uri}/');
     _pageController.addListener(() => pageControlListener());
   }
 
   @override
   void dispose() {
     _pageController.dispose();
+
     super.dispose();
   }
 
@@ -64,7 +66,6 @@ class _ShopTileState extends State<ShopTile> {
               PhotoCarousel(
                 imageRepository: widget.imageRepository,
                 photos: photos,
-                endPoint: widget.shopItem.uri,
                 // endPoint: '$urlShopItem/images/${widget.shopItem.uri}/',
                 height: 400,
                 width: MediaQuery.of(context).size.width - 20,

@@ -140,7 +140,6 @@ class _groupDriveInvitationTileState extends State<GroupDriveInvitationTile> {
                       child: PhotoCarousel(
                         imageRepository: widget.imageRepository,
                         photos: photos,
-                        endPoint: _tripSummary!.uri,
                         height: 150,
                       ),
 

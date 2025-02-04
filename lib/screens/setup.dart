@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/get.dart';
-import 'package:material_symbols_icons/material_symbols_icons.dart';
-import 'package:material_symbols_icons/get.dart';
+// import 'package:material_symbols_icons/material_symbols_icons.dart';
+// import 'package:material_symbols_icons/get.dart';
 import 'package:drives/models/other_models.dart';
 import 'package:drives/services/db_helper.dart';
 
@@ -50,13 +50,16 @@ class _SetupFormState extends State<SetupForm> {
         bottom: const PreferredSize(
           preferredSize: Size.fromHeight(60),
           child: Padding(
-              padding: EdgeInsets.fromLTRB(5, 10, 5, 10),
-              child: Text('Settings',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 38,
-                    fontWeight: FontWeight.bold,
-                  ))),
+            padding: EdgeInsets.fromLTRB(5, 10, 5, 10),
+            child: Text(
+              'Settings',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 38,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
         ),
 
         /// Shrink height a bit
@@ -95,9 +98,11 @@ class _SetupFormState extends State<SetupForm> {
               style: Theme.of(context).textTheme.bodyLarge!),
           value: Setup().allowNotifications,
           onChanged: (bool value) {
-            setState(() {
-              Setup().allowNotifications = value;
-            });
+            setState(
+              () {
+                Setup().allowNotifications = value;
+              },
+            );
           },
           secondary: const Icon(Icons.notifications_on_outlined, size: 30),
         ),
@@ -106,9 +111,11 @@ class _SetupFormState extends State<SetupForm> {
               style: Theme.of(context).textTheme.bodyLarge!),
           value: Setup().rotateMap,
           onChanged: (bool value) {
-            setState(() {
-              Setup().rotateMap = value;
-            });
+            setState(
+              () {
+                Setup().rotateMap = value;
+              },
+            );
           },
           secondary: const Icon(Icons.on_device_training, size: 30),
         ),
@@ -117,9 +124,11 @@ class _SetupFormState extends State<SetupForm> {
               style: Theme.of(context).textTheme.bodyLarge!),
           value: Setup().avoidMotorways,
           onChanged: (bool value) {
-            setState(() {
-              Setup().avoidMotorways = value;
-            });
+            setState(
+              () {
+                Setup().avoidMotorways = value;
+              },
+            );
           },
           secondary: Icon(iconFlyover, size: 30),
         ),
@@ -151,9 +160,11 @@ class _SetupFormState extends State<SetupForm> {
               style: Theme.of(context).textTheme.bodyLarge!),
           value: Setup().avoidTollRoads,
           onChanged: (bool value) {
-            setState(() {
-              Setup().avoidTollRoads = value;
-            });
+            setState(
+              () {
+                Setup().avoidTollRoads = value;
+              },
+            );
           },
           secondary: const Icon(Icons.toll, size: 30),
         ),
@@ -173,10 +184,12 @@ class _SetupFormState extends State<SetupForm> {
               Text('Dark mode', style: Theme.of(context).textTheme.bodyLarge!),
           value: Setup().dark,
           onChanged: (bool value) {
-            setState(() {
-              Setup().dark = value;
-              //  ThemeSetter().isDark(Setup().dark);
-            });
+            setState(
+              () {
+                Setup().dark = value;
+                //  ThemeSetter().isDark(Setup().dark);
+              },
+            );
           },
           secondary: const Icon(Icons.dark_mode),
         ),
@@ -259,20 +272,21 @@ class _SetupFormState extends State<SetupForm> {
         Row(
           children: [
             Expanded(
-                child: Padding(
-                    padding: const EdgeInsets.fromLTRB(10, 10, 5, 10),
-                    child: DropdownButtonFormField<String>(
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        labelText: 'Route colour',
-                      ),
-                      value: uiColours.values.elementAt(Setup().routeColour),
-                      items: colourChoices(context),
-                      onChanged: (chosen) => setState(() => Setup()
-                              .routeColour =
-                          uiColours.values.toList().indexOf(chosen.toString())),
-                      //  uiColours.keys.toList().toString().indexOf(item.toString())),
-                    ))),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(10, 10, 5, 10),
+                child: DropdownButtonFormField<String>(
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    labelText: 'Route colour',
+                  ),
+                  value: uiColours.values.elementAt(Setup().routeColour),
+                  items: colourChoices(context),
+                  onChanged: (chosen) => setState(() => Setup().routeColour =
+                      uiColours.values.toList().indexOf(chosen.toString())),
+                  //  uiColours.keys.toList().toString().indexOf(item.toString())),
+                ),
+              ),
+            ),
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(5, 10, 10, 10),
@@ -294,37 +308,61 @@ class _SetupFormState extends State<SetupForm> {
         Row(
           children: [
             Expanded(
-                child: Padding(
-                    padding: const EdgeInsets.fromLTRB(10, 10, 5, 10),
-                    child: DropdownButtonFormField<String>(
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        labelText: 'Highlight colour',
-                      ),
-                      value:
-                          uiColours.values.elementAt(Setup().highlightedColour),
-                      items: colourChoices(context),
-                      onChanged: (chosen) => setState(() => Setup()
-                              .highlightedColour =
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(10, 10, 5, 10),
+                child: DropdownButtonFormField<String>(
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    labelText: 'Published trip colour',
+                  ),
+                  value:
+                      uiColours.values.elementAt(Setup().publishedTripColour),
+                  items: colourChoices(context),
+                  onChanged: (chosen) => setState(() =>
+                      Setup().publishedTripColour =
                           uiColours.values.toList().indexOf(chosen.toString())),
-                      //  uiColours.keys.toList().toString().indexOf(item.toString())),
-                    ))),
+                  //  uiColours.keys.toList().toString().indexOf(item.toString())),
+                ),
+              ),
+            ),
             Expanded(
-                child: Padding(
-                    padding: const EdgeInsets.fromLTRB(5, 10, 10, 10),
-                    child: DropdownButtonFormField<String>(
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        labelText: 'Selected colour',
-                      ),
-                      value: uiColours.values.elementAt(Setup().selectedColour),
-                      items: colourChoices(context),
-                      onChanged: (chosen) => setState(() => Setup()
-                              .selectedColour =
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(10, 10, 5, 10),
+                child: DropdownButtonFormField<String>(
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    labelText: 'Highlight colour',
+                  ),
+                  value: uiColours.values.elementAt(Setup().highlightedColour),
+                  items: colourChoices(context),
+                  onChanged: (chosen) => setState(() =>
+                      Setup().highlightedColour =
                           uiColours.values.toList().indexOf(chosen.toString())),
-                    ))),
+                  //  uiColours.keys.toList().toString().indexOf(item.toString())),
+                ),
+              ),
+            ),
           ],
         ),
+
+        Row(children: [
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(5, 10, 10, 10),
+              child: DropdownButtonFormField<String>(
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  labelText: 'Selected colour',
+                ),
+                value: uiColours.values.elementAt(Setup().selectedColour),
+                items: colourChoices(context),
+                onChanged: (chosen) => setState(() => Setup().selectedColour =
+                    uiColours.values.toList().indexOf(chosen.toString())),
+              ),
+            ),
+          ),
+          const Expanded(child: SizedBox()),
+        ]),
       ]),
     );
   }

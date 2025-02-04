@@ -8,6 +8,9 @@ import 'package:latlong2/latlong.dart';
 /// A polyline with an id
 class Route extends Polyline {
   final int id;
+  final int key;
+  final int driveKey;
+
   List<Offset> offsets = [];
 
   Color colour;
@@ -23,6 +26,8 @@ class Route extends Polyline {
     super.colorsStop,
     super.isDotted = false,
     this.id = -1,
+    this.key = -1,
+    this.driveKey = -1,
   }) : super(borderColor: borderColour, color: colour);
 
   /*
@@ -336,7 +341,6 @@ class RouteLayer extends PolylineLayer {
         if (height < pointerDistanceTolerance &&
             lengthDToOriginalSegment < pointerDistanceTolerance) {
           var minimum = min(height, lengthDToOriginalSegment);
-
           candidates[minimum] ??= <Route>[];
           candidates[minimum]!.add(currentPolyline);
         }
@@ -383,7 +387,6 @@ class RouteLayer extends PolylineLayer {
   LatLng _offsetToLatLng(
       Offset offset, double width, double height, BuildContext context) {
     final mapCamera = MapCamera.of(context);
-
     var localPoint = Point(offset.dx, offset.dy);
     var localPointCenterDistance =
         Point((width / 2) - localPoint.x, (height / 2) - localPoint.y);

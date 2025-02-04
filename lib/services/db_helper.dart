@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'dart:convert';
-import 'package:drives/classes/classes.dart';
+// import 'package:drives/classes/classes.dart';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -13,13 +13,13 @@ import 'package:drives/classes/route.dart' as mt;
 import 'package:drives/models/models.dart';
 import 'package:drives/services/web_helper.dart';
 import 'dart:async';
-import 'dart:convert';
+// import 'dart:convert';
 
-class dbHelper {
+class DbHelper {
   static Database? _db;
-  dbHelper._(); // Private constructor to prevent instantiation
+  DbHelper._(); // Private constructor to prevent instantiation
 
-  static final dbHelper instance = dbHelper._();
+  static final DbHelper instance = DbHelper._();
 
   static Database? _database;
 
@@ -27,7 +27,7 @@ class dbHelper {
     return _database ??= await initDb();
   }
 
-  factory dbHelper() {
+  factory DbHelper() {
     return instance;
   }
 
@@ -66,7 +66,7 @@ class dbHelper {
 Future<int> recordCount(table) async {
   int? count;
   try {
-    Database db = await dbHelper().db;
+    Database db = await DbHelper().db;
     count =
         Sqflite.firstIntValue(await db.rawQuery("SELECT COUNT(*) FROM $table"));
   } catch (e) {
@@ -77,7 +77,7 @@ Future<int> recordCount(table) async {
 
 alterTable() async {
   /*
-  final db = await dbHelper().db;
+  final db = await DbHelper().db;
   try {
     await db.execute('DROP TABLE IF EXISTS setup').then((_) {
       db.execute(
@@ -93,7 +93,7 @@ alterTable() async {
 }
 
 Future<List<Map<String, dynamic>>> getSetup(int id) async {
-  Database db = await dbHelper().db;
+  Database db = await DbHelper().db;
   // int records = await recordCount('setup');
   // if (records > 0){
   try {
@@ -109,7 +109,7 @@ Future<List<Map<String, dynamic>>> getSetup(int id) async {
 }
 
 Future<User> getUser() async {
-  final db = await dbHelper().db;
+  final db = await DbHelper().db;
   int id = 0;
   String forename = '';
   String surname = '';
@@ -142,7 +142,7 @@ Future<User> getUser() async {
 }
 
 Future<int> insertSetup(Setup setup) async {
-  final db = await dbHelper().db;
+  final db = await DbHelper().db;
   Map<String, dynamic> suMap = setup.toMap();
   try {
     suMap.remove('id');
@@ -169,7 +169,7 @@ Future<int> insertSetup(Setup setup) async {
 }
 
 Future<void> updateSetup() async {
-  final db = await dbHelper().db;
+  final db = await DbHelper().db;
 
   try {
     await db.update(
@@ -184,7 +184,7 @@ Future<void> updateSetup() async {
 }
 
 Future<int> saveUser(User user) async {
-  final db = await dbHelper().db;
+  final db = await DbHelper().db;
   var userRecords = await recordCount('users');
   Map<String, dynamic> usMap = user.toMap();
   try {
@@ -247,7 +247,7 @@ class LocalImage {
 }
 */
 Future<Uint8List?> loadImageByIdLocal({required int id}) async {
-  final db = await dbHelper().db;
+  final db = await DbHelper().db;
   List<Map<String, dynamic>> imageRecord =
       await db.query('images', where: 'id = ?', whereArgs: [id]);
 
@@ -259,21 +259,22 @@ Future<Uint8List?> loadImageByIdLocal({required int id}) async {
 }
 
 Future<int> saveImageLocal(
-    {required Image image,
+    {required String imageUrl,
     driveId = -1,
     pointOfInterestId = -1,
     caption = ''}) async {
-  final db = await dbHelper().db;
+  final db = await DbHelper().db;
 
   try {
+    Uint8List imageBytes = await File(imageUrl).readAsBytes();
     int id = await db.insert(
-      'groups',
+      'images',
       {
-        'image': image,
+        'image': imageBytes,
         'drive_id': driveId,
         'point_of_interest_id': pointOfInterestId,
         'caption': caption,
-        'added': DateTime.now()
+        'added': DateTime.now().toString()
       },
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
@@ -287,7 +288,7 @@ Future<int> saveImageLocal(
 
 /*
 Future<List<Group>> getGroups() async {
-  final db = await dbHelper().db;
+  final db = await DbHelper().db;
   List<Group> groups = [];
   try {
     List<Map<String, dynamic>> maps = await db.query(
@@ -309,7 +310,7 @@ Future<List<Group>> getGroups() async {
 }
 */
 Future<List<Group>> loadGroups() async {
-  final db = await dbHelper().db;
+  final db = await DbHelper().db;
   List<Group> groups = [];
   try {
     List<Map<String, dynamic>> maps = await db.query(
@@ -331,7 +332,7 @@ Future<List<Group>> loadGroups() async {
 
 Future<int> saveGroupLocal(Group group) async {
   /*
-  final db = await dbHelper().db;
+  final db = await DbHelper().db;
   int id = group.id;
   Map<String, dynamic> grMap = group.toMap();
   if (group.id < 0) {
@@ -363,7 +364,7 @@ Future<int> saveGroupLocal(Group group) async {
 }
 
 Future<List<GroupMember>> loadGroupMembers() async {
-  final db = await dbHelper().db;
+  final db = await DbHelper().db;
   List<GroupMember> members = [];
   try {
     List<Map<String, dynamic>> maps = await db.query(
@@ -385,7 +386,7 @@ Future<List<GroupMember>> loadGroupMembers() async {
 }
 
 Future<int> saveGroupMemberLocal(GroupMember groupMember) async {
-  final db = await dbHelper().db;
+  final db = await DbHelper().db;
   Map<String, dynamic> grMap = groupMember.toMap();
   int id = 1;
   // groupMember.id;
@@ -421,7 +422,7 @@ Future<int> saveGroupMemberLocal(GroupMember groupMember) async {
 }
 
 Future<void> deleteGroupMemberById(int id) async {
-  final db = await dbHelper().db;
+  final db = await DbHelper().db;
   await db.delete(
     'group_members',
     where: 'id = ?',
@@ -437,7 +438,7 @@ Future<bool> saveGroupMembers(List<GroupMember> groupMembers) async {
 }
 
 Future<List<HomeItem>> loadHomeItems() async {
-  final db = await dbHelper().db;
+  final db = await DbHelper().db;
   List<HomeItem> homeItems = [];
   try {
     List<Map<String, dynamic>> maps = await db.query(
@@ -454,7 +455,7 @@ Future<List<HomeItem>> loadHomeItems() async {
 }
 
 Future<List<HomeItem>> saveHomeItemsLocal(List<HomeItem> homeItems) async {
-  final db = await dbHelper().db;
+  final db = await DbHelper().db;
 
   /// Empty the cache home_items and remove all the images
   String appDocDir = Setup().appDocumentDirectory;
@@ -528,7 +529,7 @@ Future<List<HomeItem>> saveHomeItemsLocal(List<HomeItem> homeItems) async {
 }
 
 Future<List<ShopItem>> loadShopItems() async {
-  final db = await dbHelper().db;
+  final db = await DbHelper().db;
   List<ShopItem> shopItems = [];
   try {
     List<Map<String, dynamic>> maps = await db.query(
@@ -545,7 +546,7 @@ Future<List<ShopItem>> loadShopItems() async {
 }
 
 Future<List<TripItem>> loadTripItems() async {
-  final db = await dbHelper().db;
+  final db = await DbHelper().db;
   List<TripItem> tripItems = [];
   try {
     List<Map<String, dynamic>> maps = await db.query(
@@ -567,7 +568,7 @@ Future<List<TripItem>> loadTripItems() async {
 Future<TripItem?> loadTripItemLocal({int id = -1}) async {
   if (id > -1) {
     var maps;
-    final db = await dbHelper().db;
+    final db = await DbHelper().db;
     try {
       String query = "SELECT * FROM trip_items WHERE id = $id";
       maps = await db.rawQuery(query);
@@ -584,7 +585,7 @@ Future<TripItem?> loadTripItemLocal({int id = -1}) async {
 /// ToDo: Add some filtering to only update new or changed data
 
 Future<List<ShopItem>> saveShopItemsLocal(List<ShopItem> shopItems) async {
-  final db = await dbHelper().db;
+  final db = await DbHelper().db;
 
   /// Empty the cache home_items and remove all the images
   String appDocDir = Setup().appDocumentDirectory;
@@ -664,7 +665,7 @@ Future<List<ShopItem>> saveShopItemsLocal(List<ShopItem> shopItems) async {
 /// ToDo: Add some filtering to only update new or changed data
 
 Future<List<TripItem>> saveTripItemsLocal(List<TripItem> tripItems) async {
-  final db = await dbHelper().db;
+  final db = await DbHelper().db;
 
   /// Empty the cache home_items and remove all the images
   String appDocDir = Setup().appDocumentDirectory;
@@ -760,7 +761,7 @@ Future<List<TripItem>> saveTripItemsLocal(List<TripItem> tripItems) async {
 }
 
 Future<int> saveMessage(MessageLocal message) async {
-  final db = await dbHelper().db;
+  final db = await DbHelper().db;
   Map<String, dynamic> meMap = message.toMap();
   int id = message.id;
   if (id == -1) {
@@ -795,7 +796,7 @@ Future<int> saveMessage(MessageLocal message) async {
 }
 
 Future<Map<String, dynamic>> getDrive(int driveId) async {
-  final db = await dbHelper().db;
+  final db = await DbHelper().db;
   var maps;
   try {
     String query = "SELECT * FROM drives WHERE id = $driveId";
@@ -817,7 +818,7 @@ Future<Map<String, dynamic>> getDrive(int driveId) async {
 }
 
 Future<void> deleteDriveById(int id) async {
-  final db = await dbHelper().db;
+  final db = await DbHelper().db;
   await db.delete(
     'drives',
     where: 'id = ?',
@@ -835,7 +836,7 @@ Future<void> deleteDriveLocal({required int driveId}) async {
 
 // "type 'int' is not a subtype of type 'Map<String, dynamic>'"
 Future<int> saveDrive({required Drive drive}) async {
-  final db = await dbHelper().db;
+  final db = await DbHelper().db;
   int id = -1;
   Map<String, dynamic> drMap = drive.toMap();
   try {
@@ -874,7 +875,7 @@ Future<int> saveDrive({required Drive drive}) async {
 }
 
 Future<int> saveMyTripItem(MyTripItem myTripItem) async {
-  final db = await dbHelper().db;
+  final db = await DbHelper().db;
   int id = myTripItem.getId();
   Map<String, dynamic> map = myTripItem.toDrivesMap();
   try {
@@ -947,7 +948,7 @@ String pointsToString(List<LatLng> points) {
 */
 
 Future<List<PointOfInterest>> loadPointsOfInterestLocal(int driveId) async {
-  final db = await dbHelper().db;
+  final db = await DbHelper().db;
   List<PointOfInterest> pointsOfInterest = [];
   List<Map<String, dynamic>> maps = await db.query(
     'points_of_interest',
@@ -957,13 +958,13 @@ Future<List<PointOfInterest>> loadPointsOfInterestLocal(int driveId) async {
   for (int i = 0; i < maps.length; i++) {
     pointsOfInterest.add(
       PointOfInterest(
-        maps[i]['id'],
-        driveId,
-        maps[i]['type'],
-        maps[i]['name'],
-        maps[i]['description'],
-        maps[i]['type'] == 12 ? 10 : 30,
-        maps[i]['type'] == 12 ? 10 : 30,
+        id: maps[i]['id'],
+        driveId: driveId,
+        type: maps[i]['type'],
+        name: maps[i]['name'],
+        description: maps[i]['description'],
+        width: maps[i]['type'] == 12 ? 10 : 30,
+        height: maps[i]['type'] == 12 ? 10 : 30,
         images: maps[i]['images'],
         markerPoint: LatLng(maps[i]['latitude'], maps[i]['longitude']),
         marker: MarkerWidget(type: maps[i]['type'], list: 0, listIndex: i),
@@ -973,10 +974,36 @@ Future<List<PointOfInterest>> loadPointsOfInterestLocal(int driveId) async {
   return pointsOfInterest;
 }
 
+Future<PointOfInterest> loadPointOfInterestLocal(
+    {required int id, index = 0}) async {
+  final db = await DbHelper().db;
+  PointOfInterest? pointOfInterest;
+  List<Map<String, dynamic>> maps = await db.query(
+    'points_of_interest',
+    where: 'id = ?',
+    whereArgs: [id],
+  );
+
+  pointOfInterest = PointOfInterest(
+    id: maps.first['id'],
+    driveId: maps.first['drive_id'],
+    type: maps.first['type'],
+    name: maps.first['name'],
+    description: maps.first['description'],
+    width: maps.first['type'] == 12 ? 10 : 30,
+    height: maps.first['type'] == 12 ? 10 : 30,
+    images: maps.first['images'],
+    markerPoint: LatLng(maps.first['latitude'], maps.first['longitude']),
+    marker: MarkerWidget(type: maps.first['type'], list: 0, listIndex: index),
+  );
+
+  return pointOfInterest;
+}
+
 Future<bool> savePointsOfInterestLocal(
     {required int driveId,
     required List<PointOfInterest> pointsOfInterest}) async {
-  final db = await dbHelper().db;
+  final db = await DbHelper().db;
   for (int i = 0; i < pointsOfInterest.length; i++) {
     int id = -1;
     Map<String, dynamic> poiMap = {
@@ -1010,12 +1037,24 @@ Future<bool> savePointsOfInterestLocal(
         debugPrint('Error saving point of interest: ${e.toString()}');
       }
     }
+    if (poiMap['images'].isNotEmpty) {
+      dynamic images = jsonDecode(poiMap['images']);
+      for (Map<String, dynamic> image in images) {
+        if (image['url'] != null) {
+          try {
+            saveImageLocal(imageUrl: image['url']);
+          } catch (e) {
+            debugPrint('Image error ${e.toString()}');
+          }
+        }
+      }
+    }
   }
   return true;
 }
 
 Future<void> deletePointOfInterestById(int id) async {
-  final db = await dbHelper().db;
+  final db = await DbHelper().db;
   await db.delete(
     'points_of_interest',
     where: 'id = ?',
@@ -1024,7 +1063,7 @@ Future<void> deletePointOfInterestById(int id) async {
 }
 
 Future<void> deletePointOfInterestByDriveId(int driveId) async {
-  final db = await dbHelper().db;
+  final db = await DbHelper().db;
   await db.delete(
     'points_of_interest',
     where: 'drive_id = ?',
@@ -1039,7 +1078,7 @@ Future<bool> saveManeuversLocal({
   required int driveId,
   required List<Maneuver> maneuvers,
 }) async {
-  final db = await dbHelper().db;
+  final db = await DbHelper().db;
   Map<String, dynamic> manMap = {};
   await deleteManeuversByDriveId(driveId);
   for (int i = 0; i < maneuvers.length; i++) {
@@ -1064,7 +1103,7 @@ Future<bool> saveManeuversLocal({
 }
 
 Future<List<Maneuver>> loadManeuversLocal(int driveId) async {
-  final db = await dbHelper().db;
+  final db = await DbHelper().db;
   List<Maneuver> maneuvers = [];
   List<Map<String, dynamic>> maps = await db.query(
     'maneuvers',
@@ -1103,7 +1142,7 @@ Future<List<Maneuver>> loadManeuversLocal(int driveId) async {
 }
 
 Future<void> deleteManeuversByDriveId(int driveId) async {
-  final db = await dbHelper().db;
+  final db = await DbHelper().db;
   await db.delete(
     'maneuvers',
     where: 'drive_id = ?',
@@ -1113,7 +1152,7 @@ Future<void> deleteManeuversByDriveId(int driveId) async {
 
 Future<bool> savePolylinesLocal(
     {required int driveId, required List<mt.Route> polylines, type = 0}) async {
-  final db = await dbHelper().db;
+  final db = await DbHelper().db;
   for (int i = 0; i < polylines.length; i++) {
     int id = polylines[i].id;
     Map<String, dynamic> plMap = {
@@ -1157,7 +1196,7 @@ Future<bool> savePolylinesLocal(
 }
 
 Future<void> deletePolyLinesById(int id) async {
-  final db = await dbHelper().db;
+  final db = await DbHelper().db;
   await db.delete(
     'polylines',
     where: 'id = ?',
@@ -1166,7 +1205,7 @@ Future<void> deletePolyLinesById(int id) async {
 }
 
 Future<void> deletePolyLinesByDriveId(int driveId) async {
-  final db = await dbHelper().db;
+  final db = await DbHelper().db;
   await db.delete(
     'polylines',
     where: 'drive_id = ?',
@@ -1175,7 +1214,7 @@ Future<void> deletePolyLinesByDriveId(int driveId) async {
 }
 
 Future<List<Follower>> loadFollowers(int driveId) async {
-  final db = await dbHelper().db;
+  final db = await DbHelper().db;
   List<Follower> followers = [];
   List<Map<String, dynamic>> maps = await db.query(
     'followers',
@@ -1212,7 +1251,7 @@ Future<List<Follower>> loadFollowers(int driveId) async {
 
 Future<bool> saveFollowersLocal(
     {required int driveId, required List<Follower> followers}) async {
-  final db = await dbHelper().db;
+  final db = await DbHelper().db;
   for (int i = 0; i < followers.length; i++) {
     Map<String, dynamic> fMap = followers[i].toMap();
 
@@ -1243,7 +1282,7 @@ Future<bool> saveFollowersLocal(
 }
 
 Future<void> deleteFollowerById(int id) async {
-  final db = await dbHelper().db;
+  final db = await DbHelper().db;
   await db.delete(
     'followers',
     where: 'id = ?',
@@ -1252,7 +1291,7 @@ Future<void> deleteFollowerById(int id) async {
 }
 
 Future<void> deleteFollowerByDriveId(int driveId) async {
-  final db = await dbHelper().db;
+  final db = await DbHelper().db;
   await db.delete(
     'followers',
     where: 'drive_id = ?',
@@ -1265,7 +1304,7 @@ Future<void> deleteFollowerByDriveId(int driveId) async {
 /// load the details if the drive is selected
 
 Future<List<Polyline>> loadPolyLinesLocal(int driveId, {type = 0}) async {
-  final db = await dbHelper().db;
+  final db = await DbHelper().db;
   List<Polyline> polylines = [];
   List<Map<String, dynamic>> maps = await db.query(
     'polylines',
@@ -1284,7 +1323,7 @@ Future<List<Polyline>> loadPolyLinesLocal(int driveId, {type = 0}) async {
 }
 
 Future<mt.Route> loadPolyLineLocal(int id, {type = 0}) async {
-  final db = await dbHelper().db;
+  final db = await DbHelper().db;
   List<Map<String, dynamic>> map = await db.query(
     'polylines',
     where: 'id = ? and type = ?',
@@ -1297,8 +1336,9 @@ Future<mt.Route> loadPolyLineLocal(int id, {type = 0}) async {
       strokeWidth: (map[0]['stroke']).toDouble());
 }
 
-Future<List<mt.Route>> loadRoutesLocal(int id, {type = 0}) async {
-  final db = await dbHelper().db;
+Future<List<mt.Route>> loadRoutesLocal(int id,
+    {type = 0, driveKey = -1}) async {
+  final db = await DbHelper().db;
   List<Map<String, dynamic>> maps = await db.query(
     'polylines',
     where: 'drive_id = ? and type = ?',
@@ -1307,6 +1347,7 @@ Future<List<mt.Route>> loadRoutesLocal(int id, {type = 0}) async {
   return [
     for (Map<String, dynamic> map in maps)
       mt.Route(
+          driveKey: driveKey,
           points: stringToPoints(map['points']), // routePoints,
           colour: uiColours.keys.toList()[map['colour']],
           borderColour: uiColours.keys.toList()[map['colour']],
@@ -1315,7 +1356,7 @@ Future<List<mt.Route>> loadRoutesLocal(int id, {type = 0}) async {
 }
 
 Future<Uint8List> loadImageBytesLocal({required int id}) async {
-  final db = await dbHelper().db;
+  final db = await DbHelper().db;
   List<Map<String, dynamic>> map = await db.query(
     'images',
     where: 'id = ?',

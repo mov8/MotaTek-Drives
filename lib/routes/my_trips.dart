@@ -7,16 +7,16 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:drives/services/services.dart';
 import 'package:latlong2/latlong.dart';
 
-class MyTripsScreen extends StatefulWidget {
-  const MyTripsScreen({
+class MyTrips extends StatefulWidget {
+  const MyTrips({
     super.key,
   });
 
   @override
-  State<MyTripsScreen> createState() => _myTripsScreenState();
+  State<MyTrips> createState() => _MyTripsScreenState();
 }
 
-class _myTripsScreenState extends State<MyTripsScreen> {
+class _MyTripsScreenState extends State<MyTrips> {
   late final LeadingWidgetController _leadingWidgetController;
   late final RoutesBottomNavController _bottomNavController;
   final GlobalKey _scaffoldKey = GlobalKey();
@@ -123,13 +123,6 @@ class _myTripsScreenState extends State<MyTripsScreen> {
                 'Describe the trip and why you liked it. You can share the trip with members of a group. You can also publish a trip for other people to enjoy',
             pointsOfInterest: [
               PointOfInterest(
-                -1,
-                -1,
-                1,
-                '',
-                '',
-                30,
-                30,
                 markerPoint: const LatLng(-52, 0),
                 marker: const Icon(Icons.ac_unit),
               ),

@@ -5,14 +5,14 @@ import 'package:drives/tiles/tiles.dart';
 import 'package:drives/screens/main_drawer.dart';
 import 'package:drives/classes/classes.dart';
 
-class ShopScreen extends StatefulWidget {
-  const ShopScreen({super.key});
+class Shop extends StatefulWidget {
+  const Shop({super.key});
 
   @override
-  State<ShopScreen> createState() => _shopScreenState();
+  State<Shop> createState() => _ShopState();
 }
 
-class _shopScreenState extends State<ShopScreen> {
+class _ShopState extends State<Shop> {
   late final LeadingWidgetController _leadingWidgetController;
   late final RoutesBottomNavController _bottomNavController;
   final ImageRepository _imageRepository = ImageRepository();
@@ -28,19 +28,26 @@ class _shopScreenState extends State<ShopScreen> {
     _dataLoaded = _getShopData();
   }
 
+  @override
+  void dispose() {
+    _imageRepository.clear();
+    super.dispose();
+  }
+
   _leadingWidget(context) {
     return context?.openDrawer();
   }
 
   Future<bool> _getShopData() async {
-    if (!Setup().hasRefreshedShop && Setup().hasLoggedIn) {
+    if (Setup().hasLoggedIn) {
+      //!Setup().hasRefreshedShop && Setup().hasLoggedIn) {
       shopItems = await getShopItems(1);
       if (shopItems.isNotEmpty) {
         Setup().hasRefreshedShop = true;
-        shopItems = await saveShopItemsLocal(shopItems);
+        //   shopItems = await saveShopItemsLocal(shopItems);
       }
     } else {
-      shopItems = await loadShopItems();
+      // shopItems = await loadShopItems();
     }
     for (ShopItem shopItem in shopItems) {
       if (shopItem.url1.isNotEmpty) {
@@ -58,7 +65,7 @@ class _shopScreenState extends State<ShopScreen> {
       shopItems.add(
         ShopItem(
             id: -2,
-            uri: 'assets/images/',
+            uri: 'assets/images',
             heading: 'Promote your business, club or event.',
             subHeading: 'Target your audience precisely.',
             body:

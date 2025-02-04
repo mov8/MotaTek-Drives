@@ -1,19 +1,14 @@
 import 'package:flutter/material.dart';
-import 'dart:io';
 import 'package:drives/classes/classes.dart';
 import 'package:drives/models/models.dart';
-import 'package:drives/services/services.dart';
-// import 'package:drives/classes/image_list_indicator.dart';
 
 class PhotoCarousel extends StatefulWidget {
   final bool canEdit;
   final bool showCaptions;
-  final String endPoint;
   final List<Photo> photos;
   final int webUrlMaxLength;
   final double height;
   final double width;
-  //final int imageIndex = 0;
   final Color selectedColor;
   final Color unSelectedColor;
   final ImageRepository imageRepository;
@@ -22,12 +17,11 @@ class PhotoCarousel extends StatefulWidget {
       {super.key,
       required this.photos,
       required this.imageRepository,
-      this.endPoint = ' ',
       this.canEdit = false,
       this.showCaptions = false,
       this.webUrlMaxLength = 40,
       this.height = 450,
-      this.width = 0,
+      this.width = 100,
       this.selectedColor = Colors.blueAccent,
       this.unSelectedColor = Colors.grey});
 
@@ -83,14 +77,21 @@ class _PhotoCarouselState extends State<PhotoCarousel> {
                           flex: 8,
                           child: SizedBox(
                             height: MediaQuery.of(context).size.width, // 375,
-                            child: PageView.builder(
-                              itemCount: widget.photos.length,
-                              scrollDirection: Axis.horizontal,
-                              controller: _pageController,
-                              itemBuilder: (BuildContext context, int index) {
-                                imageIndex = index;
-                                return getImages(
-                                    index: index, photos: widget.photos);
+                            child: FutureBuilder(
+                              future: getImageList(photos: widget.photos),
+                              builder: (context, snapshot) {
+                                if (snapshot.hasError) {
+                                  debugPrint(
+                                    'Snapshot error: ${snapshot.error.toString()}',
+                                  );
+                                  return const ImageMissing(width: 400);
+                                } else if (snapshot.hasData) {
+                                  return getPageView(snapshot.data!);
+                                } else {
+                                  return const Center(
+                                    child: CircularProgressIndicator(),
+                                  );
+                                }
                               },
                             ),
                           ),
@@ -114,87 +115,29 @@ class _PhotoCarouselState extends State<PhotoCarousel> {
     ]);
   }
 
-  getImages(
-      {required int index, required List<Photo> photos, double width = 400}) {
-    try {
-      //Future<Map<int, Image>> imageMap =
-      Map<int, Image> imageMap = widget.imageRepository.loadImage(
-          key: photos[index].key, id: photos[index].id, uri: photos[index].url);
-
-      photos[index].key = imageMap.keys.first;
-      Image? image = imageMap.values.first;
-      return SizedBox(
-        key: Key('sli$index'),
-        width: width,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          child: image, // ?? ImageMissing(width: width),
-        ),
-      );
-    } catch (e) {
-      debugPrint('getImages error: ${e.toString()}');
+  Future<List<Image>> getImageList({required List<Photo> photos}) async {
+    List<Image> images = [];
+    for (int i = 0; i < photos.length; i++) {
+      Map<int, Image> imageMap = await widget.imageRepository
+          .loadImage(key: photos[i].key, id: photos[i].id, uri: photos[i].url);
+      photos[i].key = imageMap.keys.first;
+      images.add(imageMap.values.first);
     }
-    /*
-    return const Icon(
-      Icons.no_photography,
-      size: 100,
-    );
-    */
-    return ImageMissing(width: width);
+    return images;
   }
 
-  getImages2(String url, int index) {
-    // debugPrint('getImages() called - url: $url');
-    try {
-      if (widget.endPoint.contains('http')) {
-        return showWebImage(
-          '${widget.endPoint}${widget.photos[index].url}',
-          width: screenWidth - 10, //400,
-          onDelete: (response) => debugPrint('Response: $response'),
-        );
-      } else {
-        return showLocalImage(widget.endPoint, widget.photos[index].url,
-            index: index, width: screenWidth - 10);
-      }
-    } catch (e) {
-      return const Icon(
-        Icons.no_photography,
-        size: 100,
-      );
-    }
+  Widget getPageView(List<Image> imageList) {
+    return PageView.builder(
+      itemCount: widget.photos.length,
+      scrollDirection: Axis.horizontal,
+      controller: _pageController,
+      itemBuilder: (BuildContext context, int index) {
+        return imageList[index];
+      },
+    );
   }
 
   onDeleteImage(int index) {}
 
   deleteWebImage(String url) {}
-
-  Widget showLocalImage(String url, String image,
-      {int index = -1, double width = 400}) {
-    debugPrint('Local url: $url');
-    try {
-      return SizedBox(
-        key: Key('sli$index'),
-        width: width,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          child: url.contains('assets')
-              ? Image(
-                  image: AssetImage('$url$image'),
-                )
-              : Image.file(
-                  File('$url$image'),
-                  errorBuilder: (BuildContext context, Object exception,
-                      StackTrace? stackTrace) {
-                    return ImageMissing(width: width);
-                  },
-                ),
-        ),
-      );
-    } catch (e) {
-      return const Icon(
-        Icons.no_photography,
-        size: 100,
-      );
-    }
-  }
 }

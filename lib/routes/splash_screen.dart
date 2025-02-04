@@ -5,13 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:drives/models/models.dart';
 
-class SplashScreen extends StatefulWidget {
-  const SplashScreen({super.key});
+class Splash extends StatefulWidget {
+  const Splash({super.key});
   @override
-  _SplashScreenState createState() => _SplashScreenState();
+  _SplashState createState() => _SplashState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
+class _SplashState extends State<Splash> {
   late Future<bool> _setupOk;
   int _delaySecs = 4;
 

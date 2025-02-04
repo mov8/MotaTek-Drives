@@ -1,10 +1,14 @@
-// const urlBase = 'http://10.101.1.150:5001/'; // Home network
-const urlBase = 'http://192.168.1.7:5001/'; //  Boston
-// const urlBase = 'http://192.168.0.150:5001/'; // Home network
+import 'package:latlong2/latlong.dart';
+
+// const wifiIpAddress = '192.168.135.105'; // Boston
+// const wifiIpAddress = '10.101.1.150'; // Staines
+const wifiIpAddress = '192.168.1.12'; // Boston
+// const wifiIpAddress = '192.168.1.101'; // Ryde
+const urlBase = 'http://$wifiIpAddress:5001/'; //  Boston
 const urlBaseTest = '${urlBase}v1/user/test';
 const urlRouter =
-    'http://10.101.1.150:5000/route/v1/driving/'; //$waypoints?steps=true&annotations=true&geometries=geojson&overview=full$avoid'
-// const urlRouter = 'http://192.168.0.150:5000/route/v1/driving/';
+    'http://$wifiIpAddress:5000/route/v1/driving/'; //$waypoints?steps=true&annotations=true&geometries=geojson&overview=full$avoid'
+
 const urlTiler = 'http://192.168.68.126:5000/tile/v1/driving/';
 const urlRouterTest = '$urlRouter-0.1257,51.5085;0.0756,51.5128?overview=false';
 
@@ -23,9 +27,19 @@ enum MarkerTypes {
   pointOfInterest,
 }
 
+enum MapHeights {
+  full,
+  headers,
+  pointOfInterest,
+  message,
+}
+
 const int dbVersion = 1;
 
 String stadiaMapsApiKey = 'ea533710-31bd-4144-b31b-5cc0578c74d7';
+
+const LatLng ukNorthEast = LatLng(61, 2);
+const LatLng ukSouthWest = LatLng(49, -8);
 
 const List<String> tableDefs = [
   /// CACHES
@@ -91,7 +105,7 @@ const List<String> tableDefs = [
   /// SETUP
   '''CREATE TABLE setup(id INTEGER PRIMARY KEY AUTOINCREMENT, route_colour INTEGER, good_route_colour INTEGER, 
   waypoint_colour INTEGER, waypoint_colour_2 INTEGER, point_of_interest_colour INTEGER, rotate_map INTEGER, 
-  point_of_interest_colour_2 INTEGER, selected_colour INTEGER, highlighted_colour INTEGER, 
+  point_of_interest_colour_2 INTEGER, selected_colour INTEGER, highlighted_colour INTEGER, published_trip_colour INTEGER, 
   record_detail INTEGER, allow_notifications INTEGER, jwt TEXT, dark INTEGER, avoid_motorways INTEGER, 
   avoid_a_roads INTEGER, avoid_b_roads INTEGER, avoid_toll_roads INTEGER, avoid_ferries INTEGER, 
   bottom_nav_index INTEGER, route TEXT)''',
@@ -118,6 +132,7 @@ const List<String> tableDefs = [
 /// User Api endpoints:
 
 const String urlDrive = '${urlBase}v1/drive';
+const String urlDriveImages = '${urlBase}v1/drive/images';
 const String urlDriveRating = '${urlBase}v1/drive_rating';
 const String urlGoodRoad = '${urlBase}v1/good_road';
 const String urlGroup = '${urlBase}v1/group';

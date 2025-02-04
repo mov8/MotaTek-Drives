@@ -9,16 +9,16 @@ import 'package:drives/screens/dialogs.dart';
 
 import 'package:wakelock/wakelock.dart';
 
-class HomeScreen extends StatefulWidget {
+class Home extends StatefulWidget {
   // var setup;
 
-  const HomeScreen({super.key});
+  const Home({super.key});
 
   @override
-  State<HomeScreen> createState() => _homeScreenState();
+  State<Home> createState() => _HomeState();
 }
 
-class _homeScreenState extends State<HomeScreen> {
+class _HomeState extends State<Home> {
   late final LeadingWidgetController _leadingWidgetController;
   late final RoutesBottomNavController _bottomNavController;
   late final ImageRepository _imageRepository;
@@ -37,6 +37,12 @@ class _homeScreenState extends State<HomeScreen> {
 
   _leadingWidget(context) {
     return context?.openDrawer();
+  }
+
+  @override
+  void dispose() {
+    _imageRepository.clear();
+    super.dispose();
   }
 
   /// _getHomeData() used to trigger FutureBuilder
@@ -132,40 +138,44 @@ You can plan trips either on your own or you can explore in a group''',
 
     return ListView(children: [
       const Card(
-          child: Column(children: [
-        SizedBox(
-          child: Padding(
-              padding: EdgeInsets.fromLTRB(5, 10, 5, 0),
-              child: Align(
-                alignment: Alignment.topCenter,
-                child: Text(
-                  'MotaTrip',
-                  style: TextStyle(
-                    color: Colors.blue,
-                    fontSize: 38,
-                    fontWeight: FontWeight.bold,
+        child: Column(
+          children: [
+            SizedBox(
+              child: Padding(
+                  padding: EdgeInsets.fromLTRB(5, 10, 5, 0),
+                  child: Align(
+                    alignment: Alignment.topCenter,
+                    child: Text(
+                      'MotaTrip',
+                      style: TextStyle(
+                        color: Colors.blue,
+                        fontSize: 38,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.left,
+                    ),
+                  )),
+            ),
+            SizedBox(
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(5, 0, 5, 15),
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: Text(
+                    'the new free trip planning app',
+                    style: TextStyle(
+                      color: Colors.blue,
+                      fontSize: 25,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.left,
                   ),
-                  textAlign: TextAlign.left,
                 ),
-              )),
+              ),
+            ),
+          ],
         ),
-        SizedBox(
-          child: Padding(
-              padding: EdgeInsets.fromLTRB(5, 0, 5, 15),
-              child: Align(
-                alignment: Alignment.topCenter,
-                child: Text(
-                  'the new free trip planning app',
-                  style: TextStyle(
-                    color: Colors.blue,
-                    fontSize: 25,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  textAlign: TextAlign.left,
-                ),
-              )),
-        ),
-      ])),
+      ),
       for (int i = 0; i < homeItems.length; i++) ...[
         HomeTile(
           homeItem: homeItems[i],

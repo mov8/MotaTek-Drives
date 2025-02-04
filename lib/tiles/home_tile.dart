@@ -22,10 +22,10 @@ class HomeTile extends StatefulWidget {
   });
 
   @override
-  State<HomeTile> createState() => _homeTileState();
+  State<HomeTile> createState() => _HomeTileState();
 }
 
-class _homeTileState extends State<HomeTile> {
+class _HomeTileState extends State<HomeTile> {
   List<Photo> photos = [];
   String endPoint = '';
   // String endPoint = '';
@@ -55,7 +55,6 @@ class _homeTileState extends State<HomeTile> {
                 child: PhotoCarousel(
                   imageRepository: widget.imageRepository,
                   photos: photos,
-                  endPoint: widget.homeItem.uri,
                   height: 400,
                   width: MediaQuery.of(context).size.width - 20,
                 ),

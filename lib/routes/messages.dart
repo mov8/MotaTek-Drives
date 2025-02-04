@@ -4,15 +4,15 @@ import 'package:drives/classes/classes.dart';
 import 'package:drives/screens/screens.dart';
 import 'package:drives/tiles/tiles.dart';
 
-class MessagesScreen extends StatefulWidget {
-  const MessagesScreen({
+class Messages extends StatefulWidget {
+  const Messages({
     super.key,
   });
   @override
-  State<MessagesScreen> createState() => _messagesScreenState();
+  State<Messages> createState() => _MessagesState();
 }
 
-class _messagesScreenState extends State<MessagesScreen> {
+class _MessagesState extends State<Messages> {
   late final LeadingWidgetController _leadingWidgetController;
   late final RoutesBottomNavController _bottomNavController;
   late final GroupMessagesController _groupMessagesController;
@@ -25,7 +25,7 @@ class _messagesScreenState extends State<MessagesScreen> {
       subHeading: 'Message group members or individuals.',
       body:
           'Tell members about new events, or keep in contact on a group drive',
-      uri: 'assets/images/',
+      uri: 'assets/images',
       imageUrls: '[{"url": "message.png", "caption": ""}]');
   String _title = 'Messages - by group';
   Group _messageGroup = Group(

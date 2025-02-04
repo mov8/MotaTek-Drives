@@ -1,4 +1,5 @@
 import 'dart:async';
+// import 'dart:collection';
 import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
@@ -248,8 +249,9 @@ Future<dynamic> postTrip(MyTripItem tripItem) async {
   /// "ClientException with SocketException: Broken pipe (OS Error: Broken pipe, errno = 32), address = 10.101.1.150, port = 58368, uri…"
   /// }
   dynamic response;
-  String jwToken = Setup().jwt;
+  // String jwToken = Setup().jwt;
   try {
+    request.headers['Authorization'] = 'Bearer ${Setup().jwt}';
     request.files.add(await http.MultipartFile.fromPath('file', photos[0].url));
     request.fields['title'] = map['heading'];
     request.fields['sub_title'] = map['subHeading'];
@@ -263,7 +265,9 @@ Future<dynamic> postTrip(MyTripItem tripItem) async {
     request.fields['min_long'] = minLong.toString();
     request.fields['added'] = DateTime.now().toString();
 
-    request.headers['Authorization'] = 'Bearer $jwToken';
+    // request.headers['Authorization'] = 'Bearer ${Setup().jwt}';
+
+    //   request.headers['Authorization'] = 'Bearer $jwToken';
 
     response = await request.send().timeout(const Duration(seconds: 30));
   } catch (e) {
@@ -385,20 +389,44 @@ Future<String> postPolylines(
   }
 }
 
-Future<List<mt.Route>> getPolylines(String driveUri) async {
+/*
+Future<List<DriveCacheItem>> getDriveCacheItems(
+    {LatLng northEast = ukNorthEast,
+    LatLng southWest = ukSouthWest,
+    double iconSize = 60}) async {
+  try {
+    final Uri uri = Uri.parse(
+        '$urlDrive/cache/${southWest.latitude}/${northEast.latitude}/${southWest.longitude}/${northEast.longitude}');
+    final http.Response response = await getWebData(uri: uri);
+    if ([200, 201].contains(response.statusCode) && response.body.length > 10) {
+      List<dynamic> maps = jsonDecode(response.body);
+      Color iconColor = uiColours.keys.toList()[Setup().routeColour];
+      return [
+        for (Map<String, dynamic> map in maps)
+          DriveCacheItem.fromMap(
+              map: map, iconColor: iconColor, iconSize: iconSize, size: 60)
+      ];
+    }
+  } catch (e) {
+    debugPrint('Error fetching DriveCacheItems: ${e.toString()}');
+  }
+  return [];
+}
+*/
+Future<List<mt.Route>> getDriveRoutes(
+    {required String driveUri, driveKey = -1}) async {
   // http://10.101.1.150:5001/v1/polyline/drive/9fadee54c71d48b1b667a5ea13c4bea4
 
   final url = '$urlPolyline/drive/$driveUri';
   debugPrint('url: $url');
-  final http.Response response = await getWebData(
-      uri: Uri.parse(
-          'http://10.101.1.150:5001/v1/polyline/drive/9fadee54c71d48b1b667a5ea13c4bea4')); //'$urlPolyline/drive/$driveUri'));
+  final http.Response response =
+      await getWebData(uri: Uri.parse('$urlPolyline/drive/$driveUri'));
   if ([200, 201].contains(response.statusCode)) {
     try {
       List<dynamic> maps = jsonDecode(response.body);
       return [
         for (Map<String, dynamic> map in maps)
-          polylineFromMap(map: map, goodRoad: false)
+          polylineFromMap(map: map, goodRoad: false, driveKey: driveKey)
       ];
     } catch (e) {
       debugPrint('Error getPolylines: ${e.toString()}');
@@ -415,10 +443,25 @@ Future<List<mt.Route>> getGoodRoads(LatLng ne, LatLng sw) async {
 
   final http.Response response = await getWebData(uri: uri);
   if ([200, 201].contains(response.statusCode) && response.body.length > 10) {
-    List<Map<String, dynamic>> maps = jsonDecode(response.body);
+    List<dynamic> maps = jsonDecode(response.body);
     return [
       for (Map<String, dynamic> map in maps)
         polylineFromMap(map: map, goodRoad: true)
+    ];
+  }
+  return [];
+}
+
+Future<List<GoodRoadCacheItem>> getGoodRoadCache(LatLng ne, LatLng sw) async {
+  final Uri uri = Uri.parse(
+      '$urlGoodRoad/cache/${sw.latitude}/${ne.latitude}/${sw.longitude}/${ne.longitude}');
+
+  final http.Response response = await getWebData(uri: uri);
+  if ([200, 201].contains(response.statusCode) && response.body.length > 10) {
+    List<dynamic> maps = jsonDecode(response.body);
+    return [
+      for (Map<String, dynamic> map in maps) GoodRoadCacheItem.fromMap(map: map)
+      // polylineFromMap(map: map, goodRoad: true)
     ];
   }
   return [];
@@ -436,12 +479,20 @@ Future<mt.Route?> getRoute(
   // Polyline(points: [const LatLng(0, 0)]);
 }
 
+// Future<List<mt.Route?>> getRoutes({required String driveUri}) {
+
+// }
+
 mt.Route polylineFromMap(
-    {required Map<String, dynamic> map, bool goodRoad = false}) {
-  int colour = goodRoad ? Setup().goodRouteColour : map['colour'];
+    {required Map<String, dynamic> map,
+    bool goodRoad = false,
+    int driveKey = -1}) {
+  int colour = goodRoad ? Setup().goodRouteColour : Setup().publishedTripColour;
+  // map['colour'];
   Color routeColor = uiColours.keys.toList()[colour];
   return mt.Route(
     id: -1,
+    driveKey: driveKey,
     points: stringToPoints(map['points']), // routePoints,
     colour: routeColor,
     borderColour: routeColor,
@@ -465,15 +516,14 @@ Future<List<PointOfInterest>> getPointsOfInterest(ne, sw) async {
     for (int i = 0; i < pois.length; i++) {
       pointsOfInterest.add(
         PointOfInterest(
-          -1,
-          -1,
-          pois[i]['_type'],
-          pois[i]['name'],
-          pois[i]['description'],
-          30,
-          30,
+          type: pois[i]['_type'],
+          name: pois[i]['name'],
+          description: pois[i]['description'],
+          width: 30,
+          height: 30,
           images: pois[i]['images'],
           markerPoint: LatLng(pois[i]['latitude'], pois[i]['longitude']),
+          driveUri: pois[i]['drives'],
           marker: MarkerWidget(
             type: pois[i]['_type'],
             name: pois[i]['name'],
@@ -483,6 +533,7 @@ Future<List<PointOfInterest>> getPointsOfInterest(ne, sw) async {
 //'${urlBase}v1/drive/images${pointOfInterest.url}$pic')
             imageUrls:
                 webUrls(pois[i]['drive_id'], pois[i]['id'], pois[i]['images']),
+
             angle: 0, // degrees to radians
             list: 1,
             listIndex: i,
@@ -495,6 +546,71 @@ Future<List<PointOfInterest>> getPointsOfInterest(ne, sw) async {
   return pointsOfInterest;
 }
 
+Future<PointOfInterest> getPointOfInterest(
+    {String uri = '', int index = 0}) async {
+  debugPrint('hitting API $urlPointOfInterest/$uri');
+  final http.Response response = await http
+      .get(
+        Uri.parse('$urlPointOfInterest/$uri'),
+        //'/location/<min_lat>/<max_lat>/<min_long>/<max_long>'
+        headers: webHeader(),
+      )
+      .timeout(const Duration(seconds: 20));
+
+  debugPrint(
+      '::::: getPointOfInterest(uri:$uri) response.statusCode: ${response.statusCode}');
+  if ([200, 201].contains(response.statusCode) && response.body.length > 10) {
+    dynamic map = jsonDecode(response.body);
+    PointOfInterest pointOfInterest = PointOfInterest(
+      type: map['_type'],
+      name: map['name'],
+      description: map['description'],
+      images: map['images'],
+      markerPoint: LatLng(map['latitude'], map['longitude']),
+      score: map["average_rating"],
+      scored: map["ratings_count"],
+      driveUri: map['drives'],
+      url: map['id'],
+      // photos: map['images'].isNotEmpty
+      //     ? photosFromJson(imageListToString(imageList: map['images']),
+      //         endPoint: '$urlDriveImages/${map['drives']}/${map['id']}/')
+      //     : [],
+      marker: MarkerWidget(
+        type: map['_type'],
+        //  name: map['name'],
+        //  description: map['description'],
+        //  url: map['id'],
+        //  images: map['images'],
+//'${urlBase}v1/drive/images${pointOfInterest.url}$pic')
+//        imageUrls: webUrls(map['drives'], map['id'], map['images']),
+        //    photos: photosFromJson(widget.pointOfInterest.getImages(), endPoint: endpoint);
+        //  angle: 0, // degrees to radians
+        // list: 1,
+        // listIndex: index,
+      ),
+    );
+    debugPrint(
+        ':::: getPointOfInterest(uri: $uri) returning pointOfInterest OK');
+    return pointOfInterest;
+  } else {
+    debugPrint(
+        '++++++ getPointOfInterest() is Returning empty PointOfInterest ++++');
+    return PointOfInterest(
+        name: '',
+        marker: MarkerWidget(type: 1),
+        markerPoint: const LatLng(0, 0));
+  }
+}
+
+// List<Photo> photsFromString()
+
+String endpoint(
+    {required String driveUri,
+    required String pointOfInterestUri,
+    String images = ''}) {
+  return '$urlDriveImages/$driveUri/$pointOfInterestUri/';
+}
+
 List<String> webUrls(
     String driveUri, String pointOfInterestUri, String uriString) {
   if (uriString.length > 4) {
@@ -503,6 +619,9 @@ List<String> webUrls(
       for (String file in files)
         '$urlDrive/images/$driveUri/$pointOfInterestUri/$file'
     ];
+    if (urls.isNotEmpty) {
+      debugPrint('webUrls urls.length: ${urls.length}');
+    }
     return urls;
   }
   return [];
@@ -511,7 +630,8 @@ List<String> webUrls(
 // "http://10.101.1.150:5000/v1/drive/images/712c8d58e7d84491bba6fdb5507ea5ac/0081b165074f4d218c2db5ecafffd1b3/e9cbc367-236b-4dde-994d-e19fb43c1092.jpg"
 Future<String> postManeuver(Maneuver maneuver, String driveUid) async {
   final http.Response response = await postWebData(
-      uri: Uri.parse('$urlManeuver/add'), body: jsonEncode(maneuver.toMap()));
+      uri: Uri.parse('$urlManeuver/add'),
+      body: jsonEncode(maneuver.toMap(driveUid: driveUid)));
   if ([200, 201].contains(response.statusCode)) {
     debugPrint('Maneuver posted OK');
     return jsonEncode({'code': response.statusCode});
@@ -523,7 +643,7 @@ Future<String> postManeuver(Maneuver maneuver, String driveUid) async {
 
 Future<String> postManeuvers(List<Maneuver> maneuvers, String driveUid) async {
   List<Map<String, dynamic>> maps = [
-    for (Maneuver maneuver in maneuvers) maneuver.toMap()
+    for (Maneuver maneuver in maneuvers) maneuver.toMap(driveUid: driveUid)
   ];
   if (maps.isEmpty) {
     return jsonEncode({'message': 'no maneuvers to post'});
@@ -598,7 +718,7 @@ Future<List<TripItem>> getTrips() async {
   List<TripItem> trips = [];
   LatLng pos = const LatLng(-52, 0);
   try {
-    var currentPosition = await utils.getPosition();
+    var currentPosition = Setup().lastPosition; //await utils.getPosition();
     pos = LatLng(currentPosition.latitude, currentPosition.longitude);
   } catch (e) {
     debugPrint('getPosition() error: ${e.toString()}');
@@ -655,17 +775,20 @@ Future<List<TripItem>> getTrips() async {
   return trips;
 }
 
+/// getTrip() Gets the trip details for the tripTile - doesn't include any
+/// routing data
+
 Future<TripItem> getTrip(
     {required tripId, bool updateImageUris = false}) async {
   TripItem gotTrip = TripItem(heading: '');
   if (tripId.length == 32) {
-    var currentPosition = await utils.getPosition();
+    var currentPosition = Setup().lastPosition; //await utils.getPosition();
     LatLng pos = LatLng(currentPosition.latitude, currentPosition.longitude);
 
     final http.Response response = await http
         .get(
           Uri.parse('$urlDrive/summary/$tripId'),
-          headers: webHeader(),
+          headers: webHeader(secure: true),
         )
         .timeout(const Duration(seconds: 20));
     if (response.statusCode == 200) {
@@ -676,7 +799,8 @@ Future<TripItem> getTrip(
       // pics[j] "2a6bf728-8f4e-4993-9c00-9f2512bf0edf.jpg"
 
       List<String> images = [
-        Uri.parse('$urlDrive/images/${trip['id']}/map.png').toString()
+        //  Uri.parse('$urlDrive/images/${trip['id']}/map.png').toString()
+        Uri.parse('${trip['id']}/map.png').toString()
       ];
       try {
         int distance = 99999;
@@ -684,15 +808,18 @@ Future<TripItem> getTrip(
           if (trip['points_of_interest'][i]['images'].length > 0) {
             var pics = jsonDecode(trip['points_of_interest'][i]['images']);
             for (int j = 0; j < pics.length; j++) {
-              images.add(Uri.parse(
-                      '${urlDrive}images/${trip['id']}/${trip['points_of_interest'][i]['id']}/${pics[j]}')
-                  .toString());
+              //       images.add(Uri.parse(
+              //               '${urlDrive}images/${trip['id']}/${trip['points_of_interest'][i]['id']}/${pics[j]}')
+              //           .toString());
               // debugPrint(images[images.length - 1]);
+              images.add(Uri.parse(
+                      '${trip['id']}/${trip['points_of_interest'][i]['id']}/${pics[j]}')
+                  .toString());
             }
           }
-          LatLng poiPos = LatLng(trip['points_of_interest'][i]['latitude'],
-              trip['points_of_interest'][i]['longitude']);
-          distance = min(utils.distanceBetween(poiPos, pos).toInt(), distance);
+          //  LatLng poiPos = LatLng(trip['points_of_interest'][i]['latitude'],
+          //      trip['points_of_interest'][i]['longitude']);
+          //  distance = min(utils.distanceBetween(poiPos, pos).toInt(), distance);
         }
         gotTrip = TripItem(
             heading: trip['title'],
@@ -700,7 +827,9 @@ Future<TripItem> getTrip(
             body: trip['body'],
             author: trip['author'],
             published: trip['added'],
-            imageUrls: trip['image_urls'] ?? '',
+            imageUrls: imageListToString(
+                imageList:
+                    images), // images.toString(), // trip['image_urls'] ?? '',
             score: trip['average_rating'].toDouble() ?? 5.0,
             distance: trip['distance'],
             pointsOfInterest: trip['points_of_interest'].length,
@@ -717,6 +846,16 @@ Future<TripItem> getTrip(
   return gotTrip;
 }
 
+//"d663bed13ef54cd386bc8e5582803c80/map.png"
+//"d663bed13ef54cd386bc8e5582803c80/65e84e4ba58a49a7aa020a55a42c12db/bdb84cab-351c-48f0-ba4c-d6a46a560bc0.jpg"
+String imageListToString({required imageList}) {
+  String images = '';
+  for (String image in imageList) {
+    images = '{"url": "$image", "caption": ""}, ';
+  }
+  return '[${images.substring(images.substring(0) == '[' ? 1 : 0, images.length - 2)}]';
+}
+
 Future<Uint8List> getImageBytes({required String url}) async {
   Uint8List data = Uint8List.fromList([]);
   final response =
@@ -726,6 +865,7 @@ Future<Uint8List> getImageBytes({required String url}) async {
   }
   return data;
 }
+// ImageCache
 
 Future<void> getAndSaveImage(
     {required String url, required String filePath}) async {
@@ -769,7 +909,7 @@ putDriveRating(String uri, int score) async {
   }
 }
 
-putPointOfInterestRating(String uri, int score) async {
+putPointOfInterestRating(String uri, double score) async {
   // uri = uri.substring(1, uri.length - 1);
   uri = uri.substring(uri.indexOf('/') + 1);
   Map<String, dynamic> map = {
@@ -824,13 +964,11 @@ Future<MyTripItem> getTripSummary(String tripUuid) async {
             listIndex: i,
           );
           gotPointsOfInterest.add(PointOfInterest(
-            -1,
-            -1,
-            trip['points_of_interest'][i]['_type'],
-            trip['points_of_interest'][i]['name'],
-            trip['points_of_interest'][i]['description'],
-            trip['points_of_interest'][i]['_type'] == 12 ? 10 : 30,
-            trip['points_of_interest'][i]['_type'] == 12 ? 10 : 30,
+            type: trip['points_of_interest'][i]['_type'],
+            name: trip['points_of_interest'][i]['name'],
+            description: trip['points_of_interest'][i]['description'],
+            width: trip['points_of_interest'][i]['_type'] == 12 ? 10 : 30,
+            height: trip['points_of_interest'][i]['_type'] == 12 ? 10 : 30,
             images: trip['points_of_interest'][i]['images'],
             url: '/${trip['id']}/${trip['points_of_interest'][i]['id']}/',
             score: trip['points_of_interest'][i]['average_rating'] ?? 1,
@@ -873,7 +1011,7 @@ Future<MyTripItem> getMyTrip(String tripUuid) async {
 
   final http.Response response = await http.get(
     Uri.parse('$urlDrive/$tripUuid'),
-    headers: webHeader(),
+    headers: webHeader(secure: true),
   );
   if (response.statusCode == 200) {
     Map<String, dynamic> trip = jsonDecode(response.body);
@@ -946,13 +1084,11 @@ Future<MyTripItem> getMyTrip(String tripUuid) async {
             listIndex: i,
           );
           gotPointsOfInterest.add(PointOfInterest(
-            -1,
-            -1,
-            trip['points_of_interest'][i]['_type'],
-            trip['points_of_interest'][i]['name'],
-            trip['points_of_interest'][i]['description'],
-            trip['points_of_interest'][i]['_type'] == 12 ? 10 : 30,
-            trip['points_of_interest'][i]['_type'] == 12 ? 10 : 30,
+            type: trip['points_of_interest'][i]['_type'],
+            name: trip['points_of_interest'][i]['name'],
+            description: trip['points_of_interest'][i]['description'],
+            width: trip['points_of_interest'][i]['_type'] == 12 ? 10 : 30,
+            height: trip['points_of_interest'][i]['_type'] == 12 ? 10 : 30,
             images: trip['points_of_interest'][i]['images'],
             url: '/${trip['id']}/${trip['points_of_interest'][i]['id']}/',
             score: trip['points_of_interest'][i]['average_rating'] ?? 1,
@@ -1401,6 +1537,8 @@ Future<List<ShopItem>> getShopItems(int scope) async {
         itemsSent = [
           for (Map<String, dynamic> map in items)
             ShopItem.fromMap(map: map, url: '$urlShopItem/images/')
+
+          //  url: '$urlHomePageItem/images/'
         ];
       }
     }

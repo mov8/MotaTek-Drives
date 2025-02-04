@@ -1,6 +1,6 @@
 // import 'package:flutter/cupertino.dart';
 import 'dart:convert';
-import 'dart:ffi';
+// import 'dart:ffi';
 //import 'dart:ffi';
 import 'dart:ui' as ui;
 import 'dart:io';
@@ -10,10 +10,11 @@ import 'dart:typed_data';
 import 'package:intl/intl.dart';
 import 'package:drives/constants.dart';
 import 'package:drives/classes/utilities.dart';
+import 'package:drives/classes/fences.dart';
 import 'package:drives/screens/screens.dart';
 import 'package:drives/classes/route.dart' as mt;
 import 'package:drives/tiles/tiles.dart';
-//import 'package:drives/screens/dialogs.dart';
+import 'package:drives/models/other_models.dart';
 //import 'package:drives/screens/painters.dart';
 import 'package:drives/services/db_helper.dart';
 import 'package:drives/services/web_helper.dart' as wh;
@@ -180,6 +181,13 @@ const List<Map> poiTypes = [
   }
 ];
 
+int getIconIndex({required int iconIndex, int fallback = 0}) {
+  if (iconIndex == -1) {
+    iconIndex = fallback;
+  }
+  return iconIndex;
+}
+
 const List<String> manufacturers = ['Triumph', 'MG', 'Reliant'];
 const List<String> models = ['TR2', 'TR3', 'TR5', 'TR6', 'TR7', 'Stag'];
 
@@ -202,6 +210,9 @@ Map<Color, String> uiColours = {
   Colors.brown: 'brown',
   Colors.black: 'black',
 };
+
+List<Color> colourList = uiColours.keys.toList();
+List<String> colorNameList = uiColours.values.toList();
 
 const List<Color> pinColours = [
   Colors.red,
@@ -239,6 +250,7 @@ class Setup {
   int pointOfInterestColour2 = 14;
   int selectedColour = 7;
   int highlightedColour = 13;
+  int publishedTripColour = 10;
   int bottomNavIndex = 0;
   int recordDetail = 5;
   bool allowNotifications = true;
@@ -305,6 +317,7 @@ class Setup {
         pointOfInterestColour2 = maps[0]['point_of_interest_colour_2'];
         selectedColour = maps[0]['selected_colour'];
         highlightedColour = maps[0]['highlighted_colour'];
+        publishedTripColour = maps[0]['published_trip_colour'] ?? 10;
         recordDetail = maps[0]['record_detail'];
         allowNotifications = maps[0]['allow_notifications'] == 1;
         jwt = maps[0]['jwt'];
@@ -329,7 +342,7 @@ class Setup {
   }
 
   Future<List<Map<String, dynamic>>> getSetupById(int id) async {
-    final db = await dbHelper().db;
+    final db = await DbHelper().db;
     List<Map<String, dynamic>> maps = await db.query(
       'setup',
       where: 'id = ?',
@@ -348,6 +361,7 @@ class Setup {
       'waypoint_colour_2': waypointColour2,
       'point_of_interest_colour_2': pointOfInterestColour2,
       'highlighted_colour': highlightedColour,
+      'published_trip_colour': publishedTripColour,
       'selected_colour': selectedColour,
       'record_detail': recordDetail,
       'jwt': jwt,
@@ -364,7 +378,7 @@ class Setup {
   }
 
   Future<void> deleteSetupById(int id) async {
-    final db = await dbHelper().db;
+    final db = await DbHelper().db;
     await db.delete(
       'setup',
       where: 'id = ?',
@@ -374,34 +388,24 @@ class Setup {
 }
 
 class Feature extends Marker {
+  GlobalKey? pinKey;
   final int row;
   final String uri;
   final int id;
-  final int featureId;
   final int type;
-  Function ontap;
-  //final double width;
-  // final double height;
-  final Color iconColor;
-  // late IconButton super.child;
+  final int poiType;
 
   Feature(
       {this.row = -1,
       this.uri = '',
       this.id = -1,
-      this.featureId = -1,
       this.type = 0,
-      required this.ontap,
-      super.point = const LatLng(-50.0, -0.2),
-      double height = 30,
-      double width = 30,
+      this.poiType = 0,
       double iconSize = 30,
-      this.iconColor = Colors.red})
-      : super(
-            width: width,
-            height: height,
-            child: FeatureMarker(
-                index: id, width: width, color: iconColor, angle: 0));
+      super.width = 30,
+      super.height = 30,
+      super.child = const Text(''),
+      super.point = const LatLng(0, 0)});
 
   factory Feature.fromMap(
       {required Map<String, dynamic> map,
@@ -411,15 +415,17 @@ class Feature extends Marker {
     return Feature(
       row: row == -1 ? map['row'] ?? -1 : row,
       uri: map['uri'],
-      id: map['id'] ?? -1,
-      featureId: map['feature_id'] ?? -1,
+      id: -1,
       type: map['type'] ?? 0,
-      point: LatLng(map['lat'] ?? 50.0, map['lng'] ?? 0.0),
+      poiType: map['type'] == 1 ? map['feature_id'] : -1,
+      point: LatLng(map['min_lat'] ?? 50.0, map['min_lng'] ?? 0.0),
       width: size,
       height: size,
-      ontap: onTap,
-      iconColor: pinColours[map['type']],
     );
+  }
+
+  Fence getBounds() {
+    return Fence(northEast: point, southWest: point);
   }
 
   toMap() {
@@ -429,14 +435,15 @@ class Feature extends Marker {
       'uri': uri,
       'feature_id': id,
       'type': type,
-      'latitude': point.latitude,
-      'longitude': point.longitude
+      'max_lat': point.latitude,
+      'max_lng': point.longitude,
+      'min_lat': point.latitude,
+      'min_lng': point.longitude
     };
   }
 
   zoomIcon(double zoom) {
-    super.child =
-        FeatureMarker(index: id, width: zoom * 10, color: iconColor, angle: 0);
+    super.child = FeatureMarker(index: id, width: zoom * 10, angle: 0);
 
     // super.child = IconButton(
     //     onPressed: () => ontap, //debugPrint('Button $row pressed'),
@@ -474,6 +481,7 @@ class MarkerLabel extends Marker {
 // class PolyLine
 
 class PointOfInterest extends Marker {
+  GlobalKey? handle;
   final int id;
   String _images;
   final int driveId;
@@ -481,27 +489,40 @@ class PointOfInterest extends Marker {
   String _name;
   String _description;
   String url;
+  String driveUri;
   double _score;
   int scored;
+  DateTime published = DateTime.now();
   late final Widget marker;
   late LatLng markerPoint = const LatLng(52.05884, -1.345583);
+  List<Photo> photos;
 
   PointOfInterest(
-      //  this.ctx,
-      this.id,
-      this.driveId,
-      int type,
-      String name,
-      String description,
-      double width,
-      double height,
-      {String images = '',
-      required LatLng markerPoint,
-      required Widget marker,
-      this.url = '',
-      double score = 1,
-      this.scored = 0})
-      : _images = images,
+      //  this.ctx
+      {
+    this.handle,
+    this.id = -1,
+    this.driveId = -1,
+    int type = -1,
+    String name = '',
+    String description = '',
+    double width = 30,
+    double height = 30,
+    String images = '',
+    required LatLng markerPoint,
+    required Widget marker,
+    this.url = '',
+    this.driveUri = '',
+    double score = 1,
+    this.scored = 0,
+  })  : _images = handleWebImages(
+          images,
+        ),
+        photos = photosFromJson(
+            handleWebImages(
+              images,
+            ),
+            endPoint: '$urlDriveImages/$driveUri/$url/'),
         _type = type,
         _name = name,
         _description = description,
@@ -527,6 +548,10 @@ class PointOfInterest extends Marker {
 
   String getImages() {
     return _images;
+  }
+
+  String getEndpoint() {
+    return '$driveUri/$url';
   }
 
   void setType(int type) {
@@ -664,17 +689,21 @@ class MarkerWidget extends StatelessWidget {
   }
 }
 
-class FeatureMarker extends StatelessWidget {
+class FeatureMarker2 extends StatelessWidget {
   int index;
   double width;
   double angle;
-  Color color;
-  FeatureMarker({
+  Icon icon;
+  Icon overlay;
+  Function(int)? onPress;
+  FeatureMarker2({
     super.key,
     this.index = -1,
     this.width = 50,
-    this.color = Colors.red,
     this.angle = 0,
+    this.icon = const Icon(Icons.location_on, color: Colors.red),
+    this.overlay = const Icon(Icons.location_on, color: Colors.red),
+    this.onPress,
   });
 
   @override
@@ -685,15 +714,110 @@ class FeatureMarker extends StatelessWidget {
       child: SizedBox(
         width: width,
         child: FittedBox(
-            child: IconButton(
-          iconSize: width,
-          icon: Icon(Icons.pin_drop, color: color),
-          onPressed: () {
-            debugPrint('Pin pressed - width: $width');
-          },
-        )),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              IconButton(
+                iconSize: width,
+                icon: icon,
+                onPressed: () {
+                  debugPrint('FeatureMarker.onPress($index)');
+                  onPress!(index);
+                },
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(0, 0, 0, 19),
+                child: Container(
+                  width: width * .6,
+                  height: width * .6,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: colourList[Setup().pointOfInterestColour],
+                  ),
+                  child: overlay,
+                ),
+
+                //     Padding(
+                //         padding: const EdgeInsets.fromLTRB(0, 0, 0, 8),
+                //         child: overlay),
+              )
+            ],
+          ),
+        ),
       ),
     );
+  }
+
+  setSize({required double size}) {
+    width = size;
+  }
+}
+
+class FeatureMarker extends StatelessWidget {
+  int index;
+  double width;
+  double angle;
+  Icon icon;
+  Icon overlay;
+  Function(int)? onPress;
+  FeatureMarker({
+    super.key,
+    this.index = -1,
+    this.width = 50,
+    this.angle = 0,
+    this.icon = const Icon(Icons.location_on, color: Colors.red),
+    this.overlay = const Icon(Icons.location_on, color: Colors.red),
+    this.onPress,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    //double width = zoom * 4;
+    return Transform.rotate(
+      angle: angle,
+      child: SizedBox(
+        width: width,
+        child: FittedBox(
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              CustomPaint(
+                painter: LocationPinPainter(size: 50),
+              ),
+              IconButton(
+                iconSize: width,
+                icon: const Icon(Icons.home),
+                onPressed: () {
+                  debugPrint('FeatureMarker.onPress($index)');
+                  onPress!(index);
+                },
+              ),
+              /*
+              Padding(
+                padding: const EdgeInsets.fromLTRB(0, 0, 0, 19),
+                child: Container(
+                  width: width * .6,
+                  height: width * .6,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: colourList[Setup().pointOfInterestColour],
+                  ),
+                  child: overlay,
+                ),
+
+                //     Padding(
+                //         padding: const EdgeInsets.fromLTRB(0, 0, 0, 8),
+                //         child: overlay),
+              ) */
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  setSize({required double size}) {
+    width = size;
   }
 }
 
@@ -781,7 +905,42 @@ class LabelWidget extends StatelessWidget {
   }
 }
 
-IconData markerIcon(int type) {
+class PinMarkerWidget extends StatelessWidget {
+  Color color;
+  double width;
+  int index;
+  IconData overlay;
+  Color iconColor;
+  Function(int)? onPress;
+  PinMarkerWidget(
+      {super.key,
+      this.color = Colors.blue,
+      this.width = 50,
+      this.index = -1,
+      this.overlay = Icons.hail,
+      this.iconColor = Colors.white,
+      this.onPress});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      customBorder: const CircleBorder(),
+      splashColor: Colors.blue,
+      borderRadius: BorderRadius.circular(width / 2),
+      onTap: () => {onPress!(index)},
+      onLongPress: () => (debugPrint('LongPress')),
+      child: CustomPaint(
+        painter: LocationPinPainter(color: color, size: 50),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(0, 0, 0, 22),
+          child: Icon(overlay, size: width * .8, color: iconColor),
+        ),
+      ),
+    );
+  }
+}
+
+IconData markerIcon(int type, {double size = 0}) {
   return IconData(poiTypes.toList()[type]['iconMaterial'],
       fontFamily: 'MaterialIcons');
 }
@@ -1151,6 +1310,9 @@ class Photo {
 
   factory Photo.fromJson(Map<String, dynamic> json,
       {int index = -1, String endPoint = ''}) {
+    if (!json.containsKey('url')) {
+      debugPrint("Doesn't contain 'url'");
+    }
     return Photo(
         url: '$endPoint${json['url']}',
         id: json['id'] ?? -1,
@@ -1199,6 +1361,30 @@ class ImageCacheItem {
   }
 }
 
+class GoodRoadCacheItem {
+  int index;
+  int localId;
+  String url;
+  LatLng northEast;
+  LatLng southWest;
+  GoodRoadCacheItem(
+      {this.localId = -1,
+      this.url = '',
+      this.northEast = const LatLng(50, 0),
+      this.southWest = const LatLng(50, 0),
+      this.index = -1});
+
+  factory GoodRoadCacheItem.fromMap(
+      {required Map<String, dynamic> map, row = -1}) {
+    return GoodRoadCacheItem(
+        index: row,
+        localId: map['id'] ?? -1,
+        url: map['uri'] ?? '',
+        northEast: LatLng(map['max_lat'] ?? 50.0, map['max_lng'] ?? 0),
+        southWest: LatLng(map['min_lat'] ?? 50.0, map['min_lng'] ?? 0));
+  }
+}
+
 /// Creates a list of photos from a json string of the following format:
 ///  '[{"url": "assets/images/map.png", "caption": ""}, {"url": "assets/images/splash.png", "caption": ""},
 ///   {"url": "assets/images/CarGroup.png", "caption": "" }]',
@@ -1207,6 +1393,9 @@ class ImageCacheItem {
 
 List<Photo> photosFromJson(String photoString, {String endPoint = ''}) {
   if (photoString.isNotEmpty) {
+    if (!photoString.contains("url")) {
+      debugPrint('photoString: $photoString');
+    }
     int index = 0;
     return [
       for (Map<String, dynamic> urlData in jsonDecode(photoString))
@@ -1328,10 +1517,10 @@ class Maneuver {
     required this.type,
     required this.distance,
   });
-  Map<String, dynamic> toMap() {
+  Map<String, dynamic> toMap({String driveUid = ''}) {
     return {
       'id': id,
-      'drive_id': driveId,
+      'drive_uid': driveUid,
       'road_from': roadFrom,
       'road_to': roadTo,
       'exit': exit,
@@ -1343,6 +1532,7 @@ class Maneuver {
       'distance': distance,
     };
   }
+
 /*
     'drive_id': driveUid,
     'road_from': maneuver.roadFrom,
@@ -1363,6 +1553,7 @@ class Maneuver {
   /// ...['steps'][n]['maneuver']['modifier'] => 'right', 'left' etc
   /// ...['steps'][n]['maneuver']['type'] => 'turn' etc
   /// ...['steps'][n]['maneuver']['name'] => 'Alexandra Road'
+  ///
 }
 
 /// class Follower
@@ -1581,6 +1772,7 @@ class ShopItem {
 ///
 
 class TripSummary extends Marker {
+  int cacheKey;
   int id = -1;
   String uri;
   String title;
@@ -1595,7 +1787,8 @@ class TripSummary extends Marker {
   // late final Widget marker;
   // late LatLng markerPoint = const LatLng(52.05884, -1.345583);
   TripSummary(
-      {this.uri = '',
+      {this.cacheKey = -1,
+      this.uri = '',
       this.title = '',
       this.subTitle = '',
       this.minLat = -180.0,
@@ -1626,6 +1819,7 @@ class TripSummary extends Marker {
 }
 
 class TripItem {
+  GlobalKey? handle;
   int key = 0;
   int id = 0;
   String heading = '';
@@ -1646,7 +1840,8 @@ class TripItem {
   int downloads = 18;
   List<Polyline> polylines;
   TripItem(
-      {this.id = 0,
+      {this.handle,
+      this.id = 0,
       this.driveUri = '',
       required this.heading,
       this.subHeading = '',
@@ -2111,7 +2306,7 @@ drive_id: 0, type: 15, name: Point of Interest name, description: Point of Inter
 */
 
 Future<List<MyTripItem>> tripItemFromDb({int driveId = -1}) async {
-  final db = await dbHelper().db;
+  final db = await DbHelper().db;
   // int records = await recordCount('setup');
   // if (records > 0){
   /*
@@ -2169,17 +2364,17 @@ Future<List<MyTripItem>> tripItemFromDb({int driveId = -1}) async {
             body: maps[i]['body'],
             published: maps[i]['added'],
             images:
-                '{"url": "$directory/drive$driveId.png", "caption": ""}', //maps[i]['map_image'],
+                '[{"url": "$directory/drive$driveId.png", "caption": ""}]', //maps[i]['map_image'],
             distance: double.parse(maps[i]['distance'].toString()),
             pointsOfInterest: [
               PointOfInterest(
-                maps[i]['id'],
-                driveId,
-                maps[i]['type'],
-                maps[i]['name'],
-                maps[i]['description'],
-                maps[i]['type'] == 12 ? 10 : 30,
-                maps[i]['type'] == 12 ? 10 : 30,
+                id: maps[i]['id'],
+                driveId: driveId,
+                type: maps[i]['type'],
+                name: maps[i]['name'],
+                description: maps[i]['description'],
+                width: maps[i]['type'] == 12 ? 10 : 30,
+                height: maps[i]['type'] == 12 ? 10 : 30,
                 images: maps[i]['images'],
                 markerPoint: LatLng(maps[i]['latitude'], maps[i]['longitude']),
                 marker: MarkerWidget(
@@ -2196,13 +2391,13 @@ Future<List<MyTripItem>> tripItemFromDb({int driveId = -1}) async {
         if (maps[i]['type'] != 12) highlights++;
       } else {
         trips[trips.length - 1].addPointOfInterest(PointOfInterest(
-            maps[i]['id'],
-            driveId,
-            maps[i]['type'],
-            maps[i]['name'],
-            maps[i]['description'],
-            maps[i]['type'] == 12 ? 10 : 30,
-            maps[i]['type'] == 12 ? 10 : 30,
+            id: maps[i]['id'],
+            driveId: driveId,
+            type: maps[i]['type'],
+            name: maps[i]['name'],
+            description: maps[i]['description'],
+            width: maps[i]['type'] == 12 ? 10 : 30,
+            height: maps[i]['type'] == 12 ? 10 : 30,
             images: maps[i]['images'],
             markerPoint: LatLng(maps[i]['latitude'], maps[i]['longitude']),
             marker: MarkerWidget(type: maps[i]['type'])));
@@ -2400,7 +2595,7 @@ class MessageLocal {
 }
 
 Future<List<MessageLocal>> messagesFromDb({int driveId = -1}) async {
-  final db = await dbHelper().db;
+  final db = await DbHelper().db;
   // int records = await recordCount('setup');
   // if (records > 0){
   /*
@@ -2426,11 +2621,11 @@ Future<List<MessageLocal>> messagesFromDb({int driveId = -1}) async {
   List<MessageLocal> messages = [];
   try {
     List<Map<String, dynamic>> maps = await db.rawQuery(messagesQuery);
-    int memberId = -1;
+    //   int memberId = -1;
 
     for (int i = 0; i < maps.length; i++) {
       try {
-        memberId = maps[i]['user_id'];
+        //     memberId = maps[i]['user_id'];
         messages.add(MessageLocal(
           id: maps[i]['id'],
           groupMember: GroupMember(

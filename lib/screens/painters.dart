@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
 
+// import 'package:latlong2/latlong.dart' hide Path;
+
 class TargetPainter extends CustomPainter {
   final double top;
   final double left;
@@ -35,8 +37,73 @@ class TargetPainter extends CustomPainter {
   }
 }
 
+/// Draws a map location pin of the correct colour
+/// The icon can be superimposed and an inkwell
+/// used to handle the user tap events
+
+class LocationPinPainter extends CustomPainter {
+  final int index;
+  Color color;
+  double size;
+  Icon icon;
+  String text;
+  @override
+  LocationPinPainter(
+      {this.index = 0,
+      this.color = Colors.blue,
+      this.size = 30,
+      this.icon = const Icon(Icons.home),
+      this.text = '3.5'});
+
+  static const textStyle =
+      TextStyle(color: Colors.white, fontFamily: 'OpenSans', fontSize: 12);
+
+  var filledLineBrush = Paint()
+    ..style = PaintingStyle.fill
+    ..strokeWidth = 2.5;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final textSpan = TextSpan(
+      text: text,
+      style: textStyle,
+    );
+
+    final textPainter = TextPainter(
+      text: textSpan,
+      textDirection: TextDirection.ltr,
+      textScaler: TextScaler.noScaling,
+    )..layout(
+        maxWidth: 120,
+      );
+    int textWidth = textPainter.width.toInt() + 20;
+    int textHeight = textPainter.height.toInt();
+
+    double radius = size.width / 3;
+    //  Offset offset = Offset(size.width / 2, radius);
+    canvas.drawCircle(
+        Offset(size.width / 2, radius), radius, filledLineBrush..color = color);
+
+    var pointerPath = Path();
+    pointerPath.moveTo(
+        (size.width / 2) - radius, radius * 1.25); // - radius, radius);
+    pointerPath.lineTo(size.width / 2, size.height * .9);
+    pointerPath.lineTo((size.width / 2) + radius, radius * 1.25);
+    pointerPath.close();
+    canvas.drawPath(pointerPath, Paint()..color = color);
+    textPainter.paint(canvas,
+        Offset((size.width / 2) - (textWidth / 4), radius + textHeight - 5));
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) {
+    return false;
+  }
+}
+
 /// Allows text to be placed on the map
 /// with a pointy tag.
+///
 
 class MapLabelPainter extends CustomPainter {
   final int top;

@@ -151,15 +151,14 @@ enum MapHeights {
   message,
 }
 
-class CreateTripScreen extends StatefulWidget {
-  const CreateTripScreen({super.key});
+class CreateTrip extends StatefulWidget {
+  const CreateTrip({super.key});
 
   @override
-  State<CreateTripScreen> createState() => _CreateTripState();
+  State<CreateTrip> createState() => _CreateTripState();
 }
 
-class _CreateTripState extends State<CreateTripScreen>
-    with TickerProviderStateMixin {
+class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   GlobalKey mapKey = GlobalKey();
   final GlobalKey _scaffoldKey = GlobalKey();
   DateFormat dateFormat = DateFormat('dd/MM/yy HH:mm');
@@ -218,7 +217,8 @@ class _CreateTripState extends State<CreateTripScreen>
   final List<Follower> _following = [];
   List<mt.Route> _goodRoads = [];
   final ViewportFence _viewportFence = ViewportFence(
-      topRight: const LatLng(0, 0), bottomLeft: const LatLng(0, 0));
+      screenFence:
+          Fence(northEast: const LatLng(0, 0), southWest: const LatLng(0, 0)));
   List<PointOfInterest> _pointsOfInterest = [];
   LatLng topRight = const LatLng(0, 0);
   LatLng bottomLeft = const LatLng(0, 0);
@@ -236,6 +236,7 @@ class _CreateTripState extends State<CreateTripScreen>
   late final StreamController<double?> _allignPositionStreamController;
   late final StreamController<void> _allignDirectionStreamController;
   late final LeadingWidgetController _leadingWidgetController;
+  ImageRepository _imageRepository = ImageRepository();
   int initialLeadingWidgetValue = 0;
   //  [AppState.createTrip, AppState.driveTrip].contains(_appState) ? 1 : 0;
   late AlignOnUpdate _alignPositionOnUpdate;
@@ -257,13 +258,13 @@ class _CreateTripState extends State<CreateTripScreen>
     try {
       _currentTrip.addPointOfInterest(
         PointOfInterest(
-          id,
-          _currentTrip.getDriveId(),
-          iconIdx,
-          desc,
-          hint,
-          size,
-          size,
+          id: id,
+          driveId: _currentTrip.getDriveId(),
+          type: iconIdx,
+          name: desc,
+          description: hint,
+          width: size,
+          height: size,
           images: images,
           markerPoint: latLng,
           marker: MarkerWidget(
@@ -294,13 +295,13 @@ class _CreateTripState extends State<CreateTripScreen>
     _currentTrip.addPointOfInterest(
       PointOfInterest(
         //  context,
-        id,
-        _currentTrip.getDriveId(),
-        iconIdx,
-        desc,
-        hint,
-        size,
-        size,
+        id: id,
+        driveId: _currentTrip.getDriveId(),
+        type: iconIdx,
+        name: desc,
+        description: hint,
+        width: size,
+        height: size,
         images: images,
         markerPoint: latLng,
         marker: LabelWidget(
@@ -328,13 +329,13 @@ class _CreateTripState extends State<CreateTripScreen>
       if (context.mounted) {
         PointOfInterest poi = PointOfInterest(
           //   context,
-          id,
-          _currentTrip.getDriveId(),
-          type,
-          name,
-          '$distance miles - ($time minutes)',
-          10,
-          10,
+          id: id,
+          driveId: _currentTrip.getDriveId(),
+          type: type,
+          name: name,
+          description: '$distance miles - ($time minutes)',
+          width: 10,
+          height: 10,
           images: images,
           //   markerIcon(type),
           markerPoint: latLng,
@@ -1242,10 +1243,11 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
                 LatLng southWest = _animatedMapController
                     .mapController.camera.visibleBounds.southWest;
                 if (_updateOverlays) {
-                  if (_viewportFence.fenceUpdated(
-                      northEast: northEast, southWest: southWest)) {
-                    updateOverlays(
-                        _viewportFence.topRight, _viewportFence.bottomLeft);
+                  if (_viewportFence.fenceUpdate(
+                      screenFence:
+                          Fence(northEast: northEast, southWest: southWest))) {
+                    updateOverlays(_viewportFence.screenFence.northEast,
+                        _viewportFence.screenFence.southWest);
                   }
                 }
                 _mapRotation =
@@ -2313,6 +2315,7 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
                           index: index,
                           pointOfInterest:
                               _currentTrip.pointsOfInterest()[index],
+                          imageRepository: _imageRepository,
                           onExpandChange: expandChange,
                           onIconTap: iconButtonTapped,
                           onDelete: removePointOfInterest,
@@ -2339,7 +2342,9 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
               },
             )
           ],
-          if (_editPointOfInterest > -1) ...[
+          if (_editPointOfInterest > -1 &&
+              _editPointOfInterest <
+                  _currentTrip.pointsOfInterest().length) ...[
             SliverToBoxAdapter(
               child: PointOfInterestTile(
                 key: ValueKey(_editPointOfInterest),
@@ -2347,6 +2352,7 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
                 index: _editPointOfInterest,
                 pointOfInterest:
                     _currentTrip.pointsOfInterest()[_editPointOfInterest],
+                imageRepository: _imageRepository,
                 onExpandChange: expandChange,
                 onIconTap: iconButtonTapped,
                 onDelete: removePointOfInterest,
@@ -2509,7 +2515,8 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
   }
 
   onPointOfInterestRatingChanged(int value, int index) async {
-    putPointOfInterestRating(_currentTrip.pointsOfInterest()[index].url, value);
+    putPointOfInterestRating(
+        _currentTrip.pointsOfInterest()[index].url, value.toDouble());
   }
 
   void onConfirmDeleteTrip(int value) {
