@@ -1,15 +1,15 @@
 import 'dart:typed_data';
-import 'package:drives/constants.dart';
+// import 'package:drives/constants.dart';
 import 'package:drives/models/other_models.dart';
 import 'package:drives/services/services.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
+// import 'package:flutter_map/flutter_map.dart';
 
 // import 'package:flutter_map/flutter_map.dart';
 // import 'dart:convert';
 import 'package:latlong2/latlong.dart';
 import 'package:drives/classes/route.dart' as mt;
-import 'package:drives/classes/classes.dart';
+// import 'package:drives/classes/classes.dart';
 
 /// TripItemRepository handles the cache for TripItems in the Trips route
 /// The List<Feature> initially hold the bare bones of the TripItems id, uri
@@ -186,22 +186,16 @@ class TripItemRepository {
       required int id,
       required String uri,
       zoom = 30}) async {
-    String fetched = '===== Returned from cache EMPTY =====';
     if (!_tripItemCache.containsKey(key)) {
       if (id >= 0) {
         _tripItemCache[key] = await loadTripItemLocal(id: id);
-        fetched = '===== Returned TripItem from local db =====';
       } else if (uri.isNotEmpty) {
         _tripItemCache[key] = await getTrip(tripId: uri);
-        fetched = '===== Returned TripItem from API =====';
       } else {
         _tripItemCache[key] = TripItem(heading: '');
-        fetched = '===== Returned new empty TripItem =====';
       }
-    } else {
-      fetched = '===== Returned TripItem from cache =====';
-    }
-    debugPrint(fetched);
+    } else {}
+    //   debugPrint(fetched);
     return _tripItemCache[key]!;
   }
 
@@ -219,24 +213,18 @@ class PointOfInterestRepository {
       required String uri,
       zoom = 30}) async {
     // PointOfInterest pointOfIntest = PointOfInterest(markerPoint: MarkerPoint(), marker: marker)
-    String fetched = '===== Returned from cache EMPTY =====';
     if (!_pointOfInterestCache.containsKey(key)) {
       //  try {
       if (id >= 0) {
         _pointOfInterestCache[key] = await loadPointOfInterestLocal(id: id);
-        fetched = '===== Returned PointOfInterest from local db =====';
       } else if (uri.isNotEmpty) {
         _pointOfInterestCache[key] = await getPointOfInterest(uri: uri);
-        fetched = '===== Returned PointOfInterest uri: $uri from API =====';
       } else {
         _pointOfInterestCache[key] = PointOfInterest(
-            markerPoint: const LatLng(0, 0), marker: FeatureMarker());
-        fetched = '===== Returned from new empty PointOfInterest =====';
+            markerPoint: const LatLng(0, 0), marker: const FeatureMarker());
       }
-    } else {
-      fetched = '===== Returned PointOfInterest from cache =====';
-    }
-    debugPrint(fetched);
+    } else {}
+    //  debugPrint(fetched);
     return _pointOfInterestCache[key]!;
   }
 
@@ -251,26 +239,21 @@ class RouteRepository {
 
   Future<List<mt.Route>?> loadRoute({
     required int key,
-    // required int driveKey,
     required int id,
     required String uri,
   }) async {
     if (!_routeCache.containsKey(key)) {
-      // key = _routeCache.length;
-      //   isEmpty ? 0 : _routeCache.keys.last + 1;
       if (id >= 0) {
         _routeCache[key] = await loadRoutesLocal(id, type: 0, driveKey: key);
       } else if (uri.isNotEmpty) {
         _routeCache[key] = await getDriveRoutes(driveUri: uri);
-        //   mt.Route? route = await getRoute(uriString: uri);
-        //   _routeCache[key] = [route!];
       } else {
         _routeCache[key] = [
           mt.Route(points: [const LatLng(0, 0)], driveKey: key)
         ];
       }
     } else {
-      debugPrint('Route returned from cache');
+      //    debugPrint('Route returned from cache');
     }
     return _routeCache[key];
   }
@@ -298,7 +281,7 @@ class GoodRoadRepository {
         _goodRoadCache[key] = mt.Route(points: [const LatLng(0, 0)]);
       }
     } else {
-      debugPrint('GoodRoad returned from cache');
+      //    debugPrint('GoodRoad returned from cache');
     }
     return _goodRoadCache[key];
   }
@@ -323,10 +306,13 @@ class ImageRepository {
       //   isEmpty ? 0 : _imageCache.keys.last + 1;
       if (id >= 0) {
         _imageCache[key] = await localImageFromBytes(id: id);
+        debugPrint('Image returned from local database');
       } else if (uri.isNotEmpty && uri.contains('assets')) {
         _imageCache[key] = Image.asset(uri);
+        debugPrint('Image returned from assets');
       } else if (uri.isNotEmpty) {
         _imageCache[key] = await webImageFromBytes(url: uri);
+        debugPrint('Image returned from web');
       }
     } else {
       debugPrint('Image returned from cache');

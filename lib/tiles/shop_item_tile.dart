@@ -71,7 +71,8 @@ class _ShopItemTileState extends State<ShopItemTile> {
   @override
   Widget build(BuildContext context) {
     if (widget.shopItem.imageUrls.length != imageUrlLength) {
-      photos = photosFromJson(widget.shopItem.imageUrls);
+      photos = photosFromJson(widget.shopItem.imageUrls,
+          endPoint: '${widget.shopItem.uri}/');
       imageUrlLength = widget.shopItem.imageUrls.length;
     }
     _links = widget.shopItem.url1.isNotEmpty ? 1 : 0;
@@ -247,7 +248,23 @@ class _ShopItemTileState extends State<ShopItemTile> {
                         ),
                       ],
                     ),
-                    if (widget.shopItem.imageUrls.isNotEmpty)
+/*
+                    if (widget.pointOfInterest.photos.isNotEmpty)
+                      Row(
+                        children: <Widget>[
+                          Expanded(
+                            flex: 8,
+                            child: ImageArranger(
+                              photos: widget.pointOfInterest.photos,
+                              endPoint: widget.pointOfInterest.url,
+                            ),
+                          ),
+                        ],
+                      ),
+"/data/user/0/com.example.drives/app_flutter/point_of_interest_0_5.jpg"
+*/
+
+                    if (photos.isNotEmpty)
                       Row(
                         children: <Widget>[
                           Expanded(
@@ -255,6 +272,7 @@ class _ShopItemTileState extends State<ShopItemTile> {
                             child: ImageArranger(
                               photos: photos,
                               endPoint: widget.shopItem.uri,
+                              height: 350,
                             ),
                           ),
                         ],

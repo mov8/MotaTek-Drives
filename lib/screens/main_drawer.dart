@@ -225,11 +225,18 @@ class _MainDrawerState extends State<MainDrawer> {
                                   builder: (context) => const ShopForm(),
                                 ),
                               );
-                            } else {
+                            } else if (e['value'] == 'home') {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) => const HomeForm(),
+                                ),
+                              );
+                            } else if (e['value'] == 'remove') {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const DeleteTripsForm(),
                                 ),
                               );
                             }
@@ -270,6 +277,11 @@ class _MainDrawerState extends State<MainDrawer> {
       'text': 'Shop Content',
       'iconData': const Icon(Icons.shopping_bag_outlined),
       'value': 'shop'
-    }
+    },
+    {
+      'text': 'Remove Drive',
+      'iconData': const Icon(Icons.remove_road_outlined),
+      'value': 'remove'
+    },
   ];
 }

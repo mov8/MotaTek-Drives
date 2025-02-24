@@ -5,6 +5,7 @@ import 'dart:math';
 import 'package:drives/constants.dart';
 import 'package:drives/classes/classes.dart';
 import 'package:drives/classes/route.dart' as mt;
+// import 'package:drives/classes/map_markers.dart';
 import 'package:drives/screens/screens.dart';
 import 'package:drives/services/services.dart';
 import 'package:drives/models/models.dart';
@@ -194,7 +195,7 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   late Future<bool> _loadedOK;
   bool _showMask = false;
   late FocusNode fn1;
-  final GoodRoad _goodRoad = GoodRoad();
+  GoodRoad _goodRoad = GoodRoad();
   final List<CutRoute> _cutRoutes = [];
   late ui.Size screenSize;
   late ui.Size appBarSize;
@@ -203,7 +204,7 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   bool _showTarget = false;
   bool _showSearch = false;
   bool _showPreferences = false;
-  TripPreferences _preferences = TripPreferences();
+  final TripPreferences _preferences = TripPreferences();
   int _editPointOfInterest = -1;
   late Position _currentPosition;
   int _resizeDelay = 0;
@@ -236,7 +237,7 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   late final StreamController<double?> _allignPositionStreamController;
   late final StreamController<void> _allignDirectionStreamController;
   late final LeadingWidgetController _leadingWidgetController;
-  ImageRepository _imageRepository = ImageRepository();
+  final ImageRepository _imageRepository = ImageRepository();
   int initialLeadingWidgetValue = 0;
   //  [AppState.createTrip, AppState.driveTrip].contains(_appState) ? 1 : 0;
   late AlignOnUpdate _alignPositionOnUpdate;
@@ -284,8 +285,8 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
     }
   }
 
-  VectorTileProvider _tileProvider() =>
-      NetworkVectorTileProvider(urlTemplate: urlTiler, maximumZoom: 14);
+  // VectorTileProvider _tileProvider() =>
+//      NetworkVectorTileProvider(urlTemplate: urlTiler, maximumZoom: 14);
 
   _addGreatRoadStartLabel(int id, int userId, int iconIdx, String desc,
       String hint, double size, LatLng latLng) {
@@ -324,7 +325,6 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
       time = 0,
       refresh = true}) async {
     int type = 12;
-
     await getPoiName(latLng: latLng, name: name).then((name) {
       if (context.mounted) {
         PointOfInterest poi = PointOfInterest(
@@ -502,8 +502,8 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
         mt.Route(
             id: -1,
             points: points, // Route,
-            colour: _routeColour(_goodRoad.isGood),
-            borderColour: _routeColour(_goodRoad.isGood),
+            color: _routeColour(_goodRoad.isGood),
+            borderColor: _routeColour(_goodRoad.isGood),
             strokeWidth: 5),
       );
     }
@@ -541,8 +541,8 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
     _currentTrip.addRoute(mt.Route(
         id: -1,
         points: apiData["points"], // Route,
-        colour: _routeColour(_goodRoad.isGood),
-        borderColour: _routeColour(_goodRoad.isGood),
+        color: _routeColour(_goodRoad.isGood),
+        borderColor: _routeColour(_goodRoad.isGood),
         strokeWidth: 5));
 
     _currentTrip.setDistance(_currentTrip.getDistance() +
@@ -619,9 +619,13 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
     } catch (e) {
       debugPrint('Http error: ${e.toString()}');
     }
-    var router = jsonResponse['routes'][0]['geometry']['coordinates'];
-    for (int i = 0; i < router.length; i++) {
-      routePoints.add(LatLng(router[i][1], router[i][0]));
+    try {
+      var router = jsonResponse['routes'][0]['geometry']['coordinates'];
+      for (int i = 0; i < router.length; i++) {
+        routePoints.add(LatLng(router[i][1], router[i][0]));
+      }
+    } catch (e) {
+      debugPrint('Error getting distancence - ${e.toString()}');
     }
     double distance = 0;
     double duration = 0;
@@ -919,6 +923,7 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
           apiKey: stadiaMapsApiKey,
           logger: null);
       _style = await _styleReader.read();
+      debugPrint('got _style');
     } catch (e) {
       debugPrint('Error initiating style: ${e.toString}');
     }
@@ -1123,19 +1128,11 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
                   setState(() {
                     //  _showTarget = !_showTarget;
                     _goodRoad.isGood = !_goodRoad.isGood;
-
                     if (_goodRoad.isGood) {
-                      _currentTrip.addGoodRoad(mt.Route(
-                          id: -1,
-                          points: [
-                            LatLng(_currentPosition.latitude,
-                                _currentPosition.longitude)
-                          ],
-                          borderColour:
-                              uiColours.keys.toList()[Setup().goodRouteColour],
-                          colour:
-                              uiColours.keys.toList()[Setup().goodRouteColour],
-                          strokeWidth: 5));
+                      addGoodRoad(
+                        position: LatLng(_currentPosition.latitude,
+                            _currentPosition.longitude),
+                      );
                     }
                   });
                 },
@@ -1217,18 +1214,30 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
                   // _routeAtCenter.context =
                   _routeAtCenter.routes = _currentTrip.routes();
                   int routeIdx = _routeAtCenter.getPolyLineNearestCenter();
+                  //       if (routeIdx >= 0) {
+                  //         _currentTrip.setRouteColour(routeIdx, Colors.red);
+                  //         highlightedIndex = routeIdx;
+                  //         //  _currentTrip.routes()[routeIdx].colour = Colors.red;
+                  //      }
+
                   // if (routeIdx > -1) {
                   for (int i = 0; i < _currentTrip.routes().length; i++) {
                     //  _currentTrip.routes()[i].borderColor = _currentTrip.routes()[i].color;
                     if (i == routeIdx) {
                       _tripActions = TripActions.routeHighlited;
-                      _currentTrip.routes()[i].colour =
-                          uiColours.keys.toList()[Setup().selectedColour];
+                      _currentTrip.setRouteColour(
+                          i, uiColours.keys.toList()[Setup().selectedColour]);
+
+                      //   _currentngTrip.routes()[i].colour = Colors.red;
+                      //  uiColours.keys.toList()[Setup().selectedColour];
+                      debugPrint(
+                          'setti route()[i].colour => ${uiColours.values.toList()[Setup().selectedColour]}');
                     } else {
-                      _currentTrip.routes()[i].colour =
-                          _currentTrip.routes()[i].borderColour;
+                      _currentTrip.setRouteColour(
+                          i, uiColours.keys.toList()[Setup().routeColour]);
                     }
                   }
+                  //       }
 
                   highlightedIndex = routeIdx;
                 } else {
@@ -1312,6 +1321,7 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
                 onMiss: routeMissed,
                 routeAtCenter: _routeAtCenter,
               ),
+              /*
               mt.RouteLayer(
                 polylineCulling: false, //true,
                 polylines: _goodRoads,
@@ -1319,6 +1329,7 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
                 onMiss: routeMissed,
                 routeAtCenter: _routeAtCenter,
               ),
+              */
               MarkerLayer(markers: _currentTrip.pointsOfInterest()),
               MarkerLayer(markers: _pointsOfInterest),
               MarkerLayer(markers: _following),
@@ -1479,7 +1490,9 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
       _tripActions = TripActions.saved;
       return chips;
     }
+
     if (_tripState == TripState.none) {
+      chipNames.clear();
       chipNames
         ..add('Create manually')
         ..add('Track drive');
@@ -1633,21 +1646,24 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
     });
   }
 
-  void greatRoad() async {
-    String txt =
-        'Great road start'; //_goodRoad.isGood ? 'Great road start' : 'Great road end';
-    LatLng pos = _animatedMapController.mapController.camera.center;
-    _addGreatRoadStartLabel(id, userId, 13, txt, '', 80, pos);
-    setState(() {
-      _highliteActions = HighliteActions.greatRoadStarted;
-      _cutRoutes.clear();
-      // _splitRoute();
-      _goodRoad.isGood = true;
-      if (_routeAtCenter.routeIndex < _currentTrip.routes().length) {
+  void greatRoad() {
+    if (_routeAtCenter.routeIndex < _currentTrip.routes().length) {
+      String txt =
+          'Good road start'; //_goodRoad.isGood ? 'Great road start' : 'Great road end';
+      setState(() {
+        _goodRoad.isGood =
+            true; // Must be called first as it sets all values to -1
         _goodRoad.routeIdx1 = _routeAtCenter.routeIndex;
         _goodRoad.pointIdx1 = _routeAtCenter.pointIndex;
-      }
-    });
+        LatLng pos = _currentTrip.routes()[_routeAtCenter.routeIndex].points[
+            _routeAtCenter
+                .pointIndex]; // _animatedMapController.mapController.camera.center;
+        _addGreatRoadStartLabel(id, userId, 13, txt, '', 80, pos);
+
+        _highliteActions = HighliteActions.greatRoadStarted;
+        _cutRoutes.clear();
+      });
+    }
   }
 
   void startRecording() async {
@@ -1802,9 +1818,10 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
           mt.Route(
               id: -1,
               points: goodPoints,
-              borderColour: uiColours.keys.toList()[Setup().goodRouteColour],
-              colour: uiColours.keys.toList()[Setup().goodRouteColour],
-              strokeWidth: 5),
+              borderColor: uiColours.keys.toList()[Setup().goodRouteColour],
+              color: uiColours.keys.toList()[Setup().goodRouteColour],
+              strokeWidth: 5,
+              pointOfInterestIndex: _currentTrip.pointsOfInterest().length - 1),
         );
         _showMask = false;
         _tripActions = TripActions.pointOfInterest;
@@ -1949,8 +1966,8 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
       mt.Route newRoute = mt.Route(
           id: -1,
           points: [],
-          colour: _routeColour(false),
-          borderColour: _routeColour(false),
+          color: _routeColour(false),
+          borderColor: _routeColour(false),
           strokeWidth: 5);
 
       if (_routeAtCenter.routeIndex < _currentTrip.routes().length - 1) {
@@ -2010,8 +2027,8 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
         /// 1) X < b      2nd bit of a + all b are good
         if (_goodRoad.routeIdx2 < _goodRoad.routeIdx1) {
           for (int i = _goodRoad.routeIdx2 + 1; i < _goodRoad.routeIdx1; i++) {
-            _currentTrip.routes()[i].colour = _routeColour(true);
-            _currentTrip.routes()[i].borderColour = _routeColour(true);
+            _currentTrip.routes()[i].color = _routeColour(true);
+            _currentTrip.routes()[i].borderColor = _routeColour(true);
             for (int j = 0; j < _currentTrip.routes()[i].points.length; j++) {
               goodPoints.add(_currentTrip.routes()[i].points[j]);
             }
@@ -2019,9 +2036,9 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
 
           /// 2) X == b     2nd bit of b is
         } else if (_goodRoad.routeIdx2 == _goodRoad.routeIdx1) {
-          _currentTrip.routes()[_goodRoad.routeIdx2 + 1].colour =
+          _currentTrip.routes()[_goodRoad.routeIdx2 + 1].color =
               _routeColour(true);
-          _currentTrip.routes()[_goodRoad.routeIdx2 + 1].borderColour =
+          _currentTrip.routes()[_goodRoad.routeIdx2 + 1].borderColor =
               _routeColour(true);
           for (int j = 0;
               j < _currentTrip.routes()[_goodRoad.routeIdx2 + 1].points.length;
@@ -2032,9 +2049,8 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
 
           /// 3) X == b+1   1st bit of b2 is good
         } else if (_goodRoad.routeIdx2 == _goodRoad.routeIdx1 + 1) {
-          _currentTrip.routes()[_goodRoad.routeIdx2].colour =
-              _routeColour(true);
-          _currentTrip.routes()[_goodRoad.routeIdx2].borderColour =
+          _currentTrip.routes()[_goodRoad.routeIdx2].color = _routeColour(true);
+          _currentTrip.routes()[_goodRoad.routeIdx2].borderColor =
               _routeColour(true);
           for (int j = 0;
               j < _currentTrip.routes()[_goodRoad.routeIdx2].points.length;
@@ -2046,8 +2062,8 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
           /// 4) X > b+1    all from b2 to c are good
         } else if (_goodRoad.routeIdx2 > _goodRoad.routeIdx1) {
           for (int i = _goodRoad.routeIdx1 + 1; i < _goodRoad.routeIdx2; i++) {
-            _currentTrip.routes()[i].colour = _routeColour(true);
-            _currentTrip.routes()[i].borderColour = _routeColour(true);
+            _currentTrip.routes()[i].color = _routeColour(true);
+            _currentTrip.routes()[i].borderColor = _routeColour(true);
             for (int j = 0; j < _currentTrip.routes()[i].points.length; j++) {
               goodPoints.add(_currentTrip.routes()[i].points[j]);
             }
@@ -2424,8 +2440,8 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
       _currentTrip.addRoute(mt.Route(
           id: -1,
           points: polyLines[i].points,
-          colour: polyLines[i].color,
-          borderColour: polyLines[i].color,
+          color: polyLines[i].color,
+          borderColor: polyLines[i].color,
           strokeWidth: polyLines[i].strokeWidth));
     }
 
@@ -2464,7 +2480,7 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
         callback: onConfirmDeleteTrip);
   }
 
-  Future<void> publishTrip(int index) async {
+  Future<void> publishTrip2(int index) async {
     String driveUI = '';
     int driveId = _myTripItems[index].getDriveId();
     postTrip(_myTripItems[index]).then((driveUi) {
@@ -2474,12 +2490,12 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
         postPointOfInterest(pointOfInterest, driveUI);
       }
     }).then((_) async {
-      List<Polyline> polylines = await loadPolyLinesLocal(driveId, type: 0);
-      postPolylines(polylines, driveUI, 0);
+      List<mt.Route> polylines = await loadPolyLinesLocal(driveId, type: 0);
+      postPolylines(polylines: polylines, driveUid: driveUI, type: 0);
 
       polylines = await loadPolyLinesLocal(driveId, type: 1);
       if (polylines.isNotEmpty) {
-        postPolylines(polylines, driveUI, 1);
+        postPolylines(polylines: polylines, driveUid: driveUI, type: 1);
       }
       List<Maneuver> maneuvers = await loadManeuversLocal(driveId);
       postManeuvers(maneuvers, driveUI);
@@ -2727,8 +2743,8 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
               points: [
                 LatLng(_currentPosition.latitude, _currentPosition.longitude)
               ], // Route,
-              colour: _routeColour(_goodRoad.isGood),
-              borderColour: _routeColour(_goodRoad.isGood),
+              color: _routeColour(_goodRoad.isGood),
+              borderColor: _routeColour(_goodRoad.isGood),
               strokeWidth: 5));
           _startLatLng = pos;
           _lastLatLng = pos;
@@ -2779,8 +2795,8 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
             _currentTrip.addRoute(mt.Route(
                 id: -1,
                 points: [pos],
-                borderColour: uiColours.keys.toList()[Setup().routeColour],
-                colour: uiColours.keys.toList()[Setup().routeColour],
+                borderColor: uiColours.keys.toList()[Setup().routeColour],
+                color: uiColours.keys.toList()[Setup().routeColour],
                 strokeWidth: 5));
           }
           _currentTrip
@@ -2789,14 +2805,25 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
               .add(pos);
 
           if (_goodRoad.isGood) {
+            _currentTrip.addPointOfInterest(
+              PointOfInterest(
+                driveId: _currentTrip.getDriveId(),
+                type: 13,
+                name: 'Good road',
+                markerPoint: pos,
+                marker: MarkerWidget(
+                  type: 13,
+                  description: '',
+                  angle: -_mapRotation * pi / 180,
+                  list: 0,
+                  listIndex: id == -1
+                      ? _currentTrip.pointsOfInterest().length
+                      : id + 1,
+                ),
+              ),
+            );
             if (_currentTrip.goodRoads().isEmpty) {
-              _currentTrip.addGoodRoad(mt.Route(
-                  id: -1,
-                  points: [pos],
-                  borderColour:
-                      uiColours.keys.toList()[Setup().goodRouteColour],
-                  colour: uiColours.keys.toList()[Setup().goodRouteColour],
-                  strokeWidth: 5));
+              addGoodRoad(position: pos);
             } else {
               _currentTrip
                   .goodRoads()[_currentTrip.goodRoads().length - 1]
@@ -2814,6 +2841,38 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
         }
       },
     );
+  }
+
+  void addGoodRoad({required LatLng position}) {
+    _currentTrip.addPointOfInterest(
+      PointOfInterest(
+        driveId: _currentTrip.getDriveId(),
+        type: 13,
+        name: 'Good road',
+        markerPoint: position,
+        marker: MarkerWidget(
+          type: 13,
+          description: '',
+          angle: -_mapRotation * pi / 180,
+          list: 0,
+          listIndex: id == -1 ? _currentTrip.pointsOfInterest().length : id + 1,
+        ),
+      ),
+    );
+    if (_currentTrip.goodRoads().isEmpty) {
+      _currentTrip.addGoodRoad(mt.Route(
+          id: -1,
+          points: [position],
+          borderColor: uiColours.keys.toList()[Setup().goodRouteColour],
+          color: uiColours.keys.toList()[Setup().goodRouteColour],
+          strokeWidth: 5,
+          pointOfInterestIndex: _currentTrip.pointsOfInterest().length - 1));
+    } else {
+      _currentTrip
+          .goodRoads()[_currentTrip.goodRoads().length - 1]
+          .points
+          .add(position);
+    }
   }
 
   int getDirectionsIndex() {

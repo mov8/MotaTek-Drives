@@ -173,7 +173,6 @@ class _GroupFormState extends State<GroupForm> {
               ),
             );
           }
-
           throw ('Error - FutureBuilder group.dart');
         },
       ),
@@ -187,34 +186,48 @@ class _GroupFormState extends State<GroupForm> {
           padding: const EdgeInsets.fromLTRB(10, 10, 20, 10),
           child: Row(
             children: [
-              Expanded(
-                flex: 8,
-                child: DropdownButtonFormField<String>(
-                  style: const TextStyle(fontSize: 18),
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    labelText: 'Group name',
+              if (groups.isNotEmpty) ...[
+                Expanded(
+                  flex: 8,
+                  child: DropdownButtonFormField<String>(
+                    style: const TextStyle(fontSize: 18),
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      labelText: 'Group name',
+                    ),
+                    value: groups[groupIndex].name,
+                    items: groups
+                        .map((item) => DropdownMenuItem<String>(
+                              value: item.name,
+                              child: Text(item.name,
+                                  style:
+                                      Theme.of(context).textTheme.titleLarge!),
+                            ))
+                        .toList(),
+                    onChanged: (item) async {
+                      groupIndex = groups
+                          .indexWhere((group) => group.name == item.toString());
+                      if (groups[groupIndex].groupMembers().isEmpty) {
+                        List<GroupMember> members =
+                            await getManagedGroupMembers(groups[groupIndex].id);
+                        groups[groupIndex].setGroupMembers(members);
+                      }
+                      setState(() {});
+                    },
                   ),
-                  value: groups[groupIndex].name,
-                  items: groups
-                      .map((item) => DropdownMenuItem<String>(
-                            value: item.name,
-                            child: Text(item.name,
-                                style: Theme.of(context).textTheme.titleLarge!),
-                          ))
-                      .toList(),
-                  onChanged: (item) async {
-                    groupIndex = groups
-                        .indexWhere((group) => group.name == item.toString());
-                    if (groups[groupIndex].groupMembers().isEmpty) {
-                      List<GroupMember> members =
-                          await getManagedGroupMembers(groups[groupIndex].id);
-                      groups[groupIndex].setGroupMembers(members);
-                    }
-                    setState(() {});
-                  },
                 ),
-              ),
+              ] else ...[
+                const Expanded(
+                  flex: 8,
+                  child: Align(
+                    alignment: Alignment.center,
+                    child: Text(
+                      'No groups setup - add one now ?',
+                      style: TextStyle(fontSize: 24),
+                    ),
+                  ),
+                ),
+              ],
               const SizedBox(
                 width: 5,
               ),
@@ -231,18 +244,20 @@ class _GroupFormState extends State<GroupForm> {
                   ),
                 )
               ] else ...[
-                Expanded(
-                  flex: 1,
-                  child: IconButton(
-                    icon: const Icon(Icons.edit),
-                    onPressed: () => setState(() {
-                      editingGroup = true;
-                      _validateMessage = '';
-                      _emailSizedBoxHeight = 70;
-                      fn1.requestFocus();
-                    }),
+                if (groups.isNotEmpty) ...[
+                  Expanded(
+                    flex: 1,
+                    child: IconButton(
+                      icon: const Icon(Icons.edit),
+                      onPressed: () => setState(() {
+                        editingGroup = true;
+                        _validateMessage = '';
+                        _emailSizedBoxHeight = 70;
+                        fn1.requestFocus();
+                      }),
+                    ),
                   ),
-                ),
+                ],
                 Expanded(
                   flex: 1,
                   child: IconButton(
@@ -273,7 +288,8 @@ class _GroupFormState extends State<GroupForm> {
               if (editingGroup) ...[
                 handleEditGroup(),
               ],
-              if (groups[groupIndex].groupMembers().isNotEmpty) ...[
+              if (groups.isNotEmpty &&
+                  groups[groupIndex].groupMembers().isNotEmpty) ...[
                 Expanded(
                   child: ListView.builder(
                     itemCount: groups[groupIndex]
@@ -345,7 +361,6 @@ class _GroupFormState extends State<GroupForm> {
             },
             onFieldSubmitted: (val) => setState(() {
               newGroup.name = val;
-
               if (newGroup.name.isNotEmpty) {
                 groups.add(newGroup);
                 groupIndex = groups.length - 1;
@@ -614,7 +629,8 @@ class _GroupFormState extends State<GroupForm> {
         spacing: 10,
         children: [
           if (groupIndex >= 0) ...[
-            if (groups[groupIndex].name.isNotEmpty &&
+            if (groups.isNotEmpty &&
+                groups[groupIndex].name.isNotEmpty &&
                 !addingMember &&
                 !editingGroup &&
                 !addingGroup) ...[

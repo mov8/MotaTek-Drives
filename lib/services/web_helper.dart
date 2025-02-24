@@ -2,12 +2,13 @@ import 'dart:async';
 // import 'dart:collection';
 import 'dart:io';
 import 'dart:math';
+import 'dart:convert';
 import 'dart:typed_data';
 import 'package:drives/constants.dart';
 import 'package:drives/classes/classes.dart';
 import 'package:drives/screens/dialogs.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
+// import 'package:flutter_map/flutter_map.dart';
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 import 'dart:convert';
@@ -25,16 +26,28 @@ import 'package:drives/classes/route.dart' as mt;
 // Future<Map<String, dynamic>> getSuggestions(String value) async {
 
 Map<String, String> webHeader({bool secure = false}) {
+  Map<String, String> header = {'Content-Type': 'application/json'};
+  if (secure) {
+    header['Authorization'] = 'Bearer ${Setup().jwt}';
+  }
+  return header;
+}
+
+/*
   String jwToken = Setup().jwt;
   Map<String, String> header = {'Content-Type': 'application/json'};
   if (secure) {
     header['Autorization'] = 'Bearer $jwToken';
   }
-  return header;
-}
+
+  String jwToken = Setup().jwt;
+  header['Autorization'] = 'Bearer $jwToken';
+  http.Response response = await http.post(uri, headers: headers, body)
+
+*/
 
 Future<http.Response> getWebData(
-    {required Uri uri, bool secure = false, int timeout = 5}) async {
+    {required Uri uri, bool secure = false, int timeout = 10}) async {
   http.Response response = await http
       .get(uri, headers: webHeader(secure: secure))
       .timeout(Duration(seconds: timeout));
@@ -46,8 +59,9 @@ Future<http.Response> postWebData(
     required String body,
     bool secure = true,
     int timeout = 10}) async {
+  Map<String, String> headers = webHeader(secure: secure);
   final http.Response response = await http
-      .post(uri, headers: webHeader(secure: secure), body: body)
+      .post(uri, headers: headers, body: body)
       .timeout(Duration(seconds: timeout));
   return response;
 }
@@ -95,7 +109,7 @@ Future<LatLng> getPosition(String value) async {
       }
     } catch (e) {
       String error = e.toString();
-      debugPrint('web_helper.getPosition() error: $error');
+      // debugPrint('web_helper.getPosition() error: $error');
     }
   }
   return pos;
@@ -201,7 +215,7 @@ Future<Map<String, dynamic>> postUser(
       return map;
     }
   } catch (e) {
-    debugPrint('Login error: ${e.toString()}');
+    // debugPrint('Login error: ${e.toString()}');
   }
   return {'message': 'error'};
 }
@@ -221,7 +235,7 @@ Future<Map<String, dynamic>> tryLogin({required User user}) async {
       return {'msg': map['message'] ?? 'error'};
     }
   } catch (e) {
-    debugPrint('Login error: ${e.toString()}');
+    // debugPrint('Login error: ${e.toString()}');
   }
   return {'message': 'error'};
 }
@@ -273,19 +287,19 @@ Future<dynamic> postTrip(MyTripItem tripItem) async {
   } catch (e) {
     String err = e.toString();
     if (e is TimeoutException) {
-      debugPrint('Request timed out');
+      // debugPrint('Request timed out');
     } else {
-      debugPrint('Error posting trip: $err');
+      // debugPrint('Error posting trip: $err');
     }
   }
 
   if ([200, 201].contains(response.statusCode)) {
     // 201 = Created
     dynamic responseData = await response.stream.bytesToString();
-    debugPrint('Server response: $responseData');
+    // debugPrint('Server response: $responseData');
     return jsonDecode(responseData);
   } else {
-    debugPrint('Failed to post trip: ${response.statusCode}');
+    // debugPrint('Failed to post trip: ${response.statusCode}');
     return jsonEncode({'token': '', 'code': response.statusCode});
   }
 }
@@ -303,7 +317,6 @@ Future<String> postPointOfInterest(
     PointOfInterest pointOfInterest, String tripUri) async {
   Map<String, dynamic> map = pointOfInterest.toMap();
   List<Photo> photos = photosFromJson(pointOfInterest.getImages());
-
   var request =
       http.MultipartRequest('POST', Uri.parse('$urlPointOfInterest/add'));
 
@@ -313,14 +326,26 @@ Future<String> postPointOfInterest(
   dynamic response;
   // String jwToken = Setup().jwt;
   try {
+    // request.fields['id'] = map['id'].toString();
+//if (map['url'].length > 30) {
+    request.fields['url'] = map['url'];
+    //   }
     request.fields['drive_id'] = tripUri;
     request.fields['name'] = map['name'];
     request.fields['description'] = map['description'];
     request.fields['type'] = map['type'].toString();
     request.fields['latitude'] = map['latitude'].toString();
     request.fields['longitude'] = map['longitude'].toString();
-
     response = await request.send().timeout(const Duration(seconds: 30));
+    debugPrint("Point of interest map['url'] sent as ${map['url']}");
+    if (response.statusCode == 201) {
+      dynamic responseData = await response.stream.bytesToString();
+      // debugPrint('Server response: $responseData');
+      return jsonEncode(responseData);
+    } else {
+      // debugPrint('Failed to post point_of_interest: ${response.statusCode}');
+      return jsonEncode({'token': '', 'code': response.statusCode});
+    }
   } catch (e) {
     String err = e.toString();
     if (e is TimeoutException) {
@@ -329,23 +354,15 @@ Future<String> postPointOfInterest(
       debugPrint('Error posting trip: $err');
     }
   }
-
-  if (response.statusCode == 201) {
-    // 201 = Created
-    debugPrint('Point of interest posted OK');
-    dynamic responseData = await response.stream.bytesToString();
-    debugPrint('Server response: $responseData');
-    return jsonEncode(responseData);
-  } else {
-    debugPrint('Failed to post point_of_interest: ${response.statusCode}');
-    return jsonEncode({'token': '', 'code': response.statusCode});
-  }
+  return jsonEncode({'code': '${response.statusCode}'});
 }
 
 Future<String> postPolylines(
-    List<Polyline> polylines, String driveUid, int type) async {
+    {required List<mt.Route> polylines,
+    required String driveUid,
+    int type = 0}) async {
   List<Map<String, dynamic>> maps = [];
-  for (Polyline polyline in polylines) {
+  for (mt.Route polyline in polylines) {
     maps.add({
       'drive_id': driveUid,
       'points': pointsToString(polyline.points),
@@ -354,20 +371,13 @@ Future<String> postPolylines(
           uiColours.keys.toList().indexWhere((col) => col == polyline.color),
     });
     if (type == 1) {
-      double maxLat = -90;
-      double minLat = 90;
-      double maxLong = -180;
-      double minLong = 180;
-      for (LatLng point in polyline.points) {
-        maxLat = point.latitude > maxLat ? point.latitude : maxLat;
-        minLat = point.latitude < minLat ? point.latitude : minLat;
-        maxLong = point.longitude > maxLong ? point.longitude : maxLong;
-        minLong = point.longitude < minLong ? point.longitude : minLong;
-      }
-      maps[maps.length - 1]['max_lat'] = maxLat.toString();
-      maps[maps.length - 1]['min_lat'] = minLat.toString();
-      maps[maps.length - 1]['max_long'] = maxLong.toString();
-      maps[maps.length - 1]['min_long'] = minLong.toString();
+      Fence fence = fenceFromPolylines(polyline: polyline);
+      maps[maps.length - 1]['max_lat'] = fence.northEast.latitude.toString();
+      maps[maps.length - 1]['min_lat'] = fence.southWest.latitude.toString();
+      maps[maps.length - 1]['max_long'] = fence.northEast.longitude.toString();
+      maps[maps.length - 1]['min_long'] = fence.southWest.longitude.toString();
+      maps[maps.length - 1]['point_of_interest_id'] =
+          polyline.pointOfInterestUri;
     }
   }
   if (polylines.isEmpty) {
@@ -381,10 +391,10 @@ Future<String> postPolylines(
           body: jsonEncode(maps));
   if (response.statusCode == 201) {
     // 201 = Created
-    debugPrint('Polyline posted OK');
+    // debugPrint('Polyline posted OK');
     return jsonEncode({'code': response.statusCode});
   } else {
-    debugPrint('Failed to post user');
+    // debugPrint('Failed to post user');
     return jsonEncode({'token': '', 'code': response.statusCode});
   }
 }
@@ -408,7 +418,7 @@ Future<List<DriveCacheItem>> getDriveCacheItems(
       ];
     }
   } catch (e) {
-    debugPrint('Error fetching DriveCacheItems: ${e.toString()}');
+    // debugPrint('Error fetching DriveCacheItems: ${e.toString()}');
   }
   return [];
 }
@@ -418,7 +428,7 @@ Future<List<mt.Route>> getDriveRoutes(
   // http://10.101.1.150:5001/v1/polyline/drive/9fadee54c71d48b1b667a5ea13c4bea4
 
   final url = '$urlPolyline/drive/$driveUri';
-  debugPrint('url: $url');
+  // debugPrint('url: $url');
   final http.Response response =
       await getWebData(uri: Uri.parse('$urlPolyline/drive/$driveUri'));
   if ([200, 201].contains(response.statusCode)) {
@@ -429,7 +439,7 @@ Future<List<mt.Route>> getDriveRoutes(
           polylineFromMap(map: map, goodRoad: false, driveKey: driveKey)
       ];
     } catch (e) {
-      debugPrint('Error getPolylines: ${e.toString()}');
+      // debugPrint('Error getPolylines: ${e.toString()}');
       return [];
     }
   } else {
@@ -447,21 +457,6 @@ Future<List<mt.Route>> getGoodRoads(LatLng ne, LatLng sw) async {
     return [
       for (Map<String, dynamic> map in maps)
         polylineFromMap(map: map, goodRoad: true)
-    ];
-  }
-  return [];
-}
-
-Future<List<GoodRoadCacheItem>> getGoodRoadCache(LatLng ne, LatLng sw) async {
-  final Uri uri = Uri.parse(
-      '$urlGoodRoad/cache/${sw.latitude}/${ne.latitude}/${sw.longitude}/${ne.longitude}');
-
-  final http.Response response = await getWebData(uri: uri);
-  if ([200, 201].contains(response.statusCode) && response.body.length > 10) {
-    List<dynamic> maps = jsonDecode(response.body);
-    return [
-      for (Map<String, dynamic> map in maps) GoodRoadCacheItem.fromMap(map: map)
-      // polylineFromMap(map: map, goodRoad: true)
     ];
   }
   return [];
@@ -494,9 +489,11 @@ mt.Route polylineFromMap(
     id: -1,
     driveKey: driveKey,
     points: stringToPoints(map['points']), // routePoints,
-    colour: routeColor,
-    borderColour: routeColor,
+    color: routeColor,
+    borderColor: routeColor,
     strokeWidth: (map['stroke']).toDouble(),
+    pointOfInterestIndex: -1,
+    pointOfInterestUri: map['point_of_interest_id'] ?? '',
   );
 }
 
@@ -548,7 +545,7 @@ Future<List<PointOfInterest>> getPointsOfInterest(ne, sw) async {
 
 Future<PointOfInterest> getPointOfInterest(
     {String uri = '', int index = 0}) async {
-  debugPrint('hitting API $urlPointOfInterest/$uri');
+  // debugPrint('hitting API $urlPointOfInterest/$uri');
   final http.Response response = await http
       .get(
         Uri.parse('$urlPointOfInterest/$uri'),
@@ -557,8 +554,8 @@ Future<PointOfInterest> getPointOfInterest(
       )
       .timeout(const Duration(seconds: 20));
 
-  debugPrint(
-      '::::: getPointOfInterest(uri:$uri) response.statusCode: ${response.statusCode}');
+//  // debugPrint(
+//      '::::: getPointOfInterest(uri:$uri) response.statusCode: ${response.statusCode}');
   if ([200, 201].contains(response.statusCode) && response.body.length > 10) {
     dynamic map = jsonDecode(response.body);
     PointOfInterest pointOfInterest = PointOfInterest(
@@ -589,12 +586,12 @@ Future<PointOfInterest> getPointOfInterest(
         // listIndex: index,
       ),
     );
-    debugPrint(
-        ':::: getPointOfInterest(uri: $uri) returning pointOfInterest OK');
+    //   // debugPrint(
+    //       ':::: getPointOfInterest(uri: $uri) returning pointOfInterest OK');
     return pointOfInterest;
   } else {
-    debugPrint(
-        '++++++ getPointOfInterest() is Returning empty PointOfInterest ++++');
+    //  // debugPrint(
+    //      '++++++ getPointOfInterest() is Returning empty PointOfInterest ++++');
     return PointOfInterest(
         name: '',
         marker: MarkerWidget(type: 1),
@@ -620,7 +617,7 @@ List<String> webUrls(
         '$urlDrive/images/$driveUri/$pointOfInterestUri/$file'
     ];
     if (urls.isNotEmpty) {
-      debugPrint('webUrls urls.length: ${urls.length}');
+      // debugPrint('webUrls urls.length: ${urls.length}');
     }
     return urls;
   }
@@ -633,10 +630,10 @@ Future<String> postManeuver(Maneuver maneuver, String driveUid) async {
       uri: Uri.parse('$urlManeuver/add'),
       body: jsonEncode(maneuver.toMap(driveUid: driveUid)));
   if ([200, 201].contains(response.statusCode)) {
-    debugPrint('Maneuver posted OK');
+    // debugPrint('Maneuver posted OK');
     return jsonEncode({'code': response.statusCode});
   } else {
-    debugPrint('Failed to post maneuver');
+    // debugPrint('Failed to post maneuver');
     return jsonEncode({'token': '', 'code': response.statusCode});
   }
 }
@@ -651,13 +648,18 @@ Future<String> postManeuvers(List<Maneuver> maneuvers, String driveUid) async {
   final http.Response response = await postWebData(
       uri: Uri.parse('$urlManeuver/add'), body: jsonEncode(maps), secure: true);
   if (response.statusCode == 201) {
-    debugPrint('Maneuver posted OK');
+    // debugPrint('Maneuver posted OK');
     return jsonEncode({'code': response.statusCode});
   } else {
-    debugPrint('Failed to post maneuver');
+    // debugPrint('Failed to post maneuver');
     return jsonEncode({'token': '', 'code': response.statusCode});
   }
 }
+
+/// getFeatures returns all the features from the API
+/// type 1: drives
+/// type 2: points of interest excluding type 12 ad 16
+/// type 3: good roads
 
 Future<List<Feature>> getFeatures(
     {double zoom = 12, required Function onTap}) async {
@@ -693,10 +695,11 @@ Future<List<TripSummary>> getTripSummaries(
     required LatLng southWest,
     double zoom = 8}) async {
   List<TripSummary> summaries = [];
+
   final http.Response response = await http
       .get(
-        Uri.parse(
-            '$urlDrive/summary/${southWest.latitude}/${northEast.latitude}/${southWest.longitude}/${northEast.longitude}/$zoom'),
+        Uri.parse('$urlDrive/summary/-90/90/-180/180/$zoom'),
+        // '$urlDrive/summary/${southWest.latitude}/${northEast.latitude}/${southWest.longitude}/${northEast.longitude}/$zoom'),
       )
       .timeout(const Duration(seconds: 5));
 
@@ -707,10 +710,10 @@ Future<List<TripSummary>> getTripSummaries(
         summaries.add(TripSummary.fromMap(map: trip));
       }
     } catch (e) {
-      debugPrint('Error processing summaries: ${e.toString()}');
+      // debugPrint('Error processing summaries: ${e.toString()}');
     }
   }
-  debugPrint('Summaries returned from API: ${summaries.length}');
+  // debugPrint('Summaries returned from API: ${summaries.length}');
   return summaries;
 }
 
@@ -721,7 +724,7 @@ Future<List<TripItem>> getTrips() async {
     var currentPosition = Setup().lastPosition; //await utils.getPosition();
     pos = LatLng(currentPosition.latitude, currentPosition.longitude);
   } catch (e) {
-    debugPrint('getPosition() error: ${e.toString()}');
+    // debugPrint('getPosition() error: ${e.toString()}');
   }
 
   final http.Response response = await http
@@ -750,22 +753,6 @@ Future<List<TripItem>> getTrips() async {
         }
         trips.add(TripItem.fromMap(
             map: trip, endpoint: '$urlDrive/', imageUrls: '[$images]'));
-/*          
-          TripItem(
-            heading: trip['title'],
-            subHeading: trip['sub_title'],
-            body: trip['body'],
-            author: trip['author'],
-            published: trip['added'],
-            imageUrls: '[$images]',
-            score: trip['average_rating'].toDouble() ?? 5.0,
-            distance: trip['distance'],
-            pointsOfInterest: trip['points_of_interest'].length,
-            closest: distance,
-            scored: trip['ratings_count'] ?? 1,
-            downloads: trip['download_count'] ?? 0,
-            uri: '$urlDrive/${trip['id']}'));
-*/
       } catch (e) {
         String err = e.toString();
         debugPrint('Error: $err');
@@ -775,10 +762,52 @@ Future<List<TripItem>> getTrips() async {
   return trips;
 }
 
+/*
+Future<String> postManeuver(Maneuver maneuver, String driveUid) async {
+  final http.Response response = await postWebData(
+      uri: Uri.parse('$urlManeuver/add'),
+      body: jsonEncode(maneuver.toMap(driveUid: driveUid)));
+  if ([200, 201].contains(response.statusCode)) {
+
+*/
+
+Future<bool> deleteWebTrip2({required List<Map<String, String>> uriMap}) async {
+  // var json = jsonEncode(uriList.map((e) => e.toJson()).toList());
+  final http.Response response = await postWebData(
+          uri: Uri.parse('$urlDrive/delete'),
+          body: jsonEncode(uriMap),
+          secure: true)
+      .timeout(const Duration(seconds: 20));
+  return (response.statusCode == 200);
+}
+
+Future<bool> deleteWebTrip({required List<Map<String, String>> uriMap}) async {
+  // String jwToken = Setup().jwt;
+  // header['Autorization'] = 'Bearer $jwToken';
+  // request.headers['Authorization'] = 'Bearer ${Setup().jwt}';
+
+  Map<String, String> headers = {
+    'Authorization': 'Bearer ${Setup().jwt}',
+    "Content-Type": "application/json; charset=UTF-8"
+  };
+  var body = jsonEncode(uriMap);
+
+  final http.Response response = await http
+      .post(Uri.parse('$urlDrive/delete'), headers: headers, body: body)
+      .timeout(const Duration(seconds: 20));
+  return response.statusCode == 200;
+
+/*
+  http.Response response = await http.post(Uri.parse('$urlDrive/delete'),
+      headers: webHeader(secure: true), body: jsonEncode(uriMap));
+  return (response.statusCode == 200);
+*/
+}
+
 /// getTrip() Gets the trip details for the tripTile - doesn't include any
 /// routing data
 
-Future<TripItem> getTrip(
+Future<TripItem?> getTrip(
     {required tripId, bool updateImageUris = false}) async {
   TripItem gotTrip = TripItem(heading: '');
   if (tripId.length == 32) {
@@ -793,11 +822,6 @@ Future<TripItem> getTrip(
         .timeout(const Duration(seconds: 20));
     if (response.statusCode == 200) {
       var trip = jsonDecode(response.body);
-      //  List<String> images = ['map'];
-      // "http://10.101.1.150:5000/v1/drive/images/0175c09062b7485aaf8356f3770b7ca8/map.png"
-      // "http://10.101.1.150:5000/v1/drive/images/0175c09062b7485aaf8356f3770b7ca8/b56dc5ebfe35450f9077cb5dce53e0d4/2a6bf728-8f4e-4993-9c…"
-      // pics[j] "2a6bf728-8f4e-4993-9c00-9f2512bf0edf.jpg"
-
       List<String> images = [
         //  Uri.parse('$urlDrive/images/${trip['id']}/map.png').toString()
         Uri.parse('${trip['id']}/map.png').toString()
@@ -808,20 +832,13 @@ Future<TripItem> getTrip(
           if (trip['points_of_interest'][i]['images'].length > 0) {
             var pics = jsonDecode(trip['points_of_interest'][i]['images']);
             for (int j = 0; j < pics.length; j++) {
-              //       images.add(Uri.parse(
-              //               '${urlDrive}images/${trip['id']}/${trip['points_of_interest'][i]['id']}/${pics[j]}')
-              //           .toString());
-              // debugPrint(images[images.length - 1]);
               images.add(Uri.parse(
                       '${trip['id']}/${trip['points_of_interest'][i]['id']}/${pics[j]}')
                   .toString());
             }
           }
-          //  LatLng poiPos = LatLng(trip['points_of_interest'][i]['latitude'],
-          //      trip['points_of_interest'][i]['longitude']);
-          //  distance = min(utils.distanceBetween(poiPos, pos).toInt(), distance);
         }
-        gotTrip = TripItem(
+        return TripItem(
             heading: trip['title'],
             subHeading: trip['sub_title'],
             body: trip['body'],
@@ -843,7 +860,7 @@ Future<TripItem> getTrip(
       }
     }
   }
-  return gotTrip;
+  return null;
 }
 
 //"d663bed13ef54cd386bc8e5582803c80/map.png"
@@ -883,10 +900,10 @@ Future<void> getAndSaveImage(
       final file = File(filePath);
       await file.writeAsBytes(response.bodyBytes);
       if (file.existsSync()) {
-        debugPrint('Image file $url exists');
+        // debugPrint('Image file $url exists');
       }
     } catch (e) {
-      debugPrint('Error writing image file: ${e.toString()}');
+      // debugPrint('Error writing image file: ${e.toString()}');
     }
   }
 
@@ -905,7 +922,7 @@ putDriveRating(String uri, int score) async {
       headers: webHeader(),
       body: jsonEncode(map));
   if ([200, 201].contains(response.statusCode)) {
-    debugPrint('Score added OK: ${response.statusCode}');
+    // debugPrint('Score added OK: ${response.statusCode}');
   }
 }
 
@@ -923,7 +940,7 @@ putPointOfInterestRating(String uri, double score) async {
       headers: webHeader(),
       body: jsonEncode(map));
   if ([200, 201].contains(response.statusCode)) {
-    debugPrint('Score added OK: ${response.statusCode}');
+    // debugPrint('Score added OK: ${response.statusCode}');
   }
 }
 
@@ -977,12 +994,12 @@ Future<MyTripItem> getTripSummary(String tripUuid) async {
             marker: marker,
           ));
         } catch (e) {
-          debugPrint('Error: ${e.toString()}');
+          // debugPrint('Error: ${e.toString()}');
         }
       }
     } catch (e) {
       String err = e.toString();
-      debugPrint('PointsOfInterest error: $err');
+      // debugPrint('PointsOfInterest error: $err');
     }
     try {
       MyTripItem myTripItem = MyTripItem(
@@ -1000,7 +1017,7 @@ Future<MyTripItem> getTripSummary(String tripUuid) async {
       return myTripItem;
     } catch (e) {
       String err = e.toString();
-      debugPrint('Error: $err');
+      // debugPrint('Error: $err');
     }
   }
   return myTrip;
@@ -1022,8 +1039,8 @@ Future<MyTripItem> getMyTrip(String tripUuid) async {
           id: -1,
           points:
               stringToPoints(trip['polylines'][i]['points']), // routePoints,
-          colour: uiColours.keys.toList()[trip['polylines'][i]['colour']],
-          borderColour: uiColours.keys.toList()[trip['polylines'][i]['colour']],
+          color: uiColours.keys.toList()[trip['polylines'][i]['colour']],
+          borderColor: uiColours.keys.toList()[trip['polylines'][i]['colour']],
           strokeWidth: (trip['polylines'][i]['stroke']).toDouble()));
     }
 
@@ -1048,7 +1065,7 @@ Future<MyTripItem> getMyTrip(String tripUuid) async {
           distance: trip['maneuvers'][i]['distance'],
         ));
       } catch (e) {
-        debugPrint('Error maneuvers: ${e.toString()}');
+        // debugPrint('Error maneuvers: ${e.toString()}');
       }
     }
 
@@ -1097,12 +1114,12 @@ Future<MyTripItem> getMyTrip(String tripUuid) async {
             marker: marker,
           ));
         } catch (e) {
-          debugPrint('Error: ${e.toString()}');
+          // debugPrint('Error: ${e.toString()}');
         }
       }
     } catch (e) {
       String err = e.toString();
-      debugPrint('PointsOfInterest error: $err');
+      // debugPrint('PointsOfInterest error: $err');
     }
     try {
       MyTripItem myTripItem = MyTripItem(
@@ -1122,7 +1139,7 @@ Future<MyTripItem> getMyTrip(String tripUuid) async {
       return myTripItem;
     } catch (e) {
       String err = e.toString();
-      debugPrint('Error: $err');
+      // debugPrint('Error: $err');
     }
   }
   return myTrip;
@@ -1146,7 +1163,7 @@ Future<List<GroupMember>> getIntroduced() async {
       ];
     }
   } catch (e) {
-    debugPrint("Can't access data on the web");
+    // debugPrint("Can't access data on the web");
   }
   return introduced;
 }
@@ -1164,7 +1181,7 @@ putIntroduced(List<GroupMember> members) async {
       headers: webHeader(),
       body: jsonEncode(maps));
   if ([200, 201].contains(response.statusCode)) {
-    debugPrint('Member added OK: ${response.statusCode}');
+    // debugPrint('Member added OK: ${response.statusCode}');
   }
 }
 
@@ -1172,7 +1189,7 @@ deleteWebImage(String url) async {
   final http.Response response = await http.post(Uri.parse(url),
       headers: webHeader(), body: jsonEncode('"id": "delete_image"'));
   if ([200, 201].contains(response.statusCode)) {
-    debugPrint('Member added OK: ${response.statusCode}');
+    // debugPrint('Member added OK: ${response.statusCode}');
   }
 }
 
@@ -1244,7 +1261,7 @@ Future<File> downloadImage({String apiUrl = '', String targetFile = ''}) async {
   File file = File(targetFile);
 
   if (file.existsSync()) {
-    debugPrint('file already exist');
+    // debugPrint('file already exist');
     return file;
   } else {
     try {
@@ -1255,11 +1272,11 @@ Future<File> downloadImage({String apiUrl = '', String targetFile = ''}) async {
       if ([200, 201].contains(request.statusCode)) {
         var bytes = request.bodyBytes; //close();
         await file.writeAsBytes(bytes);
-        debugPrint(file.path);
+        // debugPrint(file.path);
       }
     } catch (e) {
       String err = e.toString();
-      debugPrint('Error writing to image file: $err');
+      // debugPrint('Error writing to image file: $err');
     }
   }
   return file;
@@ -1267,10 +1284,10 @@ Future<File> downloadImage({String apiUrl = '', String targetFile = ''}) async {
 
 bool canDelete(bool ok, String url, int index) {
   if (ok) {
-    debugPrint('Can delete');
+    // debugPrint('Can delete');
     return true;
   } else {
-    debugPrint("Can't delete");
+    // debugPrint("Can't delete");
     return false;
   }
 }
@@ -1278,7 +1295,7 @@ bool canDelete(bool ok, String url, int index) {
 Future<List<Group>> getManagedGroups() async {
   try {
     final http.Response response =
-        await getWebData(uri: Uri.parse('$urlGroup/managed'));
+        await getWebData(uri: Uri.parse('$urlGroup/managed'), secure: true);
     if ([200, 201].contains(response.statusCode)) {
       var groups = jsonDecode(response.body);
       return [
@@ -1287,15 +1304,15 @@ Future<List<Group>> getManagedGroups() async {
       ];
     }
   } catch (e) {
-    debugPrint("Can't access data on the web");
+    // debugPrint("Can't access data on the web");
   }
   return [];
 }
 
 Future<List<GroupMember>> getManagedGroupMembers(String groupId) async {
   try {
-    final http.Response response =
-        await getWebData(uri: Uri.parse('$urlGroupMember/members/$groupId'));
+    final http.Response response = await getWebData(
+        uri: Uri.parse('$urlGroupMember/members/$groupId'), secure: true);
     if ([200, 201].contains(response.statusCode)) {
       var groups = jsonDecode(response.body);
       return [
@@ -1304,7 +1321,7 @@ Future<List<GroupMember>> getManagedGroupMembers(String groupId) async {
       ];
     }
   } catch (e) {
-    debugPrint("Can't access data on the web");
+    // debugPrint("Can't access data on the web");
   }
   return [];
 }
@@ -1320,7 +1337,7 @@ Future<List<Group>> getGroups() async {
       ];
     }
   } catch (e) {
-    debugPrint("Can't access data on the web");
+    // debugPrint("Can't access data on the web");
   }
   return [];
 }
@@ -1334,7 +1351,7 @@ Future<bool> serverListening() async {
         .timeout(const Duration(seconds: 20));
     return (response.statusCode == 200);
   } catch (e) {
-    debugPrint('Error checking for server: ${e.toString()}');
+    // debugPrint('Error checking for server: ${e.toString()}');
     return false;
   }
 }
@@ -1342,7 +1359,7 @@ Future<bool> serverListening() async {
 Future<List<Group>> getMyGroups() async {
   try {
     final http.Response response =
-        await getWebData(uri: Uri.parse('$urlGroup/mine'));
+        await getWebData(uri: Uri.parse('$urlGroup/mine'), secure: true);
     if (response.statusCode == 200) {
       var groups = jsonDecode(response.body);
       return [
@@ -1351,21 +1368,21 @@ Future<List<Group>> getMyGroups() async {
       ];
     }
   } catch (e) {
-    debugPrint("Can't access data on the web");
+    // debugPrint("Can't access data on the web");
   }
   return [];
 }
 
 Future<List<GroupDrive>> getGroupDrives() async {
   try {
-    final http.Response response =
-        await getWebData(uri: Uri.parse('$urlGroupDrive/pending'));
+    final http.Response response = await getWebData(
+        uri: Uri.parse('$urlGroupDrive/pending'), secure: true);
     if ([200, 201].contains(response.statusCode)) {
       List<dynamic> groups = jsonDecode(response.body);
       return [for (Map<String, dynamic> map in groups) GroupDrive.fromMap(map)];
     }
   } catch (e) {
-    debugPrint("getGroupDrives error: ${e.toString()}");
+    // debugPrint("getGroupDrives error: ${e.toString()}");
   }
   return [];
 }
@@ -1383,8 +1400,8 @@ Future<Map<String, dynamic>> deleteGroupDrive(
 
 Future<List<Group>> getMessagesByGroup() async {
   try {
-    final http.Response response =
-        await getWebData(uri: Uri.parse('$urlMessage/group_messages'));
+    final http.Response response = await getWebData(
+        uri: Uri.parse('$urlMessage/group_messages'), secure: true);
     if ([200, 201].contains(response.statusCode)) {
       var groups = jsonDecode(response.body);
       return [
@@ -1399,15 +1416,15 @@ Future<List<Group>> getMessagesByGroup() async {
       ];
     }
   } catch (e) {
-    debugPrint("Can't access data on the web");
+    // debugPrint("Can't access data on the web");
   }
   return [];
 }
 
 Future<List<Message>> getGroupMessages(Group group) async {
   try {
-    final http.Response response =
-        await getWebData(uri: Uri.parse('$urlMessage/group/${group.id}'));
+    final http.Response response = await getWebData(
+        uri: Uri.parse('$urlMessage/group/${group.id}'), secure: true);
     if ([200, 201].contains(response.statusCode)) {
       var messages = jsonDecode(response.body);
       return [
@@ -1418,7 +1435,7 @@ Future<List<Message>> getGroupMessages(Group group) async {
       ];
     }
   } catch (e) {
-    debugPrint("Can't access data on the web");
+    // debugPrint("Can't access data on the web");
   }
   return [];
 }
@@ -1463,7 +1480,7 @@ Future<List<HomeItem>> getHomeItems(int scope) async {
       }
     }
   } catch (e) {
-    debugPrint("getHomeItems error: ${e.toString()}");
+    // debugPrint("getHomeItems error: ${e.toString()}");
   }
   return [];
 }
@@ -1501,20 +1518,20 @@ Future<String> postHomeItem(HomeItem homeItem) async {
   } catch (e) {
     String err = e.toString();
     if (e is TimeoutException) {
-      debugPrint('Request timed out');
+      // debugPrint('Request timed out');
     } else {
-      debugPrint('Error posting article: $err');
+      // debugPrint('Error posting article: $err');
     }
   }
 
   if (response.statusCode == 201) {
     // 201 = Created
-    debugPrint('Home article posted OK');
+    // debugPrint('Home article posted OK');
     dynamic responseData = await response.stream.bytesToString();
-    debugPrint('Server response: $responseData');
+    // debugPrint('Server response: $responseData');
     return jsonEncode(responseData);
   } else {
-    debugPrint('Failed to post home article: ${response.statusCode}');
+    // debugPrint('Failed to post home article: ${response.statusCode}');
     return jsonEncode({'token': '', 'code': response.statusCode});
   }
 }
@@ -1536,14 +1553,16 @@ Future<List<ShopItem>> getShopItems(int scope) async {
       if (items.isNotEmpty) {
         itemsSent = [
           for (Map<String, dynamic> map in items)
-            ShopItem.fromMap(map: map, url: '$urlShopItem/images/')
+            ShopItem.fromMap(
+                map: map,
+                url: '$urlShopItem/images/') //  url: '$urlShopItem/images/')
 
           //  url: '$urlHomePageItem/images/'
         ];
       }
     }
   } catch (e) {
-    debugPrint("getGroupDrives error: ${e.toString()}");
+    // debugPrint("getGroupDrives error: ${e.toString()}");
   }
   return itemsSent;
 }
@@ -1587,20 +1606,20 @@ Future<String> postShopItem(ShopItem shopItem) async {
   } catch (e) {
     String err = e.toString();
     if (e is TimeoutException) {
-      debugPrint('Request timed out');
+      // debugPrint('Request timed out');
     } else {
-      debugPrint('Error posting article: $err');
+      // debugPrint('Error posting article: $err');
     }
   }
 
   if (response.statusCode == 201) {
     // 201 = Created
-    debugPrint('Shop item posted OK');
+    // debugPrint('Shop item posted OK');
     dynamic responseData = await response.stream.bytesToString();
-    debugPrint('Server response: $responseData');
+    // debugPrint('Server response: $responseData');
     return jsonEncode(responseData);
   } else {
-    debugPrint('Failed to post shop item: ${response.statusCode}');
+    // debugPrint('Failed to post shop item: ${response.statusCode}');
     return jsonEncode({'token': '', 'code': response.statusCode});
   }
 }
@@ -1618,7 +1637,7 @@ Future<List<EventInvitation>> getInvitationssByUser() async {
       ];
     }
   } catch (e) {
-    debugPrint("Can't access data on the web");
+    // debugPrint("Can't access data on the web");
   }
   return [];
 }
@@ -1636,7 +1655,7 @@ Future<List<EventInvitation>> getInvitationsByEvent(
       ];
     }
   } catch (e) {
-    debugPrint("Can't access data on the web: ${e.toString()}");
+    // debugPrint("Can't access data on the web: ${e.toString()}");
   }
   return [];
 }
@@ -1654,7 +1673,7 @@ Future<List<EventInvitation>> getInvitationsToAlter(
       ];
     }
   } catch (e) {
-    debugPrint("Can't access data on the web: ${e.toString()}");
+    // debugPrint("Can't access data on the web: ${e.toString()}");
   }
   return [];
 }
@@ -1700,7 +1719,7 @@ Future<GroupMember> getUserByEmail(String email) async {
       return GroupMember.fromUserMap(jsonDecode(response.body));
     }
   } catch (e) {
-    debugPrint("Can't access data on the web: ${e.toString()}");
+    // debugPrint("Can't access data on the web: ${e.toString()}");
   }
   return GroupMember(forename: '', surname: '');
 }
@@ -1708,7 +1727,7 @@ Future<GroupMember> getUserByEmail(String email) async {
 Future<List<GroupMember>> getGroupMembers() async {
   try {
     final http.Response response =
-        await getWebData(uri: Uri.parse('$urlIntroduced/get'));
+        await getWebData(uri: Uri.parse('$urlIntroduced/get'), secure: true);
     if (response.statusCode == 200) {
       var members = jsonDecode(response.body);
       return [
@@ -1717,7 +1736,7 @@ Future<List<GroupMember>> getGroupMembers() async {
       ];
     }
   } catch (e) {
-    debugPrint("Can't access data on the web");
+    // debugPrint("Can't access data on the web");
   }
   return [];
 }

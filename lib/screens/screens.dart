@@ -1,3 +1,4 @@
+export 'package:drives/screens/delete_trips.dart';
 export 'package:drives/screens/dialogs.dart';
 export 'package:drives/screens/group_member.dart';
 export 'package:drives/screens/group_messages.dart';

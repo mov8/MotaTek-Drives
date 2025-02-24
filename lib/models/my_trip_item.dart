@@ -1,29 +1,22 @@
-// import 'dart:convert';
-//import 'dart:ffi';
-/*
+import 'dart:async';
+import 'dart:ui' as ui;
+import 'dart:io';
+import 'dart:math';
+import 'dart:typed_data';
 import 'dart:convert';
-//import 'dart:ffi';
-import 'dart:ui' as ui;
-import 'dart:io';
-import 'dart:math';
-import 'dart:typed_data';
-
- */
-import 'dart:ui' as ui;
-import 'dart:io';
-import 'dart:math';
-import 'dart:typed_data';
+import 'package:uuid/uuid.dart';
 import 'package:intl/intl.dart';
+import 'package:http/http.dart' as http;
 import 'package:drives/constants.dart';
-import 'package:drives/classes/utilities.dart';
-import 'package:drives/services/db_helper.dart';
+import 'package:drives/classes/utilities.dart' as ut;
+import 'package:drives/services/services.dart';
 import 'package:drives/classes/route.dart' as mt;
 import 'package:drives/models/other_models.dart';
 import 'package:drives/services/web_helper.dart' as wh;
-import 'package:flutter_map/flutter_map.dart';
+// import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
+// import 'package:path_provider/path_provider.dart';
 
 class MyTripItem {
   int _id = -1;
@@ -99,7 +92,7 @@ class MyTripItem {
     _distance = 0;
   }
 
-  DateFormat dateFormat = DateFormat("dd MMM yyyy");
+  // DateFormat dateFormat = DateFormat("dd MMM yyyy");
 
   int getId() {
     return _id;
@@ -159,6 +152,10 @@ class MyTripItem {
 
   void setBody(String body) {
     _body = body;
+  }
+
+  void setRouteColour(int index, Color colour) {
+    _routes[index].color = colour;
   }
 
   String getBody() {
@@ -378,7 +375,7 @@ class MyTripItem {
     LatLng pos = const LatLng(0, 0);
     int distance = 99999;
 
-    await getPosition().then((currentPosition) {
+    await ut.getPosition().then((currentPosition) {
       pos = LatLng(currentPosition.latitude, currentPosition.longitude);
     });
 
@@ -394,39 +391,147 @@ class MyTripItem {
     _pointsOfInterest = await loadPointsOfInterestLocal(driveId);
     for (int i = 0; i < _pointsOfInterest.length; i++) {
       distance = min(
-          distanceBetween(_pointsOfInterest[i].point, pos).toInt(), distance);
+          ut.distanceBetween(_pointsOfInterest[i].point, pos).toInt(),
+          distance);
       if (_pointsOfInterest[i].getImages().isNotEmpty) {
-        _images = '$_images,${unList(_pointsOfInterest[i].getImages())}';
+        _images = '$_images,${ut.unList(_pointsOfInterest[i].getImages())}';
       }
     }
     _closest = distance;
     _images = '[$_images]';
     _maneuvers = await loadManeuversLocal(driveId);
-    List<Polyline> polyLines = await loadPolyLinesLocal(driveId, type: 0);
+    List<mt.Route> polyLines = await loadPolyLinesLocal(driveId, type: 0);
     for (int i = 0; i < polyLines.length; i++) {
-      addRoute(
+      _routes.add(
         mt.Route(
             id: -1,
             points: polyLines[i].points,
-            colour: polyLines[i].color,
-            borderColour: polyLines[i].color,
+            color: polyLines[i].color,
+            borderColor: polyLines[i].color,
             strokeWidth: polyLines[i].strokeWidth),
       );
     }
     polyLines = await loadPolyLinesLocal(driveId, type: 1);
     for (int i = 0; i < polyLines.length; i++) {
-      addGoodRoad(
+      // pointsOfInterest[polylines[i].pointOfInterestIndex].id
+      // polyLines.pointOfInterestIndex is its pointOfInterest.id
+      _goodRoads.add(
         mt.Route(
             id: -1,
             points: polyLines[i].points,
-            colour: polyLines[i].color,
-            borderColour: polyLines[i].color,
-            strokeWidth: polyLines[i].strokeWidth),
+            color: polyLines[i].color,
+            borderColor: polyLines[i].color,
+            strokeWidth: polyLines[i].strokeWidth,
+            pointOfInterestIndex: polyLines[i].pointOfInterestIndex), // id
       );
     }
   }
 
-  Future<bool> publish() async {
+  Future<bool> publish({bool fromLocal = true}) async {
+    if (fromLocal) {
+      await loadLocal(_id);
+    }
+    var uuid = const Uuid();
+    Map<String, dynamic> response = await postDriveHeader();
+    if (response['status'] == 'OK') {
+      _driveUri = response['uri'];
+
+      for (PointOfInterest pointOfInterest in _pointsOfInterest) {
+        pointOfInterest.driveUri = _driveUri;
+        // need to link the point of interest to the good road
+        // so will put the uuid in here rather than API
+        // uuid.v7() returns a uuid with -s 019523a6-a2ed-7a9a-8635-f003daee7f5e
+        // so have to remove them with a replaceAll
+        if (pointOfInterest.getType() == 13) {
+          String uuidString = uuid.v7();
+          pointOfInterest.url = uuidString.replaceAll(RegExp(r'-'), '');
+          debugPrint('Point of interest url set to ${pointOfInterest.url}');
+        }
+
+        await postPointOfInterest(pointOfInterest, _driveUri);
+      }
+
+      // pointsOfInterest[polylines[i].pointOfInterestIndex].id
+      // polyLines.pointOfInterestIndex is its pointOfInterest.id
+      for (mt.Route route in _goodRoads) {
+        for (PointOfInterest pointOfInterest in _pointsOfInterest) {
+          if (pointOfInterest.id == route.pointOfInterestIndex) {
+            // pick up the point of interest uuid
+            route.pointOfInterestUri = pointOfInterest.url;
+            debugPrint('route.interestUri set to ${pointOfInterest.url}');
+            break;
+          }
+        }
+      }
+
+      for (int i = 0; i < 2; i++) {
+        await postPolylines(
+            polylines: i == 0 ? _routes : _goodRoads,
+            driveUid: _driveUri,
+            type: i);
+      }
+
+      postManeuvers(_maneuvers, _driveUri);
+
+      return true;
+    }
     return false;
+  }
+
+  Future<Map<String, dynamic>> postDriveHeader() async {
+    List<Photo> photos = photosFromJson(_images);
+    double maxLat = -90;
+    double minLat = 90;
+    double maxLong = -180;
+    double minLong = 180;
+    for (mt.Route polyline in routes()) {
+      for (LatLng point in polyline.points) {
+        maxLat = point.latitude > maxLat ? point.latitude : maxLat;
+        minLat = point.latitude < minLat ? point.latitude : minLat;
+        maxLong = point.longitude > maxLong ? point.longitude : maxLong;
+        minLong = point.longitude < minLong ? point.longitude : minLong;
+      }
+    }
+
+    var request = http.MultipartRequest('POST', Uri.parse('$urlDrive/add'));
+
+    dynamic response;
+
+    try {
+      request.headers['Authorization'] = 'Bearer ${Setup().jwt}';
+      request.files
+          .add(await http.MultipartFile.fromPath('file', photos[0].url));
+      request.fields['title'] = _heading;
+      request.fields['sub_title'] = _subHeading;
+      request.fields['body'] = _body;
+      request.fields['distance'] = _distance.toString();
+      request.fields['pois'] = _pointsOfInterest.length.toString();
+      request.fields['score'] = '5';
+      request.fields['max_lat'] = maxLat.toString();
+      request.fields['min_lat'] = minLat.toString();
+      request.fields['max_long'] = maxLong.toString();
+      request.fields['min_long'] = minLong.toString();
+      request.fields['added'] = DateTime.now().toString();
+
+      response = await request.send().timeout(const Duration(seconds: 30));
+    } catch (e) {
+      if (e is TimeoutException) {
+        return {'status': 'failed', 'error': 'timed out'};
+      } else {
+        return {'status': 'failed', 'error': e.toString()};
+      }
+    }
+
+    if ([200, 201].contains(response.statusCode)) {
+      // 201 = Created
+      dynamic responseData = await response.stream.bytesToString();
+      // debugPrint('Server response: $responseData');
+      return jsonDecode(responseData);
+    } else {
+      return {
+        'status': 'failed',
+        'error': 'status code ${response.statusCode}'
+      };
+    }
   }
 }

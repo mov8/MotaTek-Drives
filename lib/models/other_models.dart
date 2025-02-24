@@ -11,10 +11,11 @@ import 'package:intl/intl.dart';
 import 'package:drives/constants.dart';
 import 'package:drives/classes/utilities.dart';
 import 'package:drives/classes/fences.dart';
+import 'package:drives/classes/map_markers.dart';
 import 'package:drives/screens/screens.dart';
 import 'package:drives/classes/route.dart' as mt;
 import 'package:drives/tiles/tiles.dart';
-import 'package:drives/models/other_models.dart';
+// import 'package:drives/models/other_models.dart';
 //import 'package:drives/screens/painters.dart';
 import 'package:drives/services/db_helper.dart';
 import 'package:drives/services/web_helper.dart' as wh;
@@ -176,6 +177,22 @@ const List<Map> poiTypes = [
     'name': 'follower',
     'icon': 'Icons.directions_car',
     'iconMaterial': 0xe1d7,
+    'colour': 'Colors.red',
+    'colourMaterial': 0xff4CAF50
+  },
+  {
+    'id': 17,
+    'name': 'Start',
+    'icon': 'Icons.tour',
+    'iconMaterial': 0xef75,
+    'colour': 'Colors.red',
+    'colourMaterial': 0xff4CAF50
+  },
+  {
+    'id': 18,
+    'name': 'End',
+    'icon': 'Icons.sports_score',
+    'iconMaterial': 0xf06e,
     'colour': 'Colors.red',
     'colourMaterial': 0xff4CAF50
   }
@@ -388,12 +405,14 @@ class Setup {
 }
 
 class Feature extends Marker {
-  GlobalKey? pinKey;
+  // GlobalKey? pinKey;
   final int row;
   final String uri;
   final int id;
   final int type;
   final int poiType;
+  // @override
+  final LatLng maxPoint;
 
   Feature(
       {this.row = -1,
@@ -405,7 +424,8 @@ class Feature extends Marker {
       super.width = 30,
       super.height = 30,
       super.child = const Text(''),
-      super.point = const LatLng(0, 0)});
+      super.point = const LatLng(0, 0),
+      this.maxPoint = const LatLng(0, 0)});
 
   factory Feature.fromMap(
       {required Map<String, dynamic> map,
@@ -419,13 +439,33 @@ class Feature extends Marker {
       type: map['type'] ?? 0,
       poiType: map['type'] == 1 ? map['feature_id'] : -1,
       point: LatLng(map['min_lat'] ?? 50.0, map['min_lng'] ?? 0.0),
+      maxPoint: LatLng(map['max_lat'] ?? 50.0, map['max_lng'] ?? 0.0),
       width: size,
       height: size,
     );
   }
 
+  factory Feature.fromFeature(
+      {required Feature feature,
+      LatLng? point,
+      int? row,
+      double? size,
+      Widget? child}) {
+    return Feature(
+        row: row ?? feature.row,
+        uri: feature.uri,
+        id: feature.id,
+        type: feature.type,
+        poiType: feature.poiType,
+        point: point ?? feature.point,
+        maxPoint: point ?? feature.maxPoint,
+        width: size ?? feature.width,
+        height: size ?? feature.height,
+        child: child ?? feature.child);
+  }
+
   Fence getBounds() {
-    return Fence(northEast: point, southWest: point);
+    return Fence(northEast: maxPoint, southWest: point);
   }
 
   toMap() {
@@ -435,8 +475,8 @@ class Feature extends Marker {
       'uri': uri,
       'feature_id': id,
       'type': type,
-      'max_lat': point.latitude,
-      'max_lng': point.longitude,
+      'max_lat': maxPoint.latitude,
+      'max_lng': maxPoint.longitude,
       'min_lat': point.latitude,
       'min_lng': point.longitude
     };
@@ -458,6 +498,7 @@ buttonPress(int row) {
   debugPrint('Button $row pressed');
 }
 
+/*
 class MarkerLabel extends Marker {
   final int id;
   final int userId;
@@ -479,10 +520,10 @@ class MarkerLabel extends Marker {
 }
 
 // class PolyLine
-
+*/
 class PointOfInterest extends Marker {
-  GlobalKey? handle;
-  final int id;
+  // GlobalKey? handle;
+  int id;
   String _images;
   final int driveId;
   int _type;
@@ -500,14 +541,16 @@ class PointOfInterest extends Marker {
   PointOfInterest(
       //  this.ctx
       {
-    this.handle,
+    // this.handle,
     this.id = -1,
     this.driveId = -1,
     int type = -1,
     String name = '',
     String description = '',
-    double width = 30,
-    double height = 30,
+    super.width = 30,
+    // double width = 30,
+    super.height = 30,
+    // double height = 30,
     String images = '',
     required LatLng markerPoint,
     required Widget marker,
@@ -530,8 +573,8 @@ class PointOfInterest extends Marker {
         super(
           child: marker,
           point: markerPoint,
-          width: width,
-          height: height, /*key: key*/
+          //    width: width,
+          //    height: height, /*key: key*/
         );
 
   IconData setIcon({required type}) {
@@ -589,6 +632,7 @@ class PointOfInterest extends Marker {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
+      'url': url,
       'driveId': driveId,
       'type': _type,
       'name': _name,
@@ -689,78 +733,14 @@ class MarkerWidget extends StatelessWidget {
   }
 }
 
-class FeatureMarker2 extends StatelessWidget {
-  int index;
-  double width;
-  double angle;
-  Icon icon;
-  Icon overlay;
-  Function(int)? onPress;
-  FeatureMarker2({
-    super.key,
-    this.index = -1,
-    this.width = 50,
-    this.angle = 0,
-    this.icon = const Icon(Icons.location_on, color: Colors.red),
-    this.overlay = const Icon(Icons.location_on, color: Colors.red),
-    this.onPress,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    //double width = zoom * 4;
-    return Transform.rotate(
-      angle: angle,
-      child: SizedBox(
-        width: width,
-        child: FittedBox(
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              IconButton(
-                iconSize: width,
-                icon: icon,
-                onPressed: () {
-                  debugPrint('FeatureMarker.onPress($index)');
-                  onPress!(index);
-                },
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(0, 0, 0, 19),
-                child: Container(
-                  width: width * .6,
-                  height: width * .6,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: colourList[Setup().pointOfInterestColour],
-                  ),
-                  child: overlay,
-                ),
-
-                //     Padding(
-                //         padding: const EdgeInsets.fromLTRB(0, 0, 0, 8),
-                //         child: overlay),
-              )
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  setSize({required double size}) {
-    width = size;
-  }
-}
-
 class FeatureMarker extends StatelessWidget {
-  int index;
-  double width;
-  double angle;
-  Icon icon;
-  Icon overlay;
-  Function(int)? onPress;
-  FeatureMarker({
+  final int index;
+  final double width;
+  final double angle;
+  final Icon icon;
+  final Icon overlay;
+  final Function(int)? onPress;
+  const FeatureMarker({
     super.key,
     this.index = -1,
     this.width = 50,
@@ -773,6 +753,7 @@ class FeatureMarker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     //double width = zoom * 4;
+
     return Transform.rotate(
       angle: angle,
       child: SizedBox(
@@ -816,9 +797,9 @@ class FeatureMarker extends StatelessWidget {
     );
   }
 
-  setSize({required double size}) {
-    width = size;
-  }
+//  setSize({required double size}) {
+//    width*=0 + size;
+//  }
 }
 
 pointOfInterestDialog(
@@ -887,12 +868,12 @@ pointOfInterestDialog(
     },
   );
 }
-
+/*
 class LabelWidget extends StatelessWidget {
-  String description;
-  int top;
-  int left;
-  LabelWidget(
+  final String description;
+  final int top;
+  final int left;
+  const LabelWidget(
       {super.key,
       required this.top,
       required this.left,
@@ -906,19 +887,21 @@ class LabelWidget extends StatelessWidget {
 }
 
 class PinMarkerWidget extends StatelessWidget {
-  Color color;
-  double width;
-  int index;
-  IconData overlay;
-  Color iconColor;
-  Function(int)? onPress;
-  PinMarkerWidget(
+  final Color color;
+  final double width;
+  final int index;
+  final IconData overlay;
+  final Color iconColor;
+  final Function(int)? onPress;
+  final double rating;
+  const PinMarkerWidget(
       {super.key,
       this.color = Colors.blue,
       this.width = 50,
       this.index = -1,
       this.overlay = Icons.hail,
       this.iconColor = Colors.white,
+      this.rating = -1,
       this.onPress});
 
   @override
@@ -932,9 +915,40 @@ class PinMarkerWidget extends StatelessWidget {
       child: CustomPaint(
         painter: LocationPinPainter(color: color, size: 50),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(0, 0, 0, 22),
-          child: Icon(overlay, size: width * .8, color: iconColor),
+          padding: const EdgeInsets.fromLTRB(0, 0, 0, 15), //18),
+          child: Stack(
+            children: [
+              Positioned(
+                top: 12,
+                left: 20,
+                child: Icon(overlay, size: width * .8, color: iconColor),
+              ),
+              ...List.generate(
+                5,
+                (index) => buildIcons(index: index, score: 3.5),
+              ),
+            ],
+          ),
         ),
+      ),
+    );
+  }
+
+  Widget buildIcons({int index = 0, double score = -1}) {
+    List<double> tops = [14, 4, 0, 4, 14];
+    List<double> lefts = [10, 14, 24, 34, 38];
+    return Positioned(
+      top: tops[index],
+      left: lefts[index],
+      child: Icon(
+        score >= index + 1
+            ? Icons.star
+            : score > index
+                ? Icons.star_half
+                : Icons.star_outline,
+        //  Icons.star,
+        size: 10,
+        color: Colors.yellow,
       ),
     );
   }
@@ -944,6 +958,8 @@ IconData markerIcon(int type, {double size = 0}) {
   return IconData(poiTypes.toList()[type]['iconMaterial'],
       fontFamily: 'MaterialIcons');
 }
+
+*/
 
 class Group {
   String id = '';
@@ -2275,8 +2291,8 @@ class MyTripItem2 {
       addRoute(mt.Route(
           id: -1,
           points: polyLines[i].points,
-          colour: polyLines[i].color,
-          borderColour: polyLines[i].color,
+          color: polyLines[i].color,
+          borderColor: polyLines[i].color,
           strokeWidth: polyLines[i].strokeWidth));
     }
   }
@@ -2517,7 +2533,7 @@ class Message {
   bool read = false;
   String dated = '';
   DateTime received; // = DateTime.now();
-  DateFormat dateFormat = DateFormat("dd MMM yyyy");
+  // DateFormat dateFormat = DateFormat("dd MMM yyyy");
 
   Message(
       {required this.id,
@@ -2670,6 +2686,8 @@ class GoodRoad {
   int pointIdx1 = -1;
   int pointIdx2 = -1;
   int markerIdx = -1;
+  int pointOfInterestId = -1;
+//  String pointOfInterestUid = '';
   mt.Route? route;
   GoodRoad();
   bool get isGood => _isGood;
@@ -2680,6 +2698,8 @@ class GoodRoad {
     pointIdx1 = -1;
     pointIdx2 = -1;
     markerIdx = -1;
+    pointOfInterestId = -1;
+    //   pointOfInterestUid = '';
   }
 }
 

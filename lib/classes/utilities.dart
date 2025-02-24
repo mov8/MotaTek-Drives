@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:drives/constants.dart';
 import 'package:drives/models/models.dart';
 import 'package:drives/classes/route.dart' as mtRt;
 import 'package:geolocator/geolocator.dart';
@@ -36,7 +37,13 @@ Future<Position> getPosition() async {
 }
 
 double distanceBetween(LatLng point1, LatLng point2, {bool miles = true}) {
-  const double degreeToRadians = 0.0174532925; // degrees to radians pi/180
+  double distance = Geolocator.distanceBetween(point1.latitude,
+          point1.longitude, point2.latitude, point2.longitude) /
+      1000;
+
+  return miles ? distance / 8 * 5 : distance;
+
+  /*
   double earthRadius =
       miles ? 3959 : 6371; // earth's radius in miles / kilometers
   double dist = 1 -
@@ -48,6 +55,7 @@ double distanceBetween(LatLng point1, LatLng point2, {bool miles = true}) {
   dist = earthRadius * asin(sqrt(dist));
 
   return dist;
+  */
 }
 
 /// insertWaypointAt

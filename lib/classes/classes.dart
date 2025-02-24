@@ -6,6 +6,7 @@ export 'package:drives/classes/image_list_indicator.dart';
 export 'package:drives/classes/image_arranger.dart';
 export 'package:drives/classes/image_missing.dart';
 export 'package:drives/classes/leading_widget.dart';
+export 'package:drives/classes/map_markers.dart';
 export 'package:drives/classes/notifiers.dart';
 export 'package:drives/classes/other_classes.dart';
 export 'package:drives/classes/photo_carousel.dart';

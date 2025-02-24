@@ -14,10 +14,10 @@ class GroupMemberForm extends StatefulWidget {
       {super.key, this.groupMember, this.groupName, this.groups});
 
   @override
-  State<GroupMemberForm> createState() => _groupMemberFormState();
+  State<GroupMemberForm> createState() => _GroupMemberFormState();
 }
 
-class _groupMemberFormState extends State<GroupMemberForm> {
+class _GroupMemberFormState extends State<GroupMemberForm> {
   late FocusNode fn1;
   bool editing = false;
   TextInputAction action = TextInputAction.done;

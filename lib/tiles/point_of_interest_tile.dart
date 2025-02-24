@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:drives/constants.dart';
 import 'package:drives/models/other_models.dart';
 import 'package:image_picker/image_picker.dart';
@@ -105,18 +106,18 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
   }
 
   _setExpanded({required int index, required int target}) {
-    debugPrint('@@@ - _setExpanded(index: $index, target: $target}) - @@@');
+    //   debugPrint('@@@ - _setExpanded(index: $index, target: $target}) - @@@');
     try {
       if (index == target) {
-        debugPrint('@@@ - _setExpanded calling expand - @@@');
+        //   debugPrint('@@@ - _setExpanded calling expand - @@@');
         _expansionTileController.expand();
       } else {
-        debugPrint('@@@ - _setExpanded calling collapse - @@@');
+        //    debugPrint('@@@ - _setExpanded calling collapse - @@@');
         _expansionTileController.collapse();
       }
     } catch (e) {
-      debugPrint(
-          '@@@@ - pointOfInterestTile._setExpanded error ${e.toString} - @@@@');
+      //  debugPrint(
+      //      '@@@@ - pointOfInterestTile._setExpanded error ${e.toString} - @@@@');
     }
   }
 
@@ -125,58 +126,32 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
   @override
   Widget build(BuildContext context) {
     //return Material(
+    return canEdit ? editableTile() : unEditableTile();
+  }
+
+  Widget editableTile() {
     return ExpansionTile(
-      // key: Key('$widget.key'),
-      //  key: _key,
       controller: _expansionTileController,
-      title: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Align(
-            alignment: AlignmentDirectional.topStart,
-            child: Text(widget.pointOfInterest.getName(),
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-                textAlign: TextAlign.left),
+      title: Text(widget.pointOfInterest.getName(),
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
           ),
-          Row(children: [
-            Expanded(
-              flex: 1,
-              child: StarRating(
-                  onRatingChanged: () {},
-                  rating: widget.pointOfInterest.getScore()),
-            ),
-            Expanded(
-              flex: 1,
-              child: Align(
-                alignment: Alignment.bottomLeft,
-                child: Text('published ${widget.pointOfInterest.published}',
-                    style: const TextStyle(fontSize: 12)),
-              ),
-            ),
-          ]),
-        ],
-      ),
+          textAlign: TextAlign.left),
       collapsedBackgroundColor: Colors.transparent,
       backgroundColor: Colors.transparent,
       initiallyExpanded: expanded,
       onExpansionChanged: (expanded) {
         isExpanded = expanded;
-        debugPrint(
-            '+++ PointOfInterestTile[$index].ExpansionTile.${expanded ? 'expanded' : 'collapsed'}');
         setState(() {
           widget.onExpandChange(expanded ? index : -1);
         });
       },
-
       leading: Icon(
           markerIcon(
             getIconIndex(iconIndex: widget.pointOfInterest.getType()),
           ),
           color: colourList[Setup().pointOfInterestColour]),
-
       children: [
         SingleChildScrollView(
           child: Padding(
@@ -236,29 +211,6 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                                     backgroundColor: Colors.blueAccent,
                                   ))),
                         ),
-                        //    ] else ...[
-                        Expanded(
-                          flex: 10,
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(0, 5, 5, 0),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  IconData(
-                                      poiTypes[getIconIndex(
-                                          iconIndex: widget.pointOfInterest
-                                              .getType())]['iconMaterial'],
-                                      fontFamily: 'MaterialIcons'),
-                                  color: Color(poiTypes[getIconIndex(
-                                      iconIndex: widget.pointOfInterest
-                                          .getType())]['colourMaterial']),
-                                ),
-                                Text(
-                                    '    ${poiTypes[getIconIndex(iconIndex: widget.pointOfInterest.getType())]['name']}')
-                              ],
-                            ),
-                          ),
-                        ),
                       ],
                     ),
                     Row(
@@ -267,7 +219,7 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                           child: Padding(
                             padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
                             child: TextFormField(
-                                readOnly: !canEdit,
+                                readOnly: false,
                                 initialValue: widget.pointOfInterest.getName(),
                                 autofocus: canEdit,
                                 textInputAction: TextInputAction.next,
@@ -289,23 +241,154 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                           ),
                         )
                       ],
-                    )
-                  ] else ...[
-                    const Align(
-                      alignment: Alignment.topLeft,
-                      child: Padding(
-                        padding: EdgeInsets.fromLTRB(10, 0, 0, 0),
-                        child: Text(
-                          'Description:',
-                          style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              decoration: TextDecoration.underline),
+                    ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
+                            child: TextFormField(
+                                readOnly: false,
+                                maxLines: null,
+                                textInputAction: TextInputAction.done,
+                                //     expands: true,
+                                initialValue:
+                                    widget.pointOfInterest.getDescription(),
+                                textAlign: TextAlign.start,
+                                keyboardType: TextInputType.streetAddress,
+                                textCapitalization:
+                                    TextCapitalization.sentences,
+                                decoration: canEdit
+                                    ? const InputDecoration(
+                                        border: OutlineInputBorder(),
+                                        hintText:
+                                            'Describe Point of Interest...',
+                                        labelText:
+                                            'Point of interest description',
+                                      )
+                                    : null,
+                                style: Theme.of(context).textTheme.bodyLarge,
+                                autovalidateMode:
+                                    AutovalidateMode.onUserInteraction,
+                                onFieldSubmitted: (text) => widget
+                                    .pointOfInterest
+                                    .setDescription(text) //body = text
+                                ),
+                          ),
                         ),
+                      ],
+                    ),
+                    if (widget.pointOfInterest.photos.isNotEmpty)
+                      Row(
+                        children: <Widget>[
+                          Expanded(
+                            flex: 8,
+                            child: ImageArranger(
+                              photos: widget.pointOfInterest.photos,
+                              endPoint: widget.pointOfInterest.url,
+                            ),
+                          ),
+                        ],
+                      ),
+                    Align(
+                      alignment: Alignment.bottomLeft,
+                      child: ActionChip(
+                        label: const Text(
+                          'Delete',
+                          style: TextStyle(fontSize: 18, color: Colors.white),
+                        ),
+                        avatar: const Icon(Icons.delete,
+                            size: 20, color: Colors.white),
+                        onPressed: () => widget.onDelete,
+                        backgroundColor: Colors.blueAccent,
+                      ),
+                    )
+                  ],
+                ],
+              ),
+            ),
+          ),
+        )
+      ],
+    );
+  }
+
+  Widget unEditableTile() {
+    return ExpansionTile(
+      // key: Key('$widget.key'),
+      //  key: _key,
+      controller: _expansionTileController,
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Align(
+            alignment: AlignmentDirectional.topStart,
+            child: Text(widget.pointOfInterest.getName(),
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.left),
+          ),
+          Row(children: [
+            Expanded(
+              flex: 1,
+              child: StarRating(
+                  onRatingChanged: () {},
+                  rating: widget.pointOfInterest.getScore()),
+            ),
+            Expanded(
+              flex: 1,
+              child: Align(
+                alignment: Alignment.bottomLeft,
+                //DateFormat("dd MMM yy HH:mm").format(DateTime.now()),
+                child: Text(
+                    'published ${DateFormat("dd MMM yyyy").format(widget.pointOfInterest.published)}',
+                    style: const TextStyle(fontSize: 12)),
+              ),
+            ),
+          ]),
+        ],
+      ),
+      collapsedBackgroundColor: Colors.transparent,
+      backgroundColor: Colors.transparent,
+      initiallyExpanded: expanded,
+      onExpansionChanged: (expanded) {
+        isExpanded = expanded;
+        setState(() {
+          widget.onExpandChange(expanded ? index : -1);
+        });
+      },
+
+      leading: Icon(
+          markerIcon(
+            getIconIndex(iconIndex: widget.pointOfInterest.getType()),
+          ),
+          color: colourList[Setup().pointOfInterestColour]),
+
+      children: [
+        SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(5, 15, 5, 10),
+            child: Align(
+              alignment: Alignment.topLeft,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: <Widget>[
+                  const Align(
+                    alignment: Alignment.topLeft,
+                    child: Padding(
+                      padding: EdgeInsets.fromLTRB(10, 0, 0, 0),
+                      child: Text(
+                        'Description:',
+                        style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            decoration: TextDecoration.underline),
                       ),
                     ),
-                  ], // change added ]
+                  ),
                   Row(
                     children: [
                       Expanded(
@@ -339,8 +422,8 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                       ),
                     ],
                   ),
-                  if (widget.pointOfInterest.getImages().isNotEmpty &&
-                      widget.pointOfInterest.url.isEmpty)
+                  if (widget.pointOfInterest.getImages().isNotEmpty) // &&
+                    // widget.pointOfInterest.url.isEmpty)
                     Row(children: <Widget>[
                       Expanded(
                         flex: 8,
@@ -349,74 +432,46 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                           child: PhotoCarousel(
                             imageRepository: widget.imageRepository,
                             photos: widget.pointOfInterest.photos,
-                            height: 200,
-                            width: 200,
+                            height: 300,
+                            width: 300,
                           ),
                         ),
                       ),
                     ]),
-                  if (widget.pointOfInterest.getImages().isNotEmpty &&
-                      widget.pointOfInterest.url.isNotEmpty)
-                    Row(children: <Widget>[
-                      Expanded(
-                        flex: 8,
-                        child: SizedBox(
-                          height: 350,
-                          child: PhotoCarousel(
-                            imageRepository: widget.imageRepository,
-                            photos: widget.pointOfInterest.photos,
-                            height: 200,
-                            width: 200,
+                  if (widget.pointOfInterest.url.isNotEmpty) ...[
+                    Row(
+                      children: [
+                        Expanded(
+                          flex: 1,
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(10, 0, 5, 0),
+                            child: Row(
+                              children: [
+                                StarRating(
+                                    onRatingChanged: changeRating,
+                                    rating: widget.pointOfInterest.getScore()),
+                                Align(
+                                  alignment: Alignment.topLeft,
+                                  child: Text(
+                                    '(${widget.pointOfInterest.scored})',
+                                    style: const TextStyle(
+                                        color: Colors.black, fontSize: 15),
+                                  ),
+                                )
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    ]),
-                  if (canEdit) ...[
-                    Align(
-                      alignment: Alignment.bottomLeft,
-                      child: ActionChip(
-                        label: const Text(
-                          'Delete',
-                          style: TextStyle(fontSize: 18, color: Colors.white),
-                        ),
-                        avatar: const Icon(Icons.delete,
-                            size: 20, color: Colors.white),
-                        onPressed: () => widget.onDelete,
-                        backgroundColor: Colors.blueAccent,
-                      ),
-                    )
-                  ] else if (widget.pointOfInterest.url.isNotEmpty) ...[
-                    Row(children: [
-                      Expanded(
-                        flex: 1,
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(10, 0, 5, 0),
-                          child: Row(
-                            children: [
-                              StarRating(
-                                  onRatingChanged: changeRating,
-                                  rating: widget.pointOfInterest.getScore()),
-                              Align(
-                                alignment: Alignment.topLeft,
-                                child: Text(
-                                  '(${widget.pointOfInterest.scored})',
-                                  style: const TextStyle(
-                                      color: Colors.black, fontSize: 15),
-                                ),
-                              )
-                            ],
+                        Expanded(
+                          flex: 1,
+                          child: IconButton(
+                            icon: const Icon(Icons.share),
+                            onPressed: () =>
+                                widget.onIconTap, // () => (setState(() {}),),
                           ),
-                        ),
-                      ),
-                      Expanded(
-                        flex: 1,
-                        child: IconButton(
-                          icon: const Icon(Icons.share),
-                          onPressed: () =>
-                              widget.onIconTap, // () => (setState(() {}),),
-                        ),
-                      )
-                    ]),
+                        )
+                      ],
+                    ),
                   ],
                 ],
               ),
@@ -424,7 +479,6 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
           ),
         ),
       ],
-      //   ),
     );
   }
 
@@ -456,6 +510,9 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                 setState(() {
                   widget.pointOfInterest.setImages(
                       '[${widget.pointOfInterest.getImages().isNotEmpty ? '${widget.pointOfInterest.getImages().substring(1, widget.pointOfInterest.getImages().length - 1)},' : ''}{"url":"$imagePath","caption":"image $num"}]');
+                  widget.pointOfInterest.photos.add(Photo(
+                      url: imagePath,
+                      index: widget.pointOfInterest.photos.length));
                   debugPrint('Images: $widget.pointOfInterest.images');
                 });
               }
@@ -488,16 +545,12 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
   }
 
   expandChange({required bool expanded}) {
-    debugPrint(
-        '+++ pointOfInterestTile[$index].expandChange(${expanded ? 'expand' : 'collapse'}) called');
-    //   if (isExpanded != expanded) {
     if (expanded) {
       _expansionTileController.expand();
     } else {
       _expansionTileController.collapse();
     }
     setState(() => isExpanded = expanded);
-    //  }
   }
 
   List<String> getImageUrls(PointOfInterest pointOfInterest) {

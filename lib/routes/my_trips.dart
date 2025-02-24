@@ -3,7 +3,8 @@ import 'package:drives/models/models.dart';
 import 'package:drives/classes/classes.dart';
 import 'package:drives/tiles/my_trip_tile.dart';
 import 'package:drives/screens/screens.dart';
-import 'package:flutter_map/flutter_map.dart';
+//import 'package:flutter_map/flutter_map.dart';
+import 'package:drives/classes/route.dart' as mt;
 import 'package:drives/services/services.dart';
 import 'package:latlong2/latlong.dart';
 
@@ -88,7 +89,16 @@ class _MyTripsScreenState extends State<MyTrips> {
     }
   }
 
+/*
+import 'package:uuid/data.dart';
+import 'package:uuid/uuid.dart';
+import 'package:uuid/rng.dart';
+
+ */
+
   Future<void> publishTrip(int index) async {
+    await _myTripItems[index].publish();
+    /*
     String driveUI = '';
     int driveId = _myTripItems[index].getDriveId();
     postTrip(_myTripItems[index]).then((driveUi) {
@@ -98,17 +108,17 @@ class _MyTripsScreenState extends State<MyTrips> {
         postPointOfInterest(pointOfInterest, driveUI);
       }
     }).then((_) async {
-      List<Polyline> polylines = await loadPolyLinesLocal(driveId, type: 0);
-      postPolylines(polylines, driveUI, 0);
-
-      polylines = await loadPolyLinesLocal(driveId, type: 1);
-      if (polylines.isNotEmpty) {
-        postPolylines(polylines, driveUI, 1);
+      for (int i = 0; i < 2; i++) {
+        List<mt.Route> polylines = await loadPolyLinesLocal(driveId, type: i);
+//      postPolylines(polylines, driveUI, 0);
+        postPolylines(polylines: polylines, driveUid: driveUI, type: i);
       }
 
       List<Maneuver> maneuvers = await loadManeuversLocal(driveId);
       postManeuvers(maneuvers, driveUI);
     });
+
+    */
     return;
   }
 

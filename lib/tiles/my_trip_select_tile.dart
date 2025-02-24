@@ -23,10 +23,10 @@ class MyTripSelectTile extends StatefulWidget {
   });
 
   @override
-  State<MyTripSelectTile> createState() => _myTripSelectTileState();
+  State<MyTripSelectTile> createState() => _MyTripSelectTileState();
 }
 
-class _myTripSelectTileState extends State<MyTripSelectTile> {
+class _MyTripSelectTileState extends State<MyTripSelectTile> {
   @override
   Widget build(BuildContext context) {
     List<Photo> photos = photosFromJson(widget.myTripItem.getImages());

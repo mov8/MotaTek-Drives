@@ -1,5 +1,6 @@
 // import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:drives/constants.dart';
 import 'package:drives/models/other_models.dart';
 import 'package:drives/tiles/home_tile.dart';
 import 'package:drives/screens/main_drawer.dart';
@@ -100,7 +101,7 @@ class _HomeState extends State<Home> {
           }
         }
       } else {
-        debugPrint('Server not listening');
+        debugPrint('Server not listening ($urlBaseTest)');
       }
     } catch (e) {
       debugPrint('Splash login error: ${e.toString()}');

@@ -3,6 +3,7 @@
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter/material.dart';
+import 'package:drives/classes/route.dart' as mt;
 
 /// The issue of slow data loading is to be addressed by only retrieving the data
 /// needed. A geofence will be calculated that will contain a customisable
@@ -142,11 +143,26 @@ class Fence {
     return Fence(northEast: bounds.northEast, southWest: bounds.southWest);
   }
 
+  factory Fence.fromFence({required Fence bounds, double deltaDegrees = 0.0}) {
+    return Fence(
+        northEast: LatLng(bounds.northEast.latitude + deltaDegrees,
+            bounds.northEast.longitude + deltaDegrees),
+        southWest: LatLng(bounds.southWest.latitude - deltaDegrees,
+            bounds.southWest.longitude - deltaDegrees));
+  }
+
   bool contains({required Fence bounds}) {
     return (southWest.latitude <= bounds.southWest.latitude) &&
         (northEast.latitude >= bounds.northEast.latitude) &&
         (southWest.longitude <= bounds.southWest.longitude) &&
         (northEast.longitude >= bounds.northEast.longitude);
+  }
+
+  bool containsPoint({required LatLng point}) {
+    return (southWest.latitude <= point.latitude &&
+        northEast.latitude >= point.latitude &&
+        southWest.longitude <= point.longitude &&
+        northEast.longitude >= point.longitude);
   }
 
   bool overlapped({required Fence bounds}) {
@@ -163,12 +179,79 @@ class Fence {
         bounds.southWest.longitude - deltaDegrees);
   }
 
-  changeBounds({required LatLngBounds llBounds, double deltaDegrees = 0.0}) {
-    northEast = LatLng(llBounds.northEast.latitude + deltaDegrees,
-        llBounds.northEast.longitude + deltaDegrees);
-    southWest = LatLng(llBounds.southWest.latitude - deltaDegrees,
-        llBounds.southWest.longitude - deltaDegrees);
+  changeBounds(
+      {required LatLngBounds latlngBounds, double deltaDegrees = 0.0}) {
+    northEast = LatLng(latlngBounds.northEast.latitude + deltaDegrees,
+        latlngBounds.northEast.longitude + deltaDegrees);
+    southWest = LatLng(latlngBounds.southWest.latitude - deltaDegrees,
+        latlngBounds.southWest.longitude - deltaDegrees);
   }
+}
+
+class PointSearchItem {
+  bool complete = false;
+  int firstPoint = -1;
+  int lastPoint = -1;
+  PointSearchItem();
+
+  Future<bool> search(
+      {required Fence fence,
+      required List<LatLng> points,
+      int jump = 1}) async {
+    int first = -1;
+    int last = -1;
+    int j;
+    complete = false;
+    for (j = firstPoint; j < lastPoint; j += jump) {
+      if (first == -1 &&
+          (firstPoint - j) >= 0 &&
+          fence.containsPoint(point: points[firstPoint - j])) {
+        first = firstPoint - j;
+        if (last == -1 && j > firstPoint) {
+          lastPoint = first;
+          firstPoint = 0;
+          complete = false;
+          return false;
+        }
+      }
+      if (last == -1 &&
+          (firstPoint + j) < lastPoint &&
+          fence.containsPoint(point: points[firstPoint + j])) {
+        last = firstPoint + j;
+        if (first == -1) {
+          firstPoint = last;
+          lastPoint = points.length;
+          complete = false;
+          return false;
+        }
+      }
+      if (last != -1 && first != -1) {
+        return true;
+      }
+    }
+    if (last != -1 && first != -1) {
+      complete = true;
+      return true;
+    } else {
+      complete = true;
+      return false;
+    }
+  }
+}
+
+Fence fenceFromPolylines({required mt.Route polyline}) {
+  double maxLat = -90;
+  double minLat = 90;
+  double maxLong = -180;
+  double minLong = 180;
+  for (LatLng point in polyline.points) {
+    maxLat = point.latitude > maxLat ? point.latitude : maxLat;
+    minLat = point.latitude < minLat ? point.latitude : minLat;
+    maxLong = point.longitude > maxLong ? point.longitude : maxLong;
+    minLong = point.longitude < minLong ? point.longitude : minLong;
+  }
+  return Fence(
+      northEast: LatLng(maxLat, maxLong), southWest: LatLng(minLat, minLong));
 }
 
 /// Checks whether [bounds] is contained within [fence]

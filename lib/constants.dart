@@ -1,16 +1,14 @@
 import 'package:latlong2/latlong.dart';
 
-// const wifiIpAddress = '192.168.135.105'; // Boston
-// const wifiIpAddress = '10.101.1.150'; // Staines
-const wifiIpAddress = '192.168.1.12'; // Boston
-// const wifiIpAddress = '192.168.1.101'; // Ryde
-const urlBase = 'http://$wifiIpAddress:5001/'; //  Boston
+const wifiIpAddress = '192.168.1.9';
+const urlBase = 'http://$wifiIpAddress:5001/';
 const urlBaseTest = '${urlBase}v1/user/test';
 const urlRouter =
     'http://$wifiIpAddress:5000/route/v1/driving/'; //$waypoints?steps=true&annotations=true&geometries=geojson&overview=full$avoid'
 
 const urlTiler = 'http://192.168.68.126:5000/tile/v1/driving/';
 const urlRouterTest = '$urlRouter-0.1257,51.5085;0.0756,51.5128?overview=false';
+const double degreeToRadians = 0.0174532925; // degrees to radians pi/180
 
 const List<String> routes = [
   'home',
@@ -100,7 +98,7 @@ const List<String> tableDefs = [
 
   /// POLYLINES
   '''CREATE TABLE polylines(id INTEGER PRIMARY KEY AUTOINCREMENT, drive_id INTEGER, 
-  type INTEGER, points TEXT, colour Integer, stroke INTEGER)''',
+  type INTEGER, point_of_interest_id INTEGER, points TEXT, colour Integer, stroke INTEGER)''',
 
   /// SETUP
   '''CREATE TABLE setup(id INTEGER PRIMARY KEY AUTOINCREMENT, route_colour INTEGER, good_route_colour INTEGER, 

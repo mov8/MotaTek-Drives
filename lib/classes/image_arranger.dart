@@ -5,30 +5,31 @@ import 'package:drives/classes/classes.dart';
 import 'package:drives/services/services.dart';
 
 class ImageArranger extends StatefulWidget {
-  final bool canEdit;
+  //final bool canEdit;
   final bool showCaptions;
   final String endPoint;
   String imageUrl;
   final List<Photo> photos;
-  final int webUrlMaxLength;
+  // final int webUrlMaxLength;
   final double height;
-  final double width;
+  // final double width;
   //int imageIndex = 0;
-  final Color selectedColor;
-  final Color unSelectedColor;
+  // final Color selectedColor;
+  // final Color unSelectedColor;
 
-  ImageArranger(
-      {super.key,
-      required this.photos,
-      required this.endPoint,
-      this.imageUrl = '',
-      this.canEdit = false,
-      this.showCaptions = false,
-      this.webUrlMaxLength = 40,
-      this.height = 450,
-      this.width = 0,
-      this.selectedColor = Colors.blueAccent,
-      this.unSelectedColor = Colors.grey});
+  ImageArranger({
+    super.key,
+    required this.photos,
+    required this.endPoint,
+    this.imageUrl = '',
+    //   this.canEdit = false,
+    this.showCaptions = false,
+    //   this.webUrlMaxLength = 40,
+    this.height = 175,
+    //   this.width = 0,
+    //   this.selectedColor = Colors.blueAccent,
+    //   this.unSelectedColor = Colors.grey
+  });
 
   @override
   State<ImageArranger> createState() => _ImageArrangerState();
@@ -58,7 +59,8 @@ class _ImageArrangerState extends State<ImageArranger> {
             if (photo.url.contains('http')) ...[
               showWebImage(
                 context: context,
-                Uri.parse('${widget.endPoint}/${photo.url}').toString(),
+                Uri.parse(photo.url).toString(),
+                //  Uri.parse('${widget.endPoint}/${photo.url}').toString(),
                 // canDelete: true,
                 index: photo.index,
                 onDelete: (idx) => onDeleteImage(idx),

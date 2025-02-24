@@ -10,44 +10,41 @@ class Route extends Polyline {
   final int id;
   final int key;
   final int driveKey;
+  final LatLng markerPosition;
+  final int pointOfInterestIndex;
+  String pointOfInterestUri;
 
   List<Offset> offsets = [];
 
-  Color colour;
-  Color borderColour;
+  // Color colour;
+  // Color borderColour;
+  @override
+  Color color;
+  @override
+  Color borderColor;
 
   Route({
     required super.points,
     super.strokeWidth = 1.0,
-    this.colour = const Color(0xFF00FF00),
+    // this.colour = const Color(0xFF00FF00),
+    this.color = const Color(0xFF00FF00),
     super.borderStrokeWidth = 0.0,
-    this.borderColour = const Color(0xFFFFFF00),
+    // this.borderColour = const Color(0xFFFFFF00),
+    this.borderColor = const Color(0xFFFFFF00),
     super.gradientColors,
     super.colorsStop,
     super.isDotted = false,
     this.id = -1,
     this.key = -1,
     this.driveKey = -1,
-  }) : super(borderColor: borderColour, color: colour);
+    this.markerPosition = const LatLng(0, 0),
+    this.pointOfInterestIndex = -1,
+    this.pointOfInterestUri = '',
+  }); // : super(borderColor: borderColour, color: colour);
 
-  /*
-  List<Offset> get offsets {
-    return offsets;
+  void setColour({required Color colour}) {
+    color = colour;
   }
-
-  set offsets(List<Offset> offsets) {
-    offsets = offsets;
-  }
-*/
-/*
-class MarkerWidget extends StatelessWidget {
-  set iconType(int poiType) {
-    // setState(() {
-    type = poiType;
-    // });
-    // _context = context;
-  }
-*/
 }
 
 /// Class RouteAtCenter
@@ -84,7 +81,8 @@ class RouteAtCenter {
     _routes = routes;
   }
 
-  int getPolyLineNearestCenter({int pointerDistanceTolerance = 15}) {
+  int getPolyLineNearestCenter(
+      {int pointerDistanceTolerance = 15, int pointIndex = -1}) {
     double maxValue = 9999999.0;
     int idx = -1;
 
@@ -150,6 +148,7 @@ class RouteAtCenter {
                 idx = i;
                 _routeIndex = i;
                 _pointIndex = j;
+
                 _pointOnRoute = currentPolyline.points[j];
                 maxValue = minimum;
               }

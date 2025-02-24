@@ -149,7 +149,7 @@ You can plan trips either on your own or you can explore in a group''',
               '${_titles[_action]}${_action == 1 ? ' ${_items[_groupIndex].heading}' : ''}',
               style: const TextStyle(
                 color: Colors.white,
-                fontSize: 24,
+                fontSize: 20,
                 fontWeight: FontWeight.bold,
               ),
             ),
