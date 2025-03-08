@@ -2,6 +2,8 @@ import 'dart:typed_data';
 // import 'package:drives/constants.dart';
 import 'package:drives/models/other_models.dart';
 import 'package:drives/services/services.dart';
+import 'package:drives/classes/classes.dart';
+
 import 'package:flutter/material.dart';
 // import 'package:flutter_map/flutter_map.dart';
 
@@ -9,6 +11,7 @@ import 'package:flutter/material.dart';
 // import 'dart:convert';
 import 'package:latlong2/latlong.dart';
 import 'package:drives/classes/route.dart' as mt;
+import 'package:vector_map_tiles/vector_map_tiles.dart';
 // import 'package:drives/classes/classes.dart';
 
 /// TripItemRepository handles the cache for TripItems in the Trips route
@@ -223,7 +226,9 @@ class PointOfInterestRepository {
         _pointOfInterestCache[key] = PointOfInterest(
             markerPoint: const LatLng(0, 0), marker: const FeatureMarker());
       }
-    } else {}
+    } else {
+      debugPrint('Point of obtained from cache');
+    }
     //  debugPrint(fetched);
     return _pointOfInterestCache[key]!;
   }
@@ -288,6 +293,31 @@ class GoodRoadRepository {
 
   clear() {
     _goodRoadCache.clear();
+  }
+}
+
+class TileRepository {
+  final Map<String, Uint8List> _tilesCache = {};
+  final CachedVectorTileProvider deligate;
+  TileRepository({required this.deligate});
+  Future<Uint8List> loadTile({
+    required TileIdentity tile,
+    required int id,
+    required String uri,
+  }) async {
+    Uint8List? data = Uint8List.fromList([]);
+    String key = '${tile.z}.${tile.x}.${tile.y}';
+    if (!_tilesCache.containsKey(key)) {
+      if (id >= 0) {
+        _tilesCache[key] = await loadTileLocal(key: key);
+      } else if (uri.isNotEmpty) {
+        _tilesCache[key] = await deligate.provide(tile);
+      }
+    } else {
+      debugPrint('Tile $key returned from cache');
+    }
+    data = _tilesCache[key];
+    return data!;
   }
 }
 

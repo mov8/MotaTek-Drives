@@ -66,46 +66,10 @@ class LocationPinPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-/*    
-    final textSpan = TextSpan(
-      text: score.toString(),
-      style: textStyle,
-    );
-
-    final textPainter = TextPainter(
-      text: textSpan,
-      textDirection: TextDirection.ltr,
-      textScaler: TextScaler.noScaling,
-    )..layout(
-        maxWidth: 120,
-      );
-
-*/
-//    int textWidth = textPainter.width.toInt() + 20;
-//    int textHeight = textPainter.height.toInt();
-
     double radius = size.width / 3;
-    //  Offset offset = Offset(size.width / 2, radius);
+
     canvas.drawCircle(
         Offset(size.width / 2, radius), radius, filledLineBrush..color = color);
-/*
-    double left = size.width - (radius * 2.4);
-    double top = 0.2;
-    //radius * 1.25;
-    double right = left + (radius * 1.8);
-    double bottom = top + (radius * 2);
-    canvas.drawArc(
-        Rect.fromLTRB(left, top, right, bottom),
-        -pi,
-        pi * score / 5,
-        false,
-        Paint()
-          ..color = Colors.yellow
-          ..style = PaintingStyle.stroke
-          ..strokeCap = StrokeCap.round
-          ..strokeWidth = 4);
-
-*/
     var pointerPath = Path();
     pointerPath.moveTo(
         (size.width / 2) - radius, radius * 1.25); // - radius, radius);
@@ -113,8 +77,39 @@ class LocationPinPainter extends CustomPainter {
     pointerPath.lineTo((size.width / 2) + radius, radius * 1.25);
     pointerPath.close();
     canvas.drawPath(pointerPath, Paint()..color = color);
-//    textPainter.paint(canvas,
-//        Offset((size.width / 2) - (textWidth / 4), radius + textHeight - 5));
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) {
+    return false;
+  }
+}
+
+class FlagBackgroundPainter extends CustomPainter {
+  final int index;
+  Color color;
+  double size;
+
+  // @override
+  FlagBackgroundPainter({
+    this.index = 0,
+    this.color = Colors.blue,
+    this.size = 30,
+  });
+
+  static const textStyle =
+      TextStyle(color: Colors.white, fontFamily: 'OpenSans', fontSize: 12);
+
+  Paint filledLineBrush = Paint()
+    ..style = PaintingStyle.fill
+    ..strokeWidth = 2.5;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawRect(
+        Rect.fromLTRB(size.width * .22, size.height * .18, size.width * .8,
+            size.height * .6),
+        Paint()..color = Colors.white);
   }
 
   @override

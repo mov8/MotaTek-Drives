@@ -13,7 +13,7 @@ class Route extends Polyline {
   final LatLng markerPosition;
   final int pointOfInterestIndex;
   String pointOfInterestUri;
-
+  double rating;
   List<Offset> offsets = [];
 
   // Color colour;
@@ -39,6 +39,7 @@ class Route extends Polyline {
     this.driveKey = -1,
     this.markerPosition = const LatLng(0, 0),
     this.pointOfInterestIndex = -1,
+    this.rating = 1,
     this.pointOfInterestUri = '',
   }); // : super(borderColor: borderColour, color: colour);
 

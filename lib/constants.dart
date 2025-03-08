@@ -1,6 +1,6 @@
 import 'package:latlong2/latlong.dart';
 
-const wifiIpAddress = '192.168.1.9';
+const wifiIpAddress = '10.101.1.150';
 const urlBase = 'http://$wifiIpAddress:5001/';
 const urlBaseTest = '${urlBase}v1/user/test';
 const urlRouter =
@@ -8,7 +8,11 @@ const urlRouter =
 
 const urlTiler = 'http://192.168.68.126:5000/tile/v1/driving/';
 const urlRouterTest = '$urlRouter-0.1257,51.5085;0.0756,51.5128?overview=false';
+
+const String stadiaMapsApiKey = 'ea533710-31bd-4144-b31b-5cc0578c74d7';
 const double degreeToRadians = 0.0174532925; // degrees to radians pi/180
+//  x 4266 y 2984 z 13
+// http://192.168.1.9:5000/route/v1/driving/(4266,2984,13).mvt
 
 const List<String> routes = [
   'home',
@@ -34,7 +38,7 @@ enum MapHeights {
 
 const int dbVersion = 1;
 
-String stadiaMapsApiKey = 'ea533710-31bd-4144-b31b-5cc0578c74d7';
+// String stadiaMapsApiKey = 'ea533710-31bd-4144-b31b-5cc0578c74d7';
 
 const LatLng ukNorthEast = LatLng(61, 2);
 const LatLng ukSouthWest = LatLng(49, -8);
@@ -83,6 +87,10 @@ const List<String> tableDefs = [
   '''CREATE TABLE maneuvers(id INTEGER PRIMARY KEY AUTOINCREMENT, drive_id INTEGER, road_from TEXT, 
   road_to TEXT, bearing_before INTEGER, bearing_after INTEGER, exit INTEGER, location TEXT, 
   modifier TEXT, type TEXT, distance REAL)''',
+
+  /// MAPCACHE
+  '''CREATE TABLE map_cache(id INTEGER PRIMARY KEY AUTOINCREMENT, 
+  key TEXT, value BLOB, added DATETIME)''',
 
   /// MESSAGES
   '''CREATE TABLE messages(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, target_id INTEGER, message TEXT, 

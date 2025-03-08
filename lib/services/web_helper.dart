@@ -425,10 +425,6 @@ Future<List<DriveCacheItem>> getDriveCacheItems(
 */
 Future<List<mt.Route>> getDriveRoutes(
     {required String driveUri, driveKey = -1}) async {
-  // http://10.101.1.150:5001/v1/polyline/drive/9fadee54c71d48b1b667a5ea13c4bea4
-
-  final url = '$urlPolyline/drive/$driveUri';
-  // debugPrint('url: $url');
   final http.Response response =
       await getWebData(uri: Uri.parse('$urlPolyline/drive/$driveUri'));
   if ([200, 201].contains(response.statusCode)) {
@@ -439,7 +435,7 @@ Future<List<mt.Route>> getDriveRoutes(
           polylineFromMap(map: map, goodRoad: false, driveKey: driveKey)
       ];
     } catch (e) {
-      // debugPrint('Error getPolylines: ${e.toString()}');
+      debugPrint('Error getPolylines: ${e.toString()}');
       return [];
     }
   } else {
@@ -494,6 +490,7 @@ mt.Route polylineFromMap(
     strokeWidth: (map['stroke']).toDouble(),
     pointOfInterestIndex: -1,
     pointOfInterestUri: map['point_of_interest_id'] ?? '',
+    rating: map['average_rating'] ?? 1,
   );
 }
 
@@ -545,17 +542,12 @@ Future<List<PointOfInterest>> getPointsOfInterest(ne, sw) async {
 
 Future<PointOfInterest> getPointOfInterest(
     {String uri = '', int index = 0}) async {
-  // debugPrint('hitting API $urlPointOfInterest/$uri');
   final http.Response response = await http
       .get(
         Uri.parse('$urlPointOfInterest/$uri'),
-        //'/location/<min_lat>/<max_lat>/<min_long>/<max_long>'
         headers: webHeader(),
       )
       .timeout(const Duration(seconds: 20));
-
-//  // debugPrint(
-//      '::::: getPointOfInterest(uri:$uri) response.statusCode: ${response.statusCode}');
   if ([200, 201].contains(response.statusCode) && response.body.length > 10) {
     dynamic map = jsonDecode(response.body);
     PointOfInterest pointOfInterest = PointOfInterest(
@@ -568,30 +560,13 @@ Future<PointOfInterest> getPointOfInterest(
       scored: map["ratings_count"],
       driveUri: map['drives'],
       url: map['id'],
-      // photos: map['images'].isNotEmpty
-      //     ? photosFromJson(imageListToString(imageList: map['images']),
-      //         endPoint: '$urlDriveImages/${map['drives']}/${map['id']}/')
-      //     : [],
       marker: MarkerWidget(
         type: map['_type'],
-        //  name: map['name'],
-        //  description: map['description'],
-        //  url: map['id'],
-        //  images: map['images'],
-//'${urlBase}v1/drive/images${pointOfInterest.url}$pic')
-//        imageUrls: webUrls(map['drives'], map['id'], map['images']),
-        //    photos: photosFromJson(widget.pointOfInterest.getImages(), endPoint: endpoint);
-        //  angle: 0, // degrees to radians
-        // list: 1,
-        // listIndex: index,
       ),
     );
-    //   // debugPrint(
-    //       ':::: getPointOfInterest(uri: $uri) returning pointOfInterest OK');
+
     return pointOfInterest;
   } else {
-    //  // debugPrint(
-    //      '++++++ getPointOfInterest() is Returning empty PointOfInterest ++++');
     return PointOfInterest(
         name: '',
         marker: MarkerWidget(type: 1),
@@ -838,22 +813,27 @@ Future<TripItem?> getTrip(
             }
           }
         }
-        return TripItem(
-            heading: trip['title'],
-            subHeading: trip['sub_title'],
-            body: trip['body'],
-            author: trip['author'],
-            published: trip['added'],
-            imageUrls: imageListToString(
-                imageList:
-                    images), // images.toString(), // trip['image_urls'] ?? '',
-            score: trip['average_rating'].toDouble() ?? 5.0,
-            distance: trip['distance'],
-            pointsOfInterest: trip['points_of_interest'].length,
-            closest: distance,
-            scored: trip['ratings_count'] ?? 1,
-            downloads: trip['download_count'] ?? trip['downloads'] ?? 0,
-            uri: trip['id']);
+        try {
+          TripItem tripItem = TripItem(
+              heading: trip['title'],
+              subHeading: trip['sub_title'],
+              body: trip['body'],
+              author: trip['author'],
+              published: trip['added'],
+              imageUrls: imageListToString(
+                  imageList:
+                      images), // images.toString(), // trip['image_urls'] ?? '',
+              score: trip['average_rating'].toDouble() ?? 5.0,
+              distance: trip['distance'],
+              pointsOfInterest: trip['points_of_interest'].length,
+              closest: distance,
+              scored: trip['ratings_count'] ?? 1,
+              downloads: trip['download_count'] ?? trip['downloads'] ?? 0,
+              uri: trip['id']);
+          return tripItem;
+        } catch (e) {
+          debugPrint('Error ${e.toString}');
+        }
       } catch (e) {
         String err = e.toString();
         debugPrint('Error: $err');
@@ -919,7 +899,7 @@ putDriveRating(String uri, int score) async {
   };
   final http.Response response = await http.post(
       Uri.parse('$urlDriveRating/add'),
-      headers: webHeader(),
+      headers: webHeader(secure: true),
       body: jsonEncode(map));
   if ([200, 201].contains(response.statusCode)) {
     // debugPrint('Score added OK: ${response.statusCode}');
@@ -937,7 +917,7 @@ putPointOfInterestRating(String uri, double score) async {
   };
   final http.Response response = await http.post(
       Uri.parse('$urlPointOfInterestRating/add'),
-      headers: webHeader(),
+      headers: webHeader(secure: true),
       body: jsonEncode(map));
   if ([200, 201].contains(response.statusCode)) {
     // debugPrint('Score added OK: ${response.statusCode}');

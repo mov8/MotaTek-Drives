@@ -1,4 +1,4 @@
-import 'dart:ffi';
+// import 'dart:ffi';
 import 'dart:io';
 import 'dart:typed_data';
 import 'dart:convert';
@@ -14,6 +14,8 @@ import 'package:drives/classes/route.dart' as mt;
 import 'package:drives/models/models.dart';
 import 'package:drives/services/web_helper.dart';
 import 'dart:async';
+
+// import 'package:vector_map_tiles/vector_map_tiles.dart';
 // import 'dart:convert';
 
 class DbHelper {
@@ -1367,6 +1369,16 @@ Future<mt.Route> loadPolyLineLocal(int id, {type = 0}) async {
     strokeWidth: (map[0]['stroke']).toDouble(),
     pointOfInterestIndex: map[0]['point_of_interest_id'] ?? -1,
   );
+}
+
+Future<Uint8List> loadTileLocal({required String key}) async {
+  final db = await DbHelper().db;
+  List<Map<String, dynamic>> map = await db.query(
+    'map_cache',
+    where: 'key = ?',
+    whereArgs: [key],
+  );
+  return map[0]['value'];
 }
 
 Future<List<mt.Route>> loadRoutesLocal(int id,

@@ -151,6 +151,10 @@ class Fence {
             bounds.southWest.longitude - deltaDegrees));
   }
 
+  Fence.create(
+      {this.northEast = const LatLng(0, 0),
+      this.southWest = const LatLng(0, 0)});
+
   bool contains({required Fence bounds}) {
     return (southWest.latitude <= bounds.southWest.latitude) &&
         (northEast.latitude >= bounds.northEast.latitude) &&

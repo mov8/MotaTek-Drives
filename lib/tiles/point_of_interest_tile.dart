@@ -334,7 +334,7 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
             Expanded(
               flex: 1,
               child: StarRating(
-                  onRatingChanged: () {},
+                  onRatingChanged: changeRating,
                   rating: widget.pointOfInterest.getScore()),
             ),
             Expanded(

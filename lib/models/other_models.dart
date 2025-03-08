@@ -184,7 +184,7 @@ const List<Map> poiTypes = [
     'id': 17,
     'name': 'Start',
     'icon': 'Icons.tour',
-    'iconMaterial': 0xef75,
+    'iconMaterial': 0xe671,
     'colour': 'Colors.red',
     'colourMaterial': 0xff4CAF50
   },
@@ -192,7 +192,7 @@ const List<Map> poiTypes = [
     'id': 18,
     'name': 'End',
     'icon': 'Icons.sports_score',
-    'iconMaterial': 0xf06e,
+    'iconMaterial': 0xe5f1,
     'colour': 'Colors.red',
     'colourMaterial': 0xff4CAF50
   }

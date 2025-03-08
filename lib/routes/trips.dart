@@ -20,6 +20,17 @@ import 'package:vector_map_tiles/vector_map_tiles.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_map_animations/flutter_map_animations.dart';
 
+/// Improving performance -
+/// Use classes not functions
+/// Use Keys
+/// use devtools Perfomance view
+/// enable the Track layouts option in DevTools
+/// https://docs.flutter.dev/perf/impeller
+/// https://www.google.com/search?client=firefox-b-d&q=flutter+devtools+vscode#fpstate=ive&vld=cid:48f0e919,vid:_EYk-E29edo,st:0
+/// https://docs.flutter.dev/perf/best-practices
+/// https://docs.flutter.dev/perf/rendering-performance
+/// https://medium.com/flutterdude/flutter-performance-series-building-an-efficient-widget-tree-84fd236e9868
+
 enum MapHeight {
   full,
   headers,
@@ -150,7 +161,7 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
       /// good_roads.point_of_interest_id ties the point of interest
       /// to the good_roads polylines(mt.route)
 
-      _features.addAll(await getFeatures(zoom: 12, onTap: pinTap));
+      _features.addAll(await getFeatures(zoom: 10, onTap: pinTap));
     } catch (e) {
       // debugPrint('Error getting features: ${e.toString()}');
     }
@@ -315,13 +326,12 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
   }
 
   onTripRatingChanged(int value, int index) async {
-    setState(
-      () {
-        // debugPrint('Value: $value  Index: $index');
-        tripItems[index].score = value.toDouble();
-      },
-    );
-    putDriveRating(tripItems[index].uri, value);
+    int row = int.parse(_cards[index]
+        .key
+        .toString()
+        .substring(7, _cards[index].key.toString().length - 3));
+    String uri = _features[row].uri;
+    putDriveRating(uri, value);
   }
 
   Future<Widget>? _getPortraitBody() async {
@@ -398,7 +408,8 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
                       cacheFence: _cacheFence,
                       screenFence: _screenFence,
                       goodRoads: _goodRoads,
-                      routes: _routes)
+                      routes: _routes,
+                      zoom: _animatedMapController.mapController.camera.zoom)
                   .then((update) {
                 if (update) {
                   debugPrint(
@@ -430,7 +441,8 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
                       cacheFence: _cacheFence,
                       screenFence: _screenFence,
                       goodRoads: _goodRoads,
-                      routes: _routes);
+                      routes: _routes,
+                      zoom: _animatedMapController.mapController.camera.zoom);
                   //   .then((update)
                   if (update) {
                     debugPrint(
@@ -468,7 +480,7 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
                     InteractiveFlag.pinchMove),
           ),
           children: [
-            VectorTileLayer(
+            CachedVectorTileLayer(
               theme: _style.theme,
               sprites: _style.sprites,
               //          tileProviders:
@@ -526,7 +538,7 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
   }
 
   double getInitialZoom() {
-    return 12;
+    return 11;
   }
 
   routeTapped(routes, details) {
@@ -562,10 +574,17 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
       required Fence cacheFence,
       List<mt.Route> routes = const [],
       List<mt.Route> goodRoads = const [],
-      double zoom = 12.0}) async {
+      double zoom = 12}) async {
     if (source.isEmpty) {
       return false;
     }
+
+    // if (zoom < 20) return false;
+
+    if (zoom > 10) {
+      debugPrint('Zoom: $zoom');
+    }
+
     bool updateCache =
         cache.isEmpty || !_cacheFence.contains(bounds: screenFence);
 
@@ -578,6 +597,7 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
     }
 
     bool updateDetails = true;
+    //zoom > 11;
     //false;
 
     List<Feature> listToFilter = cache;
@@ -591,20 +611,17 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
       listToFilter = source;
     } else if (markers.isEmpty) {
       updateDetails = true;
-    } else {
+    } else if (zoom > 11) {
       for (Feature feature in markers) {
         if (!_screenFence.contains(bounds: feature.getBounds())) {
           debugPrint('Feature ${feature.row}has left the _screenFence');
           updateDetails = true;
-          //   markers.clear();
           break;
         }
       }
       updateDetails = true;
     }
-    // debugPrint('______ Update details $updateDetails _______');
     if (updateDetails) {
-      //    debugPrint('_____Clearing ${markers.length} markers ______');
       markers.clear();
       for (Feature feature in listToFilter) {
         switch (feature.type) {
@@ -617,20 +634,40 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
                   routes.addAll(toAdd);
                   cache.add(feature);
                 }
-                updateDetails = await addRouteMarker(
-                    screenFence: screenFence,
-                    routes: toAdd,
-                    feature: feature,
-                    visibleFeatures: markers,
-                    zoom: zoom);
+                if (zoom > 10) {
+                  updateDetails = await addRouteMarker(
+                      screenFence: screenFence,
+                      routes: toAdd,
+                      feature: feature,
+                      visibleFeatures: markers,
+                      score: 1,
+                      zoom: zoom);
+                }
               }
+              debugPrint(
+                  'markers.length = ${markers.length} adding feature.${feature.row}');
             }
             break;
           case 1:
             if ((![12, 14, 16].contains(feature.poiType) &&
-                    _cacheFence.contains(bounds: feature.getBounds())) &&
+                    _cacheFence.contains(
+                      bounds: feature.getBounds(),
+                    )) &&
+                zoom > 10 &&
                 updateCache) {
-              if (feature.child.runtimeType != PinMarkerWidget) {
+              if ([17, 18].contains(feature.poiType) &&
+                  feature.child.runtimeType != EndMarkerWidget) {
+                feature.child = EndMarkerWidget(
+                  index: feature.row,
+                  begining: feature.poiType == 17,
+                  width: 25,
+                  color: Colors.white60,
+                  onPress: pinTap,
+                );
+              } else if (feature.child.runtimeType != PinMarkerWidget) {
+                PointOfInterest? pointOfInterest =
+                    await _pointOfInterestRepository.loadPointOfInterest(
+                        key: feature.row, id: feature.id, uri: feature.uri);
                 feature.child = PinMarkerWidget(
                   index: feature.row,
                   color: feature.poiType == 13
@@ -639,6 +676,7 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
                   width: zoom * 2,
                   overlay: markerIcon(getIconIndex(iconIndex: feature.poiType)),
                   onPress: pinTap,
+                  rating: pointOfInterest!.getScore(),
                 );
               }
               cache.add(feature);
@@ -658,13 +696,15 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
                   goodRoads.add(goodRoad);
                   cache.add(feature);
                 }
-                updateDetails = await moveRouteMarker(
-                    screenFence: screenFence,
-                    route: goodRoad,
-                    feature: feature,
-                    visibleFeatures: markers,
-                    cache: cache,
-                    zoom: zoom);
+                if (zoom > 10) {
+                  updateDetails = await moveRouteMarker(
+                      screenFence: screenFence,
+                      route: goodRoad,
+                      feature: feature,
+                      visibleFeatures: markers,
+                      cache: cache,
+                      zoom: zoom);
+                }
               }
             }
 
@@ -676,7 +716,15 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
       debugPrint('filterFeatures had nothing to update');
     }
     updateDetails = updateDetails || _cards.length != markers.length;
-
+    /*
+    for (int i = 0; i < markers.length; i++) {
+      for (int j = i + 1; j < markers.length; j++) {
+        if (markers[i].uri == markers[j].uri) {
+          debugPrint('Duplicate found [$i] = [$j]');
+        }
+      }
+    }
+*/
     // debugPrint(
     //     '____ Left filterFeatures with updateDtails is $updateDetails and ${markers.length} markers _____');
     return updateDetails && markers.isNotEmpty;
@@ -777,6 +825,7 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
       required Feature feature,
       required List<Feature> visibleFeatures,
       required Fence screenFence,
+      double score = 1,
       zoom = 12}) async {
     LatLng? markerPoint =
         await routeMarkerPosition(polylines: routes, fence: screenFence);
@@ -793,9 +842,12 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
             width: (zoom * 2).toDouble(),
             overlay: Icons.route_outlined,
             onPress: pinTap,
+            rating: routes[0].rating.toDouble(),
           ),
         ),
       );
+/*
+
       LatLng firstPoint = routes[0].points[0];
       mt.Route lastRoute = routes[routes.length - 1];
       LatLng lastPoint = lastRoute.points[lastRoute.points.length - 1];
@@ -829,7 +881,7 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
           ),
         );
       }
-
+*/
       return true;
     }
     return false;
@@ -911,45 +963,22 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
     await _dataLoaded == true;
 
     if (features.isNotEmpty && _mapReady) {
-      // int i = 0;
       cards.clear();
-      // debugPrint('Line 539 clearing cards');
-      // https://stackoverflow.com/questions/54150583/concurrent-modification-during-iteration-while-trying-to-remove-object-from-a-li
-      // globals.filteredPollsList = List.from(pollsList);
       debugPrint('**** populating cards with ${features.length} features');
       for (int i = 0; i < features.length; i++) {
-        //    debugPrint(
-        //        '****** calling getCard() feature.row:${features[i].row} feature.type:${features[i].type}, feature.uri ${features[i].uri}');
+        debugPrint(
+            '****** calling getCard() feature.row:${features[i].row} feature.type:${features[i].type}, feature.uri ${features[i].uri}');
         Card? newCard = await getCard(feature: features[i], index: i);
         if (newCard != null) {
           cards.add(newCard);
         }
       }
-
-      //    for (Feature feature in features) {
-      //      Card? newCard = await getCard(feature: feature, index: i);
-      //      if (newCard != null) {
-      //        cards.add(newCard);
-      //        i++;
-      //      }
-      //    }
     } else {
       // debugPrint('Using existing cards - refresh not needed');
     }
     debugPrint('Cards.length = ${cards.length}');
     return;
   }
-/*
-  bool refreshCards(
-      {required List<Feature> features, required List<Card> cards}) {
-    final bool refresh = cards.isEmpty ||
-        cards[0].key != Key('pin_${features[0].row}') ||
-        cards[cards.length - 1].key !=
-            Key('pin_${features[features.length - 1].row}');
-    return refresh;
-  }
-*/
-  //Widget
 
   testFunc(var details) {
     // debugPrint('testFunc');
@@ -1009,7 +1038,7 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
           onExpandChange: expandChange, //testFunc,
           onIconTap: testFunc,
           onDelete: testFunc,
-          onRated: testFunc,
+          onRated: onPointOfInterestRatingChanged,
           canEdit: false,
         ),
       );
@@ -1017,6 +1046,16 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
       // debugPrint('Type 12 PointOfInterest ignored');
     }
     return null;
+  }
+
+  onPointOfInterestRatingChanged(int value, int index) {
+    // key.toString() => "[<'pin_12'>]"
+    int row = int.parse(_cards[index]
+        .key
+        .toString()
+        .substring(7, _cards[index].key.toString().length - 3));
+    String uri = _features[row].uri;
+    putPointOfInterestRating(uri, value.toDouble());
   }
 
   adjustMapHeight(MapHeight newHeight) {
@@ -1125,7 +1164,10 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
                   duration: const Duration(seconds: 3),
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(5, 10, 5, 10),
-                    child: setPreferences(),
+                    child: SetPreferences(
+                        preferences: _preferences,
+                        preferencesScrollController:
+                            _preferencesScrollController), //setPreferences(),
                   ),
                 ),
               )
@@ -1152,7 +1194,8 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
           throw ('Error - FutureBuilder line 554 in trips.dart');
         },
       ),
-      floatingActionButton: _handleFabs(),
+      floatingActionButton: HandleFabs(
+          animatedMapController: _animatedMapController), // _handleFabs(),
       bottomNavigationBar: RoutesBottomNav(
         controller: _bottomNavController,
         initialValue: 1,
@@ -1160,7 +1203,8 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
       ),
     );
   }
-
+}
+/*
   Column _handleFabs() {
     return Column(
       mainAxisAlignment: MainAxisAlignment.start,
@@ -1177,7 +1221,6 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
             _animatedMapController.animateTo(
               dest: LatLng(currentPosition.latitude, currentPosition.longitude),
             );
-            //  setState(() {});
           },
           backgroundColor: Colors.blue,
           shape: const CircleBorder(),
@@ -1189,11 +1232,7 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
         FloatingActionButton(
           heroTag: 'zoomIn',
           onPressed: () async {
-            Position currentPosition = await Geolocator.getCurrentPosition();
-            debugPrint('Position: ${currentPosition.toString()}');
-            _animatedMapController.animatedZoomIn(curve: Curves.ease);
-
-            // setState(() {});
+            _animatedMapController.animatedZoomIn();
           },
           backgroundColor: Colors.blue, //.withOpacity(0.5),
           shape: const CircleBorder(),
@@ -1205,11 +1244,7 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
         FloatingActionButton(
           heroTag: 'zoomOut',
           onPressed: () async {
-            Position currentPosition = await Geolocator.getCurrentPosition();
-            debugPrint('Position: ${currentPosition.toString()}');
-            _animatedMapController.animatedZoomOut(curve: Curves.ease);
-
-            // setState(() {});
+            _animatedMapController.animatedZoomOut();
           },
           backgroundColor: Colors.blue,
           shape: const CircleBorder(),
@@ -1218,7 +1253,8 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
       ],
     );
   }
-
+*/
+/*
   Widget setPreferences() {
     return SizedBox(
       height: 20,
@@ -1307,4 +1343,771 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
       ),
     );
   }
+*/
+
+class HandleFabs extends StatelessWidget {
+  final AnimatedMapController animatedMapController;
+  const HandleFabs({super.key, required this.animatedMapController});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        const SizedBox(
+          height: 175,
+        ),
+        FloatingActionButton(
+          heroTag: 'location',
+          onPressed: () async {
+            Position currentPosition = await Geolocator.getCurrentPosition();
+            debugPrint('Position: ${currentPosition.toString()}');
+            animatedMapController.animateTo(
+              dest: LatLng(currentPosition.latitude, currentPosition.longitude),
+            );
+          },
+          backgroundColor: Colors.blue,
+          shape: const CircleBorder(),
+          child: const Icon(Icons.my_location),
+        ),
+        const SizedBox(
+          height: 15,
+        ),
+        FloatingActionButton(
+          heroTag: 'zoomIn',
+          onPressed: () async {
+            animatedMapController.animatedZoomIn();
+          },
+          backgroundColor: Colors.blue, //.withOpacity(0.5),
+          shape: const CircleBorder(),
+          child: const Icon(Icons.zoom_in, size: 30),
+        ),
+        const SizedBox(
+          height: 15,
+        ),
+        FloatingActionButton(
+          heroTag: 'zoomOut',
+          onPressed: () async {
+            animatedMapController.animatedZoomOut();
+          },
+          backgroundColor: Colors.blue,
+          shape: const CircleBorder(),
+          child: const Icon(Icons.zoom_out, size: 30),
+        ),
+      ],
+    );
+  }
 }
+
+class SetPreferences extends StatelessWidget {
+  final TripsPreferences preferences;
+  final ScrollController preferencesScrollController;
+  const SetPreferences(
+      {super.key,
+      required this.preferences,
+      required this.preferencesScrollController});
+
+  // Widget setPreferences() {
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 20,
+      width: MediaQuery.of(context).size.width,
+      child: Row(
+        children: [
+          //  if (!_preferences.isLeft) ...[
+          Icon(preferences.isLeft ? null : Icons.arrow_back_ios,
+              color: Colors.white),
+          //  ],
+          SizedBox(
+            width: MediaQuery.of(context).size.width - 60, //delta,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              controller: preferencesScrollController,
+              children: <Widget>[
+                SizedBox(
+                  width: 210,
+                  child: CheckboxListTile(
+                    checkColor: Colors.white,
+                    title: const Text('Current location',
+                        style: TextStyle(color: Colors.white)),
+                    value: preferences.currentLocation,
+                    onChanged: (value) => preferences.currentLocation = value!,
+                    // setState(() => preferences.currentLocation = value!),
+                    controlAffinity: ListTileControlAffinity.leading,
+                  ),
+                ),
+                SizedBox(
+                  width: 210,
+                  child: CheckboxListTile(
+                    //  activeColor: Colors.white,
+                    hoverColor: Colors.white,
+                    title: const Text('North West',
+                        style: TextStyle(color: Colors.white)),
+                    value: preferences.northWest,
+                    onChanged: (value) => preferences.northWest = value!,
+                    //   setState(() => _preferences.northWest = value!),
+                    controlAffinity: ListTileControlAffinity.leading,
+                  ),
+                ),
+                SizedBox(
+                  width: 210,
+                  child: CheckboxListTile(
+                    title: const Text('North East',
+                        style: TextStyle(color: Colors.white)),
+                    value: preferences.northEast,
+                    onChanged: (value) => preferences.northEast = value!,
+                    // setState(() => _preferences.northEast = value!),
+                    controlAffinity: ListTileControlAffinity.leading,
+                  ),
+                ),
+                SizedBox(
+                  width: 210,
+                  child: CheckboxListTile(
+                    //  activeColor: Colors.white,
+                    hoverColor: Colors.white,
+                    title: const Text('South West',
+                        style: TextStyle(color: Colors.white)),
+                    value: preferences.southWest,
+                    onChanged: (value) => preferences.southWest = value!,
+                    //  setState(() => _preferences.southWest = value!),
+                    controlAffinity: ListTileControlAffinity.leading,
+                  ),
+                ),
+                SizedBox(
+                  width: 210,
+                  child: CheckboxListTile(
+                    title: const Text('South East',
+                        style: TextStyle(color: Colors.white)),
+                    value: preferences.southEast,
+                    onChanged: (value) => preferences.southEast = value!,
+                    //   setState(() => _preferences.southEast = value!),
+                    controlAffinity: ListTileControlAffinity.leading,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          //  if (!_preferences.isRight) ...[
+          Icon(
+            preferences.isRight ? null : Icons.arrow_forward_ios,
+            color: Colors.white,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/*
+class HandleMaps extends StatelessWidget {
+  final Function(int) onHeightChange;
+  final Function(int) pinTap;
+  final AnimatedMapController animatedMapController;
+  final PointOfInterestController pointOfInterestController;
+  final ExpandNotifier expandNotifier;
+  final Style style;
+  final List<Feature> features;
+  final List<mt.Route> routes;
+  final List<mt.Route> goodRoads;
+  final RouteRepository routeRepository;
+  final GoodRoadRepository goodRoadRepository;
+  final PointOfInterestRepository pointOfInterestRepository;
+  final TripItemRepository tripItemRepository;
+  final ImageRepository imageRepository;
+  final List<Card> cards;
+  final Fence cacheFence;
+  final Fence screenFence;
+  // final bool dataLoaded;
+  bool _mapReady = false;
+  bool _dataLoaded = false;
+  HandleMaps({
+    super.key,
+    required this.features,
+    required this.animatedMapController,
+    required this.pointOfInterestController,
+    required this.expandNotifier,
+    required this.style,
+    required this.onHeightChange,
+    required this.pinTap,
+    required this.routes,
+    required this.goodRoads,
+    required this.cards,
+    required this.cacheFence,
+    required this.goodRoadRepository,
+    required this.routeRepository,
+    required this.pointOfInterestRepository,
+    required this.tripItemRepository,
+    required this.imageRepository,
+    required this.screenFence,
+  });
+//  Widget _handleMap() {
+//    if (listHeight == -1) {
+//      adjustMapHeight(MapHeight.full);
+//    }
+  @override
+  Widget build(BuildContext context) {
+    bool refreshTrips = false;
+    List<Feature> cachedFeatures = [];
+    List<Feature> visibleFeatures = [];
+    // late Style _style;
+    return Stack(
+      children: [
+        FlutterMap(
+          mapController: animatedMapController.mapController,
+          options: MapOptions(
+            // onMapEvent: checkMapEvent,
+            onMapReady: () async {
+              screenFence.changeBounds(
+                  latlngBounds:
+                      animatedMapController.mapController.camera.visibleBounds);
+              cacheFence.setBounds(bounds: screenFence, deltaDegrees: 0.5);
+              routes.add(mt.Route(points: [const LatLng(0, 0)]));
+              _mapReady = true;
+
+              await filterFeatures(
+                      source: features,
+                      cache: cachedFeatures,
+                      markers: visibleFeatures,
+                      cacheFence: cacheFence,
+                      screenFence: screenFence,
+                      goodRoads: goodRoads,
+                      routes: routes,
+                      zoom: animatedMapController.mapController.camera.zoom)
+                  .then((update) {
+                if (update) {
+                  debugPrint(
+                      '>>>>> Map ready about to run getCards cards refreshing cards.length = ${cards.length}');
+                  getCards(features: visibleFeatures, cards: cards);
+                  debugPrint(
+                      '>>>>> Map ready cards refreshed cards.length = ${cards.length}');
+                  // debugPrint(
+                  //   '>>>>> Map ready cards refreshed _cards.length: ${_cards.length}');
+                }
+              });
+              // setState(() => adjustMapHeight(MapHeight.full));
+              // _mapController.mapEventStream.listen((event) {});
+              // debugPrint('Map ready......');
+            },
+            onPositionChanged: (pos, change) async {
+              // double zoom = _animatedMapController.mapController.camera.zoom;
+              if (refreshTrips) {
+                // debugPrint('Refreshing trips');
+                screenFence.changeBounds(
+                    latlngBounds: animatedMapController
+                        .mapController.camera.visibleBounds);
+                try {
+                  refreshTrips = false;
+                  bool update = await filterFeatures(
+                      source: features,
+                      cache: cachedFeatures,
+                      markers: visibleFeatures,
+                      cacheFence: cacheFence,
+                      screenFence: screenFence,
+                      goodRoads: goodRoads,
+                      routes: routes,
+                      zoom: animatedMapController.mapController.camera.zoom);
+                  //   .then((update)
+                  if (update) {
+                    debugPrint(
+                        '>>>>> Position canged cards refreshing cards.length = ${cards.length}');
+                    getCards(features: visibleFeatures, cards: cards);
+                    debugPrint(
+                        '>>>>> Map positionChanged cards refreshed cards.length = ${cards.length}');
+                    // debugPrint(
+                    // '>>>>> Position canged cards refreshed _cards.length: ${_cards.length}');
+                    //  setState(() => refreshTrips = true);
+                  } else {
+                    // debugPrint('>>>> Trips refreshed nothing changed');
+                    // setState(() => refreshTrips = true);
+                  }
+                  // );
+                } finally {
+                  // debugPrint('Trips refreshed');
+                  //  setState(() => refreshTrips = true);
+                }
+              }
+            },
+            initialCenter: LatLng(
+                Setup().lastPosition.latitude, Setup().lastPosition.longitude),
+            initialZoom: 5, // getInitialZoom(),
+            maxZoom: 18,
+            minZoom: 5,
+            //  initialZoom: 15,
+            //  maxZoom: 18,
+            interactionOptions: const InteractionOptions(
+                enableMultiFingerGestureRace: true,
+                flags: InteractiveFlag.doubleTapDragZoom |
+                    InteractiveFlag.doubleTapZoom |
+                    InteractiveFlag.drag |
+                    InteractiveFlag.pinchZoom |
+                    InteractiveFlag.pinchMove),
+          ),
+          children: [
+            CachedVectorTileLayer(
+              theme: style.theme,
+              sprites: style.sprites,
+              //          tileProviders:
+              //              TileProviders({'openmaptiles': _tileProvider()}),
+              tileProviders: style.providers,
+              layerMode: VectorTileLayerMode.vector,
+              tileOffset: TileOffset.DEFAULT,
+              cacheFolder: getCache,
+            ),
+            PolylineLayer(polylines: routes),
+            PolylineLayer(polylines: goodRoads),
+            MarkerLayer(
+              markers: visibleFeatures,
+              alignment: Alignment.topCenter,
+            ),
+            /*     TileLayer(
+                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  userAgentPackageName: 'com.example.app',
+                  maxZoom: 18,
+                ), */
+          ],
+        ),
+        Positioned(
+          bottom: 0,
+          left: 0,
+          child: Container(
+            width: MediaQuery.of(context).size.width,
+            color: Colors.white60,
+            child: Row(
+              children: [
+                Icon(Icons.route_outlined,
+                    size: 25, color: colourList[Setup().publishedTripColour]),
+                const Text(
+                  'Published trip',
+                  style: TextStyle(fontSize: 16),
+                ),
+                Icon(Icons.location_on,
+                    size: 25, color: colourList[Setup().pointOfInterestColour]),
+                const Text(
+                  'Point of interest',
+                  style: TextStyle(fontSize: 16),
+                ),
+                Icon(Icons.route_outlined,
+                    size: 25, color: colourList[Setup().goodRouteColour]),
+                const Text(
+                  'Good road',
+                  style: TextStyle(fontSize: 16),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+*/
+/*
+  Future<bool> filterFeatures(
+      {required List<Feature> source,
+      required List<Feature> cache,
+      required List<Feature> markers,
+      required Fence screenFence,
+      required Fence cacheFence,
+      List<mt.Route> routes = const [],
+      List<mt.Route> goodRoads = const [],
+      double zoom = 12}) async {
+    if (source.isEmpty) {
+      return false;
+    }
+
+    if (zoom < 20) return false;
+
+    if (zoom > 10) {
+      debugPrint('Zoom: $zoom');
+    }
+
+    bool updateCache =
+        cache.isEmpty || !cacheFence.contains(bounds: screenFence);
+
+    if (cache.isEmpty) {
+      debugPrint('Filling cache list - cache is empty');
+    } else {
+      if (!cacheFence.contains(bounds: screenFence)) {
+        debugPrint('Refreshing cache - _screenFence outside _cacheFence');
+      }
+    }
+
+    bool updateDetails = true;
+    //zoom > 11;
+    //false;
+
+    List<Feature> listToFilter = cache;
+    if (updateCache) {
+      cache.clear();
+      routes.clear();
+      //   markers.clear();
+      goodRoads.clear();
+      cacheFence.setBounds(bounds: screenFence, deltaDegrees: 0.5);
+      updateDetails = true;
+      listToFilter = source;
+    } else if (markers.isEmpty) {
+      updateDetails = true;
+    } else if (zoom > 11) {
+      for (Feature feature in markers) {
+        if (!screenFence.contains(bounds: feature.getBounds())) {
+          debugPrint('Feature ${feature.row}has left the _screenFence');
+          updateDetails = true;
+          break;
+        }
+      }
+      updateDetails = true;
+    }
+    if (updateDetails) {
+      markers.clear();
+      for (Feature feature in listToFilter) {
+        switch (feature.type) {
+          case 0:
+            if (cacheFence.overlapped(bounds: feature.getBounds())) {
+              List<mt.Route>? toAdd = await routeRepository.loadRoute(
+                  key: feature.row, id: feature.id, uri: feature.uri);
+              if (toAdd != null) {
+                if (updateCache) {
+                  routes.addAll(toAdd);
+                  cache.add(feature);
+                }
+                if (zoom > 10) {
+                  updateDetails = await addRouteMarker(
+                      screenFence: screenFence,
+                      routes: toAdd,
+                      feature: feature,
+                      visibleFeatures: markers,
+                      score: 1,
+                      zoom: zoom);
+                }
+              }
+              debugPrint(
+                  'markers.length = ${markers.length} adding feature.${feature.row}');
+            }
+            break;
+          case 1:
+            if ((![12, 14, 16].contains(feature.poiType) &&
+                    cacheFence.contains(
+                      bounds: feature.getBounds(),
+                    )) &&
+                zoom > 10 &&
+                updateCache) {
+              if ([17, 18].contains(feature.poiType) &&
+                  feature.child.runtimeType != EndMarkerWidget) {
+                feature.child = EndMarkerWidget(
+                  index: feature.row,
+                  begining: feature.poiType == 17,
+                  width: 25,
+                  color: Colors.white60,
+                  onPress: pinTap,
+                );
+              } else if (feature.child.runtimeType != PinMarkerWidget) {
+                PointOfInterest? pointOfInterest =
+                    await pointOfInterestRepository.loadPointOfInterest(
+                        key: feature.row, id: feature.id, uri: feature.uri);
+                feature.child = PinMarkerWidget(
+                  index: feature.row,
+                  color: feature.poiType == 13
+                      ? colourList[Setup().goodRouteColour]
+                      : colourList[Setup().pointOfInterestColour],
+                  width: zoom * 2,
+                  overlay: markerIcon(getIconIndex(iconIndex: feature.poiType)),
+                  onPress: pinTap,
+                  rating: pointOfInterest!.getScore(),
+                );
+              }
+              cache.add(feature);
+            }
+
+            if (screenFence.contains(bounds: feature.getBounds())) {
+              markers.add(feature);
+              updateDetails = true;
+            }
+            break;
+          case 2:
+            if (cacheFence.overlapped(bounds: feature.getBounds())) {
+              mt.Route? goodRoad = await goodRoadRepository.loadGoodRoad(
+                  key: feature.row, id: feature.id, uri: feature.uri);
+              if (goodRoad != null) {
+                if (updateCache) {
+                  goodRoads.add(goodRoad);
+                  cache.add(feature);
+                }
+                if (zoom > 10) {
+                  updateDetails = await moveRouteMarker(
+                      screenFence: screenFence,
+                      route: goodRoad,
+                      feature: feature,
+                      visibleFeatures: markers,
+                      cache: cache,
+                      zoom: zoom);
+                }
+              }
+            }
+
+          default:
+            break;
+        }
+      }
+    } else {
+      debugPrint('filterFeatures had nothing to update');
+    }
+    updateDetails = updateDetails || cards.length != markers.length;
+    /*
+    for (int i = 0; i < markers.length; i++) {
+      for (int j = i + 1; j < markers.length; j++) {
+        if (markers[i].uri == markers[j].uri) {
+          debugPrint('Duplicate found [$i] = [$j]');
+        }
+      }
+    }
+*/
+    // debugPrint(
+    //     '____ Left filterFeatures with updateDtails is $updateDetails and ${markers.length} markers _____');
+    return updateDetails && markers.isNotEmpty;
+  }
+
+  */
+/*
+  Future<bool> addRouteMarker(
+      {required List<mt.Route> routes,
+      required Feature feature,
+      required List<Feature> visibleFeatures,
+      required Fence screenFence,
+      double score = 1,
+      zoom = 12}) async {
+    LatLng? markerPoint =
+        await routeMarkerPosition(polylines: routes, fence: screenFence);
+    if (markerPoint != null && screenFence.containsPoint(point: markerPoint)) {
+      visibleFeatures.add(
+        Feature.fromFeature(
+          feature: feature,
+          point: markerPoint,
+          child: PinMarkerWidget(
+            index: feature.row,
+            color: feature.type == 0
+                ? colourList[Setup().publishedTripColour]
+                : colourList[Setup().goodRouteColour],
+            width: (zoom * 2).toDouble(),
+            overlay: Icons.route_outlined,
+            onPress: pinTap,
+            rating: routes[0].rating.toDouble(),
+          ),
+        ),
+      );
+    }
+    return true;
+  }
+
+  */
+/*
+  Future<LatLng?> routeMarkerPosition(
+      {required List<Polyline> polylines, required Fence fence}) async {
+    int first = -1;
+    // int last = -1;
+    Fence offsetFence = Fence.fromFence(bounds: fence, deltaDegrees: -0.025);
+    Polyline? polyline;
+    for (polyline in polylines) {
+      for (int i = 0; i < polyline.points.length; i++) {
+        if (offsetFence.containsPoint(point: polyline.points[i])) {
+          first = first < 0 ? i : first;
+          //   last = i;
+        } else {
+          if (first >= 0) {
+            break;
+          }
+        }
+      }
+    }
+    if (first >= 0) {
+      return polyline!.points[first]; // + ((last - first) ~/ 2)];
+    }
+    return null;
+  }
+
+  */
+/*
+  Future<bool> moveRouteMarker(
+      {required mt.Route route,
+      required Feature feature,
+      required List<Feature> cache,
+      required List<Feature> visibleFeatures,
+      required Fence screenFence,
+      zoom = 12}) async {
+    Feature start = feature;
+    LatLng? markerPoint =
+        await routeMarkerPosition(polylines: [route], fence: screenFence);
+    if (markerPoint != null && screenFence.containsPoint(point: markerPoint)) {
+      for (Feature feature in cache) {
+        if (feature.poiType == 13) {
+          PointOfInterest? goodRoadStart =
+              await pointOfInterestRepository.loadPointOfInterest(
+                  key: feature.row,
+                  id: feature.id,
+                  uri: feature.uri); // Good road marker
+          if (goodRoadStart != null) {
+            if (route.pointOfInterestUri == goodRoadStart.url) {
+              start = feature;
+              break;
+            }
+          }
+        }
+      }
+
+      visibleFeatures.add(
+        Feature.fromFeature(
+          feature: start,
+          point: markerPoint,
+          child: PinMarkerWidget(
+            index: feature.row,
+            color: feature.type == 0
+                ? colourList[Setup().publishedTripColour]
+                : colourList[Setup().goodRouteColour],
+            width: (zoom * 2).toDouble(),
+            overlay: Icons.route_outlined,
+            onPress: pinTap,
+          ),
+        ),
+      );
+      return true;
+    }
+    return false;
+  }
+*/
+/*
+  Future<Directory> getCache() async {
+    String appDocumentDirectory =
+        (await getApplicationDocumentsDirectory()).path;
+    Directory cacheDirectory = Directory('$appDocumentDirectory/cache');
+    if (!await cacheDirectory.exists()) {
+      await Directory('$appDocumentDirectory/cache').create();
+    }
+    return cacheDirectory;
+  }
+
+  void getCards(
+      {required List<Feature> features, List<Card> cards = const []}) async {
+    await _dataLoaded == true;
+
+    if (features.isNotEmpty && _mapReady) {
+      cards.clear();
+      debugPrint('**** populating cards with ${features.length} features');
+      for (int i = 0; i < features.length; i++) {
+        debugPrint(
+            '****** calling getCard() feature.row:${features[i].row} feature.type:${features[i].type}, feature.uri ${features[i].uri}');
+        Card? newCard = await getCard(feature: features[i], index: i);
+        if (newCard != null) {
+          cards.add(newCard);
+        }
+      }
+    } else {
+      // debugPrint('Using existing cards - refresh not needed');
+    }
+    debugPrint('Cards.length = ${cards.length}');
+    return;
+  }
+*/
+/*
+  Future<Card?> getCard({required Feature feature, required int index}) async {
+    // debugPrint('getCard called for index $index');
+    /// getFeatures returns all the features from the API
+    /// type 1: drives - id + max/min lat/lng
+    /// type 2: points of interest excluding type 12 ad 16 drive start end (12) and followers (16)
+    ///         type 3 is the automatically inserted point of imterest
+    ///         when a good road is tarted.
+    /// type 3: good roads - id + max/min lat/lng
+    ///
+    /// good_roads.point_of_interest_id ties the point of interest
+    /// to the good_roads polylines(mt.route)
+
+    if (feature.type == 0) {
+      TripItem tripItem = await tripItemRepository.loadTripItem(
+          key: feature.row, id: feature.id, uri: feature.uri);
+      debugPrint('getting trip data ${feature.uri} name ${tripItem.heading}');
+      return Card(
+        key: Key('pin_${feature.row}'),
+        elevation: 10,
+        shadowColor: Colors.grey.withOpacity(0.5),
+        color: index.isOdd
+            ? Colors.white
+            : const Color.fromARGB(255, 174, 211, 241),
+        child: TripTile(
+          tripItem: tripItem,
+          expandNotifier: expandNotifier,
+          imageRepository: imageRepository,
+          index: index,
+          onGetTrip: onGetTrip,
+          onRatingChanged: onTripRatingChanged,
+        ),
+      );
+    } else if (feature.type == 1 || feature.type == 6 || feature.type == 3) {
+      PointOfInterest? pointOfInterest =
+          await pointOfInterestRepository.loadPointOfInterest(
+              key: feature.row, id: feature.id, uri: feature.uri);
+      // pointOfInterest?.setName('$index. ${pointOfInterest.getName()}');
+      return Card(
+        key: Key('pin_${feature.row}'),
+        elevation: 10,
+        shadowColor: Colors.grey.withOpacity(0.5),
+        color: index.isOdd
+            ? Colors.white
+            : const Color.fromARGB(255, 174, 211, 241),
+        child: PointOfInterestTile(
+          expandNotifier: expandNotifier,
+          controller: pointOfInterestController,
+          index: index,
+          pointOfInterest: pointOfInterest!,
+          imageRepository: imageRepository,
+          onExpandChange: expandChange, //testFunc,
+          onIconTap: testFunc,
+          onDelete: testFunc,
+          onRated: onPointOfInterestRatingChanged,
+          canEdit: false,
+        ),
+      );
+    } else {
+      // debugPrint('Type 12 PointOfInterest ignored');
+    }
+    return null;
+  }
+*/
+/*
+  Future<void> onGetTrip(int index) async {
+    MyTripItem webTrip = await getMyTrip(tripItems[index].driveUri);
+    webTrip.setId(-1);
+    webTrip.setDriveUri(tripItems[index].driveUri);
+    if (context.mounted) {
+      Navigator.pushNamed(context, 'createTrip',
+          arguments: TripArguments(webTrip, 'web'));
+    }
+  }
+*/
+/*
+  onPointOfInterestRatingChanged(int value, int index) {
+    // key.toString() => "[<'pin_12'>]"
+    int row = int.parse(cards[index]
+        .key
+        .toString()
+        .substring(7, cards[index].key.toString().length - 3));
+    String uri = features[row].uri;
+    putPointOfInterestRating(uri, value.toDouble());
+  }
+
+  expandChange(var details) {
+    if (details != null) {
+      setState(
+        () {
+          // debugPrint('ExpandChanged: $details');
+          //    _editPointOfInterest = details;
+          if (details >= 0) {
+            adjustMapHeight(MapHeight.pointOfInterest);
+          } else {
+            FocusManager.instance.primaryFocus?.unfocus(); // dismiss keyboard
+            adjustMapHeight(MapHeight.full);
+          }
+        },
+      );
+    }
+  }
+  */
+

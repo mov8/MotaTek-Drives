@@ -1053,7 +1053,7 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
     } else {
       data = await appendRoute(pos);
       await _addPointOfInterest(
-          id, userId, 12, '${data["name"]}', '${data["summary"]}', 15.0, pos);
+          id, userId, 17, '${data["name"]}', '${data["summary"]}', 15.0, pos);
       setState(() {
         _showMask = false;
         _startLatLng = pos;
@@ -2977,7 +2977,7 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
   checkMapEvent(var details) {
     if (details != null) {
       setState(() {
-        // debugPrint('Map event: ${details.toString()}');
+        debugPrint('Map event: ${details.toString()}');
       });
     }
   }

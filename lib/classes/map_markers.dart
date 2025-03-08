@@ -57,7 +57,7 @@ class PinMarkerWidget extends StatelessWidget {
       this.index = -1,
       this.overlay = Icons.hail,
       this.iconColor = Colors.white,
-      this.rating = -1,
+      this.rating = 1,
       this.onPress});
 
   @override
@@ -76,12 +76,12 @@ class PinMarkerWidget extends StatelessWidget {
             children: [
               Positioned(
                 top: 12,
-                left: 20,
+                left: 20 * .85,
                 child: Icon(overlay, size: width * .8, color: iconColor),
               ),
               ...List.generate(
                 5,
-                (index) => buildIcons(index: index, score: 3.5),
+                (index) => buildIcons(index: index, score: rating),
               ),
             ],
           ),
@@ -90,12 +90,12 @@ class PinMarkerWidget extends StatelessWidget {
     );
   }
 
-  Widget buildIcons({int index = 0, double score = -1}) {
+  Widget buildIcons({int index = 0, double score = 1}) {
     List<double> tops = [14, 4, 0, 4, 14];
     List<double> lefts = [10, 14, 24, 34, 38];
     return Positioned(
-      top: tops[index],
-      left: lefts[index],
+      top: tops[index], // * width / 30,
+      left: lefts[index] * .8, // * 30 / width,
       child: Icon(
         score >= index + 1
             ? Icons.star
@@ -131,13 +131,21 @@ class EndMarkerWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-        customBorder: const CircleBorder(),
-        splashColor: Colors.blue,
-        borderRadius: BorderRadius.circular(width / 2),
-        onTap: () => {onPress!(index)},
-        onLongPress: () => (debugPrint('LongPress')),
-        child:
-            Icon(begining ? Icons.tour : Icons.sports_score, size: width * 2));
+      customBorder: const CircleBorder(),
+      splashColor: Colors.blue,
+      borderRadius: BorderRadius.circular(width / 2),
+      onTap: () => {onPress!(index)},
+      onLongPress: () => (debugPrint('LongPress')),
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(width * .5, width * .5, 0, 0),
+        child: CustomPaint(
+          painter: FlagBackgroundPainter(
+              index: index, color: Colors.white, size: 30),
+          child:
+              Icon(begining ? Icons.tour : Icons.sports_score, size: width * 2),
+        ),
+      ),
+    );
   }
 }
 
