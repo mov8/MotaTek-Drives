@@ -18,10 +18,10 @@ class GroupDriveEnviteeTile extends StatefulWidget {
       this.onSelect});
 
   @override
-  State<GroupDriveEnviteeTile> createState() => _groupDriveEnviteeTileState();
+  State<GroupDriveEnviteeTile> createState() => _GroupDriveEnviteeTileState();
 }
 
-class _groupDriveEnviteeTileState extends State<GroupDriveEnviteeTile> {
+class _GroupDriveEnviteeTileState extends State<GroupDriveEnviteeTile> {
   List<IconData> invIcons = [
     Icons.thumbs_up_down_outlined,
     Icons.thumb_down_off_alt_outlined,

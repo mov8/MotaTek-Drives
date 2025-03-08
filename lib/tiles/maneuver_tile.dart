@@ -18,10 +18,10 @@ class ManeuverTile extends StatefulWidget {
   });
 
   @override
-  State<ManeuverTile> createState() => _maneuverTileState();
+  State<ManeuverTile> createState() => _ManeuverTileState();
 }
 
-class _maneuverTileState extends State<ManeuverTile> {
+class _ManeuverTileState extends State<ManeuverTile> {
   @override
   Widget build(BuildContext context) {
     return Material(

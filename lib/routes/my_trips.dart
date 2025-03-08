@@ -4,7 +4,6 @@ import 'package:drives/classes/classes.dart';
 import 'package:drives/tiles/my_trip_tile.dart';
 import 'package:drives/screens/screens.dart';
 //import 'package:flutter_map/flutter_map.dart';
-import 'package:drives/classes/route.dart' as mt;
 import 'package:drives/services/services.dart';
 import 'package:latlong2/latlong.dart';
 

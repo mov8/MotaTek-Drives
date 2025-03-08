@@ -9,16 +9,16 @@ class MarkerTile extends StatefulWidget {
   final Function onRated;
   final bool expanded;
   final bool canEdit;
-  String name;
-  String description;
-  String images;
-  String url;
-  List<String> imageUrls;
-  int type;
-  double score;
-  int scored;
+  final String name;
+  final String description;
+  final String images;
+  final String url;
+  final List<String> imageUrls;
+  final int type;
+  final double score;
+  final int scored;
 
-  MarkerTile({
+  const MarkerTile({
     super.key,
     required this.index,
     this.name = '',

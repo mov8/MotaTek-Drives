@@ -26,8 +26,8 @@ class LeadingWidget extends StatefulWidget {
   final Function(int) onMenuTap;
   final LeadingWidgetController controller;
   final int initialValue;
-  int value;
-  LeadingWidget(
+  final int value;
+  const LeadingWidget(
       {super.key,
       required this.controller,
       required this.onMenuTap,
@@ -72,7 +72,7 @@ class _LeadingWidgetState extends State<LeadingWidget>
   void changeWidget(id) {
     setState(() {
       _widgetId = id;
-      widget.value = id;
+      // widget.value = id;
       if (_widgetId == 0) {
         _animationIconController.reverse();
       } else {

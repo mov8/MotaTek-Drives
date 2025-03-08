@@ -8,7 +8,7 @@ import 'package:drives/classes/classes.dart';
 import 'package:drives/services/services.dart' hide getPosition;
 import 'package:drives/screens/dialogs.dart';
 
-import 'package:wakelock/wakelock.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 class Home extends StatefulWidget {
   // var setup;
@@ -191,7 +191,7 @@ You can plan trips either on your own or you can explore in a group''',
 
   @override
   Widget build(BuildContext context) {
-    Wakelock.enable();
+    WakelockPlus.enabled;
     return Scaffold(
       key: _scaffoldKey,
       drawer: const MainDrawer(),

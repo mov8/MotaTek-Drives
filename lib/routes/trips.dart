@@ -345,7 +345,7 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
             duration: Duration(milliseconds: _resizeDelay),
             curve: Curves.easeInOut, // fastOutSlowIn,
             height: mapHeight,
-            width: MediaQuery.of(context).size.width,
+            width: context.mounted ? MediaQuery.of(context).size.width : 100,
             child: _handleMap(),
           ),
 
@@ -657,27 +657,32 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
                 updateCache) {
               if ([17, 18].contains(feature.poiType) &&
                   feature.child.runtimeType != EndMarkerWidget) {
-                feature.child = EndMarkerWidget(
-                  index: feature.row,
-                  begining: feature.poiType == 17,
-                  width: 25,
-                  color: Colors.white60,
-                  onPress: pinTap,
-                );
+                feature = Feature.fromFeature(
+                    feature: feature,
+                    child: EndMarkerWidget(
+                      index: feature.row,
+                      begining: feature.poiType == 17,
+                      width: 25,
+                      color: Colors.white60,
+                      onPress: pinTap,
+                    ));
               } else if (feature.child.runtimeType != PinMarkerWidget) {
                 PointOfInterest? pointOfInterest =
                     await _pointOfInterestRepository.loadPointOfInterest(
                         key: feature.row, id: feature.id, uri: feature.uri);
-                feature.child = PinMarkerWidget(
-                  index: feature.row,
-                  color: feature.poiType == 13
-                      ? colourList[Setup().goodRouteColour]
-                      : colourList[Setup().pointOfInterestColour],
-                  width: zoom * 2,
-                  overlay: markerIcon(getIconIndex(iconIndex: feature.poiType)),
-                  onPress: pinTap,
-                  rating: pointOfInterest!.getScore(),
-                );
+                feature = Feature.fromFeature(
+                    feature: feature,
+                    child: PinMarkerWidget(
+                      index: feature.row,
+                      color: feature.poiType == 13
+                          ? colourList[Setup().goodRouteColour]
+                          : colourList[Setup().pointOfInterestColour],
+                      width: zoom * 2,
+                      overlay:
+                          markerIcon(getIconIndex(iconIndex: feature.poiType)),
+                      onPress: pinTap,
+                      rating: pointOfInterest!.getScore(),
+                    ));
               }
               cache.add(feature);
             }
@@ -1004,7 +1009,7 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
       return Card(
         key: Key('pin_${feature.row}'),
         elevation: 10,
-        shadowColor: Colors.grey.withOpacity(0.5),
+        shadowColor: Colors.grey.withValues(alpha: 125),
         color: index.isOdd
             ? Colors.white
             : const Color.fromARGB(255, 174, 211, 241),
@@ -1025,7 +1030,7 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
       return Card(
         key: Key('pin_${feature.row}'),
         elevation: 10,
-        shadowColor: Colors.grey.withOpacity(0.5),
+        shadowColor: Colors.grey.withValues(alpha: 0.5),
         color: index.isOdd
             ? Colors.white
             : const Color.fromARGB(255, 174, 211, 241),
@@ -2110,4 +2115,3 @@ class HandleMaps extends StatelessWidget {
     }
   }
   */
-

@@ -413,8 +413,10 @@ class Feature extends Marker {
   final int poiType;
   // @override
   final LatLng maxPoint;
+  // @override
+  // Widget child;
 
-  Feature(
+  const Feature(
       {this.row = -1,
       this.uri = '',
       this.id = -1,
@@ -423,9 +425,10 @@ class Feature extends Marker {
       double iconSize = 30,
       super.width = 30,
       super.height = 30,
-      super.child = const Text(''),
+      super.child = const Icon(Icons.pin),
       super.point = const LatLng(0, 0),
       this.maxPoint = const LatLng(0, 0)});
+  // : super(child: child);
 
   factory Feature.fromMap(
       {required Map<String, dynamic> map,
@@ -482,8 +485,8 @@ class Feature extends Marker {
     };
   }
 
-  zoomIcon(double zoom) {
-    super.child = FeatureMarker(index: id, width: zoom * 10, angle: 0);
+  zoomIcon2(double zoom) {
+    //  super.child = FeatureMarker(index: id, width: zoom * 10, angle: 0);
 
     // super.child = IconButton(
     //     onPressed: () => ontap, //debugPrint('Button $row pressed'),
@@ -1586,7 +1589,9 @@ class Follower extends Marker {
   LatLng position = const LatLng(0, 0);
   DateTime reported = DateTime.now();
   int index = -1;
+  @override
   double width;
+  @override
   double height;
   Follower(
       {this.id = 0,
@@ -1975,8 +1980,8 @@ class MyTripItem2 {
   String _body = '';
   String _published = '';
   List<PointOfInterest> _pointsOfInterest = [];
-  List<Maneuver> _maneuvers = [];
-  List<mt.Route> _routes = [];
+  List<Maneuver> _maneuvers;
+  final List<mt.Route> _routes;
   String _images = '';
   double _score = 5;
   double _distance = 0;

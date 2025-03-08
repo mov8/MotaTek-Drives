@@ -407,19 +407,16 @@ class _PortraitBody extends State<PortraitBody> with TickerProviderStateMixin {
   final List<Card> _cards = [];
   late final MapInfo _mapInfo;
   late final FeatureDetailsController _featuresController;
-  late final PointOfInterestController _pointOfInterestController;
   final List<Feature> _features = [];
   late final Future<bool> _dataLoaded;
   double _mapHeight = 130;
-  double _listHeight = 0;
+
   int _resizeDelay = 0;
 
   @override
   void initState() {
     super.initState();
     _featuresController = FeatureDetailsController();
-    _pointOfInterestController = PointOfInterestController();
-    final double listHeight = 0;
     _mapInfo = MapInfo.create();
     _dataLoaded = _getTripData(features: _features);
     _tripItemRepository = TripItemRepository();
@@ -569,7 +566,6 @@ class _PortraitBody extends State<PortraitBody> with TickerProviderStateMixin {
     _mapHeight = _mapHeight > mapHeights[0] ? mapHeights[0] : _mapHeight;
     _mapHeight = _mapHeight < 0 ? 0 : _mapHeight;
     _resizeDelay = newHeight == MapHeight.variable ? 0 : 500;
-    _listHeight = (mapHeights[0] - _mapHeight);
   }
 
   pinTap(int index) async {
@@ -706,27 +702,32 @@ class _PortraitBody extends State<PortraitBody> with TickerProviderStateMixin {
                 updateCache) {
               if ([17, 18].contains(feature.poiType) &&
                   feature.child.runtimeType != EndMarkerWidget) {
-                feature.child = EndMarkerWidget(
-                  index: feature.row,
-                  begining: feature.poiType == 17,
-                  width: 25,
-                  color: Colors.white60,
-                  onPress: pinTap,
-                );
+                feature = Feature.fromFeature(
+                    feature: feature,
+                    child: EndMarkerWidget(
+                      index: feature.row,
+                      begining: feature.poiType == 17,
+                      width: 25,
+                      color: Colors.white60,
+                      onPress: pinTap,
+                    ));
               } else if (feature.child.runtimeType != PinMarkerWidget) {
                 PointOfInterest? pointOfInterest =
                     await _pointOfInterestRepository.loadPointOfInterest(
                         key: feature.row, id: feature.id, uri: feature.uri);
-                feature.child = PinMarkerWidget(
-                  index: feature.row,
-                  color: feature.poiType == 13
-                      ? colourList[Setup().goodRouteColour]
-                      : colourList[Setup().pointOfInterestColour],
-                  width: zoom * 2,
-                  overlay: markerIcon(getIconIndex(iconIndex: feature.poiType)),
-                  onPress: pinTap,
-                  rating: pointOfInterest!.getScore(),
-                );
+                feature = Feature.fromFeature(
+                    feature: feature,
+                    child: PinMarkerWidget(
+                      index: feature.row,
+                      color: feature.poiType == 13
+                          ? colourList[Setup().goodRouteColour]
+                          : colourList[Setup().pointOfInterestColour],
+                      width: zoom * 2,
+                      overlay:
+                          markerIcon(getIconIndex(iconIndex: feature.poiType)),
+                      onPress: pinTap,
+                      rating: pointOfInterest!.getScore(),
+                    ));
               }
               cache.add(feature);
             }
@@ -981,15 +982,12 @@ class TripsMap extends StatefulWidget {
 class _TripsMapState extends State<TripsMap> with TickerProviderStateMixin {
   late final AnimatedMapController controller;
   late Future<Style> style;
-  late final MapInfo _mapInfo;
-  double _zoom = 0;
 
   @override
   void initState() {
     super.initState();
     controller = AnimatedMapController(vsync: this);
     style = getMapStyle();
-    _mapInfo = MapInfo.create();
   }
 
   getMapStyle() async {
@@ -1266,7 +1264,7 @@ class _FeatureDetailsState extends State<FeatureDetails> {
       return Card(
         key: Key('pin_${feature.row}'),
         elevation: 10,
-        shadowColor: Colors.grey.withOpacity(0.5),
+        shadowColor: Colors.grey.withValues(alpha: 125),
         color: index.isOdd
             ? Colors.white
             : const Color.fromARGB(255, 174, 211, 241),
@@ -1287,7 +1285,7 @@ class _FeatureDetailsState extends State<FeatureDetails> {
       return Card(
         key: Key('pin_${feature.row}'),
         elevation: 10,
-        shadowColor: Colors.grey.withOpacity(0.5),
+        shadowColor: Colors.grey.withValues(alpha: 125),
         color: index.isOdd
             ? Colors.white
             : const Color.fromARGB(255, 174, 211, 241),

@@ -83,9 +83,9 @@ class _GroupMessagesState extends State<GroupMessages> {
     dataloaded = dataFromWeb();
     widget.controller._addState(this);
 
-    socket.onConnecting((_) => debugPrint('connecting'));
+    socket.onConnect((_) => debugPrint('connecting'));
     socket.onConnectError((_) => debugPrint('connect error'));
-    socket.onConnectTimeout((_) => debugPrint('connect timeout'));
+    socket.onConnectError((_) => debugPrint('connect error'));
 
     socket.onError((data) => debugPrint('Error: ${data.toString()}'));
 

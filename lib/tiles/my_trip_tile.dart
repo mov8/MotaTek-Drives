@@ -24,10 +24,10 @@ class MyTripTile extends StatefulWidget {
   });
 
   @override
-  State<MyTripTile> createState() => _myTripTileState();
+  State<MyTripTile> createState() => _MyTripTileState();
 }
 
-class _myTripTileState extends State<MyTripTile> {
+class _MyTripTileState extends State<MyTripTile> {
   @override
   Widget build(BuildContext context) {
     List<Photo> photos = photosFromJson(widget.myTripItem.getImages());
@@ -124,6 +124,7 @@ class _myTripTileState extends State<MyTripTile> {
                             child: SizedBox(
                               height: 200,
                               child: ImageArranger(
+                                urlChange: (_) => {},
                                 photos: photos,
                                 endPoint: widget.myTripItem.getDriveUri(),
                               ),

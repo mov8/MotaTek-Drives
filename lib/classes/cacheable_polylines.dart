@@ -19,7 +19,7 @@ class CacheablePolyline extends Polyline {
     super.borderColor = const Color(0xFFFFFF00),
     super.gradientColors,
     super.colorsStop,
-    super.isDotted = false,
+    //  super.isDotted = false,
     super.strokeCap = StrokeCap.round,
     super.strokeJoin = StrokeJoin.round,
     super.useStrokeWidthInMeter = false,

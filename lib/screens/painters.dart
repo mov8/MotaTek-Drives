@@ -194,3 +194,21 @@ class MapLabelPainter extends CustomPainter {
     return false;
   }
 }
+
+class PolylinePainter extends CustomPainter {
+  PolylinePainter(lines, mapState);
+  var outLineBrush = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 2.5;
+  @override
+  void paint(Canvas canvas, Size size) {
+    outLineBrush.color = Colors.black;
+    canvas.drawArc(Rect.fromCircle(center: Offset(0, 0), radius: 5), 0,
+        (2 * pi), false, outLineBrush);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) {
+    return false;
+  }
+}

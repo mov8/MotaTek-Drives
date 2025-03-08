@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:drives/screens/painters.dart';
 
 /// A polyline with an id
 class Route extends Polyline {
@@ -27,13 +28,14 @@ class Route extends Polyline {
     required super.points,
     super.strokeWidth = 1.0,
     // this.colour = const Color(0xFF00FF00),
-    this.color = const Color(0xFF00FF00),
+    // this.color = const Color(0xFF00FF00),
     super.borderStrokeWidth = 0.0,
     // this.borderColour = const Color(0xFFFFFF00),
     this.borderColor = const Color(0xFFFFFF00),
     super.gradientColors,
+    this.color = const Color(0xFFFFFF00),
     super.colorsStop,
-    super.isDotted = false,
+    // super.isDotted = false,
     this.id = -1,
     this.key = -1,
     this.driveKey = -1,
@@ -180,7 +182,7 @@ class RouteAtCenter {
   }
 }
 
-class RouteLayer extends PolylineLayer {
+final class RouteLayer extends PolylineLayer {
   /// The list of [Route] which could be tapped
   @override
   final List<Route> polylines;
@@ -202,24 +204,26 @@ class RouteLayer extends PolylineLayer {
     this.onTap,
     this.onMiss,
     this.pointerDistanceTolerance = 15,
-    super.polylineCulling = false,
+    // super.polylineCulling = false,
     this.routeAtCenter,
     super.key,
   }) : super(polylines: polylines); // Have to have a this.polylines
 
-  @override
   Widget build(BuildContext context) {
     final mapCamera = MapCamera.of(context);
 
     return _build(
       context,
       Size(mapCamera.size.x, mapCamera.size.y),
+      polylines,
+      /*
       polylineCulling
           ? polylines
               .where(
                   (p) => p.boundingBox.isOverlapping(mapCamera.visibleBounds))
               .toList()
           : polylines,
+      */
     );
   }
 
@@ -374,7 +378,7 @@ class RouteLayer extends PolylineLayer {
 
     return distance;
   }
-
+/*
   void _zoomMap(TapDownDetails details, BuildContext context) {
     final mapCamera = MapCamera.of(context);
     final mapController = MapController.of(context);
@@ -383,6 +387,7 @@ class RouteLayer extends PolylineLayer {
         context.size!.height, context);
     mapController.move(newCenter, mapCamera.zoom + 0.5);
   }
+*/
 
   LatLng _offsetToLatLng(
       Offset offset, double width, double height, BuildContext context) {

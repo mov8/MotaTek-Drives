@@ -31,8 +31,8 @@ class MyTripItem {
   String _publisher = '';
   List<PointOfInterest> _pointsOfInterest = [];
   List<Maneuver> _maneuvers = [];
-  List<mt.Route> _routes = [];
-  List<mt.Route> _goodRoads = [];
+  final List<mt.Route> _routes;
+  final List<mt.Route> _goodRoads;
   String _images = '';
   double _score = 5;
   double _distance = 0;

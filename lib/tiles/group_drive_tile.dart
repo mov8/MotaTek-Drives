@@ -19,10 +19,10 @@ class GroupDriveTile extends StatefulWidget {
       this.onSelect});
 
   @override
-  State<GroupDriveTile> createState() => _groupDriveTileState();
+  State<GroupDriveTile> createState() => _GroupDriveTileState();
 }
 
-class _groupDriveTileState extends State<GroupDriveTile> {
+class _GroupDriveTileState extends State<GroupDriveTile> {
   DateFormat dateFormat = DateFormat('d MMM y');
   @override
   Widget build(BuildContext context) {

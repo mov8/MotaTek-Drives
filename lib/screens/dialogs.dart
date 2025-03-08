@@ -6,31 +6,6 @@ import 'package:drives/services/services.dart';
 import 'package:drives/models/models.dart';
 import 'package:drives/screens/screens.dart';
 
-///
-/// https://stackoverflow.com/questions/53844052/how-to-make-an-alertdialog-in-flutter
-///
-/// buildFlexDialog negates the need of a lot of boilerplate. The buttons are passed as List<String> and they determine the
-/// number of buttons and onPressed actions. The callbacks is an otional List. Without a callback the choice can be
-/// found through showDialog(... ).then((var){do something with var});
-/// eg.
-///   showDialog(
-///         context: context,
-///         builder: (BuildContext context) {
-///                     return buildFlexDialog(context: context, title:'Darkness', content: 'Change the apps brightness',
-///                     buttonTexts: ['OK', 'CANCEL'], callbacks: [(){toggleBrightness();}]);
-///                  }
-///            ).then((selected){
-///                      debugPrint('Selected ${selected.toString()}');
-///            }) ;
-///
-///
-/// buttonTexts: ['OK', 'CANCEL']
-/// List functions = [(){toggleBrightness();}];
-///
-///
-///
-///
-
 const Duration fakeAPIDuration = Duration(seconds: 1);
 const Duration debounceDuration = Duration(milliseconds: 500);
 
@@ -448,7 +423,6 @@ class _DialogLoginRegister extends State<DialogLoginRegister> {
 ///
 
 Future<void> loginDialog(BuildContext context, {required User user}) async {
-  Future<bool> result;
   String status = '';
   int joiningOffset = user.password.isEmpty && user.email.isNotEmpty ? 2 : 0;
   user.password = '';
@@ -601,7 +575,7 @@ Future<void> loginDialog(BuildContext context, {required User user}) async {
                                 "Validation code sent. Check for email 'Your MotatTrip valdation code'";
                             joiningOffset = 2;
                           });
-                        } else {
+                        } else if (context.mounted) {
                           Navigator.pop(context, LoginState.login);
                         }
                       }
@@ -616,7 +590,7 @@ Future<void> loginDialog(BuildContext context, {required User user}) async {
                       if (selectedRadio == 1) {
                         // resend code
                         setState(() => joiningOffset = 2);
-                      } else {
+                      } else if (context.mounted) {
                         Navigator.pop(context, LoginState.codeOk);
                         return true;
                       }
@@ -1039,9 +1013,6 @@ class _AsyncAutocompleteState extends State<_AsyncAutocomplete> {
 }
 
 class OkCancelAlert extends StatefulWidget {
-  @override
-  _OkCancelAtertState createState() => _OkCancelAtertState();
-
   final String title;
   final String message;
   const OkCancelAlert({
@@ -1049,6 +1020,8 @@ class OkCancelAlert extends StatefulWidget {
     this.title = '',
     this.message = '',
   });
+  @override
+  State<OkCancelAlert> createState() => _OkCancelAtertState();
 }
 
 class _OkCancelAtertState extends State<OkCancelAlert> {

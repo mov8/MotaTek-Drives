@@ -248,28 +248,13 @@ class _ShopItemTileState extends State<ShopItemTile> {
                         ),
                       ],
                     ),
-/*
-                    if (widget.pointOfInterest.photos.isNotEmpty)
-                      Row(
-                        children: <Widget>[
-                          Expanded(
-                            flex: 8,
-                            child: ImageArranger(
-                              photos: widget.pointOfInterest.photos,
-                              endPoint: widget.pointOfInterest.url,
-                            ),
-                          ),
-                        ],
-                      ),
-"/data/user/0/com.example.drives/app_flutter/point_of_interest_0_5.jpg"
-*/
-
                     if (photos.isNotEmpty)
                       Row(
                         children: <Widget>[
                           Expanded(
                             flex: 8,
                             child: ImageArranger(
+                              urlChange: (_) => {},
                               photos: photos,
                               endPoint: widget.shopItem.uri,
                               height: 350,

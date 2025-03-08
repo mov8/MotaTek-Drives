@@ -570,7 +570,7 @@ Future<List<TripItem>> loadTripItems() async {
 
 Future<TripItem?> loadTripItemLocal({int id = -1}) async {
   if (id > -1) {
-    var maps;
+    List<Map<String, Object?>> maps;
     final db = await DbHelper().db;
     try {
       String query = "SELECT * FROM trip_items WHERE id = $id";
@@ -799,26 +799,44 @@ Future<int> saveMessage(MessageLocal message) async {
   return id;
 }
 
+/*
+  List<Map<String, dynamic>> maps = await db.query(
+    'points_of_interest',
+    where: 'id = ?',
+    whereArgs: [id],
+  );
+      var maps = await db.rawQuery("SELECT * FROM Users LIMIT 1");
+    if (maps.isNotEmpty) {
+      id = int.parse(maps[0]['id'].toString());
+      forename = maps[0]['forename'].toString();
+      surname = maps[0]['surname'].toString();
+      email = maps[0]['email'].toString();
+      password = maps[0]['password'].toString();
+      imageUrl = maps[0]['imageUrl'].toString();
+    }
+ */
+
 Future<Map<String, dynamic>> getDrive(int driveId) async {
   final db = await DbHelper().db;
-  var maps;
+
   try {
     String query = "SELECT * FROM drives WHERE id = $driveId";
-    maps = await db.rawQuery(query);
+    List<Map<String, dynamic>> maps = await db.rawQuery(query);
+    return {
+      'id': int.parse(maps[0]['id'].toString()),
+      'uri': maps[0]['uri'].toString(),
+      'title': maps[0]['title'].toString(),
+      'subTitle': maps[0]['sub_title'].toString(),
+      'body': maps[0]['body'].toString(),
+      'added': DateTime.parse(maps[0]['added'] as String),
+      'distance': double.parse(maps[0]['distance'].toString()),
+      'pois': int.parse(maps[0]['points_of_interest'].toString()),
+      // 'pois': int.parse(maps[0]['points_of_interest'].toString()),
+    };
   } catch (e) {
     debugPrint('dbError:${e.toString()}');
+    return {'error': 'getDrive() = ${e.toString()}'};
   }
-  return {
-    'id': int.parse(maps[0]['id'].toString()),
-    'uri': maps[0]['uri'].toString(),
-    'title': maps[0]['title'].toString(),
-    'subTitle': maps[0]['sub_title'].toString(),
-    'body': maps[0]['body'].toString(),
-    'added': DateTime.parse(maps[0]['added'] as String),
-    'distance': double.parse(maps[0]['distance'].toString()),
-    'pois': int.parse(maps[0]['points_of_interest'].toString()),
-    // 'pois': int.parse(maps[0]['points_of_interest'].toString()),
-  };
 }
 
 Future<void> deleteDriveById(int id) async {

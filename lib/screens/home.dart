@@ -20,14 +20,11 @@ class _HomeFormState extends State<HomeForm> {
   int _groupIndex = 0;
   late Future<bool> _dataloaded;
   List<HomeItem> _items = [];
-  List<EventInvitation> _invitees = [];
   int _action = 0;
   int _index = 0;
   // bool _adding = false;
   // bool _expanded = false;
   int toInvite = 0;
-
-  String _alterDriveId = '';
 
   final List<String> _titles = [
     "Home page articles",

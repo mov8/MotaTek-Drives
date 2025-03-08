@@ -13,10 +13,10 @@ class IntroduceForm extends StatefulWidget {
   const IntroduceForm({super.key, setup});
 
   @override
-  State<IntroduceForm> createState() => _introduceFormState();
+  State<IntroduceForm> createState() => _IntroduceFormState();
 }
 
-class _introduceFormState extends State<IntroduceForm> {
+class _IntroduceFormState extends State<IntroduceForm> {
   int introduce = 0;
   bool choosing = true;
   late Future<bool> dataloaded;
@@ -335,6 +335,7 @@ class _introduceFormState extends State<IntroduceForm> {
     );
   }
 
+/*
   void _listener(bool value) {
     if (value) {
       debugPrint('Listener called true');
@@ -344,7 +345,7 @@ class _introduceFormState extends State<IntroduceForm> {
     }
     return;
   }
-
+*/
   Widget _handleChips() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 10),

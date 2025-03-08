@@ -13,10 +13,10 @@ class InvitationsScreen extends StatefulWidget {
   const InvitationsScreen({super.key, setup});
 
   @override
-  State<InvitationsScreen> createState() => _invitationsScreenState();
+  State<InvitationsScreen> createState() => _InvitationsScreenState();
 }
 
-class _invitationsScreenState extends State<InvitationsScreen> {
+class _InvitationsScreenState extends State<InvitationsScreen> {
   int introduce = 0;
   bool choosing = true;
   late Future<bool> dataloaded;

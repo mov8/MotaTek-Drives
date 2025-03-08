@@ -11,7 +11,6 @@ import 'package:flutter/material.dart';
 // import 'package:flutter_map/flutter_map.dart';
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
-import 'dart:convert';
 import 'package:intl/intl.dart';
 import 'package:drives/models/models.dart';
 import 'package:drives/classes/utilities.dart' as utils;
@@ -83,11 +82,8 @@ Future<List<String>> getSuggestions(String value) async {
       for (int i = 0; i < jResponse["features"].length; i++) {
         if (settlementTypes
             .contains(jResponse["features"][i]["properties"]["type"])) {
-          suggestions.add(jResponse["features"][i]["properties"]["name"] +
-              ' ' +
-              (jResponse["features"][i]["properties"]["county"] ?? "") +
-              ' ' +
-              (jResponse["features"][i]["properties"]["state"] ?? ""));
+          suggestions.add(
+              'jResponse["features"][i]["properties"]["name"] ${jResponse["features"][i]["properties"]["county"] ?? ""} ${jResponse["features"][i]["properties"]["state"] ?? ""}');
         }
       }
     }
@@ -108,8 +104,7 @@ Future<LatLng> getPosition(String value) async {
             jResponse["features"][0]["geometry"]["coordinates"][0]);
       }
     } catch (e) {
-      String error = e.toString();
-      // debugPrint('web_helper.getPosition() error: $error');
+      debugPrint('web_helper.getPosition() error: ${e.toString()}');
     }
   }
   return pos;
@@ -119,10 +114,10 @@ class SearchLocation extends StatefulWidget {
   final Function onSelect;
   const SearchLocation({super.key, required this.onSelect});
   @override
-  State<SearchLocation> createState() => _searchLocationState();
+  State<SearchLocation> createState() => _SearchLocationState();
 }
 
-class _searchLocationState extends State<SearchLocation> {
+class _SearchLocationState extends State<SearchLocation> {
   List<String> autoCompleteData = [];
   String waypoint = '';
   LatLng location = const LatLng(0.00, 0.00);
@@ -285,11 +280,10 @@ Future<dynamic> postTrip(MyTripItem tripItem) async {
 
     response = await request.send().timeout(const Duration(seconds: 30));
   } catch (e) {
-    String err = e.toString();
     if (e is TimeoutException) {
-      // debugPrint('Request timed out');
+      debugPrint('Request timed out');
     } else {
-      // debugPrint('Error posting trip: $err');
+      debugPrint('Error posting trip: ${e.toString()}');
     }
   }
 
@@ -467,6 +461,7 @@ Future<mt.Route?> getRoute(
     Map<String, dynamic> map = jsonDecode(response.body);
     return polylineFromMap(map: map, goodRoad: goodRoad);
   }
+  return null;
   // Polyline(points: [const LatLng(0, 0)]);
 }
 
@@ -784,11 +779,7 @@ Future<bool> deleteWebTrip({required List<Map<String, String>> uriMap}) async {
 
 Future<TripItem?> getTrip(
     {required tripId, bool updateImageUris = false}) async {
-  TripItem gotTrip = TripItem(heading: '');
   if (tripId.length == 32) {
-    var currentPosition = Setup().lastPosition; //await utils.getPosition();
-    LatLng pos = LatLng(currentPosition.latitude, currentPosition.longitude);
-
     final http.Response response = await http
         .get(
           Uri.parse('$urlDrive/summary/$tripId'),
@@ -978,8 +969,7 @@ Future<MyTripItem> getTripSummary(String tripUuid) async {
         }
       }
     } catch (e) {
-      String err = e.toString();
-      // debugPrint('PointsOfInterest error: $err');
+      debugPrint('PointsOfInterest error: ${e.toString()}');
     }
     try {
       MyTripItem myTripItem = MyTripItem(
@@ -996,8 +986,7 @@ Future<MyTripItem> getTripSummary(String tripUuid) async {
       );
       return myTripItem;
     } catch (e) {
-      String err = e.toString();
-      // debugPrint('Error: $err');
+      debugPrint('Error: ${e.toString()}');
     }
   }
   return myTrip;
@@ -1098,8 +1087,7 @@ Future<MyTripItem> getMyTrip(String tripUuid) async {
         }
       }
     } catch (e) {
-      String err = e.toString();
-      // debugPrint('PointsOfInterest error: $err');
+      debugPrint('PointsOfInterest error: ${e.toString()}');
     }
     try {
       MyTripItem myTripItem = MyTripItem(
@@ -1118,8 +1106,7 @@ Future<MyTripItem> getMyTrip(String tripUuid) async {
       );
       return myTripItem;
     } catch (e) {
-      String err = e.toString();
-      // debugPrint('Error: $err');
+      debugPrint('Error: ${e.toString()}');
     }
   }
   return myTrip;
@@ -1255,8 +1242,7 @@ Future<File> downloadImage({String apiUrl = '', String targetFile = ''}) async {
         // debugPrint(file.path);
       }
     } catch (e) {
-      String err = e.toString();
-      // debugPrint('Error writing to image file: $err');
+      debugPrint('Error writing to image file: ${e.toString}');
     }
   }
   return file;
@@ -1496,11 +1482,10 @@ Future<String> postHomeItem(HomeItem homeItem) async {
 
     response = await request.send().timeout(const Duration(seconds: 30));
   } catch (e) {
-    String err = e.toString();
     if (e is TimeoutException) {
-      // debugPrint('Request timed out');
+      debugPrint('Request timed out');
     } else {
-      // debugPrint('Error posting article: $err');
+      debugPrint('Error posting article: ${e.toString()}');
     }
   }
 
@@ -1584,11 +1569,10 @@ Future<String> postShopItem(ShopItem shopItem) async {
 
     response = await request.send().timeout(const Duration(seconds: 30));
   } catch (e) {
-    String err = e.toString();
     if (e is TimeoutException) {
-      // debugPrint('Request timed out');
+      debugPrint('Request timed out');
     } else {
-      // debugPrint('Error posting article: $err');
+      debugPrint('Error posting article: ${e.toString()}');
     }
   }
 

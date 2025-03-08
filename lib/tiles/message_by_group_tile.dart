@@ -11,10 +11,10 @@ class MessageByGroupTile extends StatefulWidget {
       {super.key, required this.index, required this.group, this.onSelect});
 
   @override
-  State<MessageByGroupTile> createState() => _messageByGroupTileState();
+  State<MessageByGroupTile> createState() => _MessageByGroupTileState();
 }
 
-class _messageByGroupTileState extends State<MessageByGroupTile> {
+class _MessageByGroupTileState extends State<MessageByGroupTile> {
   @override
   Widget build(BuildContext context) {
     return Card(

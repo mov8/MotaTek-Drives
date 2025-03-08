@@ -14,10 +14,10 @@ class DirectionTile extends StatefulWidget {
   });
 
   @override
-  State<DirectionTile> createState() => _directionTileState();
+  State<DirectionTile> createState() => _DirectionTileState();
 }
 
-class _directionTileState extends State<DirectionTile> {
+class _DirectionTileState extends State<DirectionTile> {
   @override
   Widget build(BuildContext context) {
     return Material(

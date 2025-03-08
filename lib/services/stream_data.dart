@@ -30,8 +30,7 @@ class DataStream<T> {
   }
 }
 
-class gpsDataProvider {}
-
+// class gpsDataProvider {}
 
 /*
   StreamSubscription<List<int>> listenToStream() {

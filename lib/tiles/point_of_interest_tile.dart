@@ -284,6 +284,7 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                           Expanded(
                             flex: 8,
                             child: ImageArranger(
+                              urlChange: (_) => {},
                               photos: widget.pointOfInterest.photos,
                               endPoint: widget.pointOfInterest.url,
                             ),

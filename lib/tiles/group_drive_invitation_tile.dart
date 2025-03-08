@@ -2,7 +2,6 @@ import 'package:drives/classes/classes.dart';
 import 'package:drives/services/services.dart';
 import 'package:flutter/material.dart';
 import 'package:drives/models/models.dart';
-import 'package:drives/classes/star_ratings.dart';
 //import 'package:drives/classes/utilities.dart';
 import 'package:intl/intl.dart';
 
@@ -26,10 +25,10 @@ class GroupDriveInvitationTile extends StatefulWidget {
 
   @override
   State<GroupDriveInvitationTile> createState() =>
-      _groupDriveInvitationTileState();
+      _GroupDriveInvitationTileState();
 }
 
-class _groupDriveInvitationTileState extends State<GroupDriveInvitationTile> {
+class _GroupDriveInvitationTileState extends State<GroupDriveInvitationTile> {
   DateFormat dateFormat = DateFormat('d MMM y');
   TripItem? _tripSummary;
   List<IconData> invIcons = [

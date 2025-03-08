@@ -17,10 +17,10 @@ class TripHeaderTile extends StatefulWidget {
   });
 
   @override
-  State<TripHeaderTile> createState() => _tripHeaderTileState();
+  State<TripHeaderTile> createState() => _TripHeaderTileState();
 }
 
-class _tripHeaderTileState extends State<TripHeaderTile> {
+class _TripHeaderTileState extends State<TripHeaderTile> {
   @override
   Widget build(BuildContext context) {
     return Column(children: [

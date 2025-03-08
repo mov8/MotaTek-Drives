@@ -1,12 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:drives/models/other_models.dart';
-import 'package:drives/services/web_helper.dart';
 import 'package:drives/classes/classes.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'package:intl/intl.dart';
-import 'dart:convert';
 
 /// An example of a widget with a controller.
 /// The controller allows to the widget to be controlled externally
@@ -258,6 +254,7 @@ class _HomeItemTileState extends State<HomeItemTile> {
                           Expanded(
                             flex: 8,
                             child: ImageArranger(
+                              urlChange: (_) => {},
                               photos: photos,
                               endPoint: widget.homeItem.uri,
                             ),

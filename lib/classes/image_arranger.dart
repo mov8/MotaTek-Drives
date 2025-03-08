@@ -5,30 +5,21 @@ import 'package:drives/classes/classes.dart';
 import 'package:drives/services/services.dart';
 
 class ImageArranger extends StatefulWidget {
-  //final bool canEdit;
+  final Function(String) urlChange;
   final bool showCaptions;
   final String endPoint;
-  String imageUrl;
+  final String imageUrl;
   final List<Photo> photos;
-  // final int webUrlMaxLength;
   final double height;
-  // final double width;
-  //int imageIndex = 0;
-  // final Color selectedColor;
-  // final Color unSelectedColor;
 
-  ImageArranger({
+  const ImageArranger({
     super.key,
+    required this.urlChange,
     required this.photos,
     required this.endPoint,
     this.imageUrl = '',
-    //   this.canEdit = false,
     this.showCaptions = false,
-    //   this.webUrlMaxLength = 40,
     this.height = 175,
-    //   this.width = 0,
-    //   this.selectedColor = Colors.blueAccent,
-    //   this.unSelectedColor = Colors.grey
   });
 
   @override
@@ -60,16 +51,12 @@ class _ImageArrangerState extends State<ImageArranger> {
               showWebImage(
                 context: context,
                 Uri.parse(photo.url).toString(),
-                //  Uri.parse('${widget.endPoint}/${photo.url}').toString(),
-                // canDelete: true,
                 index: photo.index,
                 onDelete: (idx) => onDeleteImage(idx),
               ),
             ] else ...[
               showLocalImage(photo.url, index: photo.index),
             ]
-
-          //  {debugPrint('onDelete $idx')}
         ],
         onReorder: (int oldIndex, int newIndex) {
           setState(
@@ -82,7 +69,7 @@ class _ImageArrangerState extends State<ImageArranger> {
               List<String> urls = [
                 for (Photo photo in widget.photos) photo.toMapString()
               ];
-              widget.imageUrl = urls.toString();
+              widget.urlChange(urls.toString());
               debugPrint('reordered: ${widget.imageUrl}');
             },
           );
@@ -99,9 +86,7 @@ class _ImageArrangerState extends State<ImageArranger> {
   Widget showLocalImage(String url, {index = -1}) {
     return SizedBox(
       key: Key('sli$index'),
-
       width: 175,
-      // height: 170,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(5, 0, 5, 0),
         child: url.contains('assets/images')
@@ -111,7 +96,6 @@ class _ImageArrangerState extends State<ImageArranger> {
                     StackTrace? stackTrace) {
                   return const ImageMissing(width: 30);
                 },
-                //  width: 30,
               )
             : Image.file(
                 File(url),
@@ -119,7 +103,6 @@ class _ImageArrangerState extends State<ImageArranger> {
                     StackTrace? stackTrace) {
                   return const ImageMissing(width: 30);
                 },
-                // width: 30,
               ),
       ),
     );

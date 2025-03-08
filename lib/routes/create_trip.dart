@@ -195,7 +195,7 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   late Future<bool> _loadedOK;
   bool _showMask = false;
   late FocusNode fn1;
-  GoodRoad _goodRoad = GoodRoad();
+  final GoodRoad _goodRoad = GoodRoad();
   final List<CutRoute> _cutRoutes = [];
   late ui.Size screenSize;
   late ui.Size appBarSize;
@@ -216,7 +216,8 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   double _travelled = 0.0;
   int highlightedIndex = -1;
   final List<Follower> _following = [];
-  List<mt.Route> _goodRoads = [];
+  // List<mt.Route> _goodRoads = [];
+  late LocationSettings _locationSettings;
   final ViewportFence _viewportFence = ViewportFence(
       screenFence:
           Fence(northEast: const LatLng(0, 0), southWest: const LatLng(0, 0)));
@@ -392,6 +393,8 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
     super.initState();
     _leadingWidgetController = LeadingWidgetController();
     _bottomNavController = RoutesBottomNavController();
+    _locationSettings =
+        getGeolocatorSettings(defaultTargetPlatform: TargetPlatform.android);
     try {
       _loadedOK = dataFromDatabase();
       // tripsFromWeb();
@@ -1244,7 +1247,7 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
                   //      updateTracking();
                 }
                 if (hasGesure) {
-                  _updateMarkerSize(position.zoom ?? 13.0);
+                  _updateMarkerSize(position.zoom);
                 }
 
                 LatLng northEast = _animatedMapController
@@ -1308,14 +1311,14 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
                 ),
               ),
               mt.RouteLayer(
-                polylineCulling: false, //true,
+                // polylineCulling: false, //true,
                 polylines: _currentTrip.routes(),
                 onTap: routeTapped,
                 onMiss: routeMissed,
                 routeAtCenter: _routeAtCenter,
               ),
               mt.RouteLayer(
-                polylineCulling: false, //true,
+                // polylineCulling: false, //true,
                 polylines: _currentTrip.goodRoads(),
                 onTap: routeTapped,
                 onMiss: routeMissed,
@@ -1392,15 +1395,16 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
   updateOverlays(LatLng ne, LatLng sw) async {
     _updateOverlays = false;
     try {
-      getGoodRoads(ne, sw).then((goodRoads) => _goodRoads = goodRoads).then(
-            (_) => getPointsOfInterest(ne, sw).then(
-              (pois) => setState(
-                () {
-                  _pointsOfInterest = pois;
-                },
-              ),
-            ),
-          );
+      // getGoodRoads(ne, sw).then((goodRoads) => _goodRoads = goodRoads).then(
+      //       (_) =>
+      getPointsOfInterest(ne, sw).then(
+        (pois) => setState(
+          () {
+            _pointsOfInterest = pois;
+          },
+        ),
+        //  ),
+      );
     } finally {
       _updateOverlays = true;
     }
@@ -2730,8 +2734,7 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
     }
 
     if (_tripState == TripState.recording) {
-      await Geolocator.getCurrentPosition(
-              desiredAccuracy: LocationAccuracy.best)
+      await Geolocator.getCurrentPosition(locationSettings: _locationSettings)
           .then(
         (position) {
           _currentPosition = position;
@@ -2774,13 +2777,9 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
   /// must use _positionStream.cancel() to cancel stream when no longer reading from it
 
   void getLocationUpdates() {
-    const LocationSettings locationSettings = LocationSettings(
-      accuracy: LocationAccuracy.best,
-      distanceFilter: 10, // 10 meters
-    );
-
     _positionStream =
-        Geolocator.getPositionStream(locationSettings: locationSettings).listen(
+        Geolocator.getPositionStream(locationSettings: _locationSettings)
+            .listen(
       (position) {
         _currentPosition = position;
         _speed = _currentPosition.speed * 3.6 / 8 * 5; // M/S -> MPH

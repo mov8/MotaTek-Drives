@@ -19,10 +19,10 @@ class FollowerTile extends StatefulWidget {
   });
 
   @override
-  State<FollowerTile> createState() => _followerTileState();
+  State<FollowerTile> createState() => _FollowerTileState();
 }
 
-class _followerTileState extends State<FollowerTile> {
+class _FollowerTileState extends State<FollowerTile> {
   @override
   Widget build(BuildContext context) {
     return Material(

@@ -18,10 +18,10 @@ class GroupMemberTile extends StatefulWidget {
       this.onSelect});
 
   @override
-  State<GroupMemberTile> createState() => _groupMemberTileState();
+  State<GroupMemberTile> createState() => _GroupMemberTileState();
 }
 
-class _groupMemberTileState extends State<GroupMemberTile> {
+class _GroupMemberTileState extends State<GroupMemberTile> {
   @override
   Widget build(BuildContext context) {
     if (widget.groupMember.edited) {

@@ -1,7 +1,6 @@
 import 'dart:math';
-import 'package:drives/constants.dart';
 import 'package:drives/models/models.dart';
-import 'package:drives/classes/route.dart' as mtRt;
+import 'package:drives/classes/route.dart' as mt_rt;
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter/widgets.dart';
@@ -153,9 +152,9 @@ double closestWaypoint(
   return distance;
 }
 
-double distanceAlongRoute({required List<mtRt.Route> routes}) {
+double distanceAlongRoute({required List<mt_rt.Route> routes}) {
   double distance = 0;
-  for (mtRt.Route root in routes) {
+  for (mt_rt.Route root in routes) {
     for (int i = 1; i < root.points.length; i++) {
       distance += distanceBetween(root.points[i], root.points[i - 1]);
     }

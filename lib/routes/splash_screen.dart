@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:drives/classes/classes.dart';
 import 'package:drives/constants.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -8,7 +7,7 @@ import 'package:drives/models/models.dart';
 class Splash extends StatefulWidget {
   const Splash({super.key});
   @override
-  _SplashState createState() => _SplashState();
+  State<Splash> createState() => _SplashState();
 }
 
 class _SplashState extends State<Splash> {

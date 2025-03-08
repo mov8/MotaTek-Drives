@@ -28,13 +28,13 @@ class MarkerLabel extends Marker {
   final int driveId;
   final int type;
   final String description;
-  late final BuildContext ctx;
-  late final MarkerWidget marker;
-  late final LatLng markerPoint;
+  final BuildContext ctx;
+  // final MarkerWidget marker;
+  // final LatLng markerPoint;
   // @override
   // late final Widget child;
 
-  MarkerLabel(this.ctx, this.id, this.userId, this.driveId, this.type,
+  const MarkerLabel(this.ctx, this.id, this.userId, this.driveId, this.type,
       this.description, double width, double height,
       {required LatLng markerPoint, required Widget marker})
       : super(child: marker, point: markerPoint, width: width, height: height);

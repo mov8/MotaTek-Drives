@@ -11,10 +11,10 @@ class ShareForm extends StatefulWidget {
   const ShareForm({super.key, required this.tripItem});
 
   @override
-  State<ShareForm> createState() => _shareFormState();
+  State<ShareForm> createState() => _ShareFormState();
 }
 
-class _shareFormState extends State<ShareForm> {
+class _ShareFormState extends State<ShareForm> {
   int group = 0;
   bool choosing = true;
   late Future<bool> dataloaded;

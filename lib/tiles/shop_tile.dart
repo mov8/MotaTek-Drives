@@ -1,8 +1,6 @@
-import 'package:drives/constants.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:drives/models/other_models.dart';
-import 'package:drives/services/services.dart';
 import 'package:drives/classes/classes.dart';
 
 class ShopTile extends StatefulWidget {
