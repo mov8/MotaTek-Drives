@@ -124,7 +124,11 @@ class _GroupMessagesState extends State<GroupMessages> {
     // Clean up the focus node when the Form is disposed.
     if (socket.connected) {
       socket.emit('group_leave', {'group': widget.group.id});
-      socket.emit('disconnect');
+      try {
+        socket.emit('cleave');
+      } catch (e) {
+        debugPrint('error disposing of group_messages: ${e.toString()}');
+      }
     }
 
     fn1.dispose();
@@ -136,7 +140,7 @@ class _GroupMessagesState extends State<GroupMessages> {
     widget.onCancel!(1);
     if (socket.connected) {
       socket.emit('group_leave', {'group': widget.group.id});
-      socket.emit('disconnect');
+      socket.emit('cleave');
     }
     // Navigator.pop(context);
   }

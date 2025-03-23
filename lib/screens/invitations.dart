@@ -60,7 +60,7 @@ class _InvitationsScreenState extends State<InvitationsScreen> {
         /// Removes Shadow
         toolbarHeight: 40,
         title: const Text(
-          'MotaTek invitations',
+          'Drives invitations',
           style: TextStyle(
             color: Colors.white,
             fontSize: 18,

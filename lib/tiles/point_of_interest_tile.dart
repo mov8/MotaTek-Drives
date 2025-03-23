@@ -1,12 +1,13 @@
+import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:drives/constants.dart';
-import 'package:drives/models/other_models.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:drives/classes/classes.dart';
-import 'dart:io';
-import 'dart:convert';
+import 'package:drives/models/other_models.dart';
+import 'package:drives/services/services.dart';
 
 /// An example of a widget with a controller.
 /// The controller allows to the widget to be controlled externally
@@ -41,29 +42,29 @@ class PointOfInterestController {
 }
 
 class PointOfInterestTile extends StatefulWidget {
+  final int index;
+  final PointOfInterest pointOfInterest;
+  final ImageRepository imageRepository;
   final PointOfInterestController? controller;
   final ExpandNotifier? expandNotifier;
-  final PointOfInterest pointOfInterest;
-  final int index;
-  final Function onIconTap;
-  final Function onExpandChange;
-  final Function onDelete;
-  final Function onRated;
-  final ImageRepository imageRepository;
+  final Function? onExpandChange;
+  final Function? onIconTap;
+  final Function? onDelete;
+  final Function? onRated;
   final bool expanded;
   final bool canEdit;
 
   const PointOfInterestTile({
     super.key,
-    this.controller,
-    this.expandNotifier,
     required this.index,
     required this.pointOfInterest,
     required this.imageRepository,
-    required this.onIconTap,
-    required this.onExpandChange,
-    required this.onDelete,
-    required this.onRated,
+    this.controller,
+    this.expandNotifier,
+    this.onIconTap,
+    this.onExpandChange,
+    this.onDelete,
+    this.onRated,
     this.expanded = false,
     this.canEdit = true,
   });
@@ -80,7 +81,6 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
   final ExpansionTileController _expansionTileController =
       ExpansionTileController();
   late final ExpandNotifier _expandNotifier;
-  //late final PageStorageKey _key;
   @override
   void initState() {
     super.initState();
@@ -88,8 +88,7 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
     expanded = widget.expanded;
     canEdit = widget.canEdit;
     index = widget.index;
-    // _expansionTileController = ExpansionTileController();
-    //  _key = PageStorageKey('poiKey${widget.index}');
+
     if (widget.expandNotifier == null) {
       debugPrint('widget.expandNotifier is null');
     }
@@ -106,26 +105,21 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
   }
 
   _setExpanded({required int index, required int target}) {
-    //   debugPrint('@@@ - _setExpanded(index: $index, target: $target}) - @@@');
+    debugPrint(
+        'point_of_interest._setExpanded fired - index:$index target:$target');
     try {
       if (index == target) {
-        //   debugPrint('@@@ - _setExpanded calling expand - @@@');
         _expansionTileController.expand();
       } else {
-        //    debugPrint('@@@ - _setExpanded calling collapse - @@@');
         _expansionTileController.collapse();
       }
     } catch (e) {
-      //  debugPrint(
-      //      '@@@@ - pointOfInterestTile._setExpanded error ${e.toString} - @@@@');
+      debugPrint('pointOfInterestTile._setExpanded error ${e.toString}');
     }
   }
 
-  // final PageStorageKey _key = PageStorageKey('poiKey${widget.index}');
-
   @override
   Widget build(BuildContext context) {
-    //return Material(
     return canEdit ? editableTile() : unEditableTile();
   }
 
@@ -141,12 +135,7 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
       collapsedBackgroundColor: Colors.transparent,
       backgroundColor: Colors.transparent,
       initiallyExpanded: expanded,
-      onExpansionChanged: (expanded) {
-        isExpanded = expanded;
-        setState(() {
-          widget.onExpandChange(expanded ? index : -1);
-        });
-      },
+      onExpansionChanged: expandChange(expanded: expanded),
       leading: Icon(
           markerIcon(
             getIconIndex(iconIndex: widget.pointOfInterest.getType()),
@@ -197,19 +186,21 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                         Expanded(
                           flex: 8,
                           child: SizedBox(
-                              child: Align(
-                                  alignment: Alignment.bottomCenter,
-                                  child: ActionChip(
-                                    label: const Text(
-                                      'Image',
-                                      style: TextStyle(
-                                          fontSize: 18, color: Colors.white),
-                                    ),
-                                    avatar: const Icon(Icons.photo_album,
-                                        size: 20, color: Colors.white),
-                                    onPressed: () => loadImage(index),
-                                    backgroundColor: Colors.blueAccent,
-                                  ))),
+                            child: Align(
+                              alignment: Alignment.bottomCenter,
+                              child: ActionChip(
+                                label: const Text(
+                                  'Image',
+                                  style: TextStyle(
+                                      fontSize: 18, color: Colors.white),
+                                ),
+                                avatar: const Icon(Icons.photo_album,
+                                    size: 20, color: Colors.white),
+                                onPressed: () => loadImage(index),
+                                backgroundColor: Colors.blueAccent,
+                              ),
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -316,8 +307,8 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
 
   Widget unEditableTile() {
     return ExpansionTile(
-      // key: Key('$widget.key'),
-      //  key: _key,
+      backgroundColor: Colors.transparent,
+      collapsedBackgroundColor: Colors.transparent,
       controller: _expansionTileController,
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -331,13 +322,17 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                 ),
                 textAlign: TextAlign.left),
           ),
+          Row(
+            children: [
+              Expanded(
+                flex: 1,
+                child: StarRating(
+                    onRatingChanged: changeRating,
+                    rating: widget.pointOfInterest.getScore()),
+              ),
+            ],
+          ),
           Row(children: [
-            Expanded(
-              flex: 1,
-              child: StarRating(
-                  onRatingChanged: changeRating,
-                  rating: widget.pointOfInterest.getScore()),
-            ),
             Expanded(
               flex: 1,
               child: Align(
@@ -351,22 +346,17 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
           ]),
         ],
       ),
-      collapsedBackgroundColor: Colors.transparent,
-      backgroundColor: Colors.transparent,
+      //  collapsedBackgroundColor: Colors.transparent,
+      //  backgroundColor: Colors.transparent,
       initiallyExpanded: expanded,
-      onExpansionChanged: (expanded) {
-        isExpanded = expanded;
-        setState(() {
-          widget.onExpandChange(expanded ? index : -1);
-        });
-      },
-
+      onExpansionChanged: expandChange(expanded: expanded),
+      /*
       leading: Icon(
           markerIcon(
             getIconIndex(iconIndex: widget.pointOfInterest.getType()),
           ),
           color: colourList[Setup().pointOfInterestColour]),
-
+      */
       children: [
         SingleChildScrollView(
           child: Padding(
@@ -430,15 +420,20 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                         flex: 8,
                         child: SizedBox(
                           height: 350,
-                          child: PhotoCarousel(
-                            imageRepository: widget.imageRepository,
-                            photos: widget.pointOfInterest.photos,
-                            height: 300,
-                            width: 300,
+                          child: FittedBox(
+                            fit: BoxFit.contain,
+                            child: PhotoCarousel(
+                              imageRepository: widget.imageRepository,
+                              photos: widget.pointOfInterest.photos,
+                              height: 300,
+                              width: 300,
+                            ),
+                            //     ),
                           ),
                         ),
                       ),
                     ]),
+                  /*S
                   if (widget.pointOfInterest.url.isNotEmpty) ...[
                     Row(
                       children: [
@@ -474,6 +469,7 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                       ],
                     ),
                   ],
+                  */
                 ],
               ),
             ),
@@ -546,11 +542,20 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
   }
 
   expandChange({required bool expanded}) {
-    if (expanded) {
-      _expansionTileController.expand();
-    } else {
-      _expansionTileController.collapse();
+    try {
+      if (expanded) {
+        _expansionTileController.expand();
+      } else {
+        _expansionTileController.collapse();
+      }
+    } catch (e) {
+      debugPrint('_expansionController failed: ${e.toString()}');
     }
+    if (widget.onExpandChange != null) {
+      isExpanded = expanded;
+      widget.onExpandChange!(expanded ? index : -1);
+    }
+
     setState(() => isExpanded = expanded);
   }
 
@@ -575,7 +580,12 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
   }
 
   changeRating(value) {
-    widget.onRated(value, widget.index);
-    setState(() => widget.pointOfInterest.setScore(value.toDouble()));
+    if (widget.pointOfInterest.url.isNotEmpty) {
+      putPointOfInterestRating(widget.pointOfInterest.url, value);
+      if (widget.onRated != null) {
+        widget.onRated!(value, widget.index);
+      }
+      setState(() => widget.pointOfInterest.setScore(value.toDouble()));
+    }
   }
 }

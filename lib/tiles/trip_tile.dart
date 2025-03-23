@@ -1,19 +1,17 @@
-import 'package:drives/classes/caches.dart';
-import 'package:drives/classes/notifiers.dart';
-import 'package:drives/classes/photo_carousel.dart';
-import 'package:drives/classes/utilities.dart';
-import 'package:drives/constants.dart';
 import 'package:flutter/material.dart';
+import 'package:drives/classes/classes.dart';
+import 'package:drives/constants.dart';
 import 'package:drives/models/other_models.dart';
-import 'package:drives/classes/star_ratings.dart';
-// import 'package:drives/services/web_helper.dart';
+//import 'package:drives/tiles/tiles.dart';
+import 'package:drives/services/services.dart';
 
 class TripTile extends StatefulWidget {
   final TripItem tripItem;
   final ImageRepository imageRepository;
-  final Future<void> Function(int) onGetTrip;
-  final Function(int, int) onRatingChanged;
+  final Function(int)? onGetTrip;
+  final Function(int, int)? onRatingChanged;
   final ExpandNotifier? expandNotifier;
+  final List<Card>? childCards;
 
   final int index;
 
@@ -22,9 +20,10 @@ class TripTile extends StatefulWidget {
     required this.tripItem,
     required this.imageRepository,
     required this.index,
-    required this.onGetTrip,
-    required this.onRatingChanged,
+    this.onGetTrip,
+    this.onRatingChanged,
     this.expandNotifier,
+    this.childCards,
   });
 
   @override
@@ -53,13 +52,14 @@ class _TripTileState extends State<TripTile> {
   }
 
   _setExpanded({required int index, required int target}) {
-    //  debugPrint('~~~~~ _setExpanded index: $index  target: $target');
-    expandChange(expanded: index == target);
+    if (mounted) {
+      expandChange(expanded: index == target);
+    } else {
+      debugPrint('_setExpanded not mounted index: $index  target: $target');
+    }
   }
 
   expandChange({required bool expanded}) {
-    //  debugPrint(
-    //      '+++ pointOfInterestTile[${widget.index}].expandChange(${expanded ? 'expand' : 'collapse'}) called');
     try {
       if (expanded) {
         _expansionTileController.expand();
@@ -68,16 +68,14 @@ class _TripTileState extends State<TripTile> {
       }
       setState(() => isExpanded = expanded);
     } catch (e) {
-      debugPrint('Null error tripTile expandChange');
+      debugPrint('Error tripTile expandChange: ${e.toString()} ');
     }
   }
 
-//"[{"url": "d663bed13ef54cd386bc8e5582803c80/65e84e4ba58a49a7aa020a55a42c12db/bdb84cab-351c-48f0-ba4c-d6a46a560bc0.jpg", "caption"…"
   @override
   Widget build(BuildContext context) {
     if (widget.tripItem.imageUrls != _photoString) {
       photos = photosFromJson(widget.tripItem.imageUrls,
-          //endPoint: '${widget.tripItem.uri}/');
           endPoint: '$urlDriveImages/');
       _photoString = widget.tripItem.imageUrls;
     }
@@ -95,23 +93,58 @@ class _TripTileState extends State<TripTile> {
               ),
             ),
           ),
-          Row(children: [
-            Expanded(
-              flex: 1,
-              child: StarRating(
-                  onRatingChanged: changeRating, rating: widget.tripItem.score),
-            ),
-            Expanded(
-              flex: 1,
-              child: Align(
-                alignment: Alignment.bottomLeft,
-                child: Text('published ${widget.tripItem.published}',
-                    style: const TextStyle(fontSize: 12)),
+          Row(
+            children: [
+              Expanded(
+                flex: 1,
+                child: StarRating(
+                    onRatingChanged: changeRating,
+                    rating: widget.tripItem.score),
               ),
-            ),
-          ]),
+              if (isExpanded)
+                Expanded(
+                  flex: 1,
+                  child: Align(
+                    alignment: Alignment.bottomRight,
+                    child: ActionChip(
+                      visualDensity:
+                          const VisualDensity(horizontal: 0.0, vertical: 0.5),
+                      backgroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      label: Text(
+                        'Download',
+                        style:
+                            const TextStyle(fontSize: 16, color: Colors.black),
+                      ),
+                      elevation: 5,
+                      shadowColor: Colors.black,
+                      onPressed: () =>
+                          getTrip(widget.index), //widget.onGetTrip,
+                      avatar: Icon(Icons.cloud_download_outlined,
+                          size: 20, color: Colors.black),
+                    ),
+                  ),
+                )
+              else
+                Expanded(
+                  flex: 1,
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(15, 0, 0, 0),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.publish),
+                        Text(widget.tripItem.published),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ],
       ),
+      onExpansionChanged: (expanded) => expandChange(expanded: expanded),
       leading: Icon(Icons.route_outlined,
           size: 25, color: colourList[Setup().publishedTripColour]),
       children: [
@@ -257,10 +290,30 @@ class _TripTileState extends State<TripTile> {
                         ),
                       ),
                     ),
-                  SizedBox(
+                  /* SizedBox(
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(5, 0, 5, 15),
                       child: Row(children: [
+                        Expanded(
+                          flex: 3,
+                          child: Align(
+                            alignment: Alignment.bottomLeft,
+                            child: ActionChip(
+                                visualDensity: const VisualDensity(
+                                    horizontal: 0.0, vertical: 0.5),
+                                backgroundColor: Colors.blueAccent,
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(20)),
+                                label: Text('Download trip',
+                                    style: const TextStyle(
+                                        fontSize: 16, color: Colors.white)),
+                                elevation: 5,
+                                shadowColor: Colors.black,
+                                onPressed: () => {},
+                                avatar: Icon(Icons.cloud_download,
+                                    size: 20, color: Colors.white)),
+                          ),
+                        ),
                         Expanded(
                           flex: 2,
                           child: Row(
@@ -268,7 +321,7 @@ class _TripTileState extends State<TripTile> {
                               IconButton(
                                 icon: const Icon(Icons.download),
                                 onPressed: () => setState(() {
-                                  widget.onGetTrip(widget.index);
+                                  getTrip(widget.index);
                                 }),
                               ),
                               Align(
@@ -280,6 +333,8 @@ class _TripTileState extends State<TripTile> {
                             ],
                           ),
                         ),
+
+                        /*
                         Expanded(
                           flex: 3,
                           child: Padding(
@@ -300,7 +355,8 @@ class _TripTileState extends State<TripTile> {
                               ],
                             ),
                           ),
-                        ),
+                        ), */
+
                         Expanded(
                           flex: 1,
                           child: IconButton(
@@ -310,7 +366,21 @@ class _TripTileState extends State<TripTile> {
                         )
                       ]),
                     ),
-                  ),
+                  ), */
+                  if (widget.childCards != null)
+                    Row(
+                      children: [
+                        Padding(
+                          padding: EdgeInsets.fromLTRB(10, 0, 0, 0),
+                          child: Text(
+                            'Points of interest...',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 20),
+                          ),
+                        ),
+                      ],
+                    ),
+                  if (widget.childCards != null) ...widget.childCards!,
                 ],
               ),
             ),
@@ -321,7 +391,18 @@ class _TripTileState extends State<TripTile> {
   }
 
   changeRating(value) {
-    widget.onRatingChanged(value, widget.index);
-    setState(() => widget.tripItem.score = value.toDouble());
+    if (widget.tripItem.uri.isNotEmpty) {
+      putDriveRating(widget.tripItem.uri, value);
+      if (widget.onRatingChanged != null) {
+        widget.onRatingChanged!(value, widget.index);
+      }
+      setState(() => widget.tripItem.score = value.toDouble());
+    }
+  }
+
+  getTrip(value) {
+    if (widget.onGetTrip != null) {
+      widget.onGetTrip!(widget.index);
+    }
   }
 }

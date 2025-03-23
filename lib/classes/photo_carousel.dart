@@ -32,7 +32,7 @@ class PhotoCarousel extends StatefulWidget {
 class _PhotoCarouselState extends State<PhotoCarousel> {
   int imageIndex = 0;
   double screenWidth = 0;
-
+  late final Future<List<Image>> _imagesLoaded;
   final PageController _pageController = PageController();
   final ImageListIndicatorController _imageListIndicatorController =
       ImageListIndicatorController();
@@ -41,6 +41,7 @@ class _PhotoCarouselState extends State<PhotoCarousel> {
   void initState() {
     super.initState();
     _pageController.addListener(() => pageControlListener());
+    _imagesLoaded = getImageList(photos: widget.photos);
   }
 
   @override
@@ -78,7 +79,8 @@ class _PhotoCarouselState extends State<PhotoCarousel> {
                           child: SizedBox(
                             height: MediaQuery.of(context).size.width, // 375,
                             child: FutureBuilder(
-                              future: getImageList(photos: widget.photos),
+                              future:
+                                  _imagesLoaded, //   getImageList(photos: widget.photos),
                               builder: (context, snapshot) {
                                 if (snapshot.hasError) {
                                   debugPrint(

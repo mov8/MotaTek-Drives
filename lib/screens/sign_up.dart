@@ -48,7 +48,7 @@ class _SignupFormState extends State<SignupForm> {
         /// Removes Shadow
         toolbarHeight: 40,
         title: const Text(
-          'MotaTrip user details',
+          'Drives user details',
           style: TextStyle(
             color: Colors.white,
             fontSize: 18,
@@ -79,7 +79,11 @@ class _SignupFormState extends State<SignupForm> {
               if (Setup().user.password.isEmpty) {
                 Setup().user.password = savedPassword;
               }
-              insertSetup(Setup());
+              if (userExists) {
+                saveUser(Setup().user);
+              } else {
+                insertSetup(Setup());
+              }
               Navigator.pop(context);
             } catch (e) {
               debugPrint('Setup error: ${e.toString()}');
@@ -279,7 +283,10 @@ class _SignupFormState extends State<SignupForm> {
                 child: ActionChip(
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20)),
-                  onPressed: () => postUser(user: Setup().user, register: true),
+                  onPressed: () {
+                    saveUser(Setup().user);
+                    postUser(user: Setup().user, register: true);
+                  },
                   backgroundColor: Colors.blue,
                   avatar: const Icon(
                     Icons.how_to_reg,

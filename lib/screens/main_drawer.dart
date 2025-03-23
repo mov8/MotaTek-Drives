@@ -35,8 +35,8 @@ class _MainDrawerState extends State<MainDrawer> {
                   ),
                   Expanded(
                     flex: 6,
-                    child: Text('MotaTrip v1.0',
-                        style: TextStyle(color: Colors.white, fontSize: 30)),
+                    child: Text('Drives v1.0',
+                        style: TextStyle(color: Colors.white, fontSize: 32)),
                   ),
                 ],
               ),
@@ -239,6 +239,13 @@ class _MainDrawerState extends State<MainDrawer> {
                                   builder: (context) => const DeleteTripsForm(),
                                 ),
                               );
+                            } else if (e['value'] == 'survey') {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const SurveyForm(),
+                                ),
+                              );
                             }
                           },
                           child: Row(
@@ -282,6 +289,11 @@ class _MainDrawerState extends State<MainDrawer> {
       'text': 'Remove Drive',
       'iconData': const Icon(Icons.remove_road_outlined),
       'value': 'remove'
+    },
+    {
+      'text': 'Survey',
+      'iconData': const Icon(Icons.sick_outlined),
+      'value': 'survey'
     },
   ];
 }

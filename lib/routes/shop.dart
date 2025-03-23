@@ -137,7 +137,7 @@ class _ShopState extends State<Shop> {
             onMenuTap: (index) =>
                 _leadingWidget(_scaffoldKey.currentState)), // IconButton(
         title: const Text(
-          'MotaTrip store',
+          'Drives store',
           style: TextStyle(
               fontSize: 20, color: Colors.white, fontWeight: FontWeight.w700),
         ),

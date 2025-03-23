@@ -1,179 +1,22 @@
 import 'dart:typed_data';
-// import 'package:drives/constants.dart';
+import 'dart:async';
 import 'package:drives/models/other_models.dart';
 import 'package:drives/services/services.dart';
 import 'package:drives/classes/classes.dart';
-
 import 'package:flutter/material.dart';
-// import 'package:flutter_map/flutter_map.dart';
-
-// import 'package:flutter_map/flutter_map.dart';
-// import 'dart:convert';
 import 'package:latlong2/latlong.dart';
 import 'package:drives/classes/route.dart' as mt;
 import 'package:vector_map_tiles/vector_map_tiles.dart';
 // import 'package:drives/classes/classes.dart';
 
 /// TripItemRepository handles the cache for TripItems in the Trips route
-/// The List<Feature> initially hold the bare bones of the TripItems id, uri
+/// The [List<Feature>] initially hold the bare bones of the TripItems id, uri
 /// When created it may hold several thousand lines and an index (row) is
 /// added to each line that will be used to identify the cache entry.
 /// When the map is zoomed a subset of the features will be created.
 /// This subset will then use TripItemRepository to return the TripItem
 /// from the cache if cached, from SQLite if saved or the API.
 ///
-/*
-class Feature extends Marker {
-  final int row;
-  final String uri;
-  final int id;
-  final int featureId;
-  final int type;
-  final Function ontap;
-  //final double width;
-  // final double height;
-  final Color iconColor;
-  // late IconButton super.child;
-
-  Feature(
-      {this.row = -1,
-      this.uri = '',
-      this.id = -1,
-      this.featureId = -1,
-      this.type = 0,
-      required this.ontap,
-      super.point = const LatLng(-50.0, -0.2),
-      double height = 30,
-      double width = 30,
-      double iconSize = 30,
-      this.iconColor = Colors.red})
-      : super(
-            width: width,
-            height: height,
-            child: FeatureMarker(
-                index: id, width: width, color: iconColor, angle: 0));
-
-  factory Feature.fromMap(
-      {required Map<String, dynamic> map,
-      int row = -1,
-      double size = 30,
-      required Function onTap}) {
-    return Feature(
-      row: row == -1 ? map['row'] ?? -1 : row,
-      uri: map['uri'],
-      id: map['id'] ?? -1,
-      featureId: map['feature_id'] ?? -1,
-      type: map['type'] ?? 0,
-      point: LatLng(map['lat'] ?? 50.0, map['lng'] ?? 0.0),
-      width: size,
-      height: size,
-      ontap: onTap,
-      iconColor: pinColours[map['type']],
-    );
-  }
-
-  toMap() {
-    return {
-      'row': row,
-      'id': id,
-      'uri': uri,
-      'feature_id': id,
-      'type': type,
-      'latitude': point.latitude,
-      'longitude': point.longitude
-    };
-  }
-*/
-/*
-class DriveCacheItem extends Marker {
-  final int cacheKey;
-  final int id;
-  final String uri;
-  final LatLng northEast;
-  final LatLng southWest;
-  final Color iconColor;
-  // final double height;
-  // final double width;
-  final double iconSize;
-  DriveCacheItem(
-      {super.point = ukSouthWest,
-      super.height = 30,
-      super.width = 30,
-      this.northEast = ukNorthEast,
-      this.southWest = ukSouthWest,
-      this.cacheKey = -1,
-      this.id = -1,
-      this.uri = '',
-      this.iconColor = Colors.red,
-      this.iconSize = 30,
-      FeatureMarker? marker})
-      : super(
-            child: marker ??
-                FeatureMarker(
-                    index: id, width: width, color: iconColor, angle: 0));
-
-  factory DriveCacheItem.fromMap(
-      {required Map<String, dynamic> map,
-      int cacheKey = -1,
-      //  double width = 30,
-      double size = 30,
-      double iconSize = 30,
-      Color iconColor = Colors.red}) {
-    LatLng northEast = LatLng(map['max_lat'] ?? 50.0, map['max_lng'] ?? 0.0);
-    LatLng southWest = LatLng(map['min_lat'] ?? 50.0, map['min_lng'] ?? 0.0);
-    return DriveCacheItem(
-      cacheKey: cacheKey,
-      point: centerPoint(maxPoint: northEast, minPoint: southWest),
-      northEast: northEast,
-      southWest: southWest,
-      uri: map['uri'],
-      id: map['id'] ?? -1,
-      width: size,
-      height: size,
-      iconSize: iconSize,
-      iconColor: iconColor,
-    );
-  }
-/*
-  factory Feature.fromMap(
-      {required Map<String, dynamic> map,
-      int row = -1,
-      double size = 30,
-      required Function onTap}) {
-    return Feature(
-      row: row == -1 ? map['row'] ?? -1 : row,
-      uri: map['uri'],
-      id: map['id'] ?? -1,
-      featureId: map['feature_id'] ?? -1,
-      type: map['type'] ?? 0,
-      point: LatLng(map['lat'] ?? 50.0, map['lng'] ?? 0.0),
-      width: size,
-      height: size,
-      ontap: onTap,
-      iconColor: pinColours[map['type']],
-    );
-  }
-*/
-
-  toMap({int row = -1, int type = 0}) {
-    return {
-      'row': row,
-      'id': id,
-      'uri': uri,
-      'feature_id': id,
-      'type': type,
-      'latitude': point.latitude,
-      'longitude': point.longitude
-    };
-  }
-
-  bool inScope({required Fence fence}) {
-    Fence bounds = Fence(northEast: northEast, southWest: southWest);
-    return containsBounds(fence: fence, bounds: bounds);
-  }
-}
-
-*/
 
 LatLng centerPoint({required LatLng maxPoint, required LatLng minPoint}) {
   return LatLng(
@@ -184,7 +27,7 @@ LatLng centerPoint({required LatLng maxPoint, required LatLng minPoint}) {
 class TripItemRepository {
   final Map<int, TripItem?> _tripItemCache = {};
   TripItemRepository();
-  Future<TripItem> loadTripItem(
+  FutureOr<TripItem> loadTripItem(
       {required int key,
       required int id,
       required String uri,
@@ -210,7 +53,7 @@ class TripItemRepository {
 class PointOfInterestRepository {
   final Map<int, PointOfInterest> _pointOfInterestCache = {};
   PointOfInterestRepository();
-  Future<PointOfInterest?> loadPointOfInterest(
+  FutureOr<PointOfInterest?> loadPointOfInterest(
       {required int key,
       required int id,
       required String uri,
@@ -242,7 +85,7 @@ class RouteRepository {
   final Map<int, List<mt.Route>?> _routeCache = {};
   RouteRepository();
 
-  Future<List<mt.Route>?> loadRoute({
+  FutureOr<List<mt.Route>?> loadRoute({
     required int key,
     required int id,
     required String uri,
@@ -272,7 +115,7 @@ class GoodRoadRepository {
   final Map<int, mt.Route?> _goodRoadCache = {};
   GoodRoadRepository();
 
-  Future<mt.Route?> loadGoodRoad({
+  FutureOr<mt.Route?> loadGoodRoad({
     required int key,
     required int id,
     required String uri,
@@ -300,7 +143,7 @@ class TileRepository {
   final Map<String, Uint8List> _tilesCache = {};
   final CachedVectorTileProvider deligate;
   TileRepository({required this.deligate});
-  Future<Uint8List> loadTile({
+  FutureOr<Uint8List> loadTile({
     required TileIdentity tile,
     required int id,
     required String uri,
@@ -325,7 +168,7 @@ class ImageRepository {
   final Map<int, Image> _imageCache = {};
   ImageRepository();
 
-  Future<Map<int, Image>> loadImage({
+  FutureOr<Map<int, Image>> loadImage({
     required int key,
     required int id,
     required String uri,

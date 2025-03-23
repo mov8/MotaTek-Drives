@@ -29,7 +29,9 @@ class _SplashState extends State<Splash> {
         Setup().setupToDb();
       }
       //  routeIndex = 4;
-      Navigator.pushNamed(context, routes[routeIndex]);
+      if (context.mounted) {
+        Navigator.pushNamed(context, routes[routeIndex]);
+      }
     });
   }
 
@@ -120,7 +122,7 @@ class _SplashState extends State<Splash> {
         top: 50,
         left: 120,
         child: Text(
-          'MotaTrip',
+          'Drives',
           style: TextStyle(
             color: Colors.white,
             fontSize: 52,

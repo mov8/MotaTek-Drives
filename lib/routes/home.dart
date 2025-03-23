@@ -117,7 +117,7 @@ class _HomeState extends State<Home> {
             'New trip planning app for individuals, groups of friends and clubs',
         subHeading: 'Stop polishing your car and start driving it...',
         body:
-            '''MotaTrip is a new app to help you make the most of the countryside around you. 
+            '''Drives is a new app to help you make the most of the countryside around you. 
 You can plan trips either on your own or you can explore in a group''',
         imageUrls: '[{"url": "aiaston.png", "caption": ""}]',
       ));
@@ -147,7 +147,7 @@ You can plan trips either on your own or you can explore in a group''',
                   child: Align(
                     alignment: Alignment.topCenter,
                     child: Text(
-                      'MotaTrip',
+                      'Drives',
                       style: TextStyle(
                         color: Colors.blue,
                         fontSize: 38,
@@ -202,7 +202,7 @@ You can plan trips either on your own or you can explore in a group''',
             onMenuTap: (index) =>
                 _leadingWidget(_scaffoldKey.currentState)), // IconButton(
         title: const Text(
-          'MotaTrip Trip planning app',
+          'Drives trip planning and sharing app',
           style: TextStyle(
               fontSize: 20, color: Colors.white, fontWeight: FontWeight.w700),
         ),

@@ -351,7 +351,8 @@ final class RouteLayer extends PolylineLayer {
       }
     }
 
-    if (candidates.isEmpty) return onMiss?.call(details);
+    if (candidates.isEmpty) return;
+    // onMiss?.call(details);
 
     // We look up in the map of distances to the tap, and choose the shortest one.
     var closestToTapKey = candidates.keys.reduce(min);

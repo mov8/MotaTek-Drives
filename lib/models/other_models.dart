@@ -1,48 +1,23 @@
-// import 'package:flutter/cupertino.dart';
 import 'dart:convert';
-// import 'dart:ffi';
-//import 'dart:ffi';
-import 'dart:ui' as ui;
 import 'dart:io';
-import 'dart:math';
-import 'dart:typed_data';
-// import 'package:drives/services/services.dart';
+import 'package:drives/services/services.dart'; // hide getPosition;
+import 'package:drives/classes/classes.dart';
 import 'package:intl/intl.dart';
 import 'package:drives/constants.dart';
-import 'package:drives/classes/utilities.dart';
-import 'package:drives/classes/fences.dart';
-import 'package:drives/classes/map_markers.dart';
+import 'package:drives/classes/utilities.dart' as utils;
 import 'package:drives/screens/screens.dart';
 import 'package:drives/classes/route.dart' as mt;
 import 'package:drives/tiles/tiles.dart';
-// import 'package:drives/models/other_models.dart';
-//import 'package:drives/screens/painters.dart';
-import 'package:drives/services/db_helper.dart';
-import 'package:drives/services/web_helper.dart' as wh;
 import 'package:drives/models/my_trip_item.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter/material.dart';
-//import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:geolocator/geolocator.dart';
-
-// import 'package:geolocator/geolocator.dart';
-
-// import 'dart:ui' as ui;
 
 /// https://api.flutter.dev/flutter/material/Icons-class.html  get the icon codepoint from here
 /// https://api.flutter.dev/flutter/material/Icons/add_road-constant.html
 
-/*
-enum UserMode {
-  home,
-  routes,
-  explore,
-  profile,
-  shop,
-}
-*/
 const List<Map> poiTypes = [
   {
     'id': 0,
@@ -404,126 +379,6 @@ class Setup {
   }
 }
 
-class Feature extends Marker {
-  // GlobalKey? pinKey;
-  final int row;
-  final String uri;
-  final int id;
-  final int type;
-  final int poiType;
-  // @override
-  final LatLng maxPoint;
-  // @override
-  // Widget child;
-
-  const Feature(
-      {this.row = -1,
-      this.uri = '',
-      this.id = -1,
-      this.type = 0,
-      this.poiType = 0,
-      double iconSize = 30,
-      super.width = 30,
-      super.height = 30,
-      super.child = const Icon(Icons.pin),
-      super.point = const LatLng(0, 0),
-      this.maxPoint = const LatLng(0, 0)});
-  // : super(child: child);
-
-  factory Feature.fromMap(
-      {required Map<String, dynamic> map,
-      int row = -1,
-      double size = 30,
-      required Function onTap}) {
-    return Feature(
-      row: row == -1 ? map['row'] ?? -1 : row,
-      uri: map['uri'],
-      id: -1,
-      type: map['type'] ?? 0,
-      poiType: map['type'] == 1 ? map['feature_id'] : -1,
-      point: LatLng(map['min_lat'] ?? 50.0, map['min_lng'] ?? 0.0),
-      maxPoint: LatLng(map['max_lat'] ?? 50.0, map['max_lng'] ?? 0.0),
-      width: size,
-      height: size,
-    );
-  }
-
-  factory Feature.fromFeature(
-      {required Feature feature,
-      LatLng? point,
-      int? row,
-      double? size,
-      Widget? child}) {
-    return Feature(
-        row: row ?? feature.row,
-        uri: feature.uri,
-        id: feature.id,
-        type: feature.type,
-        poiType: feature.poiType,
-        point: point ?? feature.point,
-        maxPoint: point ?? feature.maxPoint,
-        width: size ?? feature.width,
-        height: size ?? feature.height,
-        child: child ?? feature.child);
-  }
-
-  Fence getBounds() {
-    return Fence(northEast: maxPoint, southWest: point);
-  }
-
-  toMap() {
-    return {
-      'row': row,
-      'id': id,
-      'uri': uri,
-      'feature_id': id,
-      'type': type,
-      'max_lat': maxPoint.latitude,
-      'max_lng': maxPoint.longitude,
-      'min_lat': point.latitude,
-      'min_lng': point.longitude
-    };
-  }
-
-  zoomIcon2(double zoom) {
-    //  super.child = FeatureMarker(index: id, width: zoom * 10, angle: 0);
-
-    // super.child = IconButton(
-    //     onPressed: () => ontap, //debugPrint('Button $row pressed'),
-    //     icon: Icon(Icons.pin_drop, size: zoom * 4, color: iconColor));
-    // debugPrint('Zoom is $zoom -> size of ${zoom * 4}');
-  }
-
-  // {url: 7575, id: -1, lat:9898, long:97899, type:2}
-}
-
-buttonPress(int row) {
-  debugPrint('Button $row pressed');
-}
-
-/*
-class MarkerLabel extends Marker {
-  final int id;
-  final int userId;
-  final int driveId;
-  final int type;
-  final String description;
-  late final BuildContext ctx;
-  late final MarkerWidget marker;
-  late final LatLng markerPoint;
-  // @override
-  // late final Widget child;
-
-  MarkerLabel(this.ctx, this.id, this.userId, this.driveId, this.type,
-      this.description, double width, double height,
-      {required LatLng markerPoint, required Widget marker})
-      : super(child: marker, point: markerPoint, width: width, height: height);
-
-  // Future<Bitma
-}
-
-// class PolyLine
-*/
 class PointOfInterest extends Marker {
   // GlobalKey? handle;
   int id;
@@ -644,20 +499,7 @@ class PointOfInterest extends Marker {
       'longitude': point.longitude, //markerPoint.longitude,
     };
   }
-
-  /// The : super keyword means we are referring to base class - Marker - parameters
-  /// The point and builder are both required
 }
-/*
-Marker(
-  width: 55,
-  height: 55,
-  point: LatLng(0, 0),
-  builder: (_) => Transform.rotate(
-    angle: -this._rotation * math.pi / 180,
-    child: Container()
-)
-*/
 
 class MarkerWidget extends StatelessWidget {
   final int type; // default type 12 => waypoint
@@ -712,13 +554,8 @@ class MarkerWidget extends StatelessWidget {
       angle: angle,
       child: RawMaterialButton(
         onPressed: () {
-          //   if (list == -1) {
-          //     Utility().showAlertDialog(
-          //         context, poiTypes.toList()[type]['name'], description);
-          //   } else if (pointOfInterest != null) {
           pointOfInterestDialog(context, name, description, images, url,
               imageUrls, score, scored, type);
-          //   }
         },
         elevation: 2.0,
         fillColor: buttonFillColor,
@@ -776,33 +613,12 @@ class FeatureMarker extends StatelessWidget {
                   onPress!(index);
                 },
               ),
-              /*
-              Padding(
-                padding: const EdgeInsets.fromLTRB(0, 0, 0, 19),
-                child: Container(
-                  width: width * .6,
-                  height: width * .6,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: colourList[Setup().pointOfInterestColour],
-                  ),
-                  child: overlay,
-                ),
-
-                //     Padding(
-                //         padding: const EdgeInsets.fromLTRB(0, 0, 0, 8),
-                //         child: overlay),
-              ) */
             ],
           ),
         ),
       ),
     );
   }
-
-//  setSize({required double size}) {
-//    width*=0 + size;
-//  }
 }
 
 pointOfInterestDialog(
@@ -815,8 +631,6 @@ pointOfInterestDialog(
     double score,
     int scored,
     int type) async {
-  // bool result = false;
-  // set up the buttons
   Widget okButton = TextButton(
     child: const Text("Ok"),
     onPressed: () {
@@ -852,10 +666,6 @@ pointOfInterestDialog(
       canEdit: false,
       expanded: false,
     ),
-
-    //     child: ListBody(
-    //       children: <Widget>[Text(alertMessage)],
-    // ),
     actions: [
       okButton,
     ],
@@ -871,98 +681,6 @@ pointOfInterestDialog(
     },
   );
 }
-/*
-class LabelWidget extends StatelessWidget {
-  final String description;
-  final int top;
-  final int left;
-  const LabelWidget(
-      {super.key,
-      required this.top,
-      required this.left,
-      required this.description});
-  @override
-  Widget build(BuildContext context) {
-    return CustomPaint(
-        painter: MapLabelPainter(
-            top: top, left: left, labelText: description, pixelRatio: 1));
-  }
-}
-
-class PinMarkerWidget extends StatelessWidget {
-  final Color color;
-  final double width;
-  final int index;
-  final IconData overlay;
-  final Color iconColor;
-  final Function(int)? onPress;
-  final double rating;
-  const PinMarkerWidget(
-      {super.key,
-      this.color = Colors.blue,
-      this.width = 50,
-      this.index = -1,
-      this.overlay = Icons.hail,
-      this.iconColor = Colors.white,
-      this.rating = -1,
-      this.onPress});
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      customBorder: const CircleBorder(),
-      splashColor: Colors.blue,
-      borderRadius: BorderRadius.circular(width / 2),
-      onTap: () => {onPress!(index)},
-      onLongPress: () => (debugPrint('LongPress')),
-      child: CustomPaint(
-        painter: LocationPinPainter(color: color, size: 50),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(0, 0, 0, 15), //18),
-          child: Stack(
-            children: [
-              Positioned(
-                top: 12,
-                left: 20,
-                child: Icon(overlay, size: width * .8, color: iconColor),
-              ),
-              ...List.generate(
-                5,
-                (index) => buildIcons(index: index, score: 3.5),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget buildIcons({int index = 0, double score = -1}) {
-    List<double> tops = [14, 4, 0, 4, 14];
-    List<double> lefts = [10, 14, 24, 34, 38];
-    return Positioned(
-      top: tops[index],
-      left: lefts[index],
-      child: Icon(
-        score >= index + 1
-            ? Icons.star
-            : score > index
-                ? Icons.star_half
-                : Icons.star_outline,
-        //  Icons.star,
-        size: 10,
-        color: Colors.yellow,
-      ),
-    );
-  }
-}
-
-IconData markerIcon(int type, {double size = 0}) {
-  return IconData(poiTypes.toList()[type]['iconMaterial'],
-      fontFamily: 'MaterialIcons');
-}
-
-*/
 
 class Group {
   String id = '';
@@ -1420,19 +1138,6 @@ List<Photo> photosFromJson(String photoString, {String endPoint = ''}) {
       for (Map<String, dynamic> urlData in jsonDecode(photoString))
         Photo.fromJson(urlData, endPoint: endPoint, index: index++)
     ];
-/*    
-    try {
-      photos = (json.decode(photoString) as List<dynamic>)
-          .map((jsonObject) => Photo.fromJson(jsonObject))
-          .toList();
-      for (int i = 0; i < photos.length; i++) {
-        photos[i].index = i;
-      }
-    } catch (e) {
-      String err = e.toString();
-      debugPrint('Error converting image data: $err ($photoString)');
-    }
-*/
   }
   return [];
 }
@@ -1551,28 +1256,6 @@ class Maneuver {
       'distance': distance,
     };
   }
-
-/*
-    'drive_id': driveUid,
-    'road_from': maneuver.roadFrom,
-    'road_to': maneuver.roadTo,
-    'bearing_before': maneuver.bearingBefore,
-    'bearing_after': maneuver.bearingAfter,
-    'exit': maneuver.exit,
-    'location': maneuver.location.toString(),
-    'modifier': maneuver.modifier,
-    'type': maneuver.type,
-    'distance': maneuver.distance
-*/
-
-  /// ...['steps'][n]['name'] => the current road name
-  /// ...['steps'][n]['maneuver'][bearing_before'] => approach bearing
-  /// ...['steps'][n]['maneuver'][bearing_after] => exit bearing
-  /// ...['steps'][n]['maneuver']['location'] => latLng of intersection
-  /// ...['steps'][n]['maneuver']['modifier'] => 'right', 'left' etc
-  /// ...['steps'][n]['maneuver']['type'] => 'turn' etc
-  /// ...['steps'][n]['maneuver']['name'] => 'Alexandra Road'
-  ///
 }
 
 /// class Follower
@@ -1706,18 +1389,6 @@ class HomeItem {
     };
   }
 }
-/*
-0672e44bdbde72a3800016e24cce4769/907af30a-077a-4d24-9f37-31ec9a7b82ef.jpg
-    request.fields['id'] = map['uri'];
-    request.fields['title'] = map['heading'];
-    request.fields['sub_title'] = map['subHeading'];
-    request.fields['body'] = map['body'];
-    request.fields['added'] = map['added'] ?? DateTime.now().toString();
-    request.fields['score'] = map['score'].toString();
-    request.fields['coverage'] = map['coverage'];
-    request.fields['image_urls'] = imageUris.toString();
-*/
-/// class ShopItem
 
 class ShopItem {
   int id = -1;
@@ -1851,7 +1522,6 @@ class TripItem {
   String author = '';
   String authorUrl = '';
   String published = '';
-  // List<String> imageUrls = [];
   String imageUrls = '';
   double score = 5;
   double distance = 0;
@@ -1870,7 +1540,7 @@ class TripItem {
       this.author = '',
       this.authorUrl = '',
       this.published = '',
-      this.imageUrls = '', //const [],
+      this.imageUrls = '',
       this.score = 5,
       this.distance = 0,
       this.pointsOfInterest = 0,
@@ -1946,400 +1616,13 @@ class TripItem {
       uri: '$endpoint${map['uri'] ?? ''}',
     );
   }
-
-/*
-TripItem(
-            heading: trip['title'],
-            subHeading: trip['sub_title'],
-            body: trip['body'],
-            author: trip['author'],
-            published: trip['added'],
-            imageUrls: '[$images]',
-            score: trip['average_rating'].toDouble() ?? 5.0,
-            distance: trip['distance'],
-            pointsOfInterest: trip['points_of_interest'].length,
-            closest: distance,
-            scored: trip['ratings_count'] ?? 1,
-            downloads: trip['download_count'] ?? 0,
-            uri: '$urlDrive/${trip['id']}'));
-*/
 }
-
-/// class MyTripItem
-/// covers both points of interest and waypoints
-///
-/// class StudentsList extends StatefulWidget {
-
-class MyTripItem2 {
-  int _id = -1;
-  int _driveId = -1;
-  int _index = -1;
-  String _driveUri = '';
-  String _heading = '';
-  String _subHeading = '';
-  String _body = '';
-  String _published = '';
-  List<PointOfInterest> _pointsOfInterest = [];
-  List<Maneuver> _maneuvers;
-  final List<mt.Route> _routes;
-  String _images = '';
-  double _score = 5;
-  double _distance = 0;
-  int _closest = 12;
-  int highlights = 0;
-  bool showMethods = true;
-  late ui.Image _mapImage;
-
-  MyTripItem2({
-    int id = -1,
-    int driveId = -1,
-    String driveUri = '',
-    required String heading,
-    String subHeading = '',
-    String body = '',
-    String published = '',
-    List<PointOfInterest> pointsOfInterest = const [],
-    List<Maneuver> maneuvers = const [],
-    List<mt.Route> routes = const [],
-    String images = '',
-    double score = 5,
-    double distance = 0,
-    int closest = 12,
-  })  : _id = id,
-        _driveId = driveId,
-        _heading = heading,
-        _subHeading = subHeading,
-        _body = body,
-        _published = published,
-        _pointsOfInterest = List.from(pointsOfInterest),
-        _maneuvers = List.from(maneuvers),
-        _routes = List.from(routes),
-        _images = images,
-        _score = score,
-        _distance = distance,
-        _closest = closest;
-
-  void clearAll() {
-    _driveId = -1;
-    _heading = '';
-    _subHeading = '';
-    _body = '';
-    _published = '';
-    _pointsOfInterest.clear();
-    _maneuvers.clear();
-    _routes.clear();
-    _images = '';
-    _score = 0;
-    _distance = 0;
-  }
-
-  int getId() {
-    return _id;
-  }
-
-  void setId(int id) {
-    _id = id;
-  }
-
-  int getIndex() {
-    return _index;
-  }
-
-  void setIndex(int index) {
-    _index = index;
-  }
-
-  int getDriveId() {
-    return _driveId;
-  }
-
-  void setDriveId(int driveId) {
-    _driveId = driveId;
-  }
-
-  String getDriveUri() {
-    return _driveUri;
-  }
-
-  void setDriveUri(String driveUri) {
-    _driveUri = driveUri;
-  }
-
-  String getHeading() {
-    return _heading;
-  }
-
-  void setHeading(String heading) {
-    _heading = heading;
-  }
-
-  String getSubHeading() {
-    return _subHeading;
-  }
-
-  void setSubHeading(String subHeading) {
-    _subHeading = subHeading;
-  }
-
-  void setBody(String body) {
-    _body = body;
-  }
-
-  String getBody() {
-    return _body;
-  }
-
-  String getPublished() {
-    return _published;
-  }
-
-  void setPublished(String published) {
-    _published = published;
-  }
-
-  String getImages() {
-    return _images;
-  }
-
-  void setImages(String images) {
-    _images = images;
-  }
-
-  double getScore() {
-    return _score;
-  }
-
-  void setScore(double score) {
-    _score = score;
-  }
-
-  int getClosest() {
-    return _closest;
-  }
-
-  void setClosest(int closest) {
-    _closest = closest;
-  }
-
-  double getDistance() {
-    return _distance;
-  }
-
-  void setDistance(double distance) {
-    _distance = distance;
-  }
-
-  List<PointOfInterest> pointsOfInterest() {
-    return _pointsOfInterest;
-  }
-
-  void addPointOfInterest(PointOfInterest pointOfInterest) {
-    _pointsOfInterest.add(pointOfInterest);
-  }
-
-  void insertPointOfInterest(PointOfInterest pointOfInterest, int index) {
-    _pointsOfInterest.insert(index, pointOfInterest);
-  }
-
-  void removePointOfInterestAt(int index) {
-    int id = _pointsOfInterest[index].id;
-    _pointsOfInterest.removeAt(index);
-    if (id > -1) {
-      deletePointOfInterestById(id);
-    }
-  }
-
-  void movePointOfInterest(int oldIndex, int newIndex) {
-    PointOfInterest pointOfInterest = _pointsOfInterest.removeAt(oldIndex);
-    _pointsOfInterest.insert(newIndex, pointOfInterest);
-  }
-
-  void clearPointsOfInterest() {
-    _pointsOfInterest.clear();
-  }
-
-  List<Maneuver> maneuvers() {
-    return _maneuvers;
-  }
-
-  void addManeuver(Maneuver maneuver) {
-    _maneuvers.add(maneuver);
-  }
-
-  void addManeuvers(List<Maneuver> maneuvers) {
-    _maneuvers = maneuvers;
-  }
-
-  void clearManeuvers() {
-    _maneuvers.clear();
-  }
-
-  List<mt.Route> routes() {
-    return _routes;
-  }
-
-  void addRoute(mt.Route route) {
-    _routes.add(route);
-  }
-
-  void clearRoutes() {
-    _routes.clear();
-  }
-
-  void insertRoute(mt.Route route, int index) {
-    _routes.insert(index, route);
-  }
-
-  void setImage(ui.Image image) {
-    _mapImage = image;
-  }
-
-  ui.Image getImage() {
-    return _mapImage;
-  }
-
-  Map<String, dynamic> toMap() {
-    return {
-      'id': _id,
-      'driveUri': _driveUri,
-      'heading': _heading,
-      'subHeading': _subHeading,
-      'body': _body,
-      'published': _published,
-      'pointsOfInterest': _pointsOfInterest.length,
-      'images': _images,
-      'score': _score,
-      'distance': _distance,
-      'closest': _closest,
-    };
-  }
-
-  /*
-            '''CREATE TABLE drives(id INTEGER PRIMARY KEY AUTOINCREMENT, uri INTEGER, title TEXT, sub_title TEXT, body TEXT, 
-          map_image TEXT, distance REAL, points_of_interest INTEGER, added DATETIME)''');
-  */
-
-  Map<String, dynamic> toDrivesMap() {
-    return {
-      'id': _id,
-      'uri': _driveUri,
-      'title': _heading,
-      'sub_title': _subHeading,
-      'body': _body,
-      'added': DateTime.now().toIso8601String(),
-      'points_of_interest': _pointsOfInterest.length,
-      'distance': _distance,
-    };
-  }
-
-  Future<int> saveLocal() async {
-    int result = -1;
-    // _driveId = await saveMyTripItem(this);
-    try {
-      final directory = (await getApplicationDocumentsDirectory()).path;
-      Uint8List? pngBytes = Uint8List.fromList([]);
-      if (_driveUri.isEmpty) {
-        final byteData =
-            await _mapImage.toByteData(format: ui.ImageByteFormat.png);
-        pngBytes = byteData?.buffer.asUint8List();
-      } else {
-        String url = Uri.parse('${urlBase}v1/drive/images/$_driveUri/map.png')
-            .toString();
-        pngBytes = await wh.getImageBytes(url: url);
-      }
-      String url = '$directory/drive$_driveId.png';
-      final imgFile = File(url);
-      imgFile.writeAsBytes(pngBytes!);
-      if (imgFile.existsSync()) {
-        result = 1;
-        debugPrint('Image file $url exists');
-      }
-    } catch (e) {
-      String err = e.toString();
-      debugPrint('Error: $err');
-    }
-    //  loadLocal(_driveId);
-    return result;
-  }
-
-  Future<void> loadLocal(int driveId) async {
-    clearAll();
-    Map<String, dynamic> map = await getDrive(driveId);
-    LatLng pos = const LatLng(0, 0);
-    int distance = 99999;
-
-    await getPosition().then((currentPosition) {
-      pos = LatLng(currentPosition.latitude, currentPosition.longitude);
-    });
-    final directory = (await getApplicationDocumentsDirectory()).path;
-    _id = driveId;
-    _driveId = driveId;
-    _heading = map['title'];
-    _subHeading = map['subTitle'];
-    _body = map['body'];
-    _published = map['added'].toString();
-    _distance = map['distance'];
-    _images = '{"url": "$directory/drive$_id.png", "caption": ""}';
-    _pointsOfInterest = await loadPointsOfInterestLocal(driveId);
-    for (int i = 0; i < _pointsOfInterest.length; i++) {
-      distance = min(
-          distanceBetween(_pointsOfInterest[i].point, pos).toInt(), distance);
-      if (_pointsOfInterest[i].getImages().isNotEmpty) {
-        _images = '$_images,${unList(_pointsOfInterest[i].getImages())}';
-      }
-    }
-    _closest = distance;
-    _images = '[$_images]';
-    _maneuvers = await loadManeuversLocal(driveId);
-    List<Polyline> polyLines = await loadPolyLinesLocal(driveId);
-    for (int i = 0; i < polyLines.length; i++) {
-      addRoute(mt.Route(
-          id: -1,
-          points: polyLines[i].points,
-          color: polyLines[i].color,
-          borderColor: polyLines[i].color,
-          strokeWidth: polyLines[i].strokeWidth));
-    }
-  }
-
-  Future<bool> publish() async {
-    return false;
-  }
-}
-
-/*
-
-SELECT * FROM drives 
-JOIN points_of_interest ON drives.id = points_of_interest.drive_id 
-
-QueryResultSet ([{id: 1, user_id: -1, title: Trip Name, sub_title: Trip summary , body: Trip details, 
-images: , max_lat: 0.0, min_lat: 0.0, max_long: 0.0, min_long: 0.0, added: 2024-05-18 22:57:56.570120, 
-drive_id: 0, type: 12, name: Albany Road, description: 0 miles - (0 minutes), latitude: 52.05884, longitude: -1.345583}, 
-
-{id: 2, user_id: -1, title: Trip Name, sub_title: Trip summary , body: Trip details, 
-images: , max_lat: 0.0, min_lat: 0.0, max_long: 0.0, min_long: 0.0, added: 2024-05-18 22:57:56.570120, 
-drive_id: 0, type: 12, name: Church Street, description: 6.1 miles - (13 minutes), latitude: 52.05884, longitude: -1.345583}, 
-
-{id: 3, user_id: -1, title: Trip Name, sub_title: Trip summary , body: Trip details, 
-images: , max_lat: 0.0, min_lat: 0.0, max_long: 0.0, min_long: 0.0, added: 2024-05-18 22:57:56.570120, 
-drive_id: 0, type: 15, name: Point of Interest name, description: Point of Interest description , latitude: 52.05884, longitude: -1.345583}])
-
-*/
 
 Future<List<MyTripItem>> tripItemFromDb({int driveId = -1}) async {
   final db = await DbHelper().db;
-  // int records = await recordCount('setup');
-  // if (records > 0){
-  /*
-  const String drivesQuery = '''
-      SELECT * FROM drives 
-      JOIN points_of_interest ON drives.id = points_of_interest.drive_id 
-      JOIN polylines ON drives.id = polylines.drive_id
-      ''';
-   */
   LatLng pos = const LatLng(0, 0);
 
-  await getPosition().then((currentPosition) {
+  await utils.getPosition().then((currentPosition) {
     pos = LatLng(currentPosition.latitude, currentPosition.longitude);
   });
   String drivesQuery =
@@ -2464,11 +1747,6 @@ class Drive {
   List<PointOfInterest> pointsOfInterest = [];
   List<Polyline> polyLines = [];
 
-/* 
-            '''CREATE TABLE drives(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, title TEXT, sub_title TEXT, body TEXT, 
-          images TEXT, max_lat REAL, min_lat REAL, max_long REAL, min_long REAL, added DATETIME)''');
-*/
-
   Drive({
     this.id = 0,
     required this.userId,
@@ -2576,11 +1854,6 @@ class Message {
   }
 }
 
-/*
-  factory GroupMember.fromMap(Map<String, dynamic> map) {
-    return GroupMember(
-      id: map['id'],
-*/
 class MessageLocal {
   int id = -1;
   GroupMember groupMember;
@@ -2598,10 +1871,6 @@ class MessageLocal {
       this.selected = false}) {
     received = DateTime.now();
   }
-/*
-            '''CREATE TABLE messages(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, target_id INTEGER, message TEXT, 
-        read INTEGER, received DATETIME)''');
-*/
 
   Map<String, dynamic> toMap() {
     return {
@@ -2617,21 +1886,6 @@ class MessageLocal {
 
 Future<List<MessageLocal>> messagesFromDb({int driveId = -1}) async {
   final db = await DbHelper().db;
-  // int records = await recordCount('setup');
-  // if (records > 0){
-  /*
-  const String drivesQuery = '''
-      SELECT * FROM drives 
-      JOIN points_of_interest ON drives.id = points_of_interest.drive_id 
-      JOIN polylines ON drives.id = polylines.drive_id
-
-      TABLE group_members(id INTEGER PRIMARY KEY AUTOINCREMENT, group_ids STRING, forename TEXT, surname TEXT, 
-            email TEXT, phone TEXT, status Integer, joined DATETIME, note TEXT, uri TEXT)'''); 
-      ''';messages(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, target_id INTEGER, message TEXT, 
-        read INTEGER, received DATETIME)''');
-
-   */
-
   String messagesQuery =
       '''SELECT group_members.forename, group_members.surname, group_members.group_ids, group_members.id, 
       group_members.phone, group_members.email,  messages.*  
@@ -2642,11 +1896,8 @@ Future<List<MessageLocal>> messagesFromDb({int driveId = -1}) async {
   List<MessageLocal> messages = [];
   try {
     List<Map<String, dynamic>> maps = await db.rawQuery(messagesQuery);
-    //   int memberId = -1;
-
     for (int i = 0; i < maps.length; i++) {
       try {
-        //     memberId = maps[i]['user_id'];
         messages.add(MessageLocal(
           id: maps[i]['id'],
           groupMember: GroupMember(
@@ -2667,8 +1918,6 @@ Future<List<MessageLocal>> messagesFromDb({int driveId = -1}) async {
   } catch (e) {
     debugPrint('Error: loading Message ${e.toString()}');
   }
-// E/SQLiteLog( 3905): (1) near ".": syntax error in "SELECT group_members.forename, group_members.surname, group_members.group_ids, group_members.id,
-
   return messages;
 }
 
@@ -2681,7 +1930,6 @@ class PopupValue {
 
 class SearchHelper {
   int poiIndex = -1;
-  //List<Polyline> = [];
 }
 
 class GoodRoad {
@@ -2692,7 +1940,6 @@ class GoodRoad {
   int pointIdx2 = -1;
   int markerIdx = -1;
   int pointOfInterestId = -1;
-//  String pointOfInterestUid = '';
   mt.Route? route;
   GoodRoad();
   bool get isGood => _isGood;
@@ -2704,7 +1951,6 @@ class GoodRoad {
     pointIdx2 = -1;
     markerIdx = -1;
     pointOfInterestId = -1;
-    //   pointOfInterestUid = '';
   }
 }
 

@@ -5,9 +5,8 @@ import 'dart:math';
 import 'package:drives/constants.dart';
 import 'package:drives/classes/classes.dart';
 import 'package:drives/classes/route.dart' as mt;
-// import 'package:drives/classes/map_markers.dart';
 import 'package:drives/screens/screens.dart';
-import 'package:drives/services/services.dart';
+import 'package:drives/services/services.dart' hide getPosition;
 import 'package:drives/models/models.dart';
 import 'package:drives/tiles/tiles.dart';
 import 'package:flutter/material.dart';
@@ -21,9 +20,8 @@ import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_map_location_marker/flutter_map_location_marker.dart';
+//import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:image_picker/image_picker.dart';
-
-// import 'package:reorderables/reorderables.dart';
 
 /*
 https://techblog.geekyants.com/implementing-flutter-maps-with-osm     /// Shows how to implement markers and group them
@@ -100,6 +98,13 @@ https://github.com/JaffaKetchup/flutter_map_tile_caching/blob/main/lib/src/backe
 
 int testInt = 0;
 
+enum MapHeights {
+  full,
+  headers,
+  pointOfInterest,
+  message,
+}
+
 enum AppState {
   loading,
   home,
@@ -145,16 +150,8 @@ enum HighliteActions {
 
 enum MessageActions { none, read, write, writing, reply, send, delete }
 
-enum MapHeights {
-  full,
-  headers,
-  pointOfInterest,
-  message,
-}
-
 class CreateTrip extends StatefulWidget {
   const CreateTrip({super.key});
-
   @override
   State<CreateTrip> createState() => _CreateTripState();
 }
@@ -216,7 +213,6 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   double _travelled = 0.0;
   int highlightedIndex = -1;
   final List<Follower> _following = [];
-  // List<mt.Route> _goodRoads = [];
   late LocationSettings _locationSettings;
   final ViewportFence _viewportFence = ViewportFence(
       screenFence:
@@ -224,33 +220,39 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   List<PointOfInterest> _pointsOfInterest = [];
   LatLng topRight = const LatLng(0, 0);
   LatLng bottomLeft = const LatLng(0, 0);
-
   bool _updateOverlays = true;
-
+  late final ExpandNotifier _expandNotifier;
   final ScrollController _scrollController = ScrollController();
   final ScrollController _preferencesScrollController = ScrollController();
   final mt.RouteAtCenter _routeAtCenter = mt.RouteAtCenter();
 
-  String _title = 'MotaTrip'; // _hints[0][0];
-
+  String _title = 'Drives'; // _hints[0][0];
   late AnimatedMapController _animatedMapController;
-
   late final StreamController<double?> _allignPositionStreamController;
   late final StreamController<void> _allignDirectionStreamController;
   late final LeadingWidgetController _leadingWidgetController;
-  final ImageRepository _imageRepository = ImageRepository();
+  // final ItemScrollController itemScrollControllser = ItemScrollController();
+  //final ScrollOffsetController scrollOffsetController =
+  //    ScrollOffsetController();
+  // final ItemPositionsListener itemPositionsListener =
+  //    ItemPositionsListener.create();
+  // final ImageRepository _imageRepository = ImageRepository();
   int initialLeadingWidgetValue = 0;
-  //  [AppState.createTrip, AppState.driveTrip].contains(_appState) ? 1 : 0;
   late AlignOnUpdate _alignPositionOnUpdate;
   late AlignOnUpdate _alignDirectionOnUpdate;
+
   final _dividerHeight = 35.0;
-
+  // final List<Card> _cards = [];
+  // late final TripItemRepository _tripItemRepository;
+  // late final PointOfInterestRepository _pointOfInterestRepository;
+  // late final GoodRoadRepository _goodRoadRepository;
   List<LatLng> routePoints = const [LatLng(51.478815, -0.611477)];
-
+  // final List<Feature> _features = [];
   String images = '';
   String stadiaMapsApiKey = 'ea533710-31bd-4144-b31b-5cc0578c74d7';
   late StyleReader _styleReader;
   late Style _style;
+  late final PublishedFeatures _publishedFeatures;
 
   /// Routine to add point of interest
   /// Identified as a point
@@ -380,11 +382,9 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
         return name;
       } else {
         return name;
-        //  throw Exception('Failed to load data: ${response.statusCode}');
       }
     } catch (e) {
       return name;
-      // throw Exception('Failed to load data: ${e.toString()}');
     }
   }
 
@@ -393,11 +393,14 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
     super.initState();
     _leadingWidgetController = LeadingWidgetController();
     _bottomNavController = RoutesBottomNavController();
+    _expandNotifier = ExpandNotifier(-1);
+    // _tripItemRepository = TripItemRepository();
+    //_pointOfInterestRepository = PointOfInterestRepository();
+    //_goodRoadRepository = GoodRoadRepository();
     _locationSettings =
         getGeolocatorSettings(defaultTargetPlatform: TargetPlatform.android);
     try {
       _loadedOK = dataFromDatabase();
-      // tripsFromWeb();
       _title = 'Create a new trip';
       _allignPositionStreamController = StreamController<double?>.broadcast();
       _animatedMapController = AnimatedMapController(vsync: this);
@@ -406,7 +409,6 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
       _alignDirectionOnUpdate = AlignOnUpdate.never; // never;
       fn1 = FocusNode();
       listHeight = -1;
-
       _preferencesScrollController.addListener(
         () {
           if (_preferencesScrollController.position.atEdge) {
@@ -441,7 +443,6 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
     _positionStream.cancel();
     _allignPositionStreamController.close();
     _allignDirectionStreamController.close();
-    // _leadingWidgetController.close();
     _animatedMapController.dispose();
     fn1.dispose();
     super.dispose();
@@ -521,16 +522,13 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   ) async {
     LatLng latLng1;
     Map<String, dynamic> apiData = {};
-    // if (_lastLatLng == const LatLng(0.00, 0.00)) {
     if (_startLatLng == const LatLng(0.00, 0.00)) {
       apiData = await addRoute(latLng2, latLng2);
-      // _startLatLng = latLng2;
       return apiData;
     }
     if (_currentTrip.routes().isNotEmpty &&
         _currentTrip.routes()[_currentTrip.routes().length - 1].points.length >
             1) {
-      // Let's assume simple add
       latLng1 = _currentTrip.routes()[_currentTrip.routes().length - 1].points[
           _currentTrip
                   .routes()[_currentTrip.routes().length - 1]
@@ -583,9 +581,7 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
     List<LatLng> routePoints = [];
     String avoid = setAvoiding();
 
-    /// http://router.project-osrm.org/route/v1/driving/-0.515525,51.43148;-1.2577262999999999,51.7520209?steps=true&annotations=true&geometries=geojson&overview=full
     var url = Uri.parse(
-        // 'http://router.project-osrm.org/route/v1/driving/$waypoints?steps=true&annotations=true&geometries=geojson&overview=full&exclude=motorway');
         '$urlRouter$waypoints?steps=true&annotations=true&geometries=geojson&overview=full$avoid'); //&exclude=motorway');
     try {
       var response = await http.get(url);
@@ -610,7 +606,6 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
     List<LatLng> routePoints = [];
     String avoid = setAvoiding();
     var url = Uri.parse(
-        // 'http://router.project-osrm.org/route/v1/driving/$waypoints?steps=true&annotations=true&geometries=geojson&overview=full');
         '$urlRouter$waypoints?steps=true&annotations=true&geometries=geojson&overview=full$avoid');
     try {
       var response = await http.get(url).timeout(const Duration(seconds: 2));
@@ -728,10 +723,6 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
     return result;
   }
 
-/*
-  waypointsFromPoints(10).then((waypoints) = {getRoutePoints(waypoints});
-*/
-
   List<Maneuver> getManeuvers() {
     List<Maneuver> maneuvers = [];
     return maneuvers;
@@ -808,7 +799,6 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
             onMenuTap: (index) {
               if (index == 0) {
                 _leadingWidget(_scaffoldKey.currentState);
-                //  _leadingWidgetController.changeWidget(1);
               } else {
                 _title = 'Create a new trip';
                 _leadingWidgetController.changeWidget(0);
@@ -825,7 +815,6 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
           ),
           iconTheme: const IconThemeData(color: Colors.white),
           backgroundColor: Colors.blue,
-          //flexibleSpace: const Text('Flexible Space'),
           bottom: (_appState == AppState.createTrip ||
                       _appState == AppState.driveTrip) &&
                   (_showSearch || _showPreferences)
@@ -878,14 +867,15 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
               return _getPortraitBody();
             } else {
               return const SizedBox(
-                  width: double.infinity,
-                  height: double.infinity,
-                  child: Align(
-                      alignment: Alignment.center,
-                      child: CircularProgressIndicator()));
+                width: double.infinity,
+                height: double.infinity,
+                child: Align(
+                  alignment: Alignment.center,
+                  child: CircularProgressIndicator(),
+                ),
+              );
             }
-
-            throw ('Error - FutureBuilder in main.dart');
+            throw ('Error - FutureBuilder in create_trips.dart');
           },
         ));
   }
@@ -902,15 +892,11 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
     _preferences.avoidFerries = Setup().avoidFerries;
     _preferences.avoidTollRoads = Setup().avoidTollRoads;
 
-    // _groups = await loadGroups();
-    // _groupMembers = await loadGroupMembers();
-
+    //  _features.addAll(await getFeatures(zoom: 10, onTap: pinTap));
+    _publishedFeatures = await getPublishedFeatures(
+        pinTap: pinTap, expandNotifier: _expandNotifier);
     debugPrint(
         'users: $userRecords  drives: $drivesRecords  polylines: $polyLineRecords  points of interest: $poiRecords');
-
-    // tripItemFromDb();
-
-    // var user = alterTable();
     if (setupRecords > 0) {
       try {
         Setup().loaded;
@@ -934,35 +920,138 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
     return true;
   }
 
-  /* Future<Style> _readStyle() => StyleReader(
-          uri:
-              'https://tiles.stadiamaps.com/styles/osm_bright.json?api_key={key}',
-          apiKey: stadiaMapsApiKey,
-          logger: const Logger.console())
-      .read();
-*/
-  ///
+  pinTap(int index) async {
+    Map<String, dynamic> infoMap = await getDialogData(
+        features: _publishedFeatures.features,
+        index: index); //.then((infoMap){}
+    if (context.mounted) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) {
+          bool canPop = false;
+          return StatefulBuilder(
+            builder: (context, setStae) {
+              return PopScope(
+                // onPopInvokedWithResult: () =>   debugPrint('pop'),
+
+                canPop: canPop,
+                child: AlertDialog(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(infoMap['title'],
+                      style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold)), //textStyle),
+                  elevation: 5,
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SingleChildScrollView(
+                        child: infoMap['content'],
+                      ),
+                    ],
+                  ),
+                  actions: actionButtons(
+                    context,
+                    [],
+                    ['Close'],
+                  ),
+                ),
+              );
+            },
+          );
+        },
+      );
+    }
+  }
+
+  Future<Map<String, dynamic>> getDialogData(
+      {required List<Feature> features, required int index}) async {
+    Feature feature = features[index];
+    Key cardKey = Key('pin_${feature.row}');
+    Map<String, dynamic> mapInfo = {
+      'key': feature.row,
+      'title': 'N/A',
+      'content': Text('N/A'),
+      'images': '',
+      'details': false
+    };
+
+    for (int i = 0; i < _publishedFeatures.cards.length; i++) {
+      if (_publishedFeatures.cards[i].key == cardKey) {
+        mapInfo['content'] = _publishedFeatures.cards[i];
+        break;
+      }
+    }
+    mapInfo['key'] = feature.row;
+    switch (feature.type) {
+      case 0:
+        TripItem tripItem = await _publishedFeatures.tripItemRepository
+            .loadTripItem(key: feature.row, id: feature.id, uri: feature.uri);
+        mapInfo = {
+          'title': tripItem.heading,
+          'content': tripItem.subHeading,
+        };
+        break;
+      case 1:
+        PointOfInterest? pointOfInterest = await _publishedFeatures
+            .pointOfInterestRepository
+            .loadPointOfInterest(
+                key: feature.row, id: feature.id, uri: feature.uri);
+        if (pointOfInterest != null) {
+          mapInfo['title'] = poiTypes[feature.poiType]['name'];
+        }
+
+        break;
+
+      case 2:
+        mt.Route? goodRoad = await _publishedFeatures.goodRoadRepository
+            .loadGoodRoad(key: feature.row, id: feature.id, uri: feature.uri);
+        if (goodRoad != null) {
+          for (Feature feature in features) {
+            if (feature.type == 1 &&
+                feature.uri == goodRoad.pointOfInterestUri) {
+              PointOfInterest? pointOfInterest = await _publishedFeatures
+                  .pointOfInterestRepository
+                  .loadPointOfInterest(
+                      key: feature.row, id: feature.id, uri: feature.uri);
+              if (pointOfInterest != null) {
+                mapInfo['title'] =
+                    poiTypes[feature.poiType]; //pointOfInterest.getName();
+                mapInfo['content'] = pointOfInterest.getDescription();
+                return mapInfo;
+              }
+            }
+          }
+        }
+        break;
+      default:
+        break;
+    }
+    return mapInfo;
+  }
 
   Widget _getPortraitBody() {
     return SingleChildScrollView(
       child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            AnimatedContainer(
-              duration: Duration(milliseconds: _resizeDelay),
-              curve: Curves.easeInOut, // fastOutSlowIn,
-              height: mapHeight,
-              width: MediaQuery.of(context).size.width,
-              child: _handleMap(),
-            ),
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          AnimatedContainer(
+            duration: Duration(milliseconds: _resizeDelay),
+            curve: Curves.easeInOut, // fastOutSlowIn,
+            height: mapHeight,
+            width: MediaQuery.of(context).size.width,
+            child: _handleMap(),
+          ),
 
-            _handleBottomSheetDivider(), // grab rail - GesureDetector()
-            const SizedBox(
-              height: 5,
-            ),
-            _handleTripInfo(), // Allows the trip to be planned
-          ]),
+          _handleBottomSheetDivider(), // grab rail - GesureDetector()
+          const SizedBox(
+            height: 5,
+          ),
+          _handleTripInfo(), // Allows the trip to be planned
+        ],
+      ),
     );
   }
 
@@ -996,7 +1085,6 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
               SizedBox(
                 width: 210,
                 child: CheckboxListTile(
-                  //  activeColor: Colors.white,
                   hoverColor: Colors.white,
                   title: const Text('Avoid toll roads',
                       style: TextStyle(color: Colors.white)),
@@ -1020,12 +1108,10 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
             ],
           ),
         ),
-        //  if (!_preferences.isRight) ...[
         Icon(
           _preferences.isRight ? null : Icons.arrow_forward_ios,
           color: Colors.white,
         )
-        //  ],
       ]),
     );
   }
@@ -1104,74 +1190,70 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
 
   Column _handleFabs() {
     return Column(
-        mainAxisAlignment: MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          if (/*[AppState.createTrip, AppState.driveTrip].contains(_appState) && */
-              !_showSearch && !_showPreferences) ...[
-            const SizedBox(
-              height: 175,
+      mainAxisAlignment: MainAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        if (/*[AppState.createTrip, AppState.driveTrip].contains(_appState) && */
+            !_showSearch && !_showPreferences) ...[
+          const SizedBox(
+            height: 175,
+          ),
+          if ([TripState.recording, TripState.following].contains(_tripState) &&
+              _speed > 0.01) ...[
+            CircleAvatar(
+              radius: 28,
+              backgroundColor: Colors.blue,
+              child: Text('${_speed.truncate()}',
+                  style: const TextStyle(fontSize: 20)),
             ),
-            if ([TripState.recording, TripState.following]
-                    .contains(_tripState) &&
-                _speed > 0.01) ...[
-              CircleAvatar(
-                radius: 28,
-                backgroundColor: Colors.blue,
-                child: Text('${_speed.truncate()}',
-                    style: const TextStyle(fontSize: 20)),
-              ),
-            ],
-            const SizedBox(
-              height: 10,
-            ),
-            if (_tripState == TripState.recording) ...[
-              FloatingActionButton(
-                onPressed: () {
-                  setState(() {
-                    //  _showTarget = !_showTarget;
-                    _goodRoad.isGood = !_goodRoad.isGood;
-                    if (_goodRoad.isGood) {
-                      addGoodRoad(
-                        position: LatLng(_currentPosition.latitude,
-                            _currentPosition.longitude),
-                      );
-                    }
-                  });
-                },
-                backgroundColor: _goodRoad.isGood
-                    ? uiColours.keys.toList()[Setup().goodRouteColour]
-                    : Colors.blue,
-                shape: const CircleBorder(),
-                child:
-                    Icon(_goodRoad.isGood ? Icons.remove_road : Icons.add_road),
-              )
-            ],
-            const SizedBox(
-              height: 10,
-            ),
+          ],
+          const SizedBox(
+            height: 10,
+          ),
+          if (_tripState == TripState.recording) ...[
             FloatingActionButton(
-              onPressed: () async {
-                _currentPosition = await Geolocator.getCurrentPosition();
-                debugPrint('Position: ${_currentPosition.toString()}');
-                _animatedMapController.animateTo(
-                    dest: LatLng(
-                        _currentPosition.latitude, _currentPosition.longitude));
+              onPressed: () {
                 setState(() {
-                  //  _showTarget = !_showTarget;
+                  _goodRoad.isGood = !_goodRoad.isGood;
+                  if (_goodRoad.isGood) {
+                    addGoodRoad(
+                      position: LatLng(_currentPosition.latitude,
+                          _currentPosition.longitude),
+                    );
+                  }
                 });
               },
-              backgroundColor: Colors.blue,
+              backgroundColor: _goodRoad.isGood
+                  ? uiColours.keys.toList()[Setup().goodRouteColour]
+                  : Colors.blue,
               shape: const CircleBorder(),
-              child: const Icon(Icons.my_location),
-            ),
-            //  ]),
-          ]
-        ]);
+              child:
+                  Icon(_goodRoad.isGood ? Icons.remove_road : Icons.add_road),
+            )
+          ],
+          const SizedBox(
+            height: 10,
+          ),
+          FloatingActionButton(
+            onPressed: () async {
+              _currentPosition = await Geolocator.getCurrentPosition();
+              debugPrint('Position: ${_currentPosition.toString()}');
+              _animatedMapController.animateTo(
+                  dest: LatLng(
+                      _currentPosition.latitude, _currentPosition.longitude));
+              setState(() {});
+            },
+            backgroundColor: Colors.blue,
+            shape: const CircleBorder(),
+            child: const Icon(Icons.my_location),
+          ),
+          //  ]),
+        ]
+      ],
+    );
   }
 
 /*
- 
 This looks like the way of implementing the vector tile layer from
 OSRM
 
@@ -1208,60 +1290,55 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
             mapController: _animatedMapController.mapController,
             options: MapOptions(
               onMapEvent: checkMapEvent,
-              onMapReady: () {
+              onMapReady: () async {
+                Fence newFence = Fence.fromBounds(
+                    _animatedMapController.mapController.camera.visibleBounds);
                 mapController.mapEventStream.listen((event) {});
+                _publishedFeatures.update(screenFence: newFence).then(
+                  (update) {
+                    if (update) {
+                      setState(() => {});
+                    }
+                  },
+                );
               },
               onPositionChanged: (position, hasGesure) {
                 if (_tripState == TripState.manual) {
                   _tripActions = TripActions.none;
-                  // _routeAtCenter.context =
                   _routeAtCenter.routes = _currentTrip.routes();
                   int routeIdx = _routeAtCenter.getPolyLineNearestCenter();
-                  //       if (routeIdx >= 0) {
-                  //         _currentTrip.setRouteColour(routeIdx, Colors.red);
-                  //         highlightedIndex = routeIdx;
-                  //         //  _currentTrip.routes()[routeIdx].colour = Colors.red;
-                  //      }
-
-                  // if (routeIdx > -1) {
                   for (int i = 0; i < _currentTrip.routes().length; i++) {
-                    //  _currentTrip.routes()[i].borderColor = _currentTrip.routes()[i].color;
                     if (i == routeIdx) {
                       _tripActions = TripActions.routeHighlited;
                       _currentTrip.setRouteColour(
                           i, uiColours.keys.toList()[Setup().selectedColour]);
-
-                      //   _currentngTrip.routes()[i].colour = Colors.red;
-                      //  uiColours.keys.toList()[Setup().selectedColour];
                       debugPrint(
-                          'setti route()[i].colour => ${uiColours.values.toList()[Setup().selectedColour]}');
+                          'setting route()[i].colour => ${uiColours.values.toList()[Setup().selectedColour]}');
                     } else {
                       _currentTrip.setRouteColour(
                           i, uiColours.keys.toList()[Setup().routeColour]);
                     }
                   }
-                  //       }
-
                   highlightedIndex = routeIdx;
-                } else {
-                  //      updateTracking();
                 }
                 if (hasGesure) {
                   _updateMarkerSize(position.zoom);
                 }
 
-                LatLng northEast = _animatedMapController
-                    .mapController.camera.visibleBounds.northEast;
-                LatLng southWest = _animatedMapController
-                    .mapController.camera.visibleBounds.southWest;
+                Fence newFence = Fence.fromBounds(
+                    _animatedMapController.mapController.camera.visibleBounds);
+
                 if (_updateOverlays) {
-                  if (_viewportFence.fenceUpdate(
-                      screenFence:
-                          Fence(northEast: northEast, southWest: southWest))) {
+                  if (_viewportFence.fenceUpdate(screenFence: newFence)) {
                     updateOverlays(_viewportFence.screenFence.northEast,
                         _viewportFence.screenFence.southWest);
                   }
                 }
+                _publishedFeatures.update(screenFence: newFence).then((update) {
+                  if (update) {
+                    setState(() => {});
+                  }
+                });
                 _mapRotation =
                     _animatedMapController.mapController.camera.rotation;
               },
@@ -1280,8 +1357,6 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
               VectorTileLayer(
                   theme: _style.theme,
                   sprites: _style.sprites,
-                  //          tileProviders:
-                  //              TileProviders({'openmaptiles': _tileProvider()}),
                   tileProviders: _style.providers,
                   layerMode: VectorTileLayerMode.vector,
                   tileOffset: TileOffset.DEFAULT),
@@ -1311,30 +1386,25 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
                 ),
               ),
               mt.RouteLayer(
-                // polylineCulling: false, //true,
                 polylines: _currentTrip.routes(),
-                onTap: routeTapped,
-                onMiss: routeMissed,
-                routeAtCenter: _routeAtCenter,
+                //  onTap: routeTapped,
+                //  onMiss: routeMissed,
+                //  routeAtCenter: _routeAtCenter,
               ),
               mt.RouteLayer(
-                // polylineCulling: false, //true,
+                polylines: _publishedFeatures.goodRoads,
+              ),
+              mt.RouteLayer(
                 polylines: _currentTrip.goodRoads(),
-                onTap: routeTapped,
-                onMiss: routeMissed,
-                routeAtCenter: _routeAtCenter,
+                //     onTap: routeTapped,
+                //     onMiss: routeMissed,
+                //     routeAtCenter: _routeAtCenter,
               ),
-              /*
-              mt.RouteLayer(
-                polylineCulling: false, //true,
-                polylines: _goodRoads,
-                onTap: routeTapped,
-                onMiss: routeMissed,
-                routeAtCenter: _routeAtCenter,
-              ),
-              */
               MarkerLayer(markers: _currentTrip.pointsOfInterest()),
               MarkerLayer(markers: _pointsOfInterest),
+              MarkerLayer(
+                  markers: _publishedFeatures.markers,
+                  alignment: Alignment.topCenter),
               MarkerLayer(markers: _following),
             ],
           ),
@@ -1395,15 +1465,12 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
   updateOverlays(LatLng ne, LatLng sw) async {
     _updateOverlays = false;
     try {
-      // getGoodRoads(ne, sw).then((goodRoads) => _goodRoads = goodRoads).then(
-      //       (_) =>
       getPointsOfInterest(ne, sw).then(
         (pois) => setState(
           () {
             _pointsOfInterest = pois;
           },
         ),
-        //  ),
       );
     } finally {
       _updateOverlays = true;
@@ -1415,7 +1482,6 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
     List<ActionChip> chips = [];
     if (_tripState == TripState.startFollowing) {
       stopFollowing();
-      //   followRoute();
     }
     final List<String> labels = [
       'Create manually',
@@ -1507,9 +1573,7 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
         ..add('Point of interest');
     }
     if (_tripState == TripState.manual &&
-        _currentTrip.pointsOfInterest().isEmpty) {
-      // chipNames.add('Back');
-    }
+        _currentTrip.pointsOfInterest().isEmpty) {}
 
     if ([TripState.automatic, TripState.stoppedRecording, TripState.paused]
         .contains(_tripState)) {
@@ -1536,10 +1600,6 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
         chipNames.add('Great road');
       }
     }
-    //  if (_highliteActions == HighliteActions.greatRoadStarted) {
-    //    chipNames.add('Great road end');
-    //  }
-
     if ([TripState.stoppedFollowing, TripState.notFollowing]
         .contains(_tripState)) {
       chipNames.add('Follow route');
@@ -1564,8 +1624,6 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
       }
       if (_tripState != TripState.following) {
         chipNames.add('Edit route');
-        //    ..add('Clear trip')
-        // ..add('Back');
       }
     }
 
@@ -1625,7 +1683,6 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
       _showMask = true;
       _tripActions = TripActions.none;
       _editPointOfInterest = -1;
-      // _poiDetailIndex = -1;
       if (_currentTrip.pointsOfInterest().isEmpty) {
         _lastLatLng == const LatLng(0.00, 0.00);
         _startLatLng = const LatLng(0.00, 0.00);
@@ -1732,7 +1789,6 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
     while (_tripActions != TripActions.saved && ++tries < 5) {
       await Future.delayed(const Duration(seconds: 1));
       setState(() {});
-      // tries++;
     }
 
     if (_tripActions != TripActions.saved) {
@@ -1750,7 +1806,6 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
       }
     }
   }
-  // _saveTrip();
 
   void clearTrip() {
     setState(() {
@@ -1763,7 +1818,6 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
 
   void splitRoute() async {
     _showTarget = true;
-
     int idx = insertWayointAt(
         pointsOfInterest: _currentTrip.pointsOfInterest(),
         pointToFind: _routeAtCenter.pointOnRoute);
@@ -1795,14 +1849,8 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
   }
 
   void greatRoadEnd() async {
-    // String txt =
-    //     'Great road end'; //_goodRoad.isGood ? 'Great road start' : 'Great road end';
-    // LatLng pos = _animatedMapController.mapController.camera.center;
-    // _addGreatRoadStartLabel(id, userId, 13, txt, '', 80, pos);
     setState(() {
       _highliteActions = HighliteActions.greatRoadEnded;
-      //  _cutRoutes.clear();
-      //  _splitRoute();
       if (_routeAtCenter.routeIndex < _currentTrip.routes().length) {
         _goodRoad.routeIdx2 = _routeAtCenter.routeIndex;
         _goodRoad.pointIdx2 = _routeAtCenter.pointIndex;
@@ -1834,16 +1882,6 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
       }
       _goodRoad.isGood = false;
     });
-/*
-    _goodRoad.isGood = false;
-    if (_currentTrip.pointsOfInterest().isEmpty) {
-      _currentTrip.clearRoutes();
-      _currentTrip.clearManeuvers();
-    }
-    await addWaypoint().then((_) => setState(() {
-          _tripActions = TripActions.none;
-        }));
-*/
   }
 
   void followRoute() async {
@@ -1891,11 +1929,8 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
           .contains(_tripState)) {
         if (_currentTrip.getId() < 0 && _currentTrip.getDriveUri().isNotEmpty) {
           _appState = AppState.download;
-          //  _bottomNavigationsBarIndex = 1;
         } else {
           _appState = AppState.myTrips;
-
-          // _bottomNavigationsBarIndex = 3;
         }
         clearTrip();
       }
@@ -1954,7 +1989,6 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
       _tripActions = TripActions.none;
       _appState = AppState.createTrip;
       _tripState = TripState.manual;
-      // _bottomNavigationsBarIndex = 2;
     });
   }
 
@@ -2037,8 +2071,6 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
               goodPoints.add(_currentTrip.routes()[i].points[j]);
             }
           }
-
-          /// 2) X == b     2nd bit of b is
         } else if (_goodRoad.routeIdx2 == _goodRoad.routeIdx1) {
           _currentTrip.routes()[_goodRoad.routeIdx2 + 1].color =
               _routeColour(true);
@@ -2050,8 +2082,6 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
             goodPoints
                 .add(_currentTrip.routes()[_goodRoad.routeIdx2 + 1].points[j]);
           }
-
-          /// 3) X == b+1   1st bit of b2 is good
         } else if (_goodRoad.routeIdx2 == _goodRoad.routeIdx1 + 1) {
           _currentTrip.routes()[_goodRoad.routeIdx2].color = _routeColour(true);
           _currentTrip.routes()[_goodRoad.routeIdx2].borderColor =
@@ -2062,8 +2092,6 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
             goodPoints
                 .add(_currentTrip.routes()[_goodRoad.routeIdx2].points[j]);
           }
-
-          /// 4) X > b+1    all from b2 to c are good
         } else if (_goodRoad.routeIdx2 > _goodRoad.routeIdx1) {
           for (int i = _goodRoad.routeIdx1 + 1; i < _goodRoad.routeIdx2; i++) {
             _currentTrip.routes()[i].color = _routeColour(true);
@@ -2106,11 +2134,9 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
       behavior: HitTestBehavior.translucent,
       child: AbsorbPointer(
         child: Container(
-          // margin: const EdgeInsets.fromLTRB(0, 0, 0, 10),
           color: const Color.fromARGB(255, 158, 158, 158),
           height: _dividerHeight,
           width: MediaQuery.of(context).size.width,
-          //  padding: const EdgeInsets.fromLTRB(5, 0, 5, 15),
           child: Icon(
             Icons.drag_handle,
             size: _dividerHeight,
@@ -2132,14 +2158,10 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
           listHeight = mapHeights[0] - mapHeight;
         });
       },
-      //     onTap: adjustMapHeight(
-      //        mapHeight == MapHeights.full ? MapHeights.headers : MapHeights.full),
-    ); //);
+    );
   }
 
   SizedBox _showGroup() {
-    // List<Follower> sortedFollowing = _following
-    //   ..sort((item1, item2) => item2.compareTo(item1));
     return SizedBox(
       height: listHeight,
       child: ListView.builder(
@@ -2216,7 +2238,6 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
       'Stopping for a break',
       'Stuck in traffic'
     ];
-    //   String chosen;
     showDialog<void>(
       context: context,
       builder: (BuildContext context) {
@@ -2251,7 +2272,6 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
                                 ))
                             .toList(),
                         onChanged: (item) => setState(() {}),
-                        //   setState(() => chosen = item.toString()),
                       ),
                     ),
                   ),
@@ -2262,20 +2282,21 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
                       ElevatedButton(
                         onPressed: () {},
                         child: Expanded(
-                            flex: 1,
-                            child: Padding(
-                                padding: const EdgeInsets.all(10),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    const Icon(Icons.phone),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                        'Telephone ${_following[index].phoneNumber}'),
-                                  ],
-                                ))),
+                          flex: 1,
+                          child: Padding(
+                            padding: const EdgeInsets.all(10),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.phone),
+                                const SizedBox(width: 8),
+                                Text(
+                                    'Telephone ${_following[index].phoneNumber}'),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
-                      //  Text('Text'),
                     ],
                   )
                 ]
@@ -2335,8 +2356,8 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
                           index: index,
                           pointOfInterest:
                               _currentTrip.pointsOfInterest()[index],
-                          imageRepository: _imageRepository,
-                          onExpandChange: expandChange,
+                          imageRepository: _publishedFeatures.imageRepository,
+                          onExpandChange: (expanded) => expandChange,
                           onIconTap: iconButtonTapped,
                           onDelete: removePointOfInterest,
                           onRated: onPointOfInterestRatingChanged,
@@ -2368,12 +2389,11 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
             SliverToBoxAdapter(
               child: PointOfInterestTile(
                 key: ValueKey(_editPointOfInterest),
-                //  pointOfInterestController: _pointOfInterestController,
                 index: _editPointOfInterest,
                 pointOfInterest:
                     _currentTrip.pointsOfInterest()[_editPointOfInterest],
-                imageRepository: _imageRepository,
-                onExpandChange: expandChange,
+                imageRepository: _publishedFeatures.imageRepository,
+                onExpandChange: (expanded) => expandChange,
                 onIconTap: iconButtonTapped,
                 onDelete: removePointOfInterest,
                 onRated: onPointOfInterestRatingChanged,
@@ -2381,7 +2401,7 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
                 canEdit: _appState != AppState.driveTrip,
               ),
             )
-          ] //     iconButtonTapped  expandChange      pointOfInterestTile(_editPointOfInterest)),
+          ]
         ],
       ),
     );
@@ -2406,18 +2426,12 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
   }
 
   Future<void> loadTrip(int index) async {
-    /// Flutter uses pass-by-reference for all objects (not int bool etc which are pass-by-value)
-    /// so clearing the _currentTrip.pointsOfInterest will also clear _myTripItems[index].pointsOfInterest
-    /// if the _myTripItems[index] is the currently just entered trip
-
     int driveId = _myTripItems[index].getDriveId();
-
     _currentTrip = _myTripItems[index];
     await _currentTrip.loadLocal(driveId);
     _currentTrip.setIndex(index);
 
     setState(() {
-      //   _bottomNavigationsBarIndex = 2;
       _tripState = TripState.notFollowing;
       _alignDirectionOnUpdate = AlignOnUpdate.never;
       _alignPositionOnUpdate = AlignOnUpdate.never;
@@ -2466,45 +2480,25 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
           builder: (context) => ShareForm(
                 tripItem: currentTrip,
               )),
-    ).then((value) {
-      setState(() {
-        currentTrip.showMethods = true;
-      });
-    });
+    ).then(
+      (value) {
+        setState(
+          () {
+            currentTrip.showMethods = true;
+          },
+        );
+      },
+    );
     return;
   }
 
   Future<void> deleteTrip(int index) async {
-    // _indexToDelete = index;
     Utility().showOkCancelDialog(
         context: context,
         alertTitle: 'Permanently delete trip?',
         alertMessage: _myTripItems[index].getHeading(),
-        okValue: index, // _myTripItems[index].getDriveId(),
+        okValue: index,
         callback: onConfirmDeleteTrip);
-  }
-
-  Future<void> publishTrip2(int index) async {
-    String driveUI = '';
-    int driveId = _myTripItems[index].getDriveId();
-    postTrip(_myTripItems[index]).then((driveUi) {
-      driveUI = driveUi['id'];
-      for (PointOfInterest pointOfInterest
-          in _myTripItems[index].pointsOfInterest()) {
-        postPointOfInterest(pointOfInterest, driveUI);
-      }
-    }).then((_) async {
-      List<mt.Route> polylines = await loadPolyLinesLocal(driveId, type: 0);
-      postPolylines(polylines: polylines, driveUid: driveUI, type: 0);
-
-      polylines = await loadPolyLinesLocal(driveId, type: 1);
-      if (polylines.isNotEmpty) {
-        postPolylines(polylines: polylines, driveUid: driveUI, type: 1);
-      }
-      List<Maneuver> maneuvers = await loadManeuversLocal(driveId);
-      postManeuvers(maneuvers, driveUI);
-    });
-    return;
   }
 
   Future<void> onGetTrip(int index) async {
@@ -2584,7 +2578,6 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
                           child: const Icon(Icons.drag_handle)),
                   title: Text(getTitles(index)[0]),
                   subtitle: Text(getTitles(index)[1]),
-                  //  contentPadding: const EdgeInsets.fromLTRB(5, 5, 5, 30),
                   onLongPress: () => {
                         _animatedMapController.animateTo(
                             dest: _currentTrip.pointsOfInterest()[index].point)
@@ -2597,10 +2590,8 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
                   style: IconButton.styleFrom(
                       elevation: 5,
                       shadowColor: const Color.fromRGBO(95, 94, 94, 0.984),
-                      //   maximumSize: Size(12, 12),
                       backgroundColor: const Color.fromARGB(214, 245, 6, 6)),
                   onPressed: () {
-                    //    debugPrint('Button No:$i');
                     insertAfter = insertAfter == index ? -1 : index;
                     _showTarget = insertAfter == index;
                     setState(() {});
@@ -2620,86 +2611,82 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
       Padding(
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
         child: TextFormField(
-            autofocus: _tripActions ==
-                TripActions.headingDetail, //  tripItem.heading.isEmpty,
-            focusNode: fn1,
-            textInputAction: TextInputAction.next,
-            readOnly: _tripState == TripState.following,
-            //    enabled: _appState != AppState.driveTrip,
-            textAlign: TextAlign.start,
-            keyboardType: TextInputType.streetAddress,
-            textCapitalization: TextCapitalization.words,
-            decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-              hintText: 'Give your trip a name...',
-              labelText: 'Trip name',
-            ),
-            style: Theme.of(context).textTheme.bodyLarge,
-            initialValue:
-                _currentTrip.getHeading(), //widget.port.warning.toString(),
-            onChanged: (text) => setState(() {
-                  _currentTrip.setHeading(text);
-                })
-            // () => widget.port.warning = double.parse(text)),
-            ),
+          autofocus: _tripActions ==
+              TripActions.headingDetail, //  tripItem.heading.isEmpty,
+          focusNode: fn1,
+          textInputAction: TextInputAction.next,
+          readOnly: _tripState == TripState.following,
+          textAlign: TextAlign.start,
+          keyboardType: TextInputType.streetAddress,
+          textCapitalization: TextCapitalization.words,
+          decoration: const InputDecoration(
+            border: OutlineInputBorder(),
+            hintText: 'Give your trip a name...',
+            labelText: 'Trip name',
+          ),
+          style: Theme.of(context).textTheme.bodyLarge,
+          initialValue:
+              _currentTrip.getHeading(), //widget.port.warning.toString(),
+          onChanged: (text) => setState(
+            () {
+              _currentTrip.setHeading(text);
+            },
+          ),
+        ),
       ),
       Padding(
         padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
         child: TextFormField(
-            readOnly: _tripState == TripState.following,
-            //  enabled: _appState != AppState.driveTrip,
-            autofocus: false,
-            textInputAction: TextInputAction.next,
-            textAlign: TextAlign.start,
-            keyboardType: TextInputType.multiline,
-            maxLines: null,
-            textCapitalization: TextCapitalization.sentences,
-            spellCheckConfiguration: const SpellCheckConfiguration(),
-            decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-              hintText: 'Enter a short summary of your trip...',
-              labelText: 'Trip summary',
-            ),
-            style: Theme.of(context).textTheme.bodyLarge,
-            initialValue:
-                _currentTrip.getSubHeading(), //widget.port.warning.toString(),
-            autovalidateMode: AutovalidateMode.onUserInteraction,
-            onChanged: (text) => setState(
-                  () {
-                    _currentTrip.setSubHeading(text);
-                  },
-                )
-            // () => widg,,et.port.warning = double.parse(text)),
-            ),
+          readOnly: _tripState == TripState.following,
+          autofocus: false,
+          textInputAction: TextInputAction.next,
+          textAlign: TextAlign.start,
+          keyboardType: TextInputType.multiline,
+          maxLines: null,
+          textCapitalization: TextCapitalization.sentences,
+          spellCheckConfiguration: const SpellCheckConfiguration(),
+          decoration: const InputDecoration(
+            border: OutlineInputBorder(),
+            hintText: 'Enter a short summary of your trip...',
+            labelText: 'Trip summary',
+          ),
+          style: Theme.of(context).textTheme.bodyLarge,
+          initialValue:
+              _currentTrip.getSubHeading(), //widget.port.warning.toString(),
+          autovalidateMode: AutovalidateMode.onUserInteraction,
+          onChanged: (text) => setState(
+            () {
+              _currentTrip.setSubHeading(text);
+            },
+          ),
+        ),
       ),
       Padding(
         padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
         child: TextFormField(
-            readOnly: _tripState == TripState.following,
-            autofocus: false,
-            textInputAction: TextInputAction.done,
-            // enabled: _appState != AppState.driveTrip,
-            textAlign: TextAlign.start,
-            maxLines: null,
-            keyboardType: TextInputType.multiline,
-            textCapitalization: TextCapitalization.sentences,
-            spellCheckConfiguration: const SpellCheckConfiguration(),
-            decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-              hintText: 'Describe details of your trip...',
-              labelText: 'Trip details',
-            ),
-            style: Theme.of(context).textTheme.bodyLarge,
-            initialValue:
-                _currentTrip.getBody(), //widget.port.warning.toString(),
-            autovalidateMode: AutovalidateMode.onUserInteraction,
-            onChanged: (text) => setState(
-                  () {
-                    _currentTrip.setBody(text);
-                  },
-                )
-            // () => widget.port.warning = double.parse(text)),
-            ),
+          readOnly: _tripState == TripState.following,
+          autofocus: false,
+          textInputAction: TextInputAction.done,
+          textAlign: TextAlign.start,
+          maxLines: null,
+          keyboardType: TextInputType.multiline,
+          textCapitalization: TextCapitalization.sentences,
+          spellCheckConfiguration: const SpellCheckConfiguration(),
+          decoration: const InputDecoration(
+            border: OutlineInputBorder(),
+            hintText: 'Describe details of your trip...',
+            labelText: 'Trip details',
+          ),
+          style: Theme.of(context).textTheme.bodyLarge,
+          initialValue:
+              _currentTrip.getBody(), //widget.port.warning.toString(),
+          autovalidateMode: AutovalidateMode.onUserInteraction,
+          onChanged: (text) => setState(
+            () {
+              _currentTrip.setBody(text);
+            },
+          ),
+        ),
       ),
     ]);
   }
@@ -2753,9 +2740,6 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
           _lastLatLng = pos;
           _travelled = 0.0;
           _start = DateTime.now();
-          // _lastCheck = DateTime.now();
-          //  _tripDistance = 0;
-          //    _totalDistance = 0;
         },
       );
     }
@@ -2769,7 +2753,6 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
     }
     setState(() {});
     _goodRoad.isGood = false;
-    // _tracking = trackingOn;
   }
 
   /// Uses Geolocator.getPositionStream to get a stream of locations. Triggers posotion update
@@ -2789,7 +2772,6 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
         if (_tripState == TripState.recording) {
           if (_lastLatLng == const LatLng(0.00, 0.00)) {
             _lastLatLng = pos;
-            // _tripDistance = 0;
             _currentTrip.clearRoutes();
             _currentTrip.addRoute(mt.Route(
                 id: -1,
@@ -2926,10 +2908,7 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
 
   routeTapped(routes, details) {
     if (details != null) {
-      setState(() {
-        //  debugPrint(
-        //      'Route tapped routes: ${routes().toString()}  details: ${details.toString()}');
-      });
+      setState(() {});
     }
   }
 
@@ -2951,8 +2930,6 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
   }
 
   iconButtonTapped(var details) {
-    // if (details != null) {
-    //  debugPrint('IconButton pressed');
     if (_editPointOfInterest > -1) {
       _animatedMapController.animateTo(
           dest: _currentTrip.pointsOfInterest()[_editPointOfInterest].point);
@@ -3050,9 +3027,7 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
       String err = e.toString();
       debugPrint('Error: $err');
     }
-    setState(() {
-      //  mapHeight = height;
-    });
+    setState(() {});
     return _currentTrip.getDriveId();
   }
 
@@ -3062,36 +3037,6 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
     return await mapBoundary.toImage();
   }
 
-/*
-  Widget _getOverlay() {
-    return ColorFiltered(
-      colorFilter: const ColorFilter.mode(Colors.black54, BlendMode.srcOut),
-      child: Stack(
-        children: [
-          Container(
-            decoration: const BoxDecoration(
-              color: Colors.transparent,
-            ),
-            child: Align(
-              alignment: Alignment.center,
-              child: Container(
-                margin: const EdgeInsets.only(right: 4, bottom: 4),
-                height: 80,
-                width: 80,
-                decoration: BoxDecoration(
-                  color: Colors
-                      .black, // Color does not matter but should not be transparent
-
-                  borderRadius: BorderRadius.circular(40),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-*/
   Widget _getOverlay2() {
     return ClipPath(
       clipper: InvertedClipper(),
@@ -3103,7 +3048,7 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
     );
   }
 
-  /// _MyHomePageState Class End -----------------------------------------
+  /// _CreateTripState Class End -----------------------------------------
 }
 
 /// StickyMenuDeligate provides a ToggleButton menu at the top of the sliverList
@@ -3136,26 +3081,26 @@ class StickyMenuDeligate extends SliverPersistentHeaderDelegate {
     return Container(
       color: const Color.fromARGB(255, 226, 225, 225),
       child: Flex(
-          direction: Axis.horizontal,
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ToggleButtons(
-              isSelected: states,
-              borderRadius: const BorderRadius.all(Radius.circular(8)),
-              selectedBorderColor: Colors.blue[700],
-              selectedColor: Colors.white,
-              splashColor: Colors.grey,
-              fillColor: Colors.blue[400],
-              color: Colors.blue[400],
-              constraints:
-                  const BoxConstraints(minHeight: 40.0, minWidth: 70.0),
-              children: options,
-              onPressed: (int index) {
-                onButtonPressed(index);
-              },
-            )
-          ]),
+        direction: Axis.horizontal,
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ToggleButtons(
+            isSelected: states,
+            borderRadius: const BorderRadius.all(Radius.circular(8)),
+            selectedBorderColor: Colors.blue[700],
+            selectedColor: Colors.white,
+            splashColor: Colors.grey,
+            fillColor: Colors.blue[400],
+            color: Colors.blue[400],
+            constraints: const BoxConstraints(minHeight: 40.0, minWidth: 70.0),
+            children: options,
+            onPressed: (int index) {
+              onButtonPressed(index);
+            },
+          )
+        ],
+      ),
     );
   }
 
@@ -3174,12 +3119,14 @@ Future openDialog(BuildContext context) => showDialog(
         builder: (context, setState) => AlertDialog(
           title: const Text('Route waypoints'),
           content: const TextField(
-              autofocus: true,
-              decoration: InputDecoration(hintText: 'Enter text')),
+            autofocus: true,
+            decoration: InputDecoration(hintText: 'Enter text'),
+          ),
           actions: [
             TextButton(
-                onPressed: submit(context, setState),
-                child: const Text('Submit'))
+              onPressed: submit(context, setState),
+              child: const Text('Submit'),
+            )
           ],
         ),
       ),

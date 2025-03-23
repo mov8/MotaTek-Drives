@@ -430,7 +430,7 @@ Future<void> loginDialog(BuildContext context, {required User user}) async {
   List<String> rltTitles = [
     'Login ',
     'Register as new user',
-    'Register now',
+    'Enter code now',
     'Resend email'
   ];
   List<String> titles = [
@@ -536,6 +536,7 @@ Future<void> loginDialog(BuildContext context, {required User user}) async {
                 )
               ],
             ),
+            // if (joiningOffset == 0)
             Row(
               children: List.generate(
                 2,
@@ -544,12 +545,13 @@ Future<void> loginDialog(BuildContext context, {required User user}) async {
                   child: Row(
                     children: [
                       Text(rltTitles[joiningOffset + index]),
-                      Radio(
-                        value: index,
-                        groupValue: selectedRadio,
-                        onChanged: (val) => //selectedRadio = val!,
-                            setState(() => selectedRadio = val!),
-                      ),
+                      if (index < 3)
+                        Radio(
+                          value: index,
+                          groupValue: selectedRadio,
+                          onChanged: (val) => //selectedRadio = val!,
+                              setState(() => selectedRadio = val!),
+                        ),
                     ],
                   ),
                 ),
@@ -582,6 +584,7 @@ Future<void> loginDialog(BuildContext context, {required User user}) async {
                     },
                   );
                 } else {
+                  // user.password = '';
                   tryLogin(user: user).then((response) {
                     status = response['msg'];
                     if (status == 'OK') {

@@ -59,7 +59,7 @@ class _HomeFormState extends State<HomeForm> {
         HomeItem(
           heading: 'New trip planning app',
           subHeading: 'Stop polishing your car and start driving it...',
-          body: '''MotaTrip is a new app to help you make the most of 
+          body: '''Drives is a new app to help you make the most of 
               the countryside around you. 
               You can plan trips either on your own or you can explore 
               in a group''',
@@ -141,7 +141,7 @@ class _HomeFormState extends State<HomeForm> {
         /// Removes Shadow
         toolbarHeight: 40,
         title: const Text(
-          'MotaTrip News Items',
+          'Drives News Items',
           style: TextStyle(
             color: Colors.white,
             fontSize: 18,

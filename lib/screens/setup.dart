@@ -41,7 +41,7 @@ class _SetupFormState extends State<SetupForm> {
         ),
 
         /// Removes Shadow
-        title: const Text('MotaTrip setup',
+        title: const Text('Drives setup',
             style: TextStyle(
               color: Colors.white,
               fontSize: 18,

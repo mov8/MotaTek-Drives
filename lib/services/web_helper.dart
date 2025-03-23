@@ -215,6 +215,25 @@ Future<Map<String, dynamic>> postUser(
   return {'message': 'error'};
 }
 
+Future<Map<String, dynamic>> postContacts(
+    {required List<Map<String, dynamic>> data}) async {
+  try {
+    var uri = Uri.parse('$urlUser/survey');
+    http.Response response =
+        await postWebData(uri: uri, body: jsonEncode(data));
+    Map<String, dynamic> map = jsonDecode(response.body);
+    if ([200, 201].contains(response.statusCode)) {
+      Setup().jwt = map['token'];
+      return {'msg': 'OK'};
+    } else {
+      return map;
+    }
+  } catch (e) {
+    debugPrint('Login error: ${e.toString()}');
+  }
+  return {'message': 'error'};
+}
+
 Future<Map<String, dynamic>> tryLogin({required User user}) async {
   bool register = user.password.length <= 6;
   try {
@@ -632,17 +651,28 @@ Future<String> postManeuvers(List<Maneuver> maneuvers, String driveUid) async {
 /// type 3: good roads
 
 Future<List<Feature>> getFeatures(
-    {double zoom = 12, required Function onTap}) async {
+    {double zoom = 12,
+    required Function onTap,
+    Map<String, int>? pointOfInterestLookup}) async {
   http.Response response =
       await getWebData(uri: Uri.parse('$urlDrive/features'));
   if (response.statusCode == 200) {
     List<dynamic> dataJson = jsonDecode(response.body);
     int row = 0;
-    return [
-      for (Map<String, dynamic> map in dataJson)
-        Feature.fromMap(
-            map: map, row: row++, size: zoom * 5, onTap: () => onTap)
-    ];
+    List<Feature> features = [];
+    for (Map<String, dynamic> map in dataJson) {
+      Feature feature = Feature.fromMap(
+          map: map, row: row++, size: zoom * 5, onTap: () => onTap);
+      if (pointOfInterestLookup != null && feature.poiType == 13) {
+        try {
+          pointOfInterestLookup[feature.uri] = feature.row;
+        } catch (e) {
+          debugPrint('Error updating lookup: ${e.toString()}');
+        }
+      }
+      features.add(feature);
+    }
+    return features;
   }
   return [];
 }

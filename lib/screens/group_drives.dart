@@ -175,7 +175,7 @@ class _GroupDriveFormState extends State<GroupDriveForm> {
         /// Removes Shadow
         toolbarHeight: 40,
         title: const Text(
-          'MotaTrip Group Events',
+          'Drives Group Events',
           style: TextStyle(
             color: Colors.white,
             fontSize: 18,

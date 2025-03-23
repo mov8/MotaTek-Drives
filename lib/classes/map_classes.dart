@@ -2,6 +2,7 @@
 // import 'package:drives/constants.dart';
 // import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+// import 'package:path/path.dart' hide Style;
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'dart:ui' as ui;
 import 'dart:io';
@@ -10,7 +11,7 @@ import 'package:drives/models/models.dart';
 import 'package:drives/tiles/tiles.dart';
 import 'package:drives/screens/main_drawer.dart';
 import 'package:drives/screens/dialogs.dart';
-import 'package:drives/services/services.dart' hide getPosition;
+import 'package:drives/services/services.dart'; // hide getPosition;
 import 'package:latlong2/latlong.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
@@ -407,9 +408,12 @@ class _PortraitBody extends State<PortraitBody> with TickerProviderStateMixin {
   final List<Card> _cards = [];
   late final MapInfo _mapInfo;
   late final FeatureDetailsController _featuresController;
+  late final TripMapController _tripMapController;
   final List<Feature> _features = [];
-  late final Future<bool> _dataLoaded;
+  late Future<bool> _dataLoaded;
   double _mapHeight = 130;
+  @override
+  late BuildContext context;
 
   int _resizeDelay = 0;
 
@@ -417,6 +421,7 @@ class _PortraitBody extends State<PortraitBody> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     _featuresController = FeatureDetailsController();
+    _tripMapController = TripMapController();
     _mapInfo = MapInfo.create();
     _dataLoaded = _getTripData(features: _features);
     _tripItemRepository = TripItemRepository();
@@ -441,21 +446,21 @@ class _PortraitBody extends State<PortraitBody> with TickerProviderStateMixin {
       _features.addAll(await getFeatures(zoom: 10, onTap: pinTap));
       return true;
     } catch (e) {
-      // debugPrint('Error getting features: ${e.toString()}');
+      debugPrint('Error getting features: ${e.toString()}');
     }
     return false;
   }
 
   @override
   Widget build(BuildContext context) {
-    FutureBuilder(
-      future: _dataLoaded,
-      builder: (BuildContext context, snapshot) {
-        if (snapshot.hasError) {
-          debugPrint('Snapshot error: ${snapshot.error}');
-        } else if (snapshot.hasData) {
-          return SingleChildScrollView(
-            child: Column(
+    return SingleChildScrollView(
+      child: FutureBuilder<bool>(
+        future: _dataLoaded,
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            debugPrint('Snapshot error: ${snapshot.error}');
+          } else if (snapshot.hasData) {
+            return Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
@@ -467,7 +472,8 @@ class _PortraitBody extends State<PortraitBody> with TickerProviderStateMixin {
                   child: TripsMap(
                     key: UniqueKey(),
                     height: 613, //mapHeight,
-                    // controller: widget.mapController,
+                    controller: _tripMapController,
+                    initialZoom: 6.5,
                     features: _features,
                     routes: _routes,
                     goodRoads: _goodRoads,
@@ -495,22 +501,21 @@ class _PortraitBody extends State<PortraitBody> with TickerProviderStateMixin {
                   ),
                 ),
               ],
-            ),
-          );
-        } else {
-          return const SizedBox(
-            width: double.infinity,
-            height: double.infinity,
-            child: Align(
-              alignment: Alignment.center,
-              child: CircularProgressIndicator(),
-            ),
-          );
-        }
-        throw ('Error - FutureBuilder in trips.dart');
-      },
+            );
+          } else {
+            return const SizedBox(
+              width: double.infinity,
+              height: double.infinity,
+              child: Align(
+                alignment: Alignment.center,
+                child: CircularProgressIndicator(),
+              ),
+            );
+          }
+          throw ('Error - FutureBuilder in trips.dart');
+        },
+      ),
     );
-    throw ('Build failed');
   }
 
   expandChange(var details) {
@@ -883,17 +888,17 @@ class _PortraitBody extends State<PortraitBody> with TickerProviderStateMixin {
 
     switch (features[index].type) {
       case 0:
-        await _tripItemRepository
-            .loadTripItem(
-                key: features[index].row,
-                id: features[index].id,
-                uri: features[index].uri)
-            .then((tripItem) => mapInfo = {
-                  'key': features[index].row,
-                  'title': tripItem.heading,
-                  'content': tripItem.body,
-                  'images': tripItem.imageUrls
-                });
+        TripItem tripItem = await _tripItemRepository.loadTripItem(
+          key: features[index].row,
+          id: features[index].id,
+          uri: features[index].uri,
+        );
+        mapInfo = {
+          'key': features[index].row,
+          'title': tripItem.heading,
+          'content': tripItem.body,
+          'images': tripItem.imageUrls,
+        };
         break;
       case 1:
         PointOfInterest? pointOfInterest =
@@ -902,7 +907,6 @@ class _PortraitBody extends State<PortraitBody> with TickerProviderStateMixin {
                 id: features[index].id,
                 uri: features[index].uri);
         if (pointOfInterest != null) {
-          // .then((pointOfInterest) =>
           mapInfo = {
             'key': features[index].row,
             'title': pointOfInterest.getName(),
@@ -960,37 +964,83 @@ class MapInfo {
     this.height = 130,
   }) : fence = Fence.create();
 }
+/*
+class LeadingWidgetController {
+  _LeadingWidgetState? _leadingWidgetState;
+
+  void _addState(_LeadingWidgetState leadingWidgetState) {
+    _leadingWidgetState = leadingWidgetState;
+  }
+
+  bool get isAttached => _leadingWidgetState != null;
+
+  void changeWidget(int id) {
+    assert(isAttached, 'Controller must be attached to widget');
+    try {
+      _leadingWidgetState?.changeWidget(id);
+    } catch (e) {
+      String err = e.toString();
+      debugPrint('Error loading image: $err');
+    }
+  }
+}
+*/
+
+class TripMapController {
+  _TripsMapState? _tripMapState;
+  void _addState(_TripsMapState tripMapState) {
+    _tripMapState = tripMapState;
+  }
+
+  bool get isAttached => _tripMapState != null;
+
+  void updateMap(MapInfo mapInfo) {
+    assert(isAttached, 'Controller must be attached');
+    try {
+      _tripMapState?.update(mapInfo);
+    } catch (e) {
+      debugPrint('Error changing map: ${e.toString()}');
+    }
+  }
+}
 
 class TripsMap extends StatefulWidget {
+  final TripMapController controller;
   final Function(MapInfo) onChange;
   final List<Feature> features;
   final List<mt.Route> routes;
   final List<mt.Route> goodRoads;
   final double height;
+  final double initialZoom;
   const TripsMap({
     super.key,
+    required this.controller,
     required this.features,
     required this.routes,
     required this.goodRoads,
     required this.onChange,
     required this.height,
+    required this.initialZoom,
   });
   @override
   State<TripsMap> createState() => _TripsMapState();
 }
 
 class _TripsMapState extends State<TripsMap> with TickerProviderStateMixin {
-  late final AnimatedMapController controller;
+  late final AnimatedMapController _animatedController;
   late Future<Style> style;
 
   @override
   void initState() {
     super.initState();
-    controller = AnimatedMapController(vsync: this);
+    _animatedController = AnimatedMapController(vsync: this);
+    widget.controller._addState(this);
     style = getMapStyle();
   }
 
-  getMapStyle() async {
+  update(MapInfo mapInfo) {}
+
+  Future<Style> getMapStyle() async {
     final StyleReader styleReader = StyleReader(
         uri:
             'https://tiles.stadiamaps.com/styles/osm_bright.json?api_key={key}',
@@ -1002,8 +1052,9 @@ class _TripsMapState extends State<TripsMap> with TickerProviderStateMixin {
 
   MapInfo setMapInfo({ready = false, height = 0}) {
     return MapInfo(
-      fence: Fence.fromBounds(controller.mapController.camera.visibleBounds),
-      zoom: controller.mapController.camera.zoom,
+      fence: Fence.fromBounds(
+          _animatedController.mapController.camera.visibleBounds),
+      zoom: _animatedController.mapController.camera.zoom,
       ready: ready,
       height: height,
     );
@@ -1030,73 +1081,74 @@ class _TripsMapState extends State<TripsMap> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    FutureBuilder<Style>(
-      future: style,
-      builder: (BuildContext context, snapshot) {
-        if (snapshot.hasError) {
-          throw ('map build error - ${snapshot.error.toString()}');
-          // return const Text('Error');
-        } else if (snapshot.hasData) {
-          return Stack(children: [
-            FlutterMap(
-              mapController: controller.mapController,
-              options: MapOptions(
-                onMapEvent: checkMapEvent,
-                onMapReady: () async {
-                  widget
-                      .onChange(setMapInfo(ready: true, height: widget.height));
-                },
-                onPositionChanged: (pos, change) async {
-                  widget
-                      .onChange(setMapInfo(ready: true, height: widget.height));
-                },
-                initialCenter: LatLng(Setup().lastPosition.latitude,
-                    Setup().lastPosition.longitude),
-                initialZoom: 6.5, // getInitialZoom(),
-                maxZoom: 18,
-                minZoom: 5,
-                interactionOptions: const InteractionOptions(
-                    enableMultiFingerGestureRace: true,
-                    flags: InteractiveFlag.doubleTapDragZoom |
-                        InteractiveFlag.doubleTapZoom |
-                        InteractiveFlag.drag |
-                        InteractiveFlag.pinchZoom |
-                        InteractiveFlag.pinchMove),
+    return SizedBox(
+      child: FutureBuilder<Style>(
+        future: style,
+        builder: (BuildContext context, snapshot) {
+          if (snapshot.hasError) {
+            throw ('map build error - ${snapshot.error.toString()}');
+            // return const Text('Error');
+          } else if (snapshot.hasData) {
+            return Stack(children: [
+              FlutterMap(
+                mapController: _animatedController.mapController,
+                options: MapOptions(
+                  onMapEvent: checkMapEvent,
+                  onMapReady: () async {
+                    widget.onChange(
+                        setMapInfo(ready: true, height: widget.height));
+                  },
+                  onPositionChanged: (pos, change) async {
+                    widget.onChange(
+                        setMapInfo(ready: true, height: widget.height));
+                  },
+                  initialCenter: LatLng(Setup().lastPosition.latitude,
+                      Setup().lastPosition.longitude),
+                  initialZoom: widget.initialZoom, // getInitialZoom(),
+                  maxZoom: 18,
+                  minZoom: 5,
+                  interactionOptions: const InteractionOptions(
+                      enableMultiFingerGestureRace: true,
+                      flags: InteractiveFlag.doubleTapDragZoom |
+                          InteractiveFlag.doubleTapZoom |
+                          InteractiveFlag.drag |
+                          InteractiveFlag.pinchZoom |
+                          InteractiveFlag.pinchMove),
+                ),
+                children: [
+                  CachedVectorTileLayer(
+                    theme: snapshot.data!.theme,
+                    sprites: snapshot.data!.sprites,
+                    //          tileProviders:
+                    //              TileProviders({'openmaptiles': _tileProvider()}),
+                    tileProviders: snapshot.data!.providers,
+                    layerMode: VectorTileLayerMode.vector,
+                    tileOffset: TileOffset.DEFAULT,
+                    cacheFolder: getCache,
+                  ),
+                  PolylineLayer(polylines: widget.routes),
+                  PolylineLayer(polylines: widget.goodRoads),
+                  MarkerLayer(
+                    markers: widget.features,
+                    alignment: Alignment.topCenter,
+                  ),
+                ],
               ),
-              children: [
-                CachedVectorTileLayer(
-                  theme: snapshot.data!.theme,
-                  sprites: snapshot.data!.sprites,
-                  //          tileProviders:
-                  //              TileProviders({'openmaptiles': _tileProvider()}),
-                  tileProviders: snapshot.data!.providers,
-                  layerMode: VectorTileLayerMode.vector,
-                  tileOffset: TileOffset.DEFAULT,
-                  cacheFolder: getCache,
-                ),
-                PolylineLayer(polylines: widget.routes),
-                PolylineLayer(polylines: widget.goodRoads),
-                MarkerLayer(
-                  markers: widget.features,
-                  alignment: Alignment.topCenter,
-                ),
-              ],
-            ),
-            MapLegend(key: UniqueKey(), bottom: 0, left: 0),
-          ]);
-        } else {
-          return const SizedBox(
-            width: double.infinity,
-            height: double.infinity,
-            child: Align(
-              alignment: Alignment.center,
-              child: CircularProgressIndicator(),
-            ),
-          );
-        }
-      },
+              MapLegend(key: UniqueKey(), bottom: 0, left: 0),
+            ]);
+          } else {
+            return const SizedBox(
+              width: double.infinity,
+              height: double.infinity,
+              child: Align(
+                alignment: Alignment.center,
+                child: CircularProgressIndicator(),
+              ),
+            );
+          }
+        },
+      ),
     );
-    return const Text('Unable to load the map details');
   }
 }
 
@@ -1285,7 +1337,7 @@ class _FeatureDetailsState extends State<FeatureDetails> {
       return Card(
         key: Key('pin_${feature.row}'),
         elevation: 10,
-        shadowColor: Colors.grey.withValues(alpha: 125),
+        shadowColor: Colors.grey.withValues(alpha: 0.5),
         color: index.isOdd
             ? Colors.white
             : const Color.fromARGB(255, 174, 211, 241),
@@ -1414,6 +1466,397 @@ class _BottomSheetDividerState extends State<BottomSheetDivider> {
     );
   }
 }
+
+/*
+Future<bool> filterFeatures(
+    {required List<Feature> source,
+    required List<Feature> cache,
+    required List<Feature> markers,
+    required Fence screenFence,
+    required Fence cacheFence,
+    List<mt.Route> routes = const [],
+    List<mt.Route> goodRoads = const [],
+    double zoom = 12}) async {
+  if (source.isEmpty) {
+    return false;
+  }
+
+  if (zoom < 20) return false;
+
+  if (zoom > 10) {
+    debugPrint('Zoom: $zoom');
+  }
+
+  bool updateCache = cache.isEmpty || !cacheFence.contains(bounds: screenFence);
+
+  if (cache.isEmpty) {
+    debugPrint('Filling cache list - cache is empty');
+  } else {
+    if (!cacheFence.contains(bounds: screenFence)) {
+      debugPrint('Refreshing cache - _screenFence outside _cacheFence');
+    }
+  }
+
+  bool updateDetails = true;
+  //zoom > 11;
+  //false;
+
+  List<Feature> listToFilter = cache;
+  if (updateCache) {
+    cache.clear();
+    routes.clear();
+    //   markers.clear();
+    goodRoads.clear();
+    cacheFence.setBounds(bounds: screenFence, deltaDegrees: 0.5);
+    updateDetails = true;
+    listToFilter = source;
+  } else if (markers.isEmpty) {
+    updateDetails = true;
+  } else if (zoom > 11) {
+    for (Feature feature in markers) {
+      if (!screenFence.contains(bounds: feature.getBounds())) {
+        debugPrint('Feature ${feature.row}has left the _screenFence');
+        updateDetails = true;
+        break;
+      }
+    }
+    updateDetails = true;
+  }
+  if (updateDetails) {
+    markers.clear();
+    for (Feature feature in listToFilter) {
+      switch (feature.type) {
+        case 0:
+          if (cacheFence.overlapped(bounds: feature.getBounds())) {
+            List<mt.Route>? toAdd = await _routeRepository.loadRoute(
+                key: feature.row, id: feature.id, uri: feature.uri);
+            if (toAdd != null) {
+              if (updateCache) {
+                routes.addAll(toAdd);
+                cache.add(feature);
+              }
+              if (zoom > 10) {
+                updateDetails = await addRouteMarker(
+                    screenFence: screenFence,
+                    routes: toAdd,
+                    feature: feature,
+                    visibleFeatures: markers,
+                    score: 1,
+                    zoom: zoom);
+              }
+            }
+            debugPrint(
+                'markers.length = ${markers.length} adding feature.${feature.row}');
+          }
+          break;
+        case 1:
+          if ((![12, 14, 16].contains(feature.poiType) &&
+                  cacheFence.contains(
+                    bounds: feature.getBounds(),
+                  )) &&
+              zoom > 10 &&
+              updateCache) {
+            if ([17, 18].contains(feature.poiType) &&
+                feature.child.runtimeType != EndMarkerWidget) {
+              feature = Feature.fromFeature(
+                  feature: feature,
+                  child: EndMarkerWidget(
+                    index: feature.row,
+                    begining: feature.poiType == 17,
+                    width: 25,
+                    color: Colors.white60,
+                    onPress: pinTap,
+                  ));
+            } else if (feature.child.runtimeType != PinMarkerWidget) {
+              PointOfInterest? pointOfInterest =
+                  await _pointOfInterestRepository.loadPointOfInterest(
+                      key: feature.row, id: feature.id, uri: feature.uri);
+              feature = Feature.fromFeature(
+                  feature: feature,
+                  child: PinMarkerWidget(
+                    index: feature.row,
+                    color: feature.poiType == 13
+                        ? colourList[Setup().goodRouteColour]
+                        : colourList[Setup().pointOfInterestColour],
+                    width: zoom * 2,
+                    overlay:
+                        markerIcon(getIconIndex(iconIndex: feature.poiType)),
+                    onPress: pinTap,
+                    rating: pointOfInterest!.getScore(),
+                  ));
+            }
+            cache.add(feature);
+          }
+
+          if (screenFence.contains(bounds: feature.getBounds())) {
+            markers.add(feature);
+            updateDetails = true;
+          }
+          break;
+        case 2:
+          if (cacheFence.overlapped(bounds: feature.getBounds())) {
+            mt.Route? goodRoad = await _goodRoadRepository.loadGoodRoad(
+                key: feature.row, id: feature.id, uri: feature.uri);
+            if (goodRoad != null) {
+              if (updateCache) {
+                goodRoads.add(goodRoad);
+                cache.add(feature);
+              }
+              if (zoom > 10) {
+                updateDetails = await moveRouteMarker(
+                  screenFence: screenFence,
+                  route: goodRoad,
+                  feature: feature,
+                  visibleFeatures: markers,
+                  cache: cache,
+                  zoom: zoom,
+                );
+              }
+            }
+          }
+        default:
+          break;
+      }
+    }
+  } else {
+    debugPrint('filterFeatures had nothing to update');
+  }
+  updateDetails = updateDetails || _cards.length != markers.length;
+
+  return updateDetails && markers.isNotEmpty;
+}
+
+Future<bool> addRouteMarker(
+    {required List<mt.Route> routes,
+    required Feature feature,
+    required List<Feature> visibleFeatures,
+    required Fence screenFence,
+    double score = 1,
+    zoom = 12}) async {
+  LatLng? markerPoint =
+      await routeMarkerPosition(polylines: routes, fence: screenFence);
+  if (markerPoint != null && screenFence.containsPoint(point: markerPoint)) {
+    visibleFeatures.add(
+      Feature.fromFeature(
+        feature: feature,
+        point: markerPoint,
+        child: PinMarkerWidget(
+          index: feature.row,
+          color: feature.type == 0
+              ? colourList[Setup().publishedTripColour]
+              : colourList[Setup().goodRouteColour],
+          width: (zoom * 2).toDouble(),
+          overlay: Icons.route_outlined,
+          onPress: pinTap,
+          rating: routes[0].rating.toDouble(),
+        ),
+      ),
+    );
+    return true;
+  }
+  return false;
+}
+
+Future<bool> moveRouteMarker(
+    {required mt.Route route,
+    required Feature feature,
+    required List<Feature> cache,
+    required List<Feature> visibleFeatures,
+    required Fence screenFence,
+    required PointOfInterestRepository pointOfInterestRepository,
+    zoom = 12}) async {
+  Feature start = feature;
+  LatLng? markerPoint =
+      await routeMarkerPosition(polylines: [route], fence: screenFence);
+  if (screenFence.containsPoint(point: markerPoint!)) {
+    for (Feature feature in cache) {
+      if (feature.poiType == 13) {
+        PointOfInterest? goodRoadStart =
+            await pointOfInterestRepository.loadPointOfInterest(
+                key: feature.row,
+                id: feature.id,
+                uri: feature.uri); // Good road marker
+        if (goodRoadStart != null) {
+          if (route.pointOfInterestUri == goodRoadStart.url) {
+            start = feature;
+            break;
+          }
+        }
+      }
+    }
+
+    visibleFeatures.add(
+      Feature.fromFeature(
+        feature: start,
+        point: markerPoint,
+        child: PinMarkerWidget(
+          index: feature.row,
+          color: feature.type == 0
+              ? colourList[Setup().publishedTripColour]
+              : colourList[Setup().goodRouteColour],
+          width: (zoom * 2).toDouble(),
+          overlay: Icons.route_outlined,
+          onPress: pinTap,
+        ),
+      ),
+    );
+    return true;
+  }
+  return false;
+}
+
+Future<LatLng?> routeMarkerPosition(
+    {required List<Polyline> polylines, required Fence fence}) async {
+  int first = -1;
+  // int last = -1;
+  Fence offsetFence = Fence.fromFence(bounds: fence, deltaDegrees: -0.025);
+  Polyline? polyline;
+  for (polyline in polylines) {
+    for (int i = 0; i < polyline.points.length; i++) {
+      if (offsetFence.containsPoint(point: polyline.points[i])) {
+        first = first < 0 ? i : first;
+        //   last = i;
+      } else {
+        if (first >= 0) {
+          break;
+        }
+      }
+    }
+  }
+  if (first >= 0) {
+    return polyline!.points[first]; // + ((last - first) ~/ 2)];
+  }
+  return null;
+}
+
+pinTap(
+    {int index = -1,
+    required BuildContext context,
+    required TripItemRepository tripItemRepository,
+    required PointOfInterestRepository pointOfInterestRepository,
+    required GoodRoadRepository goodRoadRepository,
+    required List<Feature> features,
+    required List<Card> cards}) async {
+  Map<String, dynamic> infoMap = await getDialogData(
+      features: features,
+      index: index,
+      tripItemRepository: tripItemRepository,
+      pointOfInterestRepository: pointOfInterestRepository,
+      goodRoadRepository: goodRoadRepository); //.then((infoMap){}
+  Key cardKey = Key('pin_${infoMap['key']}');
+  if (context.mounted) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(infoMap['title'],
+              style: const TextStyle(fontSize: 16)), //textStyle),
+          elevation: 5,
+          content:
+              Text(infoMap['content'], style: const TextStyle(fontSize: 16)),
+          actions: actionButtons(
+            context,
+            [
+              () async {
+                int idx = 0;
+                setState(() => adjustMapHeight(MapHeight.pointOfInterest));
+                await Future.delayed(
+                    const Duration(milliseconds: 500)); //_resizeDelay));
+
+                for (int i = 0; i < cards.length; i++) {
+                  if (cards[i].key == cardKey) {
+                    // Key('pin_${_features[rowIndex].row}')) {
+                    idx = i;
+                    break;
+                  }
+                  // i++;
+                }
+                _featuresController.updateDetails(idx);
+              },
+              //       () => {// debugPrint('callback - Cancel')}
+            ],
+            ['Details', 'Cancel'],
+          ),
+        );
+      },
+    );
+  }
+}
+
+Future<Map<String, dynamic>> getDialogData(
+    {required List<Feature> features,
+    required int index,
+    required TripItemRepository tripItemRepository,
+    required PointOfInterestRepository pointOfInterestRepository,
+    required GoodRoadRepository goodRoadRepository}) async {
+  Map<String, dynamic> mapInfo = {
+    'key': features[index].row,
+    'title': 'N/A',
+    'content': 'N/A',
+    'images': ''
+  };
+
+  switch (features[index].type) {
+    case 0:
+      await tripItemRepository
+          .loadTripItem(
+              key: features[index].row,
+              id: features[index].id,
+              uri: features[index].uri)
+          .then((tripItem) => mapInfo = {
+                'key': features[index].row,
+                'title': tripItem.heading,
+                'content': tripItem.body,
+                'images': tripItem.imageUrls
+              });
+      break;
+    case 1:
+      PointOfInterest? pointOfInterest =
+          await pointOfInterestRepository.loadPointOfInterest(
+              key: features[index].row,
+              id: features[index].id,
+              uri: features[index].uri);
+      if (pointOfInterest != null) {
+        // .then((pointOfInterest) =>
+        mapInfo = {
+          'key': features[index].row,
+          'title': pointOfInterest.getName(),
+          'content': pointOfInterest.getDescription(),
+          'images': pointOfInterest.getImages()
+        };
+      } //);
+      break;
+
+    case 2:
+      mt.Route? goodRoad = await goodRoadRepository.loadGoodRoad(
+          key: features[index].row,
+          id: features[index].id,
+          uri: features[index].uri);
+      if (goodRoad != null) {
+        for (Feature feature in features) {
+          if (feature.type == 1 && feature.uri == goodRoad.pointOfInterestUri) {
+            PointOfInterest? pointOfInterest =
+                await pointOfInterestRepository.loadPointOfInterest(
+                    key: feature.row, id: feature.id, uri: feature.uri);
+            if (pointOfInterest != null) {
+              mapInfo = {
+                'key': feature.row,
+                'title': pointOfInterest.getName(),
+                'content': pointOfInterest.getDescription(),
+                'images': pointOfInterest.getImages()
+              };
+              return mapInfo;
+            }
+          }
+        }
+      }
+      break;
+    default:
+      break;
+  }
+  return mapInfo;
+}
+*/
 /*
 class Providers {
   const Providers();

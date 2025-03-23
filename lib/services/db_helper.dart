@@ -95,6 +95,84 @@ alterTable() async {
   */
 }
 
+/// Survey data saving locally
+///
+
+alterSurveyTables() async {
+  final db = await DbHelper().db;
+
+  try {
+    await db.execute('DROP TABLE IF EXISTS contacts');
+    await db
+        .execute('''CREATE TABLE contacts(id INTEGER PRIMARY KEY AUTOINCREMENT,
+           stand_id INTEGER, forename TEXT, surname TEXT, position TEXT, 
+           email TEXT, phone TEXT, ratings TEXT, contact TEXT, 
+           feedback TEXT)''');
+  } catch (e) {
+    debugPrint('Error creating contacts table: ${e.toString()}');
+  }
+  try {
+    await db.execute('DROP TABLE IF EXISTS stands');
+    await db
+        .execute('''CREATE TABLE stands(id INTEGER PRIMARY KEY AUTOINCREMENT, 
+          show_id INTEGER, stand TEXT, name TEXT, seen INTEGER, 
+          comments TEXT, action TEXT, interviewer TEXT)''');
+  } catch (e) {
+    debugPrint('Error creating stands table: ${e.toString()}');
+  }
+}
+
+Future<int> saveSurveyData(
+    {required Map<String, dynamic> map, required String table}) async {
+  final db = await DbHelper().db;
+  int id = map['id'];
+
+  try {
+    if (id == -1) {
+      map.remove('id');
+      id = await db.insert(
+        table,
+        map,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    } else {
+      await db.update(table, map,
+          where: 'id = ?',
+          whereArgs: [id],
+          conflictAlgorithm: ConflictAlgorithm.replace);
+    }
+  } catch (e) {
+    debugPrint('database error adding to $table: ${e.toString()}');
+  }
+
+  return id;
+}
+
+Future<List<Map<String, dynamic>>> getSurveyData(
+    {required String table, int standId = -1, String stand = ''}) async {
+  final db = await DbHelper().db;
+  String whereString;
+  List<Map<String, dynamic>> map = [];
+  var args;
+  if (standId >= 0) {
+    args = [standId];
+    whereString = 'stand_id = ?';
+  } else if (stand.isNotEmpty) {
+    args = [stand];
+    whereString = 'stand = ?';
+  } else {
+    try {
+      map = await db.query(table);
+    } catch (e) {
+      debugPrint('error loading $table : ${e.toString()}');
+    }
+    return map; //await db.query(table);
+  }
+  return await db.query(table, where: whereString, whereArgs: args);
+}
+
+/// End of Survey stuff
+///
 Future<List<Map<String, dynamic>>> getSetup(int id) async {
   Database db = await DbHelper().db;
   // int records = await recordCount('setup');
@@ -123,12 +201,17 @@ Future<User> getUser() async {
   try {
     var maps = await db.rawQuery("SELECT * FROM Users LIMIT 1");
     if (maps.isNotEmpty) {
-      id = int.parse(maps[0]['id'].toString());
-      forename = maps[0]['forename'].toString();
-      surname = maps[0]['surname'].toString();
-      email = maps[0]['email'].toString();
-      password = maps[0]['password'].toString();
-      imageUrl = maps[0]['imageUrl'].toString();
+      User user = User(
+        id: int.parse(maps[0]['id'].toString()),
+        forename: maps[0]['forename'].toString(),
+        surname: maps[0]['surname'].toString(),
+        email: maps[0]['email'].toString(),
+        phone: maps[0]['phone'].toString(),
+        password: maps[0]['password'].toString(),
+        imageUrl: maps[0]['imageUrl'].toString(),
+      );
+      Setup().user = user;
+      return user;
     }
   } catch (e) {
     debugPrint('Error retrieving user');
@@ -1432,11 +1515,7 @@ List<LatLng> stringToPoints(String pointsString) {
   try {
     var pointsJson = jsonDecode(pointsString);
     for (int i = 0; i < pointsJson.length; i++) {
-      var jpoints = pointsJson[i];
-      for (int j = 0; j < jpoints.length; j++) {
-        points
-            .add(LatLng(jpoints['lat'].toDouble(), jpoints['lon'].toDouble()));
-      }
+      points.add(LatLng(pointsJson[i]['lat'], pointsJson[i]['lon']));
     }
   } catch (e) {
     debugPrint('Points convertion error: ${e.toString()}');

@@ -34,7 +34,7 @@ import 'package:drives/classes/route.dart' as mt;
 /// on their own too.
 ///
 /// Caching strategey-
-///   A List<Feature> is pulled from the API or the local db - a last_updated
+///   A [List<Feature>] is pulled from the API or the local db - a last_updated
 ///   flag will dertermine which.
 ///   The Feature list will hold uri, feature_type, lat and lng:
 ///     type 1 - Drives
@@ -143,7 +143,15 @@ class Fence {
     return Fence(northEast: bounds.northEast, southWest: bounds.southWest);
   }
 
-  factory Fence.fromFence({required Fence bounds, double deltaDegrees = 0.0}) {
+  factory Fence.fromFence(
+      {required Fence bounds,
+      double deltaDegrees = 0.0,
+      double deltaPercent = 0}) {
+    if (deltaPercent != 0) {
+      deltaDegrees = (bounds.northEast.latitude - bounds.southWest.latitude) /
+          100 *
+          deltaPercent;
+    }
     return Fence(
         northEast: LatLng(bounds.northEast.latitude + deltaDegrees,
             bounds.northEast.longitude + deltaDegrees),
@@ -162,7 +170,15 @@ class Fence {
         (northEast.longitude >= bounds.northEast.longitude);
   }
 
-  bool containsPoint({required LatLng point}) {
+  LatLng getCentre({required Fence bounds}) {
+    double lat = bounds.southWest.latitude +
+        ((bounds.northEast.latitude - bounds.southWest.latitude) / 2);
+    double lng = bounds.southWest.longitude +
+        ((bounds.northEast.longitude - bounds.southWest.longitude) / 2);
+    return LatLng(lat, lng);
+  }
+
+  bool containsPoint({required LatLng point, bool debug = false}) {
     return (southWest.latitude <= point.latitude &&
         northEast.latitude >= point.latitude &&
         southWest.longitude <= point.longitude &&

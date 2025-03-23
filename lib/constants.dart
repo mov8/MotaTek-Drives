@@ -1,6 +1,6 @@
 import 'package:latlong2/latlong.dart';
 
-const wifiIpAddress = '10.101.1.150';
+const wifiIpAddress = '192.168.68.119';
 const urlBase = 'http://$wifiIpAddress:5001/';
 const urlBaseTest = '${urlBase}v1/user/test';
 const urlRouter =
@@ -133,6 +133,20 @@ const List<String> tableDefs = [
   /// VERSIONS
   '''CREATE TABLE versions(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, downloaded DATETIME, major INTEGER, 
   minor INTEGER, patch INTEGER, status INTEGER )''',
+
+  /// CONTACT
+  '''CREATE TABLE contacts(id INTEGER PRIMARY KEY AUTOINCREMENT,
+           stand_id INTEGER, forename TEXT, surname TEXT, position TEXT, 
+           email TEXT, phone TEXT, ratings TEXT, contact TEXT, 
+           feedback TEXT)''',
+
+  /// SHOW
+  '''CREATE TABLE shows(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, location TEXT, date DATETIME)''',
+
+  /// STANDS
+  '''CREATE TABLE stands(id INTEGER PRIMARY KEY AUTOINCREMENT, 
+          show_id INTEGER, stand TEXT, name TEXT, seen INTEGER, 
+          comments TEXT, action TEXT, interviewer TEXT)''',
 ];
 
 /// User Api endpoints:

@@ -53,7 +53,7 @@ class _ShopFormState extends State<ShopForm> {
           heading: 'New trip planning app',
           subHeading: 'Stop polishing your car and start driving it...',
           body:
-              '''MotaTrip is a new app to help you make the most of the countryside around you. 
+              '''Drives is a new app to help you make the most of the countryside around you. 
 You can plan trips either on your own or you can explore in a group''',
           links: 0,
           //  imageUrl:
@@ -134,7 +134,7 @@ You can plan trips either on your own or you can explore in a group''',
         /// Removes Shadow
         toolbarHeight: 40,
         title: const Text(
-          'MotaTrip Shop Items',
+          'Drives Shop Items',
           style: TextStyle(
             color: Colors.white,
             fontSize: 18,
