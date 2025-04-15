@@ -577,7 +577,7 @@ class _PortraitBody extends State<PortraitBody> with TickerProviderStateMixin {
     Map<String, dynamic> infoMap = await getDialogData(
         features: _features, index: index); //.then((infoMap){}
     Key cardKey = Key('pin_${infoMap['key']}');
-    if (context.mounted) {
+    if (mounted) {
       showDialog(
         context: context,
         builder: (context) {
@@ -1116,7 +1116,7 @@ class _TripsMapState extends State<TripsMap> with TickerProviderStateMixin {
                           InteractiveFlag.pinchMove),
                 ),
                 children: [
-                  CachedVectorTileLayer(
+                  VectorTileLayer(
                     theme: snapshot.data!.theme,
                     sprites: snapshot.data!.sprites,
                     //          tileProviders:
@@ -1379,7 +1379,7 @@ class _FeatureDetailsState extends State<FeatureDetails> {
     putDriveRating(uri, value);
   }
 
-  Future<void> onGetTrip(int index) async {
+  onGetTrip(int index, String uri) async {
     /*     
     MyTripItem webTrip = await getMyTrip(tripItems[index].driveUri);
     webTrip.setId(-1);

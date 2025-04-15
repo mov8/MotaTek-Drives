@@ -239,6 +239,13 @@ class _MainDrawerState extends State<MainDrawer> {
                                   builder: (context) => const DeleteTripsForm(),
                                 ),
                               );
+                            } else if (e['value'] == 'user') {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const DeleteUserForm(),
+                                ),
+                              );
                             } else if (e['value'] == 'survey') {
                               Navigator.push(
                                 context,
@@ -289,6 +296,11 @@ class _MainDrawerState extends State<MainDrawer> {
       'text': 'Remove Drive',
       'iconData': const Icon(Icons.remove_road_outlined),
       'value': 'remove'
+    },
+    {
+      'text': 'Remove User',
+      'iconData': const Icon(Icons.person_off_outlined),
+      'value': 'user'
     },
     {
       'text': 'Survey',

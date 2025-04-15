@@ -425,6 +425,9 @@ class _DialogLoginRegister extends State<DialogLoginRegister> {
 Future<void> loginDialog(BuildContext context, {required User user}) async {
   String status = '';
   int joiningOffset = user.password.isEmpty && user.email.isNotEmpty ? 2 : 0;
+
+  debugPrint('joiningOffset is $joiningOffset');
+
   user.password = '';
   int selectedRadio = 0;
   List<String> rltTitles = [
@@ -565,7 +568,19 @@ Future<void> loginDialog(BuildContext context, {required User user}) async {
 
             onPressed: () async {
               try {
-                if (joiningOffset + selectedRadio == 0) {
+                if ((selectedRadio == 0 &&
+                        user.email.isNotEmpty &&
+                        user.password.isEmpty) ||
+                    selectedRadio == 1) {
+                  Setup().user = user;
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const SignupForm()),
+                  );
+                  setState(() => joiningOffset = 2);
+                }
+/*
+                if (joiningOffset + selectedRadio == 1) {
                   tryLogin(user: user).then(
                     (response) {
                       status = response['msg'];
@@ -589,7 +604,9 @@ Future<void> loginDialog(BuildContext context, {required User user}) async {
                     status = response['msg'];
                     if (status == 'OK') {
                       user.password = '';
+
                       saveUser(user);
+
                       if (selectedRadio == 1) {
                         // resend code
                         setState(() => joiningOffset = 2);
@@ -598,11 +615,12 @@ Future<void> loginDialog(BuildContext context, {required User user}) async {
                         return true;
                       }
                     } else {
-                      setState(() =>
-                          status = 'Code incorrect check or request resend');
+                      setState(
+                          () => status = 'Code incorrect - request resend?');
                     }
                   });
-                }
+                  
+                } */
               } catch (e) {
                 String err = e.toString();
                 debugPrint('Error: $err');

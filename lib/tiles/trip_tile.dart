@@ -8,7 +8,7 @@ import 'package:drives/services/services.dart';
 class TripTile extends StatefulWidget {
   final TripItem tripItem;
   final ImageRepository imageRepository;
-  final Function(int)? onGetTrip;
+  final Function(int, String)? onGetTrip;
   final Function(int, int)? onRatingChanged;
   final ExpandNotifier? expandNotifier;
   final List<Card>? childCards;
@@ -101,7 +101,7 @@ class _TripTileState extends State<TripTile> {
                     onRatingChanged: changeRating,
                     rating: widget.tripItem.score),
               ),
-              if (isExpanded)
+              /* if (isExpanded)
                 Expanded(
                   flex: 1,
                   child: Align(
@@ -127,25 +127,25 @@ class _TripTileState extends State<TripTile> {
                     ),
                   ),
                 )
-              else
-                Expanded(
-                  flex: 1,
-                  child: Padding(
-                    padding: EdgeInsets.fromLTRB(15, 0, 0, 0),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.publish),
-                        Text(widget.tripItem.published),
-                      ],
-                    ),
+              else */
+              Expanded(
+                flex: 1,
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(15, 0, 0, 0),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.publish),
+                      Text(widget.tripItem.published),
+                    ],
                   ),
                 ),
+              ),
             ],
           ),
         ],
       ),
       onExpansionChanged: (expanded) => expandChange(expanded: expanded),
-      leading: Icon(Icons.route_outlined,
+      leading: Icon(Icons.route,
           size: 25, color: colourList[Setup().publishedTripColour]),
       children: [
         SingleChildScrollView(
@@ -156,6 +156,33 @@ class _TripTileState extends State<TripTile> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.start,
                 children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        flex: 3,
+                        child: Align(
+                          alignment: Alignment.bottomLeft,
+                          child: Padding(
+                            padding: EdgeInsets.fromLTRB(12, 0, 0, 0),
+                            child: ActionChip(
+                                visualDensity: const VisualDensity(
+                                    horizontal: 0.0, vertical: 0.5),
+                                backgroundColor: Colors.blueAccent,
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(20)),
+                                label: Text('Download',
+                                    style: const TextStyle(
+                                        fontSize: 16, color: Colors.white)),
+                                elevation: 5,
+                                shadowColor: Colors.black,
+                                onPressed: () => getTrip(widget.index),
+                                avatar: Icon(Icons.cloud_download,
+                                    size: 20, color: Colors.white)),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                   if (widget.tripItem.imageUrls.isNotEmpty)
                     Row(
                       children: <Widget>[
@@ -402,7 +429,7 @@ class _TripTileState extends State<TripTile> {
 
   getTrip(value) {
     if (widget.onGetTrip != null) {
-      widget.onGetTrip!(widget.index);
+      widget.onGetTrip!(widget.index, widget.tripItem.uri);
     }
   }
 }

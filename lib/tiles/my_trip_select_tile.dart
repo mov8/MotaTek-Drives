@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:drives/models/other_models.dart';
-import 'package:drives/models/my_trip_item.dart';
+import 'package:drives/classes/my_trip_item.dart';
 
 class MyTripSelectTile extends StatefulWidget {
   final MyTripItem myTripItem;
@@ -29,7 +29,7 @@ class MyTripSelectTile extends StatefulWidget {
 class _MyTripSelectTileState extends State<MyTripSelectTile> {
   @override
   Widget build(BuildContext context) {
-    List<Photo> photos = photosFromJson(widget.myTripItem.getImages());
+    List<Photo> photos = photosFromJson(widget.myTripItem.images);
     return Card(
       elevation: 5,
       child: Padding(
@@ -40,7 +40,7 @@ class _MyTripSelectTileState extends State<MyTripSelectTile> {
               Expanded(
                 flex: 1,
                 child: Text(
-                  widget.myTripItem.getHeading(),
+                  widget.myTripItem.heading,
                   style: const TextStyle(
                       color: Colors.black,
                       fontSize: 20,
@@ -68,7 +68,7 @@ class _MyTripSelectTileState extends State<MyTripSelectTile> {
                   flex: 1,
                   child: Column(children: [
                     const Icon(Icons.route),
-                    Text('${widget.myTripItem.getDistance()} miles long')
+                    Text('${widget.myTripItem.distance} miles long')
                   ]),
                 ),
                 Expanded(
@@ -76,14 +76,14 @@ class _MyTripSelectTileState extends State<MyTripSelectTile> {
                   child: Column(children: [
                     const Icon(Icons.landscape),
                     Text(
-                        '${widget.myTripItem.pointsOfInterest().length} highlights')
+                        '${widget.myTripItem.pointsOfInterest.length} highlights')
                   ]),
                 ),
                 Expanded(
                   flex: 1,
                   child: Column(children: [
                     const Icon(Icons.social_distance),
-                    Text('${widget.myTripItem.getClosest()} miles away')
+                    Text('${widget.myTripItem.closest} miles away')
                   ]),
                 ),
               ]),
@@ -111,7 +111,7 @@ class _MyTripSelectTileState extends State<MyTripSelectTile> {
                           child: Align(
                             alignment: Alignment.topLeft,
                             child: Text(
-                              widget.myTripItem.getSubHeading(),
+                              widget.myTripItem.subHeading,
                               style: const TextStyle(
                                   color: Colors.black,
                                   fontSize: 18,
@@ -124,7 +124,7 @@ class _MyTripSelectTileState extends State<MyTripSelectTile> {
                       const SizedBox(
                         height: 10,
                       ),
-                      if (widget.myTripItem.getImages().isNotEmpty)
+                      if (widget.myTripItem.images.isNotEmpty)
                         Row(children: <Widget>[
                           Expanded(
                             flex: 8,
@@ -160,7 +160,7 @@ class _MyTripSelectTileState extends State<MyTripSelectTile> {
                           padding: const EdgeInsets.fromLTRB(5, 0, 5, 10),
                           child: Align(
                             alignment: Alignment.topLeft,
-                            child: Text(widget.myTripItem.getBody(),
+                            child: Text(widget.myTripItem.body,
                                 style: const TextStyle(
                                     color: Colors.black, fontSize: 20),
                                 textAlign: TextAlign.left),
@@ -183,7 +183,7 @@ class _MyTripSelectTileState extends State<MyTripSelectTile> {
                                   ]),
                                 ),
                               ),
-                              if (widget.myTripItem.getPublished().isEmpty) ...[
+                              if (widget.myTripItem.published.isEmpty) ...[
                                 Expanded(
                                   flex: 1,
                                   child: TextButton(

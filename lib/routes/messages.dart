@@ -51,7 +51,7 @@ class _MessagesState extends State<Messages> {
   }
 
   Widget _getPortraitBody() {
-    if (Setup().user.email.isEmpty) {
+    if (Setup().user.email.isEmpty || !Setup().hasLoggedIn) {
       return HomeTile(
         homeItem: homeItem,
         imageRepository: _imageRepository,

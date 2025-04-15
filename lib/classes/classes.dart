@@ -1,3 +1,4 @@
+export 'package:drives/classes/autocomplete_widget.dart';
 export 'package:drives/classes/drives_classes.dart';
 export 'package:drives/classes/cacheable_polylines.dart';
 export 'package:drives/classes/cached_tile_identity.dart';
@@ -11,6 +12,7 @@ export 'package:drives/classes/image_missing.dart';
 export 'package:drives/classes/leading_widget.dart';
 export 'package:drives/classes/map_markers.dart';
 export 'package:drives/classes/map_features.dart';
+export 'package:drives/classes/my_trip_item.dart';
 export 'package:drives/classes/notifiers.dart';
 export 'package:drives/classes/other_classes.dart';
 export 'package:drives/classes/photo_carousel.dart';
@@ -18,3 +20,4 @@ export 'package:drives/classes/route.dart';
 export 'package:drives/classes/routes_bottom_nav.dart';
 export 'package:drives/classes/star_ratings.dart';
 export 'package:drives/classes/utilities.dart';
+export 'package:drives/classes/vector_map_style.dart';

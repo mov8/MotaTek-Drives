@@ -1,10 +1,13 @@
 import 'package:latlong2/latlong.dart';
 
-const wifiIpAddress = '192.168.68.119';
+const apiAddress = '64.227.34.217';
+const wifiIpAddress = '10.101.1.216';
+// const urlBase = 'http://$apiIpAddress:5001/';
 const urlBase = 'http://$wifiIpAddress:5001/';
 const urlBaseTest = '${urlBase}v1/user/test';
 const urlRouter =
-    'http://$wifiIpAddress:5000/route/v1/driving/'; //$waypoints?steps=true&annotations=true&geometries=geojson&overview=full$avoid'
+    // 'http://$wifiIpAddress:5000/route/v1/driving/'; //$waypoints?steps=true&annotations=true&geometries=geojson&overview=full$avoid'
+    'http://router.project-osrm.org/route/v1/driving/';
 
 const urlTiler = 'http://192.168.68.126:5000/tile/v1/driving/';
 const urlRouterTest = '$urlRouter-0.1257,51.5085;0.0756,51.5128?overview=false';
@@ -35,6 +38,66 @@ enum MapHeights {
   pointOfInterest,
   message,
 }
+
+enum AppState {
+  loading,
+  home,
+  download,
+  createTrip,
+  myTrips,
+  shop,
+  messages,
+  driveTrip
+}
+
+enum TripState {
+  none,
+  manual,
+  automatic,
+  recording,
+  stoppedRecording,
+  paused,
+  following,
+  notFollowing,
+  stoppedFollowing,
+  startFollowing,
+}
+
+enum TripActions {
+  none,
+  showGroup,
+  showSteps,
+  routeHighlited,
+  greatRoadStart,
+  saving,
+  headingDetail,
+  pointOfInterest,
+  saved,
+}
+
+enum HighliteActions {
+  none,
+  greatRoadStarted,
+  greatRoadNamed,
+  greatRoadEnded,
+}
+
+// https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status#informational_responses
+
+const Map<int, String> responseCodes = {
+  200: 'OK',
+  201: 'created',
+  202: 'accepted',
+  204: 'no data',
+  400: 'request error', //
+  401: 'unauthorised', // password failed
+  403: 'forbidden', // JWT problem
+  408: 'timed out',
+  410: 'missing' // User not found
+};
+
+const List<int> responseOk = [200, 201, 202, 204];
+const List<int> responseError = [400, 401, 403, 408, 410];
 
 const int dbVersion = 1;
 

@@ -154,12 +154,13 @@ class Feature extends Marker {
 Future<PublishedFeatures> getPublishedFeatures(
     {double zoom = 10,
     pinTap,
-    Function(int)? onGetTrip,
+    Function(int, String)? onGetTrip,
     showRoutes = false,
     ExpandNotifier? expandNotifier,
     Map<String, int>? pointOfInterestLookup}) async {
   List<Feature> features = [];
   Map<String, int> pointOfInterestLookup = {};
+
   features.addAll(await getFeatures(
       zoom: 10, onTap: pinTap, pointOfInterestLookup: pointOfInterestLookup));
   return PublishedFeatures(
@@ -175,7 +176,7 @@ Future<PublishedFeatures> getPublishedFeatures(
 class PublishedFeatures {
   Function(bool)? onUpdate;
   Function(int) pinTap;
-  Function(int)? onGetTrip;
+  Function(int, String)? onGetTrip;
   List<Feature> features = [];
   List<Feature> cache = [];
   List<Feature> markers = [];

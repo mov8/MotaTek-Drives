@@ -8,7 +8,6 @@ import 'package:drives/classes/utilities.dart' as utils;
 import 'package:drives/screens/screens.dart';
 import 'package:drives/classes/route.dart' as mt;
 import 'package:drives/tiles/tiles.dart';
-import 'package:drives/models/my_trip_item.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter/material.dart';
@@ -1618,7 +1617,8 @@ class TripItem {
   }
 }
 
-Future<List<MyTripItem>> tripItemFromDb({int driveId = -1}) async {
+Future<List<MyTripItem>> tripItemFromDb(
+    {int driveId = -1, bool showMethods = false}) async {
   final db = await DbHelper().db;
   LatLng pos = const LatLng(0, 0);
 
@@ -1647,12 +1647,12 @@ Future<List<MyTripItem>> tripItemFromDb({int driveId = -1}) async {
       if (maps[i]['drive_id'] != driveId) {
         if (trips.isNotEmpty) {
           int distance = closestWaypoint(
-                  pointsOfInterest: trips[trips.length - 1].pointsOfInterest(),
+                  pointsOfInterest: trips[trips.length - 1].pointsOfInterest,
                   location: pos)
               .toInt();
-          trips[trips.length - 1].setClosest(distance);
+          trips[trips.length - 1].closest = distance;
           if (tripImages.isNotEmpty) {
-            trips[trips.length - 1].setImages('[$tripImages]');
+            trips[trips.length - 1].images = '[$tripImages]';
           }
           trips[trips.length - 1].highlights = highlights;
         }
@@ -1662,6 +1662,7 @@ Future<List<MyTripItem>> tripItemFromDb({int driveId = -1}) async {
         trips.add(MyTripItem(
             id: driveId,
             driveId: driveId,
+            showMethods: showMethods,
             driveUri: maps[i]['uri'],
             heading: maps[i]['title'],
             subHeading: maps[i]['sub_title'],
@@ -1714,12 +1715,12 @@ Future<List<MyTripItem>> tripItemFromDb({int driveId = -1}) async {
     } //
     if (trips.isNotEmpty) {
       int distance = closestWaypoint(
-              pointsOfInterest: trips[trips.length - 1].pointsOfInterest(),
+              pointsOfInterest: trips[trips.length - 1].pointsOfInterest,
               location: pos)
           .toInt();
-      trips[trips.length - 1].setClosest(distance);
+      trips[trips.length - 1].closest = distance;
       if (tripImages.isNotEmpty) {
-        trips[trips.length - 1].setImages('[$tripImages]');
+        trips[trips.length - 1].images = '[$tripImages]';
       }
       trips[trips.length - 1].highlights = highlights;
     }

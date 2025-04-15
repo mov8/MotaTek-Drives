@@ -32,7 +32,7 @@ class _MyTripsScreenState extends State<MyTrips> {
   }
 
   Future<bool> getMyTripItems() async {
-    _myTripItems = await tripItemFromDb();
+    _myTripItems = await tripItemFromDb(showMethods: true);
     return true;
   }
 
@@ -43,11 +43,11 @@ class _MyTripsScreenState extends State<MyTrips> {
   Future<void> onGetTrip(int index) async {}
 
   Future<void> loadTrip(int index) async {
-    int driveId = _myTripItems[index].getId();
+    int driveId = _myTripItems[index].id;
 
     MyTripItem dbTrip = _myTripItems[index];
     await dbTrip.loadLocal(driveId);
-    if (context.mounted) {
+    if (mounted) {
       Navigator.pushNamed(context, 'createTrip',
           arguments: TripArguments(dbTrip, 'db'));
     }
@@ -74,7 +74,7 @@ class _MyTripsScreenState extends State<MyTrips> {
     Utility().showOkCancelDialog(
         context: context,
         alertTitle: 'Permanently delete trip?',
-        alertMessage: _myTripItems[index].getHeading(),
+        alertMessage: _myTripItems[index].heading,
         okValue: index, // _myTripItems[index].getDriveId(),
         callback: onConfirmDeleteTrip);
   }
@@ -82,7 +82,7 @@ class _MyTripsScreenState extends State<MyTrips> {
   void onConfirmDeleteTrip(int value) {
     debugPrint('Returned value: ${value.toString()}');
     if (value > -1) {
-      int driveId = _myTripItems[value].getDriveId();
+      int driveId = _myTripItems[value].driveId;
       deleteDriveLocal(driveId: driveId);
       setState(() => _myTripItems.removeAt(value));
     }
@@ -157,7 +157,7 @@ import 'package:uuid/rng.dart';
                     child: Align(
                       alignment: Alignment.topCenter,
                       child: Text(
-                        _myTripItems[0].getImages().contains('assets')
+                        _myTripItems[0].images.contains('assets')
                             ? 'Save your trips to enjoy again...'
                             : "Trips I've already explored...",
                         style: const TextStyle(

@@ -1,14 +1,9 @@
-// import 'package:drives/constants.dart';
-// import 'package:drives/constants.dart';
-// import 'package:flutter/foundation.dart';
-// import 'package:drives/classes/map_classes.dart';
 import 'package:flutter/material.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'dart:ui' as ui;
 import 'dart:io';
 import 'package:drives/classes/classes.dart';
 import 'package:drives/models/models.dart';
-// import 'package:drives/tiles/tiles.dart';
 import 'package:drives/screens/main_drawer.dart';
 import 'package:drives/screens/dialogs.dart';
 import 'package:drives/services/services.dart';
@@ -16,7 +11,6 @@ import 'package:latlong2/latlong.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:drives/classes/route.dart' as mt;
-import 'package:drives/constants.dart';
 import 'package:vector_map_tiles/vector_map_tiles.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_map_animations/flutter_map_animations.dart';
@@ -70,10 +64,11 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
   bool refreshTrips = true;
   // bool _showDetails = false;
   List<double> mapHeights = [0, 0, 0, 0];
-  double mapHeight = 250;
+  double mapHeight = -1; //250;
   double listHeight = -1;
-  late final PublishedFeatures _publishedFeatures;
-  late StyleReader _styleReader;
+  PublishedFeatures _publishedFeatures = PublishedFeatures(
+      features: [], pinTap: (_) => (), pointOfInterestLookup: {});
+  //late StyleReader _styleReader;
 
   @override
   void initState() {
@@ -119,108 +114,94 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
       debugPrint('Error getting data from the Internet');
     }
     try {
-      _styleReader = StyleReader(
-          uri:
-              'https://tiles.stadiamaps.com/styles/osm_bright.json?api_key={key}',
-          apiKey: stadiaMapsApiKey,
-          logger: null);
-      _style = await _styleReader.read();
+      _style = await VectorMapStyle().mapStyle();
     } catch (e) {
-      debugPrint('Error initiating style: ${e.toString}');
+      debugPrint('Error getting data: ${e.toString()}');
     }
     return true;
   }
 
-  onGetTrip(int index) async {
-    Map<String, dynamic> infoMap = await getDialogData(
-        features: _publishedFeatures.features, index: index);
+  onGetTrip(int index, String uri) async {
     DownloadOptions options = DownloadOptions();
-    bool myTrip = false;
-    bool newTrip = true;
-
-    if (context.mounted) {
-      showDialog(
-        context: context,
-        builder: (context) {
-          return StatefulBuilder(
-            builder: (context, setState) {
-              return AlertDialog(
-                contentPadding: EdgeInsets.zero,
-                title: Padding(
-                  padding: EdgeInsets.fromLTRB(0, 10, 0, 10),
-                  child: Text(
-                    'Download this trip',
-                    style: const TextStyle(
-                        fontSize: 24, fontWeight: FontWeight.bold),
-                  ),
-                ), //textStyle),
-                elevation: 5,
-                content: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    CheckboxListTile(
-                      title: Wrap(children: [
-                        Text('Download to ',
-                            style:
-                                TextStyle(color: Colors.black, fontSize: 18)),
-                        Text('New Trip',
-                            style: TextStyle(
-                                color: Colors.black,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold)),
-                        Icon(Icons.map_outlined),
-                        Text('to edit or drive the trip now',
-                            style: TextStyle(color: Colors.black, fontSize: 18))
-                      ]),
-                      value: options.newTrip,
-                      onChanged: (value) =>
-                          setState(() => options.isNew(isNew: value!)),
-                      controlAffinity: ListTileControlAffinity.leading,
-                    ),
-                    CheckboxListTile(
-                      title: Wrap(children: [
-                        Text('Download to ',
-                            style:
-                                TextStyle(color: Colors.black, fontSize: 18)),
-                        Text('My Trips',
-                            style: TextStyle(
-                                color: Colors.black,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold)),
-                        Icon(Icons.person_outline_outlined),
-                        Text('to edit or drive the trip later',
-                            style: TextStyle(color: Colors.black, fontSize: 18))
-                      ]),
-                      value: options.myTrip,
-                      onChanged: (value) =>
-                          setState(() => options.isNew(isNew: !value!)),
-                      controlAffinity: ListTileControlAffinity.leading,
-                    ),
-                    SizedBox(height: 30),
-                  ],
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              contentPadding: EdgeInsets.zero,
+              title: Padding(
+                padding: EdgeInsets.fromLTRB(0, 10, 0, 10),
+                child: Text(
+                  'Download this trip',
+                  style: const TextStyle(
+                      fontSize: 24, fontWeight: FontWeight.bold),
                 ),
-
-                actions: actionButtons(context, [
-                  () => downloadCallback(context: context, options: options)
-                ], [
-                  'Download',
-                  'Close'
-                ]),
-              );
-            },
-          );
-        },
-      );
-    }
+              ),
+              elevation: 5,
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CheckboxListTile(
+                    title: Wrap(children: [
+                      Text('Download to ',
+                          style: TextStyle(color: Colors.black, fontSize: 18)),
+                      Text('This Trip',
+                          style: TextStyle(
+                              color: Colors.black,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold)),
+                      Icon(Icons.map_outlined),
+                      Text('to edit or drive the trip now',
+                          style: TextStyle(color: Colors.black, fontSize: 18))
+                    ]),
+                    value: options.newTrip,
+                    onChanged: (value) =>
+                        setState(() => options.isNew(isNew: value!)),
+                    controlAffinity: ListTileControlAffinity.leading,
+                  ),
+                  CheckboxListTile(
+                    title: Wrap(children: [
+                      Text('Download to ',
+                          style: TextStyle(color: Colors.black, fontSize: 18)),
+                      Text('My Drives',
+                          style: TextStyle(
+                              color: Colors.black,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold)),
+                      Icon(Icons.person_outline_outlined),
+                      Text('to edit or drive the trip later',
+                          style: TextStyle(color: Colors.black, fontSize: 18))
+                    ]),
+                    value: options.myTrip,
+                    onChanged: (value) =>
+                        setState(() => options.isNew(isNew: !value!)),
+                    controlAffinity: ListTileControlAffinity.leading,
+                  ),
+                  SizedBox(height: 30),
+                ],
+              ),
+              actions: actionButtons(context, [() => options.downLoad = true],
+                  ['Download', 'Close']),
+            );
+          },
+        );
+      },
+    ).then((_) async {
+      if (options.downLoad) {
+        MyTripItem gotTrip = await getMyTrip(uri);
+        if (options.myTrip) {
+          await gotTrip.saveLocal();
+        } else if (mounted) {
+          Navigator.pushNamed(context, 'createTrip',
+              arguments: TripArguments(gotTrip, '')); //'web'));
+        }
+      }
+    });
+    // }
   }
 
-  bool downloadCallback(
-      {required BuildContext context, required DownloadOptions options}) {
-    Navigator.pop(context, options);
-    return true;
-  }
-
-  /// piTap is executed when a marker pin is tapped
+  /// pinTap is executed when a marker pin is tapped
   /// It's attached to each marker as they are generated
   /// from the features obtained from the API
   /// Unlike the pinTap for CreateTrip the cards will be shown
@@ -239,7 +220,7 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
     Map<String, dynamic> infoMap = await getDialogData(
         features: _publishedFeatures.features, index: index);
     Key cardKey = infoMap['key'];
-    if (context.mounted) {
+    if (mounted) {
       showDialog(
         context: context,
         builder: (context) {
@@ -435,8 +416,11 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
             7, _publishedFeatures.cards[index].key.toString().length - 3));
   }
 
-  Future<Widget>? _getPortraitBody() async {
-    await _dataLoaded == true;
+  Widget _getPortraitBody() {
+    // await _dataLoaded == true;
+    if (mapHeight == -1) {
+      adjustMapHeight(MapHeight.full);
+    }
     return SingleChildScrollView(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -446,19 +430,8 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
             duration: Duration(milliseconds: _resizeDelay),
             curve: Curves.easeInOut, // fastOutSlowIn,
             height: mapHeight,
-            width: context.mounted ? MediaQuery.of(context).size.width : 100,
-            child: /*TripsMap(
-              key: UniqueKey(),
-              height: 613, //mapHeight,
-              controller: _tripMapController,
-              initialZoom: 6.5,
-              features: _features,
-              routes: _routes,
-              goodRoads: _goodRoads,
-              onChange: (_) => {}, //widget.onMapChange,
-              // style: style,
-            ), */
-                _handleMap(),
+            width: mounted ? MediaQuery.of(context).size.width : 100,
+            child: _handleMap(),
           ),
 
           _handleBottomSheetDivider(), // grab rail - GesureDetector()
@@ -543,7 +516,7 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
                     InteractiveFlag.pinchMove),
           ),
           children: [
-            CachedVectorTileLayer(
+            VectorTileLayer(
               theme: _style.theme,
               sprites: _style.sprites,
               //          tileProviders:
@@ -757,14 +730,14 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
       ),
       body: //PortraitBody(),
 
-          FutureBuilder<Widget>(
-        future: _getPortraitBody(), //_dataLoaded,
+          FutureBuilder<bool>(
+        future: _dataLoaded,
         builder: (BuildContext context, snapshot) {
           if (snapshot.hasError) {
             // debugPrint('Snapshot error: ${snapshot.error}');
           } else if (snapshot.hasData) {
             // _building = false;
-            return snapshot.data!;
+            return _getPortraitBody();
           } else {
             return const SizedBox(
               width: double.infinity,
@@ -846,9 +819,11 @@ class HandleFabs extends StatelessWidget {
 }
 
 class DownloadOptions {
+  bool downLoad = false;
   bool newTrip;
   bool myTrip;
-  DownloadOptions({this.newTrip = false, this.myTrip = true});
+  String uri;
+  DownloadOptions({this.uri = '', this.newTrip = false, this.myTrip = true});
   isNew({required bool isNew}) {
     newTrip = isNew;
     myTrip = !newTrip;

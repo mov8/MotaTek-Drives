@@ -29,7 +29,7 @@ class _SplashState extends State<Splash> {
         Setup().setupToDb();
       }
       //  routeIndex = 4;
-      if (context.mounted) {
+      if (mounted) {
         Navigator.pushNamed(context, routes[routeIndex]);
       }
     });

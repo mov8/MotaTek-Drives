@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:drives/models/other_models.dart';
-// import 'package:drives/services/services.dart';
 import 'package:drives/classes/classes.dart';
 import 'package:drives/models/models.dart';
 
@@ -88,6 +87,7 @@ class _HomeTileState extends State<HomeTile> {
                   ),
                 ),
               ),
+              if (!Setup().hasLoggedIn) Row(children: []),
               SizedBox(
                   child: Padding(
                 padding: const EdgeInsets.fromLTRB(5, 0, 5, 10),

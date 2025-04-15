@@ -96,7 +96,7 @@ class _HomeState extends State<Home> {
             },
           );
         } else {
-          if (context.mounted) {
+          if (mounted) {
             await loginDialog(context, user: user);
           }
         }
@@ -191,7 +191,7 @@ You can plan trips either on your own or you can explore in a group''',
 
   @override
   Widget build(BuildContext context) {
-    WakelockPlus.enabled;
+    WakelockPlus.enable();
     return Scaffold(
       key: _scaffoldKey,
       drawer: const MainDrawer(),

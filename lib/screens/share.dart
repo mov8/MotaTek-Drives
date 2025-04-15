@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:drives/models/models.dart';
 import 'package:drives/tiles/my_trip_tile.dart';
-import 'package:drives/classes/utilities.dart';
+import 'package:drives/classes/classes.dart';
 import 'package:drives/services/services.dart';
 
 class ShareForm extends StatefulWidget {
@@ -43,8 +43,7 @@ class _ShareFormState extends State<ShareForm> {
     dataloaded = dataFromWeb(); //dataFromDatabase();
     dateTxt.text = dateFormat.format(_tripDate);
     invitation = GroupDriveInvitation(
-        driveId: widget.tripItem.getDriveUri(),
-        title: widget.tripItem.getHeading());
+        driveId: widget.tripItem.driveUri, title: widget.tripItem.heading);
   }
 
   Future<bool> dataFromDatabase() async {
@@ -115,7 +114,7 @@ class _ShareFormState extends State<ShareForm> {
           child: Padding(
             padding: const EdgeInsets.fromLTRB(5, 10, 5, 10),
             child: Text(
-              widget.tripItem.getHeading(),
+              widget.tripItem.heading,
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 28,

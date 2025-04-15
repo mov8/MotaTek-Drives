@@ -91,6 +91,24 @@ Future<List<String>> getSuggestions(String value) async {
   return suggestions;
 }
 
+Future<List<String>> getApiOptions(
+    {String type = 'email', String value = ''}) async {
+  List<dynamic> results = [];
+  if (value.isNotEmpty) {
+    try {
+      final http.Response response = await getWebData(
+          uri: Uri.parse('$urlUser/emails/$value'), secure: true);
+      if ([200, 201].contains(response.statusCode)) {
+        results = jsonDecode(response.body);
+      }
+    } catch (e) {
+      debugPrint(
+          'Error getting api list ${e.toString()}, results.length() ${results.length}');
+    }
+  }
+  return List<String>.from(results);
+}
+
 Future<LatLng> getPosition(String value) async {
   String baseURL = 'https://photon.komoot.io/api/?q=$value&limit=1';
   LatLng pos = const LatLng(0.00, 0.00);
@@ -256,12 +274,12 @@ Future<Map<String, dynamic>> tryLogin({required User user}) async {
 
 Future<dynamic> postTrip(MyTripItem tripItem) async {
   Map<String, dynamic> map = tripItem.toMap();
-  List<Photo> photos = photosFromJson(tripItem.getImages());
+  List<Photo> photos = photosFromJson(tripItem.images);
   double maxLat = -90;
   double minLat = 90;
   double maxLong = -180;
   double minLong = 180;
-  for (mt.Route polyline in tripItem.routes()) {
+  for (mt.Route polyline in tripItem.routes) {
     for (LatLng point in polyline.points) {
       maxLat = point.latitude > maxLat ? point.latitude : maxLat;
       minLat = point.latitude < minLat ? point.latitude : minLat;
@@ -782,10 +800,6 @@ Future<bool> deleteWebTrip2({required List<Map<String, String>> uriMap}) async {
 }
 
 Future<bool> deleteWebTrip({required List<Map<String, String>> uriMap}) async {
-  // String jwToken = Setup().jwt;
-  // header['Autorization'] = 'Bearer $jwToken';
-  // request.headers['Authorization'] = 'Bearer ${Setup().jwt}';
-
   Map<String, String> headers = {
     'Authorization': 'Bearer ${Setup().jwt}',
     "Content-Type": "application/json; charset=UTF-8"
@@ -796,12 +810,19 @@ Future<bool> deleteWebTrip({required List<Map<String, String>> uriMap}) async {
       .post(Uri.parse('$urlDrive/delete'), headers: headers, body: body)
       .timeout(const Duration(seconds: 20));
   return response.statusCode == 200;
+}
 
-/*
-  http.Response response = await http.post(Uri.parse('$urlDrive/delete'),
-      headers: webHeader(secure: true), body: jsonEncode(uriMap));
-  return (response.statusCode == 200);
-*/
+Future<bool> deleteWebUser({required Map<String, dynamic> uriMap}) async {
+  Map<String, String> headers = {
+    'Authorization': 'Bearer ${Setup().jwt}',
+    "Content-Type": "application/json; charset=UTF-8"
+  };
+  var body = jsonEncode(uriMap);
+
+  final http.Response response = await http
+      .post(Uri.parse('$urlUser/delete'), headers: headers, body: body)
+      .timeout(const Duration(seconds: 20));
+  return response.statusCode == 200;
 }
 
 /// getTrip() Gets the trip details for the tripTile - doesn't include any
@@ -1128,7 +1149,7 @@ Future<MyTripItem> getMyTrip(String tripUuid) async {
         published: trip['added'],
         images: Uri.parse('$urlDrive/images/${trip['id']}/map.png').toString(),
         score: trip['score'] ?? 5.0,
-        distance: trip['distance'],
+        distance: trip['distance'].toDouble(),
         routes: gotRoutes,
         maneuvers: gotManeuvers,
         pointsOfInterest: gotPointsOfInterest,

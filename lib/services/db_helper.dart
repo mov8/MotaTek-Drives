@@ -11,6 +11,7 @@ import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:drives/constants.dart';
 import 'package:drives/classes/route.dart' as mt;
+import 'package:drives/classes/my_trip_item.dart';
 import 'package:drives/models/models.dart';
 import 'package:drives/services/web_helper.dart';
 import 'dart:async';
@@ -153,7 +154,7 @@ Future<List<Map<String, dynamic>>> getSurveyData(
   final db = await DbHelper().db;
   String whereString;
   List<Map<String, dynamic>> map = [];
-  var args;
+  List<Object> args;
   if (standId >= 0) {
     args = [standId];
     whereString = 'stand_id = ?';
@@ -981,7 +982,7 @@ Future<int> saveDrive({required Drive drive}) async {
 
 Future<int> saveMyTripItem(MyTripItem myTripItem) async {
   final db = await DbHelper().db;
-  int id = myTripItem.getId();
+  int id = myTripItem.id;
   Map<String, dynamic> map = myTripItem.toDrivesMap();
   try {
     if (id < 0) {
@@ -994,15 +995,16 @@ Future<int> saveMyTripItem(MyTripItem myTripItem) async {
           conflictAlgorithm: ConflictAlgorithm.replace);
     }
     // Now process Trip images that have been downloaded and are to be save locally
-    if (myTripItem.getDriveUri().isNotEmpty) {
+    if (myTripItem.driveUri.isNotEmpty) {
       final directory = Setup().appDocumentDirectory;
-      for (PointOfInterest pointOfInterest in myTripItem.pointsOfInterest()) {
+      for (PointOfInterest pointOfInterest in myTripItem.pointsOfInterest) {
         if (pointOfInterest.getImages().isNotEmpty) {
           var pics = jsonDecode(pointOfInterest.getImages());
           String jsonImages = '';
-          for (String pic in pics) {
-            String url = Uri.parse('$urlDrive/images${pointOfInterest.url}$pic')
-                .toString();
+          for (Map<String, dynamic> pic in pics) {
+            String url =
+                Uri.parse('$urlDrive/images${pointOfInterest.url}${pic['url']}')
+                    .toString();
             bool dirExists = await Directory('$directory/drive$id').exists();
             if (!dirExists) {
               await Directory('$directory/drive$id').create();
@@ -1020,15 +1022,15 @@ Future<int> saveMyTripItem(MyTripItem myTripItem) async {
     /// Points of interest must be saved first as goodRoads have a referenc
     /// to the pointOfInterest automatically generated
     await savePointsOfInterestLocal(
-        driveId: id, pointsOfInterest: myTripItem.pointsOfInterest());
+        driveId: id, pointsOfInterest: myTripItem.pointsOfInterest);
     await savePolylinesLocal(
-        driveId: id, polylines: myTripItem.routes(), type: 0);
+        driveId: id, polylines: myTripItem.routes, type: 0);
     await savePolylinesLocal(
         driveId: id,
-        polylines: myTripItem.goodRoads(),
-        pointsOfInterest: myTripItem.pointsOfInterest(),
+        polylines: myTripItem.goodRoads,
+        pointsOfInterest: myTripItem.pointsOfInterest,
         type: 1);
-    await saveManeuversLocal(driveId: id, maneuvers: myTripItem.maneuvers());
+    await saveManeuversLocal(driveId: id, maneuvers: myTripItem.maneuvers);
   } catch (e) {
     String err = e.toString();
     debugPrint('Error: $err');
@@ -1200,25 +1202,34 @@ Future<bool> saveManeuversLocal({
 }) async {
   final db = await DbHelper().db;
   Map<String, dynamic> manMap = {};
-  await deleteManeuversByDriveId(driveId);
-  for (int i = 0; i < maneuvers.length; i++) {
+
+  List<Maneuver> savedManeuvers = await loadManeuversLocal(driveId);
+  if (savedManeuvers.isNotEmpty) {
+    await deleteManeuversByDriveId(driveId);
+  }
+  savedManeuvers.addAll(maneuvers);
+
+  Batch batch = db.batch();
+
+  for (int i = 0; i < savedManeuvers.length; i++) {
     try {
-      maneuvers[i].driveId = driveId;
-      manMap = maneuvers[i].toMap();
+      savedManeuvers[i].driveId = driveId;
+      manMap = savedManeuvers[i].toMap();
       manMap.remove('id');
       manMap.remove('drive_uid');
-
-      await db.insert(
-        'maneuvers',
-        manMap,
-        conflictAlgorithm: ConflictAlgorithm.ignore, //  replace,
-      );
+      manMap['drive_id'] = driveId;
+      batch.insert('maneuvers', manMap);
     } catch (err) {
       String tError = err.toString();
       debugPrint('Error saving maneuvers: $tError');
     }
-    //  debugPrint(
-    //      'i: $i  => ${maneuvers[maneuvers.length - 1].roadFrom}  ${maneuvers[maneuvers.length - 1].roadTo}');
+  }
+  if (batch.length > 0) {
+    try {
+      await batch.commit(noResult: true);
+    } catch (e) {
+      debugPrint('Batch insert error: ${e.toString()}');
+    }
   }
   return true;
 }
@@ -1226,11 +1237,16 @@ Future<bool> saveManeuversLocal({
 Future<List<Maneuver>> loadManeuversLocal(int driveId) async {
   final db = await DbHelper().db;
   List<Maneuver> maneuvers = [];
-  List<Map<String, dynamic>> maps = await db.query(
-    'maneuvers',
-    where: 'drive_id = ?',
-    whereArgs: [driveId],
-  );
+  List<Map<String, dynamic>> maps = [];
+  try {
+    maps = await db.query(
+      'maneuvers',
+      where: 'drive_id = ?',
+      whereArgs: [driveId],
+    );
+  } catch (e) {
+    debugPrint('Error getting maneuvers');
+  }
   LatLng pos = const LatLng(0, 0);
   dynamic jsonPos;
 
@@ -1252,8 +1268,6 @@ Future<List<Maneuver>> loadManeuversLocal(int driveId) async {
         type: maps[i]['type'],
         distance: maps[i]['distance'],
       ));
-      debugPrint(
-          'i: $i  => ${maneuvers[maneuvers.length - 1].roadFrom}  ${maneuvers[maneuvers.length - 1].roadTo}');
     } catch (e) {
       String err = e.toString();
       debugPrint(err);
@@ -1366,8 +1380,7 @@ Future<List<Follower>> loadFollowers(int driveId) async {
         phoneNumber: maps[i]['phone_number'],
         car: maps[i]['car'],
         registration: maps[i]['registration'],
-        iconColour: maps[i]
-            ['icon_color'], //uiColours.keys.toList()[maps[i]['icon_color']],
+        iconColour: maps[i]['icon_color'],
         position: pos,
         marker: MarkerWidget(
           type: 16,

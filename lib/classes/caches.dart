@@ -2,7 +2,7 @@ import 'dart:typed_data';
 import 'dart:async';
 import 'package:drives/models/other_models.dart';
 import 'package:drives/services/services.dart';
-import 'package:drives/classes/classes.dart';
+// import 'package:drives/classes/classes.dart';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:drives/classes/route.dart' as mt;
@@ -141,7 +141,7 @@ class GoodRoadRepository {
 
 class TileRepository {
   final Map<String, Uint8List> _tilesCache = {};
-  final CachedVectorTileProvider deligate;
+  final VectorTileProvider deligate;
   TileRepository({required this.deligate});
   FutureOr<Uint8List> loadTile({
     required TileIdentity tile,

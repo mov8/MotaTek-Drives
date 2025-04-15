@@ -1,3 +1,4 @@
+/*
 import 'dart:typed_data';
 
 import 'package:drives/classes/classes.dart';
@@ -20,6 +21,8 @@ class CachedVectorTileProvider extends VectorTileProvider {
     return await _cache.loadTile(tile: tile, id: 0, uri: '');
   }
 }
+
+*/
 
 /*
   Future<Uint8List> provide(TileIdentity tile);

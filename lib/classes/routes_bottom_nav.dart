@@ -81,6 +81,7 @@ class _RoutesBottomNavState extends State<RoutesBottomNav>
   }
 
   void setValue(id) {
+    debugPrint('Setting bottomNavBar.index t0:$id');
     setState(() => _index = id);
   }
 
@@ -91,6 +92,7 @@ class _RoutesBottomNavState extends State<RoutesBottomNav>
 
   @override
   Widget build(BuildContext context) {
+    debugPrint('selectedIndex: $_index');
     return NavigationBar(
       height: 60,
       surfaceTintColor: Colors.blue,
@@ -110,9 +112,9 @@ class _RoutesBottomNavState extends State<RoutesBottomNav>
       {required int index, badgeValue = 0}) {
     const List<String> labels = [
       'Home',
-      'Trips',
-      'New Trip',
-      'My Trips',
+      'Great Drives',
+      'This Trip',
+      'My Drives',
       'Shop',
       'Messages'
     ];

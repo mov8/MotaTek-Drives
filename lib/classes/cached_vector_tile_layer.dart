@@ -1,4 +1,5 @@
 // import 'dart:io';
+/*
 import 'package:flutter/material.dart' hide Theme;
 import 'package:flutter_map/flutter_map.dart';
 import 'package:vector_map_tiles/src/grid/grid_layer.dart';
@@ -68,3 +69,4 @@ The theme uses the following sources: ${theme.tileSources.toList().sorted().join
     return VectorTileCompositeLayer(VectorTileLayerOptions(this), mapCamera);
   }
 }
+*/

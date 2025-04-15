@@ -1,4 +1,6 @@
-// import 'package:vector_map_tiles/vector_map_tiles.dart';
+/*
+
+ import 'package:vector_map_tiles/vector_map_tiles.dart';
 import 'package:drives/classes/classes.dart';
 
 class CachedTileProviders {
@@ -17,7 +19,7 @@ class CachedTileProviders {
 
 
 
-/* 
+
 class TileProviders {
   /// provides vector tiles, by source ID where the source ID corresponds to
   /// a source in the theme

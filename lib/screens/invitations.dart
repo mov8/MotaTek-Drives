@@ -171,18 +171,18 @@ class _InvitationsScreenState extends State<InvitationsScreen> {
 
   void onDownload(int index) async {
     getMyTrip(invitations[index].driveId).then((webTrip) {
-      webTrip.setId(-1);
-      webTrip.setDriveUri(invitations[index].driveId);
+      webTrip.id = -1;
+      webTrip.driveUri = invitations[index].driveId;
       webTrip.saveLocal();
     });
   }
 
   void onSelect(int index) async {
     MyTripItem webTrip = await getMyTrip(invitations[index].driveId);
-    webTrip.setId(-1);
-    webTrip.setDriveUri(invitations[index].driveId);
-    webTrip.setGroupTrip(true);
-    if (context.mounted) {
+    webTrip.id = -1;
+    webTrip.driveUri = invitations[index].driveId;
+    webTrip.groupTrip = true;
+    if (mounted) {
       Navigator.pushNamed(context, 'createTrip',
           arguments: TripArguments(webTrip, 'web'));
     }

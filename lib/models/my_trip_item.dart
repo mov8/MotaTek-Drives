@@ -18,7 +18,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:flutter/material.dart';
 // import 'package:path_provider/path_provider.dart';
 
-class MyTripItem {
+class MyTripItem2 {
   int _id = -1;
   int _driveId = -1;
   int _index = -1;
@@ -41,7 +41,7 @@ class MyTripItem {
   bool showMethods = true;
   late ui.Image _mapImage;
 
-  MyTripItem({
+  MyTripItem2({
     int id = -1,
     int driveId = -1,
     String driveUri = '',
@@ -340,7 +340,7 @@ class MyTripItem {
 
   Future<int> saveLocal() async {
     int result = -1;
-    _driveId = await saveMyTripItem(this);
+    //  _driveId = await saveMyTripItem(this);
     try {
       // final directory = Setup().appDocumentDirectory;
       // (await getApplicationDocumentsDirectory()).path;
