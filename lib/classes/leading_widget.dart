@@ -1,6 +1,7 @@
 // https://stackoverflow.com/questions/63781518/flutter-how-to-use-animated-icon-in-the-appbar-i-want-to-use-this-animated-ic
 // https://api.flutter.dev/flutter/material/AnimatedIcons-class.html
 import 'package:flutter/material.dart';
+import 'package:drives/models/models.dart';
 
 class LeadingWidgetController {
   _LeadingWidgetState? _leadingWidgetState;
@@ -42,8 +43,9 @@ class _LeadingWidgetState extends State<LeadingWidget>
   late AnimationController _animationIconController;
   late Animation<double> animation;
   AnimatedIconData _animatedIcon = AnimatedIcons.menu_arrow;
-  bool isarrowmenu = false;
+  // bool isarrowmenu = false;
   late int _widgetId; // 0 = hamburger 1 = back
+  bool showBadge = true;
 
   @override
   void initState() {
@@ -55,6 +57,12 @@ class _LeadingWidgetState extends State<LeadingWidget>
       vsync: this,
       duration: const Duration(seconds: 1),
     );
+    _animationIconController.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        debugPrint('Animation complete _widgetId: $_widgetId');
+        setState(() => showBadge = true);
+      }
+    });
     _animatedIcon = //AnimatedIcons.arrow_menu;
         widget.initialValue == 0 || widget.value == 0
             ? AnimatedIcons.menu_arrow
@@ -71,7 +79,9 @@ class _LeadingWidgetState extends State<LeadingWidget>
 
   void changeWidget(id) {
     setState(() {
+      showBadge = false;
       _widgetId = id;
+      debugPrint('widgetId: $_widgetId');
       // widget.value = id;
       if (_widgetId == 0) {
         _animationIconController.reverse();
@@ -85,23 +95,54 @@ class _LeadingWidgetState extends State<LeadingWidget>
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      customBorder: const CircleBorder(),
-      onTap: () => setState(() => widget.onMenuTap(_widgetId)),
-      child: ClipOval(
-        child: SizedBox(
-          width: 45,
-          height: 45,
-          child: Center(
-            child: AnimatedIcon(
-              icon: _animatedIcon,
-              progress: animation,
-              color: Colors.white,
-              size: 30,
+    return Stack(
+      children: [
+        InkWell(
+          customBorder: const CircleBorder(),
+          onTap: () => setState(() {
+            widget.onMenuTap(_widgetId);
+            debugPrint('Ontap _widgetId: $_widgetId');
+          }),
+          child: ClipOval(
+            child: SizedBox(
+              width: 45,
+              height: 45,
+              child: Center(
+                child: AnimatedIcon(
+                  icon: _animatedIcon,
+                  progress: animation,
+                  color: Colors.white,
+                  size: 30,
+                ),
+              ),
             ),
           ),
         ),
-      ),
+        if (Setup().tripCount > 0 && _widgetId == 0) //  showBadge)
+          Positioned(
+            left: 25,
+            top: 5,
+            child: Container(
+              padding: const EdgeInsets.all(2),
+              decoration: BoxDecoration(
+                color: const Color(0xFFB32318),
+                shape: BoxShape.circle,
+              ),
+              constraints: BoxConstraints(
+                minWidth: 16 + ((Setup().tripCount / ~10) * 8),
+                minHeight: 16 + ((Setup().tripCount / ~10) * 8),
+              ),
+              child: Text(
+                '${Setup().tripCount}',
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          )
+      ],
     );
   }
 }

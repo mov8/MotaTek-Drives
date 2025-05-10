@@ -22,6 +22,7 @@ import 'dart:convert';
 import 'package:flutter_map_location_marker/flutter_map_location_marker.dart';
 //import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:socket_io_client/socket_io_client.dart' as sio;
 
 /*
 https://techblog.geekyants.com/implementing-flutter-maps-with-osm     /// Shows how to implement markers and group them
@@ -182,7 +183,7 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   final ScrollController _scrollController = ScrollController();
   final ScrollController _preferencesScrollController = ScrollController();
   final mt.RouteAtCenter _routeAtCenter = mt.RouteAtCenter();
-
+  bool _tripStarted = false;
   String _title = 'Drives'; // _hints[0][0];
   late AnimatedMapController _animatedMapController;
   late final StreamController<double?> _allignPositionStreamController;
@@ -197,6 +198,7 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   int initialLeadingWidgetValue = 0;
   late AlignOnUpdate _alignPositionOnUpdate;
   late AlignOnUpdate _alignDirectionOnUpdate;
+  List<Place> _places = [];
 
   final _dividerHeight = 35.0;
   // final List<Card> _cards = [];
@@ -211,6 +213,21 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   late Style _style;
   PublishedFeatures _publishedFeatures = PublishedFeatures(
       features: [], pinTap: (_) => (), pointOfInterestLookup: {});
+  String? _tripId;
+  double _width = 56.0;
+  final double _height = 56.0;
+  bool _expanded = false;
+  double _width1 = 56.0;
+  double _height1 = 56.0;
+  bool _expanded1 = false;
+  StreamSocket streamSocket = StreamSocket();
+  sio.Socket socket = sio.io(urlBase, <String, dynamic>{
+    // sio.Socket socket = sio.io('http://192.168.1.10:5000', <String, dynamic>{
+    'transports': ['websocket'], // Specify WebSocket transport
+    'autoConnect': false, // Prevent auto-connection
+  });
+
+  final List<TripMessage> _tripMessages = [];
 
   /// Routine to add point of interest
   /// Identified as a point
@@ -376,6 +393,33 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
       _alignDirectionOnUpdate = AlignOnUpdate.never; // never;
       fn1 = FocusNode();
       listHeight = -1;
+      socket.onConnectError((_) => debugPrint('connect error'));
+      socket.onError((data) => debugPrint('Error: ${data.toString()}'));
+
+      socket.on(
+        'message_from_trip',
+        (data) {
+          TripMessage tripMessage = TripMessage.fromSocketMap(data);
+          if (tripMessage.message.isNotEmpty) {
+            try {
+              var message = jsonDecode(tripMessage.message);
+              if (message['type'] == 'p') {
+                for (Follower follower in _following) {
+                  if (follower.uri == tripMessage.senderId) {
+                    follower.position = LatLng(message['lat'], message['lng']);
+                  }
+                }
+              } else {
+                _tripMessages.add(tripMessage);
+              }
+              setState(() {});
+            } catch (e) {
+              debugPrint('Error: ${e.toString()}');
+            }
+          }
+        },
+      );
+
       _preferencesScrollController.addListener(
         () {
           if (_preferencesScrollController.position.atEdge) {
@@ -399,6 +443,15 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
           }
         },
       );
+
+      socket.onConnect((_) {
+        debugPrint('onConnect connected');
+        socket.emit('trip_join', {'token': Setup().jwt, 'trip': _tripId});
+      });
+
+      if (socket.connected) {
+        socket.emit('trip_join', {'token': Setup().jwt, 'trip': _tripId});
+      }
     } catch (e) {
       debugPrint('Error initialising Drives: ${e.toString()}');
     }
@@ -411,6 +464,17 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
     _allignDirectionStreamController.close();
     _animatedMapController.dispose();
     fn1.dispose();
+
+    // Clean up the focus node when the Form is disposed.
+    if (_tripId != null && socket.connected) {
+      socket.emit('trip_leave', {'trip': _tripId});
+      try {
+        socket.emit('cleave');
+      } catch (e) {
+        debugPrint('error disposing of group_messages: ${e.toString()}');
+      }
+    }
+    streamSocket.dispose();
     super.dispose();
   }
 
@@ -758,110 +822,112 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
     int initialNavBarValue = 2;
     initialLeadingWidgetValue =
         [AppState.createTrip, AppState.driveTrip].contains(_appState) ? 1 : 0;
-    //  if (listHeight == -1) {
-    //    CurrentTripItem().tripState = TripState.none;
-    //  }
     if (ModalRoute.of(context)!.settings.arguments != null &&
         listHeight == -1) {
       final args = ModalRoute.of(context)!.settings.arguments as TripArguments;
       CurrentTripItem().fromMyTripItem(myTripItem: args.trip);
+      loadGroup();
       // Setup().currentTrip = CurrentTripItem();
       _title = CurrentTripItem().heading;
       CurrentTripItem().tripState = TripState.startFollowing;
       initialNavBarValue = 2; // args.origin == 'web' ? 1 : 3;
+
       initialLeadingWidgetValue = 1;
     }
     return Scaffold(
-        key: _scaffoldKey,
-        drawer: const MainDrawer(),
-        appBar: AppBar(
-          automaticallyImplyLeading: false,
-          leading: LeadingWidget(
-            controller: _leadingWidgetController,
-            initialValue: initialLeadingWidgetValue,
-            value: initialLeadingWidgetValue,
-            onMenuTap: (index) {
-              if (index == 0) {
-                _leadingWidget(_scaffoldKey.currentState);
-              } else {
-                _title = 'Create a new trip';
-                _leadingWidgetController.changeWidget(0);
-                if (context.mounted) {
-                  _bottomNavController.navigate();
-                }
-              }
-            },
-          ),
-          title: Text(
-            _title,
-            style: const TextStyle(
-                fontSize: 20, color: Colors.white, fontWeight: FontWeight.w700),
-          ),
-          iconTheme: const IconThemeData(color: Colors.white),
-          backgroundColor: Colors.blue,
-          bottom: (_appState == AppState.createTrip ||
-                      _appState == AppState.driveTrip) &&
-                  (_showSearch || _showPreferences)
-              ? PreferredSize(
-                  preferredSize: const ui.Size.fromHeight(60),
-                  child: AnimatedContainer(
-                    height: 60,
-                    curve: Curves.easeInOut,
-                    duration: const Duration(seconds: 3),
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(5, 10, 5, 10),
-                      child: _showSearch
-                          ? SearchLocation(onSelect: locationLatLng)
-                          : setPreferences(),
-                    ),
-                  ),
-                )
-              : null,
-          actions: <Widget>[
-            if (_appState == AppState.createTrip ||
-                _appState == AppState.driveTrip) ...[
-              IconButton(
-                icon: _showSearch
-                    ? const Icon(Icons.search_off)
-                    : const Icon(Icons.search),
-                tooltip: 'Search',
-                onPressed: () => setState(() => _showSearch = !_showSearch),
-              ),
-              IconButton(
-                icon: const Icon(Icons.more_vert), //keyboard_arrow_down),
-                onPressed: () =>
-                    setState(() => _showPreferences = !_showPreferences),
-              )
-            ],
-          ],
-        ),
-        bottomNavigationBar: RoutesBottomNav(
-            controller: _bottomNavController,
-            initialValue: initialNavBarValue,
-            onMenuTap: (_) => {}),
-        backgroundColor: Colors.grey[300],
-        floatingActionButton: _handleFabs(),
-        body: FutureBuilder<bool>(
-          future: _loadedOK,
-          builder: (BuildContext context, snapshot) {
-            if (snapshot.hasError) {
-              debugPrint('Snapshot error: ${snapshot.error}');
-            } else if (snapshot.hasData) {
-              // _building = false;
-              return _getPortraitBody();
+      key: _scaffoldKey,
+      drawer: const MainDrawer(),
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        leading: LeadingWidget(
+          controller: _leadingWidgetController,
+          initialValue: initialLeadingWidgetValue,
+          value: initialLeadingWidgetValue,
+          onMenuTap: (index) {
+            if (index == 0) {
+              _leadingWidget(_scaffoldKey.currentState);
             } else {
-              return const SizedBox(
-                width: double.infinity,
-                height: double.infinity,
-                child: Align(
-                  alignment: Alignment.center,
-                  child: CircularProgressIndicator(),
-                ),
-              );
+              _title = 'Create a new trip';
+              _leadingWidgetController.changeWidget(0);
+              if (context.mounted) {
+                _bottomNavController.navigate();
+              }
             }
-            throw ('Error - FutureBuilder in create_trips.dart');
           },
-        ));
+        ),
+        title: Text(
+          _title,
+          style: const TextStyle(
+              fontSize: 20, color: Colors.white, fontWeight: FontWeight.w700),
+        ),
+        iconTheme: const IconThemeData(color: Colors.white),
+        backgroundColor: Colors.blue,
+        bottom: (_appState == AppState.createTrip ||
+                    _appState == AppState.driveTrip) &&
+                (_showSearch || _showPreferences)
+            ? PreferredSize(
+                preferredSize: const ui.Size.fromHeight(60),
+                child: AnimatedContainer(
+                  height: 60,
+                  curve: Curves.easeInOut,
+                  duration: const Duration(seconds: 3),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(5, 10, 5, 10),
+                    child: _showSearch
+                        ? SearchLocation(onSelect: locationLatLng)
+                        : setPreferences(),
+                  ),
+                ),
+              )
+            : null,
+        actions: <Widget>[
+          if (_appState == AppState.createTrip ||
+              _appState == AppState.driveTrip) ...[
+            IconButton(
+              icon: _showSearch
+                  ? const Icon(Icons.search_off)
+                  : const Icon(Icons.search),
+              tooltip: 'Search',
+              onPressed: () => setState(() => _showSearch = !_showSearch),
+            ),
+            IconButton(
+              icon: const Icon(Icons.more_vert), //keyboard_arrow_down),
+              onPressed: () =>
+                  setState(() => _showPreferences = !_showPreferences),
+            )
+          ],
+        ],
+      ),
+      bottomNavigationBar: RoutesBottomNav(
+          controller: _bottomNavController,
+          initialValue: initialNavBarValue,
+          onMenuTap: (_) => {}),
+      backgroundColor: Colors.grey[300],
+      floatingActionButtonLocation: FloatingActionButtonLocation.endTop,
+      floatingActionButton: _handleFabs(),
+      body: FutureBuilder<bool>(
+        future: _loadedOK,
+        builder: (BuildContext context, snapshot) {
+          if (snapshot.hasError) {
+            debugPrint('Snapshot error: ${snapshot.error}');
+          } else if (snapshot.hasData) {
+            // _building = false;
+            return _getPortraitBody();
+          } else {
+            return const SizedBox(
+              width: double.infinity,
+              height: double.infinity,
+              child: Align(
+                alignment: Alignment.center,
+                child: CircularProgressIndicator(),
+              ),
+            );
+          }
+          throw ('Error - FutureBuilder in create_trips.dart');
+        },
+      ),
+      drawerEnableOpenDragGesture: false,
+    );
   }
 
   Future<bool> dataFromDatabase() async {
@@ -903,6 +969,9 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
       }
     }
     _style = await VectorMapStyle().mapStyle();
+    // _currentPosition = await Geolocator.getCurrentPosition();
+    //  _animatedMapController.animateTo(
+    //      dest: LatLng(_currentPosition.latitude, _currentPosition.longitude));
     return true;
   }
 
@@ -1031,10 +1100,12 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
             child: _handleMap(),
           ),
 
+          //         _handleMap(),
           _handleBottomSheetDivider(), // grab rail - GesureDetector()
           const SizedBox(
             height: 5,
           ),
+
           _handleTripInfo(), // Allows the trip to be planned
         ],
       ),
@@ -1175,30 +1246,133 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   ///
 
   Column _handleFabs() {
+    if (_places.isNotEmpty) {
+      debugPrint('handleFabs() called _places.length: ${_places.length}');
+    }
     return Column(
       mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
+        SizedBox(
+          height: 425, // 175, //_width > _height ? 400 : 175,
+        ),
+        AnimatedContainer(
+          duration: const Duration(seconds: 1),
+          // color: Colors.blueAccent,
+          width: _width,
+          height: _height,
+          decoration: BoxDecoration(
+              color: Colors.blue,
+              borderRadius: BorderRadius.circular(_height / 2)),
+          curve: Curves.fastOutSlowIn,
+          onEnd: () => setState(() => _expanded = _width > _height),
+          child: _expanded
+              ? Row(
+                  children: [
+                    SizedBox(
+                      width: _width - _height,
+                      child: Padding(
+                        padding: EdgeInsets.fromLTRB(20, 5, 2, 5),
+                        child: AutocompletePlace(
+                          options: _places,
+                          searchLength: 3,
+                          decoration: InputDecoration(
+                            filled: true,
+
+                            fillColor: Colors.white,
+                            //     enabledBorder: OutlineInputBorder(),
+                            border:
+                                _width > _height ? OutlineInputBorder() : null,
+                            //     enabled: _width > _height,
+                            hintText: 'Enter place name...',
+                          ),
+                          keyboardType: TextInputType.text,
+                          onSelect: (chosen) async {
+                            _animatedMapController.animateTo(
+                                dest: LatLng(chosen.lat, chosen.lng));
+                          },
+                          onChange: (text) => (debugPrint('onChange: $text')),
+                          onUpdateOptionsRequest: (query) {
+                            debugPrint('Query: $query');
+                            getDropdownItems(query);
+                          },
+                        ),
+                      ),
+                    ),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: Padding(
+                        padding: EdgeInsets.fromLTRB(4, 4, 0, 0),
+                        child: IconButton(
+                          onPressed: () {
+                            setState(() => _width = _height);
+                            _expanded = false;
+                          },
+                          icon: Icon(
+                              _width > _height
+                                  ? Icons.search_off_outlined
+                                  : Icons.search_outlined,
+                              size: _height / 2,
+                              color: Colors.white),
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+              : Align(
+                  alignment: Alignment.centerRight,
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(0, 0, 4, 0),
+                    child: IconButton(
+                      onPressed: () {
+                        setState(() {
+                          _expanded = false;
+                          _width = MediaQuery.of(context).size.width - 40;
+                        });
+                      },
+                      icon: Icon(Icons.search,
+                          size: _height / 2, color: Colors.white),
+                    ),
+                  ),
+                ),
+        ),
+        const SizedBox(
+          height: 10,
+        ),
+        FloatingChecklist(choices: [
+          {'Avoid motorways': true},
+          {'Avoid A-roads': false},
+          {'Show pubs and restaurants': true},
+          {'Show petrol stations': true},
+          {'Show charging points': true},
+          {'Show toilets': true},
+          {'Show historic sites': true}
+        ], maxWidth: MediaQuery.of(context).size.width - 40),
+        const SizedBox(
+          height: 10,
+        ),
+
+        //Zoomer(height: 50, width: 50, onZoomChanged: (_) => (), zoom: 12),
         if (/*[AppState.createTrip, AppState.driveTrip].contains(_appState) && */
             !_showSearch && !_showPreferences) ...[
           const SizedBox(
-            height: 175,
-          ),
-          if ([TripState.recording, TripState.following]
-                  .contains(CurrentTripItem().tripState) &&
-              _speed > 0.01) ...[
-            CircleAvatar(
-              radius: 28,
-              backgroundColor: Colors.blue,
-              child: Text('${_speed.truncate()}',
-                  style: const TextStyle(fontSize: 20)),
-            ),
-          ],
-          const SizedBox(
             height: 10,
           ),
-          if (CurrentTripItem().tripState == TripState.recording) ...[
+          if ([TripState.recording, TripState.following]
+              .contains(CurrentTripItem().tripState)) ...[
             FloatingActionButton(
+              heroTag: 'broadcast',
+              onPressed: () => messageGroup(-1),
+              backgroundColor: Colors.blue,
+              shape: const CircleBorder(),
+              child: Icon(
+                Icons.chat_outlined,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 10),
+            FloatingActionButton(
+              heroTag: 'goodRoad',
               onPressed: () {
                 setState(() {
                   _goodRoad.isGood = !_goodRoad.isGood;
@@ -1214,13 +1388,40 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
                   ? uiColours.keys.toList()[Setup().goodRouteColour]
                   : Colors.blue,
               shape: const CircleBorder(),
-              child:
-                  Icon(_goodRoad.isGood ? Icons.remove_road : Icons.add_road),
-            )
+              child: Icon(
+                _goodRoad.isGood ? Icons.remove_road : Icons.add_road,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 10),
+            FloatingTextEdit(
+                focusNode: FocusNode(),
+                keyboardType: TextInputType.name,
+                closedIcon: Icons.add_location_alt_outlined,
+                openIcon: Icons.add_task_outlined,
+                onClose: (description) => setState(() {
+                      _addPointOfInterest(
+                        -1,
+                        -1,
+                        15,
+                        'description',
+                        '',
+                        30,
+                        LatLng(_currentPosition.latitude,
+                            _currentPosition.longitude),
+                      );
+                    }),
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: _width > _height ? OutlineInputBorder() : null,
+                  hintText: 'Description to edit later...',
+                )),
+            const SizedBox(
+              height: 10,
+            ),
           ],
-          const SizedBox(
-            height: 10,
-          ),
+
           FloatingActionButton(
             onPressed: () async {
               _currentPosition = await Geolocator.getCurrentPosition();
@@ -1230,14 +1431,23 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
                       _currentPosition.latitude, _currentPosition.longitude));
               setState(() {});
             },
+            heroTag: 'mapCentre',
             backgroundColor: Colors.blue,
             shape: const CircleBorder(),
-            child: const Icon(Icons.my_location),
+            child: const Icon(Icons.my_location, color: Colors.white),
           ),
           //  ]),
         ]
       ],
     );
+  }
+
+  getDropdownItems(String query) async {
+    _places.clear();
+    _places.addAll(await getPlaces(value: query));
+    debugPrint(
+        'For query query $query dropdownOptions.length = ${_places.length}');
+    setState(() {});
   }
 
 /*
@@ -1288,6 +1498,13 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
                     }
                   },
                 );
+                if (!_tripStarted) {
+                  _currentPosition = await Geolocator.getCurrentPosition();
+                  _animatedMapController.animateTo(
+                      dest: LatLng(_currentPosition.latitude,
+                          _currentPosition.longitude));
+                  _tripStarted = true;
+                }
               },
               onPositionChanged: (position, hasGesure) {
                 if (CurrentTripItem().tripState == TripState.manual) {
@@ -1327,6 +1544,38 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
                     }
                   }
                   highlightedIndex = routeIdx;
+                }
+
+                if (_tripId != null) {
+                  if (socket.connected) {
+                    socket.emit('trip_message', {
+                      'message': '',
+                      'lat': _animatedMapController
+                          .mapController.camera.center.latitude,
+                      'lng': _animatedMapController
+                          .mapController.camera.center.longitude
+                    });
+                  }
+                  /*
+                  String message = 'test';
+                  try {
+                    double lat = _animatedMapController
+                        .mapController.camera.center.latitude;
+                    double lng = _animatedMapController
+                        .mapController.camera.center.longitude;
+                    message =
+                        'test'; //jsonEncode({'type': 'p', 'lat': lat, 'lng': lng});
+                    TripMessage tripMessage = TripMessage(
+                        id: _tripId!,
+                        senderId: '',
+                        message: message,
+                        lat: lat.toString(),
+                        lng: lng.toString());
+                    socket.emit('trip_message', tripMessage);
+                  } catch (e) {
+                    debugPrint('jsonEncode error: ${e.toString()}');
+                  }
+                  */
                 }
                 if (hasGesure) {
                   _updateMarkerSize(position.zoom);
@@ -1415,6 +1664,23 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
               MarkerLayer(markers: _following),
             ],
           ),
+          if ([TripState.recording, TripState.following]
+                  .contains(CurrentTripItem().tripState) &&
+              _speed > 0.01) ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(15, 10, 0, 0),
+              child: Align(
+                alignment: Alignment.topLeft,
+                child: CircleAvatar(
+                  radius: 28,
+                  backgroundColor: Colors.black,
+                  child: Text('${_speed.truncate()}',
+                      style:
+                          const TextStyle(fontSize: 20, color: Colors.white)),
+                ),
+              ),
+            ),
+          ],
           Align(
             alignment: Alignment.bottomLeft,
             child: Padding(
@@ -1972,6 +2238,13 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
     });
   }
 
+  void group() {
+    setState(() {
+      CurrentTripItem().tripActions = TripActions.showGroup;
+      adjustMapHeight(MapHeights.headers);
+    });
+  }
+
   void tripData() {
     setState(() {
       CurrentTripItem().tripActions = TripActions.none;
@@ -1997,50 +2270,47 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
     });
   }
 
-  void group() async {
-    setState(() {
-      CurrentTripItem().tripActions = TripActions.showGroup;
-      adjustMapHeight(MapHeights.headers);
-    });
+  void loadGroup() async {
+    String today = DateFormat('yyyy-mm-dd').format(DateTime.now());
+    today = '2025-05-14'; // debug remove
+    List<Map<String, dynamic>> drivers;
+    try {
+      drivers = await getDrivers(
+          driveId: CurrentTripItem().driveUri, driveDate: today, accepted: 2);
+    } catch (e) {
+      debugPrint('error getting drivers: ${e.toString()}');
+      drivers = [];
+    }
     _following.clear();
-    _following.add(Follower(
-      id: -1,
-      driveId: CurrentTripItem().driveId,
-      forename: 'James',
-      surname: 'Seddon',
-      phoneNumber: '07761632236',
-      car: 'Midget',
-      registration: 'K223RPF',
-      iconColour: 3,
-
-      /// LatLng (LatLng(latitude:51.497157, longitude:-0.619253))
-      /// LatLng (LatLng(latitude:51.484398, longitude:-0.62162))
-
-      position: const LatLng(51.497157, -0.619253), // 51.459024 -0.580205
-      marker: MarkerWidget(
-        type: 16,
-        description: '',
-        angle: -_mapRotation * pi / 180,
-        colourIdx: 3,
-      ),
-    ));
-    _following.add(Follower(
-      id: -1,
-      driveId: CurrentTripItem().driveId,
-      forename: 'Frank',
-      surname: 'Wilson',
-      phoneNumber: '079216366422',
-      car: 'MGB',
-      registration: 'RKX554L',
-      iconColour: 4,
-      position: const LatLng(51.484398, -0.62162), // 51.459024 -0.580205
-      marker: MarkerWidget(
-        type: 16,
-        description: '',
-        angle: -_mapRotation * pi / 180,
-        colourIdx: 4,
-      ),
-    ));
+    int cIndex = 2; // dont't want to use
+    if (drivers.isNotEmpty) {
+      try {
+        socket.connect();
+      } catch (e) {
+        debugPrint('Woops> ${e.toString()}');
+      }
+      _tripId = drivers[0]['group_drive_id'];
+      for (Map<String, dynamic> driver in drivers) {
+        cIndex = cIndex < 16 ? cIndex++ : 2;
+        _following.add(Follower(
+          uri: driver['user_uri'] ?? '',
+          driveId: driver['group_drive_id'] ?? CurrentTripItem().driveId,
+          forename: driver['user_forename'] ?? 'N/A',
+          surname: driver['user_surname'] ?? 'N/A',
+          phoneNumber: driver['user_phone'],
+          car: driver['user_car'] ?? 'N/A',
+          registration: driver['user_car_reg'] ?? 'N/A',
+          iconColour: cIndex,
+          position: const LatLng(51.497157, -0.619253), // 51.459024 -0.580205
+          marker: MarkerWidget(
+            type: 16,
+            description: '',
+            angle: -_mapRotation * pi / 180,
+            colourIdx: cIndex,
+          ),
+        ));
+      }
+    }
   }
 
   void editRoute() async {
@@ -2214,9 +2484,12 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
           ),
         ),
       ),
-      onTap: () => setState(() => adjustMapHeight(mapHeight > mapHeights[0] - 50
-          ? MapHeights.pointOfInterest
-          : MapHeights.full)),
+      onTap: () => setState(() {
+        FocusManager.instance.primaryFocus?.unfocus(); // <- remove keyboard
+        adjustMapHeight(mapHeight > mapHeights[0] - 50
+            ? MapHeights.pointOfInterest
+            : MapHeights.full);
+      }),
       onVerticalDragUpdate: (DragUpdateDetails details) {
         setState(() {
           if (mapHeights[0] == 0) {
@@ -2295,11 +2568,12 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
   }
 
   Future<void> followerIconClick(int index) async {
-    await messageGroup(index);
+    String message = await messageGroup(index);
+    if (message.isNotEmpty) {}
     return;
   }
 
-  Future<void> messageGroup(int index) async {
+  Future<String> messageGroup(int index) async {
     List<String> choices = [
       'All OK',
       'Stopping for fuel',
@@ -2308,6 +2582,7 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
       'Stopping for a break',
       'Stuck in traffic'
     ];
+    String message = choices[0];
     showDialog<void>(
       context: context,
       builder: (BuildContext context) {
@@ -2333,13 +2608,14 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
                         ),
                         value: choices[0],
                         items: choices
-                            .map((item) => DropdownMenuItem<String>(
-                                  value: item,
-                                  child: Text(item,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodyLarge!),
-                                ))
+                            .map(
+                              (item) => DropdownMenuItem<String>(
+                                value: item,
+                                child: Text(item,
+                                    style:
+                                        Theme.of(context).textTheme.bodyLarge!),
+                              ),
+                            )
                             .toList(),
                         onChanged: (item) => setState(() {}),
                       ),
@@ -2368,7 +2644,33 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
                         ),
                       ),
                     ],
-                  )
+                  ),
+                ] else ...[
+                  SizedBox(
+                    height: 70,
+                    child: Padding(
+                      padding: const EdgeInsets.all(10),
+                      //  child: SingleChildScrollView(
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              minLines: 1,
+                              maxLines: 2,
+                              decoration: const InputDecoration(
+                                border: OutlineInputBorder(),
+                                hintText: 'Enter group message',
+                              ),
+                              textInputAction: TextInputAction.done,
+                              keyboardType: TextInputType.multiline,
+                              onChanged: (value) => message = 'message  $value',
+                            ),
+                          ),
+                        ],
+                      ),
+                      //    ),
+                    ),
+                  ),
                 ]
               ],
             ),
@@ -2380,7 +2682,7 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
               ),
               child: const Text('Send'),
               onPressed: () {
-                Navigator.of(context).pop();
+                Navigator.pop(context, message);
               },
             ),
             TextButton(
@@ -2389,14 +2691,14 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
               ),
               child: const Text('Cancel'),
               onPressed: () {
-                Navigator.of(context).pop();
+                Navigator.pop(context, '');
               },
             ),
           ],
         );
       },
     );
-    return;
+    return '';
   }
 
   void followerLongPress(int index) {
@@ -2483,85 +2785,6 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
         duration: const Duration(seconds: 2), curve: Curves.fastOutSlowIn);
   }
 
-  void tripsFromWeb() async {
-    int tries = 0;
-    while (Setup().jwt.isEmpty && ++tries < 4) {
-      //  await login(context);
-      if (Setup().jwt.isEmpty) {
-        debugPrint('Login failed');
-      }
-    }
-    tripItems = await getTrips();
-    for (int i = 0; i < tripItems.length; i++) {}
-    setState(() {});
-  }
-
-  Future<void> loadTrip(int index) async {
-    int driveId = _myTripItems[index].driveId;
-    CurrentTripItem().fromMyTripItem(myTripItem: _myTripItems[index]);
-    await CurrentTripItem().loadLocal(driveId);
-    CurrentTripItem().index = index;
-
-    setState(() {
-      CurrentTripItem().tripState = TripState.notFollowing;
-      _alignDirectionOnUpdate = AlignOnUpdate.never;
-      _alignPositionOnUpdate = AlignOnUpdate.never;
-      CurrentTripItem().tripActions = TripActions.none;
-      _appState = AppState.driveTrip;
-      _showTarget = false;
-      _title = CurrentTripItem().heading;
-      try {
-        _animatedMapController.animateTo(
-            dest: CurrentTripItem().pointsOfInterest[0].point);
-      } catch (e) {
-        debugPrint('Error animatedMapController not initialised');
-      }
-    });
-    return;
-  }
-
-  Future<void> getTripDetails(int index) async {
-    CurrentTripItem().clearRoutes();
-    List<Polyline> polyLines =
-        await loadPolyLinesLocal(CurrentTripItem().driveId);
-    for (int i = 0; i < polyLines.length; i++) {
-      CurrentTripItem().addRoute(mt.Route(
-          id: -1,
-          points: polyLines[i].points,
-          color: polyLines[i].color,
-          borderColor: polyLines[i].color,
-          strokeWidth: polyLines[i].strokeWidth));
-    }
-
-    loadManeuversLocal(CurrentTripItem().driveId)
-        .then((maneuvers) => CurrentTripItem().addManeuvers(maneuvers));
-
-    int closest = await getClosestManeuver(CurrentTripItem().maneuvers);
-    debugPrint('closest maneuver is: $closest');
-    return;
-  }
-
-  Future<void> shareTrip(int index) async {
-    MyTripItem currentTrip = _myTripItems[index];
-    currentTrip.showMethods = false;
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-          builder: (context) => ShareForm(
-                tripItem: currentTrip,
-              )),
-    ).then(
-      (value) {
-        setState(
-          () {
-            currentTrip.showMethods = true;
-          },
-        );
-      },
-    );
-    return;
-  }
-
   Future<void> deleteTrip(int index) async {
     Utility().showOkCancelDialog(
         context: context,
@@ -2591,6 +2814,7 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
     return;
   }
 
+/*
   onTripRatingChanged(int value, int index) async {
     setState(() {
       debugPrint('Value: $value  Index: $index');
@@ -2598,7 +2822,7 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
     });
     putDriveRating(tripItems[index].uri, value);
   }
-
+*/
   onPointOfInterestRatingChanged(int value, int index) async {
     putPointOfInterestRating(
         CurrentTripItem().pointsOfInterest[index].url, value.toDouble());
@@ -2858,31 +3082,10 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
               .add(pos);
 
           if (_goodRoad.isGood) {
-            CurrentTripItem().addPointOfInterest(
-              PointOfInterest(
-                driveId: CurrentTripItem().driveId,
-                type: 13,
-                name: 'Good road',
-                markerPoint: pos,
-                marker: MarkerWidget(
-                  type: 13,
-                  description: '',
-                  angle: -_mapRotation * pi / 180,
-                  list: 0,
-                  listIndex: id == -1
-                      ? CurrentTripItem().pointsOfInterest.length
-                      : id + 1,
-                ),
-              ),
-            );
-            if (CurrentTripItem().goodRoads.isEmpty) {
-              addGoodRoad(position: pos);
-            } else {
-              CurrentTripItem()
-                  .goodRoads[CurrentTripItem().goodRoads.length - 1]
-                  .points
-                  .add(pos);
-            }
+            CurrentTripItem()
+                .goodRoads[CurrentTripItem().goodRoads.length - 1]
+                .points
+                .add(pos);
           }
           debugPrint(
               'CurrentTripItem().routes.length: ${CurrentTripItem().routes.length}  points: ${CurrentTripItem().routes[CurrentTripItem().routes.length - 1].points.length}');
@@ -2892,6 +3095,7 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
         } else if (CurrentTripItem().tripState == TripState.following) {
           setState(() => _directionsIndex = getDirectionsIndex());
         }
+        // },
       },
     );
   }
@@ -2913,20 +3117,15 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
         ),
       ),
     );
-    if (CurrentTripItem().goodRoads.isEmpty) {
-      CurrentTripItem().addGoodRoad(mt.Route(
+    CurrentTripItem().addGoodRoad(
+      mt.Route(
           id: -1,
           points: [position],
           borderColor: uiColours.keys.toList()[Setup().goodRouteColour],
           color: uiColours.keys.toList()[Setup().goodRouteColour],
           strokeWidth: 5,
-          pointOfInterestIndex: CurrentTripItem().pointsOfInterest.length - 1));
-    } else {
-      CurrentTripItem()
-          .goodRoads[CurrentTripItem().goodRoads.length - 1]
-          .points
-          .add(position);
-    }
+          pointOfInterestIndex: CurrentTripItem().pointsOfInterest.length - 1),
+    );
   }
 
   int getDirectionsIndex() {

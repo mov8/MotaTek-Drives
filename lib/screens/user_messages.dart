@@ -7,19 +7,19 @@ import 'package:drives/services/services.dart';
 
 import 'package:socket_io_client/socket_io_client.dart' as sio;
 
-class GroupMessagesController {
-  _GroupMessagesState? _groupMessagesState;
+class UserMessagesController {
+  _UserMessagesState? _userMessagesState;
 
-  void _addState(_GroupMessagesState groupMessagesState) {
-    _groupMessagesState = groupMessagesState;
+  void _addState(_UserMessagesState serMessagesState) {
+    _userMessagesState = serMessagesState;
   }
 
-  bool get isAttached => _groupMessagesState != null;
+  bool get isAttached => _userMessagesState != null;
 
   void leave() {
     assert(isAttached, 'Controller must be attached to widget');
     try {
-      _groupMessagesState?.leave();
+      _userMessagesState?.leave();
     } catch (e) {
       String err = e.toString();
       debugPrint('Error loading image: $err');
@@ -27,25 +27,25 @@ class GroupMessagesController {
   }
 }
 
-class GroupMessages extends StatefulWidget {
+class UserMessages extends StatefulWidget {
   // var setup;
-  final GroupMessagesController controller;
+  final UserMessagesController controller;
   final Function(int)? onSelect;
   final Function(int)? onCancel;
-  final Group group;
-  const GroupMessages({
+  final User user;
+  const UserMessages({
     super.key,
     required this.controller,
-    required this.group,
+    required this.user,
     this.onSelect,
     this.onCancel,
   });
 
   @override
-  State<GroupMessages> createState() => _GroupMessagesState();
+  State<UserMessages> createState() => _UserMessagesState();
 }
 
-class _GroupMessagesState extends State<GroupMessages> {
+class _UserMessagesState extends State<UserMessages> {
   int group = 0;
   late Future<bool> dataloaded;
   late FocusNode fn1;
@@ -83,19 +83,13 @@ class _GroupMessagesState extends State<GroupMessages> {
     dataloaded = dataFromWeb();
     widget.controller._addState(this);
 
-    //socket.onConnect((_) => debugPrint('connecting'));
+    socket.onConnect((_) => debugPrint('connecting'));
     socket.onConnectError((_) => debugPrint('connect error'));
-    //socket.onConnectError((_) => debugPrint('connect error'));
+    socket.onConnectError((_) => debugPrint('connect error'));
 
     socket.onError((data) => debugPrint('Error: ${data.toString()}'));
 
-    socket.onConnect((_) {
-      debugPrint('onConnect connected');
-      socket
-          .emit('group_join', {'token': Setup().jwt, 'group': widget.group.id});
-    });
-
-    socket.on('message_from_group', (data) {
+    socket.on('text', (data) {
       try {
         messages[messages.length - 1] = Message.fromSocketMap(data);
         messages.add(Message(
@@ -103,17 +97,12 @@ class _GroupMessagesState extends State<GroupMessages> {
           sender: '${Setup().user.forename} ${Setup().user.surname}',
           message: '',
         ));
-        widget.group.messages = messages.length;
+        // widget.user.messages = messages.length;
         setState(() {});
       } catch (e) {
         debugPrint('Error: ${e.toString()}');
       }
     });
-
-    if (socket.connected) {
-      socket
-          .emit('group_join', {'token': Setup().jwt, 'group': widget.group.id});
-    }
 
     socket.connect();
     debugPrint('should have connected');
@@ -123,7 +112,6 @@ class _GroupMessagesState extends State<GroupMessages> {
   void dispose() {
     // Clean up the focus node when the Form is disposed.
     if (socket.connected) {
-      socket.emit('group_leave', {'group': widget.group.id});
       try {
         socket.emit('cleave');
       } catch (e) {
@@ -139,7 +127,6 @@ class _GroupMessagesState extends State<GroupMessages> {
   void leave() {
     widget.onCancel!(1);
     if (socket.connected) {
-      socket.emit('group_leave', {'group': widget.group.id});
       socket.emit('cleave');
     }
     Navigator.pop(context);
@@ -150,7 +137,7 @@ class _GroupMessagesState extends State<GroupMessages> {
   }
 
   Future<bool> dataFromWeb() async {
-    messages = await getGroupMessages(widget.group);
+    messages = await getUserMessages(widget.user);
     messages.add(Message(
       id: '',
       sender: '${Setup().user.forename} ${Setup().user.surname}',
@@ -188,36 +175,6 @@ class _GroupMessagesState extends State<GroupMessages> {
                 ),
               ),
             ),
-            //     StreamBuilder(
-            //        stream: streamSocket.getResponse,
-            //         builder: (context, snapshot) {
-            //           return Text(snapshot.hasData ? '${snapshot.data}' : '>');
-            //         }),
-            // ]),
-            /*
-            Align(
-              alignment: Alignment.bottomLeft,
-              child: Wrap(
-                spacing: 5,
-                children: [
-                  ActionChip(
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20)),
-                    onPressed: () {
-                      widget.onCancel!(1);
-                      debugPrint('Back chip pressed');
-                    },
-                    backgroundColor: Colors.blue,
-                    avatar: const Icon(
-                      Icons.arrow_back,
-                      color: Colors.white,
-                    ),
-                    label: const Text('Back',
-                        style: TextStyle(fontSize: 18, color: Colors.white)),
-                  )
-                ],
-              ),
-            ) */
           ],
         ),
       ),

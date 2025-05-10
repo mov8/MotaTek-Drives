@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:drives/constants.dart';
+import 'package:drives/models/models.dart';
 
 class RoutesBottomNavController {
   _RoutesBottomNavState? _routesBottomNavState;
@@ -39,18 +40,13 @@ class RoutesBottomNav extends StatefulWidget {
   final Function(int) onMenuTap;
   final RoutesBottomNavController controller;
   final int initialValue;
-  final int? tripCount;
-  final int? shopCount;
-  final int? messageCount;
 
-  const RoutesBottomNav(
-      {super.key,
-      required this.controller,
-      required this.onMenuTap,
-      this.initialValue = 0,
-      this.tripCount,
-      this.shopCount,
-      this.messageCount});
+  const RoutesBottomNav({
+    super.key,
+    required this.controller,
+    required this.onMenuTap,
+    this.initialValue = 0,
+  });
   @override
   State<RoutesBottomNav> createState() => _RoutesBottomNavState();
 }
@@ -59,19 +55,17 @@ class _RoutesBottomNavState extends State<RoutesBottomNav>
     with TickerProviderStateMixin {
   // late AnimationController _animationIconController;
   bool isarrowmenu = false;
+  List<int> badgeValues = [0, 0, 0, 0, 0, 0];
   int _index = 0; // 0 = hamburger 1 = back
-  int _messageCount = 0;
-  int _shopCount = 0;
-  int _tripCount = 0;
 
   @override
   void initState() {
     super.initState();
     widget.controller._addState(this);
     _index = widget.initialValue;
-    _tripCount = widget.tripCount ?? 0;
-    _shopCount = widget.shopCount ?? 0;
-    _messageCount = widget.messageCount ?? 0;
+    //  badgeValues[1] = Setup().tripCount;
+    badgeValues[4] = Setup().shopCount;
+    badgeValues[5] = Setup().messageCount;
   }
 
   @override
@@ -104,7 +98,9 @@ class _RoutesBottomNavState extends State<RoutesBottomNav>
       indicatorColor: Colors.lightBlue,
       selectedIndex: _index,
       destinations: List<Widget>.generate(
-          6, (index) => _navigationDestination(index: index, badgeValue: 0)),
+          6,
+          (index) => _navigationDestination(
+              index: index, badgeValue: badgeValues[index])),
     );
   }
 
@@ -113,7 +109,7 @@ class _RoutesBottomNavState extends State<RoutesBottomNav>
     const List<String> labels = [
       'Home',
       'Great Drives',
-      'This Trip',
+      'My Trip',
       'My Drives',
       'Shop',
       'Messages'

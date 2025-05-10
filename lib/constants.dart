@@ -2,7 +2,7 @@ import 'package:latlong2/latlong.dart';
 
 const apiAddress = '64.227.34.217';
 const wifiIpAddress = '10.101.1.216';
-// const urlBase = 'http://$apiIpAddress:5001/';
+// const urlBase = 'http://$apiAddress:5001/';
 const urlBase = 'http://$wifiIpAddress:5001/';
 const urlBaseTest = '${urlBase}v1/user/test';
 const urlRouter =
@@ -25,6 +25,8 @@ const List<String> routes = [
   'shop',
   'messages'
 ];
+
+enum LoginState { cancel, login, register }
 
 enum MarkerTypes {
   trip,
@@ -121,7 +123,7 @@ const List<String> tableDefs = [
  latitude REAL, longitude REAL, type INTEGER)''',
 
   /// FOLLOWERS
-  '''CREATE TABLE followers(id INTEGER PRIMARY KEY AUTOINCREMENT, drive_id INTEGER, forename TEXT, 
+  '''CREATE TABLE followers(id INTEGER PRIMARY KEY AUTOINCREMENT, uri TEXT, drive_id INTEGER, forename TEXT, 
   surname TEXT, phone_number TEXT, car TEXT, registration TEXT, icon_colour INTEGER, position TEXT, 
   reported DATETIME)''',
 

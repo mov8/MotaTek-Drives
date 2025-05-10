@@ -12,6 +12,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:drives/constants.dart';
 import 'package:drives/classes/route.dart' as mt;
 import 'package:drives/classes/my_trip_item.dart';
+import 'package:drives/classes/other_classes.dart';
 import 'package:drives/models/models.dart';
 import 'package:drives/services/web_helper.dart';
 import 'dart:async';
@@ -396,6 +397,29 @@ Future<List<Group>> getGroups() async {
   return groups;
 }
 */
+Future<List<MailItem>> loadMailItems() async {
+  final db = await DbHelper().db;
+  List<MailItem> mailItems = [];
+  try {
+    List<Map<String, dynamic>> maps = await db.query(
+      'groups',
+    );
+
+    for (int i = 0; i < maps.length; i++) {
+      mailItems.add(MailItem(
+        id: maps[i]['id'],
+        name: maps[i]['name'],
+        isGroup: true,
+      ));
+      // description: maps[i]['description']));
+    }
+  } catch (e) {
+    String err = e.toString();
+    debugPrint(err);
+  }
+  return mailItems;
+}
+
 Future<List<Group>> loadGroups() async {
   final db = await DbHelper().db;
   List<Group> groups = [];
@@ -1373,8 +1397,8 @@ Future<List<Follower>> loadFollowers(int driveId) async {
     pos = LatLng(jsonPos['lat'], jsonPos['long']);
     followers.add(
       Follower(
-        id: maps[i]['id'],
-        driveId: driveId,
+        uri: maps[i]['id'],
+        driveId: driveId.toString(),
         forename: maps[i]['forename'],
         surname: maps[i]['surname'],
         phoneNumber: maps[i]['phone_number'],
@@ -1399,11 +1423,11 @@ Future<bool> saveFollowersLocal(
   for (int i = 0; i < followers.length; i++) {
     Map<String, dynamic> fMap = followers[i].toMap();
 
-    if (followers[i].id > -1) {
+    if (followers[i].uri.isNotEmpty) {
       try {
         await db.update('followers', fMap,
             where: 'id = ?',
-            whereArgs: [followers[i].id],
+            whereArgs: [followers[i].uri],
             conflictAlgorithm: ConflictAlgorithm.replace);
       } catch (e) {
         debugPrint("Database error storing followers: ${e.toString()}");

@@ -69,7 +69,7 @@ const List<String> settlementTypes = ['city', 'town', 'village', 'hamlet'];
 DateFormat dateFormat = DateFormat('dd/MM/yy HH:mm');
 RegExp emailRegex = RegExp(r'[a-zA-Z0-9.]+@[a-zA-Z0-9]+\.[a-zA-Z]+');
 
-enum LoginState { ok, badPassword, badEmail }
+// enum LoginState { ok, badPassword, badEmail }
 
 Future<List<String>> getSuggestions(String value) async {
   String baseURL = 'https://photon.komoot.io/api/?q=$value';
@@ -107,6 +107,26 @@ Future<List<String>> getApiOptions(
     }
   }
   return List<String>.from(results);
+}
+
+Future<List<Place>> getPlaces({String value = ''}) async {
+  List<Place> results = [];
+  if (value.isNotEmpty) {
+    try {
+      final http.Response response = await getWebData(
+          uri: Uri.parse('$urlPointOfInterest/places/$value'), secure: false);
+      if ([200, 201].contains(response.statusCode)) {
+        dynamic maps = jsonDecode(response.body);
+        for (Map<String, dynamic> map in maps) {
+          results.add(Place.fromMap(map: map));
+        }
+      }
+    } catch (e) {
+      debugPrint(
+          'Error getting api list ${e.toString()}, results.length() ${results.length}');
+    }
+  }
+  return results;
 }
 
 Future<LatLng> getPosition(String value) async {
@@ -219,7 +239,7 @@ Future<Map<String, dynamic>> postUser(
   try {
     var uri = Uri.parse('$urlUser/${register ? "register" : "login"}');
     http.Response response =
-        await postWebData(uri: uri, body: jsonEncode(user.toMap()));
+        await postWebData(uri: uri, body: jsonEncode(user.toMapApi()));
     Map<String, dynamic> map = jsonDecode(response.body);
     if ([200, 201].contains(response.statusCode)) {
       Setup().jwt = map['token'];
@@ -231,6 +251,23 @@ Future<Map<String, dynamic>> postUser(
     // debugPrint('Login error: ${e.toString()}');
   }
   return {'message': 'error'};
+}
+
+Future<bool> postValidateUser({required User user}) async {
+  try {
+    var uri = Uri.parse('$urlUser/validate');
+    Map<String, String> data = {"email": user.email, "name": user.forename};
+    http.Response response =
+        await postWebData(uri: uri, body: jsonEncode(data));
+    if (response.statusCode != 201) {
+      return false;
+    }
+  } catch (e) {
+    debugPrint('Error sending validation request: ${e.toString()}');
+    return false;
+  }
+
+  return true;
 }
 
 Future<Map<String, dynamic>> postContacts(
@@ -252,6 +289,39 @@ Future<Map<String, dynamic>> postContacts(
   return {'message': 'error'};
 }
 
+Future<void> getUserDetails({required String email}) async {
+  final http.Response response =
+      await getWebData(uri: Uri.parse('$urlUser/user/$email'));
+  if ([200, 201].contains(response.statusCode)) {
+    try {
+      Map<String, dynamic> data = jsonDecode(response.body);
+      Setup().jwt = data['token'] ?? '';
+      Setup().user.forename = data['forename'] ?? '';
+      Setup().user.surname = data['surname'] ?? '';
+      Setup().user.email = email;
+      Setup().user.phone = data['phone'] ?? '';
+      Setup().setupToDb();
+    } catch (e) {
+      debugPrint('Error retrieving user data: ${e.toString()}');
+    }
+  }
+}
+
+Future<void> getStats() async {
+  final http.Response response =
+      await getWebData(uri: Uri.parse('$urlUser/stats'), secure: true);
+  if ([200, 201].contains(response.statusCode)) {
+    try {
+      Map<String, dynamic> data = jsonDecode(response.body);
+      Setup().messageCount = data['messages'];
+      Setup().tripCount = data['trips'];
+      Setup().shopCount = data['shop'];
+    } catch (e) {
+      debugPrint('Error getting stats: ${e.toString()}');
+    }
+  }
+}
+
 Future<Map<String, dynamic>> tryLogin({required User user}) async {
   bool register = user.password.length <= 6;
   try {
@@ -260,14 +330,15 @@ Future<Map<String, dynamic>> tryLogin({required User user}) async {
         await postWebData(uri: uri, body: jsonEncode(user.toMap()));
 
     Map<String, dynamic> map = jsonDecode(response.body);
-    if (response.statusCode == 201) {
+    if (response.statusCode == 200) {
       Setup().jwt = map['token'];
+      Setup().setupToDb();
       return {'msg': 'OK'};
     } else {
       return {'msg': map['message'] ?? 'error'};
     }
   } catch (e) {
-    // debugPrint('Login error: ${e.toString()}');
+    debugPrint('Login error: ${e.toString()}');
   }
   return {'message': 'error'};
 }
@@ -1346,7 +1417,7 @@ Future<List<GroupMember>> getManagedGroupMembers(String groupId) async {
 Future<List<Group>> getGroups() async {
   try {
     final http.Response response =
-        await getWebData(uri: Uri.parse('$urlGroup/get'));
+        await getWebData(uri: Uri.parse('$urlGroup/get'), secure: true);
     if ([200, 201].contains(response.statusCode)) {
       var groups = jsonDecode(response.body);
       return [
@@ -1415,20 +1486,40 @@ Future<Map<String, dynamic>> deleteGroupDrive(
   return {'msf': 'error'};
 }
 
-Future<List<Group>> getMessagesByGroup() async {
+Future<List<MailItem>> getMessagesByGroup() async {
+  List<MailItem> mailItems = [];
   try {
     final http.Response response = await getWebData(
-        uri: Uri.parse('$urlMessage/group_messages'), secure: true);
+        uri: Uri.parse('$urlMessage/all_messages'), secure: true);
     if ([200, 201].contains(response.statusCode)) {
       var groups = jsonDecode(response.body);
+
+      for (Map<String, dynamic> groupData in groups) {
+        mailItems.add(MailItem(
+          id: groupData['id'],
+          name: groupData['name'],
+          unreadMessages: groupData['messages'] - int.parse(groupData['read']),
+          messages: groupData['messages'],
+          isGroup: groupData['group'] == 1,
+        ));
+      }
+    }
+  } catch (e) {
+    debugPrint("Can't access data on the web");
+  }
+  return mailItems;
+}
+
+Future<List<Message>> getGroupMessages(Group group) async {
+  try {
+    final http.Response response = await getWebData(
+        uri: Uri.parse('$urlMessage/group/${group.id}'), secure: true);
+    if ([200, 201].contains(response.statusCode)) {
+      var messages = jsonDecode(response.body);
       return [
-        for (Map<String, dynamic> groupData in groups)
-          Group(
-            id: groupData['id'],
-            name: groupData['name'],
-            unreadMessages:
-                groupData['messages'] - int.parse(groupData['read']),
-            messages: groupData['messages'],
+        for (Map<String, dynamic> messageData in messages)
+          Message.fromMap(
+            messageData,
           )
       ];
     }
@@ -1438,10 +1529,10 @@ Future<List<Group>> getMessagesByGroup() async {
   return [];
 }
 
-Future<List<Message>> getGroupMessages(Group group) async {
+Future<List<Message>> getUserMessages(User user) async {
   try {
     final http.Response response = await getWebData(
-        uri: Uri.parse('$urlMessage/group/${group.id}'), secure: true);
+        uri: Uri.parse('$urlMessage/user/${user.uri}'), secure: true);
     if ([200, 201].contains(response.statusCode)) {
       var messages = jsonDecode(response.body);
       return [
@@ -1641,8 +1732,8 @@ Future<String> postShopItem(ShopItem shopItem) async {
 
 Future<List<EventInvitation>> getInvitationssByUser() async {
   try {
-    final http.Response response =
-        await getWebData(uri: Uri.parse('$urlGroupDriveInvitation/user'));
+    final http.Response response = await getWebData(
+        uri: Uri.parse('$urlGroupDriveInvitation/user'), secure: true);
 
     if ([200, 201].contains(response.statusCode)) {
       var invitations = jsonDecode(response.body);
@@ -1710,7 +1801,8 @@ Future<String> postGroupDriveInvitations(
 Future<String> postGroupDrive(GroupDriveInvitation invitation) async {
   final http.Response response = await postWebData(
       uri: Uri.parse('$urlGroupDrive/add'),
-      body: jsonEncode(invitation.toMap()));
+      body: jsonEncode(invitation.toMap()),
+      secure: true);
   if ([200, 201].contains(response.statusCode)) {
     return response.body;
   }
@@ -1720,23 +1812,43 @@ Future<String> postGroupDrive(GroupDriveInvitation invitation) async {
 Future<bool> answerInvitation(EventInvitation invitation) async {
   final http.Response response = await postWebData(
       uri: Uri.parse('$urlGroupDriveInvitation/respond'),
-      body:
-          '{"invitation_id": ${invitation.id}, "response":${invitation.accepted.toString()}}');
+      secure: true,
+      body: jsonEncode(
+          {"invitation_id": invitation.id, "response": invitation.accepted}));
   return [200, 201].contains(response.statusCode);
+}
+
+Future<List<Map<String, dynamic>>> getDrivers(
+    {required String driveId,
+    String driveDate = '01-01-2000',
+    int accepted = 2}) async {
+  final http.Response response = await postWebData(
+      uri: Uri.parse('$urlGroupDrive/drivers'),
+      secure: true,
+      body: jsonEncode({
+        "drive_id": driveId,
+        "drive_date": driveDate,
+        "accepted": accepted
+      }));
+  debugPrint("Response code: ${response.statusCode}");
+  var drivers = jsonDecode(response.body);
+
+  return [for (Map<String, dynamic> driver in drivers) driver];
 }
 
 Future<GroupMember> getUserByEmail(String email) async {
   try {
     final http.Response response = await postWebData(
-        uri: Uri.parse('$urlUser/get_user_by_email'), body: '"email": $email');
+        uri: Uri.parse('$urlUser/get_user_by_email'),
+        body: jsonEncode({"email": email}));
 
     if (response.statusCode == 200) {
       return GroupMember.fromUserMap(jsonDecode(response.body));
     }
   } catch (e) {
-    // debugPrint("Can't access data on the web: ${e.toString()}");
+    debugPrint("Can't access data on the web: ${e.toString()}");
   }
-  return GroupMember(forename: '', surname: '');
+  return GroupMember(forename: 'Not', surname: 'Registered', email: email);
 }
 
 Future<List<GroupMember>> getGroupMembers() async {

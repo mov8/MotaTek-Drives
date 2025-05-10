@@ -255,6 +255,9 @@ class Setup {
   bool avoidBroads = false;
   bool avoidTollRoads = false;
   bool avoidFerries = false;
+  int tripCount = 0;
+  int shopCount = 0;
+  int messageCount = 0;
   MyTripItem? currentTrip;
   Position lastPosition = Position(
     longitude: 0.0,
@@ -946,7 +949,7 @@ class EventInvitation {
       forename: map['inviter_forename'],
       surname: map['inviter_surname'],
       email: map['inviter_email'],
-      id: map['invitation_id'],
+      id: map['invitation_id'] ?? '',
       invitationDate: DateTime.parse(map['invitation_date']),
       accepted: int.parse(map['accepted']),
     );
@@ -958,7 +961,7 @@ class EventInvitation {
       surname: map['invitee_surname'],
       phone: map['invitee_phone'],
       email: map['invitee_email'],
-      id: map['invitation_id'],
+      id: map['invitation_id'] ?? '',
       invitationDate: DateTime.parse(map['invitation_date']),
       accepted: int.parse(map['accepted']),
     );
@@ -969,7 +972,7 @@ class EventInvitation {
       surname: map['invitee_surname'],
       phone: map['invitee_phone'],
       email: map['invitee_email'],
-      id: map['invitation_id'],
+      id: map['invitation_id'] ?? '',
       accepted: int.parse(map['accepted']),
       driveId: map['group_drive_id'],
     );
@@ -1159,6 +1162,7 @@ String photosToJson(List<Photo> photos) {
 
 class User {
   int id = 0;
+  String uri;
   String forename;
   String surname;
   String password;
@@ -1169,11 +1173,12 @@ class User {
 
   User({
     this.id = 0,
-    required this.forename,
-    required this.surname,
-    required this.email,
-    required this.phone,
-    required this.password,
+    this.forename = '',
+    this.surname = '',
+    this.email = '',
+    this.phone = '',
+    this.password = '',
+    this.uri = '',
     this.imageUrl = '',
   });
 
@@ -1195,8 +1200,20 @@ class User {
       'surname': surname,
       'email': email,
       'phone': phone,
+      'password': newPassword.isEmpty ? password : newPassword,
+      'imageUrl': imageUrl,
+    };
+  }
+
+  Map<String, dynamic> toMapApi() {
+    return {
+      'id': id,
+      'forename': forename,
+      'surname': surname,
+      'email': email,
+      'phone': phone,
       'password': password,
-//      'new_password': newPassword,
+      'new_password': newPassword,
       'imageUrl': imageUrl,
     };
   }
@@ -1260,8 +1277,8 @@ class Maneuver {
 /// class Follower
 
 class Follower extends Marker {
-  int id = 0;
-  int driveId = 0;
+  String uri;
+  String driveId;
   String forename = '';
   String surname = '';
   String phoneNumber = '';
@@ -1276,8 +1293,8 @@ class Follower extends Marker {
   @override
   double height;
   Follower(
-      {this.id = 0,
-      this.driveId = 0,
+      {this.uri = '',
+      this.driveId = '',
       this.forename = '',
       this.surname = '',
       this.phoneNumber = '',
@@ -1299,7 +1316,7 @@ class Follower extends Marker {
 
   Map<String, dynamic> toMap() {
     return {
-      'id': id,
+      'id': uri,
       'drive_id': driveId,
       'forename': forename,
       'surname': surname,
@@ -1465,14 +1482,14 @@ class ShopItem {
 class TripSummary extends Marker {
   int cacheKey;
   int id = -1;
-  String uri;
-  String title;
-  String subTitle;
-  double minLat;
-  double maxLat;
-  double minLong;
-  double maxLong;
-  double score;
+  final String uri;
+  final String title;
+  final String subTitle;
+  final double minLat;
+  final double maxLat;
+  final double minLong;
+  final double maxLong;
+  final double score;
   int scored;
 
   // late final Widget marker;
@@ -1804,6 +1821,29 @@ class Drive {
 
   Future<bool> getDetailsApi() async {
     return true;
+  }
+}
+
+class TripMessage {
+  String id;
+  String senderId;
+  String message;
+  double lat;
+  double lng;
+  TripMessage(
+      {this.id = '',
+      this.senderId = '',
+      this.message = '',
+      this.lat = 0.0,
+      this.lng = 0.0});
+  factory TripMessage.fromSocketMap(Map<String, dynamic> map) {
+    return TripMessage(
+      id: map['id'] ?? '',
+      senderId: map['sender_id'] ?? '',
+      message: map['message'] ?? '',
+      lat: map['lat'] ?? 0.0,
+      lng: map['lng'] ?? 0.0,
+    );
   }
 }
 

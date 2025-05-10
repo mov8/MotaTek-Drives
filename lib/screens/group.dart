@@ -1,6 +1,7 @@
-import 'package:drives/tiles/group_member_tile.dart';
 import 'package:flutter/material.dart';
+import 'package:drives/classes/autocomplete_widget.dart';
 import 'package:drives/models/other_models.dart';
+import 'package:drives/tiles/group_member_tile.dart';
 import 'package:drives/services/services.dart';
 
 class GroupForm extends StatefulWidget {
@@ -16,6 +17,7 @@ class _GroupFormState extends State<GroupForm> {
   int group = 0;
   late Future<bool> dataloaded;
   late FocusNode fn1;
+  List<String> dropdownOptions = [];
 
   late GroupMember newMember;
   late Group newGroup;
@@ -525,101 +527,144 @@ class _GroupFormState extends State<GroupForm> {
     return Form(
       key: _formKey,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+        padding: const EdgeInsets.fromLTRB(10, 20, 20, 10),
         child: SizedBox(
           height: _emailSizedBoxHeight,
-          child: TextFormField(
-            textInputAction: TextInputAction.done,
-            keyboardType: TextInputType.emailAddress,
-            validator: (value) {
-              _emailSizedBoxHeight = 70;
-              if (!_validate) {
-                return null;
-              }
-              if (_validateMessage.isNotEmpty) {
-                _emailSizedBoxHeight = 100;
-                return (_validateMessage);
-              }
-              if (value!.isEmpty) {
-                _emailSizedBoxHeight = 100;
-                return ("email can't be empty");
-              }
-              if (!emailRegex.hasMatch(value)) {
-                _emailSizedBoxHeight = 110;
-                return ('not a valid email address');
-              }
-              return null;
-            },
-            onFieldSubmitted: (val) => setState(() {
-              newMember.email = val;
+          child: Row(
+            children: [
+              Expanded(
+                flex: 8,
+                child: AutocompleteAsync(
+                  options: dropdownOptions,
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(),
+                    hintText: 'Enter users email address',
+                    labelText: 'Email address',
+                  ),
+                  keyboardType: TextInputType.emailAddress,
+                  onSelect: (chosen) => testString = chosen,
+                  onChange: (text) => testString = text,
+                  onUpdateOptionsRequest: (query) => getDropdownItems(query),
+                ),
 
-              if (groups[groupIndex].name.isNotEmpty) {
-                groupName = groups[groupIndex].name;
-              }
-            }),
-            autofocus: true,
-            focusNode: fn1,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w400),
-            decoration: InputDecoration(
-                border: const OutlineInputBorder(),
-                hintText: "Enter member's email address",
-                labelText: "New member's email",
-                suffix: IconButton(
-                    onPressed: () async {
-                      if (_validate) {
-                        setState(() {
-                          _validate = false;
-                          addingMember = false;
-                        });
-                      } else {
-                        _validate = true;
-                        for (GroupMember member
-                            in groups[groupIndex].groupMembers()) {
-                          if (member.email == newMember.email) {
-                            _validateMessage =
-                                '${member.forename} ${member.surname} is already in ${groups[groupIndex].name}';
-                            break;
-                          }
-                        }
+/*
+                child: TextFormField(
+                  textInputAction: TextInputAction.done,
+                  keyboardType: TextInputType.emailAddress,
+                  validator: (value) {
+                    _emailSizedBoxHeight = 70;
+                    if (!_validate) {
+                      return null;
+                    }
+                    if (_validateMessage.isNotEmpty) {
+                      _emailSizedBoxHeight = 100;
+                      return (_validateMessage);
+                    }
+                    if (value!.isEmpty) {
+                      _emailSizedBoxHeight = 100;
+                      return ("email can't be empty");
+                    }
+                    if (!emailRegex.hasMatch(value)) {
+                      _emailSizedBoxHeight = 110;
+                      return ('not a valid email address');
+                    }
+                    return null;
+                  },
+                  onFieldSubmitted: (val) => setState(() {
+                    newMember.email = val;
 
-                        if (_formKey.currentState!.validate()) {
-                          newMember = await getUserByEmail(newMember.email);
-                          setState(
-                            () {
-                              if (newMember.forename.isNotEmpty &&
-                                  newMember.surname.isNotEmpty) {
-                                newMember.selected = true;
-                                newMember.groupId = groups[groupIndex].id;
-                                groups[groupIndex].addMember(newMember);
-                                groups[groupIndex].edited = true;
-                                allMembers.add(newMember);
+                    if (groups[groupIndex].name.isNotEmpty) {
+                      groupName = groups[groupIndex].name;
+                    }
+                  }),
+                  autofocus: true,
+                  focusNode: fn1,
+                  style: const TextStyle(
+                      fontSize: 20, fontWeight: FontWeight.w400),
+                  decoration: InputDecoration(
+                      border: const OutlineInputBorder(),
+                      hintText: "Enter member's email address",
+                      labelText: "New member's email",
+                      suffix: IconButton(
+                          onPressed: () async {
+                            if (_validate) {
+                              setState(() {
+                                _validate = false;
                                 addingMember = false;
-                              } else {
-                                _validateMessage = 'User email not found';
-                                _formKey.currentState!.validate();
+                              });
+                            } else {
+                              _validate = true;
+                              for (GroupMember member
+                                  in groups[groupIndex].groupMembers()) {
+                                if (member.email == newMember.email) {
+                                  _validateMessage =
+                                      '${member.forename} ${member.surname} is already in ${groups[groupIndex].name}';
+                                  break;
+                                }
                               }
-                            },
-                          );
-                        } else {
-                          setState(() {});
-                        }
-                      }
-                    },
-                    icon: Icon(
-                        _validate ? Icons.cancel_outlined : Icons.search))),
-            textAlign: TextAlign.left,
-            initialValue: newMember.email,
-            onChanged: (text) {
-              if (_validate) {
-                _validate = false;
-                _formKey.currentState!.validate();
-              }
-              newMember.email = text;
-            },
+
+                              if (_formKey.currentState!.validate()) {
+                                newMember =
+                                    await getUserByEmail(newMember.email);
+                                setState(
+                                  () {
+                                    if (newMember.forename.isNotEmpty &&
+                                        newMember.surname.isNotEmpty) {
+                                      newMember.selected = true;
+                                      newMember.groupId = groups[groupIndex].id;
+                                      groups[groupIndex].addMember(newMember);
+                                      groups[groupIndex].edited = true;
+                                      allMembers.add(newMember);
+                                      addingMember = false;
+                                    } else {
+                                      _validateMessage = 'User email not found';
+                                      _formKey.currentState!.validate();
+                                    }
+                                  },
+                                );
+                              } else {
+                                setState(() {});
+                              }
+                            }
+                          },
+                          icon: Icon(_validate
+                              ? Icons.cancel_outlined
+                              : Icons.search))),
+                  textAlign: TextAlign.left,
+                  initialValue: newMember.email,
+                  onChanged: (text) {
+                    if (_validate) {
+                      _validate = false;
+                      _formKey.currentState!.validate();
+                    }
+                    newMember.email = text;
+                  },
+                ),
+*/
+              ),
+              Expanded(
+                flex: 1,
+                child: IconButton(
+                  onPressed: () async {
+                    GroupMember newMember = await getUserByEmail(testString);
+                    setState(() => groups[groupIndex].addMember(newMember));
+                  },
+                  icon: Icon(Icons.add),
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
+  }
+
+  getDropdownItems(String query) async {
+    dropdownOptions.clear();
+    dropdownOptions.addAll(await getApiOptions(value: query));
+    debugPrint(
+        'For query query $query dropdownOptions.length = ${dropdownOptions.length}');
+    setState(() {});
   }
 
   Widget _handleChips() {

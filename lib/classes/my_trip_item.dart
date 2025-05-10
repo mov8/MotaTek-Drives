@@ -97,6 +97,7 @@ class MyTripItem {
   int index;
   bool groupTrip;
   String driveUri;
+  // String groupUri;
   String heading;
   String subHeading;
   String body;
@@ -119,6 +120,7 @@ class MyTripItem {
     this.driveId = -1,
     this.index = -1,
     this.driveUri = '',
+    // this.groupUri = '',
     this.heading = '',
     this.subHeading = '',
     this.body = '',
@@ -155,7 +157,7 @@ class MyTripItem {
     distance = 0;
   }
 
-  initialis(pointsOfInterest, maneuvers, routes, goodRoads) {
+  initialise(pointsOfInterest, maneuvers, routes, goodRoads) {
     this.pointsOfInterest = pointsOfInterest;
     this.maneuvers = maneuvers;
     this.routes = routes;
@@ -238,6 +240,7 @@ class MyTripItem {
     return {
       'id': id,
       'driveUri': driveUri,
+      //   'groupUri': groupUri,
       'heading': heading,
       'subHeading': subHeading,
       'body': body,
@@ -281,6 +284,7 @@ class MyTripItem {
         String url = Uri.parse('$urlDrive/images/$driveUri/map.png').toString();
         pngBytes = await wh.getImageBytes(url: url);
       }
+
       String url = '${Setup().appDocumentDirectory}/drive$driveId.png';
       final imgFile = File(url);
       imgFile.writeAsBytes(pngBytes!);

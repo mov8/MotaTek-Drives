@@ -1,3 +1,4 @@
+export 'package:drives/classes/animated_fabs.dart';
 export 'package:drives/classes/autocomplete_widget.dart';
 export 'package:drives/classes/drives_classes.dart';
 export 'package:drives/classes/cacheable_polylines.dart';
@@ -16,8 +17,10 @@ export 'package:drives/classes/my_trip_item.dart';
 export 'package:drives/classes/notifiers.dart';
 export 'package:drives/classes/other_classes.dart';
 export 'package:drives/classes/photo_carousel.dart';
+export 'package:drives/classes/preferences.dart';
 export 'package:drives/classes/route.dart';
 export 'package:drives/classes/routes_bottom_nav.dart';
 export 'package:drives/classes/star_ratings.dart';
 export 'package:drives/classes/utilities.dart';
 export 'package:drives/classes/vector_map_style.dart';
+export 'package:drives/classes/zoomer.dart';

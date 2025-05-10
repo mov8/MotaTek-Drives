@@ -152,13 +152,20 @@ class _MainDrawerState extends State<MainDrawer> {
             },
           ),
           ListTile(
-            leading: const Badge(
-              label: Text('3'), //widget.group.unreadMessages.toString()),
-              child: Icon(
-                Icons.mail_outline,
-                size: 30,
-              ),
-            ),
+            leading: Setup().tripCount > 0
+                ? Badge(
+                    label: Text(Setup()
+                        .tripCount
+                        .toString()), //widget.group.unreadMessages.toString()),
+                    child: Icon(
+                      Icons.mail_outline,
+                      size: 30,
+                    ),
+                  )
+                : const Icon(
+                    Icons.mail_outlined,
+                    size: 30,
+                  ),
             title: const Text(
               'My invitations to events',
               style: TextStyle(

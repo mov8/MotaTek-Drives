@@ -52,7 +52,7 @@ class _HomeState extends State<Home> {
   /// It's going to see if the server is up, and if so copy all the
   /// home_page items into a local SQLite cache. The home_tile will
   /// read the data from the cache saving network traffic and ensuring
-  /// seemless use when off-lime. It also allows the home_page to be
+  /// seamless use when off-lime. It also allows the home_page to be
   /// displayed before the user has logged in.
   /// Once the user logs in it will check that all the home_item entries
   /// are up to date and will synchronise the cache with the API data.
@@ -64,6 +64,7 @@ class _HomeState extends State<Home> {
       Setup().lastPosition = await getPosition();
       if (homeItems.isNotEmpty) {
         Setup().hasLoggedIn = true;
+        getStats();
         //      homeItems = await saveHomeItemsLocal(homeItems); // load cache
         return true;
       }
@@ -86,7 +87,7 @@ class _HomeState extends State<Home> {
       User user = await getUser();
       bool serverUp = await serverListening();
       if (serverUp) {
-        if (user.email.isNotEmpty && user.password.length > 6) {
+        if (user.email.isNotEmpty && user.password.length > 8) {
           tryLogin(user: user).then(
             (response) {
               String status = response['msg'] ?? '';

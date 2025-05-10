@@ -2,7 +2,7 @@ import 'package:drives/classes/classes.dart';
 import 'package:drives/services/services.dart';
 import 'package:flutter/material.dart';
 import 'package:drives/models/models.dart';
-//import 'package:drives/classes/utilities.dart';
+import 'package:drives/constants.dart';
 import 'package:intl/intl.dart';
 
 class GroupDriveInvitationTile extends StatefulWidget {
@@ -41,9 +41,6 @@ class _GroupDriveInvitationTileState extends State<GroupDriveInvitationTile> {
 
   @override
   void initState() {
-    if (_tripSummary != null) {
-      photos = photosFromJson(_tripSummary!.imageUrls);
-    }
     super.initState();
   }
 
@@ -135,20 +132,12 @@ class _GroupDriveInvitationTileState extends State<GroupDriveInvitationTile> {
                   Expanded(
                     flex: 8,
                     child: SizedBox(
-                      height: 200,
                       child: PhotoCarousel(
                         imageRepository: widget.imageRepository,
                         photos: photos,
-                        height: 150,
+                        height: 300,
+                        width: MediaQuery.of(context).size.width - 50,
                       ),
-
-                      //ListView(
-                      //scrollDirection: Axis.horizontal,
-                      // children: [
-                      //  for (String url in _tripSummary!.imageUrls)
-                      //    showWebImage(url)
-                      // ],
-                      // ),
                     ),
                   ),
                 ]),
@@ -355,7 +344,8 @@ class _GroupDriveInvitationTileState extends State<GroupDriveInvitationTile> {
         getTrip(tripId: widget.eventInvitation.driveId).then((trip) {
           if (trip != null) {
             _tripSummary = trip;
-            photos = photosFromJson(trip.imageUrls);
+            photos =
+                photosFromJson(trip.imageUrls, endPoint: '$urlDriveImages/');
             setState(() {});
           }
         });

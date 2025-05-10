@@ -4,6 +4,13 @@ import 'package:drives/classes/classes.dart';
 import 'package:drives/screens/screens.dart';
 import 'package:drives/tiles/tiles.dart';
 
+/// Messages route supports 3 message views:
+/// 1 Summary - the user and group messages are mixed
+/// 2 Group messages
+/// 3 User messages
+/// Messages initiates with the Summary View
+/// it changes the view by changing the body: content Widget
+
 class Messages extends StatefulWidget {
   const Messages({
     super.key,
@@ -16,9 +23,11 @@ class _MessagesState extends State<Messages> {
   late final LeadingWidgetController _leadingWidgetController;
   late final RoutesBottomNavController _bottomNavController;
   late final GroupMessagesController _groupMessagesController;
+  late final UserMessagesController _userMessagesController;
   final ImageRepository _imageRepository = ImageRepository();
   final GlobalKey _scaffoldKey = GlobalKey();
   late Future<bool> _dataLoaded;
+  MailItem _chosenItem = MailItem();
   // List<TripItem> tripItems = [];
   HomeItem homeItem = HomeItem(
       heading: 'Keep in contact ',
@@ -27,10 +36,7 @@ class _MessagesState extends State<Messages> {
           'Tell members about new events, or keep in contact on a group drive',
       uri: 'assets/images',
       imageUrls: '[{"url": "message.png", "caption": ""}]');
-  String _title = 'Messages - by group';
-  Group _messageGroup = Group(
-    name: '',
-  );
+  String _title = 'Messages - summary';
 
   @override
   void initState() {
@@ -38,6 +44,7 @@ class _MessagesState extends State<Messages> {
     _leadingWidgetController = LeadingWidgetController();
     _bottomNavController = RoutesBottomNavController();
     _groupMessagesController = GroupMessagesController();
+    _userMessagesController = UserMessagesController();
     _dataLoaded = getMessages();
   }
 
@@ -62,22 +69,20 @@ class _MessagesState extends State<Messages> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            if (_messageGroup.name.isEmpty) ...[
+            if (_chosenItem.name.isEmpty) ...[
               SizedBox(
                 height: MediaQuery.of(context).size.height -
                     AppBar().preferredSize.height -
                     kBottomNavigationBarHeight -
                     50,
                 width: MediaQuery.of(context).size.width,
-                child: MessageByGroups(
-                  onSelect: (idx) => setState(
-                    () {
-                      debugPrint('Message index: ${idx.name}');
-                      _title = 'Messages - ${idx.name}';
-                      _messageGroup = idx;
-                      _leadingWidgetController.changeWidget(1);
-                    },
-                  ),
+                child: MessageItems(
+                  onSelect: (item) => setState(() {
+                    _leadingWidgetController.changeWidget(1);
+                    _title =
+                        '${item.isGroup ? 'Group' : 'User'} - ${item.name}';
+                    _chosenItem = item;
+                  }),
                 ),
               ),
             ] else ...[
@@ -87,19 +92,35 @@ class _MessagesState extends State<Messages> {
                     kBottomNavigationBarHeight -
                     50,
                 width: MediaQuery.of(context).size.width,
-                child: GroupMessages(
-                  controller: _groupMessagesController,
-                  group: _messageGroup,
-                  onSelect: (idx) => debugPrint('Message index: $idx'),
-                  onCancel: (_) =>
-                      setState(() => _messageGroup = Group(name: '')),
-                ),
+                child: _chosenItem.isGroup
+                    ? GroupMessages(
+                        controller: _groupMessagesController,
+                        group: Group(
+                          id: _chosenItem.id,
+                          name: _chosenItem.name,
+                        ),
+                        onSelect: (idx) => debugPrint('Message index: $idx'),
+                      )
+                    : UserMessages(
+                        controller: _userMessagesController,
+                        user: User(
+                          uri: _chosenItem.id,
+                        ),
+                        onSelect: (idx) => debugPrint('Message index: $idx'),
+                        //  onCancel: (_) => setState(
+                        //    () => _userGroup = User(),
+                        //  ),
+                      ),
               ),
             ]
           ],
         ),
       );
     }
+  }
+
+  itemSelect(index) {
+    debugPrint('Index: $index');
   }
 
   @override
@@ -118,9 +139,14 @@ class _MessagesState extends State<Messages> {
                 if (index == 0) {
                   _leadingWidget(_scaffoldKey.currentState);
                 } else {
-                  _groupMessagesController.leave();
+                  if (_chosenItem.isGroup) {
+                    _groupMessagesController.leave();
+                  } else {
+                    _userMessagesController.leave();
+                  }
                   _leadingWidgetController.changeWidget(0);
-                  _title = 'Messages - by group';
+                  _chosenItem = MailItem();
+                  _title = 'Messages - summary';
                 }
               },
             );

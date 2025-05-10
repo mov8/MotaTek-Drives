@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'dart:async';
+import 'package:drives/constants.dart';
 import 'package:drives/services/services.dart';
 import 'package:drives/models/models.dart';
 import 'package:drives/screens/screens.dart';
@@ -10,8 +11,6 @@ const Duration fakeAPIDuration = Duration(seconds: 1);
 const Duration debounceDuration = Duration(milliseconds: 500);
 
 List<String> autoCompleteData = ['Dotty', 'James', 'Billy', 'Katie'];
-
-enum LoginState { login, createCode, codeOk, resendCode, passwordLost }
 
 AlertDialog buildFlexDialog(
     {required BuildContext context,
@@ -276,121 +275,7 @@ AlertDialog buildColumnDialog(
       content: content,
       actions: actionButtons(context, callbacks, buttonTexts));
 }
-/*
-class DialogLoginRegister extends StatefulWidget {
-  final String email;
-  final String password;
-  final String joinId;
-  final bool joined;
-  @override
-  State<DialogLoginRegister> createState() => _DialogLoginRegister();
-  const DialogLoginRegister({
-    super.key,
-    this.email = '',
-    this.password = '',
-    this.joinId = '',
-    this.joined = true,
-  });
-}
 
-class _DialogLoginRegister extends State<DialogLoginRegister> {
-  String status = '';
-  TextEditingController emController = TextEditingController();
-  TextEditingController pwController = TextEditingController();
-  TextEditingController jiController = TextEditingController();
-  @override
-  void initState() {
-    super.initState();
-    emController.text = widget.email;
-    pwController.text = widget.password;
-    jiController.text = widget.joinId;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-        Icon(
-          Icons.key,
-          size: 30,
-        ),
-        SizedBox(
-          width: 10,
-        ),
-        Text('Login'),
-      ]),
-      content: SizedBox(
-        height: 150,
-        width: 200,
-        child: Column(children: [
-          Row(children: [
-            Expanded(
-              child: TextField(
-                controller: emController,
-                autofocus: true,
-                textInputAction: TextInputAction.next,
-                keyboardType: TextInputType.emailAddress,
-                decoration:
-                    const InputDecoration(hintText: 'Enter email address'),
-                onChanged: (value) => emController.text = value,
-              ),
-            )
-          ]),
-          Row(children: [
-            Expanded(
-                child: TextField(
-              controller: pwController,
-              textInputAction: TextInputAction.done,
-              keyboardType: TextInputType.visiblePassword,
-              decoration: const InputDecoration(hintText: 'Enter password'),
-              onChanged: (value) => pwController.text = value,
-            ))
-          ]),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  status,
-                  style: const TextStyle(
-                      color: Colors.red,
-                      fontSize: 18,
-                      fontWeight: FontWeight.normal),
-                ),
-              )
-            ],
-          ),
-        ]),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () async {
-            Map<String, dynamic> response =
-                await tryLogin(emController.text, pwController.text);
-            status = response['msg'];
-            if (status == 'OK' && context.mounted) {
-              Navigator.pop(context, true);
-            } else {
-              setState(() {});
-            }
-          },
-          child: const Text(
-            'Ok',
-            style: TextStyle(fontSize: 20),
-          ),
-        ),
-        TextButton(
-          onPressed: () => Navigator.pop(context, false),
-          child: const Text(
-            'Cancel',
-            style: TextStyle(fontSize: 20),
-          ),
-        )
-      ],
-    );
-  }
-}
-*/
 /// LoginDialog(context, user) builds the login dialog:
 ///
 ///   The app silently logs in if it has stored the user name and password
@@ -454,7 +339,7 @@ Future<void> loginDialog(BuildContext context, {required User user}) async {
     context: context,
     barrierDismissible: false,
     builder: (BuildContext context) => StatefulBuilder(
-      builder: (cStateontext, StateSetter setState) => AlertDialog(
+      builder: (context, StateSetter setState) => AlertDialog(
         title: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
           Icon(
             dialogIcons[selectedRadio + joiningOffset],
@@ -564,66 +449,20 @@ Future<void> loginDialog(BuildContext context, {required User user}) async {
         ),
         actions: [
           TextButton(
-            // onPressed: () => Navigator.pop(context, LoginState.login),
-
             onPressed: () async {
-              try {
-                if ((selectedRadio == 0 &&
-                        user.email.isNotEmpty &&
-                        user.password.isEmpty) ||
-                    selectedRadio == 1) {
-                  Setup().user = user;
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const SignupForm()),
-                  );
-                  setState(() => joiningOffset = 2);
+              LoginState liState = LoginState.cancel;
+              if (user.email.isNotEmpty) {
+                try {
+                  liState = user.password.isEmpty
+                      ? LoginState.register
+                      : LoginState.login;
+                  if (context.mounted) {
+                    Navigator.pop(context, liState);
+                  }
+                } catch (e) {
+                  String err = e.toString();
+                  debugPrint('Error: $err');
                 }
-/*
-                if (joiningOffset + selectedRadio == 1) {
-                  tryLogin(user: user).then(
-                    (response) {
-                      status = response['msg'];
-                      if (status == 'OK') {
-                        saveUser(user);
-                        if (user.password.isEmpty) {
-                          setState(() {
-                            status =
-                                "Validation code sent. Check for email 'Your MotatTrip valdation code'";
-                            joiningOffset = 2;
-                          });
-                        } else if (context.mounted) {
-                          Navigator.pop(context, LoginState.login);
-                        }
-                      }
-                    },
-                  );
-                } else {
-                  // user.password = '';
-                  tryLogin(user: user).then((response) {
-                    status = response['msg'];
-                    if (status == 'OK') {
-                      user.password = '';
-
-                      saveUser(user);
-
-                      if (selectedRadio == 1) {
-                        // resend code
-                        setState(() => joiningOffset = 2);
-                      } else if (context.mounted) {
-                        Navigator.pop(context, LoginState.codeOk);
-                        return true;
-                      }
-                    } else {
-                      setState(
-                          () => status = 'Code incorrect - request resend?');
-                    }
-                  });
-                  
-                } */
-              } catch (e) {
-                String err = e.toString();
-                debugPrint('Error: $err');
               }
             },
             child: const Text(
@@ -632,7 +471,7 @@ Future<void> loginDialog(BuildContext context, {required User user}) async {
             ),
           ),
           TextButton(
-            onPressed: () => Navigator.pop(context, LoginState.login),
+            onPressed: () => Navigator.pop(context, LoginState.cancel),
             child: const Text(
               'Cancel',
               style: TextStyle(fontSize: 20),
@@ -642,25 +481,26 @@ Future<void> loginDialog(BuildContext context, {required User user}) async {
       ),
     ),
   )) {
-    case LoginState.codeOk:
+    case LoginState.register:
+      if (user.surname.isEmpty || user.forename.isEmpty) {
+        await getUserDetails(email: user.email);
+      }
+      postValidateUser(user: Setup().user);
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => const SignupForm()),
       );
       break;
-    case LoginState.passwordLost:
-      debugPrint('password lost');
-      break;
     case LoginState.login:
+      if (user.surname.isEmpty || user.forename.isEmpty) {
+        await getUserDetails(email: user.email);
+      }
+      Setup().user.password = user.password;
+      tryLogin(user: user);
+      saveUser(Setup().user);
       debugPrint('Logged in');
       break;
-    case LoginState.resendCode:
-      debugPrint('Resend code');
-      break;
-    case LoginState.createCode:
-      debugPrint('Create code');
-      break;
-    case null:
+    default:
       debugPrint('Cancel');
       break;
   }

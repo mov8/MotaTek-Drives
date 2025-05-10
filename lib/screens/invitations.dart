@@ -6,6 +6,7 @@ import 'package:drives/classes/classes.dart';
 // import 'package:drives/screens/dialogs.dart';
 
 import 'package:drives/services/web_helper.dart';
+import 'package:intl/intl.dart';
 
 class InvitationsScreen extends StatefulWidget {
   // var setup;
@@ -164,11 +165,12 @@ class _InvitationsScreenState extends State<InvitationsScreen> {
     );
   }
 
+/*
   void onDe(int index) {
     // introduceMembers.removeAt(index);
     return;
   }
-
+*/
   void onDownload(int index) async {
     getMyTrip(invitations[index].driveId).then((webTrip) {
       webTrip.id = -1;
@@ -189,6 +191,10 @@ class _InvitationsScreenState extends State<InvitationsScreen> {
   }
 
   void onEdit(int index) async {
+    String today = DateFormat('dd-mm-yyy').format(DateTime.now());
+    List<Map<String, dynamic>> drivers = await getDrivers(
+        driveId: invitations[index].driveId, driveDate: today, accepted: 2);
+    debugPrint(drivers.toString());
     return;
   }
 
