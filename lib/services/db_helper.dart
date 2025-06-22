@@ -213,6 +213,7 @@ Future<User> getUser() async {
         imageUrl: maps[0]['imageUrl'].toString(),
       );
       Setup().user = user;
+      Setup().hasLoggedIn = true;
       return user;
     }
   } catch (e) {
@@ -1062,6 +1063,73 @@ Future<int> saveMyTripItem(MyTripItem myTripItem) async {
   return id;
 }
 
+Future<OsmAmenity> loadOsmAmenityLocal({required int id, index = 0}) async {
+  final db = await DbHelper().db;
+  OsmAmenity? osmAmenity;
+  List<Map<String, dynamic>> maps = await db.query(
+    'osm_data',
+    where: 'id = ?',
+    whereArgs: [id],
+  );
+  osmAmenity = OsmAmenity(
+    id: maps.first['id'],
+    osmId: maps.first['drive_id'],
+    name: maps.first['name'],
+    amenity: maps.first['amenity'],
+    width: maps.first['type'] == 12 ? 10 : 30,
+    height: maps.first['type'] == 12 ? 10 : 30,
+    position: LatLng(maps.first['latitude'], maps.first['longitude']),
+    marker: MarkerWidget(type: maps.first['type'], list: 0, listIndex: index),
+  );
+
+  return osmAmenity;
+}
+
+Future<int> saveOsmAmenityLocal({required OsmAmenity amenity}) async {
+  final db = await DbHelper().db;
+  int id = -1;
+  Map<String, dynamic> osmMap = {
+    'osm_id': amenity.osmId,
+    'name': amenity.name,
+    'amenity': amenity.amenity,
+    'postcode': amenity.postcode,
+    'lat': amenity.point.latitude,
+    'lng': amenity.point.longitude,
+  };
+  if (amenity.id!.getValue > -1) {
+    id = amenity.id!.getValue;
+    try {
+      await db.update('osm_data', osmMap,
+          where: 'id = ?',
+          whereArgs: [id],
+          conflictAlgorithm: ConflictAlgorithm.replace);
+    } catch (e) {
+      debugPrint('Error saving points of interest: ${e.toString()}');
+      return -1;
+    }
+  } else {
+    try {
+      id = await db.insert(
+        'osm_data',
+        osmMap,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+      amenity.id!.setValue = id;
+    } catch (e) {
+      debugPrint('Error saving point of interest: ${e.toString()}');
+    }
+  }
+  return amenity.id!.getValue;
+}
+
+Future<bool> saveOsmDataLocal(
+    {required int driveId, required List<OsmAmenity> osmData}) async {
+  for (int i = 0; i < osmData.length; i++) {
+    saveOsmAmenityLocal(amenity: osmData[i]);
+  }
+  return true;
+}
+
 String pointsToString(List<LatLng> points) {
   String pointsMap = '';
   try {
@@ -1159,6 +1227,7 @@ Future<int> savePointOfInterestLocal(
     'images': pointOfInterest.getImages(),
     'latitude': pointOfInterest.point.latitude,
     'longitude': pointOfInterest.point.longitude,
+    'sounds': pointOfInterest.sounds,
   };
   if (pointOfInterest.id > -1) {
     id = pointOfInterest.id;

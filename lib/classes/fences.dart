@@ -103,15 +103,15 @@ class ViewportFence {
 
   bool fenceUpdate({required Fence screenFence, double degrees = 0.5}) {
     if (!cacheFence.contains(bounds: screenFence)) {
-      debugPrint('cacheFence does not contain screenFence');
-      debugPrint(
-          'cachFence NE ${cacheFence.northEast} SW ${cacheFence.southWest}');
-      debugPrint(
-          'screenFence NE ${screenFence.northEast} SW ${screenFence.southWest}');
+      //   debugPrint('cacheFence does not contain screenFence');
+      //   debugPrint(
+      //       'cachFence NE ${cacheFence.northEast} SW ${cacheFence.southWest}');
+      //   debugPrint(
+      //       'screenFence NE ${screenFence.northEast} SW ${screenFence.southWest}');
       cacheFence = changeFenceByDegrees(fence: screenFence, degrees: degrees);
-      debugPrint('Updated cacheFence');
-      debugPrint(
-          'cachFence NE ${cacheFence.northEast} SW ${cacheFence.southWest}');
+      //  debugPrint('Updated cacheFence');
+      //  debugPrint(
+      //      'cachFence NE ${cacheFence.northEast} SW ${cacheFence.southWest}');
       return true;
     }
     return false;
@@ -164,10 +164,17 @@ class Fence {
       this.southWest = const LatLng(0, 0)});
 
   bool contains({required Fence bounds}) {
+    bool ok = southWest.latitude <= bounds.southWest.latitude;
+    ok = ok && northEast.latitude >= bounds.northEast.latitude;
+    ok = ok && southWest.longitude <= bounds.southWest.longitude;
+    ok = ok && northEast.longitude >= bounds.northEast.longitude;
+    return ok;
+    /*
     return (southWest.latitude <= bounds.southWest.latitude) &&
         (northEast.latitude >= bounds.northEast.latitude) &&
         (southWest.longitude <= bounds.southWest.longitude) &&
         (northEast.longitude >= bounds.northEast.longitude);
+  */
   }
 
   LatLng getCentre({required Fence bounds}) {
@@ -205,6 +212,10 @@ class Fence {
         latlngBounds.northEast.longitude + deltaDegrees);
     southWest = LatLng(latlngBounds.southWest.latitude - deltaDegrees,
         latlngBounds.southWest.longitude - deltaDegrees);
+  }
+
+  String polygonString() {
+    return '${southWest.latitude} ${southWest.longitude},${northEast.latitude} ${southWest.longitude}, ${northEast.latitude} ${northEast.longitude}, ${southWest.latitude} ${northEast.longitude}, ${southWest.latitude} ${southWest.longitude}';
   }
 }
 

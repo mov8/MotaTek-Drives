@@ -1,4 +1,5 @@
 // import 'package:flutter/foundation.dart';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:drives/constants.dart';
 import 'package:drives/models/other_models.dart';
@@ -62,17 +63,30 @@ class _HomeState extends State<Home> {
       await tryLoggingIn();
       homeItems = await getHomeItems(1); // get API data
       Setup().lastPosition = await getPosition();
+
+      //  Setup().appState = '{"route": 2, "trip_id": 233}';
+      if (Setup().appState.isEmpty) {
+        Setup().bottomNavIndex = 0;
+      } else {
+        Setup().bottomNavIndex = jsonDecode(Setup().appState)['route'] ?? 0;
+      }
+
       if (homeItems.isNotEmpty) {
         Setup().hasLoggedIn = true;
         getStats();
-        //      homeItems = await saveHomeItemsLocal(homeItems); // load cache
-        return true;
       }
+      _bottomNavController.setValue(Setup().bottomNavIndex);
+      _bottomNavController.navigate();
       return true;
     } else if (Setup().bottomNavIndex > 0) {
       // Look to see if the app was left open
       _bottomNavController.setValue(Setup().bottomNavIndex);
-      Setup().bottomNavIndex = 0;
+      // Setup().appState = "{route: 2, trip_id: 233}";
+      if (Setup().appState == '') {
+        Setup().bottomNavIndex = 0;
+      } else {
+        Setup().bottomNavIndex = jsonDecode(Setup().appState)['route'] ?? 0;
+      }
       Setup().setupToDb();
       _bottomNavController.navigate();
     } else {
@@ -102,7 +116,7 @@ class _HomeState extends State<Home> {
           }
         }
       } else {
-        debugPrint('Server not listening ($urlBaseTest)');
+        debugPrint('Server not listening ($urlBase)');
       }
     } catch (e) {
       debugPrint('Splash login error: ${e.toString()}');

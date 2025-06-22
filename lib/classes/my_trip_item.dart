@@ -8,6 +8,7 @@ import 'package:uuid/uuid.dart';
 import 'package:http/http.dart' as http;
 import 'package:drives/constants.dart';
 import 'package:drives/classes/utilities.dart' as ut;
+import 'package:image_picker/image_picker.dart';
 import 'package:drives/services/services.dart';
 import 'package:drives/classes/route.dart' as mt;
 import 'package:drives/models/other_models.dart';
@@ -22,6 +23,7 @@ class CurrentTripItem extends MyTripItem {
   TripState tripState = TripState.none;
   TripActions tripActions = TripActions.none;
   HighliteActions highliteActions = HighliteActions.none;
+  XFile? imageFile;
 
   static final _instance = CurrentTripItem._privateConstructor();
 
@@ -88,6 +90,45 @@ class CurrentTripItem extends MyTripItem {
     tripActions = TripActions.none;
     highliteActions = HighliteActions.none;
     return super.clearAll();
+  }
+
+  Future<bool> saveState() async {
+    try {
+      await saveLocal();
+      Setup().appState =
+          '{"route": 2, "id": $driveId, "saved": ${isSaved ? 1 : 0}, "isTracking": ${isTracking ? 1 : 0}, "tripState": ${tripState.index}, "tripActions": ${tripActions.index}}';
+      Setup().setupToDb();
+    } catch (e) {
+      debugPrint("Can't save CurrentTrip state: ${e.toString}");
+      return false;
+    }
+    return true;
+  }
+
+  Future<bool> restoreState() async {
+    Map<String, dynamic> stateMap = jsonDecode(Setup().appState);
+    if ((stateMap['route'] ?? -1) == 2) {
+      try {
+        await loadLocal(stateMap['id']);
+        isSaved = (stateMap['isSaved'] ?? 0) == 1;
+        isTracking = (stateMap['isTracking'] ?? 0) == 1;
+        tripState = TripState.values[(stateMap['tripState'] ?? 0)];
+        tripActions = TripActions.values[(stateMap['tripActions'] ?? 0)];
+      } catch (e) {
+        debugPrint('Error restoring State: ${e.toString()}');
+      }
+      final ImagePicker picker = ImagePicker();
+      final LostDataResponse response = await picker.retrieveLostData();
+      if (!response.isEmpty) {
+        imageFile = response.files![0];
+        if (imageFile != null) {
+          //    debugPrint('Image file recovered');
+        }
+      }
+      Setup().appState = '';
+      Setup().setupToDb();
+    }
+    return true;
   }
 }
 
@@ -277,20 +318,23 @@ class MyTripItem {
     try {
       Uint8List? pngBytes = Uint8List.fromList([]);
       if (driveUri.isEmpty) {
-        final byteData =
-            await mapImage!.toByteData(format: ui.ImageByteFormat.png);
-        pngBytes = byteData?.buffer.asUint8List();
+        if (mapImage != null) {
+          final byteData =
+              await mapImage!.toByteData(format: ui.ImageByteFormat.png);
+          pngBytes = byteData?.buffer.asUint8List();
+        }
       } else {
         String url = Uri.parse('$urlDrive/images/$driveUri/map.png').toString();
         pngBytes = await wh.getImageBytes(url: url);
       }
-
-      String url = '${Setup().appDocumentDirectory}/drive$driveId.png';
-      final imgFile = File(url);
-      imgFile.writeAsBytes(pngBytes!);
-      if (imgFile.existsSync()) {
-        result = 1;
-        debugPrint('Image file $url exists');
+      if (pngBytes != null) {
+        String url = '${Setup().appDocumentDirectory}/drive$driveId.png';
+        final imgFile = File(url);
+        imgFile.writeAsBytes(pngBytes!);
+        if (imgFile.existsSync()) {
+          result = 1;
+          //   debugPrint('Image file $url exists');
+        }
       }
     } catch (e) {
       String err = e.toString();
@@ -375,7 +419,7 @@ class MyTripItem {
         if (pointOfInterest.getType() == 13) {
           String uuidString = uuid.v7();
           pointOfInterest.url = uuidString.replaceAll(RegExp(r'-'), '');
-          debugPrint('Point of interest url set to ${pointOfInterest.url}');
+          //  debugPrint('Point of interest url set to ${pointOfInterest.url}');
         }
 
         await postPointOfInterest(pointOfInterest, driveUri);
@@ -388,7 +432,7 @@ class MyTripItem {
           if (pointOfInterest.id == route.pointOfInterestIndex) {
             // pick up the point of interest uuid
             route.pointOfInterestUri = pointOfInterest.url;
-            debugPrint('route.interestUri set to ${pointOfInterest.url}');
+            //     debugPrint('route.interestUri set to ${pointOfInterest.url}');
             break;
           }
         }

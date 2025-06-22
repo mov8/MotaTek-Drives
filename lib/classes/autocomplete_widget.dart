@@ -17,7 +17,7 @@ class AutocompleteWidget extends StatelessWidget {
         });
       },
       onSelected: (String selection) {
-        debugPrint('You just selected $selection');
+        //      debugPrint('You just selected $selection');
       },
     );
   }
@@ -87,7 +87,7 @@ class _AutocompleteAsyncState extends State<AutocompleteAsync> {
             }
           },
           onSubmitted: (text) {
-            debugPrint('$text submitted');
+            //     debugPrint('$text submitted');
           },
         );
       },
@@ -121,7 +121,7 @@ class AutocompletePlace extends StatefulWidget {
   final List<Place> options;
   final TextInputType? keyboardType;
   final InputDecoration? decoration;
-
+  final double optionsMaxHeight;
   const AutocompletePlace(
       {super.key,
       required this.options,
@@ -130,6 +130,7 @@ class AutocompletePlace extends StatefulWidget {
       this.onSelect,
       this.onChange,
       this.onUpdateOptionsRequest,
+      this.optionsMaxHeight = 200,
       this.decoration,
       this.keyboardType});
 
@@ -139,13 +140,14 @@ class AutocompletePlace extends StatefulWidget {
 
 class _AutocompletePlace extends State<AutocompletePlace> {
   String _lastReadQuery = '**_|_**';
-  String _lastFilter = '**__|__**';
+  final String _lastFilter = '**__|__**';
   final List<Place> _options = [];
   final List<Place> _allOptions = [];
   TextEditingController fieldTextEditingController = TextEditingController();
   @override
   Widget build(BuildContext context) {
     return Autocomplete<Place>(
+      optionsMaxHeight: widget.optionsMaxHeight,
       optionsBuilder: (TextEditingValue textEditingValue) async {
         _allOptions.addAll(widget.options);
         return _options;
@@ -183,14 +185,14 @@ class _AutocompletePlace extends State<AutocompletePlace> {
             }
           },
           onSubmitted: (text) {
-            debugPrint('$text submitted');
+            //     debugPrint('$text submitted');
           },
         );
       },
       optionsViewBuilder: (BuildContext context,
           AutocompleteOnSelected<Place> onSelected, Iterable<Place> options) {
-        debugPrint(
-            'optionsViewBuilder run - options.length: ${options.length}');
+//debugPrint(
+//            'optionsViewBuilder run - options.length: ${options.length}');
         return Material(
           color: Colors.white60,
           //  elevation: 4.0,
@@ -204,13 +206,13 @@ class _AutocompletePlace extends State<AutocompletePlace> {
                   title: Text('${option.name} (${option.tag})',
                       style:
                           TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  subtitle: Text(option.street),
+                  subtitle: Text('${option.street} ${option.town}'),
                   leading: Icon(
                       IconData(option.iconData, //option.iconData,
                           fontFamily: 'MaterialIcons'),
                       size: 30), // Icon(Icons
                   onTap: () {
-                    debugPrint('option:${option.name}');
+                    //          debugPrint('option:${option.name}');
                     // textEditingValue = option.name;
                     onSelected(option);
                   },

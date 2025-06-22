@@ -18,7 +18,7 @@ class LeadingWidgetController {
       _leadingWidgetState?.changeWidget(id);
     } catch (e) {
       String err = e.toString();
-      debugPrint('Error loading image: $err');
+      debugPrint('Error changing leading widget: $err');
     }
   }
 }
@@ -59,7 +59,7 @@ class _LeadingWidgetState extends State<LeadingWidget>
     );
     _animationIconController.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
-        debugPrint('Animation complete _widgetId: $_widgetId');
+        //    debugPrint('Animation complete _widgetId: $_widgetId');
         setState(() => showBadge = true);
       }
     });
@@ -81,7 +81,7 @@ class _LeadingWidgetState extends State<LeadingWidget>
     setState(() {
       showBadge = false;
       _widgetId = id;
-      debugPrint('widgetId: $_widgetId');
+      // debugPrint('widgetId: $_widgetId');
       // widget.value = id;
       if (_widgetId == 0) {
         _animationIconController.reverse();

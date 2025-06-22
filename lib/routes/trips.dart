@@ -500,10 +500,10 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
                 },
               );
             },
-            initialCenter: LatLng(
-                Setup().lastPosition.latitude, Setup().lastPosition.longitude),
+            initialCenter: LatLng(51.507, 0.1276),
+            // Setup().lastPosition.latitude, Setup().lastPosition.longitude),
             initialZoom: getInitialZoom(),
-            maxZoom: 18,
+            maxZoom: 16,
             minZoom: 5,
             //  initialZoom: 15,
             //  maxZoom: 18,
@@ -515,16 +515,23 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
                     InteractiveFlag.pinchZoom |
                     InteractiveFlag.pinchMove),
           ),
+          /*
+                       theme: _style.theme, //_style.theme,
+                  sprites: _style.sprites,
+                  tileProviders: _style.providers,
+                  showTileDebugInfo: true,
+                  layerMode: VectorTileLayerMode.vector,
+                  //  cacheFolder: getCacheFolder,
+                  tileOffset: TileOffset.DEFAULT),
+          */
           children: [
             VectorTileLayer(
               theme: _style.theme,
-              sprites: _style.sprites,
-              //          tileProviders:
-              //              TileProviders({'openmaptiles': _tileProvider()}),
+              // sprites: _style.sprites,
               tileProviders: _style.providers,
               layerMode: VectorTileLayerMode.vector,
               tileOffset: TileOffset.DEFAULT,
-              cacheFolder: getCache,
+              // cacheFolder: getCacheFolder,
             ),
             PolylineLayer(polylines: _publishedFeatures.routes),
             PolylineLayer(polylines: _publishedFeatures.goodRoads),
@@ -569,7 +576,7 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
   }
 
   double getInitialZoom() {
-    return 9;
+    return 8.0;
   }
 
   routeTapped(routes, details) {
@@ -592,7 +599,7 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
     }
   }
 
-  Future<Directory> getCache() async {
+  Future<Directory> getCacheFolder() async {
     String appDocumentDirectory =
         (await getApplicationDocumentsDirectory()).path;
     Directory cacheDirectory = Directory('$appDocumentDirectory/cache');
@@ -600,6 +607,11 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
       await Directory('$appDocumentDirectory/cache').create();
     }
     return cacheDirectory;
+//    Directory cacheDir = Setup().cacheDirectory;
+//    if (!await cacheDir.exists()) {
+//      await cacheDir.create();
+//    }
+//    return cacheDir;
   }
 
   onPointOfInterestRatingChanged(int value, int index) {
@@ -781,7 +793,7 @@ class HandleFabs extends StatelessWidget {
           heroTag: 'location',
           onPressed: () async {
             Position currentPosition = await Geolocator.getCurrentPosition();
-            debugPrint('Position: ${currentPosition.toString()}');
+            //        debugPrint('Position: ${currentPosition.toString()}');
             animatedMapController.animateTo(
               dest: LatLng(currentPosition.latitude, currentPosition.longitude),
             );

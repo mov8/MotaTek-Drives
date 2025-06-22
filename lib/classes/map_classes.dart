@@ -208,7 +208,7 @@ class Fabs extends StatelessWidget {
           heroTag: 'location',
           onPressed: () async {
             Position currentPosition = await Geolocator.getCurrentPosition();
-            debugPrint('Position: ${currentPosition.toString()}');
+            //      debugPrint('Position: ${currentPosition.toString()}');
             animatedMapController.animateTo(
               dest: LatLng(currentPosition.latitude, currentPosition.longitude),
             );
@@ -544,8 +544,8 @@ class _PortraitBody extends State<PortraitBody> with TickerProviderStateMixin {
           adjustMapHeight(MapHeight.variable, listDelta: height);
         }
       });
-      debugPrint(
-          'listHeight: $listHeight, mapHeight: $_mapHeight, tapped: $tapped');
+      //   debugPrint(
+      //      'listHeight: $listHeight, mapHeight: $_mapHeight, tapped: $tapped');
     }
   }
 
@@ -632,17 +632,17 @@ class _PortraitBody extends State<PortraitBody> with TickerProviderStateMixin {
     if (zoom < 20) return false;
 
     if (zoom > 10) {
-      debugPrint('Zoom: $zoom');
+      //   debugPrint('Zoom: $zoom');
     }
 
     bool updateCache =
         cache.isEmpty || !cacheFence.contains(bounds: screenFence);
 
     if (cache.isEmpty) {
-      debugPrint('Filling cache list - cache is empty');
+      //   debugPrint('Filling cache list - cache is empty');
     } else {
       if (!cacheFence.contains(bounds: screenFence)) {
-        debugPrint('Refreshing cache - _screenFence outside _cacheFence');
+        //     debugPrint('Refreshing cache - _screenFence outside _cacheFence');
       }
     }
 
@@ -664,7 +664,7 @@ class _PortraitBody extends State<PortraitBody> with TickerProviderStateMixin {
     } else if (zoom > 11) {
       for (Feature feature in markers) {
         if (!screenFence.contains(bounds: feature.getBounds())) {
-          debugPrint('Feature ${feature.row}has left the _screenFence');
+          //  debugPrint('Feature ${feature.row}has left the _screenFence');
           updateDetails = true;
           break;
         }
@@ -694,8 +694,8 @@ class _PortraitBody extends State<PortraitBody> with TickerProviderStateMixin {
                       zoom: zoom);
                 }
               }
-              debugPrint(
-                  'markers.length = ${markers.length} adding feature.${feature.row}');
+              //          debugPrint(
+              //              'markers.length = ${markers.length} adding feature.${feature.row}');
             }
             break;
           case 1:
@@ -768,7 +768,7 @@ class _PortraitBody extends State<PortraitBody> with TickerProviderStateMixin {
         }
       }
     } else {
-      debugPrint('filterFeatures had nothing to update');
+      // debugPrint('filterFeatures had nothing to update');
     }
     updateDetails = updateDetails || _cards.length != markers.length;
 
@@ -1044,7 +1044,7 @@ class _TripsMapState extends State<TripsMap> with TickerProviderStateMixin {
     final StyleReader styleReader = StyleReader(
         uri:
             'https://tiles.stadiamaps.com/styles/osm_bright.json?api_key={key}',
-        apiKey: stadiaMapsApiKey,
+        //   apiKey: stadiaMapsApiKey,
         logger: null);
     Style style = await styleReader.read();
     return style;

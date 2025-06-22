@@ -27,7 +27,7 @@ class _DeleteTripsFormState extends State<DeleteTripsForm> {
       {required List<TripSummary> tripSummaries}) async {
     if (tripSummaries.isEmpty) {
       try {
-        debugPrint('_loadTrips called');
+        //     debugPrint('_loadTrips called');
         tripSummaries.addAll(await getTripSummaries(
             northEast: ukNorthEast, southWest: ukSouthWest));
       } catch (e) {
@@ -207,7 +207,7 @@ class _DeleteTripsFormState extends State<DeleteTripsForm> {
   }
 
   void onConfirmDeleteMember(int value) {
-    debugPrint('Returned value: ${value.toString()}');
+    // debugPrint('Returned value: ${value.toString()}');
     if (value > -1) {
       deleteGroupMemberById(value);
       //  widget.groupMember?.index = -1;

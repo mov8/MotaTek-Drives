@@ -57,7 +57,8 @@ dependencies:
   scrollable_positioned_list: ^0.3.8
   uuid: ^4.5.1
   wakelock_plus: ^1.2.10
-  
+  record: ^6.0.0
+  audioplayers: ^6.4.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -116,3 +117,10 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/custom-fonts/#from-packages
+  fonts:
+    - family: Roboto
+      fonts:
+        - asset: fonts/Roboto_Condensed-Italic.ttf
+        - asset: fonts/Roboto-Medium.ttf
+        - asset: fonts/Roboto-Regular.ttf
+          weight: 700 

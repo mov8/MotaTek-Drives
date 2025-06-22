@@ -173,6 +173,22 @@ Future<PublishedFeatures> getPublishedFeatures(
   );
 }
 
+class OsmFeatures {
+  Function(int)? pinTap;
+  List<OsmAmenity> amenities = [];
+  Fence? cacheFence = Fence.create();
+  OsmFeatures({this.amenities = const [], this.pinTap, this.cacheFence});
+  Future<bool> update({required Fence fence}) async {
+    try {
+      amenities = await getOsmAmenities(polygon: fence.polygonString());
+      return true;
+    } catch (e) {
+      debugPrint('Error getting OSM data ${e.toString()}');
+      return true;
+    }
+  }
+}
+
 class PublishedFeatures {
   Function(bool)? onUpdate;
   Function(int) pinTap;
@@ -245,7 +261,7 @@ class PublishedFeatures {
     } else if (zoom > 11) {
       for (Feature feature in markers) {
         if (!screenFence.contains(bounds: feature.getBounds())) {
-          debugPrint('Feature ${feature.row}has left the _screenFence');
+          //   debugPrint('Feature ${feature.row}has left the _screenFence');
           updateDetails = true;
           break;
         }
@@ -380,7 +396,7 @@ class PublishedFeatures {
                 }
               }
             }
-
+            break;
           default:
             break;
         }
@@ -388,7 +404,7 @@ class PublishedFeatures {
 
       updated = true;
     } else {
-      debugPrint('filterFeatures had nothing to update');
+      //   debugPrint('filterFeatures had nothing to update');
     }
     if (onUpdate != null) {
       onUpdate!(updated);
@@ -438,16 +454,16 @@ class PublishedFeatures {
     Feature? target;
     int index = -1;
     if (markerPoint == null) {
-      debugPrint('Point not found in fence');
+      //    debugPrint('Point not found in fence');
     } else {
-      debugPrint('point FOUND in fence');
+      //    debugPrint('point FOUND in fence');
     }
     if (markerPoint != null && screenFence.containsPoint(point: markerPoint)) {
       String uri = feature.pointOfInterestUri;
       if (pointOfInterestLookup.containsKey(uri)) {
         index = pointOfInterestLookup[uri]!;
         target = features[index];
-        debugPrint('Fence contains feature.row = $index');
+        //     debugPrint('Fence contains feature.row = $index');
       }
       if (target != null && index > -1) {
         bool add = !markers.any((feature) =>
@@ -584,7 +600,7 @@ class PublishedFeatures {
               feature.point)
           .truncate();
       // tripItem.closest = 1;
-      debugPrint('getting trip data ${feature.uri} name ${tripItem.heading}');
+      //  debugPrint('getting trip data ${feature.uri} name ${tripItem.heading}');
       return Card(
         key: Key('pin_${feature.row}'),
         //       elevation: 10,

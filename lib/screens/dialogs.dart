@@ -311,7 +311,7 @@ Future<void> loginDialog(BuildContext context, {required User user}) async {
   String status = '';
   int joiningOffset = user.password.isEmpty && user.email.isNotEmpty ? 2 : 0;
 
-  debugPrint('joiningOffset is $joiningOffset');
+  // debugPrint('joiningOffset is $joiningOffset');
 
   user.password = '';
   int selectedRadio = 0;
@@ -406,6 +406,22 @@ Future<void> loginDialog(BuildContext context, {required User user}) async {
                     textInputAction: TextInputAction.done,
                     keyboardType: TextInputType.visiblePassword,
                     onChanged: (value) => user.password = value,
+                    onSubmitted: (_) async {
+                      LoginState liState = LoginState.cancel;
+                      if (user.email.isNotEmpty) {
+                        try {
+                          liState = user.password.isEmpty
+                              ? LoginState.register
+                              : LoginState.login;
+                          if (context.mounted) {
+                            Navigator.pop(context, liState);
+                          }
+                        } catch (e) {
+                          String err = e.toString();
+                          //     debugPrint('Error: $err');
+                        }
+                      }
+                    },
                   ))
                 ],
               ),
@@ -461,7 +477,7 @@ Future<void> loginDialog(BuildContext context, {required User user}) async {
                   }
                 } catch (e) {
                   String err = e.toString();
-                  debugPrint('Error: $err');
+                  //     debugPrint('Error: $err');
                 }
               }
             },
@@ -665,10 +681,10 @@ Future<LatLng> locationDialog(BuildContext context, Function callback) async {
                   },
                 ]);
           })).then((result) {
-    debugPrint('Result from dialog: ${result.toString()}');
+    //  debugPrint('Result from dialog: ${result.toString()}');
     if (result != null && result != "OK" && result != "CANCEL") {
       location = result;
-      debugPrint('Location after callback: ${location.toString()}');
+//      debugPrint('Location after callback: ${location.toString()}');
     }
   });
   return location;
@@ -774,7 +790,7 @@ Future<List<Polyline>> routeDialog(
                     await callback(waypoints).then((result) {
                       if (result != null) {
                         polylines = result;
-                        debugPrint('polylines.length = ${polylines.length}');
+                        //     debugPrint('polylines.length = ${polylines.length}');
                       }
                     });
                   },

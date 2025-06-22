@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+//import 'package:path_provider/path_provider.dart';
 import 'package:drives/routes/routes.dart';
+import 'package:drives/models/models.dart';
 
 /*
 https://techblog.geekyants.com/implementing-flutter-maps-with-osm     /// Shows how to implement markers and group them
@@ -12,12 +14,14 @@ https://github.com/OwnWeb/flutter_map_tappable_Route/blob/master/lib/flutter_map
 https://pub.dev/packages/flutter_map_animations/example  shows how to animate markers too
 */
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized(); // <- needed to allow await to work
+  await Setup().loaded;
   runApp(
     // debugInvertOversizedImages = true;
     MaterialApp(
       debugShowCheckedModeBanner: false,
-      initialRoute: 'splash',
+      initialRoute: Setup().appState.isEmpty ? 'splash' : 'createTrip',
       routes: {
         'splash': (BuildContext context) => const Splash(),
         'home': (BuildContext context) => const Home(),
@@ -28,5 +32,5 @@ void main() {
         'messages': (BuildContext context) => const Messages(),
       },
     ),
-  );
+  ); //);
 }

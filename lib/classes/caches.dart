@@ -2,7 +2,7 @@ import 'dart:typed_data';
 import 'dart:async';
 import 'package:drives/models/other_models.dart';
 import 'package:drives/services/services.dart';
-// import 'package:drives/classes/classes.dart';
+import 'package:drives/classes/classes.dart';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:drives/classes/route.dart' as mt;
@@ -70,7 +70,7 @@ class PointOfInterestRepository {
             markerPoint: const LatLng(0, 0), marker: const FeatureMarker());
       }
     } else {
-      debugPrint('Point of obtained from cache');
+      //  debugPrint('Point of obtained from cache');
     }
     //  debugPrint(fetched);
     return _pointOfInterestCache[key]!;
@@ -78,6 +78,41 @@ class PointOfInterestRepository {
 
   clear() {
     _pointOfInterestCache.clear();
+  }
+}
+
+class OsmDataRepository {
+  final Map<int, OsmAmenity> _osmAmenityCache = {};
+  OsmDataRepository();
+  FutureOr<OsmAmenity?> loadPointOfInterest(
+      {required int key,
+      required int id,
+      required int osmId,
+      zoom = 30}) async {
+    // PointOfInterest pointOfIntest = PointOfInterest(markerPoint: MarkerPoint(), marker: marker)
+    if (!_osmAmenityCache.containsKey(key)) {
+      //  try {
+      if (id >= 0) {
+        _osmAmenityCache[key] = await loadOsmAmenityLocal(id: id);
+      } else if (osmId >= 0) {
+        _osmAmenityCache[key] = await getOsmAmenity(osmId: osmId);
+      } else {
+        _osmAmenityCache[key] = OsmAmenity(
+            position: const LatLng(0, 0), marker: const FeatureMarker());
+      }
+    } else {
+      //   debugPrint('Point of obtained from cache');
+    }
+    //  debugPrint(fetched);
+    return _osmAmenityCache[key]!;
+  }
+
+  clear() {
+    _osmAmenityCache.clear();
+  }
+
+  load({required List<OsmAmenity> amenities, required CacheFence fence}) async {
+    _osmAmenityCache.clear();
   }
 }
 
@@ -157,7 +192,7 @@ class TileRepository {
         _tilesCache[key] = await deligate.provide(tile);
       }
     } else {
-      debugPrint('Tile $key returned from cache');
+      // debugPrint('Tile $key returned from cache');
     }
     data = _tilesCache[key];
     return data!;
@@ -179,16 +214,16 @@ class ImageRepository {
       //   isEmpty ? 0 : _imageCache.keys.last + 1;
       if (id >= 0) {
         _imageCache[key] = await localImageFromBytes(id: id);
-        debugPrint('Image returned from local database');
+        //   debugPrint('Image returned from local database');
       } else if (uri.isNotEmpty && uri.contains('assets')) {
         _imageCache[key] = Image.asset(uri);
-        debugPrint('Image returned from assets');
+        //  debugPrint('Image returned from assets');
       } else if (uri.isNotEmpty) {
         _imageCache[key] = await webImageFromBytes(url: uri);
-        debugPrint('Image returned from web');
+        //   debugPrint('Image returned from web');
       }
     } else {
-      debugPrint('Image returned from cache');
+      //   debugPrint('Image returned from cache');
     }
     return {key: _imageCache[key]!};
   }

@@ -132,29 +132,6 @@ class _SetupFormState extends State<SetupForm> {
           },
           secondary: Icon(iconFlyover, size: 30),
         ),
-
-        ///   SwitchListTile(
-        ///     title: Text('Avoid main roads',
-        ///         style: Theme.of(context).textTheme.bodyLarge!),
-        ///     value: Setup().avoidAroads,
-        ///     onChanged: (bool value) {
-        ///       setState(() {
-        ///         Setup().avoidAroads = value;
-        ///       });
-        ///     },
-        ///     secondary: const Icon(Icons.add_road, size: 30),
-        ///   ),
-        ///   SwitchListTile(
-        ///     title: Text('Avoid minor roads',
-        ///         style: Theme.of(context).textTheme.bodyLarge!),
-        ///     value: Setup().avoidBroads,
-        ///     onChanged: (bool value) {
-        ///       setState(() {
-        ///         Setup().avoidBroads = value;
-        ///       });
-        ///     },
-        ///     secondary: Icon(iconRoad, size: 30),
-        ///   ),
         SwitchListTile(
           title: Text('Avoid toll roads',
               style: Theme.of(context).textTheme.bodyLarge!),
@@ -178,6 +155,72 @@ class _SetupFormState extends State<SetupForm> {
             });
           },
           secondary: const Icon(Icons.directions_boat_outlined, size: 30),
+        ),
+        SwitchListTile(
+          title: Text('Show un-reviewed pubs and bars',
+              style: Theme.of(context).textTheme.bodyLarge!),
+          value: Setup().osmPubs,
+          onChanged: (bool value) {
+            setState(() {
+              Setup().osmPubs = value;
+            });
+          },
+          secondary: const Icon(Icons.sports_bar_outlined, size: 30),
+        ),
+        SwitchListTile(
+          title: Text('Show un-reviewed cafes and restaurants',
+              style: Theme.of(context).textTheme.bodyLarge!),
+          value: Setup().osmRestaurants,
+          onChanged: (bool value) {
+            setState(() {
+              Setup().osmRestaurants = value;
+            });
+          },
+          secondary: Icon(Icons.restaurant_outlined, size: 30),
+        ),
+        SwitchListTile(
+          title: Text('Show fuel and charging stations',
+              style: Theme.of(context).textTheme.bodyLarge!),
+          value: Setup().osmFuel,
+          onChanged: (bool value) {
+            setState(() {
+              Setup().osmFuel = value;
+            });
+          },
+          secondary: Icon(Icons.local_gas_station_outlined, size: 30),
+        ),
+        SwitchListTile(
+          title: Text('Show toilets',
+              style: Theme.of(context).textTheme.bodyLarge!),
+          value: Setup().osmToilets,
+          onChanged: (bool value) {
+            setState(() {
+              Setup().osmToilets = value;
+            });
+          },
+          secondary: Icon(Icons.wc_outlined, size: 30),
+        ),
+        SwitchListTile(
+          title: Text('Show un-reviewed historic sites',
+              style: Theme.of(context).textTheme.bodyLarge!),
+          value: Setup().osmHistorical,
+          onChanged: (bool value) {
+            setState(() {
+              Setup().osmHistorical = value;
+            });
+          },
+          secondary: Icon(Icons.castle_outlined, size: 30),
+        ),
+        SwitchListTile(
+          title: Text('Show cashpoints',
+              style: Theme.of(context).textTheme.bodyLarge!),
+          value: Setup().osmAtms,
+          onChanged: (bool value) {
+            setState(() {
+              Setup().osmAtms = value;
+            });
+          },
+          secondary: Icon(Icons.local_atm_outlined, size: 30),
         ),
         SwitchListTile(
           title:
@@ -344,7 +387,6 @@ class _SetupFormState extends State<SetupForm> {
             ),
           ],
         ),
-
         Row(children: [
           Expanded(
             child: Padding(

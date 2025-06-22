@@ -84,7 +84,7 @@ class _DeleteTripsFormState extends State<DeleteUserForm> {
       {required List<TripSummary> tripSummaries}) async {
     if (tripSummaries.isEmpty) {
       try {
-        debugPrint('_loadTrips called');
+        //  debugPrint('_loadTrips called');
         tripSummaries.addAll(await getTripSummaries(
             northEast: ukNorthEast, southWest: ukSouthWest));
       } catch (e) {
@@ -258,8 +258,8 @@ class _DeleteTripsFormState extends State<DeleteUserForm> {
   getDropdownItems(String query) async {
     dropdownOptions.clear();
     dropdownOptions.addAll(await getApiOptions(value: query));
-    debugPrint(
-        'For query query $query dropdownOptions.length = ${dropdownOptions.length}');
+    // debugPrint(
+    //     'For query query $query dropdownOptions.length = ${dropdownOptions.length}');
     setState(() {});
   }
 
@@ -276,7 +276,7 @@ class _DeleteTripsFormState extends State<DeleteUserForm> {
   }
 
   void onConfirmDeleteMember(int value) {
-    debugPrint('Returned value: ${value.toString()}');
+    // debugPrint('Returned value: ${value.toString()}');
     if (value > -1) {
       deleteGroupMemberById(value);
       //  widget.groupMember?.index = -1;

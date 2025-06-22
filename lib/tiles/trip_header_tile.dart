@@ -23,69 +23,80 @@ class TripHeaderTile extends StatefulWidget {
 class _TripHeaderTileState extends State<TripHeaderTile> {
   @override
   Widget build(BuildContext context) {
-    return Column(children: [
-      Padding(
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
-        child: TextFormField(
-            readOnly: widget.appState == AppState.driveTrip,
-            //    enabled: _appState != AppState.driveTrip,
-            textAlign: TextAlign.start,
-            keyboardType: TextInputType.streetAddress,
-            textCapitalization: TextCapitalization.words,
-            decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-              hintText: 'Give your trip a name...',
-              labelText: 'Trip name',
-            ),
-            style: Theme.of(context).textTheme.bodyLarge,
-            initialValue: widget.tripItem.heading,
-            onChanged: (text) => setState(() {
-                  widget.tripItem.heading = text;
-                })),
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+            child: TextFormField(
+                readOnly: widget.appState == AppState.driveTrip,
+                //    enabled: _appState != AppState.driveTrip,
+                // autofocus: true,
+
+                textAlign: TextAlign.start,
+                keyboardType: TextInputType.streetAddress,
+                textCapitalization: TextCapitalization.words,
+                textInputAction: TextInputAction.next,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  hintText: 'Give your trip a name...',
+                  labelText: 'Trip name',
+                ),
+                style: Theme.of(context).textTheme.bodyLarge,
+                initialValue: widget.tripItem.heading,
+                onChanged: (text) => setState(() {
+                      widget.tripItem.heading = text;
+                    })),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+            child: TextFormField(
+                // autofocus: true,
+                readOnly: widget.appState == AppState.driveTrip,
+                textAlign: TextAlign.start,
+                keyboardType: TextInputType.multiline,
+                maxLines: null,
+                textCapitalization: TextCapitalization.sentences,
+                textInputAction: TextInputAction.next,
+                spellCheckConfiguration: const SpellCheckConfiguration(),
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  hintText: 'Enter a short summary of your trip...',
+                  labelText: 'Trip summary',
+                ),
+                style: Theme.of(context).textTheme.bodyLarge,
+                initialValue: widget.tripItem.subHeading,
+                autovalidateMode: AutovalidateMode.onUserInteraction,
+                onChanged: (text) => setState(() {
+                      widget.tripItem.subHeading = text;
+                    })),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+            child: TextFormField(
+                readOnly: widget.appState == AppState.driveTrip,
+                // enabled: _appState != AppState.driveTrip,
+                // autofocus: true,
+                textAlign: TextAlign.start,
+                maxLines: null,
+                keyboardType: TextInputType.multiline,
+                textCapitalization: TextCapitalization.sentences,
+                textInputAction: TextInputAction.done,
+                spellCheckConfiguration: const SpellCheckConfiguration(),
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  hintText: 'Describe details of your trip...',
+                  labelText: 'Trip details',
+                ),
+                style: Theme.of(context).textTheme.bodyLarge,
+                initialValue: widget.tripItem.body,
+                autovalidateMode: AutovalidateMode.onUserInteraction,
+                onChanged: (text) => setState(() {
+                      widget.tripItem.body = text;
+                    })),
+          ),
+        ],
       ),
-      Padding(
-        padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-        child: TextFormField(
-            readOnly: widget.appState == AppState.driveTrip,
-            textAlign: TextAlign.start,
-            keyboardType: TextInputType.multiline,
-            maxLines: null,
-            textCapitalization: TextCapitalization.sentences,
-            spellCheckConfiguration: const SpellCheckConfiguration(),
-            decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-              hintText: 'Enter a short summary of your trip...',
-              labelText: 'Trip summary',
-            ),
-            style: Theme.of(context).textTheme.bodyLarge,
-            initialValue: widget.tripItem.subHeading,
-            autovalidateMode: AutovalidateMode.onUserInteraction,
-            onChanged: (text) => setState(() {
-                  widget.tripItem.subHeading = text;
-                })),
-      ),
-      Padding(
-        padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-        child: TextFormField(
-            readOnly: widget.appState == AppState.driveTrip,
-            // enabled: _appState != AppState.driveTrip,
-            textAlign: TextAlign.start,
-            maxLines: null,
-            keyboardType: TextInputType.multiline,
-            textCapitalization: TextCapitalization.sentences,
-            spellCheckConfiguration: const SpellCheckConfiguration(),
-            decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-              hintText: 'Describe details of your trip...',
-              labelText: 'Trip details',
-            ),
-            style: Theme.of(context).textTheme.bodyLarge,
-            initialValue: widget.tripItem.body,
-            autovalidateMode: AutovalidateMode.onUserInteraction,
-            onChanged: (text) => setState(() {
-                  widget.tripItem.body = text;
-                })),
-      ),
-    ]);
+    );
   }
 }

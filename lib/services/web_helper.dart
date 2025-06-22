@@ -620,7 +620,7 @@ Future<List<PointOfInterest>> getPointsOfInterest(ne, sw) async {
           height: 30,
           images: pois[i]['images'],
           markerPoint: LatLng(pois[i]['latitude'], pois[i]['longitude']),
-          driveUri: pois[i]['drives'],
+          driveUri: pois[i]['drives'] ?? '',
           marker: MarkerWidget(
             type: pois[i]['_type'],
             name: pois[i]['name'],
@@ -643,6 +643,104 @@ Future<List<PointOfInterest>> getPointsOfInterest(ne, sw) async {
   return pointsOfInterest;
 }
 
+Future<OsmAmenity> getOsmAmenity({required int osmId}) async {
+  OsmAmenity amenity =
+      OsmAmenity(position: LatLng(0, 0), marker: MarkerWidget(type: 1));
+  final http.Response response = await http
+      .get(
+        Uri.parse('$urlPointOfInterest/amenity/$osmId'),
+        //'/location/<min_lat>/<max_lat>/<min_long>/<max_long>'
+        headers: webHeader(),
+      )
+      .timeout(const Duration(seconds: 20));
+  if ([200, 201].contains(response.statusCode) && response.body.length > 10) {
+    dynamic map = jsonDecode(response.body);
+    amenity = OsmAmenity(
+      osmId: map['osm_id'],
+      position: LatLng(map['lat'], map('lng')),
+      name: map['name'],
+      amenity: map['amenity'],
+      postcode: map['postcode'],
+      marker: MarkerWidget(type: 1, name: map['name']),
+    );
+  }
+  return amenity;
+}
+
+Future<List<OsmAmenity>> getOsmAmenities({
+  required String polygon,
+}) async {
+  List<OsmAmenity> osmAmenities = [];
+  String delimiter = '';
+  String including = '';
+  if (Setup().osmPubs) {
+    including = amenitiesMap['pubs'] ?? '';
+    delimiter = ', ';
+  }
+  if (Setup().osmRestaurants) {
+    including = '$including$delimiter${amenitiesMap['restaurants'] ?? ''}';
+    delimiter = ', ';
+  }
+  if (Setup().osmFuel) {
+    including = '$including$delimiter${amenitiesMap['fuel'] ?? ''}';
+    delimiter = ', ';
+  }
+  if (Setup().osmToilets) {
+    including = '$including$delimiter${amenitiesMap['toilets'] ?? ''}';
+    delimiter = ', ';
+  }
+  /*
+  if (Setup().osmHistorical) {
+    including = '$including$delimiter${amenitiesMap['historical'] ?? ''}';
+    delimiter = ', ';
+  }
+  */
+  if (Setup().osmAtms) {
+    including = '$including$delimiter${amenitiesMap['atms'] ?? ''}';
+    delimiter = ', ';
+  }
+  if (including.isEmpty) {
+    return [];
+  }
+  final http.Response response = await http
+      .get(
+        Uri.parse('$urlPointOfInterest/amenities/$polygon/$including'),
+        headers: webHeader(),
+      )
+      .timeout(const Duration(seconds: 20));
+  if ([200, 201].contains(response.statusCode) && response.body.length > 10) {
+    List amenities = jsonDecode(response.body);
+    for (int i = 0; i < amenities.length; i++) {
+      try {
+        osmAmenities.add(
+          OsmAmenity(
+            id: IntIm(value: amenities[i]['id'] ?? -1),
+            osmId: amenities[i]['osm_id'],
+            position: LatLng(amenities[i]['lat'], amenities[i]['lng']),
+            name: amenities[i]['name'],
+            amenity: amenities[i]['amenity'],
+            postcode: amenities[i]['postcode'],
+            width: 30,
+            height: 30,
+            marker: OSMMarkerWidget(
+              osmId: amenities[i]['osm_id'],
+              name: amenities[i]['name'],
+              amenity: amenities[i]['amenity'],
+              postcode: amenities[i]['postcode'],
+              angle: 0, // degrees to radians
+              index: i,
+            ),
+          ),
+        );
+      } catch (e) {
+        debugPrint('Error adding OSM amenity ${e.toString()}');
+      }
+    }
+  }
+
+  return osmAmenities;
+}
+
 Future<PointOfInterest> getPointOfInterest(
     {String uri = '', int index = 0}) async {
   final http.Response response = await http
@@ -650,7 +748,7 @@ Future<PointOfInterest> getPointOfInterest(
         Uri.parse('$urlPointOfInterest/$uri'),
         headers: webHeader(),
       )
-      .timeout(const Duration(seconds: 20));
+      .timeout(const Duration(seconds: 5));
   if ([200, 201].contains(response.statusCode) && response.body.length > 10) {
     dynamic map = jsonDecode(response.body);
     PointOfInterest pointOfInterest = PointOfInterest(
@@ -1439,7 +1537,7 @@ Future<bool> serverListening() async {
         .timeout(const Duration(seconds: 20));
     return (response.statusCode == 200);
   } catch (e) {
-    // debugPrint('Error checking for server: ${e.toString()}');
+    debugPrint('Error checking for server: ${e.toString()}');
     return false;
   }
 }

@@ -1,18 +1,24 @@
 import 'package:latlong2/latlong.dart';
 
-const apiAddress = '64.227.34.217';
+//const apiAddress = '64.227.34.216';
+// const wifiIpAddress = '192.168.1.14';
 const wifiIpAddress = '10.101.1.216';
 // const urlBase = 'http://$apiAddress:5001/';
 const urlBase = 'http://$wifiIpAddress:5001/';
-const urlBaseTest = '${urlBase}v1/user/test';
-const urlRouter =
-    // 'http://$wifiIpAddress:5000/route/v1/driving/'; //$waypoints?steps=true&annotations=true&geometries=geojson&overview=full$avoid'
-    'http://router.project-osrm.org/route/v1/driving/';
+//const urlBaseTest = '$urlBase/v1/user/test';
 
-const urlTiler = 'http://192.168.68.126:5000/tile/v1/driving/';
+const urlRouter = 'http://$wifiIpAddress:5000/route/v1/driving/';
+// const urlRouter =  'http://router.project-osrm.org/route/v1/driving/';
+
+//const urlTiler =
+//    'https://tiles.stadiamaps.com/styles/osm_bright.json?api_key={key}';
+//const mapsApiKey = 'ea533710-31bd-4144-b31b-5cc0578c74d7';
+
+const mapsApiKey = '';
+//ea533710-31bd-4144-b31b-5cc0578c74d7
+// https://tiles.stadiamaps.com/styles/osm_bright.json?api_key=ea533710-31bd-4144-b31b-5cc0578c74d7
 const urlRouterTest = '$urlRouter-0.1257,51.5085;0.0756,51.5128?overview=false';
 
-const String stadiaMapsApiKey = 'ea533710-31bd-4144-b31b-5cc0578c74d7';
 const double degreeToRadians = 0.0174532925; // degrees to radians pi/180
 //  x 4266 y 2984 z 13
 // http://192.168.1.9:5000/route/v1/driving/(4266,2984,13).mvt
@@ -67,14 +73,13 @@ enum TripState {
 
 enum TripActions {
   none,
-  showGroup,
-  showSteps,
-  routeHighlited,
-  greatRoadStart,
+  readOnly,
   saving,
+  saved,
   headingDetail,
   pointOfInterest,
-  saved,
+  showGroup,
+  showSteps,
 }
 
 enum HighliteActions {
@@ -82,7 +87,10 @@ enum HighliteActions {
   greatRoadStarted,
   greatRoadNamed,
   greatRoadEnded,
+  routeHighlited
 }
+
+// enums HighLightActions TripActions TripState MapHeights
 
 // https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status#informational_responses
 
@@ -165,9 +173,13 @@ const List<String> tableDefs = [
   '''CREATE TABLE notifications(id INTEGER PRIMARY KEY AUTOINCREMENT, sentBy TEXT, message TEXT, 
   received DATETIME)''',
 
+  /// OSM_DATA
+  '''CREATE TABLE osm_data(id INTEGER PRIMARY KEY AUTOINCREMENT, osm_id INTEGER, 
+  name TEXT, amenity TEXT, postcode TEXT, lat FLOAT, lng FLOAT)''',
+
   /// POINTS_OF_INTEREST
   '''CREATE TABLE points_of_interest(id INTEGER PRIMARY KEY AUTOINCREMENT, drive_id INTEGER, type INTEGER, 
-  name TEXT, description TEXT, images TEXT, latitude REAL, longitude REAL)''',
+  name TEXT, description TEXT, images TEXT, sounds TEXT, latitude REAL, longitude REAL)''',
 
   /// POLYLINES
   '''CREATE TABLE polylines(id INTEGER PRIMARY KEY AUTOINCREMENT, drive_id INTEGER, 
@@ -179,7 +191,8 @@ const List<String> tableDefs = [
   point_of_interest_colour_2 INTEGER, selected_colour INTEGER, highlighted_colour INTEGER, published_trip_colour INTEGER, 
   record_detail INTEGER, allow_notifications INTEGER, jwt TEXT, dark INTEGER, avoid_motorways INTEGER, 
   avoid_a_roads INTEGER, avoid_b_roads INTEGER, avoid_toll_roads INTEGER, avoid_ferries INTEGER, 
-  bottom_nav_index INTEGER, route TEXT)''',
+  osm_pubs INTEGER, osm_restaurants INTEGER, osm_fuel INTEGER, osm_toilets INTEGER,
+  osm_atms INTEGER, osm_historical INTEGER, bottom_nav_index INTEGER, route TEXT, app_state TEXT)''',
 
   /// SHOP_ITEMS
   '''CREATE TABLE shop_items(id INTEGER PRIMARY KEY AUTOINCREMENT, 
@@ -232,4 +245,32 @@ const String urlPointOfInterest = '${urlBase}v1/point_of_interest';
 const String urlPointOfInterestRating = '${urlBase}v1/point_of_interest_rating';
 const String urlPolyline = '${urlBase}v1/polyline';
 const String urlShopItem = '${urlBase}v1/shop_item';
+const String urlTiler = '${urlBase}v1/tile/style';
 const String urlUser = '${urlBase}v1/user';
+
+const Map<String, int> iconMap = {
+  "bar": 0xe38c,
+  "biergarten": 0xe5e4,
+  "pub": 0xe5e4,
+  "cafe": 0xe38d,
+  "fast_food": 0xe25a,
+  "food_court": 0xe25a,
+  "ice_cream": 0xe331,
+  "restaurant": 0xe532,
+  "toilets": 0xe6dc,
+  "atm": 0xe0af,
+  "fuel": 0xea8e,
+  "charging-station": 0xe939,
+  "city": 0xe3a8,
+  "town": 0xe317,
+  "village": 0xe45f,
+  "hamlet": 0xe19b
+};
+
+const Map<String, String> amenitiesMap = {
+  "pubs": "'pub', 'bar', 'biergarten'",
+  "restaurants": "'restaurant', 'cafe', 'fast_food', 'ice_cream', 'food_court'",
+  "fuel": "'fuel', 'charging_station'",
+  "toilets": "'toilets'",
+  "atms": "'atm', 'bank'"
+};

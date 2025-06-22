@@ -279,7 +279,7 @@ class _GroupMemberFormState extends State<GroupMemberForm> {
       result = '[${result.substring(2)}]';
     }
     widget.groupMember?.groupIds = result;
-    debugPrint(result);
+//    debugPrint(result);
   }
 
   Future<void> deleteMember(int index) async {
@@ -293,7 +293,7 @@ class _GroupMemberFormState extends State<GroupMemberForm> {
   }
 
   void onConfirmDeleteMember(int value) {
-    debugPrint('Returned value: ${value.toString()}');
+    // debugPrint('Returned value: ${value.toString()}');
     if (value > -1) {
       deleteGroupMemberById(value);
       widget.groupMember?.index = -1;

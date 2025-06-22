@@ -1,0 +1,24 @@
+To do: 
+Make sure that saving a trip works
+Add voice recording when dding good road and point of interest
+Toggle the Center On Current Position 
+Change the highlighting of roads to edit only not simple create trip
+restrict dropdown length for search location
+add methods for generating dropdown data on the Droplet
+sort out the position of the sepatater between map and details
+add the speed icon to the 
+make sure the turn by turn distances change
+
+
+On next Flutter release see if Impeller is sorted: 
+change the android/app/src/main/AndroidManifest.xml
+remove the lines in  <meta-data
+        android:name="io.flutter.embedding.android.EnableImpeller"
+        android:value="false"
+
+then run flutter clean and rebuild the app.
+
+
+
+
+

@@ -1,25 +1,31 @@
 import 'package:drives/constants.dart';
+// import 'package:drives/models/other_models.dart';
 import 'package:flutter/material.dart';
 import 'package:vector_map_tiles/vector_map_tiles.dart';
 
+/// Stackoverflow descripion of extending TileProvide to cache
+/// https://stackoverflow.com/questions/79609507/how-to-cache-map-tiles-in-flutter-using-flutter-map-for-offline-usage
+/// Look at the source for the current Prividers class
+
 class VectorMapStyle {
-  dynamic style = _lightStyle();
+  dynamic style; // = _lightStyle();
   VectorMapStyle._privateConstructor();
   static final _instance = VectorMapStyle._privateConstructor();
   factory VectorMapStyle() {
     return _instance;
   }
-
   Future<dynamic> mapStyle() async {
     try {
-      StyleReader styleReader = StyleReader(
-          uri:
-              'https://tiles.stadiamaps.com/styles/osm_bright.json?api_key={key}',
-          apiKey: stadiaMapsApiKey,
-          logger: null);
-      return await styleReader.read();
+      if (style == null) {
+        StyleReader styleReader =
+            StyleReader(uri: urlTiler, apiKey: mapsApiKey, logger: null);
+        //return _lightStyle();
+        style = await styleReader.read();
+        //  style.theme =
+      }
+      return style; //await styleReader.read();
     } catch (e) {
-      debugPrint('Error initiating style: ${e.toString}');
+      debugPrint('Error initiating st4yle: ${e.toString}');
       return _lightStyle();
     }
   }
@@ -27,7 +33,7 @@ class VectorMapStyle {
 
 dynamic _lightStyle() => {
       "version": 8,
-      "name": "Empty Style",
+      "name": "Local Style",
       "metadata": {"maputnik:renderer": "mbgljs", "version": "19"},
       "sources": {
         "openmaptiles": {

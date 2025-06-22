@@ -70,7 +70,7 @@ class _ImageArrangerState extends State<ImageArranger> {
                 for (Photo photo in widget.photos) photo.toMapString()
               ];
               widget.urlChange(urls.toString());
-              debugPrint('reordered: ${widget.imageUrl}');
+              //  debugPrint('reordered: ${widget.imageUrl}');
             },
           );
         },
@@ -79,7 +79,7 @@ class _ImageArrangerState extends State<ImageArranger> {
   }
 
   onDeleteImage(int idx) {
-    debugPrint('delete image $idx');
+    //   debugPrint('delete image $idx');
     setState(() => widget.photos.removeAt(idx));
   }
 

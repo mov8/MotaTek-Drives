@@ -1,6 +1,7 @@
 //import 'package:drives/models/models.dart'; //my_trip_item.dart';
 import 'package:drives/classes/classes.dart';
-import 'package:flutter/widgets.dart';
+// import 'package:flutter/widgets.dart';
+import 'package:drives/constants.dart';
 // import 'package:latlong2/latlong.dart';
 /*
             id: groupData['id'],
@@ -29,6 +30,16 @@ class TripArguments {
   final MyTripItem trip;
   final String origin;
   TripArguments(this.trip, this.origin);
+}
+
+class MutableInt {
+  int value;
+  MutableInt({this.value = -1});
+}
+
+class MutableDouble {
+  double value;
+  MutableDouble({this.value = -1.0});
 }
 
 /// List from OSRM car.lua preferences file
@@ -109,6 +120,8 @@ class Place {
   double lat;
   double lng;
   String street;
+  String town;
+  String region;
   String postcode;
   int iconData;
 
@@ -119,32 +132,19 @@ class Place {
     this.lat = 0.0,
     this.lng = 0.0,
     this.street = '',
+    this.town = '',
+    this.region = '',
     this.postcode = '',
     this.iconData = 0xe149,
   });
 
   factory Place.fromMap({required Map<String, dynamic> map}) {
-    Map<String, int> iconMap = {
-      "bar": 0xe38c,
-      "biergarten": 0xe5e4,
-      "pub": 0xe5e4,
-      "cafe": 0xe38d,
-      "fast_food": 0xe25a,
-      "food_court": 0xe25a,
-      "ice_cream": 0xe331,
-      "restaurant": 0xe532,
-      "toilets": 0xe6dc,
-      "Atm": 0xe0af,
-      "fuel": 0xea8e,
-      "charging-station": 0xe939,
-      "city": 0xe3a8,
-      "town": 0xe317,
-      "village": 0xe45f,
-      "hamlet": 0xe19b
-    };
     String tag = map['osm_tag'];
     int iconCodePoint = iconMap[tag] ?? 12;
 
+    if (map['town'] == null || map['town'] == '' || map['town'] == 'None') {
+      map['town'] = map['region'];
+    }
     return Place(
         name: map['name'] ?? '',
         tag: tag,
@@ -152,6 +152,8 @@ class Place {
         lat: map['lat'] ?? 0.0,
         lng: map['lng'] ?? 0.0,
         street: map['street'] ?? '',
+        town: map['town'] ?? '',
+        region: map['region'] ?? '',
         postcode: map['postcode'] ?? '',
         iconData: iconCodePoint);
   }

@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:drives/services/services.dart'; // hide getPosition;
 import 'package:drives/classes/classes.dart';
 import 'package:intl/intl.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:drives/constants.dart';
 import 'package:drives/classes/utilities.dart' as utils;
 import 'package:drives/screens/screens.dart';
@@ -11,7 +13,7 @@ import 'package:drives/tiles/tiles.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
+// import 'package:path_provider/path_provider.dart';
 import 'package:geolocator/geolocator.dart';
 
 /// https://api.flutter.dev/flutter/material/Icons-class.html  get the icon codepoint from here
@@ -255,6 +257,12 @@ class Setup {
   bool avoidBroads = false;
   bool avoidTollRoads = false;
   bool avoidFerries = false;
+  bool osmPubs = false;
+  bool osmRestaurants = false;
+  bool osmFuel = false;
+  bool osmToilets = false;
+  bool osmAtms = false;
+  bool osmHistorical = false;
   int tripCount = 0;
   int shopCount = 0;
   int messageCount = 0;
@@ -280,6 +288,8 @@ class Setup {
   bool? _loaded;
   String appDocumentDirectory = '';
   late Directory cacheDirectory;
+  late Directory soundsDirectory;
+  late String appState = '';
 
   Setup._privateConstructor();
   static final _instance = Setup._privateConstructor();
@@ -293,6 +303,11 @@ class Setup {
     if (!await cacheDirectory.exists()) {
       await Directory('$appDocumentDirectory/cache').create();
     }
+    soundsDirectory = Directory('$appDocumentDirectory/sounds');
+    if (!await soundsDirectory.exists()) {
+      await Directory('$appDocumentDirectory/sounds').create();
+    }
+
     return _loaded ??= await setupFromDb();
   }
 
@@ -322,7 +337,14 @@ class Setup {
         avoidBroads = maps[0]['avoid_b_roads'] == 1;
         avoidTollRoads = maps[0]['avoid_toll_roads'] == 1;
         avoidFerries = maps[0]['avoid_ferries'] == 1;
+        osmPubs = maps[0]['osm_pubs'] == 1;
+        osmRestaurants = maps[0]['osm_restaurants'] == 1;
+        osmFuel = maps[0]['osm_fuel'] == 1;
+        osmToilets = maps[0]['osm_toilets'] == 1;
+        osmAtms = maps[0]['osm_atms'] == 1;
+        osmHistorical = maps[0]['osm_historical'] == 1;
         bottomNavIndex = maps[0]['bottom_nav_index'];
+        appState = maps[0]['app_state'];
       } catch (e) {
         debugPrint('Failed to load Setup() from db: ${e.toString()}');
       }
@@ -367,7 +389,14 @@ class Setup {
       'avoid_b_roads': avoidBroads ? 1 : 0,
       'avoid_toll_roads': avoidTollRoads ? 1 : 0,
       'avoid_ferries': avoidFerries ? 1 : 0,
+      'osm_pubs': osmPubs ? 1 : 0,
+      'osm_restaurants': osmRestaurants ? 1 : 0,
+      'osm_fuel': osmFuel ? 1 : 0,
+      'osm_toilets': osmToilets ? 1 : 0,
+      'osm_atms': osmAtms ? 1 : 0,
+      'osm_historical': osmHistorical ? 1 : 0,
       'bottom_nav_index': bottomNavIndex,
+      'app_state': appState,
     };
   }
 
@@ -397,6 +426,7 @@ class PointOfInterest extends Marker {
   late final Widget marker;
   late LatLng markerPoint = const LatLng(52.05884, -1.345583);
   List<Photo> photos;
+  String sounds;
 
   PointOfInterest(
       //  this.ctx
@@ -418,6 +448,7 @@ class PointOfInterest extends Marker {
     this.driveUri = '',
     double score = 1,
     this.scored = 0,
+    this.sounds = '',
   })  : _images = handleWebImages(
           images,
         ),
@@ -575,6 +606,55 @@ class MarkerWidget extends StatelessWidget {
   }
 }
 
+class OSMMarkerWidget extends StatelessWidget {
+  final int osmId;
+  final String name;
+  final String amenity;
+  final String postcode;
+  final double angle;
+  final int index;
+
+  const OSMMarkerWidget(
+      {super.key,
+      required this.osmId,
+      required this.name,
+      required this.amenity,
+      required this.postcode,
+      required this.index,
+      this.angle = 0});
+
+  @override
+  Widget build(BuildContext context) {
+    int width = 30;
+    double iconWidth = width * 0.75;
+    Color buttonFillColor =
+        uiColours.keys.toList()[Setup().pointOfInterestColour];
+    Color iconColor = Colors.white;
+    int iconCodePoint = iconMap[amenity] ?? 12;
+    // Want to counter rotate the icons so that they are vertical when the map rotates
+    // -_mapRotation * pi / 180 to convert from _mapRotation in degrees to radians
+    return Transform.rotate(
+      angle: angle,
+      child: RawMaterialButton(
+        onPressed: () {
+          osmDataDialog(context, name, amenity, postcode, iconCodePoint, osmId);
+        },
+        elevation: 2.0,
+        fillColor: buttonFillColor,
+        shape: const CircleBorder(),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(0, 0, 1, 2),
+          child: Icon(
+            IconData(iconCodePoint, fontFamily: 'MaterialIcons'),
+            size: iconWidth,
+            color: iconColor,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class FeatureMarker extends StatelessWidget {
   final int index;
   final double width;
@@ -611,7 +691,7 @@ class FeatureMarker extends StatelessWidget {
                 iconSize: width,
                 icon: const Icon(Icons.home),
                 onPressed: () {
-                  debugPrint('FeatureMarker.onPress($index)');
+                  //   debugPrint('FeatureMarker.onPress($index)');
                   onPress!(index);
                 },
               ),
@@ -682,6 +762,203 @@ pointOfInterestDialog(
       return alert;
     },
   );
+}
+
+osmDataDialog(
+  BuildContext context,
+  String name,
+  String amenity,
+  String postcode,
+  int iconCodepoint,
+  int osmId,
+) async {
+  Widget cancelButton = TextButton(
+    child: const Text(
+      "Cancel",
+      style: TextStyle(fontSize: 20),
+    ),
+    onPressed: () {
+      Navigator.pop(context, true);
+    },
+  );
+  Widget okButton = TextButton(
+    child: const Text(
+      "Ok",
+      style: TextStyle(fontSize: 20),
+    ),
+    onPressed: () {
+      Navigator.pop(context, true);
+    },
+  );
+  double score = 5.0;
+  // set up the AlertDialog
+  AlertDialog alert = AlertDialog(
+    title: Text(
+      name,
+      style: const TextStyle(fontSize: 20),
+      textAlign: TextAlign.center,
+    ),
+    // scrollable: true,
+    elevation: 5,
+    content: StatefulBuilder(
+      builder: (BuildContext context, StateSetter setState) {
+        return Column(
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: Icon(
+                    IconData(iconCodepoint, fontFamily: 'MaterialIcons'),
+                    color: Colors.black,
+                    size: 40,
+                  ),
+                ),
+                Expanded(
+                  flex: 8,
+                  child: Text(
+                    amenity.replaceFirst(RegExp('_'), ' '),
+                    style: TextStyle(fontSize: 30),
+                  ),
+                ),
+              ],
+            ),
+            Row(
+              children: [
+                SizedBox(
+                  width: 225,
+                  height: 80,
+                  child: Text(
+                    '$name has not yet been rated. Review it now to help other people.',
+                    style:
+                        TextStyle(fontSize: 20, overflow: TextOverflow.visible),
+                  ),
+                ),
+              ],
+            ),
+            Row(children: [
+              Expanded(
+                child: Padding(
+                    padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
+                    child: TextFormField(
+                        readOnly: false,
+                        autofocus: true,
+                        maxLines: 10,
+                        minLines: 3,
+                        textInputAction: TextInputAction.done,
+
+                        //     expands: true,
+                        initialValue: '',
+                        textAlign: TextAlign.start,
+                        keyboardType: TextInputType.streetAddress,
+                        textCapitalization: TextCapitalization.sentences,
+                        decoration: InputDecoration(
+                          border: OutlineInputBorder(),
+                          hintMaxLines: 1,
+                          hintText: 'Describe $name...',
+                          labelText: 'My review',
+                        ),
+                        style: Theme.of(context).textTheme.bodyLarge,
+                        autovalidateMode: AutovalidateMode.onUserInteraction,
+                        onFieldSubmitted: (_) => ()) //body = text
+                    ),
+              ),
+            ]),
+            Row(children: [
+              Expanded(
+                flex: 7,
+                child: SizedBox(
+                  child: Align(
+                    alignment: Alignment.bottomCenter,
+                    child: ActionChip(
+                      label: const Text(
+                        'Image',
+                        style: TextStyle(fontSize: 18, color: Colors.white),
+                      ),
+                      avatar: const Icon(Icons.photo_album,
+                          size: 20, color: Colors.white),
+                      onPressed: () => loadImage(),
+                      backgroundColor: Colors.blueAccent,
+                    ),
+                  ),
+                ),
+              ),
+              Expanded(
+                flex: 8,
+                child: StarRating(
+                    onRatingChanged: (val) => setState(() {
+                          score = val.toDouble();
+                        }),
+                    rating: score),
+              ),
+            ]),
+          ],
+        );
+      },
+    ),
+    actions: [
+      okButton,
+      cancelButton,
+    ],
+  );
+
+  // show the dialog
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      // result = alert;
+
+      return alert;
+    },
+  );
+}
+
+loadImage() async {
+  try {
+    ImagePicker picker = ImagePicker();
+    await //ImagePicker()
+        picker.pickImage(source: ImageSource.gallery).then(
+      (pickedFile) async {
+        try {
+          if (pickedFile != null) {
+            final directory = (await getApplicationDocumentsDirectory()).path;
+
+            /// Don't know what type of image so have to get file extension from picker file
+            int num = 1;
+            /*
+                if (widget.pointOfInterest.getImages().isNotEmpty) {
+                  /// count number of images
+                  num = '{'
+                          .allMatches(widget.pointOfInterest.getImages())
+                          .length +
+                      1;
+                }
+                debugPrint('Image count: $num');
+                */
+            //     String imagePath =
+            //         '$directory/point_of_interest_${id}_$num.${pickedFile.path.split('.').last}';
+            //     File(pickedFile.path).copy(imagePath);
+            /*
+                setState(() {
+                  widget.pointOfInterest.setImages(
+                      '[${widget.pointOfInterest.getImages().isNotEmpty ? '${widget.pointOfInterest.getImages().substring(1, widget.pointOfInterest.getImages().length - 1)},' : ''}{"url":"$imagePath","caption":"image $num"}]');
+                  widget.pointOfInterest.photos.add(Photo(
+                      url: imagePath,
+                      index: widget.pointOfInterest.photos.length));
+                  debugPrint('Images: $widget.pointOfInterest.images');
+                });
+                */
+          }
+        } catch (e) {
+          String err = e.toString();
+          debugPrint('Error getting image: $err');
+        }
+      },
+    );
+  } catch (e) {
+    String err = e.toString();
+    debugPrint('Error loading image: $err');
+  }
 }
 
 class Group {
@@ -1050,7 +1327,7 @@ class Photo {
   factory Photo.fromJson(Map<String, dynamic> json,
       {int index = -1, String endPoint = ''}) {
     if (!json.containsKey('url')) {
-      debugPrint("Doesn't contain 'url'");
+      //   debugPrint("Doesn't contain 'url'");
     }
     return Photo(
         url: '$endPoint${json['url']}',
@@ -1133,7 +1410,7 @@ class GoodRoadCacheItem {
 List<Photo> photosFromJson(String photoString, {String endPoint = ''}) {
   if (photoString.isNotEmpty) {
     if (!photoString.contains("url")) {
-      debugPrint('photoString: $photoString');
+      //  debugPrint('photoString: $photoString');
     }
     int index = 0;
     return [
@@ -1270,6 +1547,85 @@ class Maneuver {
       'modifier': modifier,
       'type': type,
       'distance': distance,
+    };
+  }
+}
+
+class IntIm {
+  int value = -1;
+  IntIm({this.value = -1});
+  set setValue(int val) => value = val;
+  int get getValue {
+    return value;
+  }
+}
+
+/// class OsmAmenity
+///
+
+class OsmAmenity extends Marker {
+  final IntIm? id; // = MutableInt(value: -1);
+  final int osmId;
+  final String name;
+  final String amenity;
+  final int iconColour;
+  final String postcode;
+  final int index;
+
+  const OsmAmenity(
+      {this.id,
+      this.osmId = -1,
+      this.index = -1,
+      this.name = '',
+      this.amenity = '',
+      this.postcode = '',
+      super.width = 20,
+      super.height = 20,
+      this.iconColour = 0,
+      required LatLng position,
+      required Widget marker})
+      : super(
+          child: marker,
+          point: position, // markerPoint,
+        );
+
+  factory OsmAmenity.fromMap({required Map<String, dynamic> map}) {
+    return OsmAmenity(
+      id: IntIm(value: map['osm_id'] ?? -1),
+      osmId: map['osm_id'],
+      index: map['index'],
+      name: map['name'] ?? '',
+      amenity: map['amenity'] ?? '',
+      postcode: map['postcode'] ?? '',
+      position: LatLng(map['lat'], map['lng']),
+      marker: MarkerWidget(
+        type: 1,
+        list: -1,
+        listIndex: -1,
+        name: map['name'],
+        description: map['amenity'],
+        images: '',
+      ),
+    );
+  }
+  /*
+  marker: MarkerWidget(
+    type: 16,
+    description: '',
+    angle: -_mapRotation * pi / 180,
+    colourIdx: cIndex,
+  ),
+   */
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'osm_id': osmId,
+      'name': name,
+      'amenity': amenity,
+      'postcode': postcode,
+      'icon_colour': iconColour,
+      'position': '{"lat": ${point.latitude}, "lng": ${point.longitude}}',
     };
   }
 }

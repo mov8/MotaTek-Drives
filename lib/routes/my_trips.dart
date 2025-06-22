@@ -80,7 +80,7 @@ class _MyTripsScreenState extends State<MyTrips> {
   }
 
   void onConfirmDeleteTrip(int value) {
-    debugPrint('Returned value: ${value.toString()}');
+    // debugPrint('Returned value: ${value.toString()}');
     if (value > -1) {
       int driveId = _myTripItems[value].driveId;
       deleteDriveLocal(driveId: driveId);

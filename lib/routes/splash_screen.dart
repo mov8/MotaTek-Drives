@@ -11,19 +11,16 @@ class Splash extends StatefulWidget {
 }
 
 class _SplashState extends State<Splash> {
-  late Future<bool> _setupOk;
-  int _delaySecs = 4;
-
+  final int _delaySecs = 4;
   @override
   void initState() {
     super.initState();
-    _setupOk = setupLoaded();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
-    //_setupOk = Setup().loaded;
     Future.delayed(Duration(seconds: _delaySecs), () {
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual,
           overlays: SystemUiOverlay.values);
       int routeIndex = Setup().bottomNavIndex;
+
       if (routeIndex != 0) {
         Setup().bottomNavIndex = 0;
         Setup().setupToDb();
@@ -40,76 +37,18 @@ class _SplashState extends State<Splash> {
     super.dispose();
   }
 
-  Future<bool> setupLoaded() async {
-    await Setup().loaded;
-    if (Setup().bottomNavIndex != 0) {
-      _delaySecs = 1;
-    }
-    return true;
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.blue, // Customize background color
-
-/* 
-      body: FutureBuilder<bool>(
-        //  initialData: false,
-        future: _dataLoaded,
-        builder: (BuildContext context, snapshot) {
-          if (snapshot.hasError) {
-            debugPrint('Snapshot error: ${snapshot.error}');
-          } else if (snapshot.hasData) {
-            // _building = false;
-            return _getPortraitBody();
-          } else {
-            return const SizedBox(
-              width: double.infinity,
-              height: double.infinity,
-              child: Align(
-                alignment: Alignment.center,
-                child: CircularProgressIndicator(),
-              ),
-            );
-          }
-
-          throw ('Error - FutureBuilder in main.dart');
-        },
+      backgroundColor: Colors.blue,
+      body: Builder(
+        builder: (BuildContext context) => _getPortraitBody(),
       ),
-*/
-
-      body: FutureBuilder<bool>(
-        future: _setupOk,
-        builder: (BuildContext context, snapshot) {
-          if (snapshot.hasError) {
-            debugPrint('Snapshot error: ${snapshot.error}');
-          } else if (snapshot.hasData) {
-            return _getPortraitBody();
-          } else {
-            return const SizedBox(
-              width: double.infinity,
-              height: double.infinity,
-              child: Align(
-                alignment: Alignment.center,
-                child: CircularProgressIndicator(),
-              ),
-            );
-          }
-
-          throw ('Error - FutureBuilder in main.dart');
-        },
-      ),
-      /*
-      bottomNavigationBar: RoutesBottomNav(
-          controller: _bottomNavController,
-          initialValue: 0,
-          onMenuTap: (_) => {}),
-      */
     );
   }
 
   Widget _getPortraitBody() {
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
     return const Stack(children: [
       Image(
         image: AssetImage('assets/images/splash.png'),

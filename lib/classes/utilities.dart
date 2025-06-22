@@ -6,7 +6,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:flutter/widgets.dart';
 
 Future<Position> getPosition() async {
-  debugPrint('Starting getPosition...');
+  // debugPrint('Starting getPosition...');
   bool serviceEnabled;
   LocationPermission permission;
 
@@ -28,7 +28,7 @@ Future<Position> getPosition() async {
   }
   try {
     Setup().lastPosition = await Geolocator.getCurrentPosition();
-    debugPrint('utilities.getPosition() retuning position');
+    //  debugPrint('utilities.getPosition() retuning position');
   } catch (e) {
     debugPrint('utilities.getPosition() error: ${e.toString()}');
   }
@@ -83,7 +83,7 @@ int insertWayointAt(
     for (PointOfInterest poi in pointsOfInterest) {
       temp = distanceBetween(poi.point, pointToFind);
 
-      debugPrint('Distance between points $temp');
+      //   debugPrint('Distance between points $temp');
       if (temp < distance) {
         distance = temp;
         index = j;

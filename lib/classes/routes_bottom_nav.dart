@@ -7,7 +7,7 @@ class RoutesBottomNavController {
   void _addState(_RoutesBottomNavState navState) {
     try {
       _routesBottomNavState = navState;
-      debugPrint('_routesBottomNavState attached OK');
+      //    debugPrint('_routesBottomNavState attached OK');
     } catch (e) {
       debugPrint('Attachment error: ${e.toString()}');
     }
@@ -75,7 +75,7 @@ class _RoutesBottomNavState extends State<RoutesBottomNav>
   }
 
   void setValue(id) {
-    debugPrint('Setting bottomNavBar.index t0:$id');
+    // debugPrint('Setting bottomNavBar.index t0:$id');
     setState(() => _index = id);
   }
 
@@ -86,7 +86,7 @@ class _RoutesBottomNavState extends State<RoutesBottomNav>
 
   @override
   Widget build(BuildContext context) {
-    debugPrint('selectedIndex: $_index');
+    //  debugPrint('selectedIndex: $_index');
     return NavigationBar(
       height: 60,
       surfaceTintColor: Colors.blue,
