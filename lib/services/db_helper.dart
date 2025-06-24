@@ -1296,18 +1296,18 @@ Future<bool> saveManeuversLocal({
   final db = await DbHelper().db;
   Map<String, dynamic> manMap = {};
 
-  List<Maneuver> savedManeuvers = await loadManeuversLocal(driveId);
-  if (savedManeuvers.isNotEmpty) {
-    await deleteManeuversByDriveId(driveId);
-  }
-  savedManeuvers.addAll(maneuvers);
+  //List<Maneuver> savedManeuvers = await loadManeuversLocal(driveId);
+  // if (savedManeuvers.isNotEmpty) {
+  await deleteManeuversByDriveId(driveId);
+  // }
+  //savedManeuvers.addAll(maneuvers);
 
   Batch batch = db.batch();
 
-  for (int i = 0; i < savedManeuvers.length; i++) {
+  for (int i = 0; i < maneuvers.length; i++) {
     try {
-      savedManeuvers[i].driveId = driveId;
-      manMap = savedManeuvers[i].toMap();
+      maneuvers[i].driveId = driveId;
+      manMap = maneuvers[i].toMap();
       manMap.remove('id');
       manMap.remove('drive_uid');
       manMap['drive_id'] = driveId;

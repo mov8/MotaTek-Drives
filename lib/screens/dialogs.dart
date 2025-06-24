@@ -418,7 +418,7 @@ Future<void> loginDialog(BuildContext context, {required User user}) async {
                           }
                         } catch (e) {
                           String err = e.toString();
-                          //     debugPrint('Error: $err');
+                          debugPrint('Error: $err');
                         }
                       }
                     },
@@ -477,7 +477,7 @@ Future<void> loginDialog(BuildContext context, {required User user}) async {
                   }
                 } catch (e) {
                   String err = e.toString();
-                  //     debugPrint('Error: $err');
+                  debugPrint('Error: $err');
                 }
               }
             },

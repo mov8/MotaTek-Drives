@@ -60,6 +60,8 @@ enum AppState {
 
 enum TripState {
   none,
+  editing,
+  loaded,
   manual,
   automatic,
   recording,

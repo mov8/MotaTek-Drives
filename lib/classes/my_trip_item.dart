@@ -53,6 +53,7 @@ class CurrentTripItem extends MyTripItem {
     highlights = myTripItem.highlights;
     showMethods = myTripItem.showMethods;
     mapImage = myTripItem.mapImage;
+    tripState = TripState.loaded;
   }
 
   MyTripItem clone() {
@@ -330,7 +331,7 @@ class MyTripItem {
       if (pngBytes != null) {
         String url = '${Setup().appDocumentDirectory}/drive$driveId.png';
         final imgFile = File(url);
-        imgFile.writeAsBytes(pngBytes!);
+        imgFile.writeAsBytes(pngBytes);
         if (imgFile.existsSync()) {
           result = 1;
           //   debugPrint('Image file $url exists');

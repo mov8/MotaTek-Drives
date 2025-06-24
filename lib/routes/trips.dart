@@ -409,13 +409,14 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
     return context?.openDrawer();
   }
 
+/*
   onTripRatingChanged(int value, int index) async {
     int row = int.parse(_publishedFeatures.cards[index].key
         .toString()
         .substring(
             7, _publishedFeatures.cards[index].key.toString().length - 3));
   }
-
+*/
   Widget _getPortraitBody() {
     // await _dataLoaded == true;
     if (mapHeight == -1) {

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:ui' as ui;
 import 'dart:io';
+import 'dart:developer' as developer;
 import 'package:intl/intl.dart';
 import 'dart:math';
 import 'package:drives/constants.dart';
@@ -371,6 +372,7 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
     try {
       _loadedOK = dataFromDatabase();
       _title = 'Create a new trip';
+      developer.log(_title, name: '_title ! initState() 375');
       _allignPositionStreamController = StreamController<double?>.broadcast();
       _animatedMapController = AnimatedMapController(vsync: this);
       _allignDirectionStreamController = StreamController<void>.broadcast();
@@ -612,10 +614,11 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
       final args = ModalRoute.of(context)!.settings.arguments as TripArguments;
       CurrentTripItem().fromMyTripItem(myTripItem: args.trip);
       loadGroup();
-
       _title = CurrentTripItem().heading;
+      developer.log(_title, name: '_title at build 617');
       CurrentTripItem().tripState = TripState.notFollowing;
       CurrentTripItem().tripActions = TripActions.none;
+      initialLeadingWidgetValue = 0;
       initialNavBarValue = 2;
     }
     return Scaffold(
@@ -633,10 +636,18 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
               _leadingWidget(_scaffoldKey.currentState);
             } else {
               setState(() {
-                _title = 'Create a new trip';
-                adjustMapHeight(MapHeights.full);
-                _leadingWidgetController.changeWidget(0);
-                CurrentTripItem().clearAll();
+                if (CurrentTripItem().tripState == TripState.editing) {
+                  // CurrentTripItem().tripState = TripState.loaded;
+                  CurrentTripItem().tripState = TripState.notFollowing;
+                  _title = CurrentTripItem().heading;
+                  developer.log(_title, name: '_title TripState.editing 641');
+                } else {
+                  _title = 'Create a new trip';
+                  developer.log(_title, name: '_title ! TripState.editing 644');
+                  adjustMapHeight(MapHeights.full);
+                  _leadingWidgetController.changeWidget(0);
+                  CurrentTripItem().clearAll();
+                }
               });
             }
           },
@@ -842,6 +853,11 @@ enum TripState {
               manual();
               break;
             }
+          case TripState.editing:
+            {
+              editing();
+              break;
+            }
           case TripState.automatic:
             {
               automatic();
@@ -956,13 +972,14 @@ enum TripState {
     );
   }
 
+/*
   VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
       urlTemplate: "https://drives.motatek.com/static/tiles/{z}/{x}/{y}.pbf",
       // this is the maximum zoom of the provider, not the
       // maximum of the map. vector tiles are rendered
       // to larger sizes to support higher zoom levels
       maximumZoom: 14);
-
+*/
   addWaypoint() async {
     LatLng pos = _animatedMapController.mapController.camera.center;
     Map<String, dynamic> data;
@@ -1039,7 +1056,7 @@ enum TripState {
     if (_places.isNotEmpty) {
       //    debugPrint('handleFabs() called _places.length: ${_places.length}');
     }
-    double screenHeight = MediaQuery.of(context).size.height;
+    //double screenHeight = MediaQuery.of(context).size.height;
     // debugPrint('Screen height: $screenHeight');
     return Column(
       //  mainAxisSize: MainAxisSize.max, // MediaQuery.of(context).size.height ,
@@ -1404,7 +1421,8 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
               },
               onPositionChanged: (position, hasGesure) {
                 CurrentTripItem().highliteActions = HighliteActions.none;
-                if (CurrentTripItem().tripState == TripState.manual) {
+                if ([TripState.manual, TripState.editing]
+                    .contains(CurrentTripItem().tripState)) {
                   CurrentTripItem().tripActions = TripActions.none;
                   int routeIdx = lineAtCentre(
                       routes:
@@ -1743,14 +1761,15 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
         ..add('Create manually')
         ..add('Track drive');
     }
-    if (CurrentTripItem().tripState == TripState.manual) {
+    if ([TripState.manual, TripState.editing]
+        .contains(CurrentTripItem().tripState)) {
       chipNames
         ..add('Waypoint')
-        ..add('Point of interest')
-        ..add('Start or end');
+        ..add('Point of interest');
     }
-    if (CurrentTripItem().tripState == TripState.manual &&
-        CurrentTripItem().pointsOfInterest.isEmpty) {}
+    if (CurrentTripItem().tripState == TripState.editing) {
+      chipNames.add('Start or end');
+    }
 
     if ([TripState.automatic, TripState.stoppedRecording, TripState.paused]
         .contains(CurrentTripItem().tripState)) {
@@ -1846,6 +1865,7 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
     _leadingWidgetController.changeWidget(1);
     _appState = AppState.createTrip;
     _title = 'Create a new trip automatically';
+    developer.log(_title, name: '_title automatic() 1866');
   }
 
   void addAutomatically() {
@@ -1864,6 +1884,17 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
     CurrentTripItem().tripState = TripState.manual;
     _leadingWidgetController.changeWidget(1);
     _title = 'Plan a new trip manually';
+    developer.log(_title, name: '_title manual() 1886');
+  }
+
+  void editing() {
+    _showMask = false;
+    _showTarget = true; // false;
+    _autoCentre = false;
+    CurrentTripItem().tripState = TripState.editing;
+    _leadingWidgetController.changeWidget(1);
+    _title = 'Edit trip ${CurrentTripItem().heading}';
+    developer.log(_title, name: '_title editing() 1896');
   }
 
   void addManually() {
@@ -1939,6 +1970,7 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
     CurrentTripItem().tripActions = TripActions.none;
     _leadingWidgetController.changeWidget(1);
     _title = 'Creating trip automatically';
+    developer.log(_title, name: '_title record() 1972');
   }
 
   void startRecording() async {
@@ -2013,10 +2045,12 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
         ui.Image mapImage = await getMapImage();
         CurrentTripItem().tripActions = TripActions.none;
         CurrentTripItem().mapImage = mapImage;
-        int ok = await _saveTrip();
+        await _saveTrip();
         //  debugPrint('_saveTrip response: $ok');
         CurrentTripItem().isSaved = true;
-        CurrentTripItem().tripState = TripState.notFollowing;
+        _title = CurrentTripItem().heading;
+        developer.log(_title, name: '_title saveTrip() 2051');
+        // CurrentTripItem().tripState = TripState.notFollowing;
       } catch (e) {
         String err = e.toString();
         debugPrint('Error: $err');
@@ -2220,16 +2254,21 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
       _showTarget = true;
       CurrentTripItem().tripActions = TripActions.none;
       _appState = AppState.createTrip;
-      CurrentTripItem().tripState = TripState.manual;
+      CurrentTripItem().tripState = TripState.editing;
+      _title = 'Editing: ${CurrentTripItem().heading}';
+      developer.log(_title, name: 'editRoute() 2258');
     });
   }
 
   void changeStartOrEnd() async {
-    await changeTripStart(context);
+    bool changed = await changeTripStart(context, _currentPosition,
+        _animatedMapController.mapController.camera.center);
+    if (changed) {
+      setState(() => CurrentTripItem().isSaved = false);
+    }
   }
 
-  /// _splitR
-  /// oute() splits a route putting the two split parts contiguously in CurrentTripItem().routes array
+  /// _splitRoute() splits a route putting the two split parts contiguously in CurrentTripItem().routes array
   /// if being used to split a goodRoad then on the 2nd split it sets the colour and borderColour
   /// for the affected routes and returns the LatNng for the goodRoad marker point
 
@@ -2369,6 +2408,9 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
   /// }
 
   Widget _handleTripInfo() {
+    developer.log(
+        '_bottomSheetDivider listHeight: $listHeight  - TripActions.${CurrentTripItem().tripActions.name}',
+        name: '_handleTripInfo onTap 2411');
     if (listHeight > 0) {
       switch (CurrentTripItem().tripActions) {
         /// Nothing to show TODO: add a help message
@@ -2399,9 +2441,15 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
 
         ///
         default:
+          developer.log('_bottomSheetDivider',
+              name: '_handleTripIfo default onTap 2442');
           return SizedBox(height: 0);
       }
     } else {
+      CurrentTripItem().tripActions = TripActions.none;
+      developer.log(
+          '_bottomSheetDivider - TripActions.${CurrentTripItem().tripActions.name}',
+          name: '_handleTripIfo default onTap 2447');
       return SizedBox(height: 0);
     }
   }
@@ -2432,7 +2480,8 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
         adjustMapHeight(mapHeight > mapHeights[0] - 50
             ? MapHeights.pointOfInterest
             : MapHeights.full);
-
+        developer.log('_bottomSheetDivider',
+            name: '_handleBottomSheetDivider onTap 2475');
         _handleTripInfo(); // <- remove keyboard
 
         //    _showExploreDetail();
@@ -2782,6 +2831,7 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
       _appState = AppState.driveTrip;
       _showTarget = false;
       _title = CurrentTripItem().heading;
+      developer.log(_title, name: '_title onGetTrip() 2825');
       adjustMapHeight(MapHeights.full);
     });
 
@@ -3117,7 +3167,6 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
         }
       }
     }
-
     return idx;
   }
 
@@ -3216,7 +3265,7 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
   /// Saves all the trip data to the local SQLLite db
   /// LatLng (LatLng(latitude:51.497157, longitude:-0.619253))
   /// LatLng (LatLng(latitude:51.484398, longitude:-0.62162))
-
+  ///
   Future<int> _saveTrip() async {
     if (CurrentTripItem().heading.isEmpty) {
       Utility().showConfirmDialog(context, "Can't save - more info needed",
@@ -3282,7 +3331,11 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
       String err = e.toString();
       debugPrint('Error: $err');
     }
-    setState(() {});
+    setState(() {
+      CurrentTripItem().tripState = TripState.loaded;
+      _title = CurrentTripItem().heading;
+      developer.log(_title, name: '_title _saveTrip() 3328');
+    });
     return CurrentTripItem().driveId;
   }
 
@@ -3392,11 +3445,10 @@ submit(BuildContext context, setState) {
   setState(() {});
 }
 
-changeTripStart(
-  BuildContext context,
-) {
+Future<bool> changeTripStart(
+    BuildContext context, Position currentPosition, LatLng screenCenter) async {
   final List<bool> values = [false, false, false, false, false];
-  showDialog(
+  bool changed = await showDialog(
     context: context,
     builder: (context) => StatefulBuilder(
       builder: (context, setState) => AlertDialog(
@@ -3413,7 +3465,7 @@ changeTripStart(
                 onChanged: (_) => setState(() => (values[0] = !values[0])),
               ),
               CheckboxListTile(
-                title: Text('Join trip from current position',
+                title: Text('Join trip from your current position',
                     style: TextStyle(fontSize: 18)),
                 value: values[1],
                 onChanged: (_) => setState(() {
@@ -3431,7 +3483,7 @@ changeTripStart(
                 }),
               ),
               CheckboxListTile(
-                title: Text('Finish trip at current position',
+                title: Text('Finish trip at your current position',
                     style: TextStyle(fontSize: 18)),
                 value: values[3],
                 onChanged: (_) => setState(() {
@@ -3454,39 +3506,118 @@ changeTripStart(
         actions: [
           TextButton(
               onPressed: () async {
-                if (CurrentTripItem().routes.isNotEmpty) {
-                  if (CurrentTripItem().routes.length > 1) {
-                    CurrentTripItem().routes =
-                        List.from(CurrentTripItem().routes.reversed);
+                bool changed = values[0] ||
+                    values[1] ||
+                    values[2] ||
+                    values[3] ||
+                    values[4];
+                if (CurrentTripItem().routes.isNotEmpty && changed) {
+                  List<PointOfInterest> pois;
+                  if (values[0]) {
+                    pois = CurrentTripItem().pointsOfInterest.reversed.toList();
+                  } else {
+                    pois = CurrentTripItem().pointsOfInterest;
                   }
-                  for (mt.Route polyline in CurrentTripItem().routes) {
-                    List<LatLng> points = List.from(polyline.points.reversed);
-                    polyline.points.clear();
-                    polyline.points.addAll(points);
+                  if (CurrentTripItem().maneuvers.isEmpty) {
+                    try {
+                      String points = await waypointsFromPoints(50);
+                      if (points.isNotEmpty) {
+                        await getRoutePoints(points);
+                      }
+                    } catch (e) {
+                      debugPrint('error ${e.toString()}');
+                    }
+                  }
+                  // Reverse trip
+                  String points =
+                      await waypointsFromManeuvers(reverse: values[0]);
+                  // Join trip from current position
+                  if (values[1]) {
+                    points =
+                        '${currentPosition.longitude}, ${currentPosition.latitude}, $points';
+                    addWaypointAt(
+                        pos: LatLng(currentPosition.latitude,
+                            currentPosition.longitude),
+                        before: true);
+                  }
+                  // Join trip from screen centre
+                  if (values[2]) {
+                    points =
+                        '${screenCenter.longitude}, ${screenCenter.latitude}, $points';
+                    addWaypointAt(
+                        pos: LatLng(
+                            screenCenter.latitude, screenCenter.longitude),
+                        before: true);
+                  }
+                  // End trip at current position
+                  if (values[3]) {
+                    points =
+                        '$points, ${currentPosition.longitude}, ${currentPosition.latitude}';
+                    addWaypointAt(
+                        pos: LatLng(currentPosition.latitude,
+                            currentPosition.longitude));
+                  }
+                  // End trip at screen centre
+                  if (values[4]) {
+                    points =
+                        '$points, ${screenCenter.longitude}, ${screenCenter.latitude}';
+                    addWaypointAt(
+                        pos: LatLng(
+                            screenCenter.latitude, screenCenter.longitude));
+                  }
+                  getRoutePoints(points);
+                  if (CurrentTripItem().pointsOfInterest.isNotEmpty &&
+                      values[0]) {
+                    CurrentTripItem().pointsOfInterest = pois;
                   }
                 }
-                CurrentTripItem().clearManeuvers();
 
-                try {
-                  String points = await waypointsFromPoints(50);
-                  if (points.isNotEmpty) {
-                    await getRoutePoints(points);
-                  }
-                } catch (e) {
-                  debugPrint('error ${e.toString()}');
-                }
                 if (context.mounted) {
-                  Navigator.of(context).pop();
+                  Navigator.pop(context, true);
                 }
               },
               child: const Text('Ok', style: TextStyle(fontSize: 22))),
           TextButton(
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () => Navigator.pop(context, false),
               child: const Text('Cancel', style: TextStyle(fontSize: 20))),
         ],
       ),
     ),
   );
+  return changed;
+}
+
+addWaypointAt({required LatLng pos, bool before = false}) async {
+  String name = 'End';
+  int idx = CurrentTripItem().pointsOfInterest.length;
+  int markerType = 18;
+  if (before) {
+    name = 'Start';
+    idx = 0;
+    markerType = 17;
+  }
+  PointOfInterest waypoint = PointOfInterest(
+    id: -1,
+    driveId: CurrentTripItem().driveId,
+    type: markerType,
+    name: name,
+    description: '',
+    width: 10,
+    height: 10,
+    markerPoint: pos,
+    marker: MarkerWidget(
+      type: markerType,
+      description: '',
+      angle: 1 * pi / 180,
+      list: idx,
+      listIndex: 0,
+    ),
+  );
+  if (before) {
+    CurrentTripItem().pointsOfInterest.insert(0, waypoint);
+  } else {
+    CurrentTripItem().pointsOfInterest.add(waypoint);
+  }
 }
 
 Future<String> waypointsFromPoints(int points) async {
@@ -3494,6 +3625,38 @@ Future<String> waypointsFromPoints(int points) async {
   for (int i = 0; i < CurrentTripItem().routes.length; i++) {
     latLongs = latLongs + CurrentTripItem().routes[i].points;
   }
+  int count = latLongs.length;
+
+  if (count / points < 10) {
+    points = count ~/ 10;
+  }
+
+  int gap = (count - 2) ~/ points;
+
+  String waypoints = '${latLongs[0].longitude},${latLongs[0].latitude}';
+  for (int i = 0; i < points - 2; i++) {
+    int idx = (gap + 1) * (i + 1);
+    waypoints =
+        '$waypoints;${latLongs[idx].longitude},${latLongs[idx].latitude}';
+  }
+
+  waypoints =
+      '$waypoints;${latLongs[count - 1].longitude},${latLongs[count - 1].latitude}';
+
+  return waypoints;
+}
+
+Future<String> waypointsFromManeuvers(
+    {int points = 50, reverse = false}) async {
+  List<LatLng> latLongs = [];
+  for (int i = 0; i < CurrentTripItem().maneuvers.length; i++) {
+    latLongs.add(CurrentTripItem().maneuvers[i].location);
+  }
+
+  if (reverse) {
+    latLongs = latLongs.reversed.toList();
+  }
+
   int count = latLongs.length;
 
   if (count / points < 10) {

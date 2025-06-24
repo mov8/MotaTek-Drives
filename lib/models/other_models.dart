@@ -921,10 +921,10 @@ loadImage() async {
       (pickedFile) async {
         try {
           if (pickedFile != null) {
-            final directory = (await getApplicationDocumentsDirectory()).path;
+            // final directory = (await getApplicationDocumentsDirectory()).path;
 
             /// Don't know what type of image so have to get file extension from picker file
-            int num = 1;
+            //     int num = 1;
             /*
                 if (widget.pointOfInterest.getImages().isNotEmpty) {
                   /// count number of images
