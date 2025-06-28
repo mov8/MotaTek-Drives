@@ -536,17 +536,17 @@ class PointOfInterest extends Marker {
 
 class MarkerWidget extends StatelessWidget {
   final int type; // default type 12 => waypoint
-  String name;
-  String description;
-  String images;
-  String url;
-  List<String> imageUrls;
+  final String name;
+  final String description;
+  final String images;
+  final String url;
+  final List<String> imageUrls;
   final double angle;
-  double score;
-  int scored;
+  final double score;
+  final int scored;
   final int colourIdx;
-  int list;
-  int listIndex;
+  final int list;
+  final int listIndex;
 
   MarkerWidget(
       {super.key,
@@ -579,6 +579,14 @@ class MarkerWidget extends StatelessWidget {
         buttonFillColor = Colors.transparent;
         iconColor = uiColours.keys.toList()[colourIdx < 0 ? 0 : colourIdx];
         iconWidth = 22;
+        break;
+      case 17:
+        buttonFillColor = Colors.transparent;
+        iconWidth = 25;
+        break;
+      case 18:
+        buttonFillColor = Colors.transparent;
+        iconWidth = 25;
         break;
     }
     // Want to counter rotate the icons so that they are vertical when the map rotates

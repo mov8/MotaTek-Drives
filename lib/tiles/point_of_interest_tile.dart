@@ -81,8 +81,8 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
   bool isExpanded = false;
   bool _memoPlaying = false;
   final player = AudioPlayer()..setReleaseMode(ReleaseMode.stop);
-  final ExpansionTileController _expansionTileController =
-      ExpansionTileController();
+  // final ExpansionTileController _expansionTileController =
+  //    ExpansionTileController();
   // late final ExpandNotifier _expandNotifier;
   @override
   void initState() {
@@ -128,7 +128,7 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
 
   Widget editableTile() {
     return ExpansionTile(
-      controller: _expansionTileController,
+      //  controller: _expansionTileController,
       title: Text(widget.pointOfInterest.getName(),
           style: const TextStyle(
             fontSize: 18,
@@ -362,7 +362,7 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
     return ExpansionTile(
       backgroundColor: Colors.transparent,
       collapsedBackgroundColor: Colors.transparent,
-      controller: _expansionTileController,
+      //   controller: _expansionTileController,
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -587,9 +587,9 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
 
   expand(bool state, bool canEdit) {
     if (state) {
-      _expansionTileController.expand();
+      //  _expansionTileController.expand();
     } else {
-      _expansionTileController.collapse();
+      //  _expansionTileController.collapse();
     }
     setState(() => expanded = state);
   }

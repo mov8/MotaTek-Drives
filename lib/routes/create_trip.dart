@@ -158,6 +158,8 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   int _editPointOfInterest = -1;
   late Position _currentPosition;
   int _resizeDelay = 0;
+  bool _resized = false;
+  bool _repainted = false;
   DateTime _start = DateTime.now();
   double _speed = 0.0;
   int insertAfter = -1;
@@ -490,7 +492,7 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   Future<Map<String, dynamic>> addRoute(LatLng latLng1, LatLng latLng2) async {
     String waypoint =
         '${latLng1.longitude},${latLng1.latitude};${latLng2.longitude},${latLng2.latitude}';
-    return await getRoutePoints(waypoint);
+    return await getRoutePoints(waypoints: waypoint);
   }
 
   Future loadRoutes() async {
@@ -536,12 +538,11 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   Adds a new 
 */
   Future<Map<String, dynamic>> appendRoute(
-    LatLng latLng2,
-  ) async {
+      {required LatLng position, bool first = true}) async {
     LatLng latLng1;
     Map<String, dynamic> apiData = {};
-    if (_startLatLng == const LatLng(0.00, 0.00)) {
-      apiData = await addRoute(latLng2, latLng2);
+    if (first) {
+      apiData = await addRoute(position, position);
       return apiData;
     }
     if (CurrentTripItem().routes.isNotEmpty &&
@@ -560,7 +561,7 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
     } else {
       latLng1 = _startLatLng;
     }
-    apiData = await addRoute(latLng1, latLng2);
+    apiData = await addRoute(latLng1, position);
     CurrentTripItem().addRoute(mt.Route(
         id: -1,
         points: apiData["points"], // Route,
@@ -613,6 +614,12 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
         listHeight == -1) {
       final args = ModalRoute.of(context)!.settings.arguments as TripArguments;
       CurrentTripItem().fromMyTripItem(myTripItem: args.trip);
+      int pois = CurrentTripItem().pointsOfInterest.length - 1;
+      if (pois >= 0) {
+        CurrentTripItem().pointsOfInterest[pois].setType(18);
+        CurrentTripItem().pointsOfInterest[0].setType(17);
+      }
+
       loadGroup();
       _title = CurrentTripItem().heading;
       developer.log(_title, name: '_title at build 617');
@@ -637,7 +644,6 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
             } else {
               setState(() {
                 if (CurrentTripItem().tripState == TripState.editing) {
-                  // CurrentTripItem().tripState = TripState.loaded;
                   CurrentTripItem().tripState = TripState.notFollowing;
                   _title = CurrentTripItem().heading;
                   developer.log(_title, name: '_title TripState.editing 641');
@@ -897,6 +903,7 @@ enum TripState {
             height: mapHeight,
             width: MediaQuery.of(context).size.width,
             child: _handleMap(),
+            onEnd: () => _resized = true,
           ),
 
           //         _handleMap(),
@@ -980,13 +987,19 @@ enum TripState {
       // to larger sizes to support higher zoom levels
       maximumZoom: 14);
 */
-  addWaypoint() async {
-    LatLng pos = _animatedMapController.mapController.camera.center;
+  addWaypoint({bool currentPosition = false, int insertAfter = -1}) async {
+    LatLng pos;
+    if (currentPosition) {
+      pos = LatLng(_currentPosition.latitude, _currentPosition.longitude);
+    } else {
+      pos = _animatedMapController.mapController.camera.center;
+    }
     Map<String, dynamic> data;
+    bool first = _startLatLng == const LatLng(0.00, 0.00);
     if (insertAfter == -1 &&
         CurrentTripItem().pointsOfInterest.isNotEmpty &&
         CurrentTripItem().pointsOfInterest[0].getType() == 12) {
-      data = await appendRoute(pos);
+      data = await appendRoute(position: pos, first: first);
       await _addPointOfInterest(id, userId, 12, '${data["name"]}',
           '${data["summary"]}', 15.0, pos, '');
       setState(() {
@@ -1004,9 +1017,18 @@ enum TripState {
         debugPrint('Point of interest error: ${e.toString()}');
       }
     } else {
-      data = await appendRoute(pos);
-      await _addPointOfInterest(id, userId, 17, '${data["name"]}',
-          '${data["summary"]}', 15.0, pos, '');
+      /// appendRoute adds both the waypoint and polylines to CurrentTripItem()
+      data = await appendRoute(position: pos, first: first);
+      int lastPoint = CurrentTripItem().pointsOfInterest.length - 1;
+
+      if (lastPoint >= 0 &&
+          CurrentTripItem().pointsOfInterest[lastPoint].getType() == 18) {
+        CurrentTripItem()
+            .pointsOfInterest[lastPoint]
+            .setType(lastPoint == 0 ? 17 : 12);
+      }
+      await _addPointOfInterest(id, userId, lastPoint == -1 ? 17 : 18,
+          '${data["name"]}', '${data["summary"]}', 15.0, pos, '');
       setState(() {
         _showMask = false;
         _startLatLng = pos;
@@ -1432,11 +1454,8 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
                     if (i == routeIdx) {
                       CurrentTripItem().highliteActions =
                           HighliteActions.routeHighlited;
-                      // _routes[index].color = colour;
                       CurrentTripItem().routes[i].color =
                           uiColours.keys.toList()[Setup().selectedColour];
-                      //       debugPrint(
-                      //           'setting route()[i].colour => ${uiColours.values.toList()[Setup().selectedColour]}');
                     } else {
                       CurrentTripItem().routes[i].color =
                           uiColours.keys.toList()[Setup().routeColour];
@@ -1668,6 +1687,9 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
   }
 
   List<ActionChip> getChips() {
+    developer.log('tripState',
+        name:
+            'getChips() 1676 CurrentTripItem().tripState: ${CurrentTripItem().tripState.name}');
     List<String> chipNames = [];
     List<ActionChip> chips = [];
     if (CurrentTripItem().tripState == TripState.startFollowing) {
@@ -1749,12 +1771,12 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
       Icons.arrow_back,
     ];
 
-    if ([TripActions.saving, TripActions.saved]
-        .contains(CurrentTripItem().tripActions)) {
+    if (CurrentTripItem().tripActions == TripActions.saving) {
       CurrentTripItem().tripActions = TripActions.saved;
+      CurrentTripItem().tripState = TripState.loaded;
       return chips;
     }
-
+    _repainted = true;
     if (CurrentTripItem().tripState == TripState.none) {
       chipNames.clear();
       chipNames
@@ -1799,7 +1821,7 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
         chipNames.add('Great road');
       }
     }
-    if ([TripState.stoppedFollowing, TripState.notFollowing]
+    if ([TripState.stoppedFollowing, TripState.notFollowing, TripState.loaded]
         .contains(CurrentTripItem().tripState)) {
       chipNames.add('Follow route');
       chipNames.add('Clear trip');
@@ -1810,7 +1832,8 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
     if ([
       TripState.following,
       TripState.stoppedFollowing,
-      TripState.notFollowing
+      TripState.notFollowing,
+      TripState.loaded
     ].contains(CurrentTripItem().tripState)) {
       if (CurrentTripItem().tripActions == TripActions.showGroup) {
         chipNames.add('Trip info');
@@ -1914,14 +1937,14 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
       _editPointOfInterest = -1;
       CurrentTripItem().isSaved = false;
       if (CurrentTripItem().pointsOfInterest.isEmpty) {
-        _lastLatLng == const LatLng(0.00, 0.00);
+        _lastLatLng = const LatLng(0.00, 0.00);
         _startLatLng = const LatLng(0.00, 0.00);
         adjustMapHeight(MapHeights.full);
         CurrentTripItem().clearRoutes();
         CurrentTripItem().clearManeuvers();
       }
     });
-    await addWaypoint();
+    await addWaypoint(insertAfter: insertAfter);
   }
 
   void pointOfInterest() async {
@@ -2024,37 +2047,17 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
   }
 
   void saveTrip() async {
-    setState(() {
-      CurrentTripItem().tripActions = TripActions.saving;
-      CurrentTripItem().highliteActions = HighliteActions.none;
-      adjustMapHeight(MapHeights.full);
-      //    CurrentTripItem().saveLocal();
-    });
-    int tries = 0;
-    while (CurrentTripItem().tripActions != TripActions.saved && ++tries < 5) {
-      await Future.delayed(const Duration(seconds: 1));
-      //   debugPrint('Trying to take trip image - try no: $tries');
-      setState(() {});
-    }
+    try {
+      /// Step 1 get map image
+      await getMapImage();
 
-    if (CurrentTripItem().tripActions != TripActions.saved) {
-      //  debugPrint('Failed');
-    } else {
-      //  debugPrint('Succeded');
-      try {
-        ui.Image mapImage = await getMapImage();
-        CurrentTripItem().tripActions = TripActions.none;
-        CurrentTripItem().mapImage = mapImage;
-        await _saveTrip();
-        //  debugPrint('_saveTrip response: $ok');
-        CurrentTripItem().isSaved = true;
-        _title = CurrentTripItem().heading;
-        developer.log(_title, name: '_title saveTrip() 2051');
-        // CurrentTripItem().tripState = TripState.notFollowing;
-      } catch (e) {
-        String err = e.toString();
-        debugPrint('Error: $err');
-      }
+      /// Now save the data locally
+      await _saveTrip();
+
+      developer.log(_title, name: '_title saveTrip() 2054');
+    } catch (e) {
+      String err = e.toString();
+      debugPrint('Error: $err');
     }
   }
 
@@ -2742,10 +2745,12 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
             ),
             SliverReorderableList(
               itemBuilder: (context, index) {
-                if (CurrentTripItem().pointsOfInterest[index].getType() != 16) {
+                int poiType =
+                    CurrentTripItem().pointsOfInterest[index].getType();
+                bool isWaypoint = [12, 17, 18].contains(poiType);
+                if (poiType != 16) {
                   // filter out followers
-                  return CurrentTripItem().pointsOfInterest[index].getType() ==
-                          12
+                  return isWaypoint
                       ? waypointTile(index)
                       : PointOfInterestTile(
                           key: ValueKey(index),
@@ -2781,7 +2786,10 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
           ],
           if (_editPointOfInterest > -1 &&
               _editPointOfInterest <
-                  CurrentTripItem().pointsOfInterest.length) ...[
+                  CurrentTripItem().pointsOfInterest.length &&
+              ![12, 17, 18].contains(CurrentTripItem()
+                  .pointsOfInterest[_editPointOfInterest]
+                  .getType())) ...[
             SliverToBoxAdapter(
               child: PointOfInterestTile(
                 key: ValueKey(_editPointOfInterest),
@@ -3186,6 +3194,7 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
     }
     listHeight = (mapHeights[0] - mapHeight);
     // debugPrint('adjustMapHeight() listHeight:$listHeight');
+    _resized = false;
     _resizeDelay = 400;
   }
 
@@ -3271,8 +3280,6 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
       Utility().showConfirmDialog(context, "Can't save - more info needed",
           "Please enter what you'd like to call this trip.");
       setState(() {
-        _resizeDelay = 300;
-        //   mapHeight = 400;
         adjustMapHeight(MapHeights.headers);
         CurrentTripItem().tripActions = TripActions.headingDetail;
         fn1.requestFocus();
@@ -3307,7 +3314,7 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
       try {
         String points = await waypointsFromPoints(50);
         if (points.isNotEmpty) {
-          await getRoutePoints(points);
+          await getRoutePoints(waypoints: points);
         }
       } catch (e) {
         debugPrint('error ${e.toString()}');
@@ -3328,21 +3335,55 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
         }
       }
     } catch (e) {
-      String err = e.toString();
-      debugPrint('Error: $err');
+      developer.log('_error', name: '_saveTrip() 3337 : ${e.toString()}');
+    }
+
+    /// There is an issue with taking the map image in that it uses the Repaintboundary, which
+    /// caseses delays in setState() affecting the widgets within the RepaintBoundary. The most
+    /// common advice is to allow a delay between the image capture and the next setState() call.
+    /// I have used the boolean variable _repainted to tell me when the getChips() method is called
+    /// which indicates that the setState() has got through. _repained is set to false in getMapImage()
+    /// just before capturing the image. The problem manifests itsself in that after saving the trip
+    /// the ActionChips don't reappear automaticall, but do as soon as the map is moved - ie a subsequent
+    /// setState() is called.
+
+    int tries = 0;
+    while (++tries < 5) {
+      await Future.delayed(Duration(seconds: 2));
+      if (!_repainted) {
+        setState(() => CurrentTripItem().tripState = TripState.loaded);
+      } else {
+        break;
+      }
+      developer.log(_title, name: '_title _saveTrip() 3343');
     }
     setState(() {
       CurrentTripItem().tripState = TripState.loaded;
       _title = CurrentTripItem().heading;
-      developer.log(_title, name: '_title _saveTrip() 3328');
+      CurrentTripItem().isSaved = true;
     });
+    _animatedMapController.animateTo(
+        dest: LatLng(_currentPosition.latitude, _currentPosition.longitude));
     return CurrentTripItem().driveId;
   }
 
-  Future<ui.Image> getMapImage() async {
-    final mapBoundary =
-        mapKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
-    return await mapBoundary.toImage();
+  Future<ui.Image> getMapImage({int delay = 500}) async {
+    if (CurrentTripItem().mapImage == null) {
+      setState(() {
+        CurrentTripItem().tripActions = TripActions.saving;
+        CurrentTripItem().highliteActions = HighliteActions.none;
+        adjustMapHeight(MapHeights.full);
+      });
+      while (_resized == false) {
+        await Future.delayed(Duration(milliseconds: delay));
+      }
+
+      final mapBoundary =
+          mapKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
+      CurrentTripItem().mapImage = await mapBoundary.toImage();
+      _repainted = false;
+    }
+    return CurrentTripItem().mapImage!;
   }
 
   Widget _getOverlay2() {
@@ -3445,6 +3486,25 @@ submit(BuildContext context, setState) {
   setState(() {});
 }
 
+/// ChangeTripStart is an important facility.
+///
+/// Routes published are unlikely to start or end where the downloader wants them to.
+/// The routes published may also be the wrong way round.
+///
+/// This facility allows the user to change those constraints.
+///
+/// There are two basic assumptions:
+///
+/// 1 If a route is reversed than the only constraining points for the Router are the
+///   trip start and end, and any points of interest or waypoints entered by the author.
+///   To this end the maneuvers are recalculated based on those constraints
+///
+/// 2 If a route isn't reversed, but just extended then the maneuvers will be kept, and
+///   simply extended at either end.
+///
+/// Trying to follow the original maneuvers if a route is reversed is just too problamatic,
+/// with roundabouts, one-way systems and motorways making it unreliable.
+
 Future<bool> changeTripStart(
     BuildContext context, Position currentPosition, LatLng screenCenter) async {
   final List<bool> values = [false, false, false, false, false];
@@ -3511,65 +3571,87 @@ Future<bool> changeTripStart(
                     values[2] ||
                     values[3] ||
                     values[4];
+                String points = '';
                 if (CurrentTripItem().routes.isNotEmpty && changed) {
-                  List<PointOfInterest> pois;
-                  if (values[0]) {
-                    pois = CurrentTripItem().pointsOfInterest.reversed.toList();
-                  } else {
-                    pois = CurrentTripItem().pointsOfInterest;
-                  }
-                  if (CurrentTripItem().maneuvers.isEmpty) {
-                    try {
-                      String points = await waypointsFromPoints(50);
-                      if (points.isNotEmpty) {
-                        await getRoutePoints(points);
-                      }
-                    } catch (e) {
-                      debugPrint('error ${e.toString()}');
+                  try {
+                    points = waypointsFromPointsOfInterest(reversed: values[0]);
+                    if (points.isNotEmpty) {
+                      await getRoutePoints(
+                          waypoints: points, includeWaypoints: false);
                     }
+                  } catch (e) {
+                    debugPrint('error ${e.toString()}');
                   }
-                  // Reverse trip
-                  String points =
-                      await waypointsFromManeuvers(reverse: values[0]);
+
                   // Join trip from current position
                   if (values[1]) {
                     points =
-                        '${currentPosition.longitude}, ${currentPosition.latitude}, $points';
-                    addWaypointAt(
-                        pos: LatLng(currentPosition.latitude,
-                            currentPosition.longitude),
-                        before: true);
+                        '${currentPosition.longitude},${currentPosition.latitude};$points';
                   }
                   // Join trip from screen centre
                   if (values[2]) {
                     points =
-                        '${screenCenter.longitude}, ${screenCenter.latitude}, $points';
-                    addWaypointAt(
-                        pos: LatLng(
-                            screenCenter.latitude, screenCenter.longitude),
-                        before: true);
+                        '${screenCenter.longitude},${screenCenter.latitude};$points';
                   }
                   // End trip at current position
                   if (values[3]) {
                     points =
-                        '$points, ${currentPosition.longitude}, ${currentPosition.latitude}';
-                    addWaypointAt(
-                        pos: LatLng(currentPosition.latitude,
-                            currentPosition.longitude));
+                        '$points;${currentPosition.longitude},${currentPosition.latitude}';
                   }
                   // End trip at screen centre
                   if (values[4]) {
                     points =
-                        '$points, ${screenCenter.longitude}, ${screenCenter.latitude}';
-                    addWaypointAt(
-                        pos: LatLng(
-                            screenCenter.latitude, screenCenter.longitude));
+                        '$points;${screenCenter.longitude},${screenCenter.latitude}';
                   }
-                  getRoutePoints(points);
-                  if (CurrentTripItem().pointsOfInterest.isNotEmpty &&
-                      values[0]) {
-                    CurrentTripItem().pointsOfInterest = pois;
+                  if (CurrentTripItem().pointsOfInterest.isNotEmpty) {
+                    CurrentTripItem()
+                        .pointsOfInterest[
+                            CurrentTripItem().pointsOfInterest.length - 1]
+                        .setType(12);
                   }
+
+                  /*
+                  Map<String, dynamic> tripData;
+                  getRoutePoints(
+                      waypoints: points, includeWaypoints: false).then((tripData) => 
+                                        CurrentTripItem()
+                      .routes[CurrentTripItem().routes.length - 1]
+                      .points
+                      .clear()).then((tripData) => CurrentTripItem()
+                      .routes[CurrentTripItem().routes.length - 1]
+                      .points.addAll(tripData['points'])).then(() {
+                        if (CurrentTripItem().pointsOfInterest.isNotEmpty) {
+                    CurrentTripItem()
+                        .pointsOfInterest[
+                            CurrentTripItem().pointsOfInterest.length - 1]
+                        .setType(18);
+                  };
+
+
+                      })
+
+*/
+
+                  Map<String, dynamic> tripData = await getRoutePoints(
+                      waypoints: points, includeWaypoints: false);
+                  CurrentTripItem()
+                      .routes[CurrentTripItem().routes.length - 1]
+                      .points
+                      .clear();
+                  CurrentTripItem()
+                      .routes[CurrentTripItem().routes.length - 1]
+                      .points
+                      .addAll(tripData['points']);
+                  if (CurrentTripItem().pointsOfInterest.isNotEmpty) {
+                    CurrentTripItem()
+                        .pointsOfInterest[
+                            CurrentTripItem().pointsOfInterest.length - 1]
+                        .setType(18);
+                  }
+                  //    if (CurrentTripItem().pointsOfInterest.isNotEmpty &&
+                  //        values[0]) {
+                  //      CurrentTripItem().pointsOfInterest = pois;
+                  //    }
                 }
 
                 if (context.mounted) {
@@ -3578,8 +3660,9 @@ Future<bool> changeTripStart(
               },
               child: const Text('Ok', style: TextStyle(fontSize: 22))),
           TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel', style: TextStyle(fontSize: 20))),
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel', style: TextStyle(fontSize: 20)),
+          ),
         ],
       ),
     ),
@@ -3587,11 +3670,56 @@ Future<bool> changeTripStart(
   return changed;
 }
 
+/*
+  Adds a new 
+*/
+
+/*
+  Future<Map<String, dynamic>> appendRoute(
+      {required LatLng position, bool first = true}) async {
+    LatLng latLng1;
+    Map<String, dynamic> apiData = {};
+    if (first) {
+      apiData = await addRoute(position, position);
+      return apiData;
+    }
+    if (CurrentTripItem().routes.isNotEmpty &&
+        CurrentTripItem()
+                .routes[CurrentTripItem().routes.length - 1]
+                .points
+                .length >
+            1) {
+      latLng1 = CurrentTripItem()
+          .routes[CurrentTripItem().routes.length - 1]
+          .points[CurrentTripItem()
+              .routes[CurrentTripItem().routes.length - 1]
+              .points
+              .length -
+          1];
+    } else {
+      latLng1 = _startLatLng;
+    }
+    apiData = await addRoute(latLng1, position);
+    CurrentTripItem().addRoute(mt.Route(
+        id: -1,
+        points: apiData["points"], // Route,
+        color: _routeColour(_goodRoad.isGood),
+        borderColor: _routeColour(_goodRoad.isGood),
+        strokeWidth: 5));
+
+    CurrentTripItem().distance = CurrentTripItem().distance +
+        double.parse(apiData["distance"].toString());
+    setState(() {});
+
+    return apiData;
+  }
+*/
+
 addWaypointAt({required LatLng pos, bool before = false}) async {
   String name = 'End';
   int idx = CurrentTripItem().pointsOfInterest.length;
   int markerType = 18;
-  if (before) {
+  if (idx == 0 || before) {
     name = 'Start';
     idx = 0;
     markerType = 17;
@@ -3649,51 +3777,82 @@ Future<String> waypointsFromPoints(int points) async {
 Future<String> waypointsFromManeuvers(
     {int points = 50, reverse = false}) async {
   List<LatLng> latLongs = [];
+
+  /// Only going to add the start, end, and any turns. The Router will do the rest
+
+  /*
   for (int i = 0; i < CurrentTripItem().maneuvers.length; i++) {
-    latLongs.add(CurrentTripItem().maneuvers[i].location);
+    if (i == 0 ||
+        i == CurrentTripItem().maneuvers.length - 1 ||
+        CurrentTripItem().maneuvers[i].type == 'turn' ||
+        CurrentTripItem().maneuvers[i].type.contains('exit')) {
+      latLongs.add(CurrentTripItem().maneuvers[i].location);
+    }
   }
+  */
+  latLongs.add(CurrentTripItem().maneuvers[0].location);
+  latLongs.add(CurrentTripItem()
+      .maneuvers[CurrentTripItem().maneuvers.length - 1]
+      .location);
 
   if (reverse) {
     latLongs = latLongs.reversed.toList();
+    return '${latLongs[0].longitude},${latLongs[0].latitude};${latLongs[1].longitude},${latLongs[1].latitude}';
   }
 
   int count = latLongs.length;
-
-  if (count / points < 10) {
-    points = count ~/ 10;
+  final double incrementer;
+  if (count <= points) {
+    incrementer = 1;
+  } else {
+    incrementer = count / points;
   }
 
-  int gap = (count - 2) ~/ points;
-
-  String waypoints = '${latLongs[0].longitude},${latLongs[0].latitude}';
-  for (int i = 0; i < points - 2; i++) {
-    int idx = (gap + 1) * (i + 1);
-    waypoints =
-        '$waypoints;${latLongs[idx].longitude},${latLongs[idx].latitude}';
+  String waypoints = '';
+  String delimiter = '';
+  for (int i = 0; i < count; i++) {
+    int idx = (incrementer * i).round();
+    if (idx < latLongs.length) {
+      waypoints =
+          '$waypoints$delimiter${latLongs[idx].longitude},${latLongs[idx].latitude}';
+      delimiter = ';';
+    } else {
+      debugPrint('Index overflow');
+    }
   }
-
-  waypoints =
-      '$waypoints;${latLongs[count - 1].longitude},${latLongs[count - 1].latitude}';
 
   return waypoints;
 }
 
-String waypointsFromPointsOfInterest() {
+/*
+Future<void> reverseTrip() async {
+  appendRoute()
+}
+*/
+String waypointsFromPointsOfInterest({bool reversed = false}) {
   String waypoints = '';
-  for (int i = 0; i < CurrentTripItem().pointsOfInterest.length; i++) {
-    if (CurrentTripItem().pointsOfInterest[i].getType() == 12) {
+  List<PointOfInterest> pois = [];
+  pois.addAll(CurrentTripItem().pointsOfInterest);
+  if (reversed) {
+    pois = pois.reversed.toList();
+  }
+  String delimiter = '';
+  for (int i = 0; i < pois.length; i++) {
+    if ([12, 17, 18].contains(pois[i].getType())) {
       waypoints =
-          '$waypoints;${CurrentTripItem().pointsOfInterest[i].point.longitude},${CurrentTripItem().pointsOfInterest[i].point.latitude}';
+          '$waypoints$delimiter${pois[i].point.longitude},${pois[i].point.latitude}';
+      delimiter = ';';
     }
   }
-  return waypoints.isEmpty ? waypoints : waypoints.substring(1);
+  return waypoints;
 }
 
 _leadingWidget(context) {
   return context?.openDrawer();
 }
 
-Future<Map<String, dynamic>> getRoutePoints(String waypoints) async {
+Future<Map<String, dynamic>> getRoutePoints(
+    {required String waypoints, bool includeWaypoints = true}) async {
   dynamic jsonResponse;
   List<LatLng> routePoints = [];
   final Map<String, dynamic> result = {
@@ -3760,43 +3919,59 @@ Future<Map<String, dynamic>> getRoutePoints(String waypoints) async {
   /// var prefix = parts[0]
 
   List<String> waypointList = waypoints.split(';');
+  CurrentTripItem().maneuvers.clear();
 
   if (waypointList.length > 1 && waypointList[0] != waypointList[1]) {
+    // includeWaypoints = true;
     String lastRoad = name;
-    for (int j = 0; j < jsonResponse['routes'][0]['legs'].length; j++) {
-      for (int k = 0;
-          k < jsonResponse['routes'][0]['legs'][j]['steps'].length;
-          k++) {
+    String type = '';
+    int legs = jsonResponse['routes'][0]['legs'].length;
+    bool isWaypoint;
+    for (int j = 0; j < legs; j++) {
+      int steps = jsonResponse['routes'][0]['legs'][j]['steps'].length;
+      for (int k = 0; k < steps; k++) {
         try {
-          CurrentTripItem().addManeuver(
-            Maneuver(
-              roadFrom: jsonResponse['routes'][0]['legs'][j]['steps'][k]
-                  ['name'],
-              roadTo: lastRoad,
-              bearingBefore: jsonResponse['routes'][0]['legs'][j]['steps'][k]
-                      ['maneuver']['bearing_before'] ??
-                  0,
-              bearingAfter: jsonResponse['routes'][0]['legs'][j]['steps'][k]
-                      ['maneuver']['bearing_after'] ??
-                  0,
-              exit: jsonResponse['routes'][0]['legs'][j]['steps'][k]['maneuver']
-                      ['exit'] ??
-                  0,
-              location: LatLng(
-                  jsonResponse['routes'][0]['legs'][j]['steps'][k]['maneuver']
-                      ['location'][1],
-                  jsonResponse['routes'][0]['legs'][j]['steps'][k]['maneuver']
-                      ['location'][0]),
-              modifier: jsonResponse['routes'][0]['legs'][j]['steps'][k]
-                      ['maneuver']['modifier'] ??
-                  ' ',
-              type: jsonResponse['routes'][0]['legs'][j]['steps'][k]['maneuver']
-                  ['type'],
-              distance: (jsonResponse['routes'][0]['legs'][j]['steps'][k]
-                      ['distance'])
-                  .toDouble(),
-            ),
-          );
+          type = jsonResponse['routes'][0]['legs'][j]['steps'][k]['maneuver']
+                  ['type'] ??
+              '';
+          type = '';
+          isWaypoint = (j < legs - 1 && type == 'arrive' && !includeWaypoints);
+          developer.log('waypoint',
+              name:
+                  'type: $type isWaypoint: ${isWaypoint ? 'true' : 'false'} j: $j  legs: $legs');
+
+          if (type != 'arrive' || j == legs - 1 || includeWaypoints) {
+            CurrentTripItem().addManeuver(
+              Maneuver(
+                roadFrom: jsonResponse['routes'][0]['legs'][j]['steps'][k]
+                    ['name'],
+                roadTo: lastRoad,
+                bearingBefore: jsonResponse['routes'][0]['legs'][j]['steps'][k]
+                        ['maneuver']['bearing_before'] ??
+                    0,
+                bearingAfter: jsonResponse['routes'][0]['legs'][j]['steps'][k]
+                        ['maneuver']['bearing_after'] ??
+                    0,
+                exit: jsonResponse['routes'][0]['legs'][j]['steps'][k]
+                        ['maneuver']['exit'] ??
+                    0,
+                location: LatLng(
+                    jsonResponse['routes'][0]['legs'][j]['steps'][k]['maneuver']
+                        ['location'][1],
+                    jsonResponse['routes'][0]['legs'][j]['steps'][k]['maneuver']
+                        ['location'][0]),
+                modifier: jsonResponse['routes'][0]['legs'][j]['steps'][k]
+                        ['maneuver']['modifier'] ??
+                    ' ',
+                type: type,
+                distance: (jsonResponse['routes'][0]['legs'][j]['steps'][k]
+                        ['distance'])
+                    .toDouble(),
+              ),
+            );
+          } else {
+            isWaypoint = false;
+          }
         } catch (e) {
           String err = e.toString();
           debugPrint(err);

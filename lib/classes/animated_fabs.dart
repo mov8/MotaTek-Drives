@@ -262,6 +262,8 @@ class _FloatingTextEditState extends State<FloatingTextEdit> {
     _recorder = AudioRecorder();
     if (widget.controller != null) {
       widget.controller!._addState(this);
+    } else {
+      debugPrint("widget.floatingTextEditController is null");
     }
   }
 
