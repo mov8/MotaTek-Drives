@@ -15,7 +15,7 @@ class ShopItemTile extends StatefulWidget {
   final Function(int)? onDelete;
   final Function(int)? onPost;
   final Function(int)? onAddImage;
-  final Function(int, int)? onRemoveImage;
+  // final Function(int, int)? onRemoveImage;
   final Function(int)? onAddLink;
   final Function(int, int)? onRated;
   final Function(int)? onSelect; // final Key key;
@@ -32,7 +32,7 @@ class ShopItemTile extends StatefulWidget {
       this.onDelete,
       this.onPost,
       this.onAddImage,
-      this.onRemoveImage,
+      //   this.onRemoveImage,
       this.onAddLink,
       this.onRated,
       this.expanded = false,
@@ -258,24 +258,6 @@ class _ShopItemTileState extends State<ShopItemTile> {
                         ),
                       ],
                     ),
-                    /*
-                    if (photos.isNotEmpty)
-                      Row(
-                        children: <Widget>[
-                          Expanded(
-                            flex: 8,
-                            child: ImageArranger(
-                              urlChange: (_) => {},
-                              photos: photos,
-                              endPoint: widget.shopItem.uri,
-                              height: 350,
-                            ),
-                          ),
-                        ],
-                      ),
-
-*/
-
                     if (widget.shopItem.imageUrls.isNotEmpty)
                       Column(
                         children: [
@@ -286,66 +268,12 @@ class _ShopItemTileState extends State<ShopItemTile> {
                                 child: ImageArranger(
                                   onChange: (idx) =>
                                       setState(() => imageIndex = idx),
-                                  urlChange: (imageUrls) {
-                                    debugPrint(
-                                        'Current: ${widget.shopItem.imageUrls}');
-                                    debugPrint('Rearranged: $imageUrls');
-                                    widget.shopItem.imageUrls = imageUrls;
-                                    debugPrint(
-                                        'Updated: ${widget.shopItem.imageUrls}');
-                                  },
+                                  urlChange: (imageUrls) =>
+                                      widget.shopItem.imageUrls = imageUrls,
+
                                   photos: photos,
                                   endPoint: '', // widget.homeItem.uri,
-                                ),
-                              ),
-                            ],
-                          ),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Padding(
-                                  padding:
-                                      const EdgeInsets.fromLTRB(0, 10, 10, 10),
-                                  child: TextFormField(
-                                      maxLines: null,
-                                      textInputAction: TextInputAction.done,
-                                      //     expands: true,
-                                      initialValue: photos[imageIndex].caption,
-                                      textAlign: TextAlign.start,
-                                      keyboardType: TextInputType.streetAddress,
-                                      textCapitalization:
-                                          TextCapitalization.sentences,
-                                      decoration: InputDecoration(
-                                          border: OutlineInputBorder(),
-                                          hintText: 'Image caption',
-                                          labelText:
-                                              'Image ${imageIndex + 1} caption',
-                                          prefixIcon: IconButton(
-                                            onPressed: () => setState(() {
-                                              photos[imageIndex].rotation =
-                                                  photos[imageIndex].rotation <
-                                                          3
-                                                      ? ++photos[imageIndex]
-                                                          .rotation
-                                                      : 0;
-                                            }),
-                                            icon: Icon(Icons
-                                                .rotate_90_degrees_cw_outlined),
-                                          ),
-                                          suffixIcon: IconButton(
-                                            onPressed: () =>
-                                                widget.onRemoveImage!(
-                                                    index, imageIndex),
-                                            icon: Icon(Icons.delete_outlined),
-                                          )),
-                                      style:
-                                          Theme.of(context).textTheme.bodyLarge,
-                                      autovalidateMode:
-                                          AutovalidateMode.onUserInteraction,
-                                      onChanged: (text) =>
-                                          (photos[imageIndex].caption = text)
-                                      //body = text
-                                      ),
+                                  showCaptions: true,
                                 ),
                               ),
                             ],

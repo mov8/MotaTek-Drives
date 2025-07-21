@@ -264,7 +264,7 @@ Future<String> loadDeviceImage(
             }
             debugPrint('Image count: $num');
             String imagePath =
-                '$directory/point_of_interest_${itemIndex}_$num.${pickedFile.path.split('.').last}';
+                '$directory/${imageFolder}_${itemIndex}_$num.${pickedFile.path.split('.').last}';
 
             File image = File(pickedFile.path);
             image.copy(imagePath);

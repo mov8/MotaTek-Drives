@@ -264,62 +264,11 @@ class _HomeItemTileState extends State<HomeItemTile> {
                                 child: ImageArranger(
                                   onChange: (idx) =>
                                       setState(() => imageIndex = idx),
-                                  urlChange: (imageUrls) {
-                                    debugPrint(
-                                        'Current: ${widget.homeItem.imageUrls}');
-                                    debugPrint('Rearranged: $imageUrls');
-                                  },
+                                  urlChange: (imageUrls) =>
+                                      widget.homeItem.imageUrls = imageUrls,
                                   photos: photos,
                                   endPoint: '', // widget.homeItem.uri,
-                                ),
-                              ),
-                            ],
-                          ),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Padding(
-                                  padding:
-                                      const EdgeInsets.fromLTRB(0, 10, 10, 10),
-                                  child: TextFormField(
-                                      maxLines: null,
-                                      textInputAction: TextInputAction.done,
-                                      //     expands: true,
-                                      initialValue: photos[imageIndex].caption,
-                                      textAlign: TextAlign.start,
-                                      keyboardType: TextInputType.streetAddress,
-                                      textCapitalization:
-                                          TextCapitalization.sentences,
-                                      decoration: InputDecoration(
-                                          border: OutlineInputBorder(),
-                                          hintText: 'Image caption',
-                                          labelText:
-                                              'Image ${imageIndex + 1} caption',
-                                          prefixIcon: IconButton(
-                                            onPressed: () => setState(() {
-                                              photos[imageIndex].rotation =
-                                                  photos[imageIndex].rotation <
-                                                          3
-                                                      ? ++photos[imageIndex]
-                                                          .rotation
-                                                      : 0;
-                                            }),
-                                            icon: Icon(Icons
-                                                .rotate_90_degrees_cw_outlined),
-                                          ),
-                                          suffixIcon: IconButton(
-                                            onPressed: () => setState(
-                                                () => photos.removeAt(index)),
-                                            icon: Icon(Icons.delete_outlined),
-                                          )),
-                                      style:
-                                          Theme.of(context).textTheme.bodyLarge,
-                                      autovalidateMode:
-                                          AutovalidateMode.onUserInteraction,
-                                      onChanged: (text) =>
-                                          (photos[imageIndex].caption = text)
-                                      //body = text
-                                      ),
+                                  showCaptions: true,
                                 ),
                               ),
                             ],

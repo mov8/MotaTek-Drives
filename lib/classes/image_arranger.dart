@@ -45,58 +45,113 @@ class _ImageArrangerState extends State<ImageArranger> {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: widget.height,
-      child: ReorderableListView(
-        scrollDirection: Axis.horizontal,
-        children: [
-          for (Photo photo in widget.photos)
-            InkWell(
-              key: Key('tr${photo.index}'),
-              onTap: () {
-                if (widget.onChange != null) {
-                  widget.onChange!(photo.index);
-                  developer.log('InkWell onTap image: ${photo.index}',
-                      name: '_image');
-                }
-              },
-              child: Transform.rotate(
-                angle: pi * photo.rotation * 0.5,
-                child: photo.url.contains('http')
-                    ? showWebImage(
-                        context: context,
-                        Uri.parse(photo.url).toString(),
-                        index: photo.index,
-                        onDelete: (idx) => onDeleteImage(idx),
-                      )
-                    : showLocalImage(photo.url, index: photo.index),
-              ),
-            ),
-        ],
-        onReorder: (int oldIndex, int newIndex) {
-          setState(
-            () {
-              if (oldIndex < newIndex) {
-                newIndex -= 1;
-              }
-              final Photo item = widget.photos.removeAt(oldIndex);
-              widget.photos.insert(newIndex, item);
-              List<String> urls = [
-                for (Photo photo in widget.photos) photo.toMapString()
-              ];
-              widget.urlChange(urls.toString());
-
-              //  debugPrint('reordered: ${widget.imageUrl}');
+    return Column(
+      children: [
+        SizedBox(
+          height: widget.height,
+          child: ReorderableListView(
+            scrollDirection: Axis.horizontal,
+            children: [
+              for (Photo photo in widget.photos)
+                InkWell(
+                  key: Key('tr${photo.index}'),
+                  onTap: () {
+                    if (widget.onChange != null) {
+                      widget.onChange!(photo.index);
+                      imageIndex = photo.index;
+                      developer.log('InkWell onTap image: ${photo.index}',
+                          name: '_image');
+                    }
+                  },
+                  child: Transform.rotate(
+                    angle: pi * photo.rotation * 0.5,
+                    child: photo.url.contains('http')
+                        ? showWebImage(
+                            context: context,
+                            Uri.parse(photo.url).toString(),
+                            index: photo.index,
+                            onDelete: (idx) => onDeleteImage(idx),
+                          )
+                        : showLocalImage(photo.url, index: photo.index),
+                  ),
+                ),
+            ],
+            onReorder: (int oldIndex, int newIndex) {
+              setState(
+                () {
+                  if (oldIndex < newIndex) {
+                    newIndex -= 1;
+                  }
+                  final Photo item = widget.photos.removeAt(oldIndex);
+                  widget.photos.insert(newIndex, item);
+                  updateWidgetUris();
+                },
+              );
             },
-          );
-        },
-      ),
+          ),
+        ),
+        if (widget.showCaptions) ...[
+          Row(
+            children: [
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
+                  child: TextFormField(
+                      maxLines: null,
+                      textInputAction: TextInputAction.done,
+                      //     expands: true,
+                      initialValue: widget.photos[imageIndex].caption,
+                      textAlign: TextAlign.start,
+                      keyboardType: TextInputType.streetAddress,
+                      textCapitalization: TextCapitalization.sentences,
+                      decoration: InputDecoration(
+                          border: OutlineInputBorder(),
+                          hintText: 'Image caption',
+                          labelText: 'Image ${imageIndex + 1} caption',
+                          prefixIcon: IconButton(
+                            onPressed: () => setState(() {
+                              widget.photos[imageIndex].rotation =
+                                  widget.photos[imageIndex].rotation < 3
+                                      ? ++widget.photos[imageIndex].rotation
+                                      : 0;
+                              updateWidgetUris();
+                            }),
+                            icon: Icon(Icons.rotate_90_degrees_cw_outlined),
+                          ),
+                          suffixIcon: IconButton(
+                            onPressed: () {
+                              if (widget.photos.isNotEmpty) {
+                                widget.photos.removeAt(imageIndex);
+                                updateWidgetUris();
+                              }
+                            },
+                            icon: Icon(Icons.delete_outlined),
+                          )),
+                      style: Theme.of(context).textTheme.bodyLarge,
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
+                      onChanged: (text) =>
+                          (widget.photos[imageIndex].caption = text)
+                      //body = text
+                      ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ],
     );
   }
 
+  updateWidgetUris() {
+    List<String> urls = [
+      for (Photo photo in widget.photos) photo.toMapString()
+    ];
+    widget.urlChange(urls.toString());
+  }
+
   onDeleteImage(int idx) {
-    //   debugPrint('delete image $idx');
-    setState(() => widget.photos.removeAt(idx));
+    widget.photos.removeAt(idx);
+    setState(() => updateWidgetUris());
   }
 
   Widget showLocalImage(String url, {index = -1}) {

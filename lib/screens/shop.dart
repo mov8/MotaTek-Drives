@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:drives/models/models.dart';
 import 'package:drives/services/services.dart';
 import 'dart:developer' as developer;
-import 'dart:convert';
 
 class ShopForm extends StatefulWidget {
   // var setup;
@@ -68,8 +67,8 @@ class _ShopFormState extends State<ShopForm> {
                       onRated: (index, rate) => rating(rate, index),
                       onIconTap: (index) => callBack(index),
                       onAddImage: (index) => onAddImage(index),
-                      onRemoveImage: (index, imageIndex) =>
-                          onRemoveImage(index, imageIndex),
+                      //    onRemoveImage: (index, imageIndex) =>
+                      //        onRemoveImage(index, imageIndex),
                       onAddLink: (index) => onAddLink(index),
                       onPost: (index) => onPost(index),
                       onDelete: (index) => onDelete(index),
@@ -89,7 +88,7 @@ class _ShopFormState extends State<ShopForm> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      onPressed: () => setState(() => _action = 2),
+                      onPressed: () => setState(() => newItem()),
                       backgroundColor: Colors.blue,
                       avatar: const Icon(
                         Icons.group_add,
@@ -149,7 +148,7 @@ class _ShopFormState extends State<ShopForm> {
           child: Padding(
             padding: const EdgeInsets.fromLTRB(5, 10, 5, 10),
             child: Text(
-              '${_titles[_action]}${_action == 1 ? ' ${_items[_index].heading}' : ''}',
+              _items.isEmpty ? 'Add a ne promotion' : _items[_index].heading,
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 20,
@@ -225,6 +224,7 @@ You can plan trips either on your own or you can explore in a group''',
     setState(() => ());
   }
 
+/*
   onRemoveImage(int itemIndex, int imageIndex) {
     if (_items[itemIndex].imageUrls.isNotEmpty) {
       try {
@@ -247,7 +247,7 @@ You can plan trips either on your own or you can explore in a group''',
       }
     }
   }
-
+*/
   onAddLink(int index) {
     developer.log('onAddLink', name: '_callback');
     setState(() => _items[index].links =
