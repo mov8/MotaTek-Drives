@@ -307,7 +307,8 @@ AlertDialog buildColumnDialog(
 ///   the reistration.
 ///
 
-Future<void> loginDialog(BuildContext context, {required User user}) async {
+Future<LoginState> loginDialog(BuildContext context,
+    {required User user}) async {
   String status = '';
   int joiningOffset = user.password.isEmpty && user.email.isNotEmpty ? 2 : 0;
 
@@ -335,7 +336,7 @@ Future<void> loginDialog(BuildContext context, {required User user}) async {
     Icons.send
   ];
 
-  switch (await showDialog<LoginState>(
+  LoginState? loginState = await showDialog<LoginState>(
     context: context,
     barrierDismissible: false,
     builder: (BuildContext context) => StatefulBuilder(
@@ -466,21 +467,19 @@ Future<void> loginDialog(BuildContext context, {required User user}) async {
         actions: [
           TextButton(
             onPressed: () async {
-              LoginState liState = LoginState.cancel;
-              if (user.email.isNotEmpty) {
-                try {
-                  liState = user.password.isEmpty
-                      ? LoginState.register
-                      : LoginState.login;
-                  if (context.mounted) {
-                    Navigator.pop(context, liState);
-                  }
-                } catch (e) {
-                  String err = e.toString();
-                  debugPrint('Error: $err');
-                }
+              if (user.password.isEmpty) {
+                Navigator.pop(context, LoginState.register);
+              }
+              Map<String, dynamic> response =
+                  await tryLogin(user: Setup().user);
+              status = response['msg'] ?? '';
+              if (context.mounted && status == 'OK') {
+                Navigator.pop(context, LoginState.login);
               }
             },
+
+            ///     onPressed: () => Navigator.pop(context,
+            ///         user.password.isEmpty ? LoginState.register : LoginState.login),
             child: const Text(
               'Ok',
               style: TextStyle(fontSize: 20),
@@ -496,32 +495,8 @@ Future<void> loginDialog(BuildContext context, {required User user}) async {
         ],
       ),
     ),
-  )) {
-    case LoginState.register:
-      if (user.surname.isEmpty || user.forename.isEmpty) {
-        await getUserDetails(email: user.email);
-      }
-      postValidateUser(user: Setup().user);
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const SignupForm()),
-      );
-      break;
-    case LoginState.login:
-      if (user.surname.isEmpty || user.forename.isEmpty) {
-        await getUserDetails(email: user.email);
-      }
-      Setup().user.password = user.password;
-      tryLogin(user: user);
-      saveUser(Setup().user);
-      debugPrint('Logged in');
-      break;
-    default:
-      debugPrint('Cancel');
-      break;
-  }
-
-  // return result;
+  );
+  return loginState ?? LoginState.cancel;
 }
 
 class DialogOkCancel extends StatefulWidget {

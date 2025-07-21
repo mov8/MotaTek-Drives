@@ -537,12 +537,13 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
       try {
         ImagePicker picker = ImagePicker();
         await //ImagePicker()
-            picker.pickImage(source: ImageSource.gallery).then(
+            picker
+                .pickImage(source: ImageSource.gallery, imageQuality: 10)
+                .then(
           (pickedFile) async {
             try {
               if (pickedFile != null) {
-                final directory =
-                    (await getApplicationDocumentsDirectory()).path;
+                final directory = Setup().appDocumentDirectory;
 
                 /// Don't know what type of image so have to get file extension from picker file
                 int num = 1;

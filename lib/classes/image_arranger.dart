@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'dart:developer' as developer;
 import 'dart:io';
+import 'dart:math';
 import 'package:drives/models/models.dart';
 import 'package:drives/classes/classes.dart';
 import 'package:drives/services/services.dart';
 
 class ImageArranger extends StatefulWidget {
   final Function(String) urlChange;
+  final Function(int)? onChange;
   final bool showCaptions;
   final String endPoint;
   final String imageUrl;
@@ -20,6 +23,7 @@ class ImageArranger extends StatefulWidget {
     this.imageUrl = '',
     this.showCaptions = false,
     this.height = 175,
+    this.onChange,
   });
 
   @override
@@ -42,21 +46,32 @@ class _ImageArrangerState extends State<ImageArranger> {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 175,
+      height: widget.height,
       child: ReorderableListView(
         scrollDirection: Axis.horizontal,
         children: [
           for (Photo photo in widget.photos)
-            if (photo.url.contains('http')) ...[
-              showWebImage(
-                context: context,
-                Uri.parse(photo.url).toString(),
-                index: photo.index,
-                onDelete: (idx) => onDeleteImage(idx),
+            InkWell(
+              key: Key('tr${photo.index}'),
+              onTap: () {
+                if (widget.onChange != null) {
+                  widget.onChange!(photo.index);
+                  developer.log('InkWell onTap image: ${photo.index}',
+                      name: '_image');
+                }
+              },
+              child: Transform.rotate(
+                angle: pi * photo.rotation * 0.5,
+                child: photo.url.contains('http')
+                    ? showWebImage(
+                        context: context,
+                        Uri.parse(photo.url).toString(),
+                        index: photo.index,
+                        onDelete: (idx) => onDeleteImage(idx),
+                      )
+                    : showLocalImage(photo.url, index: photo.index),
               ),
-            ] else ...[
-              showLocalImage(photo.url, index: photo.index),
-            ]
+            ),
         ],
         onReorder: (int oldIndex, int newIndex) {
           setState(
@@ -70,6 +85,7 @@ class _ImageArrangerState extends State<ImageArranger> {
                 for (Photo photo in widget.photos) photo.toMapString()
               ];
               widget.urlChange(urls.toString());
+
               //  debugPrint('reordered: ${widget.imageUrl}');
             },
           );

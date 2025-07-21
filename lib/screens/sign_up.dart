@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:drives/models/other_models.dart';
 import 'package:drives/services/services.dart';
+import 'package:drives/screens/dialogs.dart';
 
 class SignupForm extends StatefulWidget {
   const SignupForm({super.key, context});
@@ -50,13 +51,12 @@ class _SignupFormState extends State<SignupForm> {
         Setup().user.email.isNotEmpty && Setup().user.surname.isNotEmpty;
     savedPassword = Setup().user.password;
     // Setup().user.password = '';
-    mode = !userExists
-        ? 0 // <- New user
-        : Setup().user.password.isNotEmpty
-            ? 1 // <- update details
-            : 2; // <- lost password
+    mode = (userExists && savedPassword.length > 7) || Setup().jwt.isNotEmpty
+        ? 1
+        : 0;
     debugPrint('mode: $mode');
     _loadedOk = checkUserData();
+    complete = false;
     // WidgetsBinding.instance.addPostFrameCallback(
     //    (_) => FocusScope.of(context).requestFocus(_focusNode));
   }
@@ -68,7 +68,7 @@ class _SignupFormState extends State<SignupForm> {
   }
 
   Future<bool> checkUserData() async {
-    if (Setup().user.email.isNotEmpty) {
+    if (Setup().user.email.isNotEmpty && Setup().user.surname.isEmpty) {
       await getUserDetails(email: Setup().user.email);
     }
     return true;
@@ -166,8 +166,13 @@ class _SignupFormState extends State<SignupForm> {
                           textAlign: TextAlign.left,
                           initialValue: Setup().user.forename.toString(),
                           style: Theme.of(context).textTheme.bodyLarge,
-                          onChanged: (text) =>
-                              setState(() => Setup().user.forename = text),
+                          onChanged: (text) {
+                            Setup().user.forename = text;
+                            if (isComplete() != complete) {
+                              setState(() => complete = !complete);
+                            }
+                          },
+                          // setState(() => Setup().user.forename = text),
                           validator: (val) {
                             if (val == null || val.isEmpty) {
                               return 'Please enter your forename';
@@ -189,8 +194,12 @@ class _SignupFormState extends State<SignupForm> {
                           textCapitalization: TextCapitalization.words,
                           initialValue: Setup().user.surname.toString(),
                           style: Theme.of(context).textTheme.bodyLarge,
-                          onChanged: (text) =>
-                              setState(() => Setup().user.surname = text),
+                          onChanged: (text) {
+                            Setup().user.surname = text;
+                            if (isComplete() != complete) {
+                              setState(() => complete = !complete);
+                            }
+                          },
                           validator: (val) {
                             if (val == null || val.isEmpty) {
                               return 'Please enter your surname';
@@ -205,7 +214,7 @@ class _SignupFormState extends State<SignupForm> {
                 padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
                 child: TextFormField(
                     readOnly:
-                        mode > 0, //Only allow emails to be altered if new user
+                        mode != 0, //Only allow emails to be altered if new user
                     keyboardType: TextInputType.emailAddress,
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
@@ -216,8 +225,12 @@ class _SignupFormState extends State<SignupForm> {
                     textAlign: TextAlign.left,
                     initialValue: Setup().user.email.toString(),
                     style: Theme.of(context).textTheme.bodyLarge,
-                    onChanged: (text) =>
-                        setState(() => Setup().user.email = text),
+                    onChanged: (text) {
+                      Setup().user.email = text;
+                      if (isComplete() != complete) {
+                        setState(() => complete = !complete);
+                      }
+                    },
                     validator: (val) {
                       if (val == null || val.isEmpty) {
                         return 'Please enter your email address';
@@ -238,8 +251,12 @@ class _SignupFormState extends State<SignupForm> {
                     textAlign: TextAlign.left,
                     initialValue: Setup().user.phone.toString(),
                     style: Theme.of(context).textTheme.bodyLarge,
-                    onChanged: (text) =>
-                        setState(() => Setup().user.phone = text),
+                    onChanged: (text) {
+                      Setup().user.phone = text;
+                      if (isComplete() != complete) {
+                        setState(() => complete = !complete);
+                      }
+                    },
                     validator: (val) {
                       if (val == null || val.isEmpty) {
                         return 'Please enter your phone number';
@@ -247,25 +264,190 @@ class _SignupFormState extends State<SignupForm> {
                       return null;
                     }),
               ),
-              if (mode == 1) //(savedPassword.isEmpty)
+              if (mode == 0) ...[
+                //(new User)
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-                  child: TextFormField(
-                    readOnly: true,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      hintText: '',
-                      labelText: 'Current Password',
-                    ),
-                    textAlign: TextAlign.left,
-                    keyboardType: TextInputType.visiblePassword,
-                    textInputAction: TextInputAction.next,
-                    initialValue: Setup().user.password.toString(),
-                    style: Theme.of(context).textTheme.bodyLarge,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: Column(
+                          children: [
+                            TextFormField(
+                                decoration: const InputDecoration(
+                                  border: OutlineInputBorder(),
+                                  hintText: 'Enter your password',
+                                  labelText: 'Password',
+                                  //  errorText: 'Minimum of 8 characters',
+                                  // error: false,
+                                ),
+                                textAlign: TextAlign.left,
+                                //     minLength: 8,
+                                keyboardType: TextInputType.visiblePassword,
+                                textInputAction: TextInputAction.done,
+                                initialValue: Setup().user.password.toString(),
+                                style: Theme.of(context).textTheme.bodyLarge,
+                                validator: (val) =>
+                                    Setup().user.newPassword.length < 8 &&
+                                            isComplete()
+                                        ? 'Minimum password length is 8'
+                                        : null,
+                                onChanged: (text) {
+                                  Setup().user.newPassword = text;
+                                  if (isComplete() != complete) {
+                                    setState(() => complete = !complete);
+                                  }
+                                }),
+                            SizedBox(height: 3),
+                            Align(
+                              alignment: Alignment.topRight,
+                              child: Text(
+                                  isComplete()
+                                      ? ' '
+                                      : 'Minimum 8 caracters required',
+                                  style: TextStyle(fontSize: 13),
+                                  textAlign: TextAlign.end),
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(width: 10),
+                      Expanded(
+                        flex: 2,
+                        child: TextFormField(
+                          decoration: InputDecoration(
+                            border: OutlineInputBorder(),
+                            hintText: 'Validation code',
+                            labelText: 'Emailed code',
+                          ),
+                          textAlign: TextAlign.left,
+                          maxLength: 6,
+                          keyboardType: TextInputType.number,
+                          textInputAction: TextInputAction.next,
+                          initialValue: '',
+                          style: Theme.of(context).textTheme.bodyLarge,
+                          validator: (val) =>
+                              Setup().user.password.length < 6 && isComplete()
+                                  ? 'Six digits needed'
+                                  : null,
+                          onChanged: (text) {
+                            Setup().user.password = text;
+                            if (isComplete() != complete) {
+                              setState(() => complete = !complete);
+                            }
+                          },
+                        ),
+                      ),
+                    ],
+                    //    SizedBox(height: 15),
                   ),
-                  //    SizedBox(height: 15),
                 ),
 
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: ActionChip(
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20)),
+                          onPressed: isComplete()
+                              ? () async {
+                                  String status = await register();
+                                  if (status == 'Ok' && mounted) {
+                                    Navigator.pop(context);
+                                  } else {
+                                    DialogOkCancel(
+                                      id: 1,
+                                      title: 'Error',
+                                      body: status,
+                                      onConfirm: (_) => (),
+                                    );
+                                  }
+                                }
+                              : null,
+                          backgroundColor: Colors.blue,
+                          disabledColor: Colors.grey,
+                          avatar: Icon(
+                            Icons.refresh,
+                            color: Colors.white,
+                          ),
+                          label: Text('Register now',
+                              style:
+                                  TextStyle(fontSize: 18, color: Colors.white)),
+                        ),
+                      ),
+                      SizedBox(width: 20),
+                      Expanded(
+                        flex: 2,
+                        child: ActionChip(
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20)),
+                          onPressed: () => postValidateUser(user: Setup().user),
+                          backgroundColor: Colors.blue,
+                          avatar: Icon(
+                            Icons.refresh,
+                            color: Colors.white,
+                          ),
+                          label: Text('Resend code',
+                              style:
+                                  TextStyle(fontSize: 18, color: Colors.white)),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              ], // mode == 0
+
+              if (mode == 1) ...[
+                //(Update user details)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+                  child: Row(children: [
+                    Expanded(
+                      flex: 2,
+                      child: TextFormField(
+                        readOnly: true,
+                        decoration: const InputDecoration(
+                          border: OutlineInputBorder(),
+                          hintText: '',
+                          labelText: 'Current Password',
+                        ),
+                        textAlign: TextAlign.left,
+                        keyboardType: TextInputType.visiblePassword,
+                        textInputAction: TextInputAction.next,
+                        initialValue: Setup().user.password.toString(),
+                        onChanged: (text) => Setup().user.newPassword = text,
+                        style: Theme.of(context).textTheme.bodyLarge,
+                      ),
+                    ),
+                    SizedBox(width: 10),
+                    Expanded(
+                      flex: 2,
+                      child: TextFormField(
+                        readOnly: true,
+                        decoration: const InputDecoration(
+                          border: OutlineInputBorder(),
+                          hintText: '',
+                          labelText: 'New Password',
+                        ),
+                        textAlign: TextAlign.left,
+                        keyboardType: TextInputType.visiblePassword,
+                        textInputAction: TextInputAction.next,
+                        initialValue: Setup().user.newPassword.toString(),
+                        onChanged: (text) => Setup().user.newPassword = text,
+                        style: Theme.of(context).textTheme.bodyLarge,
+                      ),
+                    ),
+                  ]
+
+                      //    SizedBox(height: 15),
+                      ),
+                ),
+              ],
+              /*
               if (mode > 5) //(savedPassword.isEmpty)
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
@@ -292,6 +474,25 @@ class _SignupFormState extends State<SignupForm> {
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
                   child: Row(children: [
+
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+                  child: TextFormField(
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      hintText: 'Change password',
+                      labelText: 'New password',
+                    ),
+                    textAlign: TextAlign.left,
+                    keyboardType: TextInputType.visiblePassword,
+                    textInputAction: TextInputAction.done,
+                    initialValue: Setup().user.password.toString(),
+                    style: Theme.of(context).textTheme.bodyLarge,
+                    onChanged: (text) =>
+                        setState(() => Setup().user.newPassword = text),
+                  ),
+                ),
+
                     Expanded(
                       flex: 2,
                       child: TextFormField(
@@ -316,6 +517,10 @@ class _SignupFormState extends State<SignupForm> {
                     SizedBox(
                       width: 20,
                     ),
+
+                  ]),
+                  Padding( padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+                  child: Row(children:[                    
                     Expanded(
                       flex: 2,
                       child: Padding(
@@ -335,10 +540,14 @@ class _SignupFormState extends State<SignupForm> {
                         ),
                       ),
                     ),
-                  ]),
-                ),
-
-              //    ]),
+                                        Expanded(
+                      flex: 2,
+                      child: SizedBox(),
+                                        ),
+                    ],
+                    ),
+                  ),
+                          //    ]),
 
               if (mode > 0) ...[
                 Padding(
@@ -359,6 +568,7 @@ class _SignupFormState extends State<SignupForm> {
                   ),
                 )
               ],
+              */
               if (carData) ...[
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
@@ -421,6 +631,7 @@ class _SignupFormState extends State<SignupForm> {
                           TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 ),
               ),
+              /*
               if (isComplete())
                 Align(
                   alignment: Alignment.bottomLeft,
@@ -430,8 +641,13 @@ class _SignupFormState extends State<SignupForm> {
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20)),
                       onPressed: () {
-                        saveUser(Setup().user);
                         postUser(user: Setup().user, register: true);
+                        if (Setup().user.password.length == 6 &&
+                            Setup().user.newPassword.isNotEmpty) {
+                          Setup().user.password = Setup().user.newPassword;
+                          Setup().user.newPassword = '';
+                        }
+                        saveUser(Setup().user);
                         Setup().setupToDb();
                         Navigator.pop(context);
                       },
@@ -445,6 +661,7 @@ class _SignupFormState extends State<SignupForm> {
                     ),
                   ),
                 )
+*/
             ],
           ),
         ),
@@ -459,5 +676,45 @@ class _SignupFormState extends State<SignupForm> {
         Setup().user.phone.isNotEmpty &&
         ((Setup().user.password.length > 7 && savedPassword.isNotEmpty) ||
             (Setup().user.password.length == 6 && savedPassword.isEmpty));
+  }
+
+  Future<String> register() async {
+    String response = 'Error';
+
+    Map<String, dynamic> status =
+        await postUser(user: Setup().user, register: true);
+
+    switch (status['code']) {
+      case 201:
+        if (Setup().user.password.isNotEmpty &&
+            Setup().user.newPassword.isNotEmpty) {
+          Setup().user.password = Setup().user.newPassword;
+          Setup().user.newPassword = '';
+        }
+        saveUser(Setup().user);
+        Setup().setupToDb();
+        response = 'Ok';
+        break;
+
+      case 400:
+        response = 'Submitted data error - please check all boxes';
+        break;
+
+      case 401: // unauthorised
+        response = 'Password is incorrect';
+        break;
+
+      case 404: // Not found
+        response =
+            'Validation code is incorrect - please check for latest email';
+        break;
+
+      default:
+        response = 'Failed to save user - check Internet connection';
+        break;
+    }
+
+    // Navigator.pop(context); 406 Notacceptable 409 conflict
+    return response;
   }
 }

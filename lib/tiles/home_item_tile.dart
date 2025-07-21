@@ -17,6 +17,7 @@ class HomeItemTile extends StatefulWidget {
   final Function(int)? onIconTap;
   final Function(int)? onExpandChange;
   final Function(int)? onDelete;
+  final Function(int)? onAddImage;
   final Function(int, int)? onRated;
   final Function(int)? onSelect; // final Key key;
   final bool expanded;
@@ -29,6 +30,7 @@ class HomeItemTile extends StatefulWidget {
       this.onIconTap,
       this.onExpandChange,
       this.onDelete,
+      this.onAddImage,
       this.onRated,
       this.expanded = false,
       this.canEdit = true,
@@ -40,6 +42,7 @@ class HomeItemTile extends StatefulWidget {
 class _HomeItemTileState extends State<HomeItemTile> {
   late int index;
   int imageUrlLength = 0;
+  int imageIndex = 0;
   bool expanded = true;
   bool canEdit = true;
   DateFormat dateFormat = DateFormat("dd MMM yy");
@@ -64,6 +67,8 @@ class _HomeItemTileState extends State<HomeItemTile> {
     expanded = widget.expanded;
     canEdit = widget.canEdit;
     index = widget.index;
+    photos = photosFromJson(widget.homeItem.imageUrls,
+        endPoint: '${widget.homeItem.uri}/');
     dropDownMenuItems = covers
         .map(
           (item) => DropdownMenuItem<String>(value: item, child: Text(item)),
@@ -74,7 +79,8 @@ class _HomeItemTileState extends State<HomeItemTile> {
   @override
   Widget build(BuildContext context) {
     if (widget.homeItem.imageUrls.length != imageUrlLength) {
-      photos = photosFromJson(widget.homeItem.imageUrls);
+      photos = photosFromJson(widget.homeItem.imageUrls,
+          endPoint: '${widget.homeItem.uri}/');
       imageUrlLength = widget.homeItem.imageUrls.length;
     }
     return Card(
@@ -82,7 +88,7 @@ class _HomeItemTileState extends State<HomeItemTile> {
       child: Padding(
         padding: const EdgeInsets.all(8.0),
         child: ExpansionTile(
-          controller: ExpansionTileController(),
+          //   controller: ExpansionTileController(),
           title: widget.homeItem.heading == ''
               ? const Text(
                   'Add a home page item',
@@ -112,11 +118,11 @@ class _HomeItemTileState extends State<HomeItemTile> {
           leading: IconButton(
             iconSize: 25,
             icon: const Icon(Icons.newspaper_outlined),
-            onPressed: widget.onIconTap!(widget.index),
+            onPressed: () => (),
           ),
           children: [
             SizedBox(
-              height: 750,
+              height: 950,
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(5, 5, 0, 30),
                 child: Column(
@@ -249,18 +255,136 @@ class _HomeItemTileState extends State<HomeItemTile> {
                       ],
                     ),
                     if (widget.homeItem.imageUrls.isNotEmpty)
-                      Row(
-                        children: <Widget>[
-                          Expanded(
-                            flex: 8,
-                            child: ImageArranger(
-                              urlChange: (_) => {},
-                              photos: photos,
-                              endPoint: widget.homeItem.uri,
-                            ),
+                      Column(
+                        children: [
+                          Row(
+                            children: <Widget>[
+                              Expanded(
+                                flex: 8,
+                                child: ImageArranger(
+                                  onChange: (idx) =>
+                                      setState(() => imageIndex = idx),
+                                  urlChange: (imageUrls) {
+                                    debugPrint(
+                                        'Current: ${widget.homeItem.imageUrls}');
+                                    debugPrint('Rearranged: $imageUrls');
+                                  },
+                                  photos: photos,
+                                  endPoint: '', // widget.homeItem.uri,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Padding(
+                                  padding:
+                                      const EdgeInsets.fromLTRB(0, 10, 10, 10),
+                                  child: TextFormField(
+                                      maxLines: null,
+                                      textInputAction: TextInputAction.done,
+                                      //     expands: true,
+                                      initialValue: photos[imageIndex].caption,
+                                      textAlign: TextAlign.start,
+                                      keyboardType: TextInputType.streetAddress,
+                                      textCapitalization:
+                                          TextCapitalization.sentences,
+                                      decoration: InputDecoration(
+                                          border: OutlineInputBorder(),
+                                          hintText: 'Image caption',
+                                          labelText:
+                                              'Image ${imageIndex + 1} caption',
+                                          prefixIcon: IconButton(
+                                            onPressed: () => setState(() {
+                                              photos[imageIndex].rotation =
+                                                  photos[imageIndex].rotation <
+                                                          3
+                                                      ? ++photos[imageIndex]
+                                                          .rotation
+                                                      : 0;
+                                            }),
+                                            icon: Icon(Icons
+                                                .rotate_90_degrees_cw_outlined),
+                                          ),
+                                          suffixIcon: IconButton(
+                                            onPressed: () => setState(
+                                                () => photos.removeAt(index)),
+                                            icon: Icon(Icons.delete_outlined),
+                                          )),
+                                      style:
+                                          Theme.of(context).textTheme.bodyLarge,
+                                      autovalidateMode:
+                                          AutovalidateMode.onUserInteraction,
+                                      onChanged: (text) =>
+                                          (photos[imageIndex].caption = text)
+                                      //body = text
+                                      ),
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
+                    Wrap(
+                      spacing: 5,
+                      children: [
+                        if (widget.onDelete != null)
+                          ActionChip(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            onPressed: () =>
+                                widget.onDelete!(widget.index), //_action = 2),
+                            backgroundColor: Colors.blue,
+                            avatar: const Icon(
+                              Icons.delete,
+                              color: Colors.white,
+                            ),
+                            label: const Text(
+                              "Delete", // - ${_action.toString()}',
+                              style:
+                                  TextStyle(fontSize: 18, color: Colors.white),
+                            ),
+                          ),
+                        if (widget.onAddImage != null)
+                          ActionChip(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            onPressed: () => widget
+                                .onAddImage!(widget.index), //_action = 2),
+                            backgroundColor: Colors.blue,
+                            avatar: const Icon(
+                              Icons.image,
+                              color: Colors.white,
+                            ),
+                            label: const Text(
+                              "Add image", // - ${_action.toString()}',
+                              style:
+                                  TextStyle(fontSize: 18, color: Colors.white),
+                            ),
+                          ),
+                        if (widget.onSelect != null)
+                          ActionChip(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            onPressed: () =>
+                                widget.onSelect!(widget.index), //_action = 2),
+                            backgroundColor: Colors.blue,
+                            avatar: const Icon(
+                              Icons.cloud_upload,
+                              color: Colors.white,
+                            ),
+                            label: const Text(
+                              "Publish", // - ${_action.toString()}',
+                              style:
+                                  TextStyle(fontSize: 18, color: Colors.white),
+                            ),
+                          ),
+                      ],
+                    )
                   ],
                 ),
               ),
@@ -271,48 +395,6 @@ class _HomeItemTileState extends State<HomeItemTile> {
     );
   }
 
-/*
-  loadImage(int id) async {
-    if (widget.index == id) {
-      try {
-        ImagePicker picker = ImagePicker();
-        await //ImagePicker()
-            picker.pickImage(source: ImageSource.gallery).then(
-          (pickedFile) async {
-            try {
-              if (pickedFile != null) {
-                final directory =
-                    (await getApplicationDocumentsDirectory()).path;
-
-                /// Don't know what type of image so have to get file extension from picker file
-                int num = 1;
-                if (widget.homeItem.imageUrl.isNotEmpty) {
-                  /// count number of images
-                  num = '{'.allMatches(widget.homeItem.imageUrl).length + 1;
-                }
-                debugPrint('Image count: $num');
-                String imagePath =
-                    '$directory/point_of_interest_${id}_$num.${pickedFile.path.split('.').last}';
-                File(pickedFile.path).copy(imagePath);
-                setState(() {
-                  widget.homeItem.imageUrl =
-                      '[${widget.homeItem.imageUrl.isNotEmpty ? '${widget.homeItem.imageUrl.substring(1, widget.homeItem.imageUrl.length - 1)},' : ''},{"url":"$imagePath","caption":"image $num"}]';
-                  debugPrint('Images: $widget.pointOfInterest.images');
-                });
-              }
-            } catch (e) {
-              String err = e.toString();
-              debugPrint('Error getting image: $err');
-            }
-          },
-        );
-      } catch (e) {
-        String err = e.toString();
-        debugPrint('Error loading image: $err');
-      }
-    }
-  }
-*/
   save(int id) {
     if (widget.index == id) {
       expanded = false;

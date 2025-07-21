@@ -7,11 +7,16 @@ import 'package:intl/intl.dart';
 class ShopItemTile extends StatefulWidget {
 //  final PointOfInterestController? pointOfInterestController;
 //  final BuildContext context;
+//
   final ShopItem shopItem;
   final int index;
   final Function(int)? onIconTap;
   final Function(int)? onExpandChange;
   final Function(int)? onDelete;
+  final Function(int)? onPost;
+  final Function(int)? onAddImage;
+  final Function(int, int)? onRemoveImage;
+  final Function(int)? onAddLink;
   final Function(int, int)? onRated;
   final Function(int)? onSelect; // final Key key;
   final bool expanded;
@@ -25,6 +30,10 @@ class ShopItemTile extends StatefulWidget {
       this.onIconTap,
       this.onExpandChange,
       this.onDelete,
+      this.onPost,
+      this.onAddImage,
+      this.onRemoveImage,
+      this.onAddLink,
       this.onRated,
       this.expanded = false,
       this.canEdit = true,
@@ -52,7 +61,7 @@ class _ShopItemTileState extends State<ShopItemTile> {
     'South West',
     'South East'
   ];
-
+  int imageIndex = 0;
   List<DropdownMenuItem<String>> dropDownMenuItems = [];
 
   @override
@@ -74,6 +83,7 @@ class _ShopItemTileState extends State<ShopItemTile> {
       photos = photosFromJson(widget.shopItem.imageUrls,
           endPoint: '${widget.shopItem.uri}/');
       imageUrlLength = widget.shopItem.imageUrls.length;
+      imageIndex = 0;
     }
     _links = widget.shopItem.url1.isNotEmpty ? 1 : 0;
     _links = widget.shopItem.url2.isNotEmpty ? 2 : _links;
@@ -82,7 +92,7 @@ class _ShopItemTileState extends State<ShopItemTile> {
       child: Padding(
         padding: const EdgeInsets.all(8.0),
         child: ExpansionTile(
-          controller: ExpansionTileController(),
+          // controller: ExpansionTileController(),
           title: widget.shopItem.heading == ''
               ? const Text(
                   'Add a home page item',
@@ -248,6 +258,7 @@ class _ShopItemTileState extends State<ShopItemTile> {
                         ),
                       ],
                     ),
+                    /*
                     if (photos.isNotEmpty)
                       Row(
                         children: <Widget>[
@@ -259,6 +270,85 @@ class _ShopItemTileState extends State<ShopItemTile> {
                               endPoint: widget.shopItem.uri,
                               height: 350,
                             ),
+                          ),
+                        ],
+                      ),
+
+*/
+
+                    if (widget.shopItem.imageUrls.isNotEmpty)
+                      Column(
+                        children: [
+                          Row(
+                            children: <Widget>[
+                              Expanded(
+                                flex: 8,
+                                child: ImageArranger(
+                                  onChange: (idx) =>
+                                      setState(() => imageIndex = idx),
+                                  urlChange: (imageUrls) {
+                                    debugPrint(
+                                        'Current: ${widget.shopItem.imageUrls}');
+                                    debugPrint('Rearranged: $imageUrls');
+                                    widget.shopItem.imageUrls = imageUrls;
+                                    debugPrint(
+                                        'Updated: ${widget.shopItem.imageUrls}');
+                                  },
+                                  photos: photos,
+                                  endPoint: '', // widget.homeItem.uri,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Padding(
+                                  padding:
+                                      const EdgeInsets.fromLTRB(0, 10, 10, 10),
+                                  child: TextFormField(
+                                      maxLines: null,
+                                      textInputAction: TextInputAction.done,
+                                      //     expands: true,
+                                      initialValue: photos[imageIndex].caption,
+                                      textAlign: TextAlign.start,
+                                      keyboardType: TextInputType.streetAddress,
+                                      textCapitalization:
+                                          TextCapitalization.sentences,
+                                      decoration: InputDecoration(
+                                          border: OutlineInputBorder(),
+                                          hintText: 'Image caption',
+                                          labelText:
+                                              'Image ${imageIndex + 1} caption',
+                                          prefixIcon: IconButton(
+                                            onPressed: () => setState(() {
+                                              photos[imageIndex].rotation =
+                                                  photos[imageIndex].rotation <
+                                                          3
+                                                      ? ++photos[imageIndex]
+                                                          .rotation
+                                                      : 0;
+                                            }),
+                                            icon: Icon(Icons
+                                                .rotate_90_degrees_cw_outlined),
+                                          ),
+                                          suffixIcon: IconButton(
+                                            onPressed: () =>
+                                                widget.onRemoveImage!(
+                                                    index, imageIndex),
+                                            icon: Icon(Icons.delete_outlined),
+                                          )),
+                                      style:
+                                          Theme.of(context).textTheme.bodyLarge,
+                                      autovalidateMode:
+                                          AutovalidateMode.onUserInteraction,
+                                      onChanged: (text) =>
+                                          (photos[imageIndex].caption = text)
+                                      //body = text
+                                      ),
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -381,6 +471,80 @@ class _ShopItemTileState extends State<ShopItemTile> {
                         ],
                       ),
                     ],
+                    Wrap(
+                      spacing: 5,
+                      children: [
+                        if (widget.onAddImage != null)
+                          ActionChip(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            onPressed: () => widget.onAddImage!(index),
+                            backgroundColor: Colors.blue,
+                            avatar: const Icon(
+                              Icons.image,
+                              color: Colors.white,
+                            ),
+                            label: const Text(
+                              "Image", // - ${_action.toString()}',
+                              style:
+                                  TextStyle(fontSize: 18, color: Colors.white),
+                            ),
+                          ),
+                        if (widget.onDelete != null)
+                          ActionChip(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            onPressed: () =>
+                                widget.onDelete!(index), //_action = 2),
+                            backgroundColor: Colors.blue,
+                            avatar: const Icon(
+                              Icons.delete,
+                              color: Colors.white,
+                            ),
+                            label: const Text(
+                              "Delete",
+                              style:
+                                  TextStyle(fontSize: 18, color: Colors.white),
+                            ),
+                          ),
+                        if (widget.onAddLink != null)
+                          ActionChip(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            onPressed: () => widget.onAddLink!(index),
+                            backgroundColor: Colors.blue,
+                            avatar: const Icon(
+                              Icons.add_link,
+                              color: Colors.white,
+                            ),
+                            label: const Text(
+                              "Link",
+                              style:
+                                  TextStyle(fontSize: 18, color: Colors.white),
+                            ),
+                          ),
+                        if (widget.onPost != null)
+                          ActionChip(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            onPressed: () => widget.onPost!(index),
+                            backgroundColor: Colors.blue,
+                            avatar: const Icon(
+                              Icons.cloud_upload,
+                              color: Colors.white,
+                            ),
+                            label: const Text(
+                              "Upload",
+                              style:
+                                  TextStyle(fontSize: 18, color: Colors.white),
+                            ),
+                          ),
+                      ],
+                    )
                   ],
                 ),
               ),

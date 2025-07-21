@@ -1,13 +1,12 @@
 import 'package:latlong2/latlong.dart';
 
-//const apiAddress = '64.227.34.216';
-// const wifiIpAddress = '192.168.1.14';
-const wifiIpAddress = '10.101.1.216';
-// const urlBase = 'http://$apiAddress:5001/';
-const urlBase = 'http://$wifiIpAddress:5001/';
-//const urlBaseTest = '$urlBase/v1/user/test';
+const apiAddress = 'https://drives.motatek.com/';
+const wifiIpAddress = '192.168.1.14:5001';
+// const urlBase = wifiIpAddress;
+// https://drives.motatek.com/v1/user/test
+// const urlBase = 'https://drives.motatek.com/'; // apiAddress;
 
-const urlRouter = 'http://$wifiIpAddress:5000/route/v1/driving/';
+// const urlRouter = 'http://$wifiIpAddress:5000/route/v1/driving/';
 // const urlRouter =  'http://router.project-osrm.org/route/v1/driving/';
 
 //const urlTiler =
@@ -15,9 +14,6 @@ const urlRouter = 'http://$wifiIpAddress:5000/route/v1/driving/';
 //const mapsApiKey = 'ea533710-31bd-4144-b31b-5cc0578c74d7';
 
 const mapsApiKey = '';
-//ea533710-31bd-4144-b31b-5cc0578c74d7
-// https://tiles.stadiamaps.com/styles/osm_bright.json?api_key=ea533710-31bd-4144-b31b-5cc0578c74d7
-const urlRouterTest = '$urlRouter-0.1257,51.5085;0.0756,51.5128?overview=false';
 
 const double degreeToRadians = 0.0174532925; // degrees to radians pi/180
 //  x 4266 y 2984 z 13
@@ -32,7 +28,7 @@ const List<String> routes = [
   'messages'
 ];
 
-enum LoginState { cancel, login, register }
+enum LoginState { notLoggedin, cancel, login, register, edit }
 
 enum MarkerTypes {
   trip,
@@ -230,7 +226,11 @@ const List<String> tableDefs = [
 ];
 
 /// User Api endpoints:
+///
+// const urlBase = 'http://192.168.1.5:5001/';
+const urlBase = 'http://10.101.1.216:5001/';
 
+/// const urlBase = 'https://drives.motatek.com/';
 const String urlDrive = '${urlBase}v1/drive';
 const String urlDriveImages = '${urlBase}v1/drive/images';
 const String urlDriveRating = '${urlBase}v1/drive_rating';
@@ -247,6 +247,9 @@ const String urlPointOfInterest = '${urlBase}v1/point_of_interest';
 const String urlPointOfInterestRating = '${urlBase}v1/point_of_interest_rating';
 const String urlPolyline = '${urlBase}v1/polyline';
 const String urlShopItem = '${urlBase}v1/shop_item';
+
+/// const String urlRouter = '${urlBase}router/route/v1/driving/';
+const String urlRouter = 'https://drives.motatek.com/router/route/v1/driving/';
 const String urlTiler = '${urlBase}v1/tile/style';
 const String urlUser = '${urlBase}v1/user';
 

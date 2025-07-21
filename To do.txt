@@ -17,7 +17,9 @@ remove the lines in  <meta-data
         android:value="false"
 
 then run flutter clean and rebuild the app.
+then run flutter pub get
 
+C:\Users\james\Projects\Drives\mobile app\drives\build\app\outputs\flutter-apk\app-debug.apk
 
 
 

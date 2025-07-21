@@ -185,6 +185,7 @@ class MyTripItem {
         goodRoads = goodRoads ?? [];
 
   clearAll() {
+    id = -1;
     driveId = -1;
     heading = '';
     subHeading = '';

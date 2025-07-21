@@ -2,6 +2,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'dart:convert';
+import 'dart:developer' as developer;
 // import 'package:drives/classes/classes.dart';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
@@ -201,7 +202,7 @@ Future<User> getUser() async {
   String password = '';
   String imageUrl = '';
   try {
-    var maps = await db.rawQuery("SELECT * FROM Users LIMIT 1");
+    var maps = await db.rawQuery("SELECT * FROM users LIMIT 1");
     if (maps.isNotEmpty) {
       User user = User(
         id: int.parse(maps[0]['id'].toString()),
@@ -214,7 +215,11 @@ Future<User> getUser() async {
       );
       Setup().user = user;
       Setup().hasLoggedIn = true;
+      developer.log('getUser() user found email $email password $password',
+          name: '_login');
       return user;
+    } else {
+      developer.log('getUser() user not found in SQLite table', name: '_login');
     }
   } catch (e) {
     debugPrint('Error retrieving user');
@@ -230,6 +235,7 @@ Future<User> getUser() async {
   );
 }
 
+// build/app/outputs/flutter-apk/app-debug.apk
 Future<int> insertSetup(Setup setup) async {
   final db = await DbHelper().db;
   Map<String, dynamic> suMap = setup.toMap();
@@ -259,7 +265,6 @@ Future<int> insertSetup(Setup setup) async {
 
 Future<void> updateSetup() async {
   final db = await DbHelper().db;
-
   try {
     await db.update(
       'setup',
@@ -272,34 +277,62 @@ Future<void> updateSetup() async {
   }
 }
 
+Future<bool> checkUser({required User user}) async {
+  /// The issue this should resolve is incomplete user data:
+  /// User can login to the server if only the JWT is presented or email / pw pair
+  /// If the user logs in succesfully with either the JWT or a stored
+  /// password email combination then the local database should be checked to
+  /// ensure its details are complete. If they are not then the next steps
+  /// should be taken
+  ///   1 Check against the API - if registration c##ompleted update the local db and Setup()
+  ///   2 If not complete then put up screen for the user to add missing data and save data
+  ///
+  /// Should only be called after login at which stage the user data should be compltete
+
+  if (user.surname.isEmpty ||
+      user.forename.isEmpty ||
+      user.email.isEmpty ||
+      user.phone.isEmpty) {}
+  return false;
+}
+
 Future<int> saveUser(User user) async {
   final db = await DbHelper().db;
-  var userRecords = await recordCount('users');
   Map<String, dynamic> usMap = user.toMap();
-  try {
+  if (usMap.containsKey('id')) {
     usMap.remove('id');
-  } catch (e) {
-    debugPrint('Map.remove() error: ${e.toString()}');
   }
+
   try {
-    if (userRecords > 0) {
+    var maps = await db.rawQuery("SELECT * FROM users LIMIT 1");
+    if (maps.isNotEmpty &&
+        (user.forename != (maps[0]['forename'] ?? '') ||
+            user.surname != (maps[0]['surname'] ?? '') ||
+            user.email != (maps[0]['email'] ?? '') ||
+            user.phone != (maps[0]['phone']))) {
+      int id = int.parse(maps[0]['id'].toString());
       await db.update(
         'users',
         usMap, // toMap will return a SQLite friendly map
         where: 'id = ?',
-        whereArgs: [user.id],
+        whereArgs: [id],
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
-      return user.id;
-    } else {
+      developer.log('Updates user - user id: $id', name: '_login');
+      return id;
+    } else if (maps.isEmpty) {
       final insertedId = await db.insert(
         'users',
         usMap,
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
-      userRecords = await recordCount('users');
-      debugPrint('Number of users: $userRecords');
+      int userRecords = await recordCount('users');
+      developer.log(
+          'Added user id: $insertedId - number of users: $userRecords',
+          name: '_login');
       return insertedId;
+    } else {
+      return int.parse(maps[0]['id'].toString());
     }
   } catch (e) {
     debugPrint('Error witing user : ${e.toString()}');
@@ -307,34 +340,9 @@ Future<int> saveUser(User user) async {
   }
 }
 
-/*
-class LocalImage {
-  // extends StatelessWidget {
-  int id;
-  double width;
-  bool imageLoaded = false;
-  LocalImage({required this.id, this.width = 50});
-  // @override
-  // Widget build(BuildContext context) {
+/// build\app\outputs\flutter-apk\app-debug.apk
+/// C:\Users\james\Projects\Drives\mobile app\drives\build\app\outputs\flutter-apk\app-debug.apk
 
-  getImage() {
-    return FutureBuilder(
-      future: loadImageByIdLocal(id: id),
-      builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          return ImageMissing(width: width);
-        } else if (snapshot.hasData) {
-          return snapshot.data as Image;
-        } else {
-          return const Center(
-            child: CircularProgressIndicator(),
-          );
-        }
-      },
-    );
-  }
-}
-*/
 Future<Uint8List?> loadImageByIdLocal({required int id}) async {
   final db = await DbHelper().db;
   List<Map<String, dynamic>> imageRecord =

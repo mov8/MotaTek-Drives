@@ -246,7 +246,7 @@ class _FloatingTextEditState extends State<FloatingTextEdit> {
   late final AudioRecorder _recorder;
   final player = AudioPlayer()..setReleaseMode(ReleaseMode.stop);
   final _picker = ImagePicker();
-  XFile? _image;
+  // XFile? _image;
   String _audioPath = '';
 
   late bool _recording;
@@ -350,8 +350,9 @@ class _FloatingTextEditState extends State<FloatingTextEdit> {
                       IconButton(
                         onPressed: () async {
                           try {
-                            _image = await _picker.pickImage(
-                                source: ImageSource.camera);
+                            // was _image = await...
+                            await _picker.pickImage(
+                                source: ImageSource.camera, imageQuality: 10);
                             setState(() => ());
                           } catch (e) {
                             debugPrint('Image error: ${e.toString()}');

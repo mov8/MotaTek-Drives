@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer' as developer;
 import 'dart:io';
 import 'package:drives/services/services.dart'; // hide getPosition;
 import 'package:drives/classes/classes.dart';
@@ -248,6 +249,7 @@ class Setup {
   int recordDetail = 5;
   bool allowNotifications = true;
   bool hasLoggedIn = false;
+  bool loggingIn = false;
   bool hasRefreshedShop = false;
   bool hasRefreshedTrips = false;
   bool dark = false;
@@ -423,24 +425,19 @@ class PointOfInterest extends Marker {
   double _score;
   int scored;
   DateTime published = DateTime.now();
-  late final Widget marker;
+  Widget marker = const Icon(Icons.abc);
   late LatLng markerPoint = const LatLng(52.05884, -1.345583);
   List<Photo> photos;
   String sounds;
 
-  PointOfInterest(
-      //  this.ctx
-      {
-    // this.handle,
+  PointOfInterest({
     this.id = -1,
     this.driveId = -1,
     int type = -1,
     String name = '',
     String description = '',
     super.width = 30,
-    // double width = 30,
     super.height = 30,
-    // double height = 30,
     String images = '',
     required LatLng markerPoint,
     required Widget marker,
@@ -456,7 +453,9 @@ class PointOfInterest extends Marker {
             handleWebImages(
               images,
             ),
-            endPoint: '$urlDriveImages/$driveUri/$url/'),
+            endPoint: url.contains(Setup().appDocumentDirectory) || url == ''
+                ? url
+                : '$urlDriveImages/$driveUri/$url/'),
         _type = type,
         _name = name,
         _description = description,
@@ -464,8 +463,6 @@ class PointOfInterest extends Marker {
         super(
           child: marker,
           point: markerPoint,
-          //    width: width,
-          //    height: height, /*key: key*/
         );
 
   IconData setIcon({required type}) {
@@ -480,6 +477,10 @@ class PointOfInterest extends Marker {
     _images = images;
   }
 
+  void setMarker({required Widget marker}) {
+    marker = marker;
+  }
+
   String getImages() {
     return _images;
   }
@@ -490,6 +491,7 @@ class PointOfInterest extends Marker {
 
   void setType(int type) {
     _type = type;
+    //  debugPrint('marker.type: ${marker.runtimeType.toString()}');
   }
 
   int getType() {
@@ -510,6 +512,10 @@ class PointOfInterest extends Marker {
 
   void setDescription(String description) {
     _description = description;
+  }
+
+  LatLng getMarkerPoint() {
+    return markerPoint;
   }
 
   void setScore(double score) {
@@ -548,7 +554,7 @@ class MarkerWidget extends StatelessWidget {
   final int list;
   final int listIndex;
 
-  MarkerWidget(
+  const MarkerWidget(
       {super.key,
       required this.type,
       this.name = '',
@@ -570,14 +576,15 @@ class MarkerWidget extends StatelessWidget {
     Color buttonFillColor =
         uiColours.keys.toList()[Setup().pointOfInterestColour];
     Color iconColor = Colors.blueAccent;
+    developer.log('Marker widget type: $type', name: '_marker');
     switch (type) {
       case 12:
         buttonFillColor = uiColours.keys.toList()[Setup().waypointColour];
-        iconWidth = 10;
+        iconWidth = 25;
         break;
       case 16:
         buttonFillColor = Colors.transparent;
-        iconColor = uiColours.keys.toList()[colourIdx < 0 ? 0 : colourIdx];
+        //      iconColor = uiColours.keys.toList()[colourIdx < 0 ? 0 : colourIdx];
         iconWidth = 22;
         break;
       case 17:
@@ -587,6 +594,10 @@ class MarkerWidget extends StatelessWidget {
       case 18:
         buttonFillColor = Colors.transparent;
         iconWidth = 25;
+        break;
+      default:
+        buttonFillColor = Colors.transparent;
+        iconWidth = 20;
         break;
     }
     // Want to counter rotate the icons so that they are vertical when the map rotates
@@ -603,11 +614,20 @@ class MarkerWidget extends StatelessWidget {
         shape: const CircleBorder(),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(0, 0, 1, 2),
-          child: Icon(
-            markerIcon(type),
-            size: iconWidth,
-            color: iconColor,
-          ),
+          child: [12, 17, 18].contains(type)
+              ? CircleAvatar(
+                  backgroundColor: Colors.red,
+                  radius: 50, //iconWidth,
+                  child: Text(
+                    '${listIndex + 1}',
+                    style: const TextStyle(fontSize: 10, color: Colors.white),
+                  ),
+                )
+              : Icon(
+                  markerIcon(type),
+                  size: iconWidth,
+                  color: iconColor,
+                ),
         ),
       ),
     );
@@ -925,7 +945,7 @@ loadImage() async {
   try {
     ImagePicker picker = ImagePicker();
     await //ImagePicker()
-        picker.pickImage(source: ImageSource.gallery).then(
+        picker.pickImage(source: ImageSource.gallery, imageQuality: 10).then(
       (pickedFile) async {
         try {
           if (pickedFile != null) {
@@ -1321,43 +1341,49 @@ class Photo {
   int id;
   int key;
   int index;
-
+  int rotation;
   String caption;
   String endPoint;
+
   Photo(
       {required this.url,
       this.id = -1,
       this.key = -1,
       this.index = -1,
       this.caption = '',
+      this.rotation = 0,
       this.endPoint = ''});
 
   factory Photo.fromJson(Map<String, dynamic> json,
       {int index = -1, String endPoint = ''}) {
-    if (!json.containsKey('url')) {
-      //   debugPrint("Doesn't contain 'url'");
-    }
+    String url =
+        json['url'].contains(Setup().appDocumentDirectory) || json['url'] == ""
+            ? json['url']
+            : '$endPoint${json['url']}';
     return Photo(
-        url: '$endPoint${json['url']}',
+        url: url,
         id: json['id'] ?? -1,
         caption: json['caption'] ?? '',
+        rotation: json['rotation'] ?? 0,
         key: -1,
         index: index);
   }
 
   factory Photo.fromJsonMap(Map<String, String> json) {
     return Photo(
-        url: json['url'] ?? '',
-        id: int.parse(json['id'] ?? '-1'),
-        caption: json['caption'] ?? '');
+      url: json['url'] ?? '',
+      id: int.parse(json['id'] ?? '-1'),
+      caption: json['caption'] ?? '',
+      rotation: int.parse(json['rotation'] ?? '0'),
+    );
   }
 
   String toJson() {
-    return '{"url": $url, "caption": $caption}';
+    return '{"url": $url, "caption": $caption, "rotation": $rotation}';
   }
 
   String toMapString() {
-    return '{"url": "$url", "caption": "$caption"}';
+    return '{"url": "$url", "caption": "$caption", "rotation": $rotation}';
   }
 }
 
@@ -1401,11 +1427,12 @@ class GoodRoadCacheItem {
   factory GoodRoadCacheItem.fromMap(
       {required Map<String, dynamic> map, row = -1}) {
     return GoodRoadCacheItem(
-        index: row,
-        localId: map['id'] ?? -1,
-        url: map['uri'] ?? '',
-        northEast: LatLng(map['max_lat'] ?? 50.0, map['max_lng'] ?? 0),
-        southWest: LatLng(map['min_lat'] ?? 50.0, map['min_lng'] ?? 0));
+      index: row,
+      localId: map['id'] ?? -1,
+      url: map['uri'] ?? '',
+      northEast: LatLng(map['max_lat'] ?? 50.0, map['max_lng'] ?? 0),
+      southWest: LatLng(map['min_lat'] ?? 50.0, map['min_lng'] ?? 0),
+    );
   }
 }
 
@@ -1417,14 +1444,15 @@ class GoodRoadCacheItem {
 
 List<Photo> photosFromJson(String photoString, {String endPoint = ''}) {
   if (photoString.isNotEmpty) {
-    if (!photoString.contains("url")) {
-      //  debugPrint('photoString: $photoString');
-    }
     int index = 0;
-    return [
-      for (Map<String, dynamic> urlData in jsonDecode(photoString))
-        Photo.fromJson(urlData, endPoint: endPoint, index: index++)
-    ];
+    dynamic jsonPhotos = jsonDecode(photoString);
+    List<Photo> photos = [];
+    for (dynamic jsonPhoto in jsonPhotos) {
+      jsonPhoto =
+          photoString.contains('[{') ? jsonPhoto : jsonDecode(jsonPhoto);
+      photos.add(Photo.fromJson(jsonPhoto, endPoint: endPoint, index: index++));
+    }
+    return photos;
   }
   return [];
 }
@@ -1703,7 +1731,10 @@ class Follower extends Marker {
 /// API url list is converted to {"url": "uuid.jpg", "caption": ""}, {...}
 String handleWebImages(String urls) {
   String mappedUrls = urls;
-  if (urls.isNotEmpty && !urls.contains('{') && !urls.contains('assets')) {
+  if (urls.isNotEmpty &&
+      !urls.contains('{') &&
+      !urls.contains('assets') &&
+      !urls.contains('caption_')) {
     mappedUrls = urls.replaceAll(RegExp(r','), ', "caption":""},{"url": ');
     mappedUrls =
         '[{"url":${mappedUrls.substring(1, mappedUrls.length - 1)}, "caption": ""}]';
@@ -1734,7 +1765,7 @@ class HomeItem {
       : added = added ?? DateTime.now(),
         imageUrls = handleWebImages(imageUrls);
 
-  /// Need to be abple to change the URL as the API doesn't
+  /// Need to be able to change the URL as the API doesn't
   /// send the endpoint address to save web traffic, The app
   /// adds in the appropriale address as it processes the data
   /// which is sent as  by the API and read as a map.
@@ -1744,6 +1775,9 @@ class HomeItem {
 
   factory HomeItem.fromMap(
       {required Map<String, dynamic> map, String url = ''}) {
+    // dynamic iurl = jsonDecode(map['image_urls']);
+    // developer.log(iurl, name: '_images');
+    // developer.log(uri, name: '_images');
     return HomeItem(
       id: map['id'] ?? -1,
       uri: '$url${map['uri']}',

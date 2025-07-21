@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:math';
 import 'package:drives/classes/classes.dart';
 import 'package:drives/models/models.dart';
 
@@ -88,7 +89,8 @@ class _PhotoCarouselState extends State<PhotoCarousel> {
                                   );
                                   return const ImageMissing(width: 400);
                                 } else if (snapshot.hasData) {
-                                  return getPageView(snapshot.data!);
+                                  return getPageView(
+                                      snapshot.data!, widget.photos);
                                 } else {
                                   return const Center(
                                     child: CircularProgressIndicator(),
@@ -123,18 +125,38 @@ class _PhotoCarouselState extends State<PhotoCarousel> {
       Map<int, Image> imageMap = await widget.imageRepository
           .loadImage(key: photos[i].key, id: photos[i].id, uri: photos[i].url);
       photos[i].key = imageMap.keys.first;
+      // photos[i].caption = '${i + 1} Image caption';
+      // photos[i].rotation = 3;
       images.add(imageMap.values.first);
     }
     return images;
   }
 
-  Widget getPageView(List<Image> imageList) {
+  Widget getPageView(List<Image> imageList, List<Photo> photos) {
     return PageView.builder(
       itemCount: widget.photos.length,
       scrollDirection: Axis.horizontal,
       controller: _pageController,
       itemBuilder: (BuildContext context, int index) {
-        return imageList[index];
+        /// angle is in radians 2 Pi radians = 360 degrees clockwise 0.5 1 1.5
+        return Stack(
+          children: [
+            Align(
+              alignment: AlignmentDirectional.topCenter,
+              child: Transform.rotate(
+                  angle: pi * photos[index].rotation * 0.5,
+                  child: imageList[index]),
+            ),
+            Align(
+              alignment: AlignmentDirectional.bottomStart,
+              child: Text(photos[index].caption,
+                  style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black)),
+            ),
+          ],
+        );
       },
     );
   }

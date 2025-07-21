@@ -260,6 +260,13 @@ class _MainDrawerState extends State<MainDrawer> {
                                   builder: (context) => const SurveyForm(),
                                 ),
                               );
+                            } else if (e['value'] == 'invite') {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const InviteForm(),
+                                ),
+                              );
                             }
                           },
                           child: Row(
@@ -313,6 +320,11 @@ class _MainDrawerState extends State<MainDrawer> {
       'text': 'Survey',
       'iconData': const Icon(Icons.sick_outlined),
       'value': 'survey'
+    },
+    {
+      'text': 'Invite user',
+      'iconData': const Icon(Icons.person_add_outlined),
+      'value': 'invite'
     },
   ];
 }

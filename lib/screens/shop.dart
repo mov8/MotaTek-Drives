@@ -1,11 +1,9 @@
 import 'package:drives/tiles/tiles.dart';
 import 'package:flutter/material.dart';
-import 'package:drives/screens/screens.dart';
 import 'package:drives/models/models.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:path_provider/path_provider.dart';
-import 'dart:io';
 import 'package:drives/services/services.dart';
+import 'dart:developer' as developer;
+import 'dart:convert';
 
 class ShopForm extends StatefulWidget {
   // var setup;
@@ -17,20 +15,17 @@ class ShopForm extends StatefulWidget {
 }
 
 class _ShopFormState extends State<ShopForm> {
-  int _groupIndex = 0;
   late Future<bool> _dataloaded;
   List<ShopItem> _items = [];
   int _action = 0;
   int _index = 0;
   int toInvite = 0;
+  bool _expanded = false;
 
   final List<String> _titles = [
     "Shop page adverts",
     "Ad - ",
-    "Trips I've saved to share",
   ];
-
-  List<GroupMember> allMembers = [];
 
   @override
   void initState() {
@@ -48,21 +43,9 @@ class _ShopFormState extends State<ShopForm> {
   Future<bool> dataFromWeb() async {
     _items = await getShopItems(0);
     if (_items.isEmpty) {
-      _items.add(
-        ShopItem(
-          heading: 'New trip planning app',
-          subHeading: 'Stop polishing your car and start driving it...',
-          body:
-              '''Drives is a new app to help you make the most of the countryside around you. 
-You can plan trips either on your own or you can explore in a group''',
-          links: 0,
-          //  imageUrl:
-          //      '[{"url": "assets/images/splash.png","caption":"image 1"}]'),
-        ),
-      );
-
-      //  _items.add(ShopItem(heading: ''));
+      newItem();
     }
+
     return true;
   }
 
@@ -84,22 +67,46 @@ You can plan trips either on your own or you can explore in a group''',
                       onExpandChange: (index) => expandCallBack(index),
                       onRated: (index, rate) => rating(rate, index),
                       onIconTap: (index) => callBack(index),
-                      onSelect: (index) {
-                        setState(() {
-                          _groupIndex = index;
-                          _action = 1;
-                        });
-                      },
-                      onDelete: (idx) => deleteTrip(idx),
+                      onAddImage: (index) => onAddImage(index),
+                      onRemoveImage: (index, imageIndex) =>
+                          onRemoveImage(index, imageIndex),
+                      onAddLink: (index) => onAddLink(index),
+                      onPost: (index) => onPost(index),
+                      onDelete: (index) => onDelete(index),
                     ),
                   ),
                 ),
               )
             ],
-            Align(
-              alignment: Alignment.bottomLeft,
-              child: _handleChips(),
-            )
+            if (!_expanded)
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 20),
+                child: Wrap(
+                  spacing: 10,
+                  children: [
+                    ActionChip(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      onPressed: () => setState(() => _action = 2),
+                      backgroundColor: Colors.blue,
+                      avatar: const Icon(
+                        Icons.group_add,
+                        color: Colors.white,
+                      ),
+                      label: const Text(
+                        'New Item', // - ${_action.toString()}',
+                        style: TextStyle(fontSize: 18, color: Colors.white),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            //       Align(
+            //         alignment: Alignment.bottomLeft,
+            //         child: _handleChips(),
+            //       )
           ],
         ),
       )
@@ -111,11 +118,7 @@ You can plan trips either on your own or you can explore in a group''',
   }
 
   void expandCallBack(int index) {
-    setState(() {
-      _action = _action == 1 ? 0 : 1;
-      _index = _action == 0 ? -1 : index;
-    });
-    debugPrint('Callback index: $index');
+    setState(() => _expanded = !_expanded);
   }
 
   void rating(int rate, int index) {
@@ -146,7 +149,7 @@ You can plan trips either on your own or you can explore in a group''',
           child: Padding(
             padding: const EdgeInsets.fromLTRB(5, 10, 5, 10),
             child: Text(
-              '${_titles[_action]}${_action == 1 ? ' ${_items[_groupIndex].heading}' : ''}',
+              '${_titles[_action]}${_action == 1 ? ' ${_items[_index].heading}' : ''}',
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 20,
@@ -184,148 +187,79 @@ You can plan trips either on your own or you can explore in a group''',
               ),
             );
           }
-          throw ('Error - FutureBuilder group.dart');
+          throw ('Error - FutureBuilder shop.dart');
         },
       ),
     );
   }
 
-  Widget _handleChips() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10),
-      child: Wrap(
-        spacing: 10,
-        children: [
-          if (_action == 0) ...[
-            ActionChip(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              onPressed: () => setState(() => _action = 2),
-              backgroundColor: Colors.blue,
-              avatar: const Icon(
-                Icons.group_add,
-                color: Colors.white,
-              ),
-              label: const Text(
-                'New Item', // - ${_action.toString()}',
-                style: TextStyle(fontSize: 18, color: Colors.white),
-              ),
-            ),
-          ],
-          if (_action == 1) ...[
-            ActionChip(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              onPressed: () => loadImage(_index), //_action = 2),
-              backgroundColor: Colors.blue,
-              avatar: const Icon(
-                Icons.image,
-                color: Colors.white,
-              ),
-              label: const Text(
-                "Image", // - ${_action.toString()}',
-                style: TextStyle(fontSize: 18, color: Colors.white),
-              ),
-            ),
-            ActionChip(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              onPressed: () => loadImage(_index), //_action = 2),
-              backgroundColor: Colors.blue,
-              avatar: const Icon(
-                Icons.delete,
-                color: Colors.white,
-              ),
-              label: const Text(
-                "Delete", // - ${_action.toString()}',
-                style: TextStyle(fontSize: 18, color: Colors.white),
-              ),
-            ),
-            ActionChip(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              onPressed: () => setState(() => _items[_index].links =
-                  _items[_index].links < 2
-                      ? ++_items[_index].links
-                      : _items[_index].links), //_action = 2),
-              backgroundColor: Colors.blue,
-              avatar: const Icon(
-                Icons.add_link,
-                color: Colors.white,
-              ),
-              label: const Text(
-                "Link", // - ${_action.toString()}',
-                style: TextStyle(fontSize: 18, color: Colors.white),
-              ),
-            ),
-            ActionChip(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              onPressed: () => postShopItem(_items[_index]), //_action = 2),
-              backgroundColor: Colors.blue,
-              avatar: const Icon(
-                Icons.cloud_upload,
-                color: Colors.white,
-              ),
-              label: const Text(
-                "Upload", // - ${_action.toString()}',
-                style: TextStyle(fontSize: 18, color: Colors.white),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  loadImage(int id) async {
-    try {
-      ImagePicker picker = ImagePicker();
-      await //ImagePicker()
-          picker.pickImage(source: ImageSource.gallery).then(
-        (pickedFile) async {
-          try {
-            if (pickedFile != null) {
-              final directory = (await getApplicationDocumentsDirectory()).path;
-
-              /// Don't know what type of image so have to get file extension from picker file
-              int num = 1;
-              if (_items[id].imageUrls.isNotEmpty) {
-                /// count number of images
-                num = '{'.allMatches(_items[id].imageUrls).length + 1;
-              }
-              debugPrint('Image count: $num');
-              String imagePath =
-                  '$directory/point_of_interest_${id}_$num.${pickedFile.path.split('.').last}';
-              File(pickedFile.path).copy(imagePath);
-              setState(() {
-                _items[id].imageUrls =
-                    '[${_items[id].imageUrls.isNotEmpty ? '${_items[id].imageUrls.substring(1, _items[id].imageUrls.length - 1)},' : ''}{"url":"$imagePath","caption":"image $num"}]';
-                debugPrint('Images: ${_items[id].imageUrls}');
-              });
-            }
-          } catch (e) {
-            String err = e.toString();
-            debugPrint('Error getting image: $err');
-          }
-        },
-      );
-    } catch (e) {
-      String err = e.toString();
-      debugPrint('Error loading image: $err');
+  Future<void> onDelete(int index) async {
+    _items.removeAt(index);
+    if (_items.isEmpty) {
+      newItem();
     }
-  }
-
-  Future<void> deleteMyTrip(int index) async {
+    setState(() => _expanded = false);
+    developer.log('onAddImage', name: '_callback');
     return;
   }
 
+  newItem() {
+    _items.add(
+      ShopItem(
+        heading: 'New trip planning app',
+        subHeading: 'Stop polishing your car and start driving it...',
+        body:
+            '''Drives is a new app to help you make the most of the countryside around you. 
+You can plan trips either on your own or you can explore in a group''',
+        links: 0,
+      ),
+    );
+  }
+
+  onAddImage(int index) async {
+    _items[index].imageUrls = await loadDeviceImage(
+        imageUrls: _items[index].imageUrls,
+        itemIndex: index,
+        imageFolder: 'shop_item');
+    developer.log(_items[index].imageUrls, name: '_callback');
+    setState(() => ());
+  }
+
+  onRemoveImage(int itemIndex, int imageIndex) {
+    if (_items[itemIndex].imageUrls.isNotEmpty) {
+      try {
+        String urls = '';
+        List urlList = jsonDecode(_items[itemIndex].imageUrls);
+        String delim = '';
+        if (urlList.length > 1) {
+          for (int i = 0; i < urlList.length; i++) {
+            if (i != imageIndex) {
+              urls =
+                  '$urls$delim{"url":"${urlList[i]['url']}","caption":"${urlList[i]['caption']}","rotation":${urlList[i]['rotation']}}';
+              delim = ',';
+            }
+          }
+          urls = '[$urls]';
+        }
+        setState(() => _items[itemIndex].imageUrls = urls);
+      } catch (e) {
+        developer.log('Error ${e.toString()}', name: '_callback');
+      }
+    }
+  }
+
+  onAddLink(int index) {
+    developer.log('onAddLink', name: '_callback');
+    setState(() => _items[index].links =
+        _items[index].links < 2 ? ++_items[index].links : _items[index].links);
+  }
+
+  onPost(int index) {
+    developer.log('onPost', name: '_callback');
+    postShopItem(_items[index]);
+  }
+
   void onSelect(int index) {
-    _groupIndex = index;
+    developer.log('onSelect', name: '_callback');
   }
 }

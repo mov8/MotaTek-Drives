@@ -26,10 +26,11 @@ class _SetupFormState extends State<SetupForm> {
         iconTheme: const IconThemeData(color: Colors.white),
 
         /// Removes Shadow
-        toolbarHeight: 40,
+        toolbarHeight: 50,
 
         /// Shrink height a bit
         leading: BackButton(
+          //  style: ButtonStyle(iconSize: 40),
           onPressed: () {
             try {
               insertSetup(Setup());

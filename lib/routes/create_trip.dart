@@ -117,8 +117,11 @@ class CreateTrip extends StatefulWidget {
 }
 
 class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
-  GlobalKey mapKey = GlobalKey();
+  final GlobalKey mapKey = GlobalKey();
   final GlobalKey _scaffoldKey = GlobalKey();
+  final GlobalKey _appBarKey = GlobalKey();
+  final GlobalKey _bottomNavKey = GlobalKey();
+
   DateFormat dateFormat = DateFormat('dd/MM/yy HH:mm');
   List<double> mapHeights = [0, 0, 0, 0];
   AppState _appState = AppState.home;
@@ -255,7 +258,7 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   }
 
   // VectorTileProvider _tileProvider() =>
-//      NetworkVectorTileProvider(urlTemplate: urlTiler, maximumZoom: 14);
+  // NetworkVectorTileProvider(urlTemplate: urlTiler, maximumZoom: 14);
 
   _addGreatRoadStartLabel(int id, int userId, int iconIdx, String desc,
       String hint, double size, LatLng latLng) {
@@ -614,12 +617,6 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
         listHeight == -1) {
       final args = ModalRoute.of(context)!.settings.arguments as TripArguments;
       CurrentTripItem().fromMyTripItem(myTripItem: args.trip);
-      int pois = CurrentTripItem().pointsOfInterest.length - 1;
-      if (pois >= 0) {
-        CurrentTripItem().pointsOfInterest[pois].setType(18);
-        CurrentTripItem().pointsOfInterest[0].setType(17);
-      }
-
       loadGroup();
       _title = CurrentTripItem().heading;
       developer.log(_title, name: '_title at build 617');
@@ -633,6 +630,7 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
       drawer: const MainDrawer(),
       resizeToAvoidBottomInset: false, // Stops keyboard moving FABS
       appBar: AppBar(
+        key: _appBarKey,
         automaticallyImplyLeading: false,
         leading: LeadingWidget(
           controller: _leadingWidgetController,
@@ -667,6 +665,7 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
         backgroundColor: Colors.blue,
       ),
       bottomNavigationBar: RoutesBottomNav(
+          key: _bottomNavKey,
           controller: _bottomNavController,
           initialValue: initialNavBarValue,
           onMenuTap: (_) => {}),
@@ -738,10 +737,11 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
                 canPop: canPop,
                 child: AlertDialog(
                   contentPadding: EdgeInsets.zero,
-                  title: Text(infoMap['title'],
-                      style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold)), //textStyle),
+                  title: Text(
+                    infoMap['title'],
+                    style: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
                   elevation: 5,
                   content: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -987,6 +987,35 @@ enum TripState {
       // to larger sizes to support higher zoom levels
       maximumZoom: 14);
 */
+
+  /// addWaypoint rules are:
+  /// First waypoint = type 17
+  /// Last waypoint = type 18
+  /// Any other waypoint = type 12
+  /// So in pseudocode:
+  /// a) insertAfter == -1  a straight forward addition
+  ///     if CurrentTripItem().pointsOfInterest.length == 0 add waypoint type = 17
+  ///     if CurrentTripItem().pointsOfInterest.length == 1 add waypoint type = 18
+  ///     if a waypoint is added and CurrentTripItem().pointsOfInterest.length > 1 then:
+  ///       if CurrentTripItem().pointsOfInterest.length[CurrentTripItem().pointsOfInterest.length-1] == 18
+  ///         CurrentTripItem().pointsOfInterest.length[CurrentTripItem().pointsOfInterest.length-1] -> 12
+  ///     add new waypoint type 18
+  /// b) insertAfter > -1 a waypoint is inserted into CurrentTripItem().pointsOfInterest list
+  ///     waypoint type 12 is inserted at inserAfter position
+  ///
+
+  Future<String> newWaypoint({bool currentPosition = false, index = -1}) async {
+    LatLng pos;
+    if (currentPosition) {
+      pos = LatLng(_currentPosition.latitude, _currentPosition.longitude);
+    } else {
+      pos = _animatedMapController.mapController.camera.center;
+    }
+    Map<String, dynamic> data = await appendRoute(position: pos);
+
+    return '${pos.latitude},${pos.longitude}';
+  }
+
   addWaypoint({bool currentPosition = false, int insertAfter = -1}) async {
     LatLng pos;
     if (currentPosition) {
@@ -996,6 +1025,7 @@ enum TripState {
     }
     Map<String, dynamic> data;
     bool first = _startLatLng == const LatLng(0.00, 0.00);
+    developer.log('addWaypoint 1023', name: '_marker');
     if (insertAfter == -1 &&
         CurrentTripItem().pointsOfInterest.isNotEmpty &&
         CurrentTripItem().pointsOfInterest[0].getType() == 12) {
@@ -1023,9 +1053,39 @@ enum TripState {
 
       if (lastPoint >= 0 &&
           CurrentTripItem().pointsOfInterest[lastPoint].getType() == 18) {
-        CurrentTripItem()
-            .pointsOfInterest[lastPoint]
-            .setType(lastPoint == 0 ? 17 : 12);
+        developer.log('addWaypoint 1051 should change', name: '_marker');
+        //  LatLng lastPos =
+        //      CurrentTripItem().pointsOfInterest[lastPoint].getMarkerPoint();
+        CurrentTripItem().pointsOfInterest[lastPoint].setType(12);
+        CurrentTripItem().pointsOfInterest[lastPoint].marker = MarkerWidget(
+          type: 12,
+          angle: -_mapRotation * pi / 180, // degrees to radians
+          list: 0,
+          listIndex: CurrentTripItem().pointsOfInterest.length,
+        );
+
+        /* 
+         = PointOfInterest(
+          id: -1,
+          driveId: CurrentTripItem().driveId,
+          type: 12,
+          name: '',
+          description: '',
+          width: 25,
+          height: 25,
+          images: images,
+          markerPoint: lastPos,
+          sounds: '',
+          marker: MarkerWidget(
+            type: 12,
+            angle: -_mapRotation * pi / 180, // degrees to radians
+            list: 0,
+            listIndex: CurrentTripItem().pointsOfInterest.length,
+          ),
+        ); */
+        //   CurrentTripItem().pointsOfInterest.removeLast;
+
+        //   await _addPointOfInterest(id, userId, 12, '', '', 15.0, lastPos, '');
       }
       await _addPointOfInterest(id, userId, lastPoint == -1 ? 17 : 18,
           '${data["name"]}', '${data["summary"]}', 15.0, pos, '');
@@ -1504,7 +1564,7 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
                     _animatedMapController.mapController.camera.rotation;
               },
               initialCenter: routePoints[0],
-              initialZoom: 15.0, // 15,
+              initialZoom: 13.0, // 15,
               maxZoom: 18,
               interactionOptions: const InteractionOptions(
                   enableMultiFingerGestureRace: true,
@@ -1517,6 +1577,7 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
             children: [
               VectorTileLayer(
                   theme: _style.theme, //_style.theme,
+                  maximumZoom: 13,
                   //sprites: _style.sprites,
                   tileProviders: _style.providers,
                   //  showTileDebugInfo: true,
@@ -1779,6 +1840,7 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
     _repainted = true;
     if (CurrentTripItem().tripState == TripState.none) {
       chipNames.clear();
+      _showTarget = false;
       chipNames
         ..add('Create manually')
         ..add('Track drive');
@@ -1803,7 +1865,7 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
         ..add('Pause recording');
     }
     if (CurrentTripItem().pointsOfInterest.isNotEmpty &&
-        [TripState.manual, TripState.stoppedRecording]
+        [TripState.manual, TripState.stoppedRecording, TripState.editing]
             .contains(CurrentTripItem().tripState)) {
       if (!CurrentTripItem().isSaved) {
         chipNames.add('Save trip');
@@ -1872,7 +1934,7 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
     return chips;
   }
 
-  /// Have sptit out the state change from the action part
+  /// Have split out the state change from the action part
   /// as want to use the state change when restoring the
   /// CreateTrip route without calling setState which is
   /// embedded in adjustMapHeight()
@@ -2067,6 +2129,8 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
       _lastLatLng = const LatLng(0.00, 0.00);
       _startLatLng = const LatLng(0.00, 0.00);
       CurrentTripItem().tripState = TripState.none;
+      _title = 'Create a new trip';
+      _leadingWidgetController.changeWidget(0);
     });
   }
 
@@ -2259,6 +2323,7 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
       _appState = AppState.createTrip;
       CurrentTripItem().tripState = TripState.editing;
       _title = 'Editing: ${CurrentTripItem().heading}';
+      _leadingWidgetController.changeWidget(1);
       developer.log(_title, name: 'editRoute() 2258');
     });
   }
@@ -3018,7 +3083,7 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
     // XFile _image;
     final picker = ImagePicker();
 
-    await picker.pickImage(source: source).then((pickedFile) {
+    await picker.pickImage(source: source, imageQuality: 10).then((pickedFile) {
       setState(
         () {
           if (pickedFile != null) {
@@ -3181,12 +3246,25 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
   adjustMapHeight(MapHeights newHeight) {
     // debugPrint(
     //     'adjustMapHeight() mapHeights[1]: $mapHeights[1], newHeight: $newHeight');
+    double abHeight = 80;
+    double bnHeight = 80;
 
     if (mapHeights[1] == 0) {
-      mapHeights[0] = MediaQuery.of(context).size.height - 190; // info closed
-      mapHeights[1] = mapHeights[0] - 400; //275; // heading data
-      mapHeights[2] = mapHeights[0] - 450; // open point of interest
-      mapHeights[3] = mapHeights[0] - 300; // message
+      final bnKeyContext = _bottomNavKey.currentContext;
+      final abKeyContext = _appBarKey.currentContext;
+      if (abKeyContext != null) {
+        final box = abKeyContext.findRenderObject() as RenderBox;
+        abHeight = box.size.height;
+      }
+      if (bnKeyContext != null) {
+        final box = bnKeyContext.findRenderObject() as RenderBox;
+        bnHeight = box.size.height;
+      }
+      mapHeights[0] = MediaQuery.of(context).size.height -
+          (abHeight + bnHeight + 30); //* .825; //- 190; // info closed
+      mapHeights[1] = mapHeights[0] * .35; // 400; //275; // heading data
+      mapHeights[2] = mapHeights[0] * .30; // open point of interest
+      mapHeights[3] = mapHeights[0] * .6; // message
     }
     mapHeight = mapHeights[MapHeights.values.indexOf(newHeight)];
     if (newHeight == MapHeights.full) {
@@ -3344,7 +3422,7 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
     /// I have used the boolean variable _repainted to tell me when the getChips() method is called
     /// which indicates that the setState() has got through. _repained is set to false in getMapImage()
     /// just before capturing the image. The problem manifests itsself in that after saving the trip
-    /// the ActionChips don't reappear automaticall, but do as soon as the map is moved - ie a subsequent
+    /// the ActionChips don't reappear automatically, but do as soon as the map is moved - ie a subsequent
     /// setState() is called.
 
     int tries = 0;
@@ -3367,20 +3445,22 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
     return CurrentTripItem().driveId;
   }
 
-  Future<ui.Image> getMapImage({int delay = 500}) async {
+  Future<ui.Image> getMapImage({int delay = 1}) async {
     if (CurrentTripItem().mapImage == null) {
       setState(() {
         CurrentTripItem().tripActions = TripActions.saving;
         CurrentTripItem().highliteActions = HighliteActions.none;
         adjustMapHeight(MapHeights.full);
       });
-      while (_resized == false) {
-        await Future.delayed(Duration(milliseconds: delay));
+      int tries = 0;
+      while (_resized == false && ++tries < 5) {
+        await Future.delayed(Duration(milliseconds: delay * 500));
       }
 
       final mapBoundary =
           mapKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
       CurrentTripItem().mapImage = await mapBoundary.toImage();
+      await Future.delayed(Duration(seconds: 1));
       _repainted = false;
     }
     return CurrentTripItem().mapImage!;
@@ -3572,65 +3652,20 @@ Future<bool> changeTripStart(
                     values[3] ||
                     values[4];
                 String points = '';
+
+                /// Now look at the waypoints
+                /// 1 Reverse the current waypoints if required
+                /// 2 Add the new waypoint for added start or end
                 if (CurrentTripItem().routes.isNotEmpty && changed) {
-                  try {
-                    points = waypointsFromPointsOfInterest(reversed: values[0]);
-                    if (points.isNotEmpty) {
-                      await getRoutePoints(
-                          waypoints: points, includeWaypoints: false);
-                    }
-                  } catch (e) {
-                    debugPrint('error ${e.toString()}');
-                  }
-
-                  // Join trip from current position
-                  if (values[1]) {
-                    points =
-                        '${currentPosition.longitude},${currentPosition.latitude};$points';
-                  }
-                  // Join trip from screen centre
-                  if (values[2]) {
-                    points =
-                        '${screenCenter.longitude},${screenCenter.latitude};$points';
-                  }
-                  // End trip at current position
-                  if (values[3]) {
-                    points =
-                        '$points;${currentPosition.longitude},${currentPosition.latitude}';
-                  }
-                  // End trip at screen centre
-                  if (values[4]) {
-                    points =
-                        '$points;${screenCenter.longitude},${screenCenter.latitude}';
-                  }
-                  if (CurrentTripItem().pointsOfInterest.isNotEmpty) {
-                    CurrentTripItem()
-                        .pointsOfInterest[
-                            CurrentTripItem().pointsOfInterest.length - 1]
-                        .setType(12);
-                  }
-
-                  /*
-                  Map<String, dynamic> tripData;
-                  getRoutePoints(
-                      waypoints: points, includeWaypoints: false).then((tripData) => 
-                                        CurrentTripItem()
-                      .routes[CurrentTripItem().routes.length - 1]
-                      .points
-                      .clear()).then((tripData) => CurrentTripItem()
-                      .routes[CurrentTripItem().routes.length - 1]
-                      .points.addAll(tripData['points'])).then(() {
-                        if (CurrentTripItem().pointsOfInterest.isNotEmpty) {
-                    CurrentTripItem()
-                        .pointsOfInterest[
-                            CurrentTripItem().pointsOfInterest.length - 1]
-                        .setType(18);
-                  };
-
-
-                      })
-
-*/
+                  points = waypointsFromPointsOfInterest(
+                      reversed: values[0],
+                      newPointLat: values[1] || values[3]
+                          ? currentPosition.latitude
+                          : screenCenter.latitude,
+                      newPointLng: values[1] || values[3]
+                          ? currentPosition.longitude
+                          : screenCenter.longitude,
+                      atEnd: values[3] || values[4]);
 
                   Map<String, dynamic> tripData = await getRoutePoints(
                       waypoints: points, includeWaypoints: false);
@@ -3642,16 +3677,6 @@ Future<bool> changeTripStart(
                       .routes[CurrentTripItem().routes.length - 1]
                       .points
                       .addAll(tripData['points']);
-                  if (CurrentTripItem().pointsOfInterest.isNotEmpty) {
-                    CurrentTripItem()
-                        .pointsOfInterest[
-                            CurrentTripItem().pointsOfInterest.length - 1]
-                        .setType(18);
-                  }
-                  //    if (CurrentTripItem().pointsOfInterest.isNotEmpty &&
-                  //        values[0]) {
-                  //      CurrentTripItem().pointsOfInterest = pois;
-                  //    }
                 }
 
                 if (context.mounted) {
@@ -3746,6 +3771,12 @@ addWaypointAt({required LatLng pos, bool before = false}) async {
   } else {
     CurrentTripItem().pointsOfInterest.add(waypoint);
   }
+  int wpCount = 0;
+  for (int i = 1; i < CurrentTripItem().pointsOfInterest.length - 1; i++) {
+    if ([12, 17].contains(CurrentTripItem().pointsOfInterest[i].getType())) {
+      wpCount++;
+    }
+  }
 }
 
 Future<String> waypointsFromPoints(int points) async {
@@ -3824,18 +3855,54 @@ Future<String> waypointsFromManeuvers(
   return waypoints;
 }
 
-/*
-Future<void> reverseTrip() async {
-  appendRoute()
-}
-*/
-String waypointsFromPointsOfInterest({bool reversed = false}) {
+String waypointsFromPointsOfInterest(
+    {bool reversed = false,
+    double newPointLat = 0.0,
+    newPointLng = 0.0,
+    atEnd = false}) {
   String waypoints = '';
   List<PointOfInterest> pois = [];
   pois.addAll(CurrentTripItem().pointsOfInterest);
   if (reversed) {
     pois = pois.reversed.toList();
   }
+
+  if (newPointLat + newPointLng != 0) {
+    if (atEnd) {
+      if (pois[pois.length - 1].getType() == 18) {
+        pois[pois.length - 1].setType(12);
+      }
+      pois.add(
+        PointOfInterest(
+          type: 18,
+          markerPoint: LatLng(newPointLat, newPointLng),
+          marker: MarkerWidget(
+            type: 18,
+            description: 'Trip end',
+            angle: 1 * pi / 180,
+          ),
+        ),
+      );
+    } else {
+      if (pois[0].getType() == 17) {
+        pois[0].setType(12);
+      }
+      pois.insert(
+        0,
+        PointOfInterest(
+          type: 17,
+          markerPoint: LatLng(newPointLat, newPointLng),
+          marker: MarkerWidget(
+            type: 17,
+            description: 'Trip start',
+            angle: 1 * pi / 180,
+          ),
+        ),
+      );
+    }
+    CurrentTripItem().pointsOfInterest = pois;
+  }
+
   String delimiter = '';
   for (int i = 0; i < pois.length; i++) {
     if ([12, 17, 18].contains(pois[i].getType())) {
@@ -3844,12 +3911,21 @@ String waypointsFromPointsOfInterest({bool reversed = false}) {
       delimiter = ';';
     }
   }
+
   return waypoints;
 }
 
 _leadingWidget(context) {
   return context?.openDrawer();
 }
+
+/// Function for getting the api data from the router it returns a Map<String, dynamic> when
+/// a string of ; delimited lat long pairs is passed as waypoints the returned map contains:
+/// 'name': name of the last point added
+/// 'distance' the distance between the first and last point
+/// 'duration' the time estimated to follow the route
+/// 'summary:
+/// 'points': the List<LatLng> of points that describe the route - PointOfInterest.route[x].points
 
 Future<Map<String, dynamic>> getRoutePoints(
     {required String waypoints, bool includeWaypoints = true}) async {

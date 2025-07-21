@@ -101,33 +101,6 @@ class _TripTileState extends State<TripTile> {
                     onRatingChanged: changeRating,
                     rating: widget.tripItem.score),
               ),
-              /* if (isExpanded)
-                Expanded(
-                  flex: 1,
-                  child: Align(
-                    alignment: Alignment.bottomRight,
-                    child: ActionChip(
-                      visualDensity:
-                          const VisualDensity(horizontal: 0.0, vertical: 0.5),
-                      backgroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      label: Text(
-                        'Download',
-                        style:
-                            const TextStyle(fontSize: 16, color: Colors.black),
-                      ),
-                      elevation: 5,
-                      shadowColor: Colors.black,
-                      onPressed: () =>
-                          getTrip(widget.index), //widget.onGetTrip,
-                      avatar: Icon(Icons.cloud_download_outlined,
-                          size: 20, color: Colors.black),
-                    ),
-                  ),
-                )
-              else */
               Expanded(
                 flex: 1,
                 child: Padding(
@@ -317,83 +290,6 @@ class _TripTileState extends State<TripTile> {
                         ),
                       ),
                     ),
-                  /* SizedBox(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(5, 0, 5, 15),
-                      child: Row(children: [
-                        Expanded(
-                          flex: 3,
-                          child: Align(
-                            alignment: Alignment.bottomLeft,
-                            child: ActionChip(
-                                visualDensity: const VisualDensity(
-                                    horizontal: 0.0, vertical: 0.5),
-                                backgroundColor: Colors.blueAccent,
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(20)),
-                                label: Text('Download trip',
-                                    style: const TextStyle(
-                                        fontSize: 16, color: Colors.white)),
-                                elevation: 5,
-                                shadowColor: Colors.black,
-                                onPressed: () => {},
-                                avatar: Icon(Icons.cloud_download,
-                                    size: 20, color: Colors.white)),
-                          ),
-                        ),
-                        Expanded(
-                          flex: 2,
-                          child: Row(
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.download),
-                                onPressed: () => setState(() {
-                                  getTrip(widget.index);
-                                }),
-                              ),
-                              Align(
-                                alignment: Alignment.topLeft,
-                                child: Text('(${widget.tripItem.downloads})',
-                                    style: const TextStyle(
-                                        color: Colors.black, fontSize: 15)),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        /*
-                        Expanded(
-                          flex: 3,
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(10, 0, 5, 0),
-                            child: Row(
-                              children: [
-                                StarRating(
-                                    onRatingChanged: changeRating,
-                                    rating: widget.tripItem.score),
-                                Align(
-                                  alignment: Alignment.topLeft,
-                                  child: Text(
-                                    '(${widget.tripItem.scored})',
-                                    style: const TextStyle(
-                                        color: Colors.black, fontSize: 15),
-                                  ),
-                                )
-                              ],
-                            ),
-                          ),
-                        ), */
-
-                        Expanded(
-                          flex: 1,
-                          child: IconButton(
-                            icon: const Icon(Icons.share),
-                            onPressed: () => (setState(() {})),
-                          ),
-                        )
-                      ]),
-                    ),
-                  ), */
                   if (widget.childCards != null)
                     Row(
                       children: [

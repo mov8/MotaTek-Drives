@@ -11,6 +11,7 @@ export 'package:drives/screens/message_by_items.dart';
 export 'package:drives/screens/my_groups.dart';
 export 'package:drives/screens/painters.dart';
 export 'package:drives/screens/group_drives.dart';
+export 'package:drives/screens/invite.dart';
 export 'package:drives/screens/setup.dart';
 export 'package:drives/screens/share.dart';
 export 'package:drives/screens/shop.dart';

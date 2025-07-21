@@ -31,6 +31,7 @@ class AutocompleteAsync extends StatefulWidget {
   final Function(String)? onUpdateOptionsRequest;
   final List<String> options;
   final TextInputType? keyboardType;
+  final TextInputAction? textInputAction;
   final InputDecoration? decoration;
 
   const AutocompleteAsync(
@@ -42,7 +43,8 @@ class AutocompleteAsync extends StatefulWidget {
       this.onChange,
       this.onUpdateOptionsRequest,
       this.decoration,
-      this.keyboardType});
+      this.keyboardType,
+      this.textInputAction});
 
   @override
   State<AutocompleteAsync> createState() => _AutocompleteAsyncState();
@@ -66,6 +68,7 @@ class _AutocompleteAsyncState extends State<AutocompleteAsync> {
         return TextField(
           controller: fieldTextEditingController,
           keyboardType: widget.keyboardType,
+          textInputAction: widget.textInputAction,
           focusNode: fieldFocusNode,
           decoration: widget.decoration,
           onChanged: (text) {

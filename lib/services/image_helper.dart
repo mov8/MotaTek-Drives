@@ -237,3 +237,55 @@ class _PoiDetails extends State<PoiDetails> {
     });
   }
 }
+
+/// loadDeviceImage handles the loading of images from camara or gallary
+/// The imageUrl is of the form:
+/// [{url: ___, caption: ___, rotation:_ },{...] which is modified throuh th
+/// imageUrls
+
+Future<String> loadDeviceImage(
+    {required String imageUrls,
+    int itemIndex = 0,
+    imageFolder = 'point_of_interest'}) async {
+  try {
+    ImagePicker picker = ImagePicker();
+    await //ImagePicker()
+        picker.pickImage(source: ImageSource.gallery, imageQuality: 10).then(
+      (pickedFile) async {
+        try {
+          if (pickedFile != null) {
+            final directory = Setup().appDocumentDirectory;
+
+            /// Don't know what type of image so have to get file extension from picker file
+            int num = 1;
+            if (imageUrls.isNotEmpty) {
+              /// count number of images
+              num = '{'.allMatches(imageUrls).length + 1;
+            }
+            debugPrint('Image count: $num');
+            String imagePath =
+                '$directory/point_of_interest_${itemIndex}_$num.${pickedFile.path.split('.').last}';
+
+            File image = File(pickedFile.path);
+            image.copy(imagePath);
+
+            var decodedImage =
+                await decodeImageFromList(image.readAsBytesSync());
+            int rotate = decodedImage.width > decodedImage.height ? 3 : 0;
+
+            imageUrls =
+                '[${imageUrls.isNotEmpty ? '${imageUrls.substring(1, imageUrls.length - 1)},' : ''}{"url":"$imagePath","caption":"image $num","rotation":$rotate}]';
+            debugPrint('Images: $imageUrls');
+          }
+        } catch (e) {
+          String err = e.toString();
+          debugPrint('Error getting image: $err');
+        }
+      },
+    );
+  } catch (e) {
+    String err = e.toString();
+    debugPrint('Error loading image: $err');
+  }
+  return imageUrls;
+}

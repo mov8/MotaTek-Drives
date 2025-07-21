@@ -17,6 +17,9 @@ https://pub.dev/packages/flutter_map_animations/example  shows how to animate ma
 void main() async {
   WidgetsFlutterBinding.ensureInitialized(); // <- needed to allow await to work
   await Setup().loaded;
+  Setup().hasLoggedIn = false;
+  debugPrint('Setup().user.surname ${Setup().user.surname}');
+  // tryLoggingIn();
   runApp(
     // debugInvertOversizedImages = true;
     MaterialApp(

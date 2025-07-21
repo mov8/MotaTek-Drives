@@ -1,13 +1,13 @@
 // import 'package:flutter/foundation.dart';
 import 'dart:convert';
+import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:drives/constants.dart';
 import 'package:drives/models/other_models.dart';
 import 'package:drives/tiles/home_tile.dart';
-import 'package:drives/screens/main_drawer.dart';
 import 'package:drives/classes/classes.dart';
 import 'package:drives/services/services.dart' hide getPosition;
-import 'package:drives/screens/dialogs.dart';
+import 'package:drives/screens/screens.dart';
 
 import 'package:wakelock_plus/wakelock_plus.dart';
 
@@ -34,7 +34,9 @@ class _HomeState extends State<Home> {
     _leadingWidgetController = LeadingWidgetController();
     _bottomNavController = RoutesBottomNavController();
     _imageRepository = ImageRepository();
+    // if (!Setup().loggingIn) {
     _dataLoaded = _getHomeData();
+    // }
   }
 
   _leadingWidget(context) {
@@ -60,23 +62,26 @@ class _HomeState extends State<Home> {
 
   Future<bool> _getHomeData() async {
     if (!Setup().hasLoggedIn) {
-      await tryLoggingIn();
-      homeItems = await getHomeItems(1); // get API data
-      Setup().lastPosition = await getPosition();
+      //Setup().hasLoggedIn = true;
+      Setup().loggingIn = true;
+      await tryLoggingIn().then((_) async {
+        homeItems = await getHomeItems(1); // get API data
 
-      //  Setup().appState = '{"route": 2, "trip_id": 233}';
-      if (Setup().appState.isEmpty) {
-        Setup().bottomNavIndex = 0;
-      } else {
-        Setup().bottomNavIndex = jsonDecode(Setup().appState)['route'] ?? 0;
-      }
+        Setup().lastPosition = await getPosition();
+        //  Setup().appState = '{"route": 2, "trip_id": 233}';
+        if (Setup().appState.isEmpty) {
+          Setup().bottomNavIndex = 0;
+        } else {
+          Setup().bottomNavIndex = jsonDecode(Setup().appState)['route'] ?? 0;
+        }
 
-      if (homeItems.isNotEmpty) {
-        Setup().hasLoggedIn = true;
-        getStats();
-      }
-      _bottomNavController.setValue(Setup().bottomNavIndex);
-      _bottomNavController.navigate();
+        if (homeItems.isNotEmpty) {
+          Setup().hasLoggedIn = true;
+          getStats();
+        }
+        //    _bottomNavController.setValue(Setup().bottomNavIndex);
+        //    _bottomNavController.navigate();
+      });
       return true;
     } else if (Setup().bottomNavIndex > 0) {
       // Look to see if the app was left open
@@ -88,38 +93,127 @@ class _HomeState extends State<Home> {
         Setup().bottomNavIndex = jsonDecode(Setup().appState)['route'] ?? 0;
       }
       Setup().setupToDb();
-      _bottomNavController.navigate();
+      return true;
+      //   _bottomNavController.navigate();
     } else {
       //  homeItems = await loadHomeItems(); // get cached homeItems
       homeItems = await getHomeItems(1); // get API data
+      return true;
     }
-    return true;
   }
 
-  tryLoggingIn() async {
+  Future<bool> tryLoggingIn() async {
     try {
-      User user = await getUser();
+      ///  User user = await getUser();
+      /// Three possibilities for logging in
+      /// 1 Password & email on device
+      ///   Silent login retrieving fresh jwt
+      /// 2 No password or email on device - new device / user
+      ///   Login dialog appears
+      /// 3 Email on device and password < 8 characters
+      ///   Sign_up form appears to allow completion of registration
+      developer.log(
+          'tryLoggingIn() ${Setup().user.password.isEmpty ? 'Use passord empty' : 'password found'}',
+          name: '_login');
+      //   int code = 0;
+
+      if (Setup().user.password.isEmpty) {
+        await getUser();
+      }
+
+      LoginState loginState = LoginState.notLoggedin;
       bool serverUp = await serverListening();
+      developer.log(
+          'tryLoggingIn() ${serverUp ? 'Server is up' : 'Server down'} on $urlBase',
+          name: '_login');
+
       if (serverUp) {
-        if (user.email.isNotEmpty && user.password.length > 8) {
-          tryLogin(user: user).then(
-            (response) {
-              String status = response['msg'] ?? '';
-              if (status == 'OK') {
-                saveUser(user);
-              }
-            },
-          );
-        } else {
-          if (mounted) {
-            await loginDialog(context, user: user);
+        /// Try silent login first
+
+        if (Setup().jwt.isNotEmpty &&
+            Setup().user.email.isNotEmpty &&
+            Setup().user.password.length > 8) {
+          bool refreshed = await refreshToken();
+          developer.log(refreshed ? 'JWT refreshed' : 'JWT NOT REFRESHED',
+              name: '_login');
+          if (refreshed) {
+            Setup().hasLoggedIn = true;
+            return true;
           }
         }
+
+        if (Setup().user.email.isNotEmpty && Setup().user.password.length > 8) {
+          Map<String, dynamic> response = await tryLogin(user: Setup().user);
+          String status = response['msg'] ?? '';
+          //    code = response['response_status_code'] ?? 0;
+
+          if (status == 'OK') {
+            await saveUser(Setup().user);
+            Setup().hasLoggedIn = true;
+            developer.log('Setup().user found and logged in', name: '_login');
+            return status == 'OK';
+          }
+          developer.log('Setup().user found but NOT LOGGED IN', name: '_login');
+
+          /// Have user details on device but not on server
+          loginState = LoginState.register;
+        }
+
+        /// Device has no login details invite user to login
+        User user = Setup().user;
+        if (Setup().user.email.isEmpty &&
+            Setup().jwt.isEmpty &&
+            Setup().user.password.isEmpty &&
+            mounted) {
+          loginState = await loginDialog(context, user: user);
+          if (loginState == LoginState.login) {
+            Map<String, dynamic> response = await tryLogin(user: user);
+            if (response['msg'] == 'OK') {
+              developer.log('Login was successful', name: '_login');
+              Setup().hasLoggedIn = true;
+              await saveUser(user);
+              Setup().user = user;
+              return true;
+            }
+            // return false;
+          } else if (loginState == LoginState.cancel) {
+            return false;
+          }
+        }
+
+        /// Handle partially loggedin users invite to complete registration
+        if (loginState == LoginState.register ||
+            loginState == LoginState.notLoggedin) {
+          if (user.password.length != 6) {
+            await postValidateUser(user: user);
+            Setup().user = user;
+            Setup().user.password = '';
+          }
+          if (mounted) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (BuildContext context) => const SignupForm()),
+            );
+          }
+        }
+
+        /// Now handle login failures
+        ///       New user both email and password empty  register
+        /// 401 - Invalid password                        login dialog
+        /// 410 - Missing password                        register
+        /// 204 - Email not found                         register
+
+        Setup().hasLoggedIn = true;
+        return true; //critical one
       } else {
         debugPrint('Server not listening ($urlBase)');
+        return false;
       }
+      // return false;
     } catch (e) {
       debugPrint('Splash login error: ${e.toString()}');
+      return false;
     }
   }
 

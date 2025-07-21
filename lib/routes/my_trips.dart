@@ -97,27 +97,6 @@ import 'package:uuid/rng.dart';
 
   Future<void> publishTrip(int index) async {
     await _myTripItems[index].publish();
-    /*
-    String driveUI = '';
-    int driveId = _myTripItems[index].getDriveId();
-    postTrip(_myTripItems[index]).then((driveUi) {
-      driveUI = driveUi['id'];
-      for (PointOfInterest pointOfInterest
-          in _myTripItems[index].pointsOfInterest()) {
-        postPointOfInterest(pointOfInterest, driveUI);
-      }
-    }).then((_) async {
-      for (int i = 0; i < 2; i++) {
-        List<mt.Route> polylines = await loadPolyLinesLocal(driveId, type: i);
-//      postPolylines(polylines, driveUI, 0);
-        postPolylines(polylines: polylines, driveUid: driveUI, type: i);
-      }
-
-      List<Maneuver> maneuvers = await loadManeuversLocal(driveId);
-      postManeuvers(maneuvers, driveUI);
-    });
-
-    */
     return;
   }
 

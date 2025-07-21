@@ -1,5 +1,6 @@
 import 'dart:async';
 // import 'dart:collection';
+// import 'package:image/image.dart' as Img;
 import 'dart:io';
 import 'dart:math';
 import 'dart:convert';
@@ -98,6 +99,24 @@ Future<List<String>> getApiOptions(
     try {
       final http.Response response = await getWebData(
           uri: Uri.parse('$urlUser/emails/$value'), secure: true);
+      if ([200, 201].contains(response.statusCode)) {
+        results = jsonDecode(response.body);
+      }
+    } catch (e) {
+      debugPrint(
+          'Error getting api list ${e.toString()}, results.length() ${results.length}');
+    }
+  }
+  return List<String>.from(results);
+}
+
+Future<List<String>> getApiContacts(
+    {String type = 'email', String value = ''}) async {
+  List<dynamic> results = [];
+  if (value.isNotEmpty) {
+    try {
+      final http.Response response = await getWebData(
+          uri: Uri.parse('$urlUser/contact_email/$value'), secure: true);
       if ([200, 201].contains(response.statusCode)) {
         results = jsonDecode(response.body);
       }
@@ -236,21 +255,26 @@ class _SearchLocationState extends State<SearchLocation> {
 
 Future<Map<String, dynamic>> postUser(
     {required User user, bool register = false}) async {
+  int code = 500;
   try {
     var uri = Uri.parse('$urlUser/${register ? "register" : "login"}');
     http.Response response =
         await postWebData(uri: uri, body: jsonEncode(user.toMapApi()));
     Map<String, dynamic> map = jsonDecode(response.body);
-    if ([200, 201].contains(response.statusCode)) {
+    code = response.statusCode;
+    if ([200, 201].contains(code)) {
       Setup().jwt = map['token'];
-      return {'msg': 'OK'};
+      Setup().setupToDb();
+      return {'msg': 'OK', 'code': code};
     } else {
+      map['msg'] = 'error';
+      map['code'] = 404;
       return map;
     }
   } catch (e) {
-    // debugPrint('Login error: ${e.toString()}');
+    debugPrint('Login error: ${e.toString()}');
   }
-  return {'message': 'error'};
+  return {'msg': 'error', 'code': code};
 }
 
 Future<bool> postValidateUser({required User user}) async {
@@ -279,6 +303,7 @@ Future<Map<String, dynamic>> postContacts(
     Map<String, dynamic> map = jsonDecode(response.body);
     if ([200, 201].contains(response.statusCode)) {
       Setup().jwt = map['token'];
+      Setup().setupToDb();
       return {'msg': 'OK'};
     } else {
       return map;
@@ -287,6 +312,25 @@ Future<Map<String, dynamic>> postContacts(
     debugPrint('Login error: ${e.toString()}');
   }
   return {'message': 'error'};
+}
+
+Future<bool> refreshToken() async {
+  final http.Response response =
+      await getWebData(uri: Uri.parse('$urlUser/token'), secure: true);
+  if ([200, 201].contains(response.statusCode)) {
+    try {
+      Map<String, dynamic> data = jsonDecode(response.body);
+      String token = data['token'];
+      if (token.isNotEmpty) {
+        Setup().jwt = data['token'];
+        Setup().setupToDb();
+        return true;
+      }
+    } catch (e) {
+      return false;
+    }
+  }
+  return false;
 }
 
 Future<void> getUserDetails({required String email}) async {
@@ -300,7 +344,8 @@ Future<void> getUserDetails({required String email}) async {
       Setup().user.surname = data['surname'] ?? '';
       Setup().user.email = email;
       Setup().user.phone = data['phone'] ?? '';
-      Setup().setupToDb();
+      //  saveUser(Setup().user);
+      //  Setup().setupToDb();
     } catch (e) {
       debugPrint('Error retrieving user data: ${e.toString()}');
     }
@@ -313,9 +358,9 @@ Future<void> getStats() async {
   if ([200, 201].contains(response.statusCode)) {
     try {
       Map<String, dynamic> data = jsonDecode(response.body);
-      Setup().messageCount = data['messages'];
-      Setup().tripCount = data['trips'];
-      Setup().shopCount = data['shop'];
+      Setup().messageCount = data['messages'] ?? 0;
+      Setup().tripCount = data['trips'] ?? 0;
+      Setup().shopCount = data['shop'] ?? 0;
     } catch (e) {
       debugPrint('Error getting stats: ${e.toString()}');
     }
@@ -324,23 +369,32 @@ Future<void> getStats() async {
 
 Future<Map<String, dynamic>> tryLogin({required User user}) async {
   bool register = user.password.length <= 6;
+  var uri = Uri.parse('$urlUser/${register ? "register" : "login"}');
+  int code = 500;
+  Map<String, dynamic> map = {};
   try {
-    var uri = Uri.parse('$urlUser/${register ? "register" : "login"}');
-    final http.Response response =
+    http.Response response =
         await postWebData(uri: uri, body: jsonEncode(user.toMap()));
-
-    Map<String, dynamic> map = jsonDecode(response.body);
-    if (response.statusCode == 200) {
-      Setup().jwt = map['token'];
-      Setup().setupToDb();
-      return {'msg': 'OK'};
-    } else {
-      return {'msg': map['message'] ?? 'error'};
+    code = response.statusCode;
+    if (response.body.isNotEmpty) {
+      map = jsonDecode(response.body);
+      if (code == 200) {
+        Setup().user.forename = map['forename'];
+        Setup().user.surname = map['surname'];
+        Setup().user.phone = map['phone'];
+        Setup().jwt = map['token'];
+        //    saveUser(Setup().user);
+        //    Setup().setupToDb();
+        return {'msg': 'OK'};
+      } else if (map.isNotEmpty) {
+        return {'msg': map['msg'] ?? 'error', 'response_status_code': code};
+      }
     }
   } catch (e) {
-    debugPrint('Login error: ${e.toString()}');
+    debugPrint(
+        'Login error: ${e.toString()} status code: $code uri: $uri map: ${map.toString()}');
   }
-  return {'message': 'error'};
+  return {'msg': map['msg'] ?? 'error', 'response_status_code': code};
 }
 
 Future<dynamic> postTrip(MyTripItem tripItem) async {
@@ -1394,7 +1448,7 @@ Widget showWebImage(String imageUrl,
     width: width,
     child: Padding(
       padding: const EdgeInsets.symmetric(horizontal: 10),
-      child: InkWell(
+      /* child: InkWell(
         onDoubleTap: () async {
           if (onDelete != null && index > -1) {
             if (context != null) {
@@ -1414,32 +1468,32 @@ Widget showWebImage(String imageUrl,
               onDelete(index);
             }
           }
+        }, */
+      //  String imageUrl = 'http://10.101.1.150:5001/v1/shop_item/images/0673901ecf1e761f8000b9ac02b722d7/6eec1ec3-2c5b-4d7e-9c3b-5a28d1016bd9.jpg';
+      child: Image.network(
+        imageUrl,
+        //   "http://10.101.1.150:5001/v1/shop_item/images/0673901ecf1e761f8000b9ac02b722d7/6eec1ec3-2c5b-4d7e-9c3b-5a28d1016bd9.jpg", //imageUrl,
+        loadingBuilder: (BuildContext context, Widget child,
+            ImageChunkEvent? loadingProgress) {
+          if (loadingProgress == null) {
+            return child;
+          }
+          return Center(
+            child: CircularProgressIndicator(
+              value: loadingProgress.expectedTotalBytes != null
+                  ? loadingProgress.cumulativeBytesLoaded /
+                      (loadingProgress.expectedTotalBytes ?? 1)
+                  : null,
+            ),
+          );
         },
-        //  String imageUrl = 'http://10.101.1.150:5001/v1/shop_item/images/0673901ecf1e761f8000b9ac02b722d7/6eec1ec3-2c5b-4d7e-9c3b-5a28d1016bd9.jpg';
-        child: Image.network(
-          imageUrl,
-          //   "http://10.101.1.150:5001/v1/shop_item/images/0673901ecf1e761f8000b9ac02b722d7/6eec1ec3-2c5b-4d7e-9c3b-5a28d1016bd9.jpg", //imageUrl,
-          loadingBuilder: (BuildContext context, Widget child,
-              ImageChunkEvent? loadingProgress) {
-            if (loadingProgress == null) {
-              return child;
-            }
-            return Center(
-              child: CircularProgressIndicator(
-                value: loadingProgress.expectedTotalBytes != null
-                    ? loadingProgress.cumulativeBytesLoaded /
-                        (loadingProgress.expectedTotalBytes ?? 1)
-                    : null,
-              ),
-            );
-          },
-          errorBuilder:
-              (BuildContext context, Object exception, StackTrace? stackTrace) {
-            return ImageMissing(width: width);
-          },
-        ),
+        errorBuilder:
+            (BuildContext context, Object exception, StackTrace? stackTrace) {
+          return ImageMissing(width: width);
+        },
       ),
     ),
+    // ),
   );
 }
 
@@ -1533,12 +1587,24 @@ Future<bool> serverListening() async {
     final http.Response response = await http
         .get(
           Uri.parse('$urlUser/test'),
+          // Uri.parse('https://drives.motatek.com/v1/user/test'),
         )
         .timeout(const Duration(seconds: 20));
     return (response.statusCode == 200);
   } catch (e) {
     debugPrint('Error checking for server: ${e.toString()}');
     return false;
+  }
+}
+
+Future<Map<String, dynamic>> getStyle({required String url}) async {
+  try {
+    final http.Response response =
+        await http.get(Uri.parse(url)).timeout(const Duration(seconds: 10));
+    return jsonDecode(response.body);
+  } catch (e) {
+    debugPrint('Error ${e.toString()}');
+    return {'Error': e.toString()};
   }
 }
 
@@ -1679,16 +1745,54 @@ Future<List<HomeItem>> getHomeItems(int scope) async {
     if ([200, 201].contains(response.statusCode)) {
       List<dynamic> items = jsonDecode(response.body);
       if (items.isNotEmpty) {
-        return [
-          for (Map<String, dynamic> map in items)
-            HomeItem.fromMap(map: map, url: '$urlHomePageItem/images/')
-        ];
+        List<HomeItem> homeItems = [];
+
+        for (Map<String, dynamic> map in items) {
+          homeItems
+              .add(HomeItem.fromMap(map: map, url: '$urlHomePageItem/images/'));
+        }
+        return homeItems;
       }
     }
   } catch (e) {
-    // debugPrint("getHomeItems error: ${e.toString()}");
+    debugPrint("getHomeItems error: ${e.toString()}");
   }
   return [];
+}
+
+Future<bool> deleteHomeItem(HomeItem homeItem) async {
+  var request =
+      http.MultipartRequest('POST', Uri.parse('$urlHomePageItem/delete'));
+
+/*
+  int id;
+  String uri;
+  String heading;
+  String subHeading;
+  String body;
+  String imageUrls;
+*/
+  try {
+    request.fields['uri'] =
+        homeItem.uri.substring((homeItem.uri.lastIndexOf('/') + 1));
+    request.fields['heading'] = homeItem.heading;
+    request.fields['subHeading'] = homeItem.subHeading;
+    request.fields['imageUrls'] = homeItem.imageUrls;
+
+    dynamic response =
+        await request.send().timeout(const Duration(seconds: 30));
+    if (response.statusCode == 201) {
+      return true;
+    }
+  } catch (e) {
+    if (e is TimeoutException) {
+      debugPrint('Request timed out');
+    } else {
+      debugPrint('Error posting article: ${e.toString()}');
+    }
+  }
+
+  return false;
 }
 
 Future<String> postHomeItem(HomeItem homeItem) async {
@@ -1699,13 +1803,15 @@ Future<String> postHomeItem(HomeItem homeItem) async {
       http.MultipartRequest('POST', Uri.parse('$urlHomePageItem/add'));
 
   List<String> imageUris = [];
-  int newImageIndex = 0;
+  int imageNum = 0;
   for (Photo photo in photos) {
-    if (photo.url.length > 40) {
+    if (!photo.url.substring(0, 10).contains('http')) {
       request.files.add(await http.MultipartFile.fromPath('files', photo.url));
-      imageUris.add('new_image_${++newImageIndex}');
+      imageUris.add(
+          '{"url":"new_image_${++imageNum}","caption":"${photo.caption}","rotation":${photo.rotation}}');
     } else {
-      imageUris.add(photo.url);
+      imageUris.add(
+          '{"url":${photo.url},"caption":"${photo.caption}","rotation":${photo.rotation}}');
     }
   }
   dynamic response;
@@ -1713,7 +1819,7 @@ Future<String> postHomeItem(HomeItem homeItem) async {
   try {
     request.fields['id'] = map['uri'];
     request.fields['title'] = map['heading'];
-    request.fields['sub_title'] = map['subHeading'];
+    request.fields['sub_title'] = map['sub_heading'];
     request.fields['body'] = map['body'];
     request.fields['added'] = map['added'] ?? DateTime.now().toString();
     request.fields['score'] = map['score'].toString();
@@ -1771,6 +1877,18 @@ Future<List<ShopItem>> getShopItems(int scope) async {
   }
   return itemsSent;
 }
+/*
+      List<dynamic> items = jsonDecode(response.body);
+      if (items.isNotEmpty) {
+        List<HomeItem> homeItems = [];
+
+        for (Map<String, dynamic> map in items) {
+          homeItems
+              .add(HomeItem.fromMap(map: map, url: '$urlHomePageItem/images/'));
+        }
+        return homeItems;
+
+ */
 
 Future<String> postShopItem(ShopItem shopItem) async {
   Map<String, dynamic> map = shopItem.toMap();
@@ -1796,7 +1914,7 @@ Future<String> postShopItem(ShopItem shopItem) async {
   try {
     request.fields['id'] = map['uri'];
     request.fields['title'] = map['heading'];
-    request.fields['sub_title'] = map['subHeading'];
+    request.fields['sub_title'] = map['sub_heading'];
     request.fields['body'] = map['body'];
     request.fields['added'] = map['added'] ?? DateTime.now().toString();
     request.fields['score'] = map['score'].toString();
@@ -1862,6 +1980,13 @@ Future<List<EventInvitation>> getInvitationsByEvent(
     // debugPrint("Can't access data on the web: ${e.toString()}");
   }
   return [];
+}
+
+Future<int> inviteWebUser({required String body}) async {
+  var uri = Uri.parse('$urlUser/apk_request');
+  http.Response response =
+      await postWebData(uri: uri, body: body, secure: true);
+  return response.statusCode;
 }
 
 Future<List<EventInvitation>> getInvitationsToAlter(

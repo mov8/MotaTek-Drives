@@ -146,7 +146,7 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
                     title: Wrap(children: [
                       Text('Download to ',
                           style: TextStyle(color: Colors.black, fontSize: 18)),
-                      Text('This Trip',
+                      Text('My Trip',
                           style: TextStyle(
                               color: Colors.black,
                               fontSize: 18,
@@ -577,7 +577,7 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
   }
 
   double getInitialZoom() {
-    return 8.0;
+    return 9.0;
   }
 
   routeTapped(routes, details) {

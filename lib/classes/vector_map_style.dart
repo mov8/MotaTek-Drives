@@ -2,6 +2,7 @@ import 'package:drives/constants.dart';
 // import 'package:drives/models/other_models.dart';
 import 'package:flutter/material.dart';
 import 'package:vector_map_tiles/vector_map_tiles.dart';
+import 'package:drives/services/services.dart';
 
 /// Stackoverflow descripion of extending TileProvide to cache
 /// https://stackoverflow.com/questions/79609507/how-to-cache-map-tiles-in-flutter-using-flutter-map-for-offline-usage
@@ -16,20 +17,32 @@ class VectorMapStyle {
   }
   Future<dynamic> mapStyle() async {
     try {
+      // style = await getStyle(url: 'https://drives.motatek.com/v1/tile/style');
       if (style == null) {
-        StyleReader styleReader =
-            StyleReader(uri: urlTiler, apiKey: mapsApiKey, logger: null);
+        StyleReader styleReader = StyleReader(
+            uri: urlTiler,
+            apiKey: '', //mapsApiKey,
+            logger: null);
         //return _lightStyle();
         style = await styleReader.read();
         //  style.theme =
+        // style = await getStyle(url: 'https://drives.motatek.com/v1/tile/style');
       }
       return style; //await styleReader.read();
     } catch (e) {
-      debugPrint('Error initiating st4yle: ${e.toString}');
+      debugPrint('Error initiating st4yle: ${e.toString()}');
       return _lightStyle();
     }
   }
 }
+
+/* 
+const String urlTiler = '${urlBase}v1/tile/style';
+const String urlUser = '${urlBase}v1/user';
+// const String urlUser = 'https://drives.motatek.com/v1/user';
+'https://drives.motatek.com/v1/tile/style'
+
+*/
 
 dynamic _lightStyle() => {
       "version": 8,
