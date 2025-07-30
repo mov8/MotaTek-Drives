@@ -21,14 +21,9 @@ class _MyGroupsFormState extends State<MyGroupsForm> {
   List<GroupMember> groupMembers = [];
   List<Group> groups = [];
 
-  RegExp emailRegex = RegExp(r'[a-zA-Z0-9.]+@[a-zA-Z0-9]+\.[a-zA-Z]+');
-  // final _formKey = GlobalKey<FormState>();
   String groupName = 'Driving Group';
   bool edited = false;
   int groupIndex = 0;
-  // double _emailSizedBoxHeight = 70;
-  // bool _validate = false;
-  // String _validateMessage = '';
   String testString = '';
   bool addingMember = false;
   bool addingGroup = false;

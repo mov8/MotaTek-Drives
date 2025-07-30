@@ -224,30 +224,6 @@ You can plan trips either on your own or you can explore in a group''',
     setState(() => ());
   }
 
-/*
-  onRemoveImage(int itemIndex, int imageIndex) {
-    if (_items[itemIndex].imageUrls.isNotEmpty) {
-      try {
-        String urls = '';
-        List urlList = jsonDecode(_items[itemIndex].imageUrls);
-        String delim = '';
-        if (urlList.length > 1) {
-          for (int i = 0; i < urlList.length; i++) {
-            if (i != imageIndex) {
-              urls =
-                  '$urls$delim{"url":"${urlList[i]['url']}","caption":"${urlList[i]['caption']}","rotation":${urlList[i]['rotation']}}';
-              delim = ',';
-            }
-          }
-          urls = '[$urls]';
-        }
-        setState(() => _items[itemIndex].imageUrls = urls);
-      } catch (e) {
-        developer.log('Error ${e.toString()}', name: '_callback');
-      }
-    }
-  }
-*/
   onAddLink(int index) {
     developer.log('onAddLink', name: '_callback');
     setState(() => _items[index].links =

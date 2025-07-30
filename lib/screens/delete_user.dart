@@ -61,6 +61,7 @@ class DeleteUserForm extends StatefulWidget {
 
 class _DeleteTripsFormState extends State<DeleteUserForm> {
   final List<TripSummary> _drives = [];
+  late AutoCompleteAsyncController _controller;
   bool editing = false;
   TextInputAction action = TextInputAction.done;
   int selected = 0;
@@ -78,6 +79,13 @@ class _DeleteTripsFormState extends State<DeleteUserForm> {
   @override
   void initState() {
     super.initState();
+    _controller = AutoCompleteAsyncController();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 
   Future<List<TripSummary>> _loadTrips(
@@ -92,11 +100,6 @@ class _DeleteTripsFormState extends State<DeleteUserForm> {
       }
     }
     return tripSummaries;
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
   }
 
   @override
@@ -172,6 +175,7 @@ class _DeleteTripsFormState extends State<DeleteUserForm> {
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 30, 20, 10),
               child: AutocompleteAsync(
+                controller: _controller,
                 options: dropdownOptions,
                 decoration: InputDecoration(
                   border: OutlineInputBorder(),
@@ -258,8 +262,6 @@ class _DeleteTripsFormState extends State<DeleteUserForm> {
   getDropdownItems(String query) async {
     dropdownOptions.clear();
     dropdownOptions.addAll(await getApiOptions(value: query));
-    // debugPrint(
-    //     'For query query $query dropdownOptions.length = ${dropdownOptions.length}');
     setState(() {});
   }
 

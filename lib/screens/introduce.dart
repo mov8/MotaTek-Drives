@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:drives/models/other_models.dart';
 import 'package:drives/services/web_helper.dart';
+import 'package:drives/constants.dart';
 
 class IntroduceForm extends StatefulWidget {
   // var setup;
@@ -18,13 +18,16 @@ class _IntroduceFormState extends State<IntroduceForm> {
   late Future<bool> dataloaded;
   late FocusNode fn1;
 
-  List<GroupMember> introduceMembers = [];
-
-  String introduceName = 'Driving introduce';
+  TextEditingController controller1 = TextEditingController();
+  TextEditingController controller2 = TextEditingController();
+  TextEditingController controller3 = TextEditingController();
+  TextEditingController controller4 = TextEditingController();
   bool edited = false;
   bool showChip = false;
+  bool sentOk = false;
   int introduceIndex = 0;
   String testString = '';
+  List<bool> fieldStates = [false, false, false, false];
 
   @override
   void initState() {
@@ -36,6 +39,10 @@ class _IntroduceFormState extends State<IntroduceForm> {
   @override
   void dispose() {
     fn1.dispose();
+    controller1.dispose();
+    controller2.dispose();
+    controller3.dispose();
+    controller4.dispose();
     super.dispose();
   }
 
@@ -108,8 +115,6 @@ class _IntroduceFormState extends State<IntroduceForm> {
   Map<String, dynamic> invited = {};
 
   Column portraitView() {
-    introduceMembers.add(GroupMember(forename: '', surname: ''));
-
     showChip = dataComplete() ? showChip : false;
     return Column(
       children: [
@@ -119,17 +124,20 @@ class _IntroduceFormState extends State<IntroduceForm> {
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
               child: TextFormField(
                 autofocus: true,
+                focusNode: fn1,
                 textInputAction: TextInputAction.next,
-                decoration: const InputDecoration(
+                controller: controller1,
+                decoration: InputDecoration(
                   border: OutlineInputBorder(),
                   hintText: 'Enter forename',
                   labelText: 'Forename',
+                  suffixIcon: Icon(fieldStates[0]
+                      ? Icons.check_circle_outline
+                      : Icons.star_outline),
                 ),
                 textCapitalization: TextCapitalization.words,
                 keyboardType: TextInputType.name,
                 textAlign: TextAlign.left,
-                initialValue:
-                    introduceMembers[introduceMembers.length - 1].forename,
                 style: Theme.of(context).textTheme.bodyLarge,
                 onChanged: (text) {
                   invited['forename'] = text;
@@ -143,16 +151,17 @@ class _IntroduceFormState extends State<IntroduceForm> {
               padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
               child: TextFormField(
                 textInputAction: TextInputAction.next,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  hintText: 'Enter surname',
-                  labelText: 'Surname',
-                ),
+                controller: controller2,
+                decoration: InputDecoration(
+                    border: OutlineInputBorder(),
+                    hintText: 'Enter surname',
+                    labelText: 'Surname',
+                    suffixIcon: Icon(fieldStates[1]
+                        ? Icons.check_circle_outline
+                        : Icons.star_outline)),
                 textAlign: TextAlign.left,
                 keyboardType: TextInputType.name,
                 textCapitalization: TextCapitalization.words,
-                initialValue:
-                    introduceMembers[introduceMembers.length - 1].surname,
                 style: Theme.of(context).textTheme.bodyLarge,
                 onChanged: (text) {
                   invited['surname'] = text;
@@ -167,15 +176,16 @@ class _IntroduceFormState extends State<IntroduceForm> {
               padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
               child: TextFormField(
                 textInputAction: TextInputAction.next,
+                controller: controller3,
                 keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  hintText: 'Enter email address',
-                  labelText: 'Email address',
-                ),
+                decoration: InputDecoration(
+                    border: OutlineInputBorder(),
+                    hintText: 'Enter email address',
+                    labelText: 'Email address',
+                    suffixIcon: Icon(fieldStates[2]
+                        ? Icons.check_circle_outline
+                        : Icons.star_outline)),
                 textAlign: TextAlign.left,
-                initialValue:
-                    introduceMembers[introduceMembers.length - 1].email,
                 style: Theme.of(context).textTheme.bodyLarge,
                 onChanged: (text) {
                   invited['email'] = text;
@@ -183,21 +193,26 @@ class _IntroduceFormState extends State<IntroduceForm> {
                     setState(() => showChip = true);
                   }
                 },
+                validator: (value) =>
+                    value != null && !emailRegex.hasMatch(value)
+                        ? 'Enter a valid email address'
+                        : null,
               ),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
               child: TextFormField(
                 textInputAction: TextInputAction.done,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  hintText: 'Enter mobile phone number',
-                  labelText: 'Mobile phone number',
-                ),
+                controller: controller4,
+                decoration: InputDecoration(
+                    border: OutlineInputBorder(),
+                    hintText: 'Enter mobile phone number',
+                    labelText: 'Mobile phone number',
+                    suffixIcon: Icon(fieldStates[3]
+                        ? Icons.check_circle_outline
+                        : Icons.star_outline)),
                 textAlign: TextAlign.left,
                 keyboardType: TextInputType.phone,
-                initialValue:
-                    introduceMembers[introduceMembers.length - 1].phone,
                 style: Theme.of(context).textTheme.bodyLarge,
                 onChanged: (text) {
                   invited['phone'] = text;
@@ -214,25 +229,46 @@ class _IntroduceFormState extends State<IntroduceForm> {
           child: Padding(
             padding: const EdgeInsets.fromLTRB(20, 10, 10, 10),
             child: showChip
-                ? ActionChip(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
+                ? Wrap(spacing: 10, children: [
+                    ActionChip(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      onPressed: () async {
+                        invited['new_user'] = true;
+                        sentOk =
+                            await inviteWebUser(body: jsonEncode(invited)) ==
+                                200;
+                        setState(() => sentOk);
+                      },
+                      backgroundColor: Colors.blue,
+                      avatar: const Icon(
+                        Icons.send,
+                        color: Colors.white,
+                      ),
+                      label: const Text(
+                        'Send invitation',
+                        style: TextStyle(fontSize: 18, color: Colors.white),
+                      ),
                     ),
-                    onPressed: () {
-                      invited['new_user'] = true;
-                      inviteWebUser(body: jsonEncode(invited));
-                      setState(() => ());
-                    },
-                    backgroundColor: Colors.blue,
-                    avatar: const Icon(
-                      Icons.send,
-                      color: Colors.white,
-                    ),
-                    label: const Text(
-                      'Send invitation',
-                      style: TextStyle(fontSize: 18, color: Colors.white),
-                    ),
-                  )
+                    if (sentOk) ...[
+                      ActionChip(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        onPressed: () => setState(() => clearData()),
+                        backgroundColor: Colors.blue,
+                        avatar: const Icon(
+                          Icons.clear_all_outlined,
+                          color: Colors.white,
+                        ),
+                        label: const Text(
+                          'Clear data',
+                          style: TextStyle(fontSize: 18, color: Colors.white),
+                        ),
+                      )
+                    ]
+                  ])
                 : null,
           ),
         ),
@@ -241,9 +277,36 @@ class _IntroduceFormState extends State<IntroduceForm> {
   }
 
   bool dataComplete() {
-    return (invited['email'] ?? '').isNotEmpty &&
-        (invited['forename'] ?? '').isNotEmpty &&
-        (invited['surname'] ?? '').isNotEmpty &&
-        (invited['phone'] ?? '').isNotEmpty;
+    bool update = false;
+    if (fieldStates[0] != (invited['forename'] ?? '').length > 2) {
+      fieldStates[0] = (invited['forename'] ?? '').length > 2;
+      update = true;
+    }
+    if (fieldStates[1] != (invited['surname'] ?? '').length > 2) {
+      fieldStates[1] = (invited['surname'] ?? '').length > 2;
+      update = true;
+    }
+    if (fieldStates[2] != emailRegex.hasMatch(invited['email'] ?? '')) {
+      fieldStates[2] = emailRegex.hasMatch(invited['email'] ?? '');
+      update = true;
+    }
+    if (fieldStates[3] != (invited['phone'] ?? '').length > 9) {
+      fieldStates[3] = (invited['phone'] ?? '').length > 9;
+      update = true;
+    }
+    if (update) {
+      setState(() => ());
+    }
+    return fieldStates[0] && fieldStates[1] && fieldStates[2] && fieldStates[3];
+  }
+
+  clearData() {
+    fieldStates = [false, false, false, false];
+    invited = {};
+    controller1.clear();
+    controller2.clear();
+    controller3.clear();
+    controller4.clear();
+    fn1.requestFocus();
   }
 }

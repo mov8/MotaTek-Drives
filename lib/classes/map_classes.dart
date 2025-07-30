@@ -1271,8 +1271,6 @@ class _FeatureDetailsState extends State<FeatureDetails> {
         index: id,
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeInOutCubic);
-
-    _expandNotifier.notifyListeners();
   }
 
   Future<bool> getCards(

@@ -44,7 +44,6 @@ Future<http.Response> postWebData(
 
 const List<String> settlementTypes = ['city', 'town', 'village', 'hamlet'];
 DateFormat dateFormat = DateFormat('dd/MM/yy HH:mm');
-RegExp emailRegex = RegExp(r'[a-zA-Z0-9.]+@[a-zA-Z0-9]+\.[a-zA-Z]+');
 
 Future<List<String>> getSuggestions(String value) async {
   String baseURL = 'https://photon.komoot.io/api/?q=$value';
@@ -1288,21 +1287,12 @@ Future<List<GroupMember>> getIntroduced() async {
   return introduced;
 }
 
-putIntroduced(List<GroupMember> members) async {
-  List<Map<String, dynamic>> maps = [];
-  for (int i = 0; i < members.length; i++) {
-    if (members[i].selected) {
-      maps.add(members[i].toApiMap());
-    }
-  }
-
+Future<bool> putIntroduced(Map<String, dynamic> invitee) async {
   final http.Response response = await http.post(
       Uri.parse('$urlIntroduced/put'),
-      headers: webHeader(),
-      body: jsonEncode(maps));
-  if ([200, 201].contains(response.statusCode)) {
-    // debugPrint('Member added OK: ${response.statusCode}');
-  }
+      headers: webHeader(secure: true),
+      body: jsonEncode(invitee));
+  return [200, 201].contains(response.statusCode);
 }
 
 deleteWebImage(String url) async {
@@ -1389,20 +1379,41 @@ bool canDelete(bool ok, String url, int index) {
 }
 
 Future<List<Group>> getManagedGroups() async {
+  List<Group> groups = [];
   try {
     final http.Response response =
         await getWebData(uri: Uri.parse('$urlGroup/managed'), secure: true);
     if ([200, 201].contains(response.statusCode)) {
-      var groups = jsonDecode(response.body);
-      return [
-        for (Map<String, dynamic> groupData in groups)
-          Group.fromGroupSummaryMap(groupData)
-      ];
+      var groupsData = jsonDecode(response.body);
+      for (Map<String, dynamic> groupData in groupsData) {
+        Group group = Group(
+            id: groupData['id'],
+            name: groupData['name'],
+            userId: groupData['user_id']);
+        List<GroupMember> members = [];
+        for (Map<String, dynamic> memberData in groupData['members']) {
+          GroupMember member = GroupMember(
+              id: memberData['id'],
+              groupId: groupData['id'],
+              forename: memberData['forename'],
+              surname: memberData['surname'],
+              phone: memberData['phone'],
+              email: memberData['email']);
+          members.add(member);
+        }
+        group.setGroupMembers(members);
+        groups.add(group);
+      }
+
+      // return [
+      //   for (Map<String, dynamic> groupData in groups) Group.fromMap(groupData)
+      //   //  Group.fromGroupSummaryMap(groupData)
+      // ];
     }
   } catch (e) {
-    // debugPrint("Can't access data on the web");
+    debugPrint("Can't access data on the web");
   }
-  return [];
+  return groups;
 }
 
 Future<List<GroupMember>> getManagedGroupMembers(String groupId) async {
@@ -1443,9 +1454,8 @@ Future<bool> serverListening() async {
     final http.Response response = await http
         .get(
           Uri.parse('$urlUser/test'),
-          // Uri.parse('https://drives.motatek.com/v1/user/test'),
         )
-        .timeout(const Duration(seconds: 20));
+        .timeout(const Duration(seconds: 5));
     return (response.statusCode == 200);
   } catch (e) {
     debugPrint('Error checking for server: ${e.toString()}');
@@ -1481,10 +1491,54 @@ Future<List<Group>> getMyGroups() async {
   return [];
 }
 
+Future<Map<String, dynamic>> updateGroups(
+    {required List<Group> groups, required GroupAction action}) async {
+  List<Map<String, dynamic>> groupsMaps = [];
+  for (int i = 0; i < groups.length; i++) {
+    // groups[i].userId = Setup().user.uri;
+    groupsMaps.add(groups[i].toMap());
+  }
+  final http.Response response = await postWebData(
+      uri: Uri.parse('$urlGroup/${action.name}'),
+      body: jsonEncode(groupsMaps),
+      secure: true,
+      timeout: 5);
+  if ([200, 201].contains(response.statusCode)) {
+    return {'msg': 'OK'};
+  }
+  return {'msg': 'error'};
+}
+
+Future<Map<String, dynamic>> updateGroup({required Group group}) async {
+  Map<String, dynamic> groupMap = group.toMap();
+  final http.Response response = await postWebData(
+      uri: Uri.parse('$urlGroup/update'),
+      body: jsonEncode(groupMap),
+      secure: true,
+      timeout: 5);
+  if ([200, 201].contains(response.statusCode)) {
+    return {'msg': 'OK'};
+  }
+  return {'msg': 'error'};
+}
+
+Future<Map<String, dynamic>> deleteGroupMember(
+    {required String groupMemberId}) async {
+  final http.Response response = await postWebData(
+      uri: Uri.parse('$urlGroupMember/delete'),
+      body: jsonEncode({'id': groupMemberId}),
+      secure: true,
+      timeout: 5);
+  if ([200, 201].contains(response.statusCode)) {
+    return {'msg': 'OK'};
+  }
+  return {'msg': 'error'};
+}
+
 Future<List<GroupDrive>> getGroupDrives() async {
   try {
     final http.Response response = await getWebData(
-        uri: Uri.parse('$urlGroupDrive/pending'), secure: true);
+        uri: Uri.parse('$urlGroupDrive/pending'), secure: true, timeout: 5);
     if ([200, 201].contains(response.statusCode)) {
       List<dynamic> groups = jsonDecode(response.body);
       return [for (Map<String, dynamic> map in groups) GroupDrive.fromMap(map)];
@@ -1503,7 +1557,7 @@ Future<Map<String, dynamic>> deleteGroupDrive(
   if ([200, 201].contains(response.statusCode)) {
     return {'msg': 'OK'};
   }
-  return {'msf': 'error'};
+  return {'msg': 'error'};
 }
 
 Future<List<MailItem>> getMessagesByGroup() async {
@@ -1578,14 +1632,12 @@ Future<String> putMessage(Group group, Message message) async {
   return '';
 }
 
-Future<String> putGroup(Group group) async {
+Future<String> putGroup(Map<String, dynamic> groupData) async {
   final http.Response response = await postWebData(
-      uri: Uri.parse('${urlBase}v1/group/add'),
-      body: jsonEncode(group.toMap()));
+      uri: Uri.parse('${urlBase}v1/group/add'), body: jsonEncode(groupData));
   if ([200, 201].contains(response.statusCode)) {
     dynamic responseData = jsonDecode(response.body);
-    group.id = responseData['id'];
-    return responseData.toString();
+    return responseData['id'] ?? '';
   }
   return '';
 }

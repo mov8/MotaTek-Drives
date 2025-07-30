@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:drives/classes/autocomplete_widget.dart';
 import 'package:flutter/material.dart';
-import 'package:drives/models/other_models.dart';
 import 'package:drives/services/db_helper.dart';
 import 'package:drives/services/web_helper.dart';
 
@@ -13,7 +12,7 @@ class InviteForm extends StatefulWidget {
 }
 
 class _InviteFormState extends State<InviteForm> {
-  final List<TripSummary> _drives = [];
+  late AutoCompleteAsyncController _controller;
   bool editing = false;
   TextInputAction action = TextInputAction.done;
   int selected = 0;
@@ -28,10 +27,12 @@ class _InviteFormState extends State<InviteForm> {
   @override
   void initState() {
     super.initState();
+    _controller = AutoCompleteAsyncController();
   }
 
   @override
   void dispose() {
+    _controller.dispose();
     super.dispose();
   }
 
@@ -89,7 +90,10 @@ class _InviteFormState extends State<InviteForm> {
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 30, 20, 10),
               child: AutocompleteAsync(
+                controller: _controller,
                 options: dropdownOptions,
+                optionsMaxHeight: 100,
+                optionsMinHeight: 50,
                 textInputAction: TextInputAction.next,
                 decoration: InputDecoration(
                   border: OutlineInputBorder(),

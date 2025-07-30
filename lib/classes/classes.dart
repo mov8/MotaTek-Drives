@@ -10,6 +10,7 @@ export 'package:drives/classes/fences.dart';
 export 'package:drives/classes/image_list_indicator.dart';
 export 'package:drives/classes/image_arranger.dart';
 export 'package:drives/classes/image_missing.dart';
+export 'package:drives/classes/invite_group_member.dart';
 export 'package:drives/classes/leading_widget.dart';
 export 'package:drives/classes/map_markers.dart';
 export 'package:drives/classes/map_features.dart';

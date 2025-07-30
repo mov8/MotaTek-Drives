@@ -1039,23 +1039,36 @@ class Group {
 
   factory Group.fromMap(var map) {
     return Group(
-        name: map['name'],
-        description: map['description'],
-        members: <GroupMember>[
-          for (Map<String, dynamic> memberMap in map['members'])
-            GroupMember.fromMap(memberMap)
-        ],
-        created: DateTime.parse(map['created']),
-        userId: map['user_id'],
-        id: map['id']);
+      id: map['id'] ?? '',
+      name: map['name'] ?? '',
+      userId: map['user_id'] ?? '', // group owner
+      description: map['description'] ?? '',
+      members: <GroupMember>[
+        for (Map<String, dynamic> memberMap in map['members'])
+          GroupMember.fromMap(memberMap,
+              userId: map['user_id'] ?? '', groupId: map['id'] ?? '')
+      ],
+      created: DateTime.parse(map['created'] ?? '01/01/2000'),
+    );
   }
 
   factory Group.fromGroupSummaryMap(var map) {
+    List<GroupMember> members = [];
+    for (Map<String, dynamic> member in map['members']) {
+      members.add(GroupMember(
+          id: member['id'],
+          forename: member['forename'],
+          surname: member['surname'],
+          phone: member['phone'],
+          email: member['email']));
+    }
     return Group(
-      id: map['group_id'],
-      name: map['group_name'],
-      created: DateTime.parse(map['created']),
-      memberCount: int.parse(map['members']),
+      id: map['id'],
+      userId: map['user_id'],
+      edited: false,
+      name: map['name'],
+      members: members,
+      memberCount: members.length,
     );
   }
 
@@ -1081,10 +1094,12 @@ class Group {
 
   void addMember(GroupMember member) {
     _members.add(member);
+    memberCount = _members.length;
   }
 
   void removeMember(int index) {
     _members.removeAt(index);
+    memberCount = _members.length;
   }
 
   List<GroupMember> groupMembers() {
@@ -1093,6 +1108,7 @@ class Group {
 
   void setGroupMembers(List<GroupMember> members) {
     _members = members;
+    memberCount = _members.length;
   }
 }
 
@@ -1119,11 +1135,12 @@ class GroupMember {
       this.phone = '',
       this.selected = false});
 
-  factory GroupMember.fromMap(Map<String, dynamic> map) {
+  factory GroupMember.fromMap(Map<String, dynamic> map,
+      {String userId = '', groupId = ''}) {
     return GroupMember(
       id: map['id'],
-      userId: map['member'],
-      groupId: map['groups'],
+      userId: map['member'] ?? userId,
+      groupId: map['groups'] ?? groupId,
       forename: map['forename'],
       surname: map['surname'],
       email: map['email'],
@@ -1150,8 +1167,8 @@ class GroupMember {
       forename: map['member_forename'],
       surname: map['member_surname'],
       email: map['member_email'],
-      phone: map['member_phone'],
-      selected: true,
+      phone: map['member_phone'] ?? '',
+      selected: (map['registered'] ?? 1) == 1,
     );
   }
 

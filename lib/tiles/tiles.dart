@@ -1,6 +1,6 @@
 export 'package:drives/tiles/directions_tile.dart';
 export 'package:drives/tiles/follower_tile.dart';
-export 'package:drives/tiles/group_member_tile.dart';
+export 'package:drives/tiles/group_tile.dart';
 export 'package:drives/tiles/group_drive_tile.dart';
 export 'package:drives/tiles/group_drive_invitation_tile.dart';
 export 'package:drives/tiles/group_drive_invitee_tile.dart';

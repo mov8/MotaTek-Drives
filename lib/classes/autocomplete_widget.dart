@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:drives/classes/classes.dart';
+import 'dart:developer' as developer;
 
 class AutocompleteWidget extends StatelessWidget {
   final List<String> options;
@@ -23,12 +24,55 @@ class AutocompleteWidget extends StatelessWidget {
   }
 }
 
+class AutoCompleteAsyncController {
+  _AutocompleteAsyncState? _autocompleteAsyncState;
+
+  void _addState(_AutocompleteAsyncState autocompleteAsyncState) {
+    _autocompleteAsyncState = autocompleteAsyncState;
+  }
+
+  bool get isAttached => _autocompleteAsyncState != null;
+
+  void dispose() {
+    assert(isAttached, 'Controller must be attached to widget to dispose');
+    try {
+      _autocompleteAsyncState?.disposeController();
+    } catch (e) {
+      String err = e.toString();
+      debugPrint('Error disposing of AutocompleteController: $err');
+    }
+  }
+
+  void setFocus() {
+    assert(isAttached, 'Controller must be attached to widget to clear');
+    try {
+      _autocompleteAsyncState?.setFocus();
+    } catch (e) {
+      String err = e.toString();
+      debugPrint('Error clearing AutoComplete: $err');
+    }
+  }
+
+  void clear() {
+    assert(isAttached, 'Controller must be attached to widget to clear');
+    try {
+      _autocompleteAsyncState?.clear();
+    } catch (e) {
+      String err = e.toString();
+      debugPrint('Error clearing AutoComplete: $err');
+    }
+  }
+}
+
 class AutocompleteAsync extends StatefulWidget {
   final String type;
   final int searchLength;
+  final double optionsMinHeight;
+  final double optionsMaxHeight;
   final Function(String)? onSelect;
   final Function(String)? onChange;
   final Function(String)? onUpdateOptionsRequest;
+  final AutoCompleteAsyncController controller;
   final List<String> options;
   final TextInputType? keyboardType;
   final TextInputAction? textInputAction;
@@ -37,8 +81,11 @@ class AutocompleteAsync extends StatefulWidget {
   const AutocompleteAsync(
       {super.key,
       required this.options,
+      required this.controller,
       this.type = 'email',
       this.searchLength = 1,
+      this.optionsMinHeight = 50,
+      this.optionsMaxHeight = 150,
       this.onSelect,
       this.onChange,
       this.onUpdateOptionsRequest,
@@ -54,6 +101,16 @@ class _AutocompleteAsyncState extends State<AutocompleteAsync> {
   String _lastReadQuery = '';
   final List<String> _options = [];
   final List<String> _allOptions = [];
+  late TextEditingController _controller;
+  late FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    // bool changeId = _widgetId != widget.initialValue;
+    widget.controller._addState(this);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Autocomplete<String>(
@@ -65,6 +122,9 @@ class _AutocompleteAsyncState extends State<AutocompleteAsync> {
           TextEditingController fieldTextEditingController,
           FocusNode fieldFocusNode,
           VoidCallback onFieldSubmitted) {
+        // This next line allows the late widget.controller; to have control
+        _controller = fieldTextEditingController;
+        _focusNode = fieldFocusNode;
         return TextField(
           controller: fieldTextEditingController,
           keyboardType: widget.keyboardType,
@@ -96,6 +156,178 @@ class _AutocompleteAsyncState extends State<AutocompleteAsync> {
       },
       optionsViewBuilder: (BuildContext context,
           AutocompleteOnSelected<String> onSelected, Iterable<String> options) {
+        return SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+                minHeight: widget.optionsMinHeight,
+                maxHeight: widget.optionsMaxHeight),
+            child: Material(
+              elevation: 4.0,
+              child: ListView(
+                children: options.map((String option) {
+                  return ListTile(
+                    title: Text(option),
+                    onTap: () {
+                      onSelected(option);
+                    },
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+        );
+      },
+      onSelected: (chosen) => widget.onSelect!(chosen),
+    );
+  }
+
+  clear() {
+    widget.controller.clear();
+  }
+
+  disposeController() {
+    _controller.dispose();
+  }
+
+  setFocus() {
+    _focusNode.requestFocus();
+  }
+}
+
+/*
+class AutoCompleteAsyncController {
+  _AutocompleteAsyncState? _autocompleteAsyncState;
+
+  void _addState(_AutocompleteAsyncState autocompleteAsyncState) {
+    _autocompleteAsyncState = autocompleteAsyncState;
+  }
+
+  bool get isAttached => _autocompleteAsyncState != null;
+
+  void dispose() {
+    assert(isAttached, 'Controller must be attached to widget to dispose');
+    try {
+      _autocompleteAsyncState?.disposeController();
+    } catch (e) {
+      String err = e.toString();
+      debugPrint('Error disposing of AutocompleteController: $err');
+    }
+  }
+
+  void clear() {
+    assert(isAttached, 'Controller must be attached to widget to clear');
+    try {
+      _autocompleteAsyncState?.clear();
+    } catch (e) {
+      String err = e.toString();
+      debugPrint('Error clearing AutoComplete: $err');
+    }
+  }
+}
+
+class AutocompleteAsync extends StatefulWidget {
+  final String type;
+  final int searchLength;
+  final bool autofocus;
+  final Function(String)? onSelect;
+  final Function(String)? onChange;
+  final Function(String)? onUpdateOptionsRequest;
+  final Function()? clear;
+  final List<String> options;
+  final FocusNode? focusNode;
+  final AutoCompleteAsyncController controller;
+  final TextInputType? keyboardType;
+  final TextInputAction? textInputAction;
+  final InputDecoration? decoration;
+
+  const AutocompleteAsync(
+      {super.key,
+      required this.options,
+      required this.controller,
+      this.type = 'email',
+      this.autofocus = false,
+      this.searchLength = 1,
+      this.onSelect,
+      this.onChange,
+      this.clear,
+      this.onUpdateOptionsRequest,
+      this.decoration,
+      this.focusNode,
+      this.keyboardType,
+      this.textInputAction});
+
+  @override
+  State<AutocompleteAsync> createState() => _AutocompleteAsyncState();
+}
+
+class _AutocompleteAsyncState extends State<AutocompleteAsync> {
+  String _lastReadQuery = '';
+  final List<String> _options = [];
+  final List<String> _allOptions = [];
+  late TextEditingController _controller;
+  @override
+  void initState() {
+    super.initState();
+    // bool changeId = _widgetId != widget.initialValue;
+    widget.controller._addState(this);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Autocomplete<String>(
+      optionsBuilder: (TextEditingValue textEditingValue) async {
+        _allOptions.clear();
+        _allOptions.addAll(widget.options);
+        return _options;
+      },
+      displayStringForOption: (option) => 'email: $option',
+      fieldViewBuilder: (BuildContext context,
+          TextEditingController fieldTextEditingController,
+          FocusNode fieldFocusNode,
+          VoidCallback onFieldSubmitted) {
+        // This next line allows the late widget.controller; to have control
+        // _controller = fieldTextEditingController;
+        return TextField(
+          autofocus: widget.autofocus,
+          controller: fieldTextEditingController,
+          keyboardType: widget.keyboardType,
+          textInputAction: widget.textInputAction,
+          focusNode: widget.focusNode, // fieldFocusNode,
+          decoration: widget.decoration,
+          textCapitalization: TextCapitalization.none,
+          onChanged: (text) {
+            developer.log('onchange: $text', name: '_dropdown');
+            if (text.length < widget.searchLength) {
+              _options.clear();
+            } else {
+              if (_options.isEmpty) {
+                _options.addAll(_allOptions);
+              }
+
+              widget.onChange!(text);
+              if (_options.isNotEmpty) {
+                developer.log('options not empty: $text', name: '_dropdown');
+                _options.retainWhere((str) => str.startsWith(text));
+                if (_options.isEmpty) {
+                  developer.log('update request: $text', name: '_dropdown');
+                  widget.onUpdateOptionsRequest!('');
+                }
+              }
+              if (_lastReadQuery.isEmpty || !text.startsWith(_lastReadQuery)) {
+                developer.log(' empty: $text', name: '_dropdown');
+                widget.onUpdateOptionsRequest!(text);
+                developer.log('update request 2: $text', name: '_dropdown');
+                _lastReadQuery = text;
+              }
+            }
+          },
+          onSubmitted: (text) {},
+        );
+      },
+      optionsViewBuilder: (BuildContext context,
+          AutocompleteOnSelected<String> onSelected, Iterable<String> options) {
+        developer.log('opptionsViewBuilder options.length: ${options.length}',
+            name: '_dropdown');
         return Material(
           elevation: 4.0,
           child: ListView(
@@ -110,10 +342,24 @@ class _AutocompleteAsyncState extends State<AutocompleteAsync> {
           ),
         );
       },
-      onSelected: (chosen) => widget.onSelect!(chosen),
+      onSelected: (chosen) {
+        if (widget.onSelect != null) {
+          widget.onSelect!(chosen);
+        }
+      },
     );
   }
+
+  disposeController() {
+    _controller.dispose();
+  }
+
+  clear() {
+    _controller.clear();
+  }
 }
+
+*/
 
 class AutocompletePlace extends StatefulWidget {
   final String type;
@@ -188,14 +434,12 @@ class _AutocompletePlace extends State<AutocompletePlace> {
             }
           },
           onSubmitted: (text) {
-            //     debugPrint('$text submitted');
+            debugPrint('$text submitted');
           },
         );
       },
       optionsViewBuilder: (BuildContext context,
           AutocompleteOnSelected<Place> onSelected, Iterable<Place> options) {
-//debugPrint(
-//            'optionsViewBuilder run - options.length: ${options.length}');
         return Material(
           color: Colors.white60,
           //  elevation: 4.0,
@@ -215,8 +459,6 @@ class _AutocompletePlace extends State<AutocompletePlace> {
                           fontFamily: 'MaterialIcons'),
                       size: 30), // Icon(Icons
                   onTap: () {
-                    //          debugPrint('option:${option.name}');
-                    // textEditingValue = option.name;
                     onSelected(option);
                   },
                 ),
@@ -226,11 +468,13 @@ class _AutocompletePlace extends State<AutocompletePlace> {
         );
       },
       onSelected: (chosen) {
-        try {
-          //  fieldTextEditingController.text = chosen.name;
-          widget.onSelect!(chosen);
-        } catch (e) {
-          debugPrint('Error ${e.toString()}');
+        if (widget.onSelect != null) {
+          try {
+            //  fieldTextEditingController.text = chosen.name;
+            widget.onSelect!(chosen);
+          } catch (e) {
+            debugPrint('Error ${e.toString()}');
+          }
         }
       },
     );

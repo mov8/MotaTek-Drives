@@ -88,6 +88,8 @@ enum HighliteActions {
   routeHighlited
 }
 
+enum GroupAction { add, delete, edit, invite, uninvite, update }
+
 // enums HighLightActions TripActions TripState MapHeights
 
 // https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status#informational_responses
@@ -103,6 +105,8 @@ const Map<int, String> responseCodes = {
   408: 'timed out',
   410: 'missing' // User not found
 };
+
+RegExp emailRegex = RegExp(r'[a-zA-Z0-9.]+@[a-zA-Z0-9]+\.[a-zA-Z]+');
 
 const List<int> responseOk = [200, 201, 202, 204];
 const List<int> responseError = [400, 401, 403, 408, 410];
@@ -240,7 +244,7 @@ const String urlGroupDrive = '${urlBase}v1/group_drive';
 const String urlGroupDriveInvitation = '${urlBase}v1/group_drive_invitation';
 const String urlGroupMember = '${urlBase}v1/group_member';
 const String urlHomePageItem = '${urlBase}v1/home_page_item';
-const String urlIntroduced = '${urlBase}v1/introduced/get';
+const String urlIntroduced = '${urlBase}v1/introduced';
 const String urlManeuver = '${urlBase}v1/maneuver';
 const String urlMessage = '${urlBase}v1/message';
 const String urlPointOfInterest = '${urlBase}v1/point_of_interest';

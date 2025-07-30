@@ -96,7 +96,7 @@ class _GroupDriveFormState extends State<GroupDriveForm> {
               )
             ],
             Align(
-              alignment: Alignment.bottomLeft,
+              alignment: Alignment.bottomCenter,
               child: _handleChips(),
             )
           ],
