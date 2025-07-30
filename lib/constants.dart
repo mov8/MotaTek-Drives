@@ -88,7 +88,7 @@ enum HighliteActions {
   routeHighlited
 }
 
-enum GroupAction { add, delete, edit, invite, uninvite, update }
+enum GroupAction { add, delete, edit, invite, uninvite, update, leave }
 
 // enums HighLightActions TripActions TripState MapHeights
 

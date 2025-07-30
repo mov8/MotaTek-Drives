@@ -1476,8 +1476,8 @@ Future<Map<String, dynamic>> getStyle({required String url}) async {
 
 Future<List<Group>> getMyGroups() async {
   try {
-    final http.Response response =
-        await getWebData(uri: Uri.parse('$urlGroup/mine'), secure: true);
+    final http.Response response = await getWebData(
+        uri: Uri.parse('$urlGroup/mine'), secure: true, timeout: 5);
     if (response.statusCode == 200) {
       var groups = jsonDecode(response.body);
       return [

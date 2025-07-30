@@ -1,3 +1,4 @@
+import 'package:drives/constants.dart';
 import 'package:flutter/material.dart';
 import 'package:drives/models/other_models.dart';
 import 'package:drives/services/services.dart';
@@ -14,48 +15,18 @@ class MyGroupsForm extends StatefulWidget {
 class _MyGroupsFormState extends State<MyGroupsForm> {
   int group = 0;
   late Future<bool> dataloaded;
-  late FocusNode fn1;
-
-  late GroupMember newMember;
-  late Group newGroup;
-  List<GroupMember> groupMembers = [];
   List<Group> groups = [];
+  final List<Group> _dismissed = [];
 
   String groupName = 'Driving Group';
-  bool edited = false;
-  int groupIndex = 0;
-  String testString = '';
-  bool addingMember = false;
-  bool addingGroup = false;
-  bool editingGroup = false;
-  int _changed = 0;
 
-  List<GroupMember> allMembers = [];
+  bool _changed = false;
 
   @override
   void initState() {
     super.initState();
-    fn1 = FocusNode();
     // dataloaded = dataFromDatabase();
     dataloaded = dataFromWeb();
-  }
-
-  @override
-  void dispose() {
-    // Clean up the focus node when the Form is disposed.
-    fn1.dispose();
-    super.dispose();
-  }
-
-  Future<bool> dataFromDatabase() async {
-    groups = await loadGroups();
-    groupMembers = await loadGroupMembers();
-    if (groups.isEmpty) {
-      groups.add(Group(id: '', name: '', edited: true));
-      groupIndex = 0;
-      edited = true;
-    }
-    return true;
   }
 
   Future<bool> dataFromWeb() async {
@@ -123,106 +94,132 @@ class _MyGroupsFormState extends State<MyGroupsForm> {
   }
 
   Widget portraitView() {
-    return Column(children: [
-      Expanded(
-        child: ListView.builder(
-          itemCount: groups.length,
-          itemBuilder: (context, index) => Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
-            child: Card(
-              elevation: 5,
-              child: CheckboxListTile(
-                title: Text(
-                  groups[index].name,
-                  style: const TextStyle(
-                    color: Colors.black,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+    Widget widget;
+    if (groups.isEmpty && !_changed) {
+      widget = Center(
+        child: SizedBox(
+            height: 120,
+            child: Column(
+              children: [
+                Text(
+                  "You haven't been added to any groups yet.",
+                  textAlign: TextAlign.left,
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                SizedBox(
+                  height: 10,
+                ),
+                Text(
+                  "Why not start your own Drives group?",
+                  textAlign: TextAlign.left,
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+              ],
+            )),
+        //    ),
+      );
+    } else {
+      widget = Column(crossAxisAlignment: CrossAxisAlignment.center, children: [
+        Expanded(
+          child: ListView.builder(
+            itemCount: groups.length,
+            itemBuilder: (context, index) => Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
+              child: Dismissible(
+                key: UniqueKey(),
+                direction: DismissDirection.endToStart,
+                background: Container(color: Colors.blueGrey),
+                onDismissed: (direction) {
+                  if (direction == DismissDirection.endToStart) {
+                    _dismissed.add(Group(id: groups[index].id, name: ''));
+                    _changed = true;
+                    setState(() => groups.removeAt(index));
+                  }
+                },
+                child: Card(
+                  elevation: 5,
+                  child: ListTile(
+                    title: Text(
+                      groups[index].name,
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    subtitle: Column(children: [
+                      Row(children: [
+                        Expanded(
+                          flex: 1,
+                          child: Text(
+                            'Organiser: ${groups[index].ownerForename} ${groups[index].ownerSurname}',
+                            style: TextStyle(
+                                fontSize: 18, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ]),
+                      Row(children: [
+                        Expanded(
+                          flex: 1,
+                          child: Text('email: ${groups[index].ownerEmail}'),
+                        ),
+                      ]),
+                      Row(children: [
+                        Expanded(
+                          flex: 1,
+                          child: Text('tel: ${groups[index].ownerPhone}'),
+                        ),
+                      ]),
+                      Row(children: [
+                        Expanded(
+                          flex: 1,
+                          child: Text(
+                            'Members: ${groups[index].memberCount}',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ])
+                    ]),
                   ),
                 ),
-                subtitle: Column(children: [
-                  Row(children: [
-                    Expanded(
-                      flex: 1,
-                      child: Text(
-                          'Organiser: ${groups[index].ownerForename} ${groups[index].ownerSurname}'),
-                    ),
-                  ]),
-                  Row(children: [
-                    Expanded(
-                      flex: 1,
-                      child: Text('email: ${groups[index].ownerEmail}'),
-                    ),
-                  ]),
-                  Row(children: [
-                    Expanded(
-                      flex: 1,
-                      child: Text('tel: ${groups[index].ownerPhone}'),
-                    ),
-                  ]),
-                  Row(children: [
-                    Expanded(
-                      flex: 1,
-                      child: Text('Members: ${groups[index].memberCount}'),
-                    ),
-                  ])
-                ]),
-                value: groups[index].selected,
-                onChanged: (value) => setState(() {
-                  groups[index].selected = !groups[index].selected;
-                  _changed += groups[index].selected ? index + 1 : -(index + 1);
-                  debugPrint('_changed = $_changed');
-                }),
               ),
             ),
           ),
         ),
-      ),
-      Align(
-        alignment: Alignment.bottomLeft,
-        child: _changed == 0 ? null : _handleChips(),
-      )
-    ]);
+        Align(
+          alignment: Alignment.bottomCenter,
+          child: Padding(
+            padding: EdgeInsetsGeometry.fromLTRB(10, 10, 10, 50),
+            child: _changed ? _handleChips() : null,
+          ),
+        ),
+      ]);
+    }
+
+    return widget;
   }
 
   Widget _handleChips() {
-    return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10),
-        child: Wrap(spacing: 10, children: [
-          ActionChip(
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            onPressed: () async {
-              for (Group group in groups) {
-                if (group.edited) {
-                  // await putGroup(groups[groupIndex]);
-                }
-              }
-            },
-            backgroundColor: Colors.blue,
-            avatar: const Icon(Icons.save, color: Colors.white),
-            label: const Text('Save Changes',
-                style: TextStyle(fontSize: 18, color: Colors.white)),
-          ),
-        ]));
+    return Wrap(
+      spacing: 10,
+      children: [
+        ActionChip(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          onPressed: () async {
+            await updateGroups(groups: _dismissed, action: GroupAction.leave);
+          },
+          backgroundColor: Colors.blue,
+          avatar: const Icon(Icons.cloud_upload_outlined, color: Colors.white),
+          label: const Text('Upload Changes',
+              style: TextStyle(fontSize: 18, color: Colors.white)),
+        ),
+      ],
+    );
   }
 
   void onDelete(int index) {
-    return;
-  }
-
-  void onSelect(int index) {
-    int idx = groups[groupIndex].groupMembers().indexOf(allMembers[index]);
-    if (allMembers[index].selected) {
-      if (idx >= 0) {
-        groups[groupIndex].removeMember(idx);
-        groups[groupIndex].edited = true;
-      }
-    } else if (idx < 0) {
-      groups[groupIndex].addMember(allMembers[index]);
-      groups[groupIndex].edited = true;
-    }
     return;
   }
 }
