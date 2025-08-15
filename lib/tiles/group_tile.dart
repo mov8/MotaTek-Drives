@@ -1,3 +1,4 @@
+import 'package:drives/constants.dart';
 import 'package:flutter/material.dart';
 import 'package:drives/models/other_models.dart';
 import 'package:drives/classes/classes.dart';
@@ -46,7 +47,7 @@ class GroupTileController {
 class GroupTile extends StatefulWidget {
   final Group group;
   final bool expanded;
-  final Function(int)? onEdit;
+  final Function(int, bool)? onEdit;
   final Function(String)? onDelete;
   final Function(int)? onAdd;
   final Function(int)? onSelect;
@@ -82,6 +83,7 @@ class _GroupTileState extends State<GroupTile> {
   double cardElevation = 0;
   final List<String> dropdownOptions = [];
   int _memberCount = 0;
+  late GroupMemberState _groupMemberState;
 
   @override
   void initState() {
@@ -90,6 +92,7 @@ class _GroupTileState extends State<GroupTile> {
     _isEditing = widget.group.name.isEmpty;
     _index = widget.index;
     _isNewGroup = widget.group.name.isEmpty;
+    _groupMemberState = GroupMemberState.none;
     developer.log('InitState() _isNewGroup: $_isNewGroup', name: '_newGroup');
   }
 
@@ -170,22 +173,13 @@ class _GroupTileState extends State<GroupTile> {
               padding: EdgeInsetsGeometry.fromLTRB(5, 30, 5, 10),
               child: Wrap(spacing: 10, children: [handleChips()]),
             ),
-          if (_addMember) ...[
+          if (_groupMemberState == GroupMemberState.isNew) ...[
             InviteMember(
               group: widget.group,
               color: cardColor,
               addMember: true,
               elevation: cardElevation,
-              onInvite: (value) => setState(
-                () {
-                  if (value) {
-                    widget.group.edited = true;
-                  }
-                  _addMember = false;
-                  _isEditing = false;
-                  _isNewGroup = false;
-                },
-              ),
+              onInvite: (member) => addNewMember(member),
               onCancel: (value) => onCancel(),
             )
           ],
@@ -210,11 +204,31 @@ class _GroupTileState extends State<GroupTile> {
     setState(() => _isNewGroup = true);
   }
 
+  addNewMember(member) {
+    if (member != null && _groupMemberState == GroupMemberState.isNew) {
+      developer.log('addMember() ${member.email}', name: '_member');
+      widget.group.addMember(member);
+      _groupMemberState = GroupMemberState.none;
+      widget.group.edited = true;
+    }
+    setState(() {
+      _groupMemberState = GroupMemberState.none;
+      _addMember = false;
+      _isEditing = false;
+      _isNewGroup = false;
+    });
+  }
+
   onCancel() {
     developer.log('onCancel called in groupTile', name: '_dropdown');
-    if (widget.onDelete != null) {
+    if (widget.onDelete != null && _isNewGroup) {
       widget.onDelete!('');
     }
+
+    setState(() {
+      _groupMemberState = GroupMemberState.none;
+      _addMember = false;
+    });
   }
 
   expandChange(bool expanded) {
@@ -273,6 +287,7 @@ class _GroupTileState extends State<GroupTile> {
               ),
               onPressed: () => setState(() {
                 _addMember = true;
+                _groupMemberState = GroupMemberState.isNew;
                 // _isUpdated = true;
               }),
               backgroundColor: Colors.blue,
@@ -285,11 +300,38 @@ class _GroupTileState extends State<GroupTile> {
                 style: TextStyle(fontSize: 18, color: Colors.white),
               ),
             ),
+            /* if (widget.group.edited)
+              ActionChip(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                onPressed: () {
+                  if (widget.onEdit != null) {
+                    widget.onEdit!(widget.index, true);
+                  }
+                },
+                backgroundColor: Colors.blue,
+                avatar: const Icon(
+                  Icons.groups_outlined,
+                  color: Colors.white,
+                ),
+                label: const Text(
+                  "Save changes",
+                  style: TextStyle(fontSize: 18, color: Colors.white),
+                ),
+              ),
+            */
           ]
         ],
       );
     }
     return SizedBox();
+  }
+
+  void notifyParent({int index = 0}) {
+    if (widget.onEdit != null) {
+      widget.onEdit!(widget.index, true);
+    }
   }
 
   Widget titleSuffix() {
@@ -304,7 +346,7 @@ class _GroupTileState extends State<GroupTile> {
               onPressed: () => setState(() {
                     _isEditing = false;
                     if (widget.onEdit != null) {
-                      widget.onEdit!(_index);
+                      widget.onEdit!(_index, false);
                     }
                   }),
               icon: Icon(Icons.check));

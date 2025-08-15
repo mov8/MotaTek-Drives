@@ -178,14 +178,34 @@ class OsmFeatures {
   List<OsmAmenity> amenities = [];
   Fence? cacheFence = Fence.create();
   OsmFeatures({this.amenities = const [], this.pinTap, this.cacheFence});
-  Future<bool> update({required Fence fence}) async {
+  Future<bool> update({required Fence fence, double size = 30}) async {
     try {
-      amenities = await getOsmAmenities(polygon: fence.polygonString());
+      amenities =
+          await getOsmAmenities(polygon: fence.polygonString(), size: size);
+      debugPrint('amenities polygonString = $amenities');
       return true;
     } catch (e) {
       debugPrint('Error getting OSM data ${e.toString()}');
       return true;
     }
+  }
+
+  void resizeOsmAmenities({required double size}) {
+    for (int i = 0; i < amenities.length; i++) {
+      amenities[i] = OsmAmenity.morph(osmAmenity: amenities[i], size: size);
+    }
+  }
+
+/*
+  void updateMarkers() {
+    for (int i = 0; i < amenities.length; i++) {
+      amenities[i].
+
+    }
+  }
+*/
+  void clear() {
+    amenities.clear();
   }
 }
 

@@ -1,4 +1,5 @@
 // import 'package:drives/routes/home.dart';
+import 'package:drives/constants.dart';
 import 'package:drives/screens/invitations.dart';
 import 'package:flutter/material.dart';
 import 'package:drives/screens/screens.dart';
@@ -203,7 +204,14 @@ class _MainDrawerState extends State<MainDrawer> {
               user.password = '';
               Setup().user = user;
               if (context.mounted) {
-                await loginDialog(context, user: user);
+                LoginState loginState = await loginDialog(context, user: user);
+                if (loginState == LoginState.register && context.mounted) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (BuildContext context) => const SignupForm()),
+                  );
+                }
               }
               setState(() {});
             },

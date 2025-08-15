@@ -1,10 +1,9 @@
-import 'dart:convert';
+import 'dart:developer' as developer;
 import 'package:drives/tiles/tiles.dart';
 import 'package:flutter/material.dart';
 import 'package:drives/models/models.dart';
 import 'package:drives/classes/classes.dart';
 import 'package:drives/services/web_helper.dart';
-import 'package:intl/intl.dart';
 
 class InvitationsScreen extends StatefulWidget {
   // var setup;
@@ -22,6 +21,8 @@ class _InvitationsScreenState extends State<InvitationsScreen> {
   late FocusNode fn1;
 
   List<EventInvitation> invitations = [];
+  final List<EventInvitation> _refused = [];
+  final List<EventInvitation> _accepted = [];
   final ImageRepository _imageRepository = ImageRepository();
   String introduceName = 'Invitations';
   bool edited = false;
@@ -43,7 +44,7 @@ class _InvitationsScreenState extends State<InvitationsScreen> {
   }
 
   Future<bool> dataFromWeb() async {
-    invitations = await getInvitationssByUser();
+    invitations = await getInvitationsByUser();
     return true;
   }
 
@@ -51,42 +52,32 @@ class _InvitationsScreenState extends State<InvitationsScreen> {
   Widget build(BuildContext context) {
     // introduces = [];
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.blue,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
-
-        /// Removes Shadow
-        toolbarHeight: 40,
-        title: const Text(
-          'Drives invitations',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        bottom: const PreferredSize(
-          preferredSize: Size.fromHeight(60),
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(5, 10, 5, 10),
-            child: Text(
-              'My invitations to upcoming events',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 26,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ),
-
-        /// Shrink height a bit
-        leading: BackButton(
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
+      appBar: ScreensAppBar(
+        heading: 'Group drive invitations',
+        prompt: 'Swipe right to accept, left to decline.',
+        updateHeading: _refused.isNotEmpty
+            ? "You have declined ${_refused.length} invitation${_refused.length > 1 ? 's' : ''}"
+            : '',
+        updateSubHeading: _accepted.isNotEmpty
+            ? "You have accepted ${_accepted.length} invitation${_accepted.length > 1 ? 's' : ''}"
+            : '',
+        update: _refused.isNotEmpty || _accepted.isNotEmpty,
+        overflowPrompts: [
+          'Show all invitations',
+          'Include declined invitations',
+          'Only future invitations'
+        ],
+        overflowIcons: [
+          Icon(Icons.checklist_outlined),
+          Icon(Icons.remove_done_outlined),
+          Icon(Icons.more_time_outlined)
+        ],
+        overflowMethods: [
+          getData1,
+          getData2,
+          getData3,
+        ],
+        showOverflow: true,
       ),
       body: FutureBuilder<bool>(
         future: dataloaded,
@@ -112,110 +103,98 @@ class _InvitationsScreenState extends State<InvitationsScreen> {
     );
   }
 
+  void getData({int mode = 0}) {
+    debugPrint('mode: $mode');
+  }
+
+  getData1() async {
+    invitations = await getInvitationsByUser(state: 0);
+  }
+
+  getData2() async {
+    invitations = await getInvitationsByUser(state: 1);
+  }
+
+  getData3({int mode = 0}) async {
+    invitations = await getInvitationsByUser(state: 2);
+  }
+
   Widget portraitView() {
     return Column(children: [
-      Expanded(
-        child: SizedBox(
-          height: (MediaQuery.of(context).size.height -
-              AppBar().preferredSize.height -
-              kBottomNavigationBarHeight -
-              20 * 0.93), // 200,
-          child: ListView.builder(
-            itemCount: invitations.length,
-            itemBuilder: (context, index) => GroupDriveInvitationTile(
-              imageRepository: _imageRepository,
-              eventInvitation: invitations[index],
-              index: index,
-              onDownload: onDownload,
-              onEdit: onEdit,
-              onSelect: onSelect,
+      if (invitations.isNotEmpty)
+        Expanded(
+          child: SizedBox(
+            height: (MediaQuery.of(context).size.height -
+                AppBar().preferredSize.height -
+                kBottomNavigationBarHeight -
+                20 * 0.93), // 200,
+            child: ListView.builder(
+              itemCount: invitations.length,
+              itemBuilder: (context, index) => Dismissible(
+                key: UniqueKey(),
+                //    direction: DismissDirection.endToStart,
+                confirmDismiss: (direction) async {
+                  developer.log(
+                      'confirmDismiss ${(direction == DismissDirection.startToEnd).toString()}',
+                      name: '_dismiss');
+                  edited = true;
+                  if (direction == DismissDirection.startToEnd) {
+                    setState(() => invitations[index].accepted = 2);
+                    _accepted.add(invitations[index]);
+                    return false;
+                  }
+                  return true;
+                },
+                onDismissed: (direction) {
+                  developer.log(
+                      'onDismiss ${(direction == DismissDirection.startToEnd).toString()}',
+                      name: '_dismiss');
+                  if (direction == DismissDirection.endToStart) {
+                    _refused.add(invitations[index]);
+                    edited = true;
+                    setState(() => invitations.removeAt(index));
+                  } else {
+                    setState(() => invitations[index].accepted = 1);
+                  }
+                },
+                background: Container(color: Colors.blueGrey),
+                child: GroupDriveInvitationTile(
+                  imageRepository: _imageRepository,
+                  eventInvitation: invitations[index],
+                  index: index,
+                ),
+              ),
             ),
           ),
         ),
-      ),
+      if (invitations.isEmpty)
+        SizedBox(
+          width: MediaQuery.of(context).size.width,
+          height: MediaQuery.of(context).size.height - 200,
+          child: Align(
+            alignment: Alignment.center,
+            child: Padding(
+              padding: EdgeInsetsGeometry.fromLTRB(
+                  0, (MediaQuery.of(context).size.height - 350) / 2, 0, 30),
+              child: Column(
+                children: [
+                  Text(
+                    "You haven't got any upcoming invitations.",
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    "Why not organise a trip yourself?",
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       Align(
-        alignment: Alignment.bottomLeft,
-        child: _handleChips(),
+        alignment: Alignment.bottomCenter,
+        child: null, // _handleChips(),
       )
     ]);
   }
-
-  Widget _handleChips() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10),
-      child: Wrap(
-        spacing: 10,
-        children: [
-          ActionChip(
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            onPressed: () => {}, // putIntroduced(introduceMembers),
-            backgroundColor: Colors.blue,
-            avatar: const Icon(
-              Icons.outgoing_mail,
-              color: Colors.white,
-            ),
-            label: const Text('Show past invitations',
-                style: TextStyle(fontSize: 18, color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
-
-/*
-  void onDe(int index) {
-    // introduceMembers.removeAt(index);
-    return;
-  }
-*/
-  void onDownload(int index) async {
-    getMyTrip(invitations[index].driveId).then((webTrip) {
-      webTrip.id = -1;
-      webTrip.driveUri = invitations[index].driveId;
-      webTrip.saveLocal();
-    });
-  }
-
-  void onSelect(int index) async {
-    MyTripItem webTrip = await getMyTrip(invitations[index].driveId);
-    webTrip.id = -1;
-    webTrip.driveUri = invitations[index].driveId;
-    webTrip.groupTrip = true;
-    if (mounted) {
-      Navigator.pushNamed(context, 'createTrip',
-          arguments: TripArguments(webTrip, 'web'));
-    }
-  }
-
-  void onEdit(int index) async {
-    String today = DateFormat('dd-mm-yyy').format(DateTime.now());
-    List<Map<String, dynamic>> drivers = await getDrivers(
-        driveId: invitations[index].driveId, driveDate: today, accepted: 2);
-    debugPrint(drivers.toString());
-    return;
-  }
-
-  updateintroduceMembers(GroupMember member, int oldValue, int newValue) {
-    String result = '';
-    if (member.groupIds.isNotEmpty) {
-      var introduceIds = jsonDecode(member.groupIds);
-      introduceIds.removeWhere((element) => element['introduceId'] == oldValue);
-      for (int i = 0; i < introduceIds.length; i++) {
-        result = '$result, {"introduceId": ${introduceIds[i]['introduceId']}}';
-      }
-    }
-    result = '$result, {"introduceId": $newValue}';
-    result = '[${result.substring(2)}]';
-    member.groupIds = result;
-    debugPrint(result);
-  }
-
-  void onEdit2(int index) async {
-    return;
-  }
-}
-
-int test() {
-  return 1;
 }

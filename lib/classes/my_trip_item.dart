@@ -210,9 +210,9 @@ class MyTripItem {
   // DateFormat dateFormat = DateFormat("dd MMM yyyy");
 
   String getPublishedDate(
-      {String yesPrompt = 'published on', String noPrompt = 'not published'}) {
+      {String yesPrompt = 'saved on', String noPrompt = 'not published'}) {
     try {
-      return '$yesPrompt ${dateFormat.format(DateTime.parse(published))}';
+      return "$yesPrompt ${dateFormat.format(DateTime.parse(published))} ${driveUri.isEmpty ? 'but not published' : 'and published'}";
     } catch (e) {
       return noPrompt;
     }
@@ -450,8 +450,9 @@ class MyTripItem {
       postManeuvers(maneuvers, driveUri);
 
       return true;
+    } else {
+      return false;
     }
-    return false;
   }
 
   Future<Map<String, dynamic>> postDriveHeader() async {

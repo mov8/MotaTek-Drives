@@ -1,7 +1,11 @@
 import 'package:latlong2/latlong.dart';
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 const apiAddress = 'https://drives.motatek.com/';
-const wifiIpAddress = '192.168.1.14:5001';
+// const wifiIpAddress = '192.168.1.14:5001'; // <- Home
+const wifiIpAddress = '192.168.1.109'; // <- Boston
+
 // const urlBase = wifiIpAddress;
 // https://drives.motatek.com/v1/user/test
 // const urlBase = 'https://drives.motatek.com/'; // apiAddress;
@@ -88,11 +92,25 @@ enum HighliteActions {
   routeHighlited
 }
 
+enum GroupMemberState { none, isNew, resistered, incomplete, complete, added }
+
 enum GroupAction { add, delete, edit, invite, uninvite, update, leave }
 
 // enums HighLightActions TripActions TripState MapHeights
 
 // https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status#informational_responses
+
+const List<String> settlementTypes = ['city', 'town', 'village', 'hamlet'];
+DateFormat dateFormat = DateFormat('dd/MM/yy');
+DateFormat dateFormatSQL = DateFormat('yyyy-MM-dd hh:mm:ss');
+DateFormat dateFormatDoc = DateFormat('E dd/MM/yyyy');
+
+List<IconData> inviteIcons = [
+  Icons.thumb_down_outlined,
+  Icons.thumb_up_outlined,
+  Icons.thumbs_up_down_outlined,
+  Icons.outgoing_mail,
+];
 
 const Map<int, String> responseCodes = {
   200: 'OK',
@@ -232,9 +250,10 @@ const List<String> tableDefs = [
 /// User Api endpoints:
 ///
 // const urlBase = 'http://192.168.1.5:5001/';
-const urlBase = 'http://10.101.1.216:5001/';
+// const urlBase = 'http://172.23.16.1:5001/'; //'http://10.101.1.216:5001/';
 
-/// const urlBase = 'https://drives.motatek.com/';
+const urlBase = 'http://192.168.1.109:5001/';
+// const urlBase = 'https://drives.motatek.com/';
 const String urlDrive = '${urlBase}v1/drive';
 const String urlDriveImages = '${urlBase}v1/drive/images';
 const String urlDriveRating = '${urlBase}v1/drive_rating';
@@ -251,6 +270,7 @@ const String urlPointOfInterest = '${urlBase}v1/point_of_interest';
 const String urlPointOfInterestRating = '${urlBase}v1/point_of_interest_rating';
 const String urlPolyline = '${urlBase}v1/polyline';
 const String urlShopItem = '${urlBase}v1/shop_item';
+const String urlOsmReview = '${urlBase}v1/osm_review';
 
 /// const String urlRouter = '${urlBase}router/route/v1/driving/';
 const String urlRouter = 'https://drives.motatek.com/router/route/v1/driving/';

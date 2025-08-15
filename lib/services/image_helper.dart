@@ -276,6 +276,7 @@ Future<String> loadDeviceImage(
             imageUrls =
                 '[${imageUrls.isNotEmpty ? '${imageUrls.substring(1, imageUrls.length - 1)},' : ''}{"url":"$imagePath","caption":"image $num","rotation":$rotate}]';
             debugPrint('Images: $imageUrls');
+            return imageUrls;
           }
         } catch (e) {
           String err = e.toString();

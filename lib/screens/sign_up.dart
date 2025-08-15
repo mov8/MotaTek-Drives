@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:drives/models/other_models.dart';
 import 'package:drives/services/services.dart';
 import 'package:drives/screens/dialogs.dart';
+import 'package:drives/classes/classes.dart';
 
 class SignupForm extends StatefulWidget {
   const SignupForm({super.key, context});
@@ -33,6 +34,7 @@ class _SignupFormState extends State<SignupForm> {
   ];
   List<String> captions = ['Register', 'Update', 'Reset'];
   int mode = 0;
+  bool hasChanged = false;
   bool complete = false;
   final Key _formKey = GlobalKey<FormState>();
   //final FocusNode _focusNode = FocusNode();
@@ -77,44 +79,13 @@ class _SignupFormState extends State<SignupForm> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          backgroundColor: Colors.blue,
-          elevation: 0,
-          iconTheme: const IconThemeData(color: Colors.white),
-
-          /// Removes Shadow
-          toolbarHeight: 40,
-          title: const Text(
-            'Drives user details',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(60),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(5, 10, 5, 10),
-              child: Text(
-                titles[mode],
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 38,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-          leading: BackButton(
-            onPressed: () {
-              try {
-                Navigator.pop(context);
-              } catch (e) {
-                debugPrint('Setup error: ${e.toString()}');
-              }
-            },
-          ),
+        appBar: ScreensAppBar(
+          heading: 'User details',
+          prompt: 'Please update your details.',
+          updateHeading: 'You have changed your details.',
+          updateSubHeading: 'Press Update to confirm the changes or Ignore',
+          update: hasChanged && isComplete(),
+          updateMethod: () => register(),
         ),
         body: FutureBuilder<bool>(
           future: _loadedOk,
@@ -168,6 +139,7 @@ class _SignupFormState extends State<SignupForm> {
                           style: Theme.of(context).textTheme.bodyLarge,
                           onChanged: (text) {
                             Setup().user.forename = text;
+                            hasChanged = true;
                             if (isComplete() != complete) {
                               setState(() => complete = !complete);
                             }
@@ -195,6 +167,7 @@ class _SignupFormState extends State<SignupForm> {
                           initialValue: Setup().user.surname.toString(),
                           style: Theme.of(context).textTheme.bodyLarge,
                           onChanged: (text) {
+                            hasChanged = true;
                             Setup().user.surname = text;
                             if (isComplete() != complete) {
                               setState(() => complete = !complete);
@@ -226,6 +199,7 @@ class _SignupFormState extends State<SignupForm> {
                     initialValue: Setup().user.email.toString(),
                     style: Theme.of(context).textTheme.bodyLarge,
                     onChanged: (text) {
+                      hasChanged = true;
                       Setup().user.email = text;
                       if (isComplete() != complete) {
                         setState(() => complete = !complete);
@@ -252,6 +226,7 @@ class _SignupFormState extends State<SignupForm> {
                     initialValue: Setup().user.phone.toString(),
                     style: Theme.of(context).textTheme.bodyLarge,
                     onChanged: (text) {
+                      hasChanged = true;
                       Setup().user.phone = text;
                       if (isComplete() != complete) {
                         setState(() => complete = !complete);
@@ -294,6 +269,7 @@ class _SignupFormState extends State<SignupForm> {
                                         ? 'Minimum password length is 8'
                                         : null,
                                 onChanged: (text) {
+                                  hasChanged = true;
                                   Setup().user.newPassword = text;
                                   if (isComplete() != complete) {
                                     setState(() => complete = !complete);
@@ -332,6 +308,7 @@ class _SignupFormState extends State<SignupForm> {
                                   ? 'Six digits needed'
                                   : null,
                           onChanged: (text) {
+                            hasChanged = true;
                             Setup().user.password = text;
                             if (isComplete() != complete) {
                               setState(() => complete = !complete);
@@ -447,128 +424,6 @@ class _SignupFormState extends State<SignupForm> {
                       ),
                 ),
               ],
-              /*
-              if (mode > 5) //(savedPassword.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-                  child: TextFormField(
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      hintText: 'Enter your new password',
-                      labelText: 'New Password',
-                    ),
-                    textAlign: TextAlign.left,
-                    keyboardType: TextInputType.visiblePassword,
-                    textInputAction: TextInputAction.done,
-                    initialValue: Setup().user.password.toString(),
-                    style: Theme.of(context).textTheme.bodyLarge,
-                    validator: (val) => Setup().user.newPassword.length < 8
-                        ? 'Minimum password length is 8'
-                        : null,
-                    onChanged: (text) =>
-                        setState(() => Setup().user.newPassword = text),
-                  ),
-                  //    SizedBox(height: 15),
-                ),
-              if (mode != 1)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-                  child: Row(children: [
-
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-                  child: TextFormField(
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      hintText: 'Change password',
-                      labelText: 'New password',
-                    ),
-                    textAlign: TextAlign.left,
-                    keyboardType: TextInputType.visiblePassword,
-                    textInputAction: TextInputAction.done,
-                    initialValue: Setup().user.password.toString(),
-                    style: Theme.of(context).textTheme.bodyLarge,
-                    onChanged: (text) =>
-                        setState(() => Setup().user.newPassword = text),
-                  ),
-                ),
-
-                    Expanded(
-                      flex: 2,
-                      child: TextFormField(
-                        decoration: InputDecoration(
-                          border: OutlineInputBorder(),
-                          hintText: 'Emailed code',
-                          labelText: 'Validation code',
-                        ),
-                        textAlign: TextAlign.left,
-                        maxLength: 6,
-                        keyboardType: TextInputType.number,
-                        textInputAction: TextInputAction.next,
-                        initialValue: '',
-                        style: Theme.of(context).textTheme.bodyLarge,
-                        validator: (val) => Setup().user.password.length < 6
-                            ? 'Six digits needed'
-                            : null,
-                        onChanged: (text) =>
-                            setState(() => Setup().user.password = text),
-                      ),
-                    ),
-                    SizedBox(
-                      width: 20,
-                    ),
-
-                  ]),
-                  Padding( padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-                  child: Row(children:[                    
-                    Expanded(
-                      flex: 2,
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(5, 0, 5, 5),
-                        child: ActionChip(
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20)),
-                          onPressed: () => postValidateUser(user: Setup().user),
-                          backgroundColor: Colors.blue,
-                          avatar: Icon(
-                            Icons.refresh,
-                            color: Colors.white,
-                          ),
-                          label: Text('Resend code',
-                              style:
-                                  TextStyle(fontSize: 18, color: Colors.white)),
-                        ),
-                      ),
-                    ),
-                                        Expanded(
-                      flex: 2,
-                      child: SizedBox(),
-                                        ),
-                    ],
-                    ),
-                  ),
-                          //    ]),
-
-              if (mode > 0) ...[
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-                  child: TextFormField(
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      hintText: 'Change password',
-                      labelText: 'New password',
-                    ),
-                    textAlign: TextAlign.left,
-                    keyboardType: TextInputType.visiblePassword,
-                    textInputAction: TextInputAction.done,
-                    initialValue: Setup().user.password.toString(),
-                    style: Theme.of(context).textTheme.bodyLarge,
-                    onChanged: (text) =>
-                        setState(() => Setup().user.newPassword = text),
-                  ),
-                )
-              ],
-              */
               if (carData) ...[
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
@@ -631,37 +486,6 @@ class _SignupFormState extends State<SignupForm> {
                           TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 ),
               ),
-              /*
-              if (isComplete())
-                Align(
-                  alignment: Alignment.bottomLeft,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 12, 0, 0),
-                    child: ActionChip(
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20)),
-                      onPressed: () {
-                        postUser(user: Setup().user, register: true);
-                        if (Setup().user.password.length == 6 &&
-                            Setup().user.newPassword.isNotEmpty) {
-                          Setup().user.password = Setup().user.newPassword;
-                          Setup().user.newPassword = '';
-                        }
-                        saveUser(Setup().user);
-                        Setup().setupToDb();
-                        Navigator.pop(context);
-                      },
-                      backgroundColor: Colors.blue,
-                      avatar: Icon(
-                        Icons.how_to_reg,
-                        color: Colors.white,
-                      ),
-                      label: Text(captions[mode],
-                          style: TextStyle(fontSize: 18, color: Colors.white)),
-                    ),
-                  ),
-                )
-*/
             ],
           ),
         ),

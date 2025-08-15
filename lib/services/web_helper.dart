@@ -8,7 +8,7 @@ import 'package:drives/classes/classes.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
-import 'package:intl/intl.dart';
+// import 'package:intl/intl.dart';
 import 'package:drives/models/models.dart';
 import 'package:drives/classes/utilities.dart' as utils;
 import 'package:drives/services/db_helper.dart';
@@ -41,9 +41,6 @@ Future<http.Response> postWebData(
       .timeout(Duration(seconds: timeout));
   return response;
 }
-
-const List<String> settlementTypes = ['city', 'town', 'village', 'hamlet'];
-DateFormat dateFormat = DateFormat('dd/MM/yy HH:mm');
 
 Future<List<String>> getSuggestions(String value) async {
   String baseURL = 'https://photon.komoot.io/api/?q=$value';
@@ -390,7 +387,6 @@ Future<dynamic> postTrip(MyTripItem tripItem) async {
     request.fields['title'] = map['heading'];
     request.fields['sub_title'] = map['subHeading'];
     request.fields['body'] = (map['body'] ?? '').replaceAll("\n", " ");
-    ;
     request.fields['distance'] = map['distance'].toString();
     request.fields['pois'] = map['pointsOfInterest'].toString();
     request.fields['score'] = '5';
@@ -418,6 +414,37 @@ Future<dynamic> postTrip(MyTripItem tripItem) async {
     // debugPrint('Failed to post trip: ${response.statusCode}');
     return jsonEncode({'token': '', 'code': response.statusCode});
   }
+}
+
+Future<String> postWithPhotos(
+    {required String url,
+    Map<String, dynamic> fields = const {},
+    List<Photo> photos = const [],
+    int timeout = 20}) async {
+  var request = http.MultipartRequest('POST', Uri.parse(url));
+
+  dynamic response;
+  try {
+    request.headers['Authorization'] = 'Bearer ${Setup().jwt}';
+    fields.forEach((key, value) => request.fields[key] = value.toString());
+    for (Photo photo in photos) {
+      request.files.add(await http.MultipartFile.fromPath('files', photo.url));
+    }
+    response = await request.send().timeout(Duration(seconds: timeout));
+    if (response.statusCode == 201) {
+      dynamic responseData = await response.stream.bytesToString();
+      return jsonEncode(responseData);
+    } else {
+      return jsonEncode({'token': '', 'code': response.statusCode});
+    }
+  } catch (e) {
+    if (e is TimeoutException) {
+      debugPrint('Request timed out');
+    } else {
+      debugPrint('Error posting trip: ${e.toString()}');
+    }
+  }
+  return '';
 }
 
 Future<String> postPointOfInterest(
@@ -637,10 +664,8 @@ Future<OsmAmenity> getOsmAmenity({required int osmId}) async {
   return amenity;
 }
 
-Future<List<OsmAmenity>> getOsmAmenities({
-  required String polygon,
-}) async {
-  List<OsmAmenity> osmAmenities = [];
+Future<List<OsmAmenity>> getOsmAmenities(
+    {required String polygon, double size = 30}) async {
   String delimiter = '';
   String including = '';
   if (Setup().osmPubs) {
@@ -673,7 +698,9 @@ Future<List<OsmAmenity>> getOsmAmenities({
       )
       .timeout(const Duration(seconds: 20));
   if ([200, 201].contains(response.statusCode) && response.body.length > 10) {
+    ImageRepository imageRepository = ImageRepository();
     List amenities = jsonDecode(response.body);
+    List<OsmAmenity> osmAmenities = [];
     for (int i = 0; i < amenities.length; i++) {
       try {
         osmAmenities.add(
@@ -684,25 +711,55 @@ Future<List<OsmAmenity>> getOsmAmenities({
             name: amenities[i]['name'],
             amenity: amenities[i]['amenity'],
             postcode: amenities[i]['postcode'],
-            width: 30,
-            height: 30,
+            markerWidth: size,
+            markerHeight: size,
             marker: OSMMarkerWidget(
               osmId: amenities[i]['osm_id'],
               name: amenities[i]['name'],
               amenity: amenities[i]['amenity'],
               postcode: amenities[i]['postcode'],
+              imageRepository: imageRepository,
               angle: 0, // degrees to radians
+              iconSize: size * 0.75,
               index: i,
             ),
           ),
         );
       } catch (e) {
         debugPrint('Error adding OSM amenity ${e.toString()}');
+        return [];
       }
     }
+    return osmAmenities;
+  } else {
+    return [];
   }
+}
 
-  return osmAmenities;
+Future<bool> postOsmReview({required Map<String, dynamic> reviewMap}) async {
+  http.Response response = await postWebData(
+      uri: Uri.parse('$urlOsmReview/add'),
+      body: jsonEncode(reviewMap),
+      secure: true,
+      timeout: 5);
+
+  return (response.statusCode == 201);
+}
+
+Future<List<dynamic>> getOsmReviews({required String osmId}) async {
+  http.Response response =
+      await getWebData(uri: Uri.parse('$urlOsmReview/$osmId'));
+  if (response.statusCode == 200) {
+    try {
+      List<dynamic> dataJson = jsonDecode(response.body);
+      return dataJson;
+    } catch (e) {
+      debugPrint('Error ${e.toString()}');
+      return [];
+    }
+  } else {
+    return [];
+  }
 }
 
 Future<PointOfInterest> getPointOfInterest(
@@ -1455,7 +1512,7 @@ Future<bool> serverListening() async {
         .get(
           Uri.parse('$urlUser/test'),
         )
-        .timeout(const Duration(seconds: 5));
+        .timeout(const Duration(seconds: 10));
     return (response.statusCode == 200);
   } catch (e) {
     debugPrint('Error checking for server: ${e.toString()}');
@@ -1828,10 +1885,30 @@ Future<String> postShopItem(ShopItem shopItem) async {
   }
 }
 
-Future<List<EventInvitation>> getInvitationssByUser() async {
+Future<List<EventInvitation>> getInvitationsByUser({int state = 0}) async {
   try {
     final http.Response response = await getWebData(
-        uri: Uri.parse('$urlGroupDriveInvitation/user'), secure: true);
+        uri: Uri.parse('$urlGroupDriveInvitation/user/state'), secure: true);
+
+    if ([200, 201].contains(response.statusCode)) {
+      var invitations = jsonDecode(response.body);
+      return [
+        for (Map<String, dynamic> invitation in invitations)
+          EventInvitation.fromByUserMap(invitation)
+      ];
+    }
+  } catch (e) {
+    // debugPrint("Can't access data on the web");
+  }
+  return [];
+}
+
+Future<List<EventInvitation>> getInvitationsByUserNew() async {
+  try {
+    final http.Response response = await getWebData(
+        uri:
+            Uri.parse('$urlGroupDriveInvitation/my_drives/01-01-2025 00:00:00'),
+        secure: true);
 
     if ([200, 201].contains(response.statusCode)) {
       var invitations = jsonDecode(response.body);
@@ -1864,6 +1941,19 @@ Future<List<EventInvitation>> getInvitationsByEvent(
   return [];
 }
 
+Future<bool> respondToInvitations(
+    {required List<Map<String, dynamic>> responses}) async {
+  final http.Response response = await postWebData(
+      uri: Uri.parse('$urlGroupDriveInvitation/respond'),
+      body: jsonEncode(responses),
+      secure: true);
+  if ([200, 201].contains(response.statusCode)) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
 Future<int> inviteWebUser({required String body}) async {
   var uri = Uri.parse('$urlUser/apk_request');
   http.Response response =
@@ -1889,6 +1979,48 @@ Future<List<EventInvitation>> getInvitationsToAlter(
   return [];
 }
 
+Future<List<GroupDriveByGroup>> getMembersByGroup() async {
+  try {
+    final http.Response response = await getWebData(
+        uri: Uri.parse('$urlGroupDrive/group'), secure: true, timeout: 3);
+    if ([200, 201].contains(response.statusCode)) {
+      var drivers = jsonDecode(response.body);
+      List<GroupDriveByGroup> drives = [];
+      for (Map<String, dynamic> driver in drivers) {
+        drives.add(GroupDriveByGroup.fromMap(map: driver));
+      }
+      return drives;
+    }
+  } catch (e) {
+    debugPrint("Can't access data on the web: ${e.toString()}");
+  }
+  return [];
+}
+
+Future<List<GroupDriveByGroup>> getMembersByDrive({DateTime? startDate}) async {
+  try {
+    startDate = startDate ?? DateTime.now();
+    final http.Response response = await getWebData(
+        uri: Uri.parse(
+            '$urlGroupDrive/my_drives/${dateFormatSQL.format(startDate)}'),
+        secure: true,
+        timeout: 3);
+    if ([200, 201].contains(response.statusCode)) {
+      var drivers = jsonDecode(response.body);
+      List<GroupDriveByGroup> drives = [];
+      for (Map<String, dynamic> driver in drivers) {
+        drives.add(GroupDriveByGroup.fromMap(map: driver));
+      }
+      return drives;
+    } else {
+      return [];
+    }
+  } catch (e) {
+    debugPrint("Can't access data on the web: ${e.toString()}");
+    return [];
+  }
+}
+
 Future<String> postGroupDriveInvitations(
     List<EventInvitation> invitations) async {
   List<Map<String, dynamic>> map = [
@@ -1903,10 +2035,11 @@ Future<String> postGroupDriveInvitations(
   return '';
 }
 
-Future<String> postGroupDrive(GroupDriveInvitation invitation) async {
+Future<String> postGroupDrive(
+    {required Map<String, dynamic> invitations}) async {
   final http.Response response = await postWebData(
       uri: Uri.parse('$urlGroupDrive/add'),
-      body: jsonEncode(invitation.toMap()),
+      body: jsonEncode(invitations),
       secure: true);
   if ([200, 201].contains(response.statusCode)) {
     return response.body;
@@ -1948,11 +2081,13 @@ Future<GroupMember> getUserByEmail(String email) async {
 
     if (response.statusCode == 200) {
       return GroupMember.fromUserMap(jsonDecode(response.body));
+    } else {
+      return GroupMember(forename: 'Not', surname: 'Registered', email: email);
     }
   } catch (e) {
     debugPrint("Can't access data on the web: ${e.toString()}");
+    return GroupMember(forename: 'Not', surname: 'Registered', email: email);
   }
-  return GroupMember(forename: 'Not', surname: 'Registered', email: email);
 }
 
 Future<List<GroupMember>> getGroupMembers() async {

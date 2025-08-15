@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:drives/classes/classes.dart';
-import 'dart:developer' as developer;
+//import 'dart:developer' as developer;
 
 class AutocompleteWidget extends StatelessWidget {
   final List<String> options;
@@ -62,6 +62,16 @@ class AutoCompleteAsyncController {
       debugPrint('Error clearing AutoComplete: $err');
     }
   }
+
+  void setNextAction({TextInputAction nextAction = TextInputAction.next}) {
+    assert(isAttached, 'Controller must be attached to widget to clear');
+    try {
+      _autocompleteAsyncState?.setNextAction(nextAction: nextAction);
+    } catch (e) {
+      String err = e.toString();
+      debugPrint('Error clearing AutoComplete: $err');
+    }
+  }
 }
 
 class AutocompleteAsync extends StatefulWidget {
@@ -99,9 +109,10 @@ class AutocompleteAsync extends StatefulWidget {
 
 class _AutocompleteAsyncState extends State<AutocompleteAsync> {
   String _lastReadQuery = '';
-  final List<String> _options = [];
+  List<String> _options = [];
   final List<String> _allOptions = [];
   late TextEditingController _controller;
+  late TextInputAction _nextAction;
   late FocusNode _focusNode;
 
   @override
@@ -109,6 +120,7 @@ class _AutocompleteAsyncState extends State<AutocompleteAsync> {
     super.initState();
     // bool changeId = _widgetId != widget.initialValue;
     widget.controller._addState(this);
+    _nextAction = widget.textInputAction ?? TextInputAction.next;
   }
 
   @override
@@ -128,7 +140,7 @@ class _AutocompleteAsyncState extends State<AutocompleteAsync> {
         return TextField(
           controller: fieldTextEditingController,
           keyboardType: widget.keyboardType,
-          textInputAction: widget.textInputAction,
+          textInputAction: _nextAction,
           focusNode: fieldFocusNode,
           decoration: widget.decoration,
           onChanged: (text) {
@@ -139,6 +151,7 @@ class _AutocompleteAsyncState extends State<AutocompleteAsync> {
                 _options.addAll(_allOptions);
               }
               _options.retainWhere((str) => str.startsWith(text));
+              _options = _options.toSet().toList();
               widget.onChange!(text);
               if ((_lastReadQuery.isEmpty &&
                       text.length >= widget.searchLength) ||
@@ -179,6 +192,10 @@ class _AutocompleteAsyncState extends State<AutocompleteAsync> {
       },
       onSelected: (chosen) => widget.onSelect!(chosen),
     );
+  }
+
+  setNextAction({TextInputAction nextAction = TextInputAction.next}) {
+    _nextAction = nextAction;
   }
 
   clear() {

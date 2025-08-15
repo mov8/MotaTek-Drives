@@ -258,7 +258,7 @@ Future<int> insertSetup(Setup setup) async {
       return setup.id;
     }
   } catch (e) {
-    debugPrint('Error witing setup : ${e.toString()}');
+    debugPrint('Error writing setup : ${e.toString()}');
     return -1;
   }
 }
@@ -1084,8 +1084,8 @@ Future<OsmAmenity> loadOsmAmenityLocal({required int id, index = 0}) async {
     osmId: maps.first['drive_id'],
     name: maps.first['name'],
     amenity: maps.first['amenity'],
-    width: maps.first['type'] == 12 ? 10 : 30,
-    height: maps.first['type'] == 12 ? 10 : 30,
+    markerWidth: maps.first['type'] == 12 ? 10 : 30,
+    markerHeight: maps.first['type'] == 12 ? 10 : 30,
     position: LatLng(maps.first['latitude'], maps.first['longitude']),
     marker: MarkerWidget(type: maps.first['type'], list: 0, listIndex: index),
   );

@@ -2,22 +2,23 @@ import 'package:flutter/material.dart';
 
 class Zoomer extends StatelessWidget {
   final Function onZoomChanged;
-  bool isOpen = false;
+  final bool? isOpen;
   final double zoom;
   final double width;
   final double height;
 
-  Zoomer({
+  const Zoomer({
     super.key,
     required this.onZoomChanged,
     required this.zoom,
-    this.isOpen = false,
+    this.isOpen,
     this.width = 50,
     this.height = 50,
   });
 
   @override
   Widget build(BuildContext context) {
+    bool open = isOpen ?? false;
     return AnimatedContainer(
       curve: Curves.easeInOut,
       height: height,
@@ -35,9 +36,8 @@ class Zoomer extends StatelessWidget {
         child: Row(
           children: <Widget>[
             IconButton(
-                onPressed: () => (isOpen = !isOpen),
-                icon:
-                    Icon(isOpen ? Icons.cancel : Icons.zoom_out_map_outlined)),
+                onPressed: () => (), //(open = !optionalTypeArgs),
+                icon: Icon(open ? Icons.cancel : Icons.zoom_out_map_outlined)),
             Slider(value: 10, max: 20, onChanged: (_) => ())
           ],
         ),

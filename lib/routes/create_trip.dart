@@ -193,6 +193,7 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   late AlignOnUpdate _alignDirectionOnUpdate;
   List<Place> _places = [];
   bool _autoCentre = false;
+  double _zoom = 13;
   final _dividerHeight = 35.0;
   List<LatLng> routePoints = const [LatLng(51.478815, -0.611477)];
 
@@ -489,6 +490,7 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   }
 
   void _updateMarkerSize(double zoom) {
+    developer.log('_updateMarkerSize zoom: $zoom', name: '_overlays');
     setState(() {});
   }
 
@@ -1186,8 +1188,10 @@ enum TripState {
                               _autoCentre = false;
                               _alignPositionOnUpdate = AlignOnUpdate.never;
                               _alignDirectionOnUpdate = AlignOnUpdate.never;
-                              _animatedMapController.animateTo(
-                                  dest: LatLng(chosen.lat, chosen.lng));
+                              _animatedMapController
+                                  .animateTo(
+                                      dest: LatLng(chosen.lat, chosen.lng))
+                                  .then((_) => updateOverlays());
                             },
                             onChange: (text) => (debugPrint('onChange: $text')),
                             onUpdateOptionsRequest: (query) {
@@ -1289,7 +1293,11 @@ enum TripState {
             },
             onClose: (_) async {
               if (_osmIncludingChange) {
-                await _osmFeatures.update(fence: _cacheFence);
+                Fence newFence = Fence.fromBounds(
+                    _animatedMapController.mapController.camera.visibleBounds);
+                mapController.mapEventStream.listen((event) {});
+                _cacheFence.setBounds(bounds: newFence, deltaDegrees: 0.5);
+                await _osmFeatures.update(fence: _cacheFence, size: 20);
                 setState(() => ());
                 _osmIncludingChange = false;
               }
@@ -1398,9 +1406,13 @@ enum TripState {
                 _alignPositionOnUpdate = AlignOnUpdate.always;
                 _currentPosition = await Geolocator.getCurrentPosition();
                 //     debugPrint('Position: ${_currentPosition.toString()}');
-                _animatedMapController.animateTo(
-                    dest: LatLng(
-                        _currentPosition.latitude, _currentPosition.longitude));
+                _animatedMapController
+                    .animateTo(
+                        dest: LatLng(_currentPosition.latitude,
+                            _currentPosition.longitude))
+                    .then((_) => updateOverlays(
+                        zoom:
+                            _animatedMapController.mapController.camera.zoom));
                 setState(() => _autoCentre = true);
               }
             },
@@ -1481,18 +1493,7 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
             options: MapOptions(
               onMapEvent: checkMapEvent,
               onMapReady: () async {
-                Fence newFence = Fence.fromBounds(
-                    _animatedMapController.mapController.camera.visibleBounds);
-                mapController.mapEventStream.listen((event) {});
-                _cacheFence.setBounds(bounds: newFence, deltaDegrees: 0.5);
-                _osmFeatures.update(fence: _cacheFence).then((osupdate) =>
-                    _publishedFeatures.update(screenFence: _cacheFence).then(
-                      (puupdate) {
-                        if (puupdate || osupdate) {
-                          setState(() => {});
-                        }
-                      },
-                    ));
+                updateOverlays(zoom: 13);
                 if (!_tripStarted) {
                   _currentPosition = await Geolocator.getCurrentPosition();
                   _animatedMapController.animateTo(
@@ -1539,33 +1540,16 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
                   _updateMarkerSize(position.zoom);
                 }
 
-                Fence newFence = Fence.fromBounds(
-                    _animatedMapController.mapController.camera.visibleBounds);
-
                 if (_updateOverlays) {
-                  if (!_cacheFence.contains(bounds: newFence)) {
-                    _updateOverlays = false;
-                    _cacheFence.setBounds(bounds: newFence, deltaDegrees: 0.5);
-                    _osmFeatures.update(fence: _cacheFence).then(
-                          (update) => _publishedFeatures
-                              .update(screenFence: _cacheFence)
-                              .then(
-                            (update2) {
-                              if (update || update2) {
-                                setState(() => {});
-                              }
-                            },
-                          ),
-                        );
-                  }
+                  updateOverlays(zoom: position.zoom);
                 }
 
                 _mapRotation =
                     _animatedMapController.mapController.camera.rotation;
               },
               initialCenter: routePoints[0],
-              initialZoom: 13.0, // 15,
-              maxZoom: 18,
+              initialZoom: _zoom, // 15,
+              maxZoom: 13.99999,
               interactionOptions: const InteractionOptions(
                   enableMultiFingerGestureRace: true,
                   flags: InteractiveFlag.doubleTapDragZoom |
@@ -1730,6 +1714,50 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
 
   dismissKeyboard() {
     FocusManager.instance.primaryFocus?.unfocus();
+  }
+
+  void updateOverlays({double zoom = 12}) async {
+    Fence newFence = Fence.fromBounds(
+        _animatedMapController.mapController.camera.visibleBounds);
+
+    developer.log(
+        'newFence: ${newFence.toString()}, _cacheFence: ${_cacheFence.toString()}',
+        name: '_overlays');
+
+    zoom = _animatedMapController.mapController.camera.zoom;
+    developer.log('_ipdateOverlays = true ', name: '_overlays');
+
+    /// Updating the overlays depends on two factors:
+    /// 1 The cached data needs refreshing
+    /// 2 The zoom level has changed - so the markers have to change
+
+    if (!_cacheFence.contains(bounds: newFence) || zoom != _zoom) {
+      _zoom = zoom;
+      developer.log('_ipdateOverlays = true and newFence outside _cachedFence',
+          name: '_overlays');
+      if (zoom > 10) {
+        _updateOverlays = false;
+        _cacheFence.setBounds(bounds: newFence, deltaDegrees: 0.5);
+        double markerSize = 20 + ((zoom - 10) * 4);
+        developer.log('_ipdateOverlays markerSize: $markerSize',
+            name: '_overlays');
+        if (!_cacheFence.contains(bounds: newFence)) {
+          bool osmUpdate = await _osmFeatures.update(
+              fence: _cacheFence, size: markerSize); // 20 - 30 for zoom 10 - 14
+          bool pubUpdate =
+              await _publishedFeatures.update(screenFence: _cacheFence);
+
+          if (osmUpdate || pubUpdate) {
+            setState(() => _updateOverlays = true);
+          }
+        } else {
+          _osmFeatures.resizeOsmAmenities(size: markerSize);
+          _updateOverlays = true;
+        }
+      } else {
+        _osmFeatures.clear();
+      }
+    }
   }
 
   Future<Directory> getCacheFolder() async {

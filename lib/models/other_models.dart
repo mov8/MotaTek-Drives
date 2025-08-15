@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:drives/services/services.dart'; // hide getPosition;
 import 'package:drives/classes/classes.dart';
 import 'package:intl/intl.dart';
-import 'package:image_picker/image_picker.dart';
+//import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:drives/constants.dart';
 import 'package:drives/classes/utilities.dart' as utils;
@@ -15,6 +15,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter/material.dart';
 // import 'package:path_provider/path_provider.dart';
+
 import 'package:geolocator/geolocator.dart';
 
 /// https://api.flutter.dev/flutter/material/Icons-class.html  get the icon codepoint from here
@@ -635,11 +636,13 @@ class MarkerWidget extends StatelessWidget {
 }
 
 class OSMMarkerWidget extends StatelessWidget {
-  final int osmId;
+  final String osmId;
   final String name;
   final String amenity;
   final String postcode;
   final double angle;
+  final double iconSize;
+  final ImageRepository imageRepository;
   final int index;
 
   const OSMMarkerWidget(
@@ -649,12 +652,14 @@ class OSMMarkerWidget extends StatelessWidget {
       required this.amenity,
       required this.postcode,
       required this.index,
-      this.angle = 0});
+      required this.imageRepository,
+      this.angle = 0,
+      this.iconSize = 30});
 
   @override
   Widget build(BuildContext context) {
-    int width = 30;
-    double iconWidth = width * 0.75;
+    // int width = 30;
+    double iconWidth = iconSize;
     Color buttonFillColor =
         uiColours.keys.toList()[Setup().pointOfInterestColour];
     Color iconColor = Colors.white;
@@ -664,8 +669,14 @@ class OSMMarkerWidget extends StatelessWidget {
     return Transform.rotate(
       angle: angle,
       child: RawMaterialButton(
-        onPressed: () {
-          osmDataDialog(context, name, amenity, postcode, iconCodePoint, osmId);
+        onPressed: () async {
+          debugPrint('Marker pressed: $osmId');
+          var reviews = await getOsmReviews(osmId: osmId);
+          debugPrint('Marker pressed: ${reviews.toString()}');
+          if (context.mounted) {
+            osmDataDialog(context, name, amenity, postcode, iconCodePoint,
+                osmId, imageRepository, reviews);
+          }
         },
         elevation: 2.0,
         fillColor: buttonFillColor,
@@ -793,140 +804,66 @@ pointOfInterestDialog(
 }
 
 osmDataDialog(
-  BuildContext context,
-  String name,
-  String amenity,
-  String postcode,
-  int iconCodepoint,
-  int osmId,
-) async {
-  Widget cancelButton = TextButton(
-    child: const Text(
-      "Cancel",
-      style: TextStyle(fontSize: 20),
-    ),
-    onPressed: () {
-      Navigator.pop(context, true);
-    },
-  );
-  Widget okButton = TextButton(
-    child: const Text(
-      "Ok",
-      style: TextStyle(fontSize: 20),
-    ),
-    onPressed: () {
-      Navigator.pop(context, true);
-    },
-  );
-  double score = 5.0;
-  // set up the AlertDialog
+    BuildContext context,
+    String name,
+    String amenity,
+    String postcode,
+    int iconCodepoint,
+    String osmId,
+    ImageRepository imageRepository,
+    List<dynamic> reviews) async {
+  Map<String, dynamic> reviewData = {};
   AlertDialog alert = AlertDialog(
     title: Text(
       name,
       style: const TextStyle(fontSize: 20),
       textAlign: TextAlign.center,
     ),
-    // scrollable: true,
+    scrollable: true,
     elevation: 5,
     content: StatefulBuilder(
       builder: (BuildContext context, StateSetter setState) {
-        return Column(
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  flex: 2,
-                  child: Icon(
-                    IconData(iconCodepoint, fontFamily: 'MaterialIcons'),
-                    color: Colors.black,
-                    size: 40,
-                  ),
-                ),
-                Expanded(
-                  flex: 8,
-                  child: Text(
-                    amenity.replaceFirst(RegExp('_'), ' '),
-                    style: TextStyle(fontSize: 30),
-                  ),
-                ),
-              ],
-            ),
-            Row(
-              children: [
-                SizedBox(
-                  width: 225,
-                  height: 80,
-                  child: Text(
-                    '$name has not yet been rated. Review it now to help other people.',
-                    style:
-                        TextStyle(fontSize: 20, overflow: TextOverflow.visible),
-                  ),
-                ),
-              ],
-            ),
-            Row(children: [
-              Expanded(
-                child: Padding(
-                    padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
-                    child: TextFormField(
-                        readOnly: false,
-                        autofocus: true,
-                        maxLines: 10,
-                        minLines: 3,
-                        textInputAction: TextInputAction.done,
-
-                        //     expands: true,
-                        initialValue: '',
-                        textAlign: TextAlign.start,
-                        keyboardType: TextInputType.streetAddress,
-                        textCapitalization: TextCapitalization.sentences,
-                        decoration: InputDecoration(
-                          border: OutlineInputBorder(),
-                          hintMaxLines: 1,
-                          hintText: 'Describe $name...',
-                          labelText: 'My review',
-                        ),
-                        style: Theme.of(context).textTheme.bodyLarge,
-                        autovalidateMode: AutovalidateMode.onUserInteraction,
-                        onFieldSubmitted: (_) => ()) //body = text
-                    ),
-              ),
-            ]),
-            Row(children: [
-              Expanded(
-                flex: 7,
-                child: SizedBox(
-                  child: Align(
-                    alignment: Alignment.bottomCenter,
-                    child: ActionChip(
-                      label: const Text(
-                        'Image',
-                        style: TextStyle(fontSize: 18, color: Colors.white),
-                      ),
-                      avatar: const Icon(Icons.photo_album,
-                          size: 20, color: Colors.white),
-                      onPressed: () => loadImage(),
-                      backgroundColor: Colors.blueAccent,
-                    ),
-                  ),
-                ),
-              ),
-              Expanded(
-                flex: 8,
-                child: StarRating(
-                    onRatingChanged: (val) => setState(() {
-                          score = val.toDouble();
-                        }),
-                    rating: score),
-              ),
-            ]),
-          ],
+        return SizedBox(
+          height: 600,
+          child: OsmReviewTile(
+              index: 1,
+              imageRepository: imageRepository,
+              name: name,
+              amenity: amenity,
+              postcode: postcode,
+              iconCodepoint: iconCodepoint,
+              reviewData: reviewData,
+              reviews: reviews),
         );
       },
     ),
     actions: [
-      okButton,
-      cancelButton,
+      TextButton(
+        child: const Text(
+          "Ok",
+          style: TextStyle(fontSize: 20),
+        ),
+        onPressed: () {
+          postWithPhotos(
+              url: '$urlOsmReview/add',
+              fields: {
+                'amenity': amenity,
+                'osm_data_id': osmId,
+                'comment': reviewData['comment'] ?? '',
+                'images': reviewData['imageUrls'] ?? '',
+                'rated': dateFormatSQL.format(DateTime.now()),
+                'rating': reviewData['rating'] ?? 5.0
+              },
+              photos: photosFromJson(reviewData['imageUrls']));
+          Navigator.pop(context, true);
+        },
+      ),
+      TextButton(
+          child: const Text(
+            "Cancel",
+            style: TextStyle(fontSize: 20),
+          ),
+          onPressed: () => Navigator.pop(context, false)),
     ],
   );
 
@@ -939,54 +876,6 @@ osmDataDialog(
       return alert;
     },
   );
-}
-
-loadImage() async {
-  try {
-    ImagePicker picker = ImagePicker();
-    await //ImagePicker()
-        picker.pickImage(source: ImageSource.gallery, imageQuality: 10).then(
-      (pickedFile) async {
-        try {
-          if (pickedFile != null) {
-            // final directory = (await getApplicationDocumentsDirectory()).path;
-
-            /// Don't know what type of image so have to get file extension from picker file
-            //     int num = 1;
-            /*
-                if (widget.pointOfInterest.getImages().isNotEmpty) {
-                  /// count number of images
-                  num = '{'
-                          .allMatches(widget.pointOfInterest.getImages())
-                          .length +
-                      1;
-                }
-                debugPrint('Image count: $num');
-                */
-            //     String imagePath =
-            //         '$directory/point_of_interest_${id}_$num.${pickedFile.path.split('.').last}';
-            //     File(pickedFile.path).copy(imagePath);
-            /*
-                setState(() {
-                  widget.pointOfInterest.setImages(
-                      '[${widget.pointOfInterest.getImages().isNotEmpty ? '${widget.pointOfInterest.getImages().substring(1, widget.pointOfInterest.getImages().length - 1)},' : ''}{"url":"$imagePath","caption":"image $num"}]');
-                  widget.pointOfInterest.photos.add(Photo(
-                      url: imagePath,
-                      index: widget.pointOfInterest.photos.length));
-                  debugPrint('Images: $widget.pointOfInterest.images');
-                });
-                */
-          }
-        } catch (e) {
-          String err = e.toString();
-          debugPrint('Error getting image: $err');
-        }
-      },
-    );
-  } catch (e) {
-    String err = e.toString();
-    debugPrint('Error loading image: $err');
-  }
 }
 
 class Group {
@@ -1232,6 +1121,39 @@ class GroupDrive {
       pending: int.parse(map['pending']),
       driveDate: DateTime.parse(map['drive_date']),
     );
+  }
+}
+
+/// GroupDriveByGroup returns all the groups a user has organises
+/// with all the group members details plus the invitation
+/// status for the group drive in question
+
+class GroupDriveByGroup {
+  String groupId;
+  String name;
+  int count;
+  int invited;
+  int accepted;
+  List<dynamic> invitees;
+  GroupDriveByGroup({
+    this.groupId = '',
+    this.name = '',
+    this.count = 0,
+    this.invited = 0,
+    this.accepted = 0,
+    this.invitees = const [
+      {'forename': '', 'surname': '', 'email': '', 'status': 0},
+    ],
+  });
+
+  factory GroupDriveByGroup.fromMap({required Map<String, dynamic> map}) {
+    return GroupDriveByGroup(
+        groupId: map['id'],
+        name: map['name'],
+        count: map['count'],
+        invited: map['invited'],
+        accepted: map['accepted'],
+        invitees: map['members']);
   }
 }
 
@@ -1618,26 +1540,30 @@ class IntIm {
 
 class OsmAmenity extends Marker {
   final IntIm? id; // = MutableInt(value: -1);
-  final int osmId;
+  final String osmId;
   final String name;
   final String amenity;
   final int iconColour;
   final String postcode;
+  final double markerWidth;
+  final double markerHeight;
   final int index;
 
   const OsmAmenity(
       {this.id,
-      this.osmId = -1,
+      this.osmId = '',
       this.index = -1,
       this.name = '',
       this.amenity = '',
       this.postcode = '',
-      super.width = 20,
-      super.height = 20,
+      this.markerWidth = 20,
+      this.markerHeight = 20,
       this.iconColour = 0,
       required LatLng position,
       required Widget marker})
       : super(
+          width: markerWidth,
+          height: markerHeight,
           child: marker,
           point: position, // markerPoint,
         );
@@ -1661,6 +1587,32 @@ class OsmAmenity extends Marker {
       ),
     );
   }
+
+  factory OsmAmenity.morph(
+      {required OsmAmenity osmAmenity, required double size}) {
+    OSMMarkerWidget currentMarker = osmAmenity.child as OSMMarkerWidget;
+    return OsmAmenity(
+      id: osmAmenity.id,
+      osmId: osmAmenity.osmId,
+      index: osmAmenity.index,
+      name: osmAmenity.name,
+      amenity: osmAmenity.amenity,
+      postcode: osmAmenity.postcode,
+      position: osmAmenity.point,
+      markerWidth: size,
+      markerHeight: size,
+      marker: OSMMarkerWidget(
+        osmId: currentMarker.osmId,
+        name: currentMarker.name,
+        amenity: currentMarker.amenity,
+        postcode: currentMarker.postcode,
+        index: currentMarker.index,
+        iconSize: size * 0.75,
+        imageRepository: currentMarker.imageRepository,
+      ),
+    );
+  }
+
   /*
   marker: MarkerWidget(
     type: 16,

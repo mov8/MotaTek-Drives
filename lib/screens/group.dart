@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:drives/models/other_models.dart';
 import 'package:drives/tiles/tiles.dart';
 import 'package:drives/services/services.dart';
+import 'package:drives/classes/classes.dart';
 import 'package:uuid/uuid.dart';
 
 //enum GroupState { createGroups, addMembers }
@@ -41,20 +42,6 @@ class _GroupFormState extends State<GroupForm> {
     super.dispose();
   }
 
-  Future<bool> dataFromDatabase() async {
-    groups = await loadGroups();
-    if (groups.isEmpty) {
-      groups.add(Group(id: '', name: '', edited: true));
-      groupIndex = 0;
-      edited = true;
-    }
-    for (int i = 0; i < groups.length; i++) {
-      expanded.add(false);
-    }
-
-    return true;
-  }
-
   Future<bool> dataFromWeb() async {
     groups = await getManagedGroups();
     groupIndex = 0;
@@ -68,49 +55,13 @@ class _GroupFormState extends State<GroupForm> {
   Widget build(BuildContext context) {
     if (groups.isNotEmpty) {}
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.blue,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
-
-        /// Removes Shadow
-        toolbarHeight: 40,
-        title: const Text(
-          'Drives groups I manage',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(60),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(5, 10, 5, 10),
-            child: Text(
-              'Manage my groups',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 30,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ),
-
-        /// Shrink height a bit
-        leading: BackButton(
-          onPressed: () async {
-            if (hasChanged()) {
-              await openDialog(context);
-              if (context.mounted) {
-                Navigator.pop(context);
-              }
-            } else {
-              Navigator.pop(context);
-            }
-          },
-        ),
+      appBar: ScreensAppBar(
+        heading: 'Drives group management',
+        prompt: 'Add members or swipe left to remove.',
+        updateHeading: 'You have changed group details.',
+        updateSubHeading: 'Press Update to confirm the changes or Ignore',
+        update: _changed,
+        updateMethod: () => upLoad(),
       ),
       body: FutureBuilder<bool>(
         future: dataloaded,
@@ -176,14 +127,29 @@ class _GroupFormState extends State<GroupForm> {
                       group: groups[index],
                       controller: _controller,
                       index: index,
-                      onEdit: (index) {
-                        groups[index].edited = true;
-                        _changed = true;
+                      onEdit: (index, update) {
+                        if (update) {
+                          updateGroups(
+                              groups: [groups[index]],
+                              action: GroupAction.update);
+                          setState(() => groups[index].edited = false);
+                          _changed = true;
+                        } else {
+                          groups[index].edited = true;
+                          _changed = true;
+                        }
                       },
                       onExpand: (index, value) => onExpand(index, value),
                       // onAdd: (index) => onAdd(index),
-                      onDelete: (email) => _unInvite
-                          .add(Group(id: groups[index].id, name: email)),
+                      onDelete: (email) {
+                        if (email.isNotEmpty) {
+                          _unInvite
+                              .add(Group(id: groups[index].id, name: email));
+                        } else {
+                          groups.removeLast();
+                          setState(() => _addingGroup = false);
+                        }
+                      },
                       // onInvite: (index, value) => onInvite(index),
                       expanded: expanded[index],
                     ),
@@ -194,7 +160,7 @@ class _GroupFormState extends State<GroupForm> {
           ],
         ),
       ),
-      if (!_expanded)
+      if (!_expanded && !_addingGroup)
         Padding(
           padding: EdgeInsetsGeometry.fromLTRB(20, 10, 10, 30),
           child: Wrap(
@@ -235,11 +201,11 @@ class _GroupFormState extends State<GroupForm> {
                   onPressed: () => upLoad(),
                   backgroundColor: Colors.blue,
                   avatar: const Icon(
-                    Icons.save_outlined,
+                    Icons.cloud_upload_outlined,
                     color: Colors.white,
                   ),
                   label: const Text(
-                    "Save changes",
+                    "Upload changes",
                     style: TextStyle(fontSize: 18, color: Colors.white),
                   ),
                 ),
@@ -275,40 +241,6 @@ class _GroupFormState extends State<GroupForm> {
       updateGroups(groups: _unInvite, action: GroupAction.uninvite);
     }
   }
-
-  Future openDialog(BuildContext context) => showDialog(
-        context: context,
-        builder: (context) => StatefulBuilder(
-          builder: (context, setState) => AlertDialog(
-            title: const Text(
-              'Upload changes?',
-              style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
-            ),
-            content: const Text(
-                "You haven't saved your changes - save them now ?",
-                style: TextStyle(fontSize: 17)),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  upLoad();
-                  Navigator.of(context).pop(true);
-                },
-                child: const Text('Upload',
-                    style: TextStyle(
-                      fontSize: 18,
-                    )),
-              ),
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('Exit',
-                    style: TextStyle(
-                      fontSize: 18,
-                    )),
-              )
-            ],
-          ),
-        ),
-      );
 
   /// There is a bit of a problem with an expansion tile's expanded state updating its parent
   /// as calling setState() in the parent to reflect the expansion change prevents the expansiontile expanding

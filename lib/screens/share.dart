@@ -13,8 +13,87 @@ class ShareForm extends StatefulWidget {
   @override
   State<ShareForm> createState() => _ShareFormState();
 }
+/*
+ late List<GroupDriveByGroup> _groups;
+_groups = await getMembersByGroup();
+                        child: MyTripSelectTile(
+                          myTripItem: widget.myTripItems[index],
+                          groupDrivers: widget.groupDrivers,
+                          onSelect: (idx) => setState(() => _driveIndex = idx),
+                          //  controller: _controller,
+                          index: index,
+                        ),
+
+*/
 
 class _ShareFormState extends State<ShareForm> {
+  late List<GroupDriveByGroup> _groups;
+
+  @override
+  Widget build(BuildContext context) {
+    // groups = [];
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.blue,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
+
+        /// Removes Shadow
+        toolbarHeight: 40,
+        title: const Text(
+          'Drives share a trip',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(40),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(5, 10, 5, 10),
+            child: Text(
+              widget.tripItem.heading,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ),
+
+        /// Shrink height a bit
+        leading: BackButton(
+          onPressed: () {
+            try {
+              insertSetup(Setup());
+              Navigator.pop(context);
+            } catch (e) {
+              debugPrint('Setup error: ${e.toString()}');
+            }
+          },
+        ),
+      ),
+      //  bottomNavigationBar: _handleBottomNavigationBar(),
+      body: SingleChildScrollView(
+        child: Column(children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(5, 10, 5, 10),
+            child: Text('Invite other drives to enjoy your drive',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          ),
+          DriveInvitations(
+            index: 1,
+            groupDrivers: _groups,
+            myTripItem: widget.tripItem,
+          )
+        ]),
+      ),
+    );
+  }
+}
+/*
   int group = 0;
   bool choosing = true;
   late Future<bool> dataloaded;
@@ -474,3 +553,4 @@ Future<void> loadTrip(int index) async {
 Future<void> shareTrip(int index) async {
   return;
 }
+*/

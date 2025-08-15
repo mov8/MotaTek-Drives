@@ -2,6 +2,7 @@ import 'package:drives/constants.dart';
 import 'package:flutter/material.dart';
 import 'package:drives/models/other_models.dart';
 import 'package:drives/services/services.dart';
+import 'package:drives/classes/classes.dart';
 
 class MyGroupsForm extends StatefulWidget {
   // var setup;
@@ -37,37 +38,14 @@ class _MyGroupsFormState extends State<MyGroupsForm> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.blue,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
-
-        /// Removes Shadow
-        toolbarHeight: 40,
-        title: const Text('Drives groups',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            )),
-        bottom: const PreferredSize(
-          preferredSize: Size.fromHeight(60),
-          child: Padding(
-              padding: EdgeInsets.fromLTRB(5, 10, 5, 10),
-              child: Text("Groups of which I'm a member:",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                  ))),
-        ),
-
-        /// Shrink height a bit
-        leading: BackButton(
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
+      appBar: ScreensAppBar(
+        heading: 'Drives groups to which I belong',
+        prompt: 'Swipe left to remove yourself from group.',
+        updateHeading: 'You have changed group details.',
+        updateSubHeading: 'Press Update to confirm the changes or Ignore',
+        update: _changed,
+        showAction: _changed,
+        updateMethod: update,
       ),
       body: FutureBuilder<bool>(
         future: dataloaded,
@@ -91,6 +69,10 @@ class _MyGroupsFormState extends State<MyGroupsForm> {
         },
       ),
     );
+  }
+
+  void update() {
+    updateGroups(groups: _dismissed, action: GroupAction.leave);
   }
 
   Widget portraitView() {
@@ -187,36 +169,10 @@ class _MyGroupsFormState extends State<MyGroupsForm> {
             ),
           ),
         ),
-        Align(
-          alignment: Alignment.bottomCenter,
-          child: Padding(
-            padding: EdgeInsetsGeometry.fromLTRB(10, 10, 10, 50),
-            child: _changed ? _handleChips() : null,
-          ),
-        ),
       ]);
     }
 
     return widget;
-  }
-
-  Widget _handleChips() {
-    return Wrap(
-      spacing: 10,
-      children: [
-        ActionChip(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          onPressed: () async {
-            await updateGroups(groups: _dismissed, action: GroupAction.leave);
-          },
-          backgroundColor: Colors.blue,
-          avatar: const Icon(Icons.cloud_upload_outlined, color: Colors.white),
-          label: const Text('Upload Changes',
-              style: TextStyle(fontSize: 18, color: Colors.white)),
-        ),
-      ],
-    );
   }
 
   void onDelete(int index) {

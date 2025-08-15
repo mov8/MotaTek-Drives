@@ -4,6 +4,7 @@ import 'package:material_symbols_icons/get.dart';
 // import 'package:material_symbols_icons/get.dart';
 import 'package:drives/models/other_models.dart';
 import 'package:drives/services/db_helper.dart';
+import 'package:drives/classes/classes.dart';
 
 class SetupForm extends StatefulWidget {
   // var setup;
@@ -16,79 +17,30 @@ class _SetupFormState extends State<SetupForm> {
   //int sound = 0;
   final iconFlyover = SymbolsGet.get('flyover', SymbolStyle.sharp);
   final iconRoad = SymbolsGet.get('road', SymbolStyle.sharp);
+  bool _hasChanged = false;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: Colors.blue,
-        iconTheme: const IconThemeData(color: Colors.white),
-
-        /// Removes Shadow
-        toolbarHeight: 50,
-
-        /// Shrink height a bit
-        leading: BackButton(
-          //  style: ButtonStyle(iconSize: 40),
-          onPressed: () {
-            try {
-              insertSetup(Setup());
-              Navigator.pop(context);
-            } catch (e) {
-              debugPrint('Setup error: ${e.toString()}');
-            }
-          },
-        ),
-
-        /// Removes Shadow
-        title: const Text('Drives setup',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            )),
-        bottom: const PreferredSize(
-          preferredSize: Size.fromHeight(60),
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(5, 10, 5, 10),
-            child: Text(
-              'Settings',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 38,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ),
-
-        /// Shrink height a bit
-
-        actions: const <Widget>[
-          /*
-          IconButton(
-            icon: const Icon(Icons.save),
-            tooltip: 'Back to main screen',
-            onPressed: () {
-              debugPrint('debug print');
-              try {
-                // insertPort(widget.port);
-                // insertGauge(widget.gauge);
-              } catch (e) {
-                debugPrint('Error saving data : ${e.toString()}');
-              }
-              ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Data has been updated')));
-            },
-          )
-          */
-        ],
+      appBar: ScreensAppBar(
+        heading: 'Configure the Drives app',
+        prompt: 'Enable or disable the features you want.',
+        updateHeading: 'You have changed the setup.',
+        updateSubHeading: 'Press Update to confirm the changes or Ignore',
+        update: _hasChanged,
+        updateMethod: _update,
+        showAction: _hasChanged,
       ),
 
       body: portraitView(),
       // body: MediaQuery.of(context).orientation == Orientation.portrait ? portraitView() : landscapeView()
     );
+  }
+
+  void _update() {
+    insertSetup(Setup());
+    setState(() => _hasChanged = false);
+    return;
   }
 
   Widget portraitView() {
@@ -101,6 +53,7 @@ class _SetupFormState extends State<SetupForm> {
           onChanged: (bool value) {
             setState(
               () {
+                _hasChanged = true;
                 Setup().allowNotifications = value;
               },
             );
@@ -114,6 +67,7 @@ class _SetupFormState extends State<SetupForm> {
           onChanged: (bool value) {
             setState(
               () {
+                _hasChanged = true;
                 Setup().rotateMap = value;
               },
             );
@@ -127,6 +81,7 @@ class _SetupFormState extends State<SetupForm> {
           onChanged: (bool value) {
             setState(
               () {
+                _hasChanged = true;
                 Setup().avoidMotorways = value;
               },
             );
@@ -140,6 +95,7 @@ class _SetupFormState extends State<SetupForm> {
           onChanged: (bool value) {
             setState(
               () {
+                _hasChanged = true;
                 Setup().avoidTollRoads = value;
               },
             );
@@ -152,6 +108,7 @@ class _SetupFormState extends State<SetupForm> {
           value: Setup().avoidFerries,
           onChanged: (bool value) {
             setState(() {
+              _hasChanged = true;
               Setup().avoidFerries = value;
             });
           },
@@ -163,6 +120,7 @@ class _SetupFormState extends State<SetupForm> {
           value: Setup().osmPubs,
           onChanged: (bool value) {
             setState(() {
+              _hasChanged = true;
               Setup().osmPubs = value;
             });
           },
@@ -174,6 +132,7 @@ class _SetupFormState extends State<SetupForm> {
           value: Setup().osmRestaurants,
           onChanged: (bool value) {
             setState(() {
+              _hasChanged = true;
               Setup().osmRestaurants = value;
             });
           },
@@ -185,6 +144,7 @@ class _SetupFormState extends State<SetupForm> {
           value: Setup().osmFuel,
           onChanged: (bool value) {
             setState(() {
+              _hasChanged = true;
               Setup().osmFuel = value;
             });
           },
@@ -196,6 +156,7 @@ class _SetupFormState extends State<SetupForm> {
           value: Setup().osmToilets,
           onChanged: (bool value) {
             setState(() {
+              _hasChanged = true;
               Setup().osmToilets = value;
             });
           },
@@ -207,6 +168,7 @@ class _SetupFormState extends State<SetupForm> {
           value: Setup().osmHistorical,
           onChanged: (bool value) {
             setState(() {
+              _hasChanged = true;
               Setup().osmHistorical = value;
             });
           },
@@ -218,6 +180,7 @@ class _SetupFormState extends State<SetupForm> {
           value: Setup().osmAtms,
           onChanged: (bool value) {
             setState(() {
+              _hasChanged = true;
               Setup().osmAtms = value;
             });
           },
@@ -230,6 +193,7 @@ class _SetupFormState extends State<SetupForm> {
           onChanged: (bool value) {
             setState(
               () {
+                _hasChanged = true;
                 Setup().dark = value;
                 //  ThemeSetter().isDark(Setup().dark);
               },
@@ -250,9 +214,11 @@ class _SetupFormState extends State<SetupForm> {
                   value:
                       uiColours.values.elementAt(Setup().pointOfInterestColour),
                   items: colourChoices(context),
-                  onChanged: (chosen) => setState(() =>
-                      Setup().pointOfInterestColour =
-                          uiColours.values.toList().indexOf(chosen.toString())),
+                  onChanged: (chosen) => setState(() {
+                    _hasChanged = true;
+                    Setup().pointOfInterestColour =
+                        uiColours.values.toList().indexOf(chosen.toString());
+                  }),
                   //  uiColours.keys.toList().toString().indexOf(item.toString())),
                 ),
               ),
@@ -268,9 +234,11 @@ class _SetupFormState extends State<SetupForm> {
                   value: uiColours.values
                       .elementAt(Setup().pointOfInterestColour2),
                   items: colourChoices(context),
-                  onChanged: (chosen) => setState(() =>
-                      Setup().pointOfInterestColour2 =
-                          uiColours.values.toList().indexOf(chosen.toString())),
+                  onChanged: (chosen) => setState(() {
+                    _hasChanged = true;
+                    Setup().pointOfInterestColour2 =
+                        uiColours.values.toList().indexOf(chosen.toString());
+                  }),
                   //  uiColours.keys.toList().toString().indexOf(item.toString())),
                 ),
               ),
@@ -289,9 +257,12 @@ class _SetupFormState extends State<SetupForm> {
                       ),
                       value: uiColours.values.elementAt(Setup().waypointColour),
                       items: colourChoices(context),
-                      onChanged: (chosen) => setState(() => Setup()
-                              .waypointColour =
-                          uiColours.values.toList().indexOf(chosen.toString())),
+                      onChanged: (chosen) => setState(() {
+                        _hasChanged = true;
+                        Setup().waypointColour = uiColours.values
+                            .toList()
+                            .indexOf(chosen.toString());
+                      }),
                       //  uiColours.keys.toList().toString().indexOf(item.toString())),
                     ))),
             Expanded(
@@ -304,9 +275,11 @@ class _SetupFormState extends State<SetupForm> {
                   ),
                   value: uiColours.values.elementAt(Setup().waypointColour2),
                   items: colourChoices(context),
-                  onChanged: (chosen) => setState(() =>
-                      Setup().waypointColour2 =
-                          uiColours.values.toList().indexOf(chosen.toString())),
+                  onChanged: (chosen) => setState(() {
+                    _hasChanged = true;
+                    Setup().waypointColour2 =
+                        uiColours.values.toList().indexOf(chosen.toString());
+                  }),
                   //  uiColours.keys.toList().toString().indexOf(item.toString())),
                 ),
               ),
@@ -325,8 +298,11 @@ class _SetupFormState extends State<SetupForm> {
                   ),
                   value: uiColours.values.elementAt(Setup().routeColour),
                   items: colourChoices(context),
-                  onChanged: (chosen) => setState(() => Setup().routeColour =
-                      uiColours.values.toList().indexOf(chosen.toString())),
+                  onChanged: (chosen) => setState(() {
+                    _hasChanged = true;
+                    Setup().routeColour =
+                        uiColours.values.toList().indexOf(chosen.toString());
+                  }),
                   //  uiColours.keys.toList().toString().indexOf(item.toString())),
                 ),
               ),
@@ -341,9 +317,11 @@ class _SetupFormState extends State<SetupForm> {
                   ),
                   value: uiColours.values.elementAt(Setup().goodRouteColour),
                   items: colourChoices(context),
-                  onChanged: (chosen) => setState(() =>
-                      Setup().goodRouteColour =
-                          uiColours.values.toList().indexOf(chosen.toString())),
+                  onChanged: (chosen) => setState(() {
+                    _hasChanged = true;
+                    Setup().goodRouteColour =
+                        uiColours.values.toList().indexOf(chosen.toString());
+                  }),
                 ),
               ),
             ),
@@ -362,9 +340,11 @@ class _SetupFormState extends State<SetupForm> {
                   value:
                       uiColours.values.elementAt(Setup().publishedTripColour),
                   items: colourChoices(context),
-                  onChanged: (chosen) => setState(() =>
-                      Setup().publishedTripColour =
-                          uiColours.values.toList().indexOf(chosen.toString())),
+                  onChanged: (chosen) => setState(() {
+                    _hasChanged = true;
+                    Setup().publishedTripColour =
+                        uiColours.values.toList().indexOf(chosen.toString());
+                  }),
                   //  uiColours.keys.toList().toString().indexOf(item.toString())),
                 ),
               ),
@@ -379,9 +359,11 @@ class _SetupFormState extends State<SetupForm> {
                   ),
                   value: uiColours.values.elementAt(Setup().highlightedColour),
                   items: colourChoices(context),
-                  onChanged: (chosen) => setState(() =>
-                      Setup().highlightedColour =
-                          uiColours.values.toList().indexOf(chosen.toString())),
+                  onChanged: (chosen) => setState(() {
+                    _hasChanged = true;
+                    Setup().highlightedColour =
+                        uiColours.values.toList().indexOf(chosen.toString());
+                  }),
                   //  uiColours.keys.toList().toString().indexOf(item.toString())),
                 ),
               ),
@@ -399,8 +381,11 @@ class _SetupFormState extends State<SetupForm> {
                 ),
                 value: uiColours.values.elementAt(Setup().selectedColour),
                 items: colourChoices(context),
-                onChanged: (chosen) => setState(() => Setup().selectedColour =
-                    uiColours.values.toList().indexOf(chosen.toString())),
+                onChanged: (chosen) => setState(() {
+                  _hasChanged = true;
+                  Setup().selectedColour =
+                      uiColours.values.toList().indexOf(chosen.toString());
+                }),
               ),
             ),
           ),

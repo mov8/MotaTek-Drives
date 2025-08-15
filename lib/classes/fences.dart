@@ -217,6 +217,11 @@ class Fence {
   String polygonString() {
     return '${southWest.latitude} ${southWest.longitude},${northEast.latitude} ${southWest.longitude}, ${northEast.latitude} ${northEast.longitude}, ${southWest.latitude} ${northEast.longitude}, ${southWest.latitude} ${southWest.longitude}';
   }
+
+  @override
+  String toString() {
+    return 'SW:${southWest.latitude} ${southWest.longitude} NE:${northEast.latitude} ${southWest.longitude}';
+  }
 }
 
 class PointSearchItem {
