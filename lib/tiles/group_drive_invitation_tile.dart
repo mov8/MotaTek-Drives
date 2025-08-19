@@ -11,6 +11,7 @@ class GroupDriveInvitationTile extends StatefulWidget {
   final Function(int)? onEdit;
   final Function(int)? onDownload;
   final Function(int)? onSelect;
+  final Function(int, int)? onRespond;
 
   final int index;
 
@@ -21,7 +22,8 @@ class GroupDriveInvitationTile extends StatefulWidget {
       this.index = 0,
       this.onEdit,
       this.onDownload,
-      this.onSelect});
+      this.onSelect,
+      this.onRespond});
 
   @override
   State<GroupDriveInvitationTile> createState() =>
@@ -31,11 +33,7 @@ class GroupDriveInvitationTile extends StatefulWidget {
 class _GroupDriveInvitationTileState extends State<GroupDriveInvitationTile> {
   DateFormat dateFormat = DateFormat('d MMM y');
   TripItem? _tripSummary;
-  List<IconData> invIcons = [
-    Icons.thumbs_up_down_outlined,
-    Icons.thumb_down_off_alt_outlined,
-    Icons.thumb_up_off_alt_outlined
-  ];
+
   List<String> invState = ['undecided', 'declined', 'accepted'];
   List<Photo> photos = [];
 
@@ -54,7 +52,7 @@ class _GroupDriveInvitationTileState extends State<GroupDriveInvitationTile> {
           leading: Column(
             children: [
               Icon(
-                invIcons[widget.eventInvitation.accepted],
+                inviteIcons[widget.eventInvitation.accepted],
                 size: 30,
               ),
               const SizedBox(
@@ -239,11 +237,15 @@ class _GroupDriveInvitationTileState extends State<GroupDriveInvitationTile> {
                         children: [
                           IconButton(
                             icon: const Icon(Icons.directions_car),
-                            onPressed: () => widget.onSelect!(widget.index),
+                            onPressed: () {
+                              if (widget.onSelect != null) {
+                                widget.onSelect!(widget.index);
+                              }
+                            },
                           ),
                           const Align(
                             alignment: Alignment.center,
-                            child: Text('start trip'),
+                            child: Text('join trip'),
                           ),
                         ],
                       ),
@@ -253,9 +255,10 @@ class _GroupDriveInvitationTileState extends State<GroupDriveInvitationTile> {
                       child: Column(
                         children: [
                           IconButton(
-                            icon: Icon(invIcons[2]),
-                            onPressed: () => respond(2),
-                          ),
+                              icon: Icon(inviteIcons[2]),
+                              onPressed: () => widget.onRespond!(
+                                  widget.index, 2) //respond(2),
+                              ),
                           Align(
                             alignment: Alignment.center,
                             child: Text(
@@ -271,8 +274,8 @@ class _GroupDriveInvitationTileState extends State<GroupDriveInvitationTile> {
                       child: Column(
                         children: [
                           IconButton(
-                            icon: Icon(invIcons[1]),
-                            onPressed: () => respond(1),
+                            icon: Icon(inviteIcons[1]),
+                            onPressed: () => widget.onRespond!(widget.index, 1),
                           ),
                           Align(
                             alignment: Alignment.center,
@@ -289,8 +292,8 @@ class _GroupDriveInvitationTileState extends State<GroupDriveInvitationTile> {
                       child: Column(
                         children: [
                           IconButton(
-                            icon: Icon(invIcons[0]),
-                            onPressed: () => respond(0),
+                            icon: Icon(inviteIcons[0]),
+                            onPressed: () => widget.onRespond!(widget.index, 0),
                           ),
                           Align(
                             alignment: Alignment.center,

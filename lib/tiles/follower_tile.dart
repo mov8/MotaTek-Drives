@@ -34,8 +34,8 @@ class _FollowerTileState extends State<FollowerTile> {
           '${widget.follower.forename} ${widget.follower.surname} (${widget.follower.forename == 'Frank' ? 5 : 9} mins)',
           style: const TextStyle(overflow: TextOverflow.ellipsis),
         ),
-        subtitle:
-            Text('${widget.follower.car} reg: ${widget.follower.registration}'),
+        subtitle: Text(
+            'make: ${widget.follower.manufacturer} model: ${widget.follower.model} colour: ${widget.follower.carColour} reg: ${widget.follower.registration}'),
         leading: ElevatedButton(
           style: ElevatedButton.styleFrom(
             // maximumSize: const Size(20, 20),

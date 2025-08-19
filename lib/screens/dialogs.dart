@@ -5,7 +5,7 @@ import 'dart:async';
 import 'package:drives/constants.dart';
 import 'package:drives/services/services.dart';
 import 'package:drives/models/models.dart';
-import 'package:drives/screens/screens.dart';
+//import 'package:drives/screens/screens.dart';
 
 const Duration fakeAPIDuration = Duration(seconds: 1);
 const Duration debounceDuration = Duration(milliseconds: 500);
@@ -310,31 +310,9 @@ AlertDialog buildColumnDialog(
 Future<LoginState> loginDialog(BuildContext context,
     {required User user}) async {
   String status = '';
-  int joiningOffset = user.password.isEmpty && user.email.isNotEmpty ? 2 : 0;
-
-  // debugPrint('joiningOffset is $joiningOffset');
-
+  List<String> registered = [];
+  bool hasChecked = false;
   user.password = '';
-  int selectedRadio = 0;
-  List<String> rltTitles = [
-    'Login ',
-    'Register as new user',
-    'Enter code now',
-    'Resend email'
-  ];
-  List<String> titles = [
-    'Login ',
-    'Register',
-    'Validate registration',
-    'Resend code email'
-  ];
-
-  List<IconData> dialogIcons = [
-    Icons.key,
-    Icons.person_add,
-    Icons.how_to_reg,
-    Icons.send
-  ];
 
   LoginState? loginState = await showDialog<LoginState>(
     context: context,
@@ -343,90 +321,84 @@ Future<LoginState> loginDialog(BuildContext context,
       builder: (context, StateSetter setState) => AlertDialog(
         title: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
           Icon(
-            dialogIcons[selectedRadio + joiningOffset],
-            //    joinId.isEmpty ? selectedRadio == 0 ? Icons.key : Icons.person_add : ,
+            Icons.key,
             size: 30,
           ),
           const SizedBox(
             width: 10,
           ),
-          Text(titles[selectedRadio + joiningOffset]),
+          Text('Login'),
         ]),
         content: SizedBox(
-          height: selectedRadio == 0 ? 210 : 160,
+          height: 160,
           width: 350,
           child: Column(children: [
-            if (joiningOffset == 0 || (selectedRadio == 1)) ...[
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
                       autofocus: true,
                       textInputAction: TextInputAction.next,
                       keyboardType: TextInputType.emailAddress,
+                      textCapitalization: TextCapitalization.none,
                       decoration: const InputDecoration(
                           hintText: 'Enter your email address'),
-                      onChanged: (value) => user.email = value,
-                    ),
-                  )
-                ],
-              ),
-            ] else ...[
-              Row(
-                children: [
-                  const Expanded(flex: 3, child: Text('')),
-                  Expanded(
-                    flex: 4,
-                    child: TextField(
-                      autofocus: true,
-                      keyboardType: TextInputType.number,
-                      maxLength: 6,
-                      style: const TextStyle(
-                          fontSize: 26, fontWeight: FontWeight.bold),
-                      textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                          hintText: 'emailed code',
-                          hintStyle: TextStyle(
-                              fontSize: 14, fontWeight: FontWeight.normal)),
-                      onChanged: (value) => user.password = value,
-                    ),
-                  ),
-                  const Expanded(flex: 3, child: Text('')),
-                ],
-              ),
-            ],
-            if (selectedRadio + joiningOffset == 0) ...[
-              Row(
-                children: [
-                  Expanded(
-                      child: TextField(
-                    decoration: const InputDecoration(
-                      hintText: 'Password - leave empty if fogotten',
-                    ),
-                    textInputAction: TextInputAction.done,
-                    keyboardType: TextInputType.visiblePassword,
-                    onChanged: (value) => user.password = value,
-                    onSubmitted: (_) async {
-                      LoginState liState = LoginState.cancel;
-                      if (user.email.isNotEmpty) {
-                        try {
-                          liState = user.password.isEmpty
-                              ? LoginState.register
-                              : LoginState.login;
-                          if (context.mounted) {
-                            Navigator.pop(context, liState);
+                      onChanged: (value) async {
+                        user.email = value.toLowerCase();
+                        if (user.email.length >= 6) {
+                          if (hasChecked == false) {
+                            hasChecked = true;
+                            registered = await getApiOptions(
+                                value: user.email, secure: false);
                           }
-                        } catch (e) {
-                          String err = e.toString();
-                          debugPrint('Error: $err');
+                        } else {
+                          hasChecked = false;
                         }
+                        if (emailRegex.hasMatch(user.email) && hasChecked) {
+                          if (registered
+                              .where((em) => em.startsWith(user.email))
+                              .toList()
+                              .isEmpty) {
+                            setState(() =>
+                                status = 'User unknown - press Ok to register');
+                          }
+                        } else if (status.isNotEmpty) {
+                          setState(() => status = '');
+                        }
+                      }),
+                )
+              ],
+            ),
+            Row(
+              children: [
+                Expanded(
+                    child: TextField(
+                  decoration: const InputDecoration(
+                    hintText: 'Password - leave empty if fogotten',
+                  ),
+                  textInputAction: TextInputAction.done,
+                  keyboardType: TextInputType.visiblePassword,
+                  onChanged: (value) => user.password = value,
+                  onSubmitted: (_) async {
+                    LoginState liState = LoginState.cancel;
+                    if (user.email.isNotEmpty) {
+                      try {
+                        liState = user.password.isEmpty
+                            ? LoginState.register
+                            : LoginState.login;
+                        if (context.mounted) {
+                          Navigator.pop(context, liState);
+                        }
+                      } catch (e) {
+                        String err = e.toString();
+                        debugPrint('Error: $err');
                       }
-                    },
-                  ))
-                ],
-              ),
-            ],
+                    }
+                  },
+                ))
+              ],
+            ),
+
             const SizedBox(height: 20),
             Row(
               children: [
@@ -442,39 +414,25 @@ Future<LoginState> loginDialog(BuildContext context,
               ],
             ),
             // if (joiningOffset == 0)
-            Row(
-              children: List.generate(
-                2,
-                (index) => Expanded(
-                  flex: index, // == 2 ? 6 : 4,
-                  child: Row(
-                    children: [
-                      Text(rltTitles[joiningOffset + index]),
-                      if (index < 3)
-                        Radio(
-                          value: index,
-                          groupValue: selectedRadio,
-                          onChanged: (val) => //selectedRadio = val!,
-                              setState(() => selectedRadio = val!),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
           ]),
         ),
         actions: [
           TextButton(
             onPressed: () async {
-              if (user.password.isEmpty) {
+              if (user.password.isEmpty && status.isNotEmpty) {
+                Setup().user = user;
                 Navigator.pop(context, LoginState.register);
-              }
-              Map<String, dynamic> response =
-                  await tryLogin(user: Setup().user);
-              status = response['msg'] ?? '';
-              if (context.mounted && status == 'OK') {
-                Navigator.pop(context, LoginState.login);
+              } else if (user.password.isEmpty && registered.isEmpty) {
+                Setup().user = user;
+                Navigator.pop(context, LoginState.resetPassword);
+              } else {
+                Map<String, dynamic> response =
+                    await tryLogin(user: Setup().user);
+                status = response['msg'] ?? '';
+                if (context.mounted && status == 'OK') {
+                  Setup().user = user;
+                  Navigator.pop(context, LoginState.login);
+                }
               }
             },
 

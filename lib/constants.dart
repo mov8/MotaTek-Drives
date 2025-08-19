@@ -32,7 +32,7 @@ const List<String> routes = [
   'messages'
 ];
 
-enum LoginState { notLoggedin, cancel, login, register, edit }
+enum LoginState { notLoggedin, cancel, login, register, edit, resetPassword }
 
 enum MarkerTypes {
   trip,
@@ -106,9 +106,9 @@ DateFormat dateFormatSQL = DateFormat('yyyy-MM-dd hh:mm:ss');
 DateFormat dateFormatDoc = DateFormat('E dd/MM/yyyy');
 
 List<IconData> inviteIcons = [
+  Icons.thumbs_up_down_outlined,
   Icons.thumb_down_outlined,
   Icons.thumb_up_outlined,
-  Icons.thumbs_up_down_outlined,
   Icons.outgoing_mail,
 ];
 
@@ -123,6 +123,8 @@ const Map<int, String> responseCodes = {
   408: 'timed out',
   410: 'missing' // User not found
 };
+
+enum InviteState { undecided, declined, accepted }
 
 RegExp emailRegex = RegExp(r'[a-zA-Z0-9.]+@[a-zA-Z0-9]+\.[a-zA-Z]+');
 

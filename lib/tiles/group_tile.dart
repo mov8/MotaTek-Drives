@@ -208,6 +208,9 @@ class _GroupTileState extends State<GroupTile> {
     if (member != null && _groupMemberState == GroupMemberState.isNew) {
       developer.log('addMember() ${member.email}', name: '_member');
       widget.group.addMember(member);
+      if (widget.onAdd != null) {
+        widget.onAdd!(1);
+      }
       _groupMemberState = GroupMemberState.none;
       widget.group.edited = true;
     }
@@ -288,6 +291,9 @@ class _GroupTileState extends State<GroupTile> {
               onPressed: () => setState(() {
                 _addMember = true;
                 _groupMemberState = GroupMemberState.isNew;
+                if (widget.onAdd != null) {
+                  //       widget.onAdd!(1);
+                }
                 // _isUpdated = true;
               }),
               backgroundColor: Colors.blue,

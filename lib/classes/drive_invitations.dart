@@ -83,8 +83,21 @@ class _DriveInvitationsState extends State<DriveInvitations>
                   widget.groupDrivers[index].name,
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
-                subtitle: Text(
-                    'members: ${widget.groupDrivers[index].count} invited: ${widget.groupDrivers[index].invited} accepted: ${widget.groupDrivers[index].accepted}'),
+                subtitle: Row(children: [
+                  Expanded(
+                    flex: 2,
+                    child: Text(
+                      '${widget.groupDrivers[index].count} member${widget.groupDrivers[index].count == 1 ? '' : 's'}',
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  Expanded(
+                    flex: 5,
+                    child: Text(
+                        ' invited: ${widget.groupDrivers[index].invited} accepted: ${widget.groupDrivers[index].accepted}'),
+                  ),
+                ]),
                 children: [
                   if (widget.groupDrivers[index].invitees.isNotEmpty)
                     SizedBox(
@@ -180,7 +193,7 @@ class _DriveInvitationsState extends State<DriveInvitations>
                 child: Padding(
                   padding: EdgeInsets.fromLTRB(0, 100, 0, 0),
                   child: Text(
-                    "You haven't invited any drivers yet",
+                    "You haven't invited anyone yet",
                     style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
                   ),
                 ),
@@ -386,7 +399,7 @@ class _DriveInvitationsState extends State<DriveInvitations>
 
     Map<String, dynamic> toEmail = {
       'drive_id': widget.myTripItem.driveUri,
-      'drive_date': dateFormatDoc.format(_date!),
+      'drive_date': dateFormatSQL.format(_date!),
       'title': widget.myTripItem.heading,
       'message': _instructions
     };

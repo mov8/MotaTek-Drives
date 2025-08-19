@@ -1,4 +1,6 @@
 // import 'package:drives/routes/home.dart';
+import 'dart:convert';
+
 import 'package:drives/constants.dart';
 import 'package:drives/screens/invitations.dart';
 import 'package:flutter/material.dart';
@@ -199,18 +201,32 @@ class _MainDrawerState extends State<MainDrawer> {
             onTap: () async {
               //   login(context);
               User user = await getUser();
-              user.email = '';
+
               // 'test@test.com';
               user.password = '';
               Setup().user = user;
               if (context.mounted) {
                 LoginState loginState = await loginDialog(context, user: user);
-                if (loginState == LoginState.register && context.mounted) {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (BuildContext context) => const SignupForm()),
-                  );
+                if (loginState == LoginState.register) {
+                  Setup().user.forename = '';
+                  Setup().user.surname = '';
+                  Setup().user.phone = '';
+                  Setup().user.password = '';
+                  Setup().jwt = '';
+                  if (user.email.isNotEmpty) {
+                    await postValidateUser(user: user);
+                  }
+                  if (context.mounted) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (BuildContext context) =>
+                              SignupForm(loginState: loginState)),
+                    );
+                  }
+                } else if (loginState == LoginState.login) {
+                  await saveUser(Setup().user);
+                  Setup().setupToDb();
                 }
               }
               setState(() {});

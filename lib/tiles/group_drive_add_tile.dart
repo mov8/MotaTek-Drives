@@ -59,67 +59,60 @@ class _GroupDriveAddTileState extends State<GroupDriveAddTile> {
             //  widget.onExpandChange!(widget.index, expanded);
           },
           children: [
-            SizedBox(
-              height: MediaQuery.of(context).size.height - 200,
-              // child:
-              //  SingleChildScrollView(
-              //   child:
-              // Expanded(
-              child: Column(
-                children: [
-                  if (widget.myTripItems.isEmpty) ...[
-                    SizedBox(
-                      width: MediaQuery.of(context).size.width,
-                      height: MediaQuery.of(context).size.height - 250,
-                      child: Align(
-                        alignment: Alignment.center,
-                        child: Padding(
-                          padding: EdgeInsetsGeometry.fromLTRB(
-                              0,
-                              (MediaQuery.of(context).size.height - 400) / 2,
-                              0,
-                              30),
-                          child: Column(
-                            children: [
-                              Text(
-                                  "You haven't created and saved any trips yet.",
-                                  style: TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold)),
-                              Text("Create one in My Trip and save it.",
-                                  style: TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold)),
-                            ],
-                          ),
+            if (widget.myTripItems.isEmpty) ...[
+              SizedBox(
+                width: MediaQuery.of(context).size.width,
+                height: MediaQuery.of(context).size.height - 575,
+                child: Align(
+                  alignment: Alignment.center,
+                  child: Padding(
+                    padding: EdgeInsetsGeometry.fromLTRB(0,
+                        (MediaQuery.of(context).size.height - 400) / 2, 0, 30),
+                    child: Column(
+                      children: [
+                        Text("You haven't created and saved any trips yet.",
+                            style: TextStyle(
+                                fontSize: 20, fontWeight: FontWeight.bold)),
+                        Text(
+                          "Create one in My Trip and save it.",
+                          style: TextStyle(
+                              fontSize: 20, fontWeight: FontWeight.bold),
                         ),
-                      ),
-                    ),
-                  ],
-                  Expanded(
-                    flex: 1,
-                    child: ListView.builder(
-                      itemCount: widget.myTripItems.length,
-                      itemBuilder: (context, index) => Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 0.0, vertical: 5.0),
-                        child: MyTripSelectTile(
-                          myTripItem: widget.myTripItems[index],
-                          groupDrivers: widget.groupDrivers,
-                          //  onSelect: (idx) => setState(() => _driveIndex = idx),
-                          //  controller: _controller,
-                          index: index,
-                        ),
-                      ),
+                      ],
                     ),
                   ),
-                ],
+                ),
+              ),
+            ],
+            //  Expanded(
+            //    flex: 1,
+            //    child:
+            ListView.builder(
+              physics: const NeverScrollableScrollPhysics(),
+              // This tells the
+              //ListView to calculate its full height based on its children.
+              // WARNING: This is bad for performance on very long lists!
+              shrinkWrap: true,
+              itemCount: widget.myTripItems.length,
+              itemBuilder: (context, index) => Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 0.0, vertical: 5.0),
+                child: MyTripSelectTile(
+                  myTripItem: widget.myTripItems[index],
+                  groupDrivers: widget.groupDrivers,
+                  //  onSelect: (idx) => setState(() => _driveIndex = idx),
+                  //  controller: _controller,
+                  index: index,
+                ),
               ),
             ),
-            //     ),
+            //  ),
           ],
         ),
       ),
+      // ],
+      //   ),
+      //  ),
     );
   }
 

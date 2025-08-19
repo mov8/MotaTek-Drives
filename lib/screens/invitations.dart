@@ -25,7 +25,7 @@ class _InvitationsScreenState extends State<InvitationsScreen> {
   final List<EventInvitation> _accepted = [];
   final ImageRepository _imageRepository = ImageRepository();
   String introduceName = 'Invitations';
-  bool edited = false;
+  bool _edited = false;
   int introduceIndex = 0;
   String testString = '';
 
@@ -61,7 +61,7 @@ class _InvitationsScreenState extends State<InvitationsScreen> {
         updateSubHeading: _accepted.isNotEmpty
             ? "You have accepted ${_accepted.length} invitation${_accepted.length > 1 ? 's' : ''}"
             : '',
-        update: _refused.isNotEmpty || _accepted.isNotEmpty,
+        update: _edited,
         overflowPrompts: [
           'Show all invitations',
           'Include declined invitations',
@@ -78,6 +78,8 @@ class _InvitationsScreenState extends State<InvitationsScreen> {
           getData3,
         ],
         showOverflow: true,
+        showAction: _edited,
+        updateMethod: update,
       ),
       body: FutureBuilder<bool>(
         future: dataloaded,
@@ -137,7 +139,7 @@ class _InvitationsScreenState extends State<InvitationsScreen> {
                   developer.log(
                       'confirmDismiss ${(direction == DismissDirection.startToEnd).toString()}',
                       name: '_dismiss');
-                  edited = true;
+                  _edited = true;
                   if (direction == DismissDirection.startToEnd) {
                     setState(() => invitations[index].accepted = 2);
                     _accepted.add(invitations[index]);
@@ -151,7 +153,7 @@ class _InvitationsScreenState extends State<InvitationsScreen> {
                       name: '_dismiss');
                   if (direction == DismissDirection.endToStart) {
                     _refused.add(invitations[index]);
-                    edited = true;
+                    _edited = true;
                     setState(() => invitations.removeAt(index));
                   } else {
                     setState(() => invitations[index].accepted = 1);
@@ -161,6 +163,16 @@ class _InvitationsScreenState extends State<InvitationsScreen> {
                 child: GroupDriveInvitationTile(
                   imageRepository: _imageRepository,
                   eventInvitation: invitations[index],
+                  onSelect: (idx) => startDrive(idx),
+                  onDownload: (idx) => saveDrive(idx),
+                  onRespond: (idx, val) {
+                    if (val == 2) {
+                      _accepted.add(invitations[idx]);
+                    } else if (val == 1) {
+                      _refused.add(invitations[idx]);
+                    }
+                    setState(() => invitations[idx].accepted = val);
+                  },
                   index: index,
                 ),
               ),
@@ -196,5 +208,51 @@ class _InvitationsScreenState extends State<InvitationsScreen> {
         child: null, // _handleChips(),
       )
     ]);
+  }
+
+  startDrive(int index) async {
+    MyTripItem gotTrip = await getMyTrip(invitations[index].driveId);
+    if (mounted) {
+      Navigator.pushNamed(context, 'createTrip',
+          arguments: TripArguments(gotTrip, '',
+              groupDriveId: invitations[index].groupDriveId));
+    }
+  }
+
+  saveDrive(int index) async {
+    MyTripItem gotTrip = await getMyTrip(invitations[index].driveId);
+    await gotTrip.saveLocal();
+  }
+
+/* 
+        MyTripItem gotTrip = await getMyTrip(uri);
+        if (options.myTrip) {
+          await gotTrip.saveLocal();
+        } else if (mounted) {
+          Navigator.pushNamed(context, 'createTrip',
+              arguments: TripArguments(gotTrip, '')); //'web'));
+        }
+*/
+
+  update() async {
+    Map<String, dynamic> inviteResponses = {};
+    if (_accepted.isNotEmpty) {
+      List<String> oks = [];
+      for (int i = 0; i < _accepted.length; i++) {
+        oks.add(_accepted[i].driveId);
+      }
+      inviteResponses['accepted'] = oks;
+    }
+    if (_refused.isNotEmpty) {
+      List<String> nos = [];
+      for (int i = 0; i < _refused.length; i++) {
+        nos.add(_refused[i].driveId);
+      }
+      inviteResponses['refused'] = nos;
+    }
+    if (inviteResponses.isNotEmpty) {
+      await respondToInvitations(responses: inviteResponses);
+    }
+    setState(() => _edited = false);
   }
 }

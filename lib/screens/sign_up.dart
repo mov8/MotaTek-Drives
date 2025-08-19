@@ -3,10 +3,11 @@ import 'package:drives/models/other_models.dart';
 import 'package:drives/services/services.dart';
 import 'package:drives/screens/dialogs.dart';
 import 'package:drives/classes/classes.dart';
+import 'package:drives/constants.dart';
 
 class SignupForm extends StatefulWidget {
-  const SignupForm({super.key, context});
-
+  final LoginState loginState;
+  const SignupForm({super.key, context, this.loginState = LoginState.register});
   @override
   State<SignupForm> createState() => _SignupFormState();
 }

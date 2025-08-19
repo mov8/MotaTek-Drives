@@ -1,3 +1,4 @@
+import 'package:drives/constants.dart';
 import 'package:drives/tiles/tiles.dart';
 import 'package:flutter/material.dart';
 import 'package:drives/classes/classes.dart';
@@ -18,7 +19,7 @@ class _GroupDriveFormState extends State<GroupDriveForm> {
   late Future<bool> _dataLoaded;
   // late Future<bool> _localDataloaded;
   late List<GroupDriveByGroup> _groups;
-  late List<GroupDriveByGroup> _trips;
+  late List<GroupEvent> _trips;
   int _action = 0;
 
   bool _adding = false;
@@ -40,8 +41,10 @@ class _GroupDriveFormState extends State<GroupDriveForm> {
   }
 
   Future<bool> loadData() async {
+    DateTime today = DateTime.now();
     _myTripItems = await tripItemFromDb();
-    _trips = await getMembersByDrive();
+    _trips = await getMembersByDrive(
+        startDate: DateTime(today.year, today.month, today.day - 2));
     _groups = await getMembersByGroup();
     return true;
   }
@@ -57,58 +60,23 @@ class _GroupDriveFormState extends State<GroupDriveForm> {
         updateSubHeading: 'Press Update to confirm the changes or Ignore',
         //   update: hasChanged && isComplete(),
         //   updateMethod: () => register(),
-        overflowPrompts: ["Only Invited", "Include Uninvited"],
+        overflowPrompts: [
+          "Only Invited",
+          "Include Uninvited",
+          "Only Future Events"
+        ],
         overflowIcons: [
           Icon(Icons.sentiment_satisfied_outlined),
-          Icon(Icons.sentiment_dissatisfied_outlined)
+          Icon(Icons.sentiment_dissatisfied_outlined),
+          Icon(Icons.next_plan_outlined)
         ],
         overflowMethods: [
           () => setState(() => _adding = !_adding),
+          () => setState(() => _adding = !_adding),
           () => setState(() => _adding = !_adding)
         ],
+        showOverflow: true,
       ),
-
-      /*AppBar(
-        backgroundColor: Colors.blue,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
-
-        /// Removes Shadow
-        toolbarHeight: 40,
-        title: const Text(
-          'Drives Group Events',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(60),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(5, 10, 5, 10),
-            child: Text(
-              "Events I've organised",
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ),
-
-        /// Shrink height a bit
-        leading: BackButton(
-          onPressed: () {
-            if (--_action >= 0) {
-              setState(() {});
-            } else {
-              Navigator.pop(context);
-            }
-          },
-        ),
-      ), */
       body: FutureBuilder<bool>(
         future: _dataLoaded,
         builder: (BuildContext context, snapshot) {
@@ -133,17 +101,61 @@ class _GroupDriveFormState extends State<GroupDriveForm> {
   }
 
   Widget portraitView() {
-    return SingleChildScrollView(
-      child: Column(
-        children: [
-          GroupDriveAddTile(
-            index: 1,
-            myTripItems: _myTripItems,
-            groupDrivers: _groups,
-            onSelectTrip: (_) => (),
-          )
-        ],
-      ),
+    return Column(
+      children: [
+        GroupDriveAddTile(
+          index: 1,
+          myTripItems: _myTripItems,
+          groupDrivers: _groups,
+          onSelectTrip: (_) => (),
+        ),
+        Expanded(
+          child: ListView.builder(
+            itemCount: _trips.length,
+            itemBuilder: (context, index) => Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 0.0, vertical: 5.0),
+              child: ExpansionTile(
+                //    onExpansionChanged: (_) =>
+                //        _trips[index].selected = !_trips[index].selected,
+                //    leading: _trips[index].selected
+                //        ? IconButton(onPressed: () => (), icon: Icon(Icons.add))
+                //        : null,
+                title: Text(
+                  _trips[index].eventName,
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                subtitle: Text(
+                  'Event date  ${dateFormatDoc.format(DateTime.parse(_trips[index].eventDate))}',
+                  style: TextStyle(fontSize: 14),
+                ),
+                children: [
+                  ListView.builder(
+                    physics: const NeverScrollableScrollPhysics(),
+                    // This tells the ListView to calculate its full height based on its children.
+                    // WARNING: This is bad for performance on very long lists!
+                    shrinkWrap: true,
+                    itemCount: _trips[index].invitees.length,
+                    itemBuilder: (context, mIndex) => Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 0.0, vertical: 5.0),
+                      child: ListTile(
+                          leading: Icon(inviteIcons[int.parse(
+                              _trips[index].invitees[mIndex]['state'])]),
+                          title: Text(
+                              '${_trips[index].invitees[mIndex]['forename']} ${_trips[index].invitees[mIndex]['surname']}',
+                              style: TextStyle(
+                                  fontSize: 20, fontWeight: FontWeight.bold)),
+                          subtitle: Text(
+                              '${_trips[index].invitees[mIndex]['email']}    ${_trips[index].invitees[mIndex]['phone']}')),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 

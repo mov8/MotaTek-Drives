@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:drives/models/other_models.dart';
 import 'package:drives/classes/utilities.dart';
+import 'package:drives/constants.dart';
 
 class GroupDriveEnviteeTile extends StatefulWidget {
   final EventInvitation invitation;
@@ -29,6 +30,7 @@ class _GroupDriveEnviteeTileState extends State<GroupDriveEnviteeTile> {
     Icons.check_box_outlined,
     Icons.check_box_outline_blank,
   ];
+
   List<String> invState = ['undecided', 'declined', 'accepted'];
   @override
   Widget build(BuildContext context) {

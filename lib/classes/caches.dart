@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'dart:async';
+import 'dart:developer' as developer;
 import 'package:drives/models/other_models.dart';
 import 'package:drives/services/services.dart';
 import 'package:drives/classes/classes.dart';
@@ -7,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:drives/classes/route.dart' as mt;
 import 'package:vector_map_tiles/vector_map_tiles.dart';
+
 // import 'package:drives/classes/classes.dart';
 
 /// TripItemRepository handles the cache for TripItems in the Trips route
@@ -60,6 +62,7 @@ class PointOfInterestRepository {
       zoom = 30}) async {
     // PointOfInterest pointOfIntest = PointOfInterest(markerPoint: MarkerPoint(), marker: marker)
     if (!_pointOfInterestCache.containsKey(key)) {
+      developer.log('uri:$uri uncached', name: '_cache');
       //  try {
       if (id >= 0) {
         _pointOfInterestCache[key] = await loadPointOfInterestLocal(id: id);
@@ -71,6 +74,7 @@ class PointOfInterestRepository {
       }
     } else {
       //  debugPrint('Point of obtained from cache');
+      developer.log('uri:$uri cached', name: '_cache');
     }
     //  debugPrint(fetched);
     return _pointOfInterestCache[key]!;

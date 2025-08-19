@@ -29,7 +29,8 @@ class MailItem {
 class TripArguments {
   final MyTripItem trip;
   final String origin;
-  TripArguments(this.trip, this.origin);
+  final String groupDriveId;
+  TripArguments(this.trip, this.origin, {this.groupDriveId = ''});
 }
 
 class MutableInt {

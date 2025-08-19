@@ -1067,7 +1067,7 @@ class GroupMember {
   set edited(bool value) => isEdited = value ? 'true' : 'false';
 
   Map<String, dynamic> toMap() {
-    return {'user_id': userId, 'group_id': groupId};
+    return {'user_id': userId, 'group_id': groupId, 'email': email};
   }
 
   Map<String, dynamic> toFullMap() {
@@ -1124,9 +1124,44 @@ class GroupDrive {
   }
 }
 
+class GroupEvent {
+  String eventId;
+  String eventName;
+  String eventDate;
+  int invited;
+  int accepted;
+  bool selected;
+  int count;
+  List<dynamic> invitees;
+  GroupEvent({
+    this.eventId = '',
+    this.eventName = '',
+    this.eventDate = '',
+    this.count = 0,
+    this.invited = 0,
+    this.selected = false,
+    this.accepted = 0,
+    this.invitees = const [{}],
+    //    {'forename': '', 'surname': '', 'email': '', 'status': 0},
+    //  ],
+  });
+
+  factory GroupEvent.fromMap({required Map<String, dynamic> map}) {
+    return GroupEvent(
+        eventId: map['id'],
+        eventName: map['name'],
+        eventDate: map['date'],
+        count: map['count'],
+        invited: map['invited'],
+        accepted: map['accepted'],
+        invitees: map['members']);
+  }
+}
+
 /// GroupDriveByGroup returns all the groups a user has organises
 /// with all the group members details plus the invitation
 /// status for the group drive in question
+///
 
 class GroupDriveByGroup {
   String groupId;
@@ -1141,9 +1176,9 @@ class GroupDriveByGroup {
     this.count = 0,
     this.invited = 0,
     this.accepted = 0,
-    this.invitees = const [
-      {'forename': '', 'surname': '', 'email': '', 'status': 0},
-    ],
+    this.invitees = const [{}],
+    //   {'forename': '', 'surname': '', 'email': '', 'status': 0},
+    // ],
   });
 
   factory GroupDriveByGroup.fromMap({required Map<String, dynamic> map}) {
@@ -1159,6 +1194,7 @@ class GroupDriveByGroup {
 
 class EventInvitation {
   String driveId;
+  String groupDriveId;
   String name;
   DateTime eventDate;
   String forename;
@@ -1172,6 +1208,7 @@ class EventInvitation {
   bool selected;
   EventInvitation({
     this.driveId = '',
+    this.groupDriveId = '',
     this.name = '',
     eventDate,
     this.forename = '',
@@ -1188,6 +1225,7 @@ class EventInvitation {
   factory EventInvitation.fromByUserMap(Map<String, dynamic> map) {
     return EventInvitation(
       driveId: map['event_id'],
+      groupDriveId: map['group_drive_id'],
       name: map['event_name'],
       eventDate: DateTime.parse(map['event_date']),
       forename: map['inviter_forename'],
@@ -1639,12 +1677,17 @@ class OsmAmenity extends Marker {
 
 class Follower extends Marker {
   String uri;
+  String userId = '';
   String driveId;
+  String driveName;
   String forename = '';
   String surname = '';
+  String email = '';
   String phoneNumber = '';
-  String car = '';
+  String manufacturer = '';
+  String model = '';
   String registration = '';
+  String carColour = '';
   int iconColour = 0;
   LatLng position = const LatLng(0, 0);
   DateTime reported = DateTime.now();
@@ -1655,12 +1698,17 @@ class Follower extends Marker {
   double height;
   Follower(
       {this.uri = '',
+      this.userId = '',
       this.driveId = '',
+      this.driveName = '',
       this.forename = '',
       this.surname = '',
+      this.email = '',
       this.phoneNumber = '',
-      this.car = '',
+      this.manufacturer = '',
+      this.model = '',
       this.registration = '',
+      this.carColour = '',
       this.width = 20,
       this.height = 20,
       this.iconColour = 0,
@@ -1674,15 +1722,35 @@ class Follower extends Marker {
         ) {
     reported = DateTime.now();
   }
+  factory Follower.fromMap({required Map<String, dynamic> map}) {
+    return Follower(
+        position: LatLng(0.0, 0.0),
+        marker: Text(''),
+        uri: map['invitation_id'] ?? '',
+        userId: map['user_id'] ?? '',
+        driveId: map['group_drive_id'] ?? '',
+        driveName: map['drive_name'] ?? '',
+        forename: map['user_forename'] ?? '',
+        surname: map['user_suname'] ?? '',
+        phoneNumber: map['user_phone'] ?? '',
+        email: map['user_email'] ?? '',
+        carColour: map['colour'] ?? '',
+        manufacturer: map['manufacturer'] ?? '',
+        model: map['model'] ?? '',
+        registration: map['registration'] ?? '');
+  }
 
   Map<String, dynamic> toMap() {
     return {
-      'id': uri,
+      'invitation_id': uri,
+      'user_id': userId,
       'drive_id': driveId,
       'forename': forename,
       'surname': surname,
       'phone_number': phoneNumber,
-      'car': car,
+      'manufacturer': manufacturer,
+      'model': model,
+      'car_colour': carColour,
       'registration': registration,
       'icon_colour': iconColour,
       'position':

@@ -6,6 +6,7 @@ import 'package:drives/models/models.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter/material.dart';
+import 'dart:developer' as developer;
 
 enum PinTypes {
   beautySpot,
@@ -261,15 +262,17 @@ class PublishedFeatures {
     }
     screenCenter = screenFence.getCentre(bounds: screenFence);
     bool updateCache = cache.isEmpty;
-    bool updateDetails = true;
+    bool updateDetails = false;
 
     if (!cacheFence.contains(bounds: screenFence)) {
       cacheFence = Fence.fromFence(bounds: screenFence, deltaDegrees: 0.5);
+      developer.log('Updating fence', name: '_cache');
       updateCache = true;
     }
 
     List<Feature> listToFilter = cache;
     if (updateCache) {
+      developer.log('Updating cache', name: '_cache');
       cache.clear();
       routes.clear();
       goodRoads.clear();
@@ -278,17 +281,20 @@ class PublishedFeatures {
       listToFilter = features;
     } else if (markers.isEmpty) {
       updateDetails = true;
+      developer.log('Markers empty', name: '_cache');
     } else if (zoom > 11) {
       for (Feature feature in markers) {
         if (!screenFence.contains(bounds: feature.getBounds())) {
           //   debugPrint('Feature ${feature.row}has left the _screenFence');
           updateDetails = true;
+          developer.log('Zoom > 11', name: '_cache');
           break;
         }
       }
-      updateDetails = true;
+      //  updateDetails = true;
     }
     if (updateDetails) {
+      developer.log('Updating details', name: '_cache');
       markers.clear();
       cards.clear();
       routeCards.clear();

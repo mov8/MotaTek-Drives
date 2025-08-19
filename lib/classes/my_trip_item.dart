@@ -35,7 +35,7 @@ class CurrentTripItem extends MyTripItem {
     id = myTripItem.id;
     driveId = myTripItem.driveId;
     index = myTripItem.index;
-    groupTrip = myTripItem.groupTrip;
+    groupDriveId = myTripItem.groupDriveId;
     driveUri = myTripItem.driveUri;
     heading = myTripItem.heading;
     subHeading = myTripItem.subHeading;
@@ -61,7 +61,7 @@ class CurrentTripItem extends MyTripItem {
       id: id,
       driveId: driveId,
       index: index,
-      groupTrip: groupTrip,
+      groupDriveId: groupDriveId,
       driveUri: driveUri,
       heading: heading,
       subHeading: subHeading,
@@ -137,7 +137,7 @@ class MyTripItem {
   int id;
   int driveId;
   int index;
-  bool groupTrip;
+  String groupDriveId;
   String driveUri;
   // String groupUri;
   String heading;
@@ -177,7 +177,7 @@ class MyTripItem {
     this.distance = 0,
     this.closest = 12,
     this.highlights = 0,
-    this.groupTrip = false,
+    this.groupDriveId = '',
     this.showMethods = false,
   })  : pointsOfInterest = pointsOfInterest ?? [],
         maneuvers = maneuvers ?? [],

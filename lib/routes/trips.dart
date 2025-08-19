@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'dart:ui' as ui;
 import 'dart:io';
+import 'dart:developer' as developer;
+import 'package:drives/constants.dart';
 import 'package:drives/classes/classes.dart';
 import 'package:drives/models/models.dart';
 import 'package:drives/screens/main_drawer.dart';
@@ -61,6 +63,7 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
   final ScrollController _preferencesScrollController = ScrollController();
   final _dividerHeight = 35.0;
   int _resizeDelay = 0;
+  bool _resized = false;
   bool refreshTrips = true;
   // bool _showDetails = false;
   List<double> mapHeights = [0, 0, 0, 0];
@@ -69,7 +72,8 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
   PublishedFeatures _publishedFeatures = PublishedFeatures(
       features: [], pinTap: (_) => (), pointOfInterestLookup: {});
   //late StyleReader _styleReader;
-
+  final GlobalKey _appBarKey = GlobalKey();
+  final GlobalKey _bottomNavKey = GlobalKey();
   @override
   void initState() {
     super.initState();
@@ -259,7 +263,7 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
       return [
         () async {
           int idx = 0;
-          setState(() => adjustMapHeight(MapHeight.pointOfInterest));
+          setState(() => adjustMapHeight(MapHeights.pointOfInterest));
           await Future.delayed(const Duration(milliseconds: 500));
 
           for (int i = 0; i < _publishedFeatures.routeCards.length; i++) {
@@ -420,7 +424,7 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
   Widget _getPortraitBody() {
     // await _dataLoaded == true;
     if (mapHeight == -1) {
-      adjustMapHeight(MapHeight.full);
+      adjustMapHeight(MapHeights.full);
     }
     return SingleChildScrollView(
       child: Column(
@@ -469,7 +473,7 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
 
   Widget _handleMap() {
     if (listHeight == -1) {
-      adjustMapHeight(MapHeight.full);
+      adjustMapHeight(MapHeights.full);
     }
 
     return Stack(
@@ -493,6 +497,7 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
             onPositionChanged: (pos, change) async {
               Fence newFence = Fence.fromBounds(
                   _animatedMapController.mapController.camera.visibleBounds);
+              // developer.log()
               _publishedFeatures.update(screenFence: newFence).then(
                 (update) {
                   if (update) {
@@ -625,7 +630,36 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
     putPointOfInterestRating(uri, value.toDouble());
   }
 
-  adjustMapHeight(MapHeight newHeight) {
+  adjustMapHeight(MapHeights newHeight) {
+    double abHeight = 80;
+    double bnHeight = 80;
+
+    if (mapHeights[1] == 0) {
+      final bnKeyContext = _bottomNavKey.currentContext;
+      final abKeyContext = _appBarKey.currentContext;
+      if (abKeyContext != null) {
+        final box = abKeyContext.findRenderObject() as RenderBox;
+        abHeight = box.size.height;
+      }
+      if (bnKeyContext != null) {
+        final box = bnKeyContext.findRenderObject() as RenderBox;
+        bnHeight = box.size.height;
+      }
+      mapHeights[0] = MediaQuery.of(context).size.height -
+          (abHeight + bnHeight + 30); //* .825; //- 190; // info closed
+      mapHeights[1] = mapHeights[0] * .35; // 400; //275; // heading data
+      mapHeights[2] = mapHeights[0] * .30; // open point of interest
+      mapHeights[3] = mapHeights[0] * .6; // message
+    }
+    mapHeight = mapHeights[MapHeights.values.indexOf(newHeight)];
+    //  if (newHeight == MapHeights.full) {
+    //    dismissKeyboard();
+    //  }
+    listHeight = (mapHeights[0] - mapHeight);
+    // debugPrint('adjustMapHeight() listHeight:$listHeight');
+    _resized = false;
+    _resizeDelay = 400;
+    /*  
     if (mapHeights[1] == 0) {
       mapHeights[0] = MediaQuery.of(context).size.height - 190; // info closed
       mapHeights[1] = mapHeights[0] - 200; // heading data
@@ -635,6 +669,7 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
     mapHeight = mapHeights[MapHeight.values.indexOf(newHeight)];
     listHeight = (mapHeights[0] - mapHeight);
     _resizeDelay = 400;
+  */
   }
 
   expandChange(var details) {
@@ -642,10 +677,10 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
       setState(
         () {
           if (details >= 0) {
-            adjustMapHeight(MapHeight.pointOfInterest);
+            adjustMapHeight(MapHeights.pointOfInterest);
           } else {
             FocusManager.instance.primaryFocus?.unfocus(); // dismiss keyboard
-            adjustMapHeight(MapHeight.full);
+            adjustMapHeight(MapHeights.full);
           }
         },
       );
@@ -655,7 +690,7 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
   _handleBottomSheetDivider() {
     _resizeDelay = 0;
     if (listHeight == -1) {
-      adjustMapHeight(MapHeight.full);
+      adjustMapHeight(MapHeights.full);
     }
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
@@ -672,8 +707,8 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
         ),
       ),
       onTap: () => setState(() => adjustMapHeight(mapHeight > mapHeights[0] - 50
-          ? MapHeight.pointOfInterest
-          : MapHeight.full)),
+          ? MapHeights.pointOfInterest
+          : MapHeights.full)),
       onVerticalDragUpdate: (DragUpdateDetails details) {
         setState(() {
           if (mapHeights[0] == 0) {
@@ -698,6 +733,7 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
       key: _scaffoldKey,
       drawer: const MainDrawer(),
       appBar: AppBar(
+        key: _appBarKey,
         automaticallyImplyLeading: false,
         leading: LeadingWidget(
           controller: _leadingWidgetController,
@@ -768,6 +804,7 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
       floatingActionButton: HandleFabs(
           animatedMapController: _animatedMapController), // _handleFabs(),
       bottomNavigationBar: RoutesBottomNav(
+        key: _bottomNavKey,
         controller: _bottomNavController,
         initialValue: 1,
         onMenuTap: (_) => {},

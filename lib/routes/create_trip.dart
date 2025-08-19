@@ -147,6 +147,7 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   LatLng _lastLatLng = const LatLng(0.00, 0.00);
   late StreamSubscription<Position> _positionStream;
   late Future<bool> _loadedOK;
+  // late Future<bool> _groupChecked;
   bool _showMask = false;
   bool _osmIncludingChange = false;
   late FocusNode fn1;
@@ -612,6 +613,7 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    developer.log('Widget build', name: '_initialise');
     int initialNavBarValue = 2;
     initialLeadingWidgetValue =
         [AppState.createTrip, AppState.driveTrip].contains(_appState) ? 1 : 0;
@@ -619,8 +621,8 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
         listHeight == -1) {
       final args = ModalRoute.of(context)!.settings.arguments as TripArguments;
       CurrentTripItem().fromMyTripItem(myTripItem: args.trip);
-      loadGroup();
-      _title = CurrentTripItem().heading;
+      CurrentTripItem().groupDriveId = args.groupDriveId;
+      // _groupChecked = true;
       developer.log(_title, name: '_title at build 617');
       CurrentTripItem().tripState = TripState.notFollowing;
       CurrentTripItem().tripActions = TripActions.none;
@@ -699,6 +701,7 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   }
 
   Future<bool> dataFromDatabase() async {
+    developer.log('loading data', name: '_initialise');
     try {
       if (Setup().hasLoggedIn) {
         var setupRecords = await recordCount('setup');
@@ -719,6 +722,7 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
     } catch (e) {
       debugPrint('Error getting features data: ${e.toString()}');
     }
+    developer.log('data loaded', name: '_initialise');
     _style = await VectorMapStyle().mapStyle();
     return true;
   }
@@ -1500,6 +1504,11 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
                       dest: LatLng(_currentPosition.latitude,
                           _currentPosition.longitude));
                   _tripStarted = true;
+                  if (CurrentTripItem().groupDriveId.isNotEmpty) {
+                    await loadGroup(
+                        groupDriveId: CurrentTripItem().groupDriveId);
+                    _title = 'Group drive - ${CurrentTripItem().heading}';
+                  }
                 }
               },
               onPositionChanged: (position, hasGesure) {
@@ -1720,12 +1729,12 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
     Fence newFence = Fence.fromBounds(
         _animatedMapController.mapController.camera.visibleBounds);
 
-    developer.log(
-        'newFence: ${newFence.toString()}, _cacheFence: ${_cacheFence.toString()}',
-        name: '_overlays');
+    // developer.log(
+    //     'newFence: ${newFence.toString()}, _cacheFence: ${_cacheFence.toString()}',
+    //     name: '_overlays');
 
     zoom = _animatedMapController.mapController.camera.zoom;
-    developer.log('_ipdateOverlays = true ', name: '_overlays');
+    // developer.log('_ipdateOverlays = true ', name: '_overlays');
 
     /// Updating the overlays depends on two factors:
     /// 1 The cached data needs refreshing
@@ -2301,47 +2310,56 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
     setState(() => adjustMapHeight(MapHeights.full));
   }
 
-  void loadGroup() async {
-    String today = DateFormat('yyyy-mm-dd').format(DateTime.now());
-    today = '2025-05-14'; // debug remove
-    List<Map<String, dynamic>> drivers;
+  Future<bool> loadGroup({required String groupDriveId, int status = 2}) async {
+    List<Follower> participants = [];
+    Follower? missingCarInfo;
     try {
-      drivers = await getDrivers(
-          driveId: CurrentTripItem().driveUri, driveDate: today, accepted: 2);
+      participants = await getDrivers(groupDriveId: groupDriveId, accepted: 2);
     } catch (e) {
       debugPrint('error getting drivers: ${e.toString()}');
-      drivers = [];
     }
-    _following.clear();
-    int cIndex = 2; // dont't want to use
-    if (drivers.isNotEmpty) {
+    int cIndex = 3;
+    _following.clear;
+
+    for (Follower follower in participants) {
+      cIndex = cIndex < 16 ? cIndex++ : 2;
+      if (Setup().user.email == follower.email) {
+        missingCarInfo = follower;
+      }
       try {
-        socket.connect();
+        if (follower.email != Setup().user.email) {
+          _following.add(
+            Follower(
+              uri: follower.uri,
+              driveId: follower.driveId,
+              forename: follower.forename,
+              surname: follower.surname,
+              phoneNumber: follower.phoneNumber,
+              manufacturer: follower.manufacturer,
+              model: follower.model,
+              carColour: follower.carColour,
+              registration: follower.registration,
+              position: LatLng(
+                  _currentPosition.latitude,
+                  _currentPosition
+                      .longitude), //const LatLng(51.497157, -0.619253), // 51.459024 -0.580205
+              marker: MarkerWidget(
+                type: 16,
+                description: '',
+                angle: -_mapRotation * pi / 180,
+                colourIdx: cIndex,
+              ),
+            ),
+          );
+        }
       } catch (e) {
-        debugPrint('Woops> ${e.toString()}');
-      }
-      _tripId = drivers[0]['group_drive_id'];
-      for (Map<String, dynamic> driver in drivers) {
-        cIndex = cIndex < 16 ? cIndex++ : 2;
-        _following.add(Follower(
-          uri: driver['user_uri'] ?? '',
-          driveId: driver['group_drive_id'] ?? CurrentTripItem().driveId,
-          forename: driver['user_forename'] ?? 'N/A',
-          surname: driver['user_surname'] ?? 'N/A',
-          phoneNumber: driver['user_phone'],
-          car: driver['user_car'] ?? 'N/A',
-          registration: driver['user_car_reg'] ?? 'N/A',
-          iconColour: cIndex,
-          position: const LatLng(51.497157, -0.619253), // 51.459024 -0.580205
-          marker: MarkerWidget(
-            type: 16,
-            description: '',
-            angle: -_mapRotation * pi / 180,
-            colourIdx: cIndex,
-          ),
-        ));
+        debugPrint('Error: ${e.toString()}');
       }
     }
+    if (missingCarInfo != null) {
+      await carInfo(missingCarInfo);
+    }
+    return true;
   }
 
   void editRoute() async {
@@ -2782,6 +2800,141 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
                 textStyle: Theme.of(context).textTheme.labelLarge,
               ),
               child: const Text('Cancel'),
+              onPressed: () {
+                Navigator.pop(context, '');
+              },
+            ),
+          ],
+        );
+      },
+    );
+    return '';
+  }
+
+  Future<String> carInfo(Follower driver) async {
+    showDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        //  Map<String, dynamic> carData = {};
+        return AlertDialog(
+          title: Text('Drive - ${driver.driveName}'),
+          content: SizedBox(
+            width: 100,
+            height: 300,
+            child: Column(
+              children: [
+                SizedBox(
+                  height: 70,
+                  child: Padding(
+                    padding: const EdgeInsets.all(10),
+                    //  child: SingleChildScrollView(
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            initialValue: driver.registration,
+                            autofocus: true,
+                            decoration: const InputDecoration(
+                              label: Text('Vehicle registration number'),
+                              border: OutlineInputBorder(),
+                              hintText: 'Registration No',
+                            ),
+                            textCapitalization: TextCapitalization.characters,
+                            textInputAction: TextInputAction.next,
+                            keyboardType: TextInputType.name,
+                            onChanged: (value) => driver.registration = value,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  height: 70,
+                  child: Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            initialValue: driver.manufacturer,
+                            decoration: const InputDecoration(
+                              label: Text('Vehicle manufacturer'),
+                              border: OutlineInputBorder(),
+                              hintText: 'Manufacturer',
+                            ),
+                            textInputAction: TextInputAction.next,
+                            textCapitalization: TextCapitalization.words,
+                            keyboardType: TextInputType.name,
+                            onChanged: (value) => driver.manufacturer = value,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  height: 70,
+                  child: Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            initialValue: driver.model,
+                            decoration: const InputDecoration(
+                              label: Text('Vehicle model'),
+                              border: OutlineInputBorder(),
+                              hintText: 'Model',
+                            ),
+                            textInputAction: TextInputAction.next,
+                            textCapitalization: TextCapitalization.words,
+                            keyboardType: TextInputType.name,
+                            onChanged: (value) => driver.model = value,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  height: 70,
+                  child: Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            initialValue: driver.carColour,
+                            decoration: const InputDecoration(
+                              label: Text('Vehicle colour'),
+                              border: OutlineInputBorder(),
+                              hintText: 'Colour',
+                            ),
+                            textInputAction: TextInputAction.done,
+                            keyboardType: TextInputType.name,
+                            onChanged: (value) => driver.carColour = value,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Ok', style: TextStyle(fontSize: 22)),
+              onPressed: () async {
+                await sendDriverDetails(driver);
+                if (context.mounted) {
+                  Navigator.pop(context);
+                }
+              },
+            ),
+            TextButton(
+              child: const Text('Cancel', style: TextStyle(fontSize: 22)),
               onPressed: () {
                 Navigator.pop(context, '');
               },

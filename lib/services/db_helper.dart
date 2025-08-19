@@ -1479,7 +1479,7 @@ Future<List<Follower>> loadFollowers(int driveId) async {
         forename: maps[i]['forename'],
         surname: maps[i]['surname'],
         phoneNumber: maps[i]['phone_number'],
-        car: maps[i]['car'],
+        model: maps[i]['car'],
         registration: maps[i]['registration'],
         iconColour: maps[i]['icon_color'],
         position: pos,

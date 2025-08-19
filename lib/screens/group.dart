@@ -61,6 +61,7 @@ class _GroupFormState extends State<GroupForm> {
         updateHeading: 'You have changed group details.',
         updateSubHeading: 'Press Update to confirm the changes or Ignore',
         update: _changed,
+        showAction: _changed,
         updateMethod: () => upLoad(),
       ),
       body: FutureBuilder<bool>(
@@ -145,11 +146,13 @@ class _GroupFormState extends State<GroupForm> {
                         if (email.isNotEmpty) {
                           _unInvite
                               .add(Group(id: groups[index].id, name: email));
+                          setState(() => _changed = true);
                         } else {
                           groups.removeLast();
                           setState(() => _addingGroup = false);
                         }
                       },
+                      onAdd: (value) => setState(() => _changed = true),
                       // onInvite: (index, value) => onInvite(index),
                       expanded: expanded[index],
                     ),
@@ -240,6 +243,7 @@ class _GroupFormState extends State<GroupForm> {
     if (_unInvite.isNotEmpty) {
       updateGroups(groups: _unInvite, action: GroupAction.uninvite);
     }
+    setState(() => _changed = false);
   }
 
   /// There is a bit of a problem with an expansion tile's expanded state updating its parent
