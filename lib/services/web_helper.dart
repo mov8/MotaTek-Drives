@@ -351,6 +351,8 @@ Future<Map<String, dynamic>> tryLogin({required User user}) async {
         Setup().user.surname = map['surname'];
         Setup().user.phone = map['phone'];
         Setup().jwt = map['token'];
+        await saveUser(Setup().user);
+        await updateSetup();
         return {'msg': 'OK'};
       } else if (map.isNotEmpty) {
         return {'msg': map['msg'] ?? 'error', 'response_status_code': code};

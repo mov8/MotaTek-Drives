@@ -161,9 +161,9 @@ class _HomeState extends State<Home> {
 
         /// Device has no login details invite user to login
         User user = Setup().user;
-        if (Setup().user.email.isEmpty &&
-            Setup().jwt.isEmpty &&
-            Setup().user.password.isEmpty &&
+        if ((Setup().user.email.isEmpty ||
+                Setup().jwt.isEmpty ||
+                Setup().user.password.isEmpty) &&
             mounted) {
           loginState = await loginDialog(context, user: user);
           if (loginState == LoginState.login) {

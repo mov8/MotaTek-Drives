@@ -270,7 +270,8 @@ class PublishedFeatures {
       updateCache = true;
     }
 
-    List<Feature> listToFilter = cache;
+    List<Feature> listToFilter = [];
+
     if (updateCache) {
       developer.log('Updating cache', name: '_cache');
       cache.clear();
@@ -278,14 +279,16 @@ class PublishedFeatures {
       goodRoads.clear();
       cacheFence.setBounds(bounds: screenFence, deltaDegrees: 0.5);
       updateDetails = true;
-      listToFilter = features;
+      listToFilter.addAll(features);
     } else if (markers.isEmpty) {
       updateDetails = true;
+      listToFilter.addAll(cache);
       developer.log('Markers empty', name: '_cache');
     } else if (zoom > 11) {
       for (Feature feature in markers) {
         if (!screenFence.contains(bounds: feature.getBounds())) {
           //   debugPrint('Feature ${feature.row}has left the _screenFence');
+          listToFilter.addAll(cache);
           updateDetails = true;
           developer.log('Zoom > 11', name: '_cache');
           break;
@@ -338,6 +341,8 @@ class PublishedFeatures {
                   expandNotifier: expandNotifier,
                 );
                 if (card != null) {
+                  developer.log('routeCards: ${routeCards.length}',
+                      name: '_cache');
                   routeCards.add(card);
                 }
               }
@@ -353,14 +358,15 @@ class PublishedFeatures {
               if ([17, 18].contains(feature.poiType) &&
                   feature.child.runtimeType != EndMarkerWidget) {
                 feature = Feature.fromFeature(
-                    feature: feature,
-                    child: EndMarkerWidget(
-                      index: feature.row,
-                      begining: feature.poiType == 17,
-                      width: 25,
-                      color: Colors.white60,
-                      onPress: pinTap,
-                    ));
+                  feature: feature,
+                  child: EndMarkerWidget(
+                    index: feature.row,
+                    begining: feature.poiType == 17,
+                    width: 25,
+                    color: Colors.white60,
+                    onPress: pinTap,
+                  ),
+                );
               } else if (feature.child.runtimeType != PinMarkerWidget) {
                 PointOfInterest? pointOfInterest =
                     await pointOfInterestRepository.loadPointOfInterest(
@@ -514,6 +520,7 @@ class PublishedFeatures {
           markers.add(moved);
           Card? card = await getCard(feature: moved, index: cards.length);
           if (card != null) {
+            developer.log('adding routeCard moveRouteMarker', name: '_cache');
             cards.add(card);
           }
         }

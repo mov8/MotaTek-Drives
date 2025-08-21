@@ -15,14 +15,18 @@ class GroupDriveForm extends StatefulWidget {
   State<GroupDriveForm> createState() => _GroupDriveFormState();
 }
 
-class _GroupDriveFormState extends State<GroupDriveForm> {
+class _GroupDriveFormState extends State<GroupDriveForm>
+    with TickerProviderStateMixin {
   late Future<bool> _dataLoaded;
   // late Future<bool> _localDataloaded;
   late List<GroupDriveByGroup> _groups;
   late List<GroupEvent> _trips;
-  int _action = 0;
+  late TabController _tController;
+  bool _showingDialog = false;
 
   bool _adding = false;
+  bool _changed = false;
+  List<Map<String, dynamic>> _changes = [];
   int toInvite = 0;
 
   List<GroupMember> allMembers = [];
@@ -31,12 +35,14 @@ class _GroupDriveFormState extends State<GroupDriveForm> {
   @override
   void initState() {
     super.initState();
+    _tController = TabController(length: 2, vsync: this);
     _dataLoaded = loadData();
   }
 
   @override
   void dispose() {
     // Clean up the focus node when the Form is disposed.
+    _tController.dispose();
     super.dispose();
   }
 
@@ -53,11 +59,12 @@ class _GroupDriveFormState extends State<GroupDriveForm> {
   Widget build(BuildContext context) {
     // _action = 0;
     return Scaffold(
+      resizeToAvoidBottomInset: false, // stop keyboard overflows
       appBar: ScreensAppBar(
         heading: 'Organise a group drive',
         prompt: 'Invite group members to a group drive.',
-        updateHeading: 'You have changed your details.',
-        updateSubHeading: 'Press Update to confirm the changes or Ignore',
+        //   updateHeading: 'You have changed your details.',
+        //   updateSubHeading: 'Press Update to confirm the changes or Ignore',
         //   update: hasChanged && isComplete(),
         //   updateMethod: () => register(),
         overflowPrompts: [
@@ -76,6 +83,9 @@ class _GroupDriveFormState extends State<GroupDriveForm> {
           () => setState(() => _adding = !_adding)
         ],
         showOverflow: true,
+        update: _changed == true,
+        showAction: _changed == true,
+        updateMethod: checkInvitations,
       ),
       body: FutureBuilder<bool>(
         future: _dataLoaded,
@@ -103,60 +113,136 @@ class _GroupDriveFormState extends State<GroupDriveForm> {
   Widget portraitView() {
     return Column(
       children: [
-        GroupDriveAddTile(
-          index: 1,
-          myTripItems: _myTripItems,
-          groupDrivers: _groups,
-          onSelectTrip: (_) => (),
-        ),
-        Expanded(
-          child: ListView.builder(
-            itemCount: _trips.length,
-            itemBuilder: (context, index) => Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 0.0, vertical: 5.0),
-              child: ExpansionTile(
-                //    onExpansionChanged: (_) =>
-                //        _trips[index].selected = !_trips[index].selected,
-                //    leading: _trips[index].selected
-                //        ? IconButton(onPressed: () => (), icon: Icon(Icons.add))
-                //        : null,
-                title: Text(
-                  _trips[index].eventName,
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-                subtitle: Text(
-                  'Event date  ${dateFormatDoc.format(DateTime.parse(_trips[index].eventDate))}',
-                  style: TextStyle(fontSize: 14),
-                ),
-                children: [
-                  ListView.builder(
-                    physics: const NeverScrollableScrollPhysics(),
-                    // This tells the ListView to calculate its full height based on its children.
-                    // WARNING: This is bad for performance on very long lists!
-                    shrinkWrap: true,
-                    itemCount: _trips[index].invitees.length,
-                    itemBuilder: (context, mIndex) => Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 0.0, vertical: 5.0),
-                      child: ListTile(
-                          leading: Icon(inviteIcons[int.parse(
-                              _trips[index].invitees[mIndex]['state'])]),
-                          title: Text(
-                              '${_trips[index].invitees[mIndex]['forename']} ${_trips[index].invitees[mIndex]['surname']}',
-                              style: TextStyle(
-                                  fontSize: 20, fontWeight: FontWeight.bold)),
-                          subtitle: Text(
-                              '${_trips[index].invitees[mIndex]['email']}    ${_trips[index].invitees[mIndex]['phone']}')),
-                    ),
-                  ),
-                ],
+        if (!_showingDialog)
+          TabBar(
+            controller: _tController,
+            labelStyle: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+            tabs: [
+              Tab(
+                  icon: Icon(Icons.event_available_outlined),
+                  text: 'Organised Events'),
+              Tab(
+                  icon: Icon(Icons.edit_calendar_outlined),
+                  text: 'Organise New Event'),
+            ],
+          ),
+        SizedBox(
+          height: MediaQuery.of(context).size.height - 250,
+          child: TabBarView(
+            controller: _tController,
+            children: [
+              organised(),
+              GroupDriveAddTile(
+                index: 1,
+                myTripItems: _myTripItems,
+                groupDrivers: _groups,
+                onSelectTrip: (value) {
+                  debugPrint('Value: ${value.toString()}');
+                  _changes = value;
+                  setState(() => _changed = value.isNotEmpty);
+                  // _changed = value.isNotEmpty;
+                },
               ),
-            ),
+            ],
           ),
         ),
+
+        //    GroupDriveAddTile(
+        //      index: 1,
+        //      myTripItems: _myTripItems,
+        //      groupDrivers: _groups,
+        //      onSelectTrip: (_) => (),
+        //    ),
       ],
     );
+  }
+
+  Widget organised() {
+    return Expanded(
+      child: _trips.isNotEmpty
+          ? ListView.builder(
+              itemCount: _trips.length,
+              itemBuilder: (context, index) => Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 0.0, vertical: 5.0),
+                child: ExpansionTile(
+                  //    onExpansionChanged: (_) =>
+                  //        _trips[index].selected = !_trips[index].selected,
+                  //    leading: _trips[index].selected
+                  //        ? IconButton(onPressed: () => (), icon: Icon(Icons.add))
+                  //        : null,
+                  title: Text(
+                    _trips[index].eventName,
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Text(
+                    'Event date  ${dateFormatDoc.format(DateTime.parse(_trips[index].eventDate))}',
+                    style: TextStyle(fontSize: 14),
+                  ),
+                  children: [
+                    ListView.builder(
+                      physics: const NeverScrollableScrollPhysics(),
+                      // This tells the ListView to calculate its full height based on its children.
+                      // WARNING: This is bad for performance on very long lists!
+                      shrinkWrap: true,
+                      itemCount: _trips[index].invitees.length,
+                      itemBuilder: (context, mIndex) => Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 0.0, vertical: 5.0),
+                        child: ListTile(
+                            leading: Icon(inviteIcons[int.parse(
+                                _trips[index].invitees[mIndex]['state'])]),
+                            title: Text(
+                                '${_trips[index].invitees[mIndex]['forename']} ${_trips[index].invitees[mIndex]['surname']}',
+                                style: TextStyle(
+                                    fontSize: 20, fontWeight: FontWeight.bold)),
+                            subtitle: Text(
+                                '${_trips[index].invitees[mIndex]['email']}    ${_trips[index].invitees[mIndex]['phone']}')),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          : Center(
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(20, 0, 20, 0),
+                child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("You haven't organised any group drives.",
+                          style: TextStyle(
+                              fontSize: 22, fontWeight: FontWeight.bold)),
+                      SizedBox(height: 10),
+                      Row(children: [
+                        Text("1. created and saved a drive.",
+                            style: TextStyle(
+                                fontSize: 22, fontWeight: FontWeight.bold)),
+                        if (_myTripItems.isNotEmpty)
+                          Icon(
+                            Icons.check,
+                          ),
+                      ]),
+                      SizedBox(height: 5),
+                      Row(children: [
+                        Text("2. create a group of your friends.",
+                            style: TextStyle(
+                                fontSize: 22, fontWeight: FontWeight.bold)),
+                        if (_groups.isNotEmpty) Icon(Icons.check),
+                      ]),
+                      SizedBox(height: 5),
+                      Text("3. share the drive with your group.",
+                          style: TextStyle(
+                              fontSize: 22, fontWeight: FontWeight.bold)),
+                    ]),
+              ),
+            ),
+    );
+  }
+
+  Widget newTrip() {
+    return Text('NewTrip');
   }
 
   Future<bool> loadMyTrips() async {
@@ -164,10 +250,12 @@ class _GroupDriveFormState extends State<GroupDriveForm> {
     return true;
   }
 
+/*
   Future<void> loadTrip(val) async {
     return;
   }
-
+*/
+/*
   inviteOnSelect(int idx) {
     setState(() {
       // debugPrint('toInvite: $toInvite');
@@ -175,6 +263,7 @@ class _GroupDriveFormState extends State<GroupDriveForm> {
       //   toInvite += _invitees[idx].selected ? 1 : -1;
     });
   }
+  */
 /*
   Future<void> shareTrip(index) async {
     MyTripItem currentTrip = _myTripItems[index];
@@ -193,7 +282,7 @@ class _GroupDriveFormState extends State<GroupDriveForm> {
   }
 
   */
-
+/*
   Future<void> deleteTrip(idx) async {
     Utility().showOkCancelDialog(
       context: context,
@@ -211,11 +300,13 @@ class _GroupDriveFormState extends State<GroupDriveForm> {
     );
     return;
   }
-
+*/
+/*
   Future<void> publishTrip(val) async {
     return;
   }
-
+  */
+/*
   Widget _handleChips() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -258,54 +349,199 @@ class _GroupDriveFormState extends State<GroupDriveForm> {
                 style: const TextStyle(fontSize: 18, color: Colors.white),
               ),
             ),
-            if (_adding && toInvite > 0) ...[
-              ActionChip(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                onPressed: () => (),
-                //  setState(() => (postGroupDriveInvitations(_invitees))),
-                backgroundColor: Colors.blue,
-                avatar: const Icon(
-                  Icons.group_add,
-                  color: Colors.white,
-                ),
-                label: const Text(
-                  'Invite Checked', // - ${_action.toString()}',
-                  style: TextStyle(fontSize: 18, color: Colors.white),
-                ),
-              ),
-            ]
           ],
-          /*
-          if (_action == 2 && (_myTripItems.length == 1)) ...[
-            ActionChip(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              onPressed: () => setState(() => shareTrip(0)),
-              backgroundColor: Colors.blue,
-              avatar: const Icon(
-                Icons.group_add,
-                color: Colors.white,
-              ),
-              label: const Text(
-                'Group Trip', // - ${_action.toString()}',
-                style: TextStyle(fontSize: 18, color: Colors.white),
-              ),
-            ),
-          ],
-          */
         ],
       ),
     );
   }
-
+*/
+/*
   Future<void> deleteMyTrip(int index) async {
     return;
   }
 
   void onSelect(int index) {
     // _groupIndex = index;
+  }
+*/
+  checkInvitations() async {
+    MyTripItem tripItem = MyTripItem();
+    for (int i = 0; i < _changes.length; i++) {
+      for (int i = 0; i < _myTripItems.length; i++) {
+        if (_myTripItems[i].id == _changes[i]['myTripId']) {
+          tripItem = _myTripItems[i];
+        }
+      }
+      if (tripItem.heading.isNotEmpty) {
+        _showingDialog = true;
+        await updateDialog(
+            context: context, eventDetails: _changes[i], tripItem: tripItem);
+      }
+    }
+  }
+
+  Future updateDialog(
+      {required BuildContext context,
+      required Map<String, dynamic> eventDetails,
+      required MyTripItem tripItem}) {
+    DateTime tripDate = DateTime.now();
+    String instructions = '';
+    return showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: Text(
+            tripItem.heading,
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+          ),
+          content: SizedBox(
+            height: 250,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: EdgeInsets.fromLTRB(10, 20, 0, 5),
+                  child: InkWell(
+                    onTap: () async {
+                      tripDate = await showDatePicker(
+                            context: context,
+                            firstDate: DateTime.now(),
+                            lastDate: DateTime(DateTime.now().year + 2,
+                                DateTime.now().month, DateTime.now().day),
+                          ) ??
+                          tripDate;
+                      setState(() => {});
+                    },
+                    child: Row(
+                      children: [
+                        Expanded(
+                            flex: 4,
+                            child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Group drive date:',
+                                    style: TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold),
+                                  ),
+                                  Text(
+                                    dateFormatDoc.format(tripDate),
+                                    style: TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold),
+                                  ),
+                                ])),
+                        Expanded(
+                          flex: 1,
+                          child: Icon(Icons.calendar_month_outlined, size: 50),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: EdgeInsets.fromLTRB(10, 20, 0, 5),
+                  child: Text(
+                    "Enter any instructions for trip",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                Padding(
+                  padding: EdgeInsets.fromLTRB(10, 20, 0, 5),
+                  child: TextFormField(
+                    //  key: Key('${widget.contact.standId}${widget.index}_7'),
+                    readOnly: false,
+                    autofocus: false,
+                    minLines: 2,
+                    maxLines: null, // these 2 lines allow multiline wrapping
+                    keyboardType: TextInputType.multiline,
+                    textAlign: TextAlign.start,
+                    textCapitalization: TextCapitalization.sentences,
+                    textInputAction: TextInputAction.done,
+                    decoration: InputDecoration(
+                      border: const OutlineInputBorder(),
+                      contentPadding:
+                          const EdgeInsets.fromLTRB(10.0, 0.0, 10.0, 10.0),
+                      focusColor: Colors.blueGrey,
+                      hintText: 'Enter any instruction for trip',
+                      labelText: 'Instructions',
+                    ),
+                    style: const TextStyle(
+                      fontSize: 18,
+                    ),
+                    initialValue: instructions,
+                    onChanged: (text) => instructions = text,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () async {
+                sendInvitations(
+                    eventDetails: eventDetails,
+                    driveDate: tripDate,
+                    myTripItem: tripItem,
+                    instructions: instructions);
+                _showingDialog = false;
+                Navigator.of(context).pop(true);
+              },
+              child: const Text(
+                'Send',
+                style: TextStyle(
+                  fontSize: 22,
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                _showingDialog = false;
+                Navigator.of(context).pop(false);
+              },
+              child: const Text(
+                'Quit',
+                style: TextStyle(
+                  fontSize: 22,
+                ),
+              ),
+            )
+          ],
+        ),
+      ),
+    );
+  }
+
+  sendInvitations(
+      {required Map<String, dynamic> eventDetails,
+      required DateTime driveDate,
+      required MyTripItem myTripItem,
+      instructions = ''}) async {
+    int tripIndex = -1;
+    for (int i = 0; i < _myTripItems.length; i++) {
+      if (myTripItem.driveUri.isEmpty) {
+        tripIndex = i;
+        await myTripItem.publish();
+        myTripItem.saveLocal();
+      }
+    }
+
+    Map<String, dynamic> toEmail = {
+      'drive_id': _myTripItems[tripIndex].driveUri,
+      'drive_date': dateFormatSQL.format(driveDate),
+      'title': _myTripItems[tripIndex].heading,
+      'message': instructions
+    };
+    List<Map<String, dynamic>> invited = [];
+    for (int i = 0; i < eventDetails['invitees'].length; i++) {
+      if (eventDetails['invitees'][i]['invite'] ?? false) {
+        invited.add({'email': eventDetails['invitees'][i]['email']});
+      }
+    }
+    if (invited.isNotEmpty) {
+      toEmail['invited'] = invited;
+      postGroupDrive(invitations: toEmail);
+    }
   }
 }

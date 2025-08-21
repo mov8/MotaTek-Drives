@@ -112,11 +112,15 @@ class ScreensAppBar extends StatelessWidget implements PreferredSizeWidget {
       leading: IconButton(
         onPressed: () async {
           if (update) {
-            await updateDialog(
-                context: context,
-                heading: updateHeading!,
-                subHeading: updateSubHeading!,
-                updateMethod: updateMethod);
+            if (updateHeading! != '') {
+              await updateDialog(
+                  context: context,
+                  heading: updateHeading!,
+                  subHeading: updateSubHeading!,
+                  updateMethod: updateMethod);
+            } else {
+              () => updateMethod;
+            }
           }
           if (context.mounted) {
             Navigator.pop(context);
@@ -148,7 +152,12 @@ class ScreensAppBar extends StatelessWidget implements PreferredSizeWidget {
       actions: showAction
           ? [
               IconButton(
-                  onPressed: updateMethod, icon: Icon(Icons.check, size: 30))
+                  onPressed: updateMethod,
+                  icon: Icon(
+                    Icons.check,
+                    size: 30,
+                    color: Colors.white,
+                  ))
             ]
           : null,
     );

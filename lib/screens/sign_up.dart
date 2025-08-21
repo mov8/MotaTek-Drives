@@ -405,7 +405,7 @@ class _SignupFormState extends State<SignupForm> {
                     Expanded(
                       flex: 2,
                       child: TextFormField(
-                        readOnly: true,
+                        readOnly: false,
                         decoration: const InputDecoration(
                           border: OutlineInputBorder(),
                           hintText: '',

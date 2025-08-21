@@ -7,13 +7,15 @@ import 'package:drives/constants.dart';
 
 class DriveInvitations extends StatefulWidget {
   final int index;
+  final void Function(List<Map<String, dynamic>>)? onSelect;
   final MyTripItem myTripItem;
   final List<GroupDriveByGroup> groupDrivers;
   const DriveInvitations(
       {super.key,
       required this.index,
       required this.groupDrivers,
-      required this.myTripItem});
+      required this.myTripItem,
+      this.onSelect});
   @override
   State<DriveInvitations> createState() => _DriveInvitationsState();
 }
@@ -25,6 +27,7 @@ class _DriveInvitationsState extends State<DriveInvitations>
   late List<Photo> photos;
   String _instructions = '';
   DateTime? _date;
+  List<Map<String, dynamic>> _changes = [];
 
   @override
   void initState() {
@@ -42,113 +45,119 @@ class _DriveInvitationsState extends State<DriveInvitations>
   @override
   Widget build(BuildContext context) {
     photos = photosFromJson(widget.myTripItem.images);
-    return Column(
-      children: [
-        TabBar(
-          controller: _tController,
-          labelStyle: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
-          tabs: [
-            Tab(icon: Icon(Icons.group_outlined), text: 'Invite Drivers'),
-            Tab(icon: Icon(Icons.outgoing_mail), text: 'Send Invitations'),
-            Tab(icon: Icon(Icons.map_outlined), text: 'Drive Details'),
-          ],
-        ),
-        SizedBox(
-          height: MediaQuery.of(context).size.height - 250,
-          child: TabBarView(
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          TabBar(
             controller: _tController,
-            children: [
-              invited(),
-              invitation(),
-              tripDescription(),
+            labelStyle: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+            tabs: [
+              Tab(icon: Icon(Icons.group_outlined), text: 'Invite Drivers'),
+              Tab(icon: Icon(Icons.outgoing_mail), text: 'Send Invitations'),
+              Tab(icon: Icon(Icons.map_outlined), text: 'Drive Details'),
             ],
           ),
-        ),
-      ],
-    );
-  }
-
-  Widget invited() {
-    return Column(
-      children: [
-        SizedBox(
-          height: 400,
-          child: ListView.builder(
-            itemCount: widget.groupDrivers.length,
-            itemBuilder: (context, index) => Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 0.0, vertical: 5.0),
-              child: ExpansionTile(
-                title: Text(
-                  widget.groupDrivers[index].name,
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-                subtitle: Row(children: [
-                  Expanded(
-                    flex: 2,
-                    child: Text(
-                      '${widget.groupDrivers[index].count} member${widget.groupDrivers[index].count == 1 ? '' : 's'}',
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  Expanded(
-                    flex: 5,
-                    child: Text(
-                        ' invited: ${widget.groupDrivers[index].invited} accepted: ${widget.groupDrivers[index].accepted}'),
-                  ),
-                ]),
+          SizedBox(
+            height: MediaQuery.of(context).size.height - 450,
+            child: Expanded(
+              child: TabBarView(
+                controller: _tController,
                 children: [
-                  if (widget.groupDrivers[index].invitees.isNotEmpty)
-                    SizedBox(
-                      height: 400,
-                      child: ListView.builder(
-                        itemCount: widget.groupDrivers[index].invitees.length,
-                        itemBuilder: (context, idx) => Padding(
-                          padding: EdgeInsets.symmetric(
-                              horizontal: 0.0, vertical: 5.0),
-                          child: ListTile(
-                            leading:
-                                getLeading(groupIndex: index, driverIndex: idx),
-                            title: Text(
-                              '${widget.groupDrivers[index].invitees[idx]['forename'] ?? ''} ${widget.groupDrivers[index].invitees[idx]['surname'] ?? ''}',
-                              style: TextStyle(
-                                  fontSize: 18, fontWeight: FontWeight.bold),
-                            ),
-                            subtitle: Text(
-                              widget.groupDrivers[index].invitees[idx]
-                                      ['email'] ??
-                                  '',
-                              style: TextStyle(fontSize: 18),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  if (widget.groupDrivers[index].invitees.isEmpty)
-                    SizedBox(
-                      height: 400,
-                      child: Column(
-                        children: [
-                          Text(
-                            '${widget.groupDrivers[index].name} has no members',
-                            style: TextStyle(
-                                fontSize: 20, fontWeight: FontWeight.bold),
-                          ),
-                          Text(
-                            'Use "Groups I Manage" to add members',
-                            style: TextStyle(
-                                fontSize: 20, fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                    ),
+                  invited(),
+                  invitation(),
+                  tripDescription(),
                 ],
               ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
+    );
+  }
+
+  Widget invited() {
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          SizedBox(
+            height: 400,
+            child: ListView.builder(
+              itemCount: widget.groupDrivers.length,
+              itemBuilder: (context, index) => Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 0.0, vertical: 5.0),
+                child: ExpansionTile(
+                  title: Text(
+                    widget.groupDrivers[index].name,
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Row(children: [
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        '${widget.groupDrivers[index].count} member${widget.groupDrivers[index].count == 1 ? '' : 's'}',
+                        style: TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 5,
+                      child: Text(
+                          ' invited: ${widget.groupDrivers[index].invited} accepted: ${widget.groupDrivers[index].accepted}'),
+                    ),
+                  ]),
+                  children: [
+                    if (widget.groupDrivers[index].invitees.isNotEmpty)
+                      SizedBox(
+                        height: 500,
+                        child: ListView.builder(
+                          itemCount: widget.groupDrivers[index].invitees.length,
+                          itemBuilder: (context, idx) => Padding(
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 0.0, vertical: 5.0),
+                            child: ListTile(
+                              leading: getLeading(
+                                  groupIndex: index, driverIndex: idx),
+                              title: Text(
+                                '${widget.groupDrivers[index].invitees[idx]['forename'] ?? ''} ${widget.groupDrivers[index].invitees[idx]['surname'] ?? ''}',
+                                style: TextStyle(
+                                    fontSize: 18, fontWeight: FontWeight.bold),
+                              ),
+                              subtitle: Text(
+                                widget.groupDrivers[index].invitees[idx]
+                                        ['email'] ??
+                                    '',
+                                style: TextStyle(fontSize: 18),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    if (widget.groupDrivers[index].invitees.isEmpty)
+                      SizedBox(
+                        height: 400,
+                        child: Column(
+                          children: [
+                            Text(
+                              '${widget.groupDrivers[index].name} has no members',
+                              style: TextStyle(
+                                  fontSize: 20, fontWeight: FontWeight.bold),
+                            ),
+                            Text(
+                              'Use "Groups I Manage" to add members',
+                              style: TextStyle(
+                                  fontSize: 20, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -160,9 +169,51 @@ class _DriveInvitationsState extends State<DriveInvitations>
               ['invite'] ??
           false;
       return Checkbox(
-          value: value,
-          onChanged: (value) => setState(() => widget.groupDrivers[groupIndex]
-              .invitees[driverIndex]['invite'] = value));
+        value: value,
+        onChanged: (value) => setState(() {
+          widget.groupDrivers[groupIndex].selected = true;
+          widget.myTripItem.selected = true;
+          widget.groupDrivers[groupIndex].invitees[driverIndex]['invite'] =
+              value;
+          int tripIndex = -1;
+          int inviteeIndex = -1;
+          for (int i = 0; i < _changes.length; i++) {
+            if (_changes[i]['myTripId'] == widget.myTripItem.id) {
+              tripIndex = i;
+              for (int j = 0; j < _changes[i]['envitees'].length; j++) {
+                if (_changes[i]['envitees'][j]['email'] ==
+                    widget.groupDrivers[groupIndex].invitees[driverIndex]
+                        ['email']) {
+                  inviteeIndex = j;
+                  break;
+                }
+              }
+              break;
+            }
+          }
+          if (value == false && inviteeIndex > -1) {
+            _changes[tripIndex]['envitees'].removeAt(inviteeIndex);
+          } else if (value == true && inviteeIndex == -1) {
+            if (tripIndex == -1) {
+              _changes.add({'myTripId': widget.myTripItem.id});
+              tripIndex = _changes.length - 1;
+              _changes[tripIndex]['envitees'] = [];
+            }
+            _changes[tripIndex]['envitees']
+                .add(widget.groupDrivers[groupIndex].invitees[driverIndex]);
+          }
+          if (value == false) {
+            for (int i = _changes.length - 1; i >= 0; i--) {
+              if (_changes[i]['envitees'].isEmpty) {
+                _changes.removeAt(i);
+              }
+            }
+          }
+
+          widget.onSelect!(_changes);
+          debugPrint('widget.onSelect: ${_changes.toString()}');
+        }),
+      );
     } else {
       return Icon(inviteIcons[state]);
     }
@@ -183,209 +234,209 @@ class _DriveInvitationsState extends State<DriveInvitations>
   Widget invitation() {
     DateTime tripDate = _date!;
     int toInvite = invitees();
-    return Expanded(
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (toInvite == 0) ...[
-              Center(
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(0, 100, 0, 0),
-                  child: Text(
-                    "You haven't invited anyone yet",
-                    style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
-            ],
-            if (toInvite > 0) ...[
-              Padding(
-                padding: EdgeInsets.fromLTRB(10, 20, 0, 5),
-                child: InkWell(
-                  onTap: () async {
-                    _date = await showDatePicker(
-                          context: context,
-                          firstDate: DateTime.now(),
-                          lastDate: DateTime(DateTime.now().year + 2,
-                              DateTime.now().month, DateTime.now().day),
-                        ) ??
-                        tripDate;
-                    setState(() => {});
-                  },
-                  child: Row(
-                    children: [
-                      Expanded(
-                        flex: 4,
-                        child: Text(
-                          'Group drive date: ${dateFormatDoc.format(_date!)}',
-                          style: TextStyle(
-                              fontSize: 20, fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                      Expanded(
-                        flex: 1,
-                        child: Icon(Icons.calendar_month_outlined),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              Padding(
-                padding: EdgeInsets.fromLTRB(10, 20, 0, 5),
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (toInvite == 0) ...[
+            Center(
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(0, 100, 0, 0),
                 child: Text(
-                  "Enter the instructions for trip",
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  "You haven't invited anyone yet",
+                  style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
                 ),
               ),
-              Padding(
-                padding: EdgeInsets.fromLTRB(10, 20, 0, 5),
-                child: TextFormField(
-                  //  key: Key('${widget.contact.standId}${widget.index}_7'),
-                  readOnly: false,
-                  autofocus: false,
-                  minLines: 2,
-                  maxLines: null, // these 2 lines allow multiline wrapping
-                  keyboardType: TextInputType.multiline,
-                  textAlign: TextAlign.start,
-                  textCapitalization: TextCapitalization.sentences,
-                  textInputAction: TextInputAction.done,
-                  decoration: InputDecoration(
-                    border: const OutlineInputBorder(),
-                    contentPadding:
-                        const EdgeInsets.fromLTRB(10.0, 0.0, 10.0, 10.0),
-                    focusColor: Colors.blueGrey,
-                    hintText: 'Enter any instruction for trip',
-                    labelText: 'Instructions',
-                  ),
-                  style: const TextStyle(
-                    fontSize: 18,
-                  ),
-                  initialValue: _instructions,
-                  onChanged: (text) => _instructions = text,
-                ),
-              ),
-              Center(
-                child: ActionChip(
-                  onPressed: () => sendInvitations(),
-                  backgroundColor: Colors.blue,
-                  avatar: const Icon(
-                    Icons.outgoing_mail,
-                    color: Colors.white,
-                  ),
-                  label: Text(
-                      'Send $toInvite invitation${toInvite == 1 ? '' : 's'}',
-                      style:
-                          const TextStyle(fontSize: 18, color: Colors.white)),
-                ),
-              )
-            ],
+            ),
           ],
-        ),
+          if (toInvite > 0) ...[
+            Padding(
+              padding: EdgeInsets.fromLTRB(10, 20, 0, 5),
+              child: InkWell(
+                onTap: () async {
+                  _date = await showDatePicker(
+                        context: context,
+                        firstDate: DateTime.now(),
+                        lastDate: DateTime(DateTime.now().year + 2,
+                            DateTime.now().month, DateTime.now().day),
+                      ) ??
+                      tripDate;
+                  setState(() => {});
+                },
+                child: Row(
+                  children: [
+                    Expanded(
+                      flex: 4,
+                      child: Text(
+                        'Group drive date: ${dateFormatDoc.format(_date!)}',
+                        style: TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 1,
+                      child: Icon(Icons.calendar_month_outlined),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.fromLTRB(10, 20, 0, 5),
+              child: Text(
+                "Enter the instructions for trip",
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.fromLTRB(10, 20, 0, 5),
+              child: TextFormField(
+                //  key: Key('${widget.contact.standId}${widget.index}_7'),
+                readOnly: false,
+                autofocus: false,
+                minLines: 2,
+                maxLines: null, // these 2 lines allow multiline wrapping
+                keyboardType: TextInputType.multiline,
+                textAlign: TextAlign.start,
+                textCapitalization: TextCapitalization.sentences,
+                textInputAction: TextInputAction.done,
+                decoration: InputDecoration(
+                  border: const OutlineInputBorder(),
+                  contentPadding:
+                      const EdgeInsets.fromLTRB(10.0, 0.0, 10.0, 10.0),
+                  focusColor: Colors.blueGrey,
+                  hintText: 'Enter any instruction for trip',
+                  labelText: 'Instructions',
+                ),
+                style: const TextStyle(
+                  fontSize: 18,
+                ),
+                initialValue: _instructions,
+                onChanged: (text) => _instructions = text,
+              ),
+            ),
+            Center(
+              child: ActionChip(
+                onPressed: () => sendInvitations(),
+                backgroundColor: Colors.blue,
+                avatar: const Icon(
+                  Icons.outgoing_mail,
+                  color: Colors.white,
+                ),
+                label: Text(
+                    'Send $toInvite invitation${toInvite == 1 ? '' : 's'}',
+                    style: const TextStyle(fontSize: 18, color: Colors.white)),
+              ),
+            )
+          ],
+        ],
       ),
     );
   }
 
   Widget tripDescription() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(5, 10, 5, 10),
-      child: Align(
-        alignment: Alignment.topLeft,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            const SizedBox(
-              height: 10,
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(5, 0, 5, 15),
-              child: Row(children: [
-                Expanded(
-                  flex: 1,
-                  child: Column(children: [
-                    const Icon(Icons.route),
-                    Text('${widget.myTripItem.distance} miles long')
-                  ]),
-                ),
-                Expanded(
-                  flex: 1,
-                  child: Column(children: [
-                    const Icon(Icons.landscape),
-                    Text(
-                        '${widget.myTripItem.pointsOfInterest.length} highlights')
-                  ]),
-                ),
-                Expanded(
-                  flex: 1,
-                  child: Column(children: [
-                    const Icon(Icons.social_distance),
-                    Text('${widget.myTripItem.closest} miles away')
-                  ]),
-                ),
-              ]),
-            ),
-            SizedBox(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(5, 0, 5, 10),
-                child: Align(
-                  alignment: Alignment.topLeft,
-                  child: Text(
-                    widget.myTripItem.subHeading,
-                    style: const TextStyle(
-                        color: Colors.black,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold),
-                    textAlign: TextAlign.left,
-                  ),
-                ),
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(5, 10, 5, 10),
+        child: Align(
+          alignment: Alignment.topLeft,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              const SizedBox(
+                height: 10,
               ),
-            ),
-            const SizedBox(
-              height: 10,
-            ),
-            if (widget.myTripItem.images.isNotEmpty)
-              Row(children: <Widget>[
-                Expanded(
-                  flex: 8,
-                  child: SizedBox(
-                    height: 200,
-                    child: ListView(
-                      scrollDirection: Axis.horizontal,
-                      children: [
-                        for (int i = 0; i < photos.length; i++)
-                          Row(
-                            children: [
-                              SizedBox(
-                                width: 200,
-                                child: Image.file(
-                                  File(photos[i].url),
-                                ),
-                              ),
-                              const SizedBox(
-                                width: 20,
-                              )
-                            ],
-                          ),
-                      ],
+              Padding(
+                padding: const EdgeInsets.fromLTRB(5, 0, 5, 15),
+                child: Row(children: [
+                  Expanded(
+                    flex: 1,
+                    child: Column(children: [
+                      const Icon(Icons.route),
+                      Text('${widget.myTripItem.distance} miles long')
+                    ]),
+                  ),
+                  Expanded(
+                    flex: 1,
+                    child: Column(children: [
+                      const Icon(Icons.landscape),
+                      Text(
+                          '${widget.myTripItem.pointsOfInterest.length} highlights')
+                    ]),
+                  ),
+                  Expanded(
+                    flex: 1,
+                    child: Column(children: [
+                      const Icon(Icons.social_distance),
+                      Text('${widget.myTripItem.closest} miles away')
+                    ]),
+                  ),
+                ]),
+              ),
+              SizedBox(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(5, 0, 5, 10),
+                  child: Align(
+                    alignment: Alignment.topLeft,
+                    child: Text(
+                      widget.myTripItem.subHeading,
+                      style: const TextStyle(
+                          color: Colors.black,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold),
+                      textAlign: TextAlign.left,
                     ),
                   ),
-                )
-              ]),
-            const SizedBox(
-              height: 10,
-            ),
-            SizedBox(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(5, 0, 5, 10),
-                child: Align(
-                  alignment: Alignment.topLeft,
-                  child: Text(widget.myTripItem.body,
-                      style: const TextStyle(color: Colors.black, fontSize: 20),
-                      textAlign: TextAlign.left),
                 ),
               ),
-            ),
-          ],
+              const SizedBox(
+                height: 10,
+              ),
+              if (widget.myTripItem.images.isNotEmpty)
+                Row(children: <Widget>[
+                  Expanded(
+                    flex: 8,
+                    child: SizedBox(
+                      height: 200,
+                      child: ListView(
+                        scrollDirection: Axis.horizontal,
+                        children: [
+                          for (int i = 0; i < photos.length; i++)
+                            Row(
+                              children: [
+                                SizedBox(
+                                  width: 200,
+                                  child: Image.file(
+                                    File(photos[i].url),
+                                  ),
+                                ),
+                                const SizedBox(
+                                  width: 20,
+                                )
+                              ],
+                            ),
+                        ],
+                      ),
+                    ),
+                  )
+                ]),
+              const SizedBox(
+                height: 10,
+              ),
+              SizedBox(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(5, 0, 5, 10),
+                  child: Align(
+                    alignment: Alignment.topLeft,
+                    child: Text(widget.myTripItem.body,
+                        style:
+                            const TextStyle(color: Colors.black, fontSize: 20),
+                        textAlign: TextAlign.left),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

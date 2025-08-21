@@ -139,7 +139,6 @@ class MyTripItem {
   int index;
   String groupDriveId;
   String driveUri;
-  // String groupUri;
   String heading;
   String subHeading;
   String body;
@@ -155,6 +154,7 @@ class MyTripItem {
   int closest;
   int highlights;
   bool showMethods;
+  bool selected;
   ui.Image? mapImage;
 
   MyTripItem({
@@ -162,7 +162,6 @@ class MyTripItem {
     this.driveId = -1,
     this.index = -1,
     this.driveUri = '',
-    // this.groupUri = '',
     this.heading = '',
     this.subHeading = '',
     this.body = '',
@@ -179,6 +178,7 @@ class MyTripItem {
     this.highlights = 0,
     this.groupDriveId = '',
     this.showMethods = false,
+    this.selected = false,
   })  : pointsOfInterest = pointsOfInterest ?? [],
         maneuvers = maneuvers ?? [],
         routes = routes ?? [],

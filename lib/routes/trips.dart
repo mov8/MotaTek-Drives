@@ -455,6 +455,7 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
   Widget? cardsList({required List<Card> cards}) {
     Widget? scrollList;
     try {
+      developer.log('cardsList cards: ${cards.length}', name: '_cache');
       if (cards.isNotEmpty) {
         scrollList = ScrollablePositionedList.builder(
           itemCount: cards.length,

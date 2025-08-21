@@ -1166,6 +1166,7 @@ class GroupEvent {
 class GroupDriveByGroup {
   String groupId;
   String name;
+  bool selected;
   int count;
   int invited;
   int accepted;
@@ -1173,6 +1174,7 @@ class GroupDriveByGroup {
   GroupDriveByGroup({
     this.groupId = '',
     this.name = '',
+    this.selected = false,
     this.count = 0,
     this.invited = 0,
     this.accepted = 0,
