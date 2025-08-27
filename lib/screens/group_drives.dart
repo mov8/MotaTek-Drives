@@ -2,7 +2,6 @@ import 'package:drives/constants.dart';
 import 'package:drives/tiles/tiles.dart';
 import 'package:flutter/material.dart';
 import 'package:drives/classes/classes.dart';
-import 'package:drives/screens/screens.dart';
 import 'package:drives/models/models.dart';
 import 'package:drives/services/services.dart';
 
@@ -63,22 +62,12 @@ class _GroupDriveFormState extends State<GroupDriveForm>
       appBar: ScreensAppBar(
         heading: 'Organise a group drive',
         prompt: 'Invite group members to a group drive.',
-        //   updateHeading: 'You have changed your details.',
-        //   updateSubHeading: 'Press Update to confirm the changes or Ignore',
-        //   update: hasChanged && isComplete(),
-        //   updateMethod: () => register(),
-        overflowPrompts: [
-          "Only Invited",
-          "Include Uninvited",
-          "Only Future Events"
-        ],
+        overflowPrompts: ["Show all drives", "Only Future Events"],
         overflowIcons: [
-          Icon(Icons.sentiment_satisfied_outlined),
-          Icon(Icons.sentiment_dissatisfied_outlined),
+          Icon(Icons.history_outlined),
           Icon(Icons.next_plan_outlined)
         ],
         overflowMethods: [
-          () => setState(() => _adding = !_adding),
           () => setState(() => _adding = !_adding),
           () => setState(() => _adding = !_adding)
         ],
@@ -146,13 +135,6 @@ class _GroupDriveFormState extends State<GroupDriveForm>
             ],
           ),
         ),
-
-        //    GroupDriveAddTile(
-        //      index: 1,
-        //      myTripItems: _myTripItems,
-        //      groupDrivers: _groups,
-        //      onSelectTrip: (_) => (),
-        //    ),
       ],
     );
   }
@@ -166,19 +148,33 @@ class _GroupDriveFormState extends State<GroupDriveForm>
                 padding:
                     const EdgeInsets.symmetric(horizontal: 0.0, vertical: 5.0),
                 child: ExpansionTile(
-                  //    onExpansionChanged: (_) =>
-                  //        _trips[index].selected = !_trips[index].selected,
-                  //    leading: _trips[index].selected
-                  //        ? IconButton(onPressed: () => (), icon: Icon(Icons.add))
-                  //        : null,
-                  title: Text(
-                    _trips[index].eventName,
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  title: SizedBox(
+                    height: 60,
+                    child: InkWell(
+                      onLongPress: () => startDrive(index),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          //      IconButton(
+                          //          onPressed: () => startDrive(index),
+                          //          icon: Icon(Icons.directions_car_outlined, size: 30)),
+                          Text(
+                            _trips[index].eventName,
+                            style: TextStyle(
+                                fontSize: 20, fontWeight: FontWeight.bold),
+                          ),
+                          Text(
+                            'On ${dateFormatDoc.format(DateTime.parse(_trips[index].eventDate))}  (long-press to join)',
+                            style: TextStyle(fontSize: 14),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                  subtitle: Text(
-                    'Event date  ${dateFormatDoc.format(DateTime.parse(_trips[index].eventDate))}',
-                    style: TextStyle(fontSize: 14),
-                  ),
+                  //     subtitle: Text(
+                  //       'Event date  ${dateFormatDoc.format(DateTime.parse(_trips[index].eventDate))} - press button to join',
+                  //       style: TextStyle(fontSize: 14),
+                  //     ),
                   children: [
                     ListView.builder(
                       physics: const NeverScrollableScrollPhysics(),
@@ -216,7 +212,7 @@ class _GroupDriveFormState extends State<GroupDriveForm>
                               fontSize: 22, fontWeight: FontWeight.bold)),
                       SizedBox(height: 10),
                       Row(children: [
-                        Text("1. created and saved a drive.",
+                        Text("1. Create and saved a drive.",
                             style: TextStyle(
                                 fontSize: 22, fontWeight: FontWeight.bold)),
                         if (_myTripItems.isNotEmpty)
@@ -226,19 +222,28 @@ class _GroupDriveFormState extends State<GroupDriveForm>
                       ]),
                       SizedBox(height: 5),
                       Row(children: [
-                        Text("2. create a group of your friends.",
+                        Text("2. Create a group of participants.",
                             style: TextStyle(
                                 fontSize: 22, fontWeight: FontWeight.bold)),
                         if (_groups.isNotEmpty) Icon(Icons.check),
                       ]),
                       SizedBox(height: 5),
-                      Text("3. share the drive with your group.",
+                      Text("3. Organise the new drive.",
                           style: TextStyle(
                               fontSize: 22, fontWeight: FontWeight.bold)),
                     ]),
               ),
             ),
     );
+  }
+
+  startDrive(int index) async {
+    MyTripItem gotTrip = await getMyTrip(_trips[index].driveId);
+    if (mounted) {
+      Navigator.pushNamed(context, 'createTrip',
+          arguments:
+              TripArguments(gotTrip, '', groupDriveId: _trips[index].eventId));
+    }
   }
 
   Widget newTrip() {
@@ -250,120 +255,6 @@ class _GroupDriveFormState extends State<GroupDriveForm>
     return true;
   }
 
-/*
-  Future<void> loadTrip(val) async {
-    return;
-  }
-*/
-/*
-  inviteOnSelect(int idx) {
-    setState(() {
-      // debugPrint('toInvite: $toInvite');
-      //   _invitees[idx].selected = !_invitees[idx].selected; //select;
-      //   toInvite += _invitees[idx].selected ? 1 : -1;
-    });
-  }
-  */
-/*
-  Future<void> shareTrip(index) async {
-    MyTripItem currentTrip = _myTripItems[index];
-    currentTrip.showMethods = false;
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ShareForm(
-          tripItem: currentTrip,
-        ),
-      ),
-    ).then((value) {
-      setState(() {});
-    });
-    return;
-  }
-
-  */
-/*
-  Future<void> deleteTrip(idx) async {
-    Utility().showOkCancelDialog(
-      context: context,
-      alertMessage: _groups[idx].name,
-      alertTitle: 'Permanently delete trip?',
-      okValue: 1,
-      callback: (val) {
-        if (val == 1) {
-          //   deleteGroupDrive(groupDriveId: _groups[idx].groupDriveId);
-          setState(() {
-            _groups.removeAt(idx);
-          });
-        }
-      },
-    );
-    return;
-  }
-*/
-/*
-  Future<void> publishTrip(val) async {
-    return;
-  }
-  */
-/*
-  Widget _handleChips() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10),
-      child: Wrap(
-        spacing: 10,
-        children: [
-          if (_action == 0) ...[
-            ActionChip(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              onPressed: () => setState(() => _action = 2),
-              backgroundColor: Colors.blue,
-              avatar: const Icon(
-                Icons.group_add,
-                color: Colors.white,
-              ),
-              label: const Text(
-                'New Trip', // - ${_action.toString()}',
-                style: TextStyle(fontSize: 18, color: Colors.white),
-              ),
-            ),
-          ],
-          if (_action == 1) ...[
-            ActionChip(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              onPressed: () =>
-                  setState(() => _adding = !_adding), //_action = 2),
-              backgroundColor: Colors.blue,
-              avatar: const Icon(
-                Icons.group_add,
-                color: Colors.white,
-              ),
-              label: Text(
-                _adding
-                    ? "Only Invited"
-                    : "Include Uninvited", // - ${_action.toString()}',
-                style: const TextStyle(fontSize: 18, color: Colors.white),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-*/
-/*
-  Future<void> deleteMyTrip(int index) async {
-    return;
-  }
-
-  void onSelect(int index) {
-    // _groupIndex = index;
-  }
-*/
   checkInvitations() async {
     MyTripItem tripItem = MyTripItem();
     for (int i = 0; i < _changes.length; i++) {
@@ -374,8 +265,12 @@ class _GroupDriveFormState extends State<GroupDriveForm>
       }
       if (tripItem.heading.isNotEmpty) {
         _showingDialog = true;
-        await updateDialog(
+        bool sent = await updateDialog(
             context: context, eventDetails: _changes[i], tripItem: tripItem);
+        if (sent) {
+          _changes.clear();
+          setState(() => _changed = false);
+        }
       }
     }
   }
@@ -518,30 +413,29 @@ class _GroupDriveFormState extends State<GroupDriveForm>
       required DateTime driveDate,
       required MyTripItem myTripItem,
       instructions = ''}) async {
-    int tripIndex = -1;
-    for (int i = 0; i < _myTripItems.length; i++) {
-      if (myTripItem.driveUri.isEmpty) {
-        tripIndex = i;
-        await myTripItem.publish();
-        myTripItem.saveLocal();
-      }
+    if (myTripItem.driveUri.isEmpty) {
+      await myTripItem.publish();
+      myTripItem.saveLocal();
     }
-
-    Map<String, dynamic> toEmail = {
-      'drive_id': _myTripItems[tripIndex].driveUri,
-      'drive_date': dateFormatSQL.format(driveDate),
-      'title': _myTripItems[tripIndex].heading,
-      'message': instructions
-    };
-    List<Map<String, dynamic>> invited = [];
-    for (int i = 0; i < eventDetails['invitees'].length; i++) {
-      if (eventDetails['invitees'][i]['invite'] ?? false) {
-        invited.add({'email': eventDetails['invitees'][i]['email']});
+    try {
+      Map<String, dynamic> toEmail = {
+        'drive_id': myTripItem.driveUri,
+        'drive_date': dateFormatSQL.format(driveDate),
+        'title': myTripItem.heading,
+        'message': instructions
+      };
+      List<Map<String, dynamic>> invited = [];
+      for (int i = 0; i < eventDetails['invitees'].length; i++) {
+        if (eventDetails['invitees'][i]['invite'] ?? false) {
+          invited.add({'email': eventDetails['invitees'][i]['email']});
+        }
       }
-    }
-    if (invited.isNotEmpty) {
-      toEmail['invited'] = invited;
-      postGroupDrive(invitations: toEmail);
+      if (invited.isNotEmpty) {
+        toEmail['invited'] = invited;
+        postGroupDrive(invitations: toEmail);
+      }
+    } catch (e) {
+      debugPrint('Error: ${e.toString()}');
     }
   }
 }

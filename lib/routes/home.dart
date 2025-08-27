@@ -166,6 +166,7 @@ class _HomeState extends State<Home> {
                 Setup().user.password.isEmpty) &&
             mounted) {
           loginState = await loginDialog(context, user: user);
+
           if (loginState == LoginState.login) {
             Map<String, dynamic> response = await tryLogin(user: user);
             if (response['msg'] == 'OK') {
@@ -182,8 +183,11 @@ class _HomeState extends State<Home> {
         }
 
         /// Handle partially loggedin users invite to complete registration
-        if (loginState == LoginState.register ||
-            loginState == LoginState.notLoggedin) {
+        if ([
+          LoginState.register,
+          LoginState.notLoggedin,
+          LoginState.resetPassword
+        ].contains(loginState)) {
           if (user.password.length != 6) {
             await postValidateUser(user: user);
             Setup().user = user;

@@ -103,6 +103,7 @@ class _GroupMessageTileState extends State<GroupMessageTile> {
                           keyboardType: TextInputType.multiline,
                           textAlign: TextAlign.start,
                           textCapitalization: TextCapitalization.sentences,
+                          textInputAction: TextInputAction.send,
                           decoration: InputDecoration(
                             border: const OutlineInputBorder(),
                             contentPadding: const EdgeInsets.fromLTRB(

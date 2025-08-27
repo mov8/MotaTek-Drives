@@ -182,7 +182,7 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   final ScrollController _preferencesScrollController = ScrollController();
   final mt.RouteAtCenter _routeAtCenter = mt.RouteAtCenter();
   bool _tripStarted = false;
-  String _title = 'Drives'; // _hints[0][0];
+  String _title = 'Drives';
   late AnimatedMapController _animatedMapController;
   late final StreamController<double?> _allignPositionStreamController;
   late final StreamController<void> _allignDirectionStreamController;
@@ -207,7 +207,6 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   final OsmFeatures _osmFeatures = OsmFeatures();
   // List<PointOfInterest> _pointsOfInterest = [];
 
-  String? _tripId;
   double _width = 56.0;
   final double _height = 56.0;
   bool _expanded = false;
@@ -395,13 +394,23 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
         'message_from_trip',
         (data) {
           TripMessage tripMessage = TripMessage.fromSocketMap(data);
-          if (tripMessage.message.isNotEmpty) {
+          if (tripMessage.message.isNotEmpty ||
+              ['p', 's'].contains(tripMessage.type)) {
             try {
-              var message = jsonDecode(tripMessage.message);
-              if (message['type'] == 'p') {
-                for (Follower follower in _following) {
-                  if (follower.uri == tripMessage.senderId) {
-                    follower.position = LatLng(message['lat'], message['lng']);
+              if (['p', 's'].contains(tripMessage.type)) {
+                for (int i = 0; i < _following.length; i++) {
+                  //for (Follower follower in _following) {
+                  if (_following[i].email == tripMessage.email) {
+                    _following[i] = Follower.moveFollower(
+                        follower: _following[i],
+                        marker: _following[i].marker,
+                        position: LatLng(tripMessage.lat, tripMessage.lng));
+                    if (tripMessage.type == 's') {
+                      _following[i].manufacturer = tripMessage.manufacturer;
+                      _following[i].model = tripMessage.manufacturer;
+                      _following[i].carColour = tripMessage.carColour;
+                      _following[i].registration = tripMessage.registration;
+                    }
                   }
                 }
               } else {
@@ -441,11 +450,13 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
 
       socket.onConnect((_) {
         //     debugPrint('onConnect connected');
-        socket.emit('trip_join', {'token': Setup().jwt, 'trip': _tripId});
+        socket.emit('trip_join',
+            {'token': Setup().jwt, 'trip': CurrentTripItem().groupDriveId});
       });
 
       if (socket.connected) {
-        socket.emit('trip_join', {'token': Setup().jwt, 'trip': _tripId});
+        socket.emit('trip_join',
+            {'token': Setup().jwt, 'trip': CurrentTripItem().groupDriveId});
       }
     } catch (e) {
       debugPrint('Error initialising Drives: ${e.toString()}');
@@ -461,8 +472,8 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
     fn1.dispose();
 
     // Clean up the focus node when the Form is disposed.
-    if (_tripId != null && socket.connected) {
-      socket.emit('trip_leave', {'trip': _tripId});
+    if (CurrentTripItem().groupDriveId.isNotEmpty && socket.connected) {
+      socket.emit('trip_leave', {'trip': CurrentTripItem().groupDriveId});
       try {
         socket.emit('cleave');
       } catch (e) {
@@ -622,12 +633,19 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
       final args = ModalRoute.of(context)!.settings.arguments as TripArguments;
       CurrentTripItem().fromMyTripItem(myTripItem: args.trip);
       CurrentTripItem().groupDriveId = args.groupDriveId;
+      _title = CurrentTripItem().heading;
       // _groupChecked = true;
-      developer.log(_title, name: '_title at build 617');
+      developer.log(_title, name: '_title at build 627');
       CurrentTripItem().tripState = TripState.notFollowing;
       CurrentTripItem().tripActions = TripActions.none;
+      if (args.groupDriveId.isNotEmpty) {
+        CurrentTripItem().tripType = TripType.group;
+      } else {
+        CurrentTripItem().tripType = TripType.saved;
+      }
       initialLeadingWidgetValue = 0;
       initialNavBarValue = 2;
+      socket.connect();
     }
     return Scaffold(
       key: _scaffoldKey,
@@ -660,10 +678,24 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
             }
           },
         ),
-        title: Text(
-          _title,
-          style: const TextStyle(
-              fontSize: 20, color: Colors.white, fontWeight: FontWeight.w700),
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            Expanded(
+                flex: 1,
+                child: tripTypeIcons[CurrentTripItem().tripType.index]),
+            SizedBox(width: 3),
+            Expanded(
+              flex: 12,
+              child: Text(
+                _title,
+                style: const TextStyle(
+                    fontSize: 22,
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700),
+              ),
+            ),
+          ],
         ),
         iconTheme: const IconThemeData(color: Colors.white),
         backgroundColor: Colors.blue,
@@ -1153,7 +1185,7 @@ enum TripState {
       children: [
         if (listHeight == 0) ...[
           SizedBox(
-            height: 175,
+            height: 200,
           ),
           AnimatedContainer(
             duration: const Duration(seconds: 1),
@@ -1426,15 +1458,28 @@ enum TripState {
             child: Icon(Icons.my_location,
                 color: _autoCentre ? Colors.white : Colors.grey),
           ),
-/*
+
           FloatingActionButton(
-            onPressed: () => CurrentTripItem().saveState(),
+            onPressed: () {
+              if (socket.connected) {
+                socket.emit('trip_message', {
+                  'message': '',
+                  'lat': _animatedMapController
+                          .mapController.camera.center.latitude +
+                      0.01,
+                  'lng': _animatedMapController
+                          .mapController.camera.center.longitude +
+                      0.01
+                });
+              }
+            },
             heroTag: 'test1',
             backgroundColor: Colors.blue,
             shape: const CircleBorder(),
-            child: Icon(Icons.save,
+            child: Icon(Icons.add_alarm,
                 color: _autoCentre ? Colors.white : Colors.grey),
           ),
+/*
           FloatingActionButton(
             onPressed: () => setState(() => CurrentTripItem().restoreState()),
             heroTag: 'test2',
@@ -1507,7 +1552,7 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
                   if (CurrentTripItem().groupDriveId.isNotEmpty) {
                     await loadGroup(
                         groupDriveId: CurrentTripItem().groupDriveId);
-                    _title = 'Group drive - ${CurrentTripItem().heading}';
+                    _title = CurrentTripItem().heading;
                   }
                 }
               },
@@ -1534,17 +1579,6 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
                   highlightedIndex = routeIdx;
                 }
 
-                if (_tripId != null) {
-                  if (socket.connected) {
-                    socket.emit('trip_message', {
-                      'message': '',
-                      'lat': _animatedMapController
-                          .mapController.camera.center.latitude,
-                      'lng': _animatedMapController
-                          .mapController.camera.center.longitude
-                    });
-                  }
-                }
                 if (hasGesure) {
                   _updateMarkerSize(position.zoom);
                 }
@@ -1934,10 +1968,12 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
       TripState.notFollowing,
       TripState.loaded
     ].contains(CurrentTripItem().tripState)) {
-      if (CurrentTripItem().tripActions == TripActions.showGroup) {
-        chipNames.add('Trip info');
-      } else {
-        chipNames.add('Group');
+      if (CurrentTripItem().groupDriveId.isNotEmpty) {
+        if (CurrentTripItem().tripActions == TripActions.showGroup) {
+          chipNames.add('Trip info');
+        } else {
+          chipNames.add('Group');
+        }
       }
       if (CurrentTripItem().tripActions == TripActions.showSteps) {
         chipNames.add('Trip info');
@@ -2318,11 +2354,13 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
     } catch (e) {
       debugPrint('error getting drivers: ${e.toString()}');
     }
-    int cIndex = 3;
+    int cIndex = 2;
     _following.clear;
 
-    for (Follower follower in participants) {
-      cIndex = cIndex < 16 ? cIndex++ : 2;
+    for (int i = 0; i < participants.length; i++) {
+      Follower follower = participants[i];
+      // for (Follower follower in participants) {
+      cIndex = cIndex < 16 ? ++cIndex : 2;
       if (Setup().user.email == follower.email) {
         missingCarInfo = follower;
       }
@@ -2331,6 +2369,7 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
           _following.add(
             Follower(
               uri: follower.uri,
+              iconColour: cIndex,
               driveId: follower.driveId,
               forename: follower.forename,
               surname: follower.surname,
@@ -2339,10 +2378,8 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
               model: follower.model,
               carColour: follower.carColour,
               registration: follower.registration,
-              position: LatLng(
-                  _currentPosition.latitude,
-                  _currentPosition
-                      .longitude), //const LatLng(51.497157, -0.619253), // 51.459024 -0.580205
+              email: follower.email,
+              position: LatLng(0.0, 0.0),
               marker: MarkerWidget(
                 type: 16,
                 description: '',
@@ -2626,7 +2663,9 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
             index: index,
             onIconClick: followerIconClick,
             onLongPress: followerLongPress,
-            distance: 0, // ToDo: calculate how far away
+            distance: 0,
+            currentPosition: LatLng(_currentPosition.latitude,
+                _currentPosition.longitude), // ToDo: calculate how far away
           ),
         ),
       ),
@@ -2928,6 +2967,18 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
               child: const Text('Ok', style: TextStyle(fontSize: 22)),
               onPressed: () async {
                 await sendDriverDetails(driver);
+                if (socket.connected) {
+                  socket.emit('trip_join_message', {
+                    'message': '',
+                    'make': driver.manufacturer,
+                    'model': driver.model,
+                    'colour': driver.carColour,
+                    'reg': driver.registration,
+                    'lat': _currentPosition.latitude,
+                    'lng': _currentPosition.longitude,
+                  });
+                }
+
                 if (context.mounted) {
                   Navigator.pop(context);
                 }
@@ -3339,6 +3390,16 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
         _speed = _currentPosition.speed * 3.6 / 8 * 5; // M/S -> MPH
         LatLng pos =
             LatLng(_currentPosition.latitude, _currentPosition.longitude);
+
+        if (CurrentTripItem().groupDriveId.isNotEmpty) {
+          if (socket.connected) {
+            socket.emit('trip_message', {
+              'message': '',
+              'lat': _currentPosition.latitude,
+              'lng': _currentPosition.longitude,
+            });
+          }
+        }
 
         if (CurrentTripItem().tripState == TripState.recording) {
           if (_lastLatLng == const LatLng(0.00, 0.00)) {
@@ -3776,7 +3837,7 @@ Future<bool> changeTripStart(
         title: const Text("Change trip's start or end",
             style: TextStyle(fontSize: 26)),
         content: SizedBox(
-          height: 300,
+          height: 350,
           child: Column(
             children: [
               CheckboxListTile(

@@ -34,6 +34,16 @@ const List<String> routes = [
 
 enum LoginState { notLoggedin, cancel, login, register, edit, resetPassword }
 
+enum LoginError {
+  noData,
+  noEmail,
+  noPassword,
+  wrongEmail,
+  wrongPassword,
+  wrongData,
+  allOk,
+}
+
 enum MarkerTypes {
   trip,
   goodRoad,
@@ -57,6 +67,14 @@ enum AppState {
   messages,
   driveTrip
 }
+
+enum TripType { none, saved, group }
+
+List<Icon> tripTypeIcons = [
+  Icon(Icons.add_location_alt_outlined),
+  Icon(Icons.bookmark_outline),
+  Icon(Icons.group_outlined)
+];
 
 enum TripState {
   none,
@@ -137,6 +155,8 @@ const int dbVersion = 1;
 
 const LatLng ukNorthEast = LatLng(61, 2);
 const LatLng ukSouthWest = LatLng(49, -8);
+
+const double metersToMiles = 0.000621371192;
 
 const List<String> tableDefs = [
   /// CACHES
@@ -255,7 +275,7 @@ const List<String> tableDefs = [
 // const urlBase = 'http://172.23.16.1:5001/'; //'http://10.101.1.216:5001/';
 
 const urlBase = 'http://192.168.1.109:5001/';
-// const urlBase = 'https://drives.motatek.com/';
+//const urlBase = 'https://drives.motatek.com/';
 const String urlDrive = '${urlBase}v1/drive';
 const String urlDriveImages = '${urlBase}v1/drive/images';
 const String urlDriveRating = '${urlBase}v1/drive_rating';

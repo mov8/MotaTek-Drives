@@ -56,7 +56,7 @@ class _GroupDriveInvitationTileState extends State<GroupDriveInvitationTile> {
                 size: 30,
               ),
               const SizedBox(
-                height: 10,
+                height: 8,
               ),
               Text(invState[widget.eventInvitation.accepted]),
             ],

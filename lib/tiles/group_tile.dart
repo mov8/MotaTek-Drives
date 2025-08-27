@@ -83,7 +83,7 @@ class _GroupTileState extends State<GroupTile> {
   double cardElevation = 0;
   final List<String> dropdownOptions = [];
   int _memberCount = 0;
-  late GroupMemberState _groupMemberState;
+  late GroupMemberState _groupMemberState = GroupMemberState.none;
 
   @override
   void initState() {
@@ -92,7 +92,9 @@ class _GroupTileState extends State<GroupTile> {
     _isEditing = widget.group.name.isEmpty;
     _index = widget.index;
     _isNewGroup = widget.group.name.isEmpty;
-    _groupMemberState = GroupMemberState.none;
+//    _groupMemberState = GroupMemberState.none;
+    developer.log('@initState _groupMemberState: ${_groupMemberState.name}',
+        name: '_GroupMemberState');
     developer.log('InitState() _isNewGroup: $_isNewGroup', name: '_newGroup');
   }
 
@@ -104,6 +106,8 @@ class _GroupTileState extends State<GroupTile> {
   @override
   Widget build(BuildContext context) {
     //  addMember();
+    developer.log('@build _groupMemberState: ${_groupMemberState.name}',
+        name: '_GroupMemberState');
     return Card(
       elevation: 5,
       clipBehavior: Clip.antiAlias,
@@ -205,6 +209,9 @@ class _GroupTileState extends State<GroupTile> {
   }
 
   addNewMember(member) {
+    developer.log(
+        '@addNewMember start _groupMemberState: ${_groupMemberState.name}',
+        name: '_GroupMemberState');
     if (member != null && _groupMemberState == GroupMemberState.isNew) {
       developer.log('addMember() ${member.email}', name: '_member');
       widget.group.addMember(member);
@@ -220,6 +227,9 @@ class _GroupTileState extends State<GroupTile> {
       _isEditing = false;
       _isNewGroup = false;
     });
+    developer.log(
+        '@addNewMember end _groupMemberState: ${_groupMemberState.name}',
+        name: '_GroupMemberState');
   }
 
   onCancel() {
@@ -229,6 +239,8 @@ class _GroupTileState extends State<GroupTile> {
     }
 
     setState(() {
+      developer.log('@onCancel _groupMemberState: ${_groupMemberState.name}',
+          name: '_GroupMemberState');
       _groupMemberState = GroupMemberState.none;
       _addMember = false;
     });
@@ -291,6 +303,9 @@ class _GroupTileState extends State<GroupTile> {
               onPressed: () => setState(() {
                 _addMember = true;
                 _groupMemberState = GroupMemberState.isNew;
+                developer.log(
+                    '@AddMember action chip _groupMemberState: ${_groupMemberState.name}',
+                    name: '_GroupMemberState');
                 if (widget.onAdd != null) {
                   //       widget.onAdd!(1);
                 }

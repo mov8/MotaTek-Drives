@@ -2112,6 +2112,17 @@ Future<GroupMember> getUserByEmail(String email) async {
   }
 }
 
+Future<bool> checkEmail({required String email}) async {
+  try {
+    final http.Response response = await getWebData(
+        uri: Uri.parse('$urlUser/check/${email.toLowerCase()}'), secure: false);
+    return response.statusCode == 200;
+  } catch (e) {
+    debugPrint('Error ${e.toString()}');
+    return false;
+  }
+}
+
 Future<List<GroupMember>> getGroupMembers() async {
   try {
     final http.Response response =

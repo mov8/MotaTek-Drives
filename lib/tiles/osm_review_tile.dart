@@ -58,7 +58,8 @@ class _OsmReviewTileState extends State<OsmReviewTile>
       _reviews = widget.reviews.length;
       _tController.index = _reviews == 0 ? 1 : 0;
     }
-    return Column(
+    return SingleChildScrollView(
+        child: Column(
       children: [
         TabBar(
           controller: _tController,
@@ -83,81 +84,83 @@ class _OsmReviewTileState extends State<OsmReviewTile>
           ),
         ),
       ],
-    );
+    ));
   }
 
   Widget reviews() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          height: 400,
-          width: 350,
-          child: ListView.builder(
-            itemCount: _reviews,
-            itemBuilder: (context, index) => Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 0.0, vertical: 5.0),
-              child: ExpansionTile(
-                  expandedAlignment: Alignment.centerLeft,
-                  title: Row(children: [
-                    Expanded(
-                      flex: 3,
-                      child: StarRating(
-                          onRatingChanged: (_) => (),
-                          rating: widget.reviews[index]['rating']),
-                    ),
-                    Expanded(
-                      flex: 1,
-                      child: Text(
-                        widget.reviews[index]['rating'].toString(),
-                        style: TextStyle(
-                            fontSize: 20, fontWeight: FontWeight.bold),
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            height: 400,
+            width: 350,
+            child: ListView.builder(
+              itemCount: _reviews,
+              itemBuilder: (context, index) => Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 0.0, vertical: 5.0),
+                child: ExpansionTile(
+                    expandedAlignment: Alignment.centerLeft,
+                    title: Row(children: [
+                      Expanded(
+                        flex: 3,
+                        child: StarRating(
+                            onRatingChanged: (_) => (),
+                            rating: widget.reviews[index]['rating']),
                       ),
-                    ),
-                  ]),
-                  subtitle: Align(
-                    alignment: Alignment.topLeft,
-                    child: Padding(
-                      padding: EdgeInsetsGeometry.fromLTRB(10, 0, 0, 0),
-                      child: Text(
-                          widget.reviews[index]['rated'].substring(0, 16),
-                          style: TextStyle(fontSize: 18),
-                          textAlign: TextAlign.start),
-                    ),
-                  ),
-                  children: [
-                    Align(
+                      Expanded(
+                        flex: 1,
+                        child: Text(
+                          widget.reviews[index]['rating'].toString(),
+                          style: TextStyle(
+                              fontSize: 20, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ]),
+                    subtitle: Align(
                       alignment: Alignment.topLeft,
                       child: Padding(
                         padding: EdgeInsetsGeometry.fromLTRB(10, 0, 0, 0),
-                        child: Text(widget.reviews[index]['comment'],
-                            style: TextStyle(fontSize: 22),
-                            textAlign: TextAlign.start),
-                      ),
-                    ),
-                    PhotoCarousel(
-                        width: 200,
-                        height: 200,
-                        photos: photosFromJson(
-                            handleWebImages(widget.reviews[index]['images']),
-                            endPoint:
-                                '$urlOsmReview/images/${widget.reviews[index]['amenity']}/${widget.reviews[index]['review_id']}/'),
-                        imageRepository: widget.imageRepository),
-                    Align(
-                      alignment: Alignment.topLeft,
-                      child: Padding(
-                        padding: EdgeInsetsGeometry.fromLTRB(10, 0, 0, 0),
-                        child: Text(widget.reviews[index]['rated_by'],
+                        child: Text(
+                            widget.reviews[index]['rated'].substring(0, 16),
                             style: TextStyle(fontSize: 18),
                             textAlign: TextAlign.start),
                       ),
                     ),
-                  ]),
+                    children: [
+                      Align(
+                        alignment: Alignment.topLeft,
+                        child: Padding(
+                          padding: EdgeInsetsGeometry.fromLTRB(10, 0, 0, 0),
+                          child: Text(widget.reviews[index]['comment'],
+                              style: TextStyle(fontSize: 22),
+                              textAlign: TextAlign.start),
+                        ),
+                      ),
+                      PhotoCarousel(
+                          width: 200,
+                          height: 200,
+                          photos: photosFromJson(
+                              handleWebImages(widget.reviews[index]['images']),
+                              endPoint:
+                                  '$urlOsmReview/images/${widget.reviews[index]['amenity']}/${widget.reviews[index]['review_id']}/'),
+                          imageRepository: widget.imageRepository),
+                      Align(
+                        alignment: Alignment.topLeft,
+                        child: Padding(
+                          padding: EdgeInsetsGeometry.fromLTRB(10, 0, 0, 0),
+                          child: Text(widget.reviews[index]['rated_by'],
+                              style: TextStyle(fontSize: 18),
+                              textAlign: TextAlign.start),
+                        ),
+                      ),
+                    ]),
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -193,13 +196,17 @@ class _OsmReviewTileState extends State<OsmReviewTile>
         if (widget.reviews.isEmpty)
           Row(
             children: [
-              SizedBox(
-                width: 225,
-                height: 90,
-                child: Text(
-                  '${widget.name.contains('The') ? '' : 'The '}${widget.name} has not yet been rated. Review it now to help other people.',
-                  style:
-                      TextStyle(fontSize: 20, overflow: TextOverflow.visible),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
+                  child: Text(
+                    '${widget.name.contains('The') ? '' : 'The '}${widget.name} has not yet been rated. Review it now to help other people.',
+                    maxLines: 3,
+                    style: TextStyle(
+                      fontSize: 20,
+                      overflow: TextOverflow.ellipsis,
+                    ), //, overflow: TextOverflow.visible),
+                  ),
                 ),
               ),
             ],

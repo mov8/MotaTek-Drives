@@ -197,14 +197,6 @@ class OsmFeatures {
     }
   }
 
-/*
-  void updateMarkers() {
-    for (int i = 0; i < amenities.length; i++) {
-      amenities[i].
-
-    }
-  }
-*/
   void clear() {
     amenities.clear();
   }
@@ -280,28 +272,32 @@ class PublishedFeatures {
       cacheFence.setBounds(bounds: screenFence, deltaDegrees: 0.5);
       updateDetails = true;
       listToFilter.addAll(features);
+      developer.log('updateCache filtering features: ${listToFilter.length} ',
+          name: '_cache');
     } else if (markers.isEmpty) {
       updateDetails = true;
       listToFilter.addAll(cache);
-      developer.log('Markers empty', name: '_cache');
+      developer.log('markers.isEmpty filtering cache: ${listToFilter.length} ',
+          name: '_cache');
     } else if (zoom > 11) {
       for (Feature feature in markers) {
         if (!screenFence.contains(bounds: feature.getBounds())) {
-          //   debugPrint('Feature ${feature.row}has left the _screenFence');
           listToFilter.addAll(cache);
           updateDetails = true;
-          developer.log('Zoom > 11', name: '_cache');
+          developer.log('Zoom > 11 filtering cache: ${listToFilter.length}',
+              name: '_cache');
           break;
         }
       }
-      //  updateDetails = true;
     }
     if (updateDetails) {
-      developer.log('Updating details', name: '_cache');
+      developer.log('Updating details listToFilter: ${listToFilter.length}',
+          name: '_cache');
       markers.clear();
       cards.clear();
       routeCards.clear();
-      for (Feature feature in listToFilter) {
+      for (int k = 0; k < listToFilter.length; k++) {
+        Feature feature = listToFilter[k];
         switch (feature.type) {
           case 0:
             if (showRoutes &&
@@ -341,7 +337,10 @@ class PublishedFeatures {
                   expandNotifier: expandNotifier,
                 );
                 if (card != null) {
-                  developer.log('routeCards: ${routeCards.length}',
+                  if (routeCards.length > 3) {
+                    debugPrint('Check');
+                  }
+                  developer.log('adding to routeCards: ${routeCards.length}',
                       name: '_cache');
                   routeCards.add(card);
                 }
@@ -378,7 +377,7 @@ class PublishedFeatures {
                     color: feature.poiType == 13
                         ? colourList[Setup().goodRouteColour]
                         : colourList[Setup().pointOfInterestColour],
-                    width: zoom * 2,
+                    width: (zoom * 1.75),
                     overlay:
                         markerIcon(getIconIndex(iconIndex: feature.poiType)),
                     onPress: pinTap,
@@ -435,8 +434,6 @@ class PublishedFeatures {
       }
 
       updated = true;
-    } else {
-      //   debugPrint('filterFeatures had nothing to update');
     }
     if (onUpdate != null) {
       onUpdate!(updated);
@@ -485,23 +482,14 @@ class PublishedFeatures {
         await routeMarkerPosition(polylines: [route], fence: screenFence);
     Feature? target;
     int index = -1;
-    if (markerPoint == null) {
-      //    debugPrint('Point not found in fence');
-    } else {
-      //    debugPrint('point FOUND in fence');
-    }
     if (markerPoint != null && screenFence.containsPoint(point: markerPoint)) {
       String uri = feature.pointOfInterestUri;
       if (pointOfInterestLookup.containsKey(uri)) {
         index = pointOfInterestLookup[uri]!;
         target = features[index];
-        //     debugPrint('Fence contains feature.row = $index');
       }
       if (target != null && index > -1) {
-        bool add = !markers.any((feature) =>
-            feature.row ==
-            target!
-                .row); //true; //!screenFence.containsPoint(point: target.maxPoint);
+        bool add = !markers.any((feature) => feature.row == target!.row);
         Feature moved = Feature.fromFeature(
           feature: target,
           point: markerPoint,
@@ -530,79 +518,24 @@ class PublishedFeatures {
     return false;
   }
 
-/*
-  Future<bool> moveRouteMarker(
-      {required mt.Route route,
-      required Feature feature,
-      required List<Feature> cache,
-      required List<Feature> visibleFeatures,
-      required Fence screenFence,
-      Function(int)? pinTap,
-      zoom = 12}) async {
-    Feature start = feature;
-    LatLng? markerPoint =
-        await routeMarkerPosition(polylines: [route], fence: screenFence);
-    if (markerPoint != null && screenFence.containsPoint(point: markerPoint)) {
-      for (Feature feature in cache) {
-        if (feature.poiType == 13) {
-          PointOfInterest? goodRoadStart =
-              await pointOfInterestRepository.loadPointOfInterest(
-                  key: feature.row, id: feature.id, uri: feature.uri);
-          if (goodRoadStart != null) {
-            if (route.pointOfInterestUri == goodRoadStart.url) {
-              start = feature;
-              break;
-            }
-          }
-        }
-      }
-
-      visibleFeatures.add(
-        Feature.fromFeature(
-          feature: start,
-          point: markerPoint,
-          child: PinMarkerWidget(
-            index: feature.row,
-            color: feature.type == 0
-                ? colourList[Setup().publishedTripColour]
-                : colourList[Setup().goodRouteColour],
-            width: (zoom * 2).toDouble(),
-            overlay: Icons.route_outlined,
-            onPress: pinTap,
-          ),
-        ),
-      );
-      return true;
-    }
-    return false;
-  }
-*/
   Future<LatLng?> routeMarkerPosition(
       {required List<Polyline> polylines, required Fence fence}) async {
     int first = -1;
     LatLng? pos;
     bool debug = false;
+    int last = -1;
+
     Fence offsetFence = Fence.fromFence(
         bounds: fence, deltaPercent: -5); //deltaDegrees: -0.015);
     for (int h = 0; h < polylines.length; h++) {
       for (int i = 0; i < polylines[h].points.length; i++) {
-        //    debugPrint(
-        //        'fence bounds NE: ${offsetFence.northEast.toString()} SW: ${offsetFence.southWest.toString()} point[$i].LatLng(${polyline.points[i].latitude} ${polyline.points[i].longitude})');
-        // if (_goodRoad && (i == 0 || i == polylines[h].points.length - 1)) {
-        //  debug = true;
-        //  debugPrint(
-        //      'fence SW lat:${fence.southWest.latitude} lng:${fence.southWest.longitude}  NE lat:${fence.northEast.latitude} lng:${fence.northEast.longitude} - point[$i].LatLng(${polylines[h].points[i].latitude} ${polylines[h].points[i].longitude})');
-        // }
         if (offsetFence.containsPoint(
             point: polylines[h].points[i], debug: debug)) {
           first = first < 0 ? i : first;
-          pos = polylines[h].points[i];
-        } else {
-          if (first >= 0) {
-            break;
-          }
+          last = i;
         }
       }
+      pos = polylines[h].points[first + ((last - first) ~/ 2)];
     }
     return pos;
   }
@@ -613,17 +546,6 @@ class PublishedFeatures {
     List<Card>? children,
     ExpandNotifier? expandNotifier,
   }) async {
-    // debugPrint('getCard called for index $index');
-    /// getFeatures returns all the features from the API
-    /// type 1: drives - id + max/min lat/lng
-    /// type 2: points of interest excluding type 12 ad 16 drive start end (12) and followers (16)
-    ///         type 3 is the automatically inserted point of imterest
-    ///         when a good road is tarted.
-    /// type 3: good roads - id + max/min lat/lng
-    ///
-    /// good_roads.point_of_interest_id ties the point of interest
-    /// to the good_roads polylines(mt.route)
-
     if (feature.type == 0) {
       TripItem tripItem = await tripItemRepository.loadTripItem(
           key: feature.row, id: feature.id, uri: feature.uri);
@@ -632,12 +554,8 @@ class PublishedFeatures {
                   Setup().lastPosition.longitude),
               feature.point)
           .truncate();
-      // tripItem.closest = 1;
-      //  debugPrint('getting trip data ${feature.uri} name ${tripItem.heading}');
       return Card(
         key: Key('pin_${feature.row}'),
-        //       elevation: 10,
-        //       shadowColor: Colors.grey.withValues(alpha: 125),
         shadowColor: Colors.transparent,
         color: index.isOdd
             ? Colors.white
@@ -655,7 +573,6 @@ class PublishedFeatures {
       PointOfInterest? pointOfInterest =
           await pointOfInterestRepository.loadPointOfInterest(
               key: feature.row, id: feature.id, uri: feature.uri);
-      // pointOfInterest?.setName('$index. ${pointOfInterest.getName()}');
       return Card(
         key: Key('pin_${feature.row}'),
         shadowColor: Colors.transparent,

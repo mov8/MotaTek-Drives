@@ -32,7 +32,7 @@ class _DriveInvitationsState extends State<DriveInvitations>
   @override
   void initState() {
     super.initState();
-    _tController = TabController(length: 3, vsync: this);
+    _tController = TabController(length: 2, vsync: this);
     _date = DateTime.now();
   }
 
@@ -53,7 +53,7 @@ class _DriveInvitationsState extends State<DriveInvitations>
             labelStyle: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
             tabs: [
               Tab(icon: Icon(Icons.group_outlined), text: 'Invite Drivers'),
-              Tab(icon: Icon(Icons.outgoing_mail), text: 'Send Invitations'),
+              // Tab(icon: Icon(Icons.outgoing_mail), text: 'Send Invitations'),
               Tab(icon: Icon(Icons.map_outlined), text: 'Drive Details'),
             ],
           ),
@@ -64,7 +64,7 @@ class _DriveInvitationsState extends State<DriveInvitations>
                 controller: _tController,
                 children: [
                   invited(),
-                  invitation(),
+                  //   invitation(),
                   tripDescription(),
                 ],
               ),
@@ -180,8 +180,8 @@ class _DriveInvitationsState extends State<DriveInvitations>
           for (int i = 0; i < _changes.length; i++) {
             if (_changes[i]['myTripId'] == widget.myTripItem.id) {
               tripIndex = i;
-              for (int j = 0; j < _changes[i]['envitees'].length; j++) {
-                if (_changes[i]['envitees'][j]['email'] ==
+              for (int j = 0; j < _changes[i]['invitees'].length; j++) {
+                if (_changes[i]['invitees'][j]['email'] ==
                     widget.groupDrivers[groupIndex].invitees[driverIndex]
                         ['email']) {
                   inviteeIndex = j;
@@ -192,19 +192,19 @@ class _DriveInvitationsState extends State<DriveInvitations>
             }
           }
           if (value == false && inviteeIndex > -1) {
-            _changes[tripIndex]['envitees'].removeAt(inviteeIndex);
+            _changes[tripIndex]['invitees'].removeAt(inviteeIndex);
           } else if (value == true && inviteeIndex == -1) {
             if (tripIndex == -1) {
               _changes.add({'myTripId': widget.myTripItem.id});
               tripIndex = _changes.length - 1;
-              _changes[tripIndex]['envitees'] = [];
+              _changes[tripIndex]['invitees'] = [];
             }
-            _changes[tripIndex]['envitees']
+            _changes[tripIndex]['invitees']
                 .add(widget.groupDrivers[groupIndex].invitees[driverIndex]);
           }
           if (value == false) {
             for (int i = _changes.length - 1; i >= 0; i--) {
-              if (_changes[i]['envitees'].isEmpty) {
+              if (_changes[i]['invitees'].isEmpty) {
                 _changes.removeAt(i);
               }
             }
@@ -230,7 +230,7 @@ class _DriveInvitationsState extends State<DriveInvitations>
     }
     return count;
   }
-
+/*
   Widget invitation() {
     DateTime tripDate = _date!;
     int toInvite = invitees();
@@ -333,6 +333,7 @@ class _DriveInvitationsState extends State<DriveInvitations>
       ),
     );
   }
+  */
 
   Widget tripDescription() {
     return SingleChildScrollView(

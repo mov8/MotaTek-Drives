@@ -19,6 +19,7 @@ class _MainDrawerState extends State<MainDrawer> {
   @override
   Widget build(BuildContext context) {
     return Drawer(
+      width: MediaQuery.of(context).size.width * 0.75,
       child: ListView(
         children: [
           const DrawerHeader(
@@ -38,7 +39,7 @@ class _MainDrawerState extends State<MainDrawer> {
                   ),
                   Expanded(
                     flex: 6,
-                    child: Text('Drives v1.0',
+                    child: Text('Drives v1.03',
                         style: TextStyle(color: Colors.white, fontSize: 32)),
                   ),
                 ],

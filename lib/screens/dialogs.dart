@@ -311,7 +311,9 @@ Future<LoginState> loginDialog(BuildContext context,
     {required User user}) async {
   String status = '';
   List<String> registered = [];
-  bool hasChecked = false;
+  LoginError loginError = LoginError.noData;
+  bool isRegistered = false;
+  bool emailValid = false;
   user.password = '';
 
   LoginState? loginState = await showDialog<LoginState>(
@@ -337,65 +339,61 @@ Future<LoginState> loginDialog(BuildContext context,
               children: [
                 Expanded(
                   child: TextField(
-                      autofocus: true,
-                      textInputAction: TextInputAction.next,
-                      keyboardType: TextInputType.emailAddress,
-                      textCapitalization: TextCapitalization.none,
-                      decoration: const InputDecoration(
-                          hintText: 'Enter your email address'),
-                      onChanged: (value) async {
-                        user.email = value.toLowerCase();
-                        if (user.email.length >= 6) {
-                          if (hasChecked == false) {
-                            hasChecked = true;
-                            registered = await getApiOptions(
-                                value: user.email, secure: false);
-                          }
-                        } else {
-                          hasChecked = false;
+                    autofocus: true,
+                    textInputAction: TextInputAction.next,
+                    keyboardType: TextInputType.emailAddress,
+                    textCapitalization: TextCapitalization.none,
+                    decoration: const InputDecoration(
+                        hintText: 'Enter your email address'),
+                    onChanged: (value) async {
+                      user.email = value.toLowerCase();
+                    },
+                    onSubmitted: (text) async {
+                      debugPrint('Submitted $text');
+                      if (emailRegex.hasMatch(user.email)) {
+                        emailValid = true;
+                        isRegistered = await checkEmail(email: user.email);
+                        if (!isRegistered) {
+                          status = 'Unregistered email address';
                         }
-                        if (emailRegex.hasMatch(user.email) && hasChecked) {
-                          if (registered
-                              .where((em) => em.startsWith(user.email))
-                              .toList()
-                              .isEmpty) {
-                            setState(() =>
-                                status = 'User unknown - press Ok to register');
-                          }
-                        } else if (status.isNotEmpty) {
-                          setState(() => status = '');
-                        }
-                      }),
+                      } else {
+                        status = 'Invalid email address';
+                      }
+                      setState(() => (status));
+                    },
+                  ),
                 )
               ],
             ),
             Row(
               children: [
                 Expanded(
-                    child: TextField(
-                  decoration: const InputDecoration(
-                    hintText: 'Password - leave empty if fogotten',
-                  ),
-                  textInputAction: TextInputAction.done,
-                  keyboardType: TextInputType.visiblePassword,
-                  onChanged: (value) => user.password = value,
-                  onSubmitted: (_) async {
-                    LoginState liState = LoginState.cancel;
-                    if (user.email.isNotEmpty) {
-                      try {
-                        liState = user.password.isEmpty
-                            ? LoginState.register
-                            : LoginState.login;
-                        if (context.mounted) {
-                          Navigator.pop(context, liState);
+                  child: TextField(
+                      decoration: const InputDecoration(
+                        hintText: 'Password - leave empty if fogotten',
+                      ),
+                      textInputAction: TextInputAction.done,
+                      keyboardType: TextInputType.visiblePassword,
+                      onChanged: (value) =>
+                          setState(() => user.password = value),
+                      onSubmitted: (_) async {
+                        if (!isRegistered) {
+                          Setup().user = user;
+                          Navigator.pop(context, LoginState.register);
+                        } else if (user.password.isEmpty && isRegistered) {
+                          Setup().user = user;
+                          Navigator.pop(context, LoginState.resetPassword);
+                        } else {
+                          Map<String, dynamic> response =
+                              await tryLogin(user: Setup().user);
+                          status = response['msg'] ?? '';
+                          if (context.mounted && status == 'OK') {
+                            Setup().user = user;
+                            Navigator.pop(context, LoginState.login);
+                          }
                         }
-                      } catch (e) {
-                        String err = e.toString();
-                        debugPrint('Error: $err');
-                      }
-                    }
-                  },
-                ))
+                      }),
+                )
               ],
             ),
 
@@ -417,32 +415,44 @@ Future<LoginState> loginDialog(BuildContext context,
           ]),
         ),
         actions: [
-          TextButton(
-            onPressed: () async {
-              if (user.password.isEmpty && status.isNotEmpty) {
-                Setup().user = user;
-                Navigator.pop(context, LoginState.register);
-              } else if (user.password.isEmpty && registered.isEmpty) {
-                Setup().user = user;
-                Navigator.pop(context, LoginState.resetPassword);
-              } else {
-                Map<String, dynamic> response =
-                    await tryLogin(user: Setup().user);
-                status = response['msg'] ?? '';
-                if (context.mounted && status == 'OK') {
+          if (emailValid)
+            TextButton(
+              onPressed: () async {
+                if (!isRegistered) {
                   Setup().user = user;
-                  Navigator.pop(context, LoginState.login);
+                  Navigator.pop(context, LoginState.register);
+                } else if ((user.password.isEmpty ||
+                        status == 'Incorrect password') &&
+                    isRegistered) {
+                  Setup().user = user;
+                  Navigator.pop(context, LoginState.resetPassword);
+                } else {
+                  Map<String, dynamic> response =
+                      await tryLogin(user: Setup().user);
+                  status = response['msg'] ?? '';
+                  if (context.mounted && status == 'OK') {
+                    Setup().user = user;
+                    Navigator.pop(context, LoginState.login);
+                  }
+                  if (response["response_status_code"] == 204) {
+                    setState(() => status = 'Incorrect password');
+                  }
                 }
-              }
-            },
+              },
 
-            ///     onPressed: () => Navigator.pop(context,
-            ///         user.password.isEmpty ? LoginState.register : LoginState.login),
-            child: const Text(
-              'Ok',
-              style: TextStyle(fontSize: 20),
+              ///     onPressed: () => Navigator.pop(context,
+              ///         user.password.isEmpty ? LoginState.register : LoginState.login),
+              child: Text(
+                user.password.isEmpty
+                    ? isRegistered
+                        ? 'Reset password'
+                        : 'Register'
+                    : user.password.length < 8
+                        ? ''
+                        : 'Login',
+                style: TextStyle(fontSize: 20),
+              ),
             ),
-          ),
           TextButton(
             onPressed: () => Navigator.pop(context, LoginState.cancel),
             child: const Text(

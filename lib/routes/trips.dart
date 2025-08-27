@@ -49,6 +49,7 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
   late final RoutesBottomNavController _bottomNavController;
   late final ExpandNotifier _expandNotifier;
   final mapController = MapController();
+  late Position _currentPosition;
   late final AnimatedMapController _animatedMapController;
   final ItemScrollController _itemScrollController = ItemScrollController();
   final ScrollOffsetController scrollOffsetController =
@@ -116,6 +117,11 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
           expandNotifier: _expandNotifier);
     } catch (e) {
       debugPrint('Error getting data from the Internet');
+    }
+    try {
+      _currentPosition = await Geolocator.getCurrentPosition();
+    } catch (e) {
+      debugPrint('Error getting data: ${e.toString()}');
     }
     try {
       _style = await VectorMapStyle().mapStyle();
@@ -327,6 +333,7 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
       case 0:
         TripItem tripItem = await _publishedFeatures.tripItemRepository
             .loadTripItem(key: feature.row, id: feature.id, uri: feature.uri);
+        developer.log('in trips adding to tripItemRepository', name: '_cache');
         mapInfo['title'] = 'Published Trip';
         mapInfo['isRoute'] = true;
         mapInfo['content'] = Padding(
@@ -507,8 +514,8 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
                 },
               );
             },
-            initialCenter: LatLng(51.507, 0.1276),
-            // Setup().lastPosition.latitude, Setup().lastPosition.longitude),
+            initialCenter: LatLng(_currentPosition.latitude,
+                _currentPosition.longitude), // LatLng(51.507, 0.1276),
             initialZoom: getInitialZoom(),
             maxZoom: 16,
             minZoom: 5,
@@ -826,7 +833,7 @@ class HandleFabs extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
         const SizedBox(
-          height: 175,
+          height: 200,
         ),
         FloatingActionButton(
           heroTag: 'location',

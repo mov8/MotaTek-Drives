@@ -1126,6 +1126,7 @@ class GroupDrive {
 
 class GroupEvent {
   String eventId;
+  String driveId;
   String eventName;
   String eventDate;
   int invited;
@@ -1135,6 +1136,7 @@ class GroupEvent {
   List<dynamic> invitees;
   GroupEvent({
     this.eventId = '',
+    this.driveId = '',
     this.eventName = '',
     this.eventDate = '',
     this.count = 0,
@@ -1149,6 +1151,7 @@ class GroupEvent {
   factory GroupEvent.fromMap({required Map<String, dynamic> map}) {
     return GroupEvent(
         eventId: map['id'],
+        driveId: map['drive_id'],
         eventName: map['name'],
         eventDate: map['date'],
         count: map['count'],
@@ -1691,7 +1694,8 @@ class Follower extends Marker {
   String registration = '';
   String carColour = '';
   int iconColour = 0;
-  LatLng position = const LatLng(0, 0);
+  LatLng position; // = const LatLng(0, 0);
+  Widget marker;
   DateTime reported = DateTime.now();
   int index = -1;
   @override
@@ -1714,8 +1718,8 @@ class Follower extends Marker {
       this.width = 20,
       this.height = 20,
       this.iconColour = 0,
-      required position,
-      required Widget marker})
+      required this.position,
+      required this.marker})
       : super(
           child: marker,
           point: position, // markerPoint,
@@ -1724,6 +1728,31 @@ class Follower extends Marker {
         ) {
     reported = DateTime.now();
   }
+
+  factory Follower.moveFollower(
+      {required Follower follower,
+      required Widget marker,
+      required LatLng position}) {
+    return Follower(
+        uri: follower.uri,
+        userId: follower.userId,
+        driveId: follower.driveId,
+        driveName: follower.driveName,
+        forename: follower.forename,
+        surname: follower.surname,
+        email: follower.email,
+        phoneNumber: follower.phoneNumber,
+        manufacturer: follower.manufacturer,
+        model: follower.model,
+        registration: follower.registration,
+        carColour: follower.carColour,
+        width: follower.width,
+        height: follower.height,
+        iconColour: follower.iconColour,
+        position: position,
+        marker: marker);
+  }
+
   factory Follower.fromMap({required Map<String, dynamic> map}) {
     return Follower(
         position: LatLng(0.0, 0.0),
@@ -1733,7 +1762,7 @@ class Follower extends Marker {
         driveId: map['group_drive_id'] ?? '',
         driveName: map['drive_name'] ?? '',
         forename: map['user_forename'] ?? '',
-        surname: map['user_suname'] ?? '',
+        surname: map['user_surname'] ?? '',
         phoneNumber: map['user_phone'] ?? '',
         email: map['user_email'] ?? '',
         carColour: map['colour'] ?? '',
@@ -2263,24 +2292,41 @@ class Drive {
 
 class TripMessage {
   String id;
-  String senderId;
+  String type;
+  String sender;
+  String email;
   String message;
   double lat;
   double lng;
+  String manufacturer;
+  String model;
+  String carColour;
+  String registration;
   TripMessage(
       {this.id = '',
-      this.senderId = '',
+      this.type = '',
+      this.sender = '',
+      this.email = '',
       this.message = '',
       this.lat = 0.0,
-      this.lng = 0.0});
+      this.lng = 0.0,
+      this.manufacturer = '',
+      this.model = '',
+      this.carColour = '',
+      this.registration = ''});
   factory TripMessage.fromSocketMap(Map<String, dynamic> map) {
     return TripMessage(
-      id: map['id'] ?? '',
-      senderId: map['sender_id'] ?? '',
-      message: map['message'] ?? '',
-      lat: map['lat'] ?? 0.0,
-      lng: map['lng'] ?? 0.0,
-    );
+        id: map['id'] ?? '',
+        type: map['type'] ?? '',
+        email: map['email'] ?? '',
+        sender: map['sender'] ?? '',
+        message: map['message'] ?? '',
+        lat: map['lat'] ?? 0.0,
+        lng: map['lng'] ?? 0.0,
+        manufacturer: map['make'] ?? '',
+        model: map['model'] ?? '',
+        carColour: map['colour'] ?? '',
+        registration: map['reg'] ?? '');
   }
 }
 

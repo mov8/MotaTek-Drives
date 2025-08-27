@@ -22,6 +22,7 @@ class CurrentTripItem extends MyTripItem {
   bool isTracking = false;
   TripState tripState = TripState.none;
   TripActions tripActions = TripActions.none;
+  TripType tripType = TripType.none;
   HighliteActions highliteActions = HighliteActions.none;
   XFile? imageFile;
 
@@ -54,6 +55,7 @@ class CurrentTripItem extends MyTripItem {
     showMethods = myTripItem.showMethods;
     mapImage = myTripItem.mapImage;
     tripState = TripState.loaded;
+    tripType = TripType.none;
   }
 
   MyTripItem clone() {
@@ -87,6 +89,7 @@ class CurrentTripItem extends MyTripItem {
   clearAll() {
     isSaved = false;
     isTracking = false;
+    tripType = TripType.none;
     tripState = TripState.none;
     tripActions = TripActions.none;
     highliteActions = HighliteActions.none;

@@ -184,12 +184,12 @@ class _MyTripTileState extends State<MyTripTile> {
                                   child: const Column(
                                     children: [
                                       Icon(Icons.file_open_outlined),
-                                      Text('Load Trip')
+                                      Text('Start Trip')
                                     ],
                                   ),
                                 ),
                               ),
-                              Expanded(
+                              /* Expanded(
                                 flex: 1,
                                 child: TextButton(
                                   onPressed: () async =>
@@ -201,7 +201,7 @@ class _MyTripTileState extends State<MyTripTile> {
                                     ],
                                   ),
                                 ),
-                              ),
+                              ), */
                               if (widget.onPublishTrip != null) ...[
                                 Expanded(
                                   flex: 1,
