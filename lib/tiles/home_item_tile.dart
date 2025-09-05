@@ -3,6 +3,7 @@ import 'package:drives/models/other_models.dart';
 import 'package:drives/classes/classes.dart';
 import 'dart:io';
 import 'package:intl/intl.dart';
+import 'package:drives/constants.dart';
 
 /// An example of a widget with a controller.
 /// The controller allows to the widget to be controlled externally
@@ -67,8 +68,9 @@ class _HomeItemTileState extends State<HomeItemTile> {
     expanded = widget.expanded;
     canEdit = widget.canEdit;
     index = widget.index;
-    photos = photosFromJson(widget.homeItem.imageUrls,
-        endPoint: '${widget.homeItem.uri}/');
+    photos = photosFromJson(
+        photoString: widget.homeItem.imageUrls,
+        endPoint: '$urlHomePageItem/images/${widget.homeItem.uri}/');
     dropDownMenuItems = covers
         .map(
           (item) => DropdownMenuItem<String>(value: item, child: Text(item)),
@@ -79,8 +81,9 @@ class _HomeItemTileState extends State<HomeItemTile> {
   @override
   Widget build(BuildContext context) {
     if (widget.homeItem.imageUrls.length != imageUrlLength) {
-      photos = photosFromJson(widget.homeItem.imageUrls,
-          endPoint: '${widget.homeItem.uri}/');
+      photos = photosFromJson(
+          photoString: widget.homeItem.imageUrls,
+          endPoint: '$urlHomePageItem/images/${widget.homeItem.uri}/');
       imageUrlLength = widget.homeItem.imageUrls.length;
     }
     return Card(

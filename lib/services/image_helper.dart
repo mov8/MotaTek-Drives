@@ -131,14 +131,16 @@ class _PoiDetails extends State<PoiDetails> {
                         for (int i = 0;
                             i <
                                 photosFromJson(
-                                        widget.pointOfInterest.getImages())
+                                        photoString:
+                                            widget.pointOfInterest.getImages())
                                     .length;
                             i++)
                           SizedBox(
                             width: 160,
                             child: Image.file(
                               File(photosFromJson(
-                                      widget.pointOfInterest.getImages())[i]
+                                      photoString:
+                                          widget.pointOfInterest.getImages())[i]
                                   .url),
                             ),
                           ),

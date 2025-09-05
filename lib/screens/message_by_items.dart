@@ -1,16 +1,39 @@
-import 'package:drives/tiles/message_by_group_tile.dart';
 import 'package:drives/classes/classes.dart';
+import 'package:drives/models/models.dart';
+import 'package:drives/tiles/tiles.dart';
 import 'package:flutter/material.dart';
 // import 'package:drives/models/other_models.dart';
 import 'package:drives/services/services.dart';
 
+class MessageItemsController {
+  _MessageItemsState? _messageItemsState;
+
+  void _addState(_MessageItemsState messageItemsState) {
+    _messageItemsState = messageItemsState;
+  }
+
+  bool get isAttached => _messageItemsState != null;
+
+  void addContact() {
+    assert(isAttached, 'Controller must be attached to widget');
+    try {
+      _messageItemsState?.addContact();
+    } catch (e) {
+      String err = e.toString();
+      debugPrint('Error loading image: $err');
+    }
+  }
+}
+
 class MessageItems extends StatefulWidget {
   // var setup;
-  final Function(MailItem) onSelect;
+  final Function(MailItem, String) onSelect;
   final Function(MailItem)? onOpen;
+  final MessageItemsController? controller;
   const MessageItems({
     super.key,
     required this.onSelect,
+    this.controller,
     this.onOpen,
   });
 
@@ -29,16 +52,19 @@ class _MessageItemsState extends State<MessageItems> {
   bool edited = false;
   int itemIndex = 0;
   String testString = '';
-
+  String _email = '';
   bool addingItem = false;
   bool editingItem = false;
-
+  bool _addContact = false;
   List<MailItem> mailItems = [];
 
   @override
   void initState() {
     super.initState();
     fn1 = FocusNode();
+    if (widget.controller != null) {
+      widget.controller!._addState(this);
+    }
     // dataloaded = dataFromDatabase();
     dataloaded = dataFromWeb();
   }
@@ -69,6 +95,10 @@ class _MessageItemsState extends State<MessageItems> {
     }
 
     return true;
+  }
+
+  void addContact() {
+    setState(() => _addContact = true);
   }
 
 /*
@@ -108,6 +138,12 @@ class _MessageItemsState extends State<MessageItems> {
         padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
         child: Column(
           children: [
+            if (_addContact) ...[
+              AddContactTile(
+                onAddMember: (email) => newContact(email: email),
+                onCancel: (_) => setState(() => _addContact = false),
+              )
+            ],
             Expanded(
               child: ListView.builder(
                 physics: const AlwaysScrollableScrollPhysics(),
@@ -116,7 +152,7 @@ class _MessageItemsState extends State<MessageItems> {
                   index: index,
                   mailItem: mailItems[index],
                   onSelect: (_) => widget.onSelect(
-                      mailItems[index]), // (_) => onGroupSelect(index),
+                      mailItems[index], _email), // (_) => onGroupSelect(index),
                   onOpen: (_) => onGroupOpen(index),
                 ),
               ),
@@ -148,5 +184,13 @@ class _MessageItemsState extends State<MessageItems> {
 
           throw ('Error - FutureBuilder group.dart');
         });
+  }
+
+  newContact({required String email}) async {
+    GroupMember contact = await getUserByEmail(email);
+    String name = '${contact.forename} ${contact.surname}';
+    mailItems.add(MailItem(id: '', name: name, isGroup: false));
+    _email = email;
+    setState(() => _addContact = false);
   }
 }

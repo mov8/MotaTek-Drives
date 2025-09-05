@@ -80,7 +80,8 @@ class _ShopItemTileState extends State<ShopItemTile> {
   @override
   Widget build(BuildContext context) {
     if (widget.shopItem.imageUrls.length != imageUrlLength) {
-      photos = photosFromJson(widget.shopItem.imageUrls,
+      photos = photosFromJson(
+          photoString: widget.shopItem.imageUrls,
           endPoint: '${widget.shopItem.uri}/');
       imageUrlLength = widget.shopItem.imageUrls.length;
       imageIndex = 0;

@@ -64,7 +64,6 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
   final ScrollController _preferencesScrollController = ScrollController();
   final _dividerHeight = 35.0;
   int _resizeDelay = 0;
-  bool _resized = false;
   bool refreshTrips = true;
   // bool _showDetails = false;
   List<double> mapHeights = [0, 0, 0, 0];
@@ -420,16 +419,7 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
     return context?.openDrawer();
   }
 
-/*
-  onTripRatingChanged(int value, int index) async {
-    int row = int.parse(_publishedFeatures.cards[index].key
-        .toString()
-        .substring(
-            7, _publishedFeatures.cards[index].key.toString().length - 3));
-  }
-*/
   Widget _getPortraitBody() {
-    // await _dataLoaded == true;
     if (mapHeight == -1) {
       adjustMapHeight(MapHeights.full);
     }
@@ -489,7 +479,6 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
         FlutterMap(
           mapController: _animatedMapController.mapController,
           options: MapOptions(
-            onMapEvent: checkMapEvent,
             onMapReady: () async {
               Fence newFence = Fence.fromBounds(
                   _animatedMapController.mapController.camera.visibleBounds);
@@ -519,8 +508,6 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
             initialZoom: getInitialZoom(),
             maxZoom: 16,
             minZoom: 5,
-            //  initialZoom: 15,
-            //  maxZoom: 18,
             interactionOptions: const InteractionOptions(
                 enableMultiFingerGestureRace: true,
                 flags: InteractiveFlag.doubleTapDragZoom |
@@ -529,15 +516,6 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
                     InteractiveFlag.pinchZoom |
                     InteractiveFlag.pinchMove),
           ),
-          /*
-                       theme: _style.theme, //_style.theme,
-                  sprites: _style.sprites,
-                  tileProviders: _style.providers,
-                  showTileDebugInfo: true,
-                  layerMode: VectorTileLayerMode.vector,
-                  //  cacheFolder: getCacheFolder,
-                  tileOffset: TileOffset.DEFAULT),
-          */
           children: [
             VectorTileLayer(
               theme: _style.theme,
@@ -597,22 +575,6 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
     if (details != null) {}
   }
 
-  checkMapEvent(var details) {
-    if (details != null) {
-      // debugPrint(
-      //    'Map event: ${details.toString()} zoom: ${_animatedMapController.mapController.camera.zoom}');
-      /*
-      setState(() {
-        if (_showDetails !=
-            _animatedMapController.mapController.camera.zoom > 12) {
-          _showDetails = _animatedMapController.mapController.camera.zoom > 12;
-          // debugPrint('_showDetails has changed: $_showDetails');
-        }
-      });
-      */
-    }
-  }
-
   Future<Directory> getCacheFolder() async {
     String appDocumentDirectory =
         (await getApplicationDocumentsDirectory()).path;
@@ -621,11 +583,6 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
       await Directory('$appDocumentDirectory/cache').create();
     }
     return cacheDirectory;
-//    Directory cacheDir = Setup().cacheDirectory;
-//    if (!await cacheDir.exists()) {
-//      await cacheDir.create();
-//    }
-//    return cacheDir;
   }
 
   onPointOfInterestRatingChanged(int value, int index) {
@@ -660,24 +617,8 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
       mapHeights[3] = mapHeights[0] * .6; // message
     }
     mapHeight = mapHeights[MapHeights.values.indexOf(newHeight)];
-    //  if (newHeight == MapHeights.full) {
-    //    dismissKeyboard();
-    //  }
-    listHeight = (mapHeights[0] - mapHeight);
-    // debugPrint('adjustMapHeight() listHeight:$listHeight');
-    _resized = false;
-    _resizeDelay = 400;
-    /*  
-    if (mapHeights[1] == 0) {
-      mapHeights[0] = MediaQuery.of(context).size.height - 190; // info closed
-      mapHeights[1] = mapHeights[0] - 200; // heading data
-      mapHeights[2] = mapHeights[0] - 400; // open point of interest
-      mapHeights[3] = mapHeights[0] - 300; // message
-    }
-    mapHeight = mapHeights[MapHeight.values.indexOf(newHeight)];
     listHeight = (mapHeights[0] - mapHeight);
     _resizeDelay = 400;
-  */
   }
 
   expandChange(var details) {
@@ -749,24 +690,12 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
         ), // IconButton(
         title: Text(
           'Trips available to download',
-          /*
-          _publishedFeatures.features.isNotEmpty &&
-                  _publishedFeatures.features[0].uri.isNotEmpty
-              ? 'Trips available to download'
-              : 'To share trips register for free', */
           style: const TextStyle(
               fontSize: 20, color: Colors.white, fontWeight: FontWeight.w700),
         ),
         iconTheme: const IconThemeData(color: Colors.white),
 
         backgroundColor: Colors.blue,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.filter_list), //more_vert),
-            onPressed: () =>
-                setState(() => _showPreferences = !_showPreferences),
-          ),
-        ],
         bottom: (_showPreferences)
             ? PreferredSize(
                 preferredSize: const ui.Size.fromHeight(60),
@@ -833,7 +762,7 @@ class HandleFabs extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
         const SizedBox(
-          height: 200,
+          height: 220,
         ),
         FloatingActionButton(
           heroTag: 'location',

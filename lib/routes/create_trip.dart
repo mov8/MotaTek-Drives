@@ -192,7 +192,7 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   int initialLeadingWidgetValue = 0;
   late AlignOnUpdate _alignPositionOnUpdate;
   late AlignOnUpdate _alignDirectionOnUpdate;
-  List<Place> _places = [];
+  final List<Place> _places = [];
   bool _autoCentre = false;
   double _zoom = 13;
   final _dividerHeight = 35.0;
@@ -449,7 +449,6 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
       );
 
       socket.onConnect((_) {
-        //     debugPrint('onConnect connected');
         socket.emit('trip_join',
             {'token': Setup().jwt, 'trip': CurrentTripItem().groupDriveId});
       });
@@ -1049,10 +1048,30 @@ enum TripState {
     } else {
       pos = _animatedMapController.mapController.camera.center;
     }
-    Map<String, dynamic> data = await appendRoute(position: pos);
-
     return '${pos.latitude},${pos.longitude}';
   }
+
+  ///
+  /// addWaypoint adds a waypoint to a map there are 5 scenarios:
+  /// 1 It's the first waypoint - just adds to the pointsOfInterest[]
+  /// 2 It's the second wapoint - adds to the pointsOfInterest[] and calculates the route
+  /// 3 It's a waypoint that extends the route adds to pointsOfInterest[] and recalculates the route
+  /// 4 It's a waypoint along the route - an anchor waypoint inserts the waypoint into pointsOfInterest[]
+  ///   This is a tricky bit. It has to find where in the list to be inserted. It should look up and down
+  ///   the pointsOfInterest[] looking for the adjacent waypoints. It can then be inserted in the correct position to allow
+  ///   the route to be regenerated without any double-backs etc. There is no recalculation of the route.
+  /// 5 It's a wawpoint between the end and start that modifies the route recalculates the route using all waypoints.
+  ///   Again the correct position will have to be calculated before the waypoint is inserted between the adjacent waypoints.
+  ///   To find the leave-route-point find the two closest existing waypoint to the new waypoint and insert the new waypoint
+  ///   between the two. Then recalculate the route.
+  ///
+  /// In this model waypoints are the only route defining points. PointsOfInterest do not determine the route taken, as
+  /// they could well be slightly off the route, accesible by foot only etc.
+  ///
+  /// Provision will have to be made to allow the user to modify a route by inserting a new waypoint, then removing a
+  /// waypoint.
+  ///
+  /// NB:  Waypoint types - Start: 17  End: 18  Other: 12
 
   addWaypoint({bool currentPosition = false, int insertAfter = -1}) async {
     LatLng pos;
@@ -1063,7 +1082,7 @@ enum TripState {
     }
     Map<String, dynamic> data;
     bool first = _startLatLng == const LatLng(0.00, 0.00);
-    developer.log('addWaypoint 1023', name: '_marker');
+    developer.log('addWaypoint 1063', name: '_marker');
     if (insertAfter == -1 &&
         CurrentTripItem().pointsOfInterest.isNotEmpty &&
         CurrentTripItem().pointsOfInterest[0].getType() == 12) {
@@ -1091,7 +1110,7 @@ enum TripState {
 
       if (lastPoint >= 0 &&
           CurrentTripItem().pointsOfInterest[lastPoint].getType() == 18) {
-        developer.log('addWaypoint 1051 should change', name: '_marker');
+        developer.log('addWaypoint 1091 should change', name: '_marker');
         //  LatLng lastPos =
         //      CurrentTripItem().pointsOfInterest[lastPoint].getMarkerPoint();
         CurrentTripItem().pointsOfInterest[lastPoint].setType(12);
@@ -1101,29 +1120,6 @@ enum TripState {
           list: 0,
           listIndex: CurrentTripItem().pointsOfInterest.length,
         );
-
-        /* 
-         = PointOfInterest(
-          id: -1,
-          driveId: CurrentTripItem().driveId,
-          type: 12,
-          name: '',
-          description: '',
-          width: 25,
-          height: 25,
-          images: images,
-          markerPoint: lastPos,
-          sounds: '',
-          marker: MarkerWidget(
-            type: 12,
-            angle: -_mapRotation * pi / 180, // degrees to radians
-            list: 0,
-            listIndex: CurrentTripItem().pointsOfInterest.length,
-          ),
-        ); */
-        //   CurrentTripItem().pointsOfInterest.removeLast;
-
-        //   await _addPointOfInterest(id, userId, 12, '', '', 15.0, lastPos, '');
       }
       await _addPointOfInterest(id, userId, lastPoint == -1 ? 17 : 18,
           '${data["name"]}', '${data["summary"]}', 15.0, pos, '');
@@ -1135,6 +1131,62 @@ enum TripState {
       CurrentTripItem().distance = CurrentTripItem().distance +
           double.parse(data['distance'].toString());
     }
+  }
+
+  /// insertAt()  test cases:
+  /// 1 Very first waypoint - should return 0
+  /// 2 Second waypoint - should return list.length (1)
+  /// 3 New waypoint between two waypoints - should just work  a------c-------b
+  /// 4 New waypoint before the first waypoint  c  a------------b  (c - b) > (a - b)
+  /// 5 New waypoint after last waypoint  a------------b  c  (c - a) > (a - b)
+  /// Flutter's List.insert(index, value) index >=0 && <= length
+
+  int insertAt(
+      {required List<PointOfInterest> pointsOfInterest,
+      required LatLng position}) {
+    int index = 0;
+    int points = 0;
+    LatLng firstPoint = LatLng(0, 0);
+    LatLng lastPoint = LatLng(0, 0);
+    double distance1 = 99999999;
+    List<int> waypoints = [12, 17, 18];
+    for (int i = 0; i < pointsOfInterest.length; i++) {
+      if (waypoints.contains(pointsOfInterest[i].getType())) {
+        points++;
+        lastPoint = pointsOfInterest[i].point;
+        if (firstPoint == LatLng(0, 0)) {
+          firstPoint = LatLng(lastPoint.latitude, lastPoint.longitude);
+        }
+        double distance2 = Geolocator.distanceBetween(position.latitude,
+            position.longitude, lastPoint.latitude, lastPoint.longitude);
+        if (distance2 < distance1) {
+          distance1 = distance2;
+          index = i;
+        } else if (distance1 < 99999999) {
+          break;
+        }
+      }
+    }
+
+    /// Two special cases:
+    ///   1 new waypoint before first waypoint
+    ///   2 new waypoint after last waypoint
+    if (points > 1) {
+      if (Geolocator.distanceBetween(position.latitude, position.longitude,
+              lastPoint.latitude, lastPoint.longitude) >
+          Geolocator.distanceBetween(firstPoint.latitude, firstPoint.longitude,
+              lastPoint.latitude, lastPoint.longitude)) {
+        return 0;
+      }
+      if (Geolocator.distanceBetween(position.latitude, position.longitude,
+              firstPoint.latitude, firstPoint.longitude) >
+          Geolocator.distanceBetween(firstPoint.latitude, firstPoint.longitude,
+              lastPoint.latitude, lastPoint.longitude)) {
+        return pointsOfInterest.length;
+      }
+    }
+
+    return index;
   }
 
   detailClose() {
@@ -1185,7 +1237,7 @@ enum TripState {
       children: [
         if (listHeight == 0) ...[
           SizedBox(
-            height: 200,
+            height: 220,
           ),
           AnimatedContainer(
             duration: const Duration(seconds: 1),
@@ -1458,7 +1510,7 @@ enum TripState {
             child: Icon(Icons.my_location,
                 color: _autoCentre ? Colors.white : Colors.grey),
           ),
-
+/*
           FloatingActionButton(
             onPressed: () {
               if (socket.connected) {
@@ -1479,18 +1531,7 @@ enum TripState {
             child: Icon(Icons.add_alarm,
                 color: _autoCentre ? Colors.white : Colors.grey),
           ),
-/*
-          FloatingActionButton(
-            onPressed: () => setState(() => CurrentTripItem().restoreState()),
-            heroTag: 'test2',
-            backgroundColor: Colors.blue,
-            shape: const CircleBorder(),
-            child: Icon(Icons.restore,
-                color: _autoCentre ? Colors.white : Colors.grey),
-          ),
 */
-          //  ]),
-          //  ]
         ],
       ],
     );
@@ -1558,9 +1599,11 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
               },
               onPositionChanged: (position, hasGesure) {
                 CurrentTripItem().highliteActions = HighliteActions.none;
+
                 if ([TripState.manual, TripState.editing]
                     .contains(CurrentTripItem().tripState)) {
                   CurrentTripItem().tripActions = TripActions.none;
+
                   int routeIdx = lineAtCentre(
                       routes:
                           CurrentTripItem().routes, // _publishedFeatures.routes
@@ -1574,6 +1617,23 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
                     } else {
                       CurrentTripItem().routes[i].color =
                           uiColours.keys.toList()[Setup().routeColour];
+                    }
+                  }
+                  LatLng mapPos =
+                      _animatedMapController.mapController.camera.center;
+                  for (int i = 0;
+                      i < CurrentTripItem().pointsOfInterest.length;
+                      i++) {
+                    LatLng wpPos = CurrentTripItem().pointsOfInterest[i].point;
+                    double distance = Geolocator.distanceBetween(
+                        mapPos.latitude,
+                        mapPos.longitude,
+                        wpPos.latitude,
+                        wpPos.longitude);
+                    if (distance < 200) {
+                      developer.log(
+                          'Distance $distance markerType: ${CurrentTripItem().pointsOfInterest[i].getType()}',
+                          name: '_waypoint');
                     }
                   }
                   highlightedIndex = routeIdx;
@@ -1838,7 +1898,7 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
       'Pause recording',
       'Save trip',
       'Clear trip',
-      'Split route',
+      'Anchor waypoint', //'Split route',
       'Remove section',
       'Great road end',
       'Follow route',
@@ -1890,7 +1950,7 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
       Icons.pause,
       Icons.save,
       Icons.wrong_location,
-      Icons.cut,
+      Icons.anchor, //Icons.cut,
       Icons.add_photo_alternate,
       Icons.remove_road,
       Icons.directions,
@@ -1945,7 +2005,7 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
     }
     if (CurrentTripItem().highliteActions == HighliteActions.routeHighlited) {
       chipNames
-        ..add('Split route')
+        ..add('Anchor waypoint') //'Split route')
         ..add('Remove section');
       if (CurrentTripItem().highliteActions ==
           HighliteActions.greatRoadStarted) {
@@ -4013,12 +4073,12 @@ addWaypointAt({required LatLng pos, bool before = false}) async {
   } else {
     CurrentTripItem().pointsOfInterest.add(waypoint);
   }
-  int wpCount = 0;
+/*  
   for (int i = 1; i < CurrentTripItem().pointsOfInterest.length - 1; i++) {
     if ([12, 17].contains(CurrentTripItem().pointsOfInterest[i].getType())) {
-      wpCount++;
     }
   }
+*/
 }
 
 Future<String> waypointsFromPoints(int points) async {

@@ -101,61 +101,63 @@ class _OsmReviewTileState extends State<OsmReviewTile>
                 padding:
                     const EdgeInsets.symmetric(horizontal: 0.0, vertical: 5.0),
                 child: ExpansionTile(
-                    expandedAlignment: Alignment.centerLeft,
-                    title: Row(children: [
-                      Expanded(
-                        flex: 3,
-                        child: StarRating(
-                            onRatingChanged: (_) => (),
-                            rating: widget.reviews[index]['rating']),
+                  expandedAlignment: Alignment.centerLeft,
+                  title: Row(children: [
+                    Expanded(
+                      flex: 3,
+                      child: StarRating(
+                          onRatingChanged: (_) => (),
+                          rating: widget.reviews[index]['rating']),
+                    ),
+                    Expanded(
+                      flex: 1,
+                      child: Text(
+                        widget.reviews[index]['rating'].toString(),
+                        style: TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.bold),
                       ),
-                      Expanded(
-                        flex: 1,
-                        child: Text(
-                          widget.reviews[index]['rating'].toString(),
-                          style: TextStyle(
-                              fontSize: 20, fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                    ]),
-                    subtitle: Align(
+                    ),
+                  ]),
+                  subtitle: Align(
+                    alignment: Alignment.topLeft,
+                    child: Padding(
+                      padding: EdgeInsetsGeometry.fromLTRB(10, 0, 0, 0),
+                      child: Text(
+                          widget.reviews[index]['rated'].substring(0, 16),
+                          style: TextStyle(fontSize: 18),
+                          textAlign: TextAlign.start),
+                    ),
+                  ),
+                  children: [
+                    Align(
                       alignment: Alignment.topLeft,
                       child: Padding(
                         padding: EdgeInsetsGeometry.fromLTRB(10, 0, 0, 0),
-                        child: Text(
-                            widget.reviews[index]['rated'].substring(0, 16),
+                        child: Text(widget.reviews[index]['comment'],
+                            style: TextStyle(fontSize: 22),
+                            textAlign: TextAlign.start),
+                      ),
+                    ),
+                    PhotoCarousel(
+                        width: 200,
+                        height: 200,
+                        photos: photosFromJson(
+                            photoString: handleWebImages(
+                                widget.reviews[index]['images']),
+                            endPoint:
+                                '$urlOsmReview/images/${widget.reviews[index]['amenity']}/${widget.reviews[index]['review_id']}/'),
+                        imageRepository: widget.imageRepository),
+                    Align(
+                      alignment: Alignment.topLeft,
+                      child: Padding(
+                        padding: EdgeInsetsGeometry.fromLTRB(10, 0, 0, 0),
+                        child: Text(widget.reviews[index]['rated_by'],
                             style: TextStyle(fontSize: 18),
                             textAlign: TextAlign.start),
                       ),
                     ),
-                    children: [
-                      Align(
-                        alignment: Alignment.topLeft,
-                        child: Padding(
-                          padding: EdgeInsetsGeometry.fromLTRB(10, 0, 0, 0),
-                          child: Text(widget.reviews[index]['comment'],
-                              style: TextStyle(fontSize: 22),
-                              textAlign: TextAlign.start),
-                        ),
-                      ),
-                      PhotoCarousel(
-                          width: 200,
-                          height: 200,
-                          photos: photosFromJson(
-                              handleWebImages(widget.reviews[index]['images']),
-                              endPoint:
-                                  '$urlOsmReview/images/${widget.reviews[index]['amenity']}/${widget.reviews[index]['review_id']}/'),
-                          imageRepository: widget.imageRepository),
-                      Align(
-                        alignment: Alignment.topLeft,
-                        child: Padding(
-                          padding: EdgeInsetsGeometry.fromLTRB(10, 0, 0, 0),
-                          child: Text(widget.reviews[index]['rated_by'],
-                              style: TextStyle(fontSize: 18),
-                              textAlign: TextAlign.start),
-                        ),
-                      ),
-                    ]),
+                  ],
+                ),
               ),
             ),
           ),
@@ -254,8 +256,8 @@ class _OsmReviewTileState extends State<OsmReviewTile>
                   onPressed: () async {
                     widget.reviewData['imageUrls'] = await loadDeviceImage(
                         imageUrls: widget.reviewData['imageUrls'] ?? '');
-                    setState(() => photos =
-                        photosFromJson(widget.reviewData['imageUrls']));
+                    setState(() => photos = photosFromJson(
+                        photoString: widget.reviewData['imageUrls']));
                   },
                   backgroundColor: Colors.blueAccent,
                 ),

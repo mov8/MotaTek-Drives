@@ -367,7 +367,7 @@ Future<Map<String, dynamic>> tryLogin({required User user}) async {
 
 Future<dynamic> postTrip(MyTripItem tripItem) async {
   Map<String, dynamic> map = tripItem.toMap();
-  List<Photo> photos = photosFromJson(tripItem.images);
+  List<Photo> photos = photosFromJson(photoString: tripItem.images);
   double maxLat = -90;
   double minLat = 90;
   double maxLong = -180;
@@ -453,7 +453,7 @@ Future<String> postWithPhotos(
 Future<String> postPointOfInterest(
     PointOfInterest pointOfInterest, String tripUri) async {
   Map<String, dynamic> map = pointOfInterest.toMap();
-  List<Photo> photos = photosFromJson(pointOfInterest.getImages());
+  List<Photo> photos = photosFromJson(photoString: pointOfInterest.getImages());
   var request =
       http.MultipartRequest('POST', Uri.parse('$urlPointOfInterest/add'));
 
@@ -1620,6 +1620,30 @@ Future<Map<String, dynamic>> deleteGroupDrive(
   return {'msg': 'error'};
 }
 
+Future<bool> deleteMessage({required String messageId}) async {
+  final http.Response response = await postWebData(
+      uri: Uri.parse('$urlMessage/delete'),
+      body: jsonEncode({'id': messageId}),
+      secure: true);
+  if ([200, 201].contains(response.statusCode)) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+Future<bool> updateMessage({required String messageId}) async {
+  final http.Response response = await postWebData(
+      uri: Uri.parse('$urlMessage/mark_as_read'),
+      body: jsonEncode({'id': messageId}),
+      secure: true);
+  if ([200, 201].contains(response.statusCode)) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
 Future<List<MailItem>> getMessagesByGroup() async {
   List<MailItem> mailItems = [];
   try {
@@ -1669,15 +1693,18 @@ Future<List<Message>> getUserMessages(User user) async {
         uri: Uri.parse('$urlMessage/user/${user.uri}'), secure: true);
     if ([200, 201].contains(response.statusCode)) {
       var messages = jsonDecode(response.body);
-      return [
-        for (Map<String, dynamic> messageData in messages)
+      List<Message> messageList = [];
+      for (Map<String, dynamic> messageData in messages) {
+        messageList.add(
           Message.fromMap(
             messageData,
-          )
-      ];
+          ),
+        );
+      }
+      return messageList;
     }
   } catch (e) {
-    // debugPrint("Can't access data on the web");
+    debugPrint("Can't process user messages: ${e.toString()}");
   }
   return [];
 }
@@ -1716,8 +1743,8 @@ Future<List<HomeItem>> getHomeItems(int scope) async {
         List<HomeItem> homeItems = [];
 
         for (Map<String, dynamic> map in items) {
-          homeItems
-              .add(HomeItem.fromMap(map: map, url: '$urlHomePageItem/images/'));
+          homeItems.add(HomeItem.fromMap(
+              map: map)); //, url: '$urlHomePageItem/images/'));
         }
         return homeItems;
       }
@@ -1757,22 +1784,28 @@ Future<bool> deleteHomeItem(HomeItem homeItem) async {
 
 Future<String> postHomeItem(HomeItem homeItem) async {
   Map<String, dynamic> map = homeItem.toMap();
-  List<Photo> photos = photosFromJson(homeItem.imageUrls);
+  List<Photo> photos = photosFromJson(photoString: homeItem.imageUrls);
 
   var request =
       http.MultipartRequest('POST', Uri.parse('$urlHomePageItem/add'));
 
   List<String> imageUris = [];
   int imageNum = 0;
-  for (Photo photo in photos) {
-    if (!photo.url.substring(0, 10).contains('http')) {
-      request.files.add(await http.MultipartFile.fromPath('files', photo.url));
-      imageUris.add(
-          '{"url":"new_image_${++imageNum}","caption":"${photo.caption}","rotation":${photo.rotation}}');
-    } else {
-      imageUris.add(
-          '{"url":${photo.url},"caption":"${photo.caption}","rotation":${photo.rotation}}');
+  try {
+    for (Photo photo in photos) {
+      if (!photo.url.substring(0, 10).contains('http') &&
+          photo.url.contains('/')) {
+        request.files
+            .add(await http.MultipartFile.fromPath('files', photo.url));
+        imageUris.add(
+            '{"url":"new_image_${++imageNum}","caption":"${photo.caption}","rotation":${photo.rotation}}');
+      } else {
+        imageUris.add(
+            '{"url":"${photo.url.substring(photo.url.lastIndexOf('/') + 1)}","caption":"${photo.caption}","rotation":${photo.rotation}}');
+      }
     }
+  } catch (e) {
+    debugPrint('Error: ${e.toString()}');
   }
   dynamic response;
   // String jwToken = Setup().jwt;
@@ -1836,7 +1869,7 @@ Future<List<ShopItem>> getShopItems(int scope) async {
 
 Future<String> postShopItem(ShopItem shopItem) async {
   Map<String, dynamic> map = shopItem.toMap();
-  List<Photo> photos = photosFromJson(shopItem.imageUrls);
+  List<Photo> photos = photosFromJson(photoString: shopItem.imageUrls);
 
   var request = http.MultipartRequest('POST', Uri.parse('$urlShopItem/add'));
 

@@ -2,26 +2,17 @@ import 'package:latlong2/latlong.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+const appVersion = {'major': 0, 'minor': 0, 'patch': 3, 'suffix': 'beta'};
+
 const apiAddress = 'https://drives.motatek.com/';
 // const wifiIpAddress = '192.168.1.14:5001'; // <- Home
-const wifiIpAddress = '192.168.1.109'; // <- Boston
-
-// const urlBase = wifiIpAddress;
-// https://drives.motatek.com/v1/user/test
-// const urlBase = 'https://drives.motatek.com/'; // apiAddress;
-
-// const urlRouter = 'http://$wifiIpAddress:5000/route/v1/driving/';
-// const urlRouter =  'http://router.project-osrm.org/route/v1/driving/';
-
-//const urlTiler =
-//    'https://tiles.stadiamaps.com/styles/osm_bright.json?api_key={key}';
-//const mapsApiKey = 'ea533710-31bd-4144-b31b-5cc0578c74d7';
+const wifiIpAddress = 'http://192.168.1.109:5001/'; // <- Boston
+//const urlBase = wifiIpAddress;
+const urlBase = apiAddress;
 
 const mapsApiKey = '';
 
 const double degreeToRadians = 0.0174532925; // degrees to radians pi/180
-//  x 4266 y 2984 z 13
-// http://192.168.1.9:5000/route/v1/driving/(4266,2984,13).mvt
 
 const List<String> routes = [
   'home',
@@ -107,7 +98,8 @@ enum HighliteActions {
   greatRoadStarted,
   greatRoadNamed,
   greatRoadEnded,
-  routeHighlited
+  routeHighlited,
+  waypointHighlited,
 }
 
 enum GroupMemberState { none, isNew, resistered, incomplete, complete, added }
@@ -115,13 +107,13 @@ enum GroupMemberState { none, isNew, resistered, incomplete, complete, added }
 enum GroupAction { add, delete, edit, invite, uninvite, update, leave }
 
 // enums HighLightActions TripActions TripState MapHeights
-
 // https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status#informational_responses
 
 const List<String> settlementTypes = ['city', 'town', 'village', 'hamlet'];
 DateFormat dateFormat = DateFormat('dd/MM/yy');
 DateFormat dateFormatSQL = DateFormat('yyyy-MM-dd hh:mm:ss');
 DateFormat dateFormatDoc = DateFormat('E dd/MM/yyyy');
+DateFormat dateFormatDocTime = DateFormat('E dd/MM/yyyy hh:mm:ss');
 
 List<IconData> inviteIcons = [
   Icons.thumbs_up_down_outlined,
@@ -274,8 +266,8 @@ const List<String> tableDefs = [
 // const urlBase = 'http://192.168.1.5:5001/';
 // const urlBase = 'http://172.23.16.1:5001/'; //'http://10.101.1.216:5001/';
 
-const urlBase = 'http://192.168.1.109:5001/';
-//const urlBase = 'https://drives.motatek.com/';
+// const urlBase = 'http://192.168.1.109:5001/';
+// const urlBase = 'https://drives.motatek.com/';
 const String urlDrive = '${urlBase}v1/drive';
 const String urlDriveImages = '${urlBase}v1/drive/images';
 const String urlDriveRating = '${urlBase}v1/drive_rating';
@@ -293,6 +285,9 @@ const String urlPointOfInterestRating = '${urlBase}v1/point_of_interest_rating';
 const String urlPolyline = '${urlBase}v1/polyline';
 const String urlShopItem = '${urlBase}v1/shop_item';
 const String urlOsmReview = '${urlBase}v1/osm_review';
+const String uploadHttp =
+    '${urlBase}home/james/Python-3.10.0/Drives/drives/images';
+const String uploadHttps = '${urlBase}api/static/images';
 
 /// const String urlRouter = '${urlBase}router/route/v1/driving/';
 const String urlRouter = 'https://drives.motatek.com/router/route/v1/driving/';

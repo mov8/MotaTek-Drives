@@ -33,7 +33,8 @@ class _ShopTileState extends State<ShopTile> {
   @override
   void initState() {
     super.initState();
-    photos = photosFromJson(widget.shopItem.imageUrls,
+    photos = photosFromJson(
+        photoString: widget.shopItem.imageUrls,
         endPoint: '${widget.shopItem.uri}/');
     _pageController.addListener(() => pageControlListener());
   }
@@ -65,7 +66,7 @@ class _ShopTileState extends State<ShopTile> {
                 imageRepository: widget.imageRepository,
                 photos: photos,
                 // endPoint: '$urlShopItem/images/${widget.shopItem.uri}/',
-                height: 400,
+                height: MediaQuery.of(context).size.width - 20,
                 width: MediaQuery.of(context).size.width - 20,
               ),
               SizedBox(

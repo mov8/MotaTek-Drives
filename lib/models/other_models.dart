@@ -451,7 +451,7 @@ class PointOfInterest extends Marker {
           images,
         ),
         photos = photosFromJson(
-            handleWebImages(
+            photoString: handleWebImages(
               images,
             ),
             endPoint: url.contains(Setup().appDocumentDirectory) || url == ''
@@ -854,7 +854,8 @@ osmDataDialog(
                 'rated': dateFormatSQL.format(DateTime.now()),
                 'rating': reviewData['rating'] ?? 5.0
               },
-              photos: photosFromJson(reviewData['imageUrls']));
+              photos:
+                  photosFromJson(photoString: reviewData['imageUrls'] ?? ''));
           Navigator.pop(context, true);
         },
       ),
@@ -1365,7 +1366,11 @@ class Photo {
   }
 
   String toMapString() {
-    return '{"url": "$url", "caption": "$caption", "rotation": $rotation}';
+    if (url.contains('http')) {
+      return '{"url": "${url.substring(url.lastIndexOf('/') + 1)}", "caption": "$caption", "rotation": $rotation}';
+    } else {
+      return '{"url": "$url", "caption": "$caption", "rotation": $rotation}';
+    }
   }
 }
 
@@ -1424,7 +1429,7 @@ class GoodRoadCacheItem {
 ///  post-constructor function handleWebImages converts a simple image file name to a map to reduce web traffic
 ///  for some strange reason the string must start with a single quote.
 
-List<Photo> photosFromJson(String photoString, {String endPoint = ''}) {
+List<Photo> photosFromJson({String photoString = '', String endPoint = ''}) {
   if (photoString.isNotEmpty) {
     int index = 0;
     dynamic jsonPhotos = jsonDecode(photoString);
@@ -2331,13 +2336,15 @@ class TripMessage {
 }
 
 class Message {
-  String id = '';
+  String id;
   String senderId = '';
-  String sender = '';
-  String message = '';
-  String userTargetId = '';
-  String groupTargetId = '';
-  bool read = false;
+  String sender;
+  String message;
+  String userTargetId;
+  String groupTargetId;
+  String email;
+  bool read;
+  bool sent;
   String dated = '';
   DateTime received; // = DateTime.now();
   // DateFormat dateFormat = DateFormat("dd MMM yyyy");
@@ -2347,8 +2354,10 @@ class Message {
       required this.sender,
       required this.message,
       this.read = false,
+      this.sent = false,
       this.userTargetId = '',
       this.groupTargetId = '',
+      this.email = '',
       this.dated = '',
       DateTime? received})
       : received = received ?? DateTime.now();
@@ -2356,12 +2365,14 @@ class Message {
   factory Message.fromMap(Map<String, dynamic> map) {
     return Message(
       id: map['id'] ?? '',
-      sender: map['sender'],
-      message: map['message'],
-      read: map['read'] == 0,
+      sender: map['sender'] ?? '',
+      sent: (map['sent'] ?? 0) == 1,
+      email: map['email'] ?? '',
+      message: map['message'] ?? '',
+      read: (map['is_read'] ?? 0) == 1,
       userTargetId: map['target_id'] ?? '',
       groupTargetId: map['group_target_id'] ?? '',
-      dated: map['received'],
+      dated: map['received'] ?? '',
       received: DateTime.now(),
     );
   }

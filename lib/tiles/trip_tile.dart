@@ -41,7 +41,8 @@ class _TripTileState extends State<TripTile> {
   @override
   void initState() {
     super.initState();
-    photos = photosFromJson(widget.tripItem.imageUrls,
+    photos = photosFromJson(
+        photoString: widget.tripItem.imageUrls,
         endPoint: '${widget.tripItem.uri}/');
 
     _expansionTileController = ExpansionTileController();
@@ -75,8 +76,8 @@ class _TripTileState extends State<TripTile> {
   @override
   Widget build(BuildContext context) {
     if (widget.tripItem.imageUrls != _photoString) {
-      photos = photosFromJson(widget.tripItem.imageUrls,
-          endPoint: '$urlDriveImages/');
+      photos = photosFromJson(
+          photoString: widget.tripItem.imageUrls, endPoint: '$urlDriveImages/');
       _photoString = widget.tripItem.imageUrls;
     }
     return ExpansionTile(

@@ -44,7 +44,7 @@ class _DriveInvitationsState extends State<DriveInvitations>
 
   @override
   Widget build(BuildContext context) {
-    photos = photosFromJson(widget.myTripItem.images);
+    photos = photosFromJson(photoString: widget.myTripItem.images);
     return SingleChildScrollView(
       child: Column(
         children: [

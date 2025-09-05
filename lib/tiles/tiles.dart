@@ -1,3 +1,4 @@
+export 'package:drives/tiles/add_contact_tile.dart';
 export 'package:drives/tiles/directions_tile.dart';
 export 'package:drives/tiles/follower_tile.dart';
 export 'package:drives/tiles/group_tile.dart';

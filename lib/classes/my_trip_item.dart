@@ -459,7 +459,7 @@ class MyTripItem {
   }
 
   Future<Map<String, dynamic>> postDriveHeader() async {
-    List<Photo> photos = photosFromJson(images);
+    List<Photo> photos = photosFromJson(photoString: images);
     double maxLat = -90;
     double minLat = 90;
     double maxLong = -180;

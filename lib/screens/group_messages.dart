@@ -1,4 +1,4 @@
-import 'package:drives/tiles/group_message_tile.dart';
+import 'package:drives/tiles/write_message_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:drives/constants.dart';
@@ -179,45 +179,17 @@ class _GroupMessagesState extends State<GroupMessages> {
               child: ListView.builder(
                 physics: const AlwaysScrollableScrollPhysics(),
                 itemCount: messages.length,
-                itemBuilder: (context, index) => GroupMessageTile(
+                itemBuilder: (context, index) => WriteMessageTile(
                   index: index,
+                  isGroup: true,
                   message: messages[index],
-                  onDismiss: (_) => (),
+                  onDismiss: (index, action) =>
+                      dismissAction(index: index, action: action),
                   onSelect: (_) => onSendMessage(index),
                   readOnly: (index < messages.length - 1),
                 ),
               ),
             ),
-            //     StreamBuilder(
-            //        stream: streamSocket.getResponse,
-            //         builder: (context, snapshot) {
-            //           return Text(snapshot.hasData ? '${snapshot.data}' : '>');
-            //         }),
-            // ]),
-            /*
-            Align(
-              alignment: Alignment.bottomLeft,
-              child: Wrap(
-                spacing: 5,
-                children: [
-                  ActionChip(
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20)),
-                    onPressed: () {
-                      widget.onCancel!(1);
-                      debugPrint('Back chip pressed');
-                    },
-                    backgroundColor: Colors.blue,
-                    avatar: const Icon(
-                      Icons.arrow_back,
-                      color: Colors.white,
-                    ),
-                    label: const Text('Back',
-                        style: TextStyle(fontSize: 18, color: Colors.white)),
-                  )
-                ],
-              ),
-            ) */
           ],
         ),
       ),
@@ -245,5 +217,16 @@ class _GroupMessagesState extends State<GroupMessages> {
         throw ('Error - FutureBuilder group_messages.dart');
       },
     );
+  }
+
+  Future<void> dismissAction({required int index, required int action}) async {
+    String id = messages[index].id;
+
+    if (action == 0) {
+      await deleteMessage(messageId: id);
+      setState(() => messages.removeAt(index));
+    } else {
+      await updateMessage(messageId: id);
+    }
   }
 }

@@ -29,7 +29,7 @@ class MyTripTile extends StatefulWidget {
 class _MyTripTileState extends State<MyTripTile> {
   @override
   Widget build(BuildContext context) {
-    List<Photo> photos = photosFromJson(widget.myTripItem.images);
+    List<Photo> photos = photosFromJson(photoString: widget.myTripItem.images);
     return Card(
       elevation: 5,
       child: Padding(
@@ -56,7 +56,8 @@ class _MyTripTileState extends State<MyTripTile> {
                   flex: 1,
                   child: Column(children: [
                     const Icon(Icons.route),
-                    Text('${widget.myTripItem.distance} miles long')
+                    Text(
+                        '${widget.myTripItem.distance.toStringAsFixed(1)} miles long')
                   ]),
                 ),
                 Expanded(

@@ -1,6 +1,4 @@
 // import 'package:drives/routes/home.dart';
-import 'dart:convert';
-
 import 'package:drives/constants.dart';
 import 'package:drives/screens/invitations.dart';
 import 'package:flutter/material.dart';
@@ -22,7 +20,7 @@ class _MainDrawerState extends State<MainDrawer> {
       width: MediaQuery.of(context).size.width * 0.75,
       child: ListView(
         children: [
-          const DrawerHeader(
+          DrawerHeader(
             decoration: BoxDecoration(
               color: Colors.blue,
             ),
@@ -39,8 +37,18 @@ class _MainDrawerState extends State<MainDrawer> {
                   ),
                   Expanded(
                     flex: 6,
-                    child: Text('Drives v1.03',
-                        style: TextStyle(color: Colors.white, fontSize: 32)),
+                    child: Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text('Drives ',
+                              style:
+                                  TextStyle(color: Colors.white, fontSize: 32)),
+                          Text(
+                              'v${appVersion['major']}.${appVersion['minor']}.${appVersion['patch']} ${appVersion['suffix']}',
+                              style:
+                                  TextStyle(color: Colors.white, fontSize: 20))
+                        ]),
                   ),
                 ],
               ),

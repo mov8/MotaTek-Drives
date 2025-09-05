@@ -347,8 +347,8 @@ class _GroupDriveInvitationTileState extends State<GroupDriveInvitationTile> {
         getTrip(tripId: widget.eventInvitation.driveId).then((trip) {
           if (trip != null) {
             _tripSummary = trip;
-            photos =
-                photosFromJson(trip.imageUrls, endPoint: '$urlDriveImages/');
+            photos = photosFromJson(
+                photoString: trip.imageUrls, endPoint: '$urlDriveImages/');
             setState(() {});
           }
         });

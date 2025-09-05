@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:drives/models/other_models.dart';
 import 'package:drives/classes/classes.dart';
 import 'package:drives/models/models.dart';
+import 'package:drives/constants.dart';
 
 class HomeTile extends StatefulWidget {
   final HomeItem homeItem;
@@ -31,8 +32,11 @@ class _HomeTileState extends State<HomeTile> {
   @override
   void initState() {
     super.initState();
-    photos = photosFromJson(widget.homeItem.imageUrls,
-        endPoint: '${widget.homeItem.uri}/'); //images/${widget.homeItem.uri}');
+    photos = photosFromJson(
+        photoString: widget.homeItem.imageUrls,
+        endPoint:
+            //     '${urlBase.contains('motatek') ? uploadHttps : uploadHttps}/${widget.homeItem.uri}/');
+            '$urlHomePageItem/images/${widget.homeItem.uri}/'); //images/${widget.homeItem.uri}');
   }
 
   @override
@@ -53,7 +57,7 @@ class _HomeTileState extends State<HomeTile> {
                 child: PhotoCarousel(
                   imageRepository: widget.imageRepository,
                   photos: photos,
-                  height: 400,
+                  height: MediaQuery.of(context).size.width - 20, // 400,
                   width: MediaQuery.of(context).size.width - 20,
                 ),
               ),
