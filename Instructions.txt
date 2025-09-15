@@ -1,0 +1,35 @@
+Problems with version updates on devices:
+Experienced a problem for a little while where after a build
+have to do a restart befor the latest build is put on the 
+device. Then when running without PC reverts back to previous 
+version. The problem started when swapping between debug and
+release versions. 
+Cure follow 4 steps:
+1 flutter clean - removes build and the dependentcies
+2 flutter pub get - reinstalls dependentcies
+3 remove the version from the device 
+4 rebuild on the device
+
+flutter upgrade
+
+Error with wrongParent
+The ParentDataWidget Expanded(flex: 1) wants to apply ParentData of type FlexParentData to a RenderObject
+This is caused by an Expanded being used for a parent widget other than a Column or Row that it intended for. 
+It works in debug mode, but causes a blank screen in r elease mode.
+
+Lesson from this any problems in release mode may well be 
+due to problems shown but ignored in debug mode. Sorting all
+debug problems is never a bad idea!
+
+Error of unconstrained size:
+Failed assertion: line 2251 pos 12: 'hasSize'
+This is caused where an expandable widget is the child and grandchild of an expandible widget - Flutter has 
+no idea how to lay it out. Must have a constrained container in the tree. 
+
+API tips
+ssh root@64.227.34.217
+docker exec -it root-db-1 /bin/bash   <-- get inside drives-db-1 container
+mariadb -uroot -pmysecret  <-- Start mariadb
+
+To copy a new app version to the Droplet
+scp /home/james/Python-3.10.0/Drives/drives/apks/motatek_drives.apk root@64.227.34.217:/root/app/static/apks/motatek_drives.apk

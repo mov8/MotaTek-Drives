@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:drives/classes/classes.dart';
+import 'dart:developer' as developer;
 //import 'dart:developer' as developer;
 
 class AutocompleteWidget extends StatelessWidget {
@@ -28,12 +29,14 @@ class AutoCompleteAsyncController {
   _AutocompleteAsyncState? _autocompleteAsyncState;
 
   void _addState(_AutocompleteAsyncState autocompleteAsyncState) {
+    developer.log('_addState called', name: '_addState');
     _autocompleteAsyncState = autocompleteAsyncState;
   }
 
   bool get isAttached => _autocompleteAsyncState != null;
 
   void dispose() {
+    developer.log('dispose called', name: '_addState');
     assert(isAttached, 'Controller must be attached to widget to dispose');
     try {
       _autocompleteAsyncState?.disposeController();
@@ -44,6 +47,7 @@ class AutoCompleteAsyncController {
   }
 
   void setFocus() {
+    developer.log('setFocus called', name: '_addState');
     assert(isAttached, 'Controller must be attached to widget to clear');
     try {
       _autocompleteAsyncState?.setFocus();
@@ -54,6 +58,7 @@ class AutoCompleteAsyncController {
   }
 
   void clear() {
+    developer.log('clear called', name: '_addState');
     assert(isAttached, 'Controller must be attached to widget to clear');
     try {
       _autocompleteAsyncState?.clear();
@@ -64,6 +69,7 @@ class AutoCompleteAsyncController {
   }
 
   void setNextAction({TextInputAction nextAction = TextInputAction.next}) {
+    developer.log('setNextAction called', name: '_addState');
     assert(isAttached, 'Controller must be attached to widget to clear');
     try {
       _autocompleteAsyncState?.setNextAction(nextAction: nextAction);
@@ -79,6 +85,7 @@ class AutocompleteAsync extends StatefulWidget {
   final int searchLength;
   final double optionsMinHeight;
   final double optionsMaxHeight;
+//  final bool autofocus;
   final Function(String)? onSelect;
   final Function(String)? onChange;
   final Function(String)? onUpdateOptionsRequest;
@@ -97,6 +104,7 @@ class AutocompleteAsync extends StatefulWidget {
       this.optionsMinHeight = 50,
       this.optionsMaxHeight = 150,
       this.onSelect,
+//      this.autofocus = false,
       this.onChange,
       this.onUpdateOptionsRequest,
       this.decoration,
@@ -120,6 +128,7 @@ class _AutocompleteAsyncState extends State<AutocompleteAsync> {
     super.initState();
     // bool changeId = _widgetId != widget.initialValue;
     widget.controller._addState(this);
+    developer.log('initState _addState called', name: '_addState');
     _nextAction = widget.textInputAction ?? TextInputAction.next;
   }
 
@@ -141,6 +150,7 @@ class _AutocompleteAsyncState extends State<AutocompleteAsync> {
           controller: fieldTextEditingController,
           keyboardType: widget.keyboardType,
           textInputAction: _nextAction,
+          //        autofocus: widget.autofocus,
           focusNode: fieldFocusNode,
           decoration: widget.decoration,
           onChanged: (text) {
@@ -409,7 +419,13 @@ class _AutocompletePlace extends State<AutocompletePlace> {
   final String _lastFilter = '**__|__**';
   final List<Place> _options = [];
   final List<Place> _allOptions = [];
-  TextEditingController fieldTextEditingController = TextEditingController();
+  late final TextEditingController fieldTextEditingController;
+  @override
+  void initState() {
+    super.initState();
+    fieldTextEditingController = TextEditingController();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Autocomplete<Place>(

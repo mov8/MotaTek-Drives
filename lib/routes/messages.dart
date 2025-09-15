@@ -95,6 +95,7 @@ class _MessagesState extends State<Messages> {
                 ),
               ),
             ] else ...[
+              SizedBox(height: 40),
               SizedBox(
                 height: MediaQuery.of(context).size.height -
                     AppBar().preferredSize.height -
@@ -108,7 +109,8 @@ class _MessagesState extends State<Messages> {
                           id: _chosenItem.id,
                           name: _chosenItem.name,
                         ),
-                        onSelect: (idx) => debugPrint('Message index: $idx'),
+                        onSelect: (idx) =>
+                            setState(() => debugPrint('Message index: $idx')),
                       )
                     : UserMessages(
                         controller: _userMessagesController,
@@ -116,7 +118,8 @@ class _MessagesState extends State<Messages> {
                           uri: _chosenItem.id,
                           email: _email,
                         ),
-                        onSelect: (idx) => debugPrint('Message index: $idx'),
+                        onSelect: (idx) =>
+                            setState(() => debugPrint('Message')),
                         //  onCancel: (_) => setState(
                         //    () => _userGroup = User(),
                         //  ),
@@ -192,6 +195,7 @@ class _MessagesState extends State<Messages> {
                     onPressed: () => _messageItemsController.addContact(),
                     icon: Icon(
                       Icons.add,
+                      size: 30,
                       color: Colors.white,
                     ),
                   ),

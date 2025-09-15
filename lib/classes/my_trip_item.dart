@@ -88,6 +88,9 @@ class CurrentTripItem extends MyTripItem {
   @override
   clearAll() {
     isSaved = false;
+    driveUri = '';
+    images = '';
+    groupDriveId = '';
     isTracking = false;
     tripType = TripType.none;
     tripState = TripState.none;
@@ -151,6 +154,7 @@ class MyTripItem {
   List<Maneuver> maneuvers = [];
   List<mt.Route> routes = [];
   List<mt.Route> goodRoads = [];
+  List<Follower> following = [];
   String images;
   double score;
   double distance;
@@ -171,6 +175,7 @@ class MyTripItem {
     this.published = '',
     this.publisher = '',
     pointsOfInterest,
+    following,
     maneuvers,
     routes,
     goodRoads,
@@ -185,11 +190,12 @@ class MyTripItem {
   })  : pointsOfInterest = pointsOfInterest ?? [],
         maneuvers = maneuvers ?? [],
         routes = routes ?? [],
+        following = following ?? [],
         goodRoads = goodRoads ?? [];
 
   clearAll() {
-    id = -1;
-    driveId = -1;
+//    id = -1;
+    //   driveId = -1;
     heading = '';
     subHeading = '';
     body = '';
@@ -202,6 +208,8 @@ class MyTripItem {
     score = 0;
     distance = 0;
   }
+
+  loadGroup() async {}
 
   initialise(pointsOfInterest, maneuvers, routes, goodRoads) {
     this.pointsOfInterest = pointsOfInterest;
@@ -319,6 +327,7 @@ class MyTripItem {
 
   Future<int> saveLocal() async {
     int result = -1;
+    distance = tripDistanceMeters(maneuvers) * metersToMiles;
     driveId = await saveMyTripItem(this);
     try {
       Uint8List? pngBytes = Uint8List.fromList([]);
@@ -354,55 +363,62 @@ class MyTripItem {
     Map<String, dynamic> map = await getDrive(driveId);
     LatLng pos = const LatLng(0, 0);
     int distance = 99999;
+    try {
+      await ut.getPosition().then((currentPosition) {
+        pos = LatLng(currentPosition.latitude, currentPosition.longitude);
+      });
 
-    await ut.getPosition().then((currentPosition) {
-      pos = LatLng(currentPosition.latitude, currentPosition.longitude);
-    });
-
-    final directory = Setup().appDocumentDirectory;
-    id = driveId;
-    driveId = driveId;
-    heading = map['title'];
-    subHeading = map['subTitle'];
-    body = map['body'];
-    published = map['added'].toString();
-    distance = map['distance'].toInt();
-    images = '{"url": "$directory/drive$id.png", "caption": ""}';
-    pointsOfInterest = await loadPointsOfInterestLocal(driveId);
-    for (int i = 0; i < pointsOfInterest.length; i++) {
-      distance = min(
-          ut.distanceBetween(pointsOfInterest[i].point, pos).toInt(), distance);
-      if (pointsOfInterest[i].getImages().isNotEmpty) {
-        images = '$images,${ut.unList(pointsOfInterest[i].getImages())}';
+      final directory = Setup().appDocumentDirectory;
+      id = driveId;
+      driveId = driveId;
+      heading = map['title'];
+      subHeading = map['subTitle'];
+      body = map['body'];
+      published = map['added'].toString();
+      distance = map['distance'].toInt();
+      images = '{"url": "$directory/drive$id.png", "caption": ""}';
+      pointsOfInterest = await loadPointsOfInterestLocal(driveId);
+      for (int i = 0; i < pointsOfInterest.length; i++) {
+        distance = min(
+            ut.distanceBetween(pointsOfInterest[i].point, pos).toInt(),
+            distance);
+        if (pointsOfInterest[i].getImages().isNotEmpty) {
+          images = '$images,${ut.unList(pointsOfInterest[i].getImages())}';
+        }
       }
-    }
-    closest = distance;
-    images = '[$images]';
-    maneuvers = await loadManeuversLocal(driveId);
-    List<mt.Route> polyLines = await loadPolyLinesLocal(driveId, type: 0);
-    for (int i = 0; i < polyLines.length; i++) {
-      routes.add(
-        mt.Route(
-            id: -1,
-            points: polyLines[i].points,
-            color: polyLines[i].color,
-            borderColor: polyLines[i].color,
-            strokeWidth: polyLines[i].strokeWidth),
-      );
-    }
-    polyLines = await loadPolyLinesLocal(driveId, type: 1);
-    for (int i = 0; i < polyLines.length; i++) {
-      // pointsOfInterest[polylines[i].pointOfInterestIndex].id
-      // polyLines.pointOfInterestIndex is its pointOfInterest.id
-      goodRoads.add(
-        mt.Route(
-            id: -1,
-            points: polyLines[i].points,
-            color: polyLines[i].color,
-            borderColor: polyLines[i].color,
-            strokeWidth: polyLines[i].strokeWidth,
-            pointOfInterestIndex: polyLines[i].pointOfInterestIndex), // id
-      );
+      closest = distance;
+      images = '[$images]';
+      maneuvers = await loadManeuversLocal(driveId);
+      distance = (tripDistanceMeters(maneuvers) * metersToMiles).toInt();
+
+      List<mt.Route> polyLines = await loadPolyLinesLocal(driveId, type: 0);
+      for (int i = 0; i < polyLines.length; i++) {
+        routes.add(
+          mt.Route(
+              id: -1,
+              points: polyLines[i].points,
+              color: colourList[Setup().routeColour], //  polyLines[i].color,
+              borderColor:
+                  colourList[Setup().routeColour], //polyLines[i].color,
+              strokeWidth: polyLines[i].strokeWidth),
+        );
+      }
+      polyLines = await loadPolyLinesLocal(driveId, type: 1);
+      for (int i = 0; i < polyLines.length; i++) {
+        // pointsOfInterest[polylines[i].pointOfInterestIndex].id
+        // polyLines.pointOfInterestIndex is its pointOfInterest.id
+        goodRoads.add(
+          mt.Route(
+              id: -1,
+              points: polyLines[i].points,
+              color: polyLines[i].color,
+              borderColor: polyLines[i].color,
+              strokeWidth: polyLines[i].strokeWidth,
+              pointOfInterestIndex: polyLines[i].pointOfInterestIndex), // id
+        );
+      }
+    } catch (e) {
+      debugPrint('Error: ${e.toString()}');
     }
   }
 
@@ -456,6 +472,14 @@ class MyTripItem {
     } else {
       return false;
     }
+  }
+
+  int tripDistanceMeters(List<Maneuver> maneuvers) {
+    double meters = 0;
+    for (int i = 0; i < maneuvers.length; i++) {
+      meters += maneuvers[i].distance;
+    }
+    return meters.toInt();
   }
 
   Future<Map<String, dynamic>> postDriveHeader() async {

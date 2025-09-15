@@ -26,7 +26,7 @@ class _MyTripSelectTileState extends State<MyTripSelectTile> {
       elevation: 5,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(5, 5, 5, 5),
-        child: Expanded(
+        child: SingleChildScrollView(
           child: ExpansionTile(
             title: Text(
               widget.myTripItem.heading,

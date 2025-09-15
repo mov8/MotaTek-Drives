@@ -64,8 +64,8 @@ class _GroupDriveFormState extends State<GroupDriveForm>
         prompt: 'Invite group members to a group drive.',
         overflowPrompts: ["Show all drives", "Only Future Events"],
         overflowIcons: [
-          Icon(Icons.history_outlined),
-          Icon(Icons.next_plan_outlined)
+          Icon(Icons.checklist_outlined),
+          Icon(Icons.more_time_outlined)
         ],
         overflowMethods: [
           () => setState(() => _adding = !_adding),
@@ -74,7 +74,7 @@ class _GroupDriveFormState extends State<GroupDriveForm>
         showOverflow: true,
         update: _changed == true,
         showAction: _changed == true,
-        updateMethod: checkInvitations,
+        updateMethod: (update) => checkInvitations(),
       ),
       body: FutureBuilder<bool>(
         future: _dataLoaded,
@@ -140,7 +140,8 @@ class _GroupDriveFormState extends State<GroupDriveForm>
   }
 
   Widget organised() {
-    return Expanded(
+    return SizedBox(
+      height: MediaQuery.of(context).size.height - 250, //SingleChildScrollView(
       child: _trips.isNotEmpty
           ? ListView.builder(
               itemCount: _trips.length,
@@ -164,7 +165,7 @@ class _GroupDriveFormState extends State<GroupDriveForm>
                                 fontSize: 20, fontWeight: FontWeight.bold),
                           ),
                           Text(
-                            'On ${dateFormatDoc.format(DateTime.parse(_trips[index].eventDate))}  (long-press to join)',
+                            'On ${dateFormatDoc.format(DateTime.parse(_trips[index].eventDate))}  (long-press to join trip now)',
                             style: TextStyle(fontSize: 14),
                           ),
                         ],
@@ -202,7 +203,7 @@ class _GroupDriveFormState extends State<GroupDriveForm>
             )
           : Center(
               child: Padding(
-                padding: EdgeInsets.fromLTRB(20, 0, 20, 0),
+                padding: EdgeInsets.fromLTRB(20, 120, 20, 0),
                 child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -258,9 +259,9 @@ class _GroupDriveFormState extends State<GroupDriveForm>
   checkInvitations() async {
     MyTripItem tripItem = MyTripItem();
     for (int i = 0; i < _changes.length; i++) {
-      for (int i = 0; i < _myTripItems.length; i++) {
-        if (_myTripItems[i].id == _changes[i]['myTripId']) {
-          tripItem = _myTripItems[i];
+      for (int j = 0; j < _myTripItems.length; j++) {
+        if (_myTripItems[j].id == _changes[i]['myTripId']) {
+          tripItem = _myTripItems[j];
         }
       }
       if (tripItem.heading.isNotEmpty) {

@@ -44,7 +44,7 @@ class _InviteMemberState extends State<InviteMember> {
   late FocusNode _focusNode1;
   late FocusNode _focusNode2;
   GroupMember newMember = GroupMember(forename: '', surname: '');
-  TextInputAction _textInputAction = TextInputAction.done;
+  // TextInputAction _textInputAction = TextInputAction.done;
   late GroupMemberState _groupMemberState;
 
   @override
@@ -72,7 +72,11 @@ class _InviteMemberState extends State<InviteMember> {
   @override
   Widget build(BuildContext context) {
     if (newMember.email.isEmpty) {
-      _focusNode1.requestFocus();
+      try {
+        _focusNode1.requestFocus();
+      } catch (e) {
+        developer.log('_focusNode1.requestFocus()', name: '_addState');
+      }
     }
     developer.log('rebuild: _groupMemberState: ${_groupMemberState.toString()}',
         name: '_state');
@@ -107,7 +111,8 @@ class _InviteMemberState extends State<InviteMember> {
                               controller: _controller1,
                               options: _dropdownOptions,
                               searchLength: 1,
-                              textInputAction: _textInputAction,
+                              //       autofocus: true,
+                              //   textInputAction: _textInputAction,
                               decoration: InputDecoration(
                                 border: OutlineInputBorder(),
                                 hintText: 'Enter users email address',
@@ -227,11 +232,15 @@ class _InviteMemberState extends State<InviteMember> {
                           if (_groupMemberState == GroupMemberState.complete) {
                             await sendInvitation();
                             if (widget.onInvite != null) {
+                              developer.log('widget.onInvite 234',
+                                  name: '_exit');
                               widget.onInvite!(newMember);
                             }
                             setState(() => clearData(cancel: false));
                           } else {
                             if (widget.onInvite != null) {
+                              developer.log('widget.onCancel 241',
+                                  name: '_exit');
                               widget.onInvite!(newMember);
                             }
                           }
@@ -254,8 +263,11 @@ class _InviteMemberState extends State<InviteMember> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      onPressed: () => {
-                        if (widget.onCancel != null) {widget.onCancel!(true)}
+                      onPressed: () {
+                        if (widget.onCancel != null) {
+                          developer.log('widget.onCancel 268', name: '_exit');
+                          widget.onCancel!(true);
+                        }
                       },
                       //    onPressed: () => setState(() =>
                       //        clearData(cancel: true)), // widget.onAddLink!(index),
@@ -327,7 +339,7 @@ class _InviteMemberState extends State<InviteMember> {
           _groupMemberState = GroupMemberState.isNew;
           developer.log(
               'dataComplete 326 start _groupMemberState changed to: ${_groupMemberState.toString()}');
-          _controller1.setNextAction(nextAction: TextInputAction.next);
+          //% _controller1.setNextAction(nextAction: TextInputAction.next);
           //  _textInputAction = TextInputAction.next;
           _fieldStates[0] = false;
           _fieldStates[1] = false;
@@ -349,6 +361,7 @@ class _InviteMemberState extends State<InviteMember> {
     developer.log(
         'dataComplete end _groupMemberState: ${_groupMemberState.toString()}',
         name: '_state');
+    developer.log('complete => ${complete.toString()}', name: '_exit');
     return complete;
   }
 
@@ -376,11 +389,12 @@ class _InviteMemberState extends State<InviteMember> {
     _groupMemberState = GroupMemberState.complete; // _addMember = false;
     developer.log(
         'dataComplete 374 start _groupMemberState changed to: ${_groupMemberState.toString()}');
-    _controller1.clear;
+    //% _controller1.clear;
     _controller2.clear;
     _controller3.clear;
     _fieldStates = [false, false, false];
     if (cancel && widget.onCancel != null) {
+      developer.log('widget.onCancel 392', name: '_exit');
       widget.onCancel!(true);
     }
   }

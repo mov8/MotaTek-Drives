@@ -155,13 +155,13 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
                     title: Wrap(children: [
                       Text('Download to ',
                           style: TextStyle(color: Colors.black, fontSize: 18)),
-                      Text('My Trip',
+                      Text('My Trip ',
                           style: TextStyle(
                               color: Colors.black,
                               fontSize: 18,
                               fontWeight: FontWeight.bold)),
                       Icon(Icons.map_outlined),
-                      Text('to edit or drive the trip now',
+                      Text(' to edit or drive the trip now',
                           style: TextStyle(color: Colors.black, fontSize: 18))
                     ]),
                     value: options.newTrip,
@@ -173,13 +173,13 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
                     title: Wrap(children: [
                       Text('Download to ',
                           style: TextStyle(color: Colors.black, fontSize: 18)),
-                      Text('My Drives',
+                      Text('My Drives ',
                           style: TextStyle(
                               color: Colors.black,
                               fontSize: 18,
                               fontWeight: FontWeight.bold)),
                       Icon(Icons.person_outline_outlined),
-                      Text('to edit or drive the trip later',
+                      Text(' to edit or drive the trip later',
                           style: TextStyle(color: Colors.black, fontSize: 18))
                     ]),
                     value: options.myTrip,

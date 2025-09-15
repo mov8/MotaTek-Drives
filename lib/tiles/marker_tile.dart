@@ -58,7 +58,7 @@ class _MarkerTileState extends State<MarkerTile> {
     return Material(
       key: Key('$widget.key'),
       child: ExpansionTile(
-        controller: ExpansionTileController(),
+        // controller: ExpansionTileController(),
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.all(
             Radius.circular(5),

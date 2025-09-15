@@ -50,7 +50,7 @@ class _IntroduceFormState extends State<IntroduceForm> {
         updateHeading: 'You have added user details.',
         updateSubHeading: 'Press Update to confirm the changes or Ignore',
         update: _isComplete,
-        updateMethod: invite,
+        updateMethod: (update) => invite(update: true),
         showAction: _isComplete,
       ),
       body: portraitView(),
@@ -173,11 +173,12 @@ class _IntroduceFormState extends State<IntroduceForm> {
     );
   }
 
-  void invite() async {
-    invited['new_user'] = true;
-    await inviteWebUser(body: jsonEncode(invited)) == 200;
-    setState(() => clearData());
-
+  void invite({bool update = false}) async {
+    if (update) {
+      invited['new_user'] = true;
+      await inviteWebUser(body: jsonEncode(invited)) == 200;
+      setState(() => clearData());
+    }
     return;
   }
 

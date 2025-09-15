@@ -313,7 +313,7 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                       backgroundColor: Colors.blueAccent,
                     ),
                   ),
-                  SizedBox(height: 200),
+                  SizedBox(height: 250),
                 ],
               ],
             ),

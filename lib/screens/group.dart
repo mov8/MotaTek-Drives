@@ -5,6 +5,7 @@ import 'package:drives/tiles/tiles.dart';
 import 'package:drives/services/services.dart';
 import 'package:drives/classes/classes.dart';
 import 'package:uuid/uuid.dart';
+import 'dart:developer' as developer;
 
 //enum GroupState { createGroups, addMembers }
 
@@ -23,6 +24,7 @@ class _GroupFormState extends State<GroupForm> {
   String groupName = 'Driving Group';
   bool edited = false;
   int groupIndex = 0;
+
   bool _changed = false;
   bool _expanded = false;
   bool _addingGroup = false;
@@ -33,8 +35,8 @@ class _GroupFormState extends State<GroupForm> {
   @override
   void initState() {
     super.initState();
-    dataloaded = dataFromWeb();
     _controller = GroupTileController();
+    dataloaded = dataFromWeb();
   }
 
   @override
@@ -57,12 +59,21 @@ class _GroupFormState extends State<GroupForm> {
     return Scaffold(
       appBar: ScreensAppBar(
         heading: 'Drives group management',
-        prompt: 'Add members or swipe left to remove.',
+        prompt: 'Swipe left to remove ${_expanded ? 'member' : 'group'}',
         updateHeading: 'You have changed group details.',
         updateSubHeading: 'Press Update to confirm the changes or Ignore',
         update: _changed,
         showAction: _changed,
-        updateMethod: () => upLoad(),
+        overflowIcons: _expanded
+            ? [Icon(Icons.person_add), Icon(Icons.edit)]
+            : [Icon(Icons.group_add)],
+        overflowPrompts:
+            _expanded ? ['Add member', 'Edit group name'] : ['Add group'],
+        overflowMethods: _expanded
+            ? [_controller.newMember, _controller.editGroupName]
+            : [addGroup],
+        showOverflow: true,
+        updateMethod: (update) => upLoad(update: update),
       ),
       body: FutureBuilder<bool>(
         future: dataloaded,
@@ -90,12 +101,13 @@ class _GroupFormState extends State<GroupForm> {
   Widget portraitView({required BuildContext context}) {
     return Column(children: [
       Expanded(
+        flex: 1,
         child: Column(
           children: [
             if (groups.isEmpty) ...[
               SizedBox(
                 width: MediaQuery.of(context).size.width,
-                height: MediaQuery.of(context).size.height - 250,
+                height: MediaQuery.of(context).size.height - 300,
                 child: Align(
                   alignment: Alignment.center,
                   child: Text("No groups added yet.",
@@ -160,16 +172,17 @@ class _GroupFormState extends State<GroupForm> {
                 ),
               ),
             ),
+            SizedBox(height: 30),
           ],
         ),
       ),
       if (!_expanded && !_addingGroup)
         Padding(
-          padding: EdgeInsetsGeometry.fromLTRB(20, 10, 10, 30),
+          padding: EdgeInsetsGeometry.fromLTRB(20, 10, 10, 60),
           child: Wrap(
             spacing: 5,
             children: [
-              if (!_expanded && !_addingGroup)
+              /* if (!_expanded && !_addingGroup)
                 ActionChip(
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20),
@@ -184,7 +197,12 @@ class _GroupFormState extends State<GroupForm> {
                         _addingGroup = true;
                       },
                     );
-                    _controller.newGroup();
+                    try {
+                      _controller.newGroup();
+                    } catch (e) {
+                      developer.log('_controller.newGroup called ',
+                          name: '_addState');
+                    }
                   }, // widget.onAddLink!(index),
                   backgroundColor: Colors.blue,
                   avatar: const Icon(
@@ -196,12 +214,13 @@ class _GroupFormState extends State<GroupForm> {
                     style: TextStyle(fontSize: 18, color: Colors.white),
                   ),
                 ),
-              if (hasChanged() || _dismissed.isNotEmpty)
+                */
+              /*  if (hasChanged() || _dismissed.isNotEmpty)
                 ActionChip(
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  onPressed: () => upLoad(),
+                  onPressed: () => upLoad(update: true),
                   backgroundColor: Colors.blue,
                   avatar: const Icon(
                     Icons.cloud_upload_outlined,
@@ -211,11 +230,27 @@ class _GroupFormState extends State<GroupForm> {
                     "Upload changes",
                     style: TextStyle(fontSize: 18, color: Colors.white),
                   ),
-                ),
+                ), */
             ],
           ),
         ),
     ]);
+  }
+
+  void addGroup() {
+    setState(
+      () {
+        expanded.add(true);
+        groups.add(
+            Group(id: Uuid().v7().toString().replaceAll('-', ''), name: ''));
+        _addingGroup = true;
+      },
+    );
+    try {
+      _controller.newGroup();
+    } catch (e) {
+      developer.log('_controller.newGroup called ', name: '_addState');
+    }
   }
 
   bool hasChanged() {
@@ -233,15 +268,17 @@ class _GroupFormState extends State<GroupForm> {
     return changed;
   }
 
-  upLoad() {
-    if (_dismissed.isNotEmpty) {
-      updateGroups(groups: _dismissed, action: GroupAction.delete);
-    }
-    if (_changed) {
-      updateGroups(groups: groups, action: GroupAction.update);
-    }
-    if (_unInvite.isNotEmpty) {
-      updateGroups(groups: _unInvite, action: GroupAction.uninvite);
+  upLoad({bool update = false}) {
+    if (update) {
+      if (_dismissed.isNotEmpty) {
+        updateGroups(groups: _dismissed, action: GroupAction.delete);
+      }
+      if (_changed) {
+        updateGroups(groups: groups, action: GroupAction.update);
+      }
+      if (_unInvite.isNotEmpty) {
+        updateGroups(groups: _unInvite, action: GroupAction.uninvite);
+      }
     }
     setState(() => _changed = false);
   }
@@ -254,17 +291,10 @@ class _GroupFormState extends State<GroupForm> {
   /// so the parent's setState() leaves the tile in the correct expansion state.
 
   onExpand(int index, bool value) {
-    expanded[index] = value;
-    if (value) {
-      _expanded = true;
-    } else {
-      _expanded = false;
-      for (int i = 0; i < expanded.length; i++) {
-        if (expanded[i]) {
-          _expanded = true;
-        }
-      }
+    for (int i = 0; i < expanded.length; i++) {
+      expanded[i] = false;
     }
-    setState(() => (_expanded));
+    expanded[index] = value;
+    setState(() => (_expanded = value));
   }
 }

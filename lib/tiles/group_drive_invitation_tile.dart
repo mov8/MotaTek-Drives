@@ -4,14 +4,40 @@ import 'package:flutter/material.dart';
 import 'package:drives/models/models.dart';
 import 'package:drives/constants.dart';
 import 'package:intl/intl.dart';
+import 'dart:developer' as develper;
+/*
+class GroupDriveInvitationTileController {
+  _GroupDriveInvitationTileState? _groupDriveInvitationTileState;
+  void _addState(_GroupDriveInvitationTileState groupDriveInvitationTileState) {
+    _groupDriveInvitationTileState = groupDriveInvitationTileState;
+  }
+
+  bool get isAttached => _groupDriveInvitationTileState != null;
+
+  void join() {
+        assert(isAttached, 'Controller must be attached to widget');
+    try {
+      _groupDriveInvitationTileState?.join();
+    } catch (e) {
+      String err = e.toString();
+      debugPrint('Error loading image: $err');
+    }
+  }
+}
+
+*/
 
 class GroupDriveInvitationTile extends StatefulWidget {
   final EventInvitation eventInvitation;
   final ImageRepository imageRepository;
+  final bool expanded;
+  final TripItem? tripItem;
+  final List<Photo>? photos;
   final Function(int)? onEdit;
   final Function(int)? onDownload;
   final Function(int)? onSelect;
   final Function(int, int)? onRespond;
+  final Function(int, bool)? onExpansionChange;
 
   final int index;
 
@@ -19,11 +45,15 @@ class GroupDriveInvitationTile extends StatefulWidget {
       {super.key,
       required this.eventInvitation,
       required this.imageRepository,
+      this.tripItem,
+      this.photos,
+      this.expanded = false,
       this.index = 0,
       this.onEdit,
       this.onDownload,
       this.onSelect,
-      this.onRespond});
+      this.onRespond,
+      this.onExpansionChange});
 
   @override
   State<GroupDriveInvitationTile> createState() =>
@@ -32,7 +62,6 @@ class GroupDriveInvitationTile extends StatefulWidget {
 
 class _GroupDriveInvitationTileState extends State<GroupDriveInvitationTile> {
   DateFormat dateFormat = DateFormat('d MMM y');
-  TripItem? _tripSummary;
 
   List<String> invState = ['undecided', 'declined', 'accepted'];
   List<Photo> photos = [];
@@ -73,6 +102,7 @@ class _GroupDriveInvitationTileState extends State<GroupDriveInvitationTile> {
             style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             overflow: TextOverflow.ellipsis,
           ),
+          initiallyExpanded: widget.expanded,
           subtitle: Column(
             children: [
               Row(
@@ -110,29 +140,40 @@ class _GroupDriveInvitationTileState extends State<GroupDriveInvitationTile> {
               ),
             ],
           ),
-          onExpansionChanged: (val) => getSummary(val),
+
+          onExpansionChanged: (val) {
+            widget.onExpansionChange!(widget.index, val);
+            photos = photosFromJson(
+                photoString: widget.tripItem!.imageUrls,
+                endPoint: '$urlDriveImages/');
+          }, //  getSummary(val),
           children: [
-            if (_tripSummary == null) ...[
+            if (widget.tripItem == null) ...[
+              //developer.log('')
+
               const Align(
                 alignment: Alignment.center,
                 child: SizedBox(
-                  width: 100,
+                  width: 200,
                   height: 200,
                   child: Align(
                     alignment: Alignment.center,
-                    child: CircularProgressIndicator(),
+                    child: Text('Details Missing',
+                        style: TextStyle(
+                            fontSize: 20)), //CircularProgressIndicator(),
                   ),
                 ),
               ),
             ] else ...[
-              if (_tripSummary!.imageUrls.isNotEmpty)
+              if (widget.tripItem != null &&
+                  widget.tripItem!.imageUrls.isNotEmpty)
                 Row(children: <Widget>[
                   Expanded(
                     flex: 8,
                     child: SizedBox(
                       child: PhotoCarousel(
                         imageRepository: widget.imageRepository,
-                        photos: photos,
+                        photos: widget.photos!,
                         height: 300,
                         width: MediaQuery.of(context).size.width - 50,
                       ),
@@ -150,28 +191,28 @@ class _GroupDriveInvitationTileState extends State<GroupDriveInvitationTile> {
                       flex: 1,
                       child: Column(children: [
                         const Icon(Icons.publish),
-                        Text(_tripSummary!.published)
+                        Text(widget.tripItem!.published)
                       ]),
                     ),
                     Expanded(
                       flex: 1,
                       child: Column(children: [
                         const Icon(Icons.route),
-                        Text('${_tripSummary!.distance} miles long')
+                        Text('${widget.tripItem!.distance} miles long')
                       ]),
                     ),
                     Expanded(
                       flex: 1,
                       child: Column(children: [
                         const Icon(Icons.landscape),
-                        Text('${_tripSummary!.pointsOfInterest} highlights')
+                        Text('${widget.tripItem!.pointsOfInterest} highlights')
                       ]),
                     ),
                     Expanded(
                       flex: 1,
                       child: Column(children: [
                         const Icon(Icons.social_distance),
-                        Text('${_tripSummary!.closest} miles away')
+                        Text('${widget.tripItem!.closest} miles away')
                       ]),
                     ),
                   ],
@@ -183,7 +224,7 @@ class _GroupDriveInvitationTileState extends State<GroupDriveInvitationTile> {
                   child: Align(
                     alignment: Alignment.topLeft,
                     child: Text(
-                      _tripSummary!.subHeading,
+                      widget.tripItem!.subHeading,
                       style: const TextStyle(
                           color: Colors.black,
                           fontSize: 18,
@@ -198,12 +239,12 @@ class _GroupDriveInvitationTileState extends State<GroupDriveInvitationTile> {
                 padding: const EdgeInsets.fromLTRB(5, 0, 5, 10),
                 child: Align(
                   alignment: Alignment.topLeft,
-                  child: Text(_tripSummary!.body,
+                  child: Text(widget.tripItem!.body,
                       style: const TextStyle(color: Colors.black, fontSize: 20),
                       textAlign: TextAlign.left),
                 ),
               )),
-              if (_tripSummary!.author.isNotEmpty)
+              if (widget.tripItem!.author.isNotEmpty)
                 SizedBox(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(5, 0, 5, 15),
@@ -212,7 +253,7 @@ class _GroupDriveInvitationTileState extends State<GroupDriveInvitationTile> {
                         Expanded(
                           flex: 7,
                           child: Text(
-                            'author: ${_tripSummary!.author}',
+                            'author: ${widget.tripItem!.author}',
                             style: const TextStyle(
                                 color: Colors.black, fontSize: 18),
                           ),
@@ -221,7 +262,7 @@ class _GroupDriveInvitationTileState extends State<GroupDriveInvitationTile> {
                           flex: 7,
                           child: StarRating(
                               onRatingChanged: changeRating,
-                              rating: _tripSummary!.score),
+                              rating: widget.tripItem!.score),
                         ),
                       ],
                     ),
@@ -341,18 +382,14 @@ class _GroupDriveInvitationTileState extends State<GroupDriveInvitationTile> {
             : FontWeight.normal);
   }
 
-  getSummary(val) async {
-    if (val) {
-      if (_tripSummary == null) {
-        getTrip(tripId: widget.eventInvitation.driveId).then((trip) {
-          if (trip != null) {
-            _tripSummary = trip;
-            photos = photosFromJson(
-                photoString: trip.imageUrls, endPoint: '$urlDriveImages/');
-            setState(() {});
-          }
-        });
-      }
+  getSummary(bool val) async {
+    if (widget.onExpansionChange != null) {
+      widget.onExpansionChange!(widget.index, val);
+    }
+    if (widget.tripItem != null) {
+      photos = photosFromJson(
+          photoString: widget.tripItem!.imageUrls,
+          endPoint: '$urlDriveImages/');
     }
   }
 

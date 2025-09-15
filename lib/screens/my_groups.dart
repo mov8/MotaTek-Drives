@@ -45,7 +45,7 @@ class _MyGroupsFormState extends State<MyGroupsForm> {
         updateSubHeading: 'Press Update to confirm the changes or Ignore',
         update: _changed,
         showAction: _changed,
-        updateMethod: update,
+        updateMethod: (update) => _update(update: update),
       ),
       body: FutureBuilder<bool>(
         future: dataloaded,
@@ -71,8 +71,10 @@ class _MyGroupsFormState extends State<MyGroupsForm> {
     );
   }
 
-  void update() {
-    updateGroups(groups: _dismissed, action: GroupAction.leave);
+  void _update({bool update = false}) {
+    if (update) {
+      updateGroups(groups: _dismissed, action: GroupAction.leave);
+    }
   }
 
   Widget portraitView() {

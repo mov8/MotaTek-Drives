@@ -377,7 +377,7 @@ class PublishedFeatures {
                     color: feature.poiType == 13
                         ? colourList[Setup().goodRouteColour]
                         : colourList[Setup().pointOfInterestColour],
-                    width: (zoom * 1.75),
+                    width: (zoom * 2.5),
                     overlay:
                         markerIcon(getIconIndex(iconIndex: feature.poiType)),
                     onPress: pinTap,
@@ -520,14 +520,14 @@ class PublishedFeatures {
 
   Future<LatLng?> routeMarkerPosition(
       {required List<Polyline> polylines, required Fence fence}) async {
-    int first = -1;
     LatLng? pos;
     bool debug = false;
-    int last = -1;
 
     Fence offsetFence = Fence.fromFence(
         bounds: fence, deltaPercent: -5); //deltaDegrees: -0.015);
     for (int h = 0; h < polylines.length; h++) {
+      int first = -1;
+      int last = -1;
       for (int i = 0; i < polylines[h].points.length; i++) {
         if (offsetFence.containsPoint(
             point: polylines[h].points[i], debug: debug)) {
@@ -535,7 +535,9 @@ class PublishedFeatures {
           last = i;
         }
       }
-      pos = polylines[h].points[first + ((last - first) ~/ 2)];
+      if (last > 0) {
+        pos = polylines[h].points[first + ((last - first) ~/ 2)];
+      }
     }
     return pos;
   }

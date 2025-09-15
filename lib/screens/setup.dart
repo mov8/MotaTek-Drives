@@ -28,7 +28,7 @@ class _SetupFormState extends State<SetupForm> {
         updateHeading: 'You have changed the setup.',
         updateSubHeading: 'Press Update to confirm the changes or Ignore',
         update: _hasChanged,
-        updateMethod: _update,
+        updateMethod: (update) => _update(update: update),
         showAction: _hasChanged,
       ),
 
@@ -37,7 +37,7 @@ class _SetupFormState extends State<SetupForm> {
     );
   }
 
-  void _update() {
+  void _update({bool update = false}) {
     insertSetup(Setup());
     setState(() => _hasChanged = false);
     return;

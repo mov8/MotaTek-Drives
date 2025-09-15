@@ -59,15 +59,13 @@ class _DriveInvitationsState extends State<DriveInvitations>
           ),
           SizedBox(
             height: MediaQuery.of(context).size.height - 450,
-            child: Expanded(
-              child: TabBarView(
-                controller: _tController,
-                children: [
-                  invited(),
-                  //   invitation(),
-                  tripDescription(),
-                ],
-              ),
+            child: TabBarView(
+              controller: _tController,
+              children: [
+                invited(),
+                //   invitation(),
+                tripDescription(),
+              ],
             ),
           ),
         ],

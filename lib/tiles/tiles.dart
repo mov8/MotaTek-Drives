@@ -1,6 +1,7 @@
 export 'package:drives/tiles/add_contact_tile.dart';
 export 'package:drives/tiles/directions_tile.dart';
 export 'package:drives/tiles/follower_tile.dart';
+export 'package:drives/tiles/follower_marker_tile.dart';
 export 'package:drives/tiles/group_tile.dart';
 export 'package:drives/tiles/group_drive_add_tile.dart';
 export 'package:drives/tiles/group_drive_tile.dart';
@@ -19,4 +20,5 @@ export 'package:drives/tiles/point_of_interest_tile.dart';
 export 'package:drives/tiles/shop_tile.dart';
 export 'package:drives/tiles/shop_item_tile.dart';
 export 'package:drives/tiles/trip_header_tile.dart';
+export 'package:drives/tiles/trip_message_tile.dart';
 export 'package:drives/tiles/trip_tile.dart';

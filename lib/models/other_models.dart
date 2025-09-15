@@ -426,7 +426,7 @@ class PointOfInterest extends Marker {
   double _score;
   int scored;
   DateTime published = DateTime.now();
-  Widget marker = const Icon(Icons.abc);
+  Widget marker = MarkerWidget(type: 12);
   late LatLng markerPoint = const LatLng(52.05884, -1.345583);
   List<Photo> photos;
   String sounds;
@@ -545,6 +545,7 @@ class MarkerWidget extends StatelessWidget {
   final int type; // default type 12 => waypoint
   final String name;
   final String description;
+  final String info;
   final String images;
   final String url;
   final List<String> imageUrls;
@@ -553,13 +554,14 @@ class MarkerWidget extends StatelessWidget {
   final int scored;
   final int colourIdx;
   final int list;
-  final int listIndex;
+  int listIndex;
 
-  const MarkerWidget(
+  MarkerWidget(
       {super.key,
       required this.type,
       this.name = '',
       this.description = '',
+      this.info = '',
       this.images = '',
       this.url = ' ',
       this.imageUrls = const [],
@@ -570,22 +572,26 @@ class MarkerWidget extends StatelessWidget {
       this.list = -1,
       this.listIndex = -1});
 
+  void setListIndex(int idx) {
+    listIndex = idx;
+  }
+
   @override
   Widget build(BuildContext context) {
-    int width = 30;
+    int width = 40;
     double iconWidth = width * 0.75;
-    Color buttonFillColor =
-        uiColours.keys.toList()[Setup().pointOfInterestColour];
+    Color buttonFillColor = colourList[Setup().pointOfInterestColour];
     Color iconColor = Colors.blueAccent;
     developer.log('Marker widget type: $type', name: '_marker');
     switch (type) {
       case 12:
-        buttonFillColor = uiColours.keys.toList()[Setup().waypointColour];
+        buttonFillColor = colourList[Setup()
+            .waypointColour]; //uiColours.keys.toList()[Setup().waypointColour];
         iconWidth = 25;
         break;
       case 16:
         buttonFillColor = Colors.transparent;
-        //      iconColor = uiColours.keys.toList()[colourIdx < 0 ? 0 : colourIdx];
+        iconColor = colourList[colourIdx];
         iconWidth = 22;
         break;
       case 17:
@@ -597,8 +603,11 @@ class MarkerWidget extends StatelessWidget {
         iconWidth = 25;
         break;
       default:
-        buttonFillColor = Colors.transparent;
-        iconWidth = 20;
+        buttonFillColor =
+            colourList[Setup().pointOfInterestColour]; //Colors.transparent;
+        iconWidth = 25;
+        iconColor = Colors.white;
+
         break;
     }
     // Want to counter rotate the icons so that they are vertical when the map rotates
@@ -614,6 +623,7 @@ class MarkerWidget extends StatelessWidget {
         fillColor: buttonFillColor,
         shape: const CircleBorder(),
         child: Padding(
+          //padding: const EdgeInsets.fromLTRB(2, 2, 3, 4),
           padding: const EdgeInsets.fromLTRB(0, 0, 1, 2),
           child: [12, 17, 18].contains(type)
               ? CircleAvatar(
@@ -685,6 +695,69 @@ class OSMMarkerWidget extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(0, 0, 1, 2),
           child: Icon(
             IconData(iconCodePoint, fontFamily: 'MaterialIcons'),
+            size: iconWidth,
+            color: iconColor,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class FollowerMarkerWidget extends StatelessWidget {
+  final int index;
+  final int colourIndex;
+  final String forename;
+  final String surname;
+  final String manufacturer;
+  final String model;
+  final String colour;
+  final String registration;
+
+  final double angle;
+  final double iconSize;
+
+  const FollowerMarkerWidget(
+      {super.key,
+      this.index = -1,
+      this.colourIndex = -1,
+      this.forename = '',
+      this.surname = '',
+      this.manufacturer = '',
+      this.model = '',
+      this.colour = '',
+      this.registration = '',
+      this.angle = 0,
+      this.iconSize = 30});
+
+  @override
+  Widget build(BuildContext context) {
+    // int width = 30;
+    double iconWidth = iconSize;
+    Color buttonFillColor = Colors.transparent;
+    //  uiColours.keys.toList()[Setup().pointOfInterestColour];
+    Color iconColor = colourList[colourIndex];
+
+    // Want to counter rotate the icons so that they are vertical when the map rotates
+    // -_mapRotation * pi / 180 to convert from _mapRotation in degrees to radians
+    return Transform.rotate(
+      angle: angle,
+      child: RawMaterialButton(
+        onPressed: () async {
+          if (context.mounted) {
+            followerDialog(context, forename, surname, manufacturer, model,
+                colour, registration);
+          }
+        },
+        elevation: 2.0,
+        fillColor: buttonFillColor,
+        constraints: BoxConstraints.tight(Size(56, 56)),
+        // materialTapTargetSize: MaterialTapTargetSize.,
+        shape: const CircleBorder(),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(0, 0, 1, 2),
+          child: Icon(
+            markerIcon(16),
             size: iconWidth,
             color: iconColor,
           ),
@@ -860,11 +933,12 @@ osmDataDialog(
         },
       ),
       TextButton(
-          child: const Text(
-            "Cancel",
-            style: TextStyle(fontSize: 20),
-          ),
-          onPressed: () => Navigator.pop(context, false)),
+        child: const Text(
+          "Cancel",
+          style: TextStyle(fontSize: 20),
+        ),
+        onPressed: () => Navigator.pop(context, false),
+      ),
     ],
   );
 
@@ -874,6 +948,62 @@ osmDataDialog(
     builder: (BuildContext context) {
       // result = alert;
 
+      return alert;
+    },
+  );
+}
+/*
+      this.forename = '',
+      this.surname = '',
+      this.manufacturer = '',
+      this.model = '',
+      this.colour = '',
+      this.registration = '',
+
+*/
+
+followerDialog(
+  BuildContext context,
+  String forename,
+  String surname,
+  String manufacturer,
+  String model,
+  String colour,
+  String registration,
+) async {
+  // set up the AlertDialog
+  AlertDialog alert = AlertDialog(
+    title: Text(
+      '$forename $surname',
+      style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+      textAlign: TextAlign.center,
+    ),
+    elevation: 5,
+    content: FollowerMarkerTile(
+        index: -1,
+        manufacturer: manufacturer,
+        model: model,
+        colour: colour,
+        registration: registration),
+    actions: [
+      TextButton(
+        child: const Text("Contact", style: TextStyle(fontSize: 22)),
+        onPressed: () {
+          Navigator.pop(context, true);
+        },
+      ),
+      TextButton(
+        child: const Text("Dismiss", style: TextStyle(fontSize: 22)),
+        onPressed: () {
+          Navigator.pop(context, false);
+        },
+      )
+    ],
+  );
+
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
       return alert;
     },
   );
@@ -1428,18 +1558,23 @@ class GoodRoadCacheItem {
 ///   {"url": "assets/images/CarGroup.png", "caption": "" }]',
 ///  post-constructor function handleWebImages converts a simple image file name to a map to reduce web traffic
 ///  for some strange reason the string must start with a single quote.
-
+// https://drives.motatek.com/v1/drive/images/0eb23770eb894d54bb209e8ecf59e44b/068bc425ff79711680004c519c16a4b3/
 List<Photo> photosFromJson({String photoString = '', String endPoint = ''}) {
   if (photoString.isNotEmpty) {
     int index = 0;
-    dynamic jsonPhotos = jsonDecode(photoString);
-    List<Photo> photos = [];
-    for (dynamic jsonPhoto in jsonPhotos) {
-      jsonPhoto =
-          photoString.contains('[{') ? jsonPhoto : jsonDecode(jsonPhoto);
-      photos.add(Photo.fromJson(jsonPhoto, endPoint: endPoint, index: index++));
+    try {
+      dynamic jsonPhotos = jsonDecode(photoString);
+      List<Photo> photos = [];
+      for (dynamic jsonPhoto in jsonPhotos) {
+        jsonPhoto =
+            photoString.contains('[{') ? jsonPhoto : jsonDecode(jsonPhoto);
+        photos
+            .add(Photo.fromJson(jsonPhoto, endPoint: endPoint, index: index++));
+      }
+      return photos;
+    } catch (e) {
+      developer.log('Error photodFromJson - endpoint: $endPoint');
     }
-    return photos;
   }
   return [];
 }
@@ -1804,6 +1939,9 @@ class Follower extends Marker {
 /// API url list is converted to {"url": "uuid.jpg", "caption": ""}, {...}
 String handleWebImages(String urls) {
   String mappedUrls = urls;
+  if (urls.contains('711d53.jpg')) {
+    debugPrint('Found it');
+  }
   if (urls.isNotEmpty &&
       !urls.contains('{') &&
       !urls.contains('assets') &&
@@ -2378,10 +2516,13 @@ class Message {
   }
 
   factory Message.fromSocketMap(Map<String, dynamic> map) {
+    String email = map['email'] ?? '';
     return Message(
       id: '',
       sender: map['sender'] ?? 'unknown sender',
       message: map['message'] ?? 'test',
+      email: email,
+      sent: email == Setup().user.email ? true : false,
       dated: DateFormat("dd MMM yy HH:mm").format(DateTime.now()),
       received: DateTime.now(),
       read: false,

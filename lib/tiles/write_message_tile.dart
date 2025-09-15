@@ -30,10 +30,12 @@ class _WriteMessageTileState extends State<WriteMessageTile> {
   DateFormat dateFormat = DateFormat('dd/MM/yy HH:mm');
   late bool originator;
   late Future<bool> canDismissItem;
+  late FocusNode _focusNode;
   @override
   void initState() {
     super.initState();
     originator = widget.message.sent;
+    _focusNode = FocusNode();
     developer.log(
         'id: ${widget.message.id} message: ${widget.message.message} sent: ${widget.message.sent.toString()}',
         name: '_mail');
@@ -42,6 +44,13 @@ class _WriteMessageTileState extends State<WriteMessageTile> {
     }
   }
 
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
   Future<bool> canDismiss() {
     return canDismissItem;
   }
@@ -50,7 +59,7 @@ class _WriteMessageTileState extends State<WriteMessageTile> {
   Widget build(BuildContext context) {
     return Padding(
       padding: widget.readOnly
-          ? originator
+          ? widget.message.sent
               ? const EdgeInsets.fromLTRB(20, 0, 0, 0)
               : const EdgeInsets.fromLTRB(0, 0, 20, 0)
           : const EdgeInsets.fromLTRB(0, 0, 0, 0),
@@ -64,7 +73,7 @@ class _WriteMessageTileState extends State<WriteMessageTile> {
         },
         background: Container(color: Colors.blueGrey),
         child: Card(
-          color: originator && widget.readOnly ? Colors.blue : null,
+          color: widget.message.sent && widget.readOnly ? Colors.blue : null,
           elevation: 5,
           child: ListTile(
             leading: getLeading(),
@@ -75,7 +84,7 @@ class _WriteMessageTileState extends State<WriteMessageTile> {
                   child: Column(
                     children: [
                       Row(children: [
-                        if (widget.readOnly && !originator) ...[
+                        if (widget.readOnly && !widget.message.sent) ...[
                           Expanded(
                               flex: 1,
                               child: Text(
@@ -105,7 +114,9 @@ class _WriteMessageTileState extends State<WriteMessageTile> {
                               flex: 20,
                               child: TextFormField(
                                 readOnly: widget.readOnly,
-                                autofocus: false,
+                                //focusNode: _focusNode,
+                                onTap: _focusNode.requestFocus,
+                                autofocus: true,
                                 maxLines:
                                     null, // these 2 lines allow multiline wrapping
                                 keyboardType: TextInputType.multiline,
@@ -141,6 +152,8 @@ class _WriteMessageTileState extends State<WriteMessageTile> {
                                     widget.message.message = text;
                                   },
                                 ),
+                                onFieldSubmitted: (_) =>
+                                    widget.onSelect(widget.index),
                               ),
                             )
                           ] else ...[
@@ -155,7 +168,7 @@ class _WriteMessageTileState extends State<WriteMessageTile> {
                                         child: Text(
                                           widget.message.message,
                                           style: TextStyle(
-                                              color: originator
+                                              color: widget.message.sent
                                                   ? Colors.white
                                                   : Colors.black,
                                               fontSize: 16,
@@ -165,7 +178,7 @@ class _WriteMessageTileState extends State<WriteMessageTile> {
                                       )
                                     ],
                                   ),
-                                  if (originator) ...[
+                                  if (widget.message.sent) ...[
                                     Row(
                                       children: [
                                         Expanded(
@@ -205,7 +218,7 @@ class _WriteMessageTileState extends State<WriteMessageTile> {
 
   DismissDirection getDismissDirection() {
     if (widget.isGroup) {
-      if (originator) {
+      if (widget.message.sent) {
         return DismissDirection.startToEnd;
       } else {
         return DismissDirection.none;
@@ -217,7 +230,7 @@ class _WriteMessageTileState extends State<WriteMessageTile> {
 
   Widget? getLeading() {
     if (widget.readOnly) {
-      if (!originator) {
+      if (!widget.message.sent) {
         if (widget.isGroup) {
           return CircleAvatar(
             backgroundColor: Colors.blue,

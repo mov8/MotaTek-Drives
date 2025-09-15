@@ -103,8 +103,7 @@ class _GroupMessagesState extends State<GroupMessages> {
           sender: '${Setup().user.forename} ${Setup().user.surname}',
           message: '',
         ));
-        widget.group.messages = messages.length;
-        setState(() {});
+        setState(() => widget.group.messages = messages.length);
       } catch (e) {
         debugPrint('Error: ${e.toString()}');
       }
@@ -161,6 +160,15 @@ class _GroupMessagesState extends State<GroupMessages> {
 
   void onSendMessage(int index) {
     socket.emit('group_message', messages[index].message);
+    /*
+    messages[index].sent = true;
+    messages[index].dated = dateFormatDocTime.format(DateTime.now());
+    messages.add(Message(
+      id: '',
+      sender: '${Setup().user.forename} ${Setup().user.surname}',
+      message: '',
+    ));
+    */
     widget.onSelect!(index);
     return;
   }
@@ -172,7 +180,7 @@ class _GroupMessagesState extends State<GroupMessages> {
         await dataFromWeb();
       },
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
+        padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 20.0),
         child: Column(
           children: [
             Expanded(
@@ -190,6 +198,7 @@ class _GroupMessagesState extends State<GroupMessages> {
                 ),
               ),
             ),
+            //  SizedBox(height: 120),
           ],
         ),
       ),

@@ -1035,9 +1035,9 @@ Future<int> saveMyTripItem(MyTripItem myTripItem) async {
           var pics = jsonDecode(pointOfInterest.getImages());
           String jsonImages = '';
           for (Map<String, dynamic> pic in pics) {
-            String url =
-                Uri.parse('$urlDrive/images${pointOfInterest.url}${pic['url']}')
-                    .toString();
+            String url = Uri.parse(
+                    '$urlDrive/images/${pointOfInterest.url}/${pic['url']}')
+                .toString();
             bool dirExists = await Directory('$directory/drive$id').exists();
             if (!dirExists) {
               await Directory('$directory/drive$id').create();
@@ -1216,6 +1216,7 @@ Future<PointOfInterest> loadPointOfInterestLocal(
 Future<bool> savePointsOfInterestLocal(
     {required int driveId,
     required List<PointOfInterest> pointsOfInterest}) async {
+  await deletePointOfInterestByDriveId(driveId);
   for (int i = 0; i < pointsOfInterest.length; i++) {
     savePointOfInterestLocal(
         driveId: driveId, pointOfInterest: pointsOfInterest[i]);

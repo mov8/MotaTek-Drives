@@ -21,16 +21,12 @@ class ImageMissing extends StatelessWidget {
                 ),
               ],
             ),
-            Row(
-              children: [
-                Align(
-                  alignment: Alignment.center,
-                  child: Text(
-                    'Image removed',
-                    style: TextStyle(fontSize: width / 18),
-                  ),
-                ),
-              ],
+            Align(
+              alignment: Alignment.center,
+              child: Text(
+                'Image removed',
+                style: TextStyle(fontSize: width / 30),
+              ),
             ),
           ],
         ),

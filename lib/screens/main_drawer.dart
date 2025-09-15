@@ -38,17 +38,20 @@ class _MainDrawerState extends State<MainDrawer> {
                   Expanded(
                     flex: 6,
                     child: Row(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text('Drives ',
-                              style:
-                                  TextStyle(color: Colors.white, fontSize: 32)),
-                          Text(
-                              'v${appVersion['major']}.${appVersion['minor']}.${appVersion['patch']} ${appVersion['suffix']}',
-                              style:
-                                  TextStyle(color: Colors.white, fontSize: 20))
-                        ]),
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text('Drives ',
+                            style:
+                                TextStyle(color: Colors.white, fontSize: 32)),
+                        Padding(
+                            padding: EdgeInsets.fromLTRB(0, 0, 0, 4),
+                            child: Text(
+                                'v${appVersion['major']}.${appVersion['minor']}.${appVersion['patch']} ${appVersion['suffix']}',
+                                style: TextStyle(
+                                    color: Colors.white, fontSize: 20))),
+                      ],
+                    ),
                   ),
                 ],
               ),

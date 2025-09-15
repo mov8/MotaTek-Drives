@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 import 'dart:convert';
+import 'dart:developer' as developer;
 import 'dart:typed_data';
 import 'package:drives/constants.dart';
 import 'package:drives/classes/classes.dart';
@@ -1288,7 +1289,8 @@ Future<MyTripItem> getMyTrip(String tripUuid) async {
             width: trip['points_of_interest'][i]['_type'] == 12 ? 10 : 30,
             height: trip['points_of_interest'][i]['_type'] == 12 ? 10 : 30,
             images: trip['points_of_interest'][i]['images'],
-            url: '/${trip['id']}/${trip['points_of_interest'][i]['id']}/',
+            //  url: '/${trip['id']}/${trip['points_of_interest'][i]['id']}/',
+            url: '${trip['id']}/${trip['points_of_interest'][i]['id']}',
             score: trip['points_of_interest'][i]['average_rating'] ?? 1,
             scored: trip['points_of_interest'][i]['ratings_count'] ?? 0,
             markerPoint: posn,
@@ -1395,6 +1397,7 @@ Widget showWebImage(String imageUrl,
         },
         errorBuilder:
             (BuildContext context, Object exception, StackTrace? stackTrace) {
+          developer.log('Image url error: $imageUrl', name: '_image');
           return ImageMissing(width: width);
         },
       ),
@@ -1924,7 +1927,7 @@ Future<String> postShopItem(ShopItem shopItem) async {
 Future<List<EventInvitation>> getInvitationsByUser({int state = 0}) async {
   try {
     final http.Response response = await getWebData(
-        uri: Uri.parse('$urlGroupDriveInvitation/user/state'), secure: true);
+        uri: Uri.parse('$urlGroupDriveInvitation/user/$state'), secure: true);
 
     if ([200, 201].contains(response.statusCode)) {
       var invitations = jsonDecode(response.body);

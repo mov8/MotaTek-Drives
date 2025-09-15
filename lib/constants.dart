@@ -2,12 +2,13 @@ import 'package:latlong2/latlong.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-const appVersion = {'major': 0, 'minor': 0, 'patch': 3, 'suffix': 'beta'};
+const appVersion = {'major': 0, 'minor': 0, 'patch': 5, 'suffix': 'beta db'};
 
 const apiAddress = 'https://drives.motatek.com/';
 // const wifiIpAddress = '192.168.1.14:5001'; // <- Home
 const wifiIpAddress = 'http://192.168.1.109:5001/'; // <- Boston
-//const urlBase = wifiIpAddress;
+
+// const urlBase = wifiIpAddress;
 const urlBase = apiAddress;
 
 const mapsApiKey = '';
@@ -91,6 +92,7 @@ enum TripActions {
   pointOfInterest,
   showGroup,
   showSteps,
+  showMessages,
 }
 
 enum HighliteActions {

@@ -9,6 +9,7 @@ import 'package:drives/constants.dart';
 class FollowerTile extends StatefulWidget {
   final Follower follower;
   // final AsyncCallback onLoadTrip;
+
   final Future<void> Function(int) onIconClick;
   final Function(int) onLongPress;
   final int index;
@@ -29,23 +30,16 @@ class FollowerTile extends StatefulWidget {
 }
 
 class _FollowerTileState extends State<FollowerTile> {
+  String status = '(not yet joined)';
+
+  @override
+  void initState() {
+    super.initState();
+  }
+
   @override
   Widget build(BuildContext context) {
-    String status = '(not yet joined)';
-    if (widget.follower.position != LatLng(0.0, 0.0)) {
-      double distance = Geolocator.distanceBetween(
-          widget.currentPosition.latitude,
-          widget.currentPosition.longitude,
-          widget.follower.position.latitude,
-          widget.follower.position.longitude);
-      if (distance > 1000) {
-        status =
-            '(${(distance * metersToMiles).toStringAsFixed(1)} miles away)';
-      } else {
-        status = '(${distance.round()} meters away)';
-      }
-    }
-
+    calcStatus();
     return Material(
       child: ListTile(
         shape: const RoundedRectangleBorder(
@@ -101,44 +95,42 @@ class _FollowerTileState extends State<FollowerTile> {
             onPressed: () => widget.onIconClick(widget.index),
             backgroundColor:
                 uiColours.keys.toList()[widget.follower.iconColour]),
-
-        /* ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            // maximumSize: const Size(20, 20),
-            // fixedSize: const Size(55, 55),
-            backgroundColor: uiColours.keys.toList()[widget.follower
-                .iconColour], //widget.follower.iconColour, // Button color
-            foregroundColor: Colors.black, // Text color
-            shadowColor: Colors.grey, // Shadow color
-            elevation: 5,
-            shape: const CircleBorder(),
-            padding: const EdgeInsets.all(20),
-          ),
-          onPressed: () =>
-              widget.onIconClick(widget.index), // Handle button tap
-
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(
-              0,
-              0,
-              0,
-              0,
-            ),
-            child: Text(
-              getInitials(
-                  name:
-                      '${widget.follower.forename} ${widget.follower.surname}'),
-              style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold),
-            ),
-          ),
-        ),
-        */
         onLongPress: () => widget.onLongPress(widget.index), //() => {},
       ),
     );
+  }
+
+  changePosition({LatLng position = const LatLng(0, 0)}) {
+    if (widget.follower.position != LatLng(0.0, 0.0)) {
+      double distance = Geolocator.distanceBetween(
+          widget.currentPosition.latitude,
+          widget.currentPosition.longitude,
+          widget.follower.position.latitude,
+          widget.follower.position.longitude);
+      if (distance > 1000) {
+        status =
+            '(${(distance * metersToMiles).toStringAsFixed(1)} miles away)';
+      } else {
+        status = '(${distance.round()} meters away)';
+      }
+    }
+  }
+
+  calcStatus() {
+    if (widget.follower.position != LatLng(0.0, 0.0)) {
+      double distance = Geolocator.distanceBetween(
+          widget.currentPosition.latitude,
+          widget.currentPosition.longitude,
+          widget.follower.position.latitude,
+          widget.follower.position.longitude);
+      if (distance > 1000) {
+        status =
+            '(${(distance * metersToMiles).toStringAsFixed(1)} miles away)';
+      } else {
+        status = '(${distance.round()} meters away)';
+      }
+    }
+    return;
   }
 }
 

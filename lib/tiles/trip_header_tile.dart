@@ -58,7 +58,6 @@ class _TripHeaderTileState extends State<TripHeaderTile> {
                 maxLines: null,
                 textCapitalization: TextCapitalization.sentences,
                 textInputAction: TextInputAction.next,
-                spellCheckConfiguration: const SpellCheckConfiguration(),
                 decoration: const InputDecoration(
                   border: OutlineInputBorder(),
                   hintText: 'Enter a short summary of your trip...',
@@ -82,7 +81,6 @@ class _TripHeaderTileState extends State<TripHeaderTile> {
                 keyboardType: TextInputType.multiline,
                 textCapitalization: TextCapitalization.sentences,
                 textInputAction: TextInputAction.done,
-                spellCheckConfiguration: const SpellCheckConfiguration(),
                 decoration: const InputDecoration(
                   border: OutlineInputBorder(),
                   hintText: 'Describe details of your trip...',

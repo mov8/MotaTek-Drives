@@ -28,15 +28,39 @@ class GroupTileController {
   _GroupTileState? _groupTileState;
 
   void _addState(_GroupTileState groupTileState) {
+    developer.log('_addState called', name: '_addState');
     _groupTileState = groupTileState;
   }
 
   bool get isAttached => _groupTileState != null;
 
   void newGroup() {
+    developer.log('newGroup called', name: '_addState');
     assert(isAttached, 'Controller must be attached to widget to clear');
     try {
       _groupTileState?.addGroup();
+    } catch (e) {
+      String err = e.toString();
+      debugPrint('Error clearing AutoComplete: $err');
+    }
+  }
+
+  void newMember() {
+    developer.log('newGroup called', name: '_addState');
+    assert(isAttached, 'Controller must be attached to widget to clear');
+    try {
+      _groupTileState?.addMember();
+    } catch (e) {
+      String err = e.toString();
+      debugPrint('Error clearing AutoComplete: $err');
+    }
+  }
+
+  void editGroupName() {
+    developer.log('newGroup called', name: '_addState');
+    assert(isAttached, 'Controller must be attached to widget to clear');
+    try {
+      _groupTileState?.editGroupName();
     } catch (e) {
       String err = e.toString();
       debugPrint('Error clearing AutoComplete: $err');
@@ -89,6 +113,7 @@ class _GroupTileState extends State<GroupTile> {
   void initState() {
     super.initState();
     widget.controller._addState(this);
+    developer.log('initState _addState called', name: '_addState');
     _isEditing = widget.group.name.isEmpty;
     _index = widget.index;
     _isNewGroup = widget.group.name.isEmpty;
@@ -295,7 +320,7 @@ class _GroupTileState extends State<GroupTile> {
                 style: TextStyle(fontSize: 18, color: Colors.white),
               ),
             ),
-          if (widget.group.name.length > 2) ...[
+          /*   if (widget.group.name.length > 2) ...[
             ActionChip(
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
@@ -342,7 +367,7 @@ class _GroupTileState extends State<GroupTile> {
                 ),
               ),
             */
-          ]
+          ] */
         ],
       );
     }
@@ -353,6 +378,20 @@ class _GroupTileState extends State<GroupTile> {
     if (widget.onEdit != null) {
       widget.onEdit!(widget.index, true);
     }
+  }
+
+  void addMember() {
+    setState(() {
+      _addMember = true;
+      _groupMemberState = GroupMemberState.isNew;
+      developer.log(
+          '@AddMember action chip _groupMemberState: ${_groupMemberState.name}',
+          name: '_GroupMemberState');
+      if (widget.onAdd != null) {
+        //       widget.onAdd!(1);
+      }
+      // _isUpdated = true;
+    });
   }
 
   Widget titleSuffix() {
@@ -410,7 +449,7 @@ class _GroupTileState extends State<GroupTile> {
               style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
             ),
           ),
-          Expanded(
+          /* Expanded(
             flex: 2,
             child: IconButton(
               iconSize: 30,
@@ -420,7 +459,7 @@ class _GroupTileState extends State<GroupTile> {
               color: Colors.black,
               onPressed: () => setState(() => _isEditing = true),
             ),
-          ),
+          ), */
         ],
       );
     } else {
@@ -432,5 +471,9 @@ class _GroupTileState extends State<GroupTile> {
 
   String memberName({required GroupMember member}) {
     return ('${member.forename} ${member.surname}').trim();
+  }
+
+  void editGroupName() {
+    setState(() => _isEditing = true);
   }
 }

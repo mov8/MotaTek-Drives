@@ -1,4 +1,6 @@
 {
     "dart.debugExternalPackageLibraries": true,
-    "dart.debugSdkLibraries": true
+    "dart.debugSdkLibraries": true,
+    "python-envs.defaultEnvManager": "ms-python.python:system",
+    "python-envs.pythonProjects": []
 }

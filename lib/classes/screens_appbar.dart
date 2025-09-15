@@ -10,7 +10,9 @@ class ScreensAppBar extends StatelessWidget implements PreferredSizeWidget {
   final bool update;
   String? updateHeading;
   String? updateSubHeading;
-  final VoidCallback? updateMethod;
+  // final VoidCallback? updateMethod;
+  final Function(bool)? updateMethod;
+
   final bool showOverflow;
   final bool showAction;
   final VoidCallback? leadingMethod;
@@ -73,13 +75,6 @@ class ScreensAppBar extends StatelessWidget implements PreferredSizeWidget {
               if (showOverflow) ...[
                 Expanded(
                   flex: 1,
-/*
- List<String> invState = ['undecided', 'declined', 'accepted'];
- States 0 = Future undecided || accepted
-        1 = All undecided || accepted
-        2 = All undecided || accepted || declined
-*/
-
                   child: PopupMenuButton(
                     iconColor: Colors.white,
                     itemBuilder: (context) => overflowPrompts!
@@ -113,13 +108,15 @@ class ScreensAppBar extends StatelessWidget implements PreferredSizeWidget {
         onPressed: () async {
           if (update) {
             if (updateHeading! != '') {
-              await updateDialog(
+              bool upload = await updateDialog(
                   context: context,
                   heading: updateHeading!,
-                  subHeading: updateSubHeading!,
-                  updateMethod: updateMethod);
+                  subHeading: updateSubHeading!);
+              if (upload) {
+                updateMethod!(true);
+              }
             } else {
-              () => updateMethod;
+              updateMethod!(true);
             }
           }
           if (context.mounted) {
@@ -132,27 +129,10 @@ class ScreensAppBar extends StatelessWidget implements PreferredSizeWidget {
         ),
       ),
 
-      /* BackButton(
-        style: ButtonStyle(minimumSize: WidgetStateProperty.),
-        onPressed: () async {
-          if (update) {
-            await updateDialog(
-                context: context,
-                heading: updateHeading!,
-                subHeading: updateSubHeading!,
-                updateMethod: updateMethod);
-          }
-
-          if (context.mounted) {
-            Navigator.pop(context);
-          }
-        },
-      ), */
-      // if (showOveflow) []
       actions: showAction
           ? [
               IconButton(
-                  onPressed: updateMethod,
+                  onPressed: () => updateMethod!(true),
                   icon: Icon(
                     Icons.check,
                     size: 30,
@@ -170,8 +150,8 @@ class ScreensAppBar extends StatelessWidget implements PreferredSizeWidget {
 Future updateDialog(
         {required BuildContext context,
         String heading = '',
-        String subHeading = '',
-        Function? updateMethod}) =>
+        String subHeading = ''}) =>
+    // void Function()? updateMethod}) =>
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
@@ -211,10 +191,7 @@ Future updateDialog(
           ),
           actions: [
             TextButton(
-              onPressed: () async {
-                updateMethod;
-                Navigator.of(context).pop(true);
-              },
+              onPressed: () => Navigator.of(context).pop(true),
               child: const Text(
                 'Upload',
                 style: TextStyle(

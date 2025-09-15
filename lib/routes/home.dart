@@ -321,6 +321,10 @@ You can plan trips either on your own or you can explore in a group''',
         ),
         iconTheme: const IconThemeData(color: Colors.white),
         backgroundColor: Colors.blue,
+        actions: [
+          IconButton(
+              onPressed: () => {}, icon: Icon(Icons.help_outline_outlined))
+        ],
       ),
       body: FutureBuilder<bool>(
         //  initialData: false,
