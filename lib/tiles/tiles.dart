@@ -12,6 +12,7 @@ export 'package:drives/tiles/home_item_tile.dart';
 export 'package:drives/tiles/maneuver_tile.dart';
 export 'package:drives/tiles/marker_tile.dart';
 export 'package:drives/tiles/message_by_group_tile.dart';
+export 'package:drives/tiles/message_expansion_tile.dart';
 export 'package:drives/tiles/message_tile.dart';
 export 'package:drives/tiles/my_trip_tile.dart';
 export 'package:drives/tiles/my_trip_select_tile.dart';

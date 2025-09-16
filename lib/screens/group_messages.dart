@@ -149,7 +149,7 @@ class _GroupMessagesState extends State<GroupMessages> {
   }
 
   Future<bool> dataFromWeb() async {
-    messages = await getGroupMessages(widget.group);
+    messages = await getGroupMessages(widget.group.id);
     messages.add(Message(
       id: '',
       sender: '${Setup().user.forename} ${Setup().user.surname}',

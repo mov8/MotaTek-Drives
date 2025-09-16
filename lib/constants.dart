@@ -8,8 +8,8 @@ const apiAddress = 'https://drives.motatek.com/';
 // const wifiIpAddress = '192.168.1.14:5001'; // <- Home
 const wifiIpAddress = 'http://192.168.1.109:5001/'; // <- Boston
 
-// const urlBase = wifiIpAddress;
-const urlBase = apiAddress;
+const urlBase = wifiIpAddress;
+// const urlBase = apiAddress;
 
 const mapsApiKey = '';
 

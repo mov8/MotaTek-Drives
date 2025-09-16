@@ -3,6 +3,7 @@ import 'package:drives/models/other_models.dart';
 import 'package:drives/classes/classes.dart';
 import 'package:drives/screens/screens.dart';
 import 'package:drives/tiles/tiles.dart';
+import 'package:drives/services/services.dart';
 
 /// Messages route supports 3 message views:
 /// 1 Summary - the user and group messages are mixed
@@ -28,7 +29,10 @@ class _MessagesState extends State<Messages> {
   final ImageRepository _imageRepository = ImageRepository();
   final GlobalKey _scaffoldKey = GlobalKey();
   late Future<bool> _dataLoaded;
+  List<bool> _expanded = [];
   MailItem _chosenItem = MailItem();
+  List<MailItem> _mailItems = [];
+  List<Message> _messages = [];
   String _email = '';
   // List<TripItem> tripItems = [];
   HomeItem homeItem = HomeItem(
@@ -53,7 +57,8 @@ class _MessagesState extends State<Messages> {
   }
 
   Future<bool> getMessages() async {
-    // await getMessagesByGroup();
+    _mailItems = await getMessagesByGroup();
+    _expanded = List.generate(_mailItems.length, (index) => false);
     return true;
   }
 
@@ -62,6 +67,49 @@ class _MessagesState extends State<Messages> {
   }
 
   Widget _getPortraitBody() {
+    if (Setup().user.email.isEmpty || !Setup().hasLoggedIn) {
+      return HomeTile(
+        homeItem: homeItem,
+        imageRepository: _imageRepository,
+      );
+    } else {
+      return ListView.builder(
+        itemCount: _mailItems.length,
+        itemBuilder: (context, index) => Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
+          child: MessageExpansionTile(
+            index: index,
+            mailItem: _mailItems[index],
+            onOpen: (index, value) => _getMessages(index, value),
+            onDismiss: (val1, val2) => (),
+            onSelect: (val) => (),
+            expanded: _expanded[index],
+            messages: _messages,
+            // ToDo: calculate how far away
+          ),
+        ),
+      );
+    }
+  }
+
+  void _getMessages(int index, bool value) async {
+    if (_mailItems[index].isGroup) {
+      _messages = await getGroupMessages(_mailItems[index].id);
+    } else {
+      _messages = await getUserMessages(_mailItems[index].id);
+    }
+    setState(
+      () => _messages.add(
+        Message(
+          id: '',
+          sender: '${Setup().user.forename} ${Setup().user.surname}',
+          message: '',
+        ),
+      ),
+    );
+  }
+
+  Widget _getPortraitBody2() {
     if (Setup().user.email.isEmpty || !Setup().hasLoggedIn) {
       return HomeTile(
         homeItem: homeItem,
@@ -83,7 +131,7 @@ class _MessagesState extends State<Messages> {
                 child: MessageItems(
                   controller: _messageItemsController,
                   onSelect: (item, email) => setState(() {
-                    _leadingWidgetController.changeWidget(1);
+                    // _leadingWidgetController.changeWidget(1);
                     _title =
                         '${item.isGroup ? 'Group' : 'User'} - ${item.name}';
                     _chosenItem = item;
@@ -141,7 +189,21 @@ class _MessagesState extends State<Messages> {
     return Scaffold(
       key: _scaffoldKey,
       drawer: const MainDrawer(),
-      appBar: AppBar(
+      appBar: ScreensAppBar(
+        heading: 'Drives messaging',
+        prompt: 'Read and send messages to groups or individuals',
+        //   updateHeading: 'You have changed group details.',
+        //   updateSubHeading: 'Press Update to confirm the changes or Ignore',
+        //   update: _changed,
+        //   showAction: _changed,
+        overflowIcons: [Icon(Icons.person_add)],
+        overflowPrompts: ['Make new contact'],
+        overflowMethods: [_messageItemsController.addContact],
+        showOverflow: true,
+        //   updateMethod: (update) => upLoad(update: update),
+      ),
+
+      /* AppBar(
         automaticallyImplyLeading: false,
         toolbarHeight: 80,
         leading: LeadingWidget(
@@ -207,7 +269,7 @@ class _MessagesState extends State<Messages> {
 
         iconTheme: const IconThemeData(color: Colors.white),
         backgroundColor: Colors.blue,
-      ),
+      ), */
       body: FutureBuilder<bool>(
         future: _dataLoaded,
         builder: (BuildContext context, snapshot) {

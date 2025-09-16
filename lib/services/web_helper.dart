@@ -1660,7 +1660,6 @@ Future<List<MailItem>> getMessagesByGroup() async {
           id: groupData['id'],
           name: groupData['name'],
           unreadMessages: groupData['messages'] - int.parse(groupData['read']),
-          messages: groupData['messages'],
           isGroup: groupData['group'] == 1,
         ));
       }
@@ -1671,10 +1670,10 @@ Future<List<MailItem>> getMessagesByGroup() async {
   return mailItems;
 }
 
-Future<List<Message>> getGroupMessages(Group group) async {
+Future<List<Message>> getGroupMessages(String groupId) async {
   try {
     final http.Response response = await getWebData(
-        uri: Uri.parse('$urlMessage/group/${group.id}'), secure: true);
+        uri: Uri.parse('$urlMessage/group/$groupId'), secure: true);
     if ([200, 201].contains(response.statusCode)) {
       var messages = jsonDecode(response.body);
       return [
@@ -1690,10 +1689,10 @@ Future<List<Message>> getGroupMessages(Group group) async {
   return [];
 }
 
-Future<List<Message>> getUserMessages(User user) async {
+Future<List<Message>> getUserMessages(String userId) async {
   try {
     final http.Response response = await getWebData(
-        uri: Uri.parse('$urlMessage/user/${user.uri}'), secure: true);
+        uri: Uri.parse('$urlMessage/user/$userId'), secure: true);
     if ([200, 201].contains(response.statusCode)) {
       var messages = jsonDecode(response.body);
       List<Message> messageList = [];

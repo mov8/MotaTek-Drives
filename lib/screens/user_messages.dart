@@ -172,7 +172,7 @@ class _UserMessagesState extends State<UserMessages> {
   }
 
   Future<bool> dataFromWeb() async {
-    messages = await getUserMessages(widget.user);
+    messages = await getUserMessages(widget.user.uri);
     messages.add(Message(
       id: '',
       sender: '${Setup().user.forename} ${Setup().user.surname}',
