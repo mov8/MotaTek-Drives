@@ -310,8 +310,8 @@ AlertDialog buildColumnDialog(
 Future<LoginState> loginDialog(BuildContext context,
     {required User user}) async {
   String status = '';
-  List<String> registered = [];
-  LoginError loginError = LoginError.noData;
+//  List<String> registered = [];
+//  LoginError loginError = LoginError.noData;
   bool isRegistered = false;
   bool emailValid = false;
   user.password = '';

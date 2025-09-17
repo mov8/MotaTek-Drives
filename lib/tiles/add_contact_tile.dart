@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
-import 'package:drives/models/other_models.dart';
+//import 'package:intl/intl.dart';
+//import 'package:drives/models/other_models.dart';
 import 'package:drives/constants.dart';
 import 'package:drives/classes/classes.dart';
 import 'package:drives/services/services.dart';
@@ -15,9 +15,9 @@ import 'dart:developer' as developer;
 class AddContactTileController {
   _AddContactTileState? _addContactTileState;
 
-  void _addState(_AddContactTileState addContactTileState) {
-    _addContactTileState = addContactTileState;
-  }
+//  void _addState(_AddContactTileState addContactTileState) {
+//    _addContactTileState = addContactTileState;
+//  }
 
   bool get isAttached => _addContactTileState != null;
 

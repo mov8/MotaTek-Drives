@@ -20,7 +20,7 @@ class _InvitationsScreenState extends State<InvitationsScreen> {
   bool choosing = true;
   late Future<bool> dataloaded;
   late FocusNode fn1;
-  bool _expanded = false;
+  // bool _expanded = false;
   int _openIndex = -1;
   List<bool> expanded = [];
 
@@ -256,7 +256,7 @@ class _InvitationsScreenState extends State<InvitationsScreen> {
 
   void expansionChange(index, value) async {
     expanded[index] = value;
-    _expanded = value;
+    //  _expanded = value;
     _openIndex = index;
     _tripItem = await getTripItem(index);
     _photos = photosFromJson(

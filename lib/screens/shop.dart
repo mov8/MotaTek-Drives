@@ -21,10 +21,10 @@ class _ShopFormState extends State<ShopForm> {
   int toInvite = 0;
   bool _expanded = false;
 
-  final List<String> _titles = [
-    "Shop page adverts",
-    "Ad - ",
-  ];
+//  final List<String> _titles = [
+//    "Shop page adverts",
+//    "Ad - ",
+//  ];
 
   @override
   void initState() {

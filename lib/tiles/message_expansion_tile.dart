@@ -9,6 +9,7 @@ class MessageExpansionTile extends StatefulWidget {
   final Function(int)? onSelect;
   final Function(int, int)? onDismiss;
   final Function(int, bool)? onOpen;
+  final Function(int)? onSend;
   final bool expanded;
 
   final int index;
@@ -20,6 +21,7 @@ class MessageExpansionTile extends StatefulWidget {
       this.onSelect,
       this.onDismiss,
       this.onOpen,
+      this.onSend,
       this.expanded = false});
 
   @override
@@ -57,7 +59,7 @@ class _MessageByGroupTileState extends State<MessageExpansionTile> {
                 Expanded(
                   flex: 1,
                   child: Text(
-                    'messages: ${widget.mailItem.messages} ',
+                    'messages received: ${widget.mailItem.received}  - sent: ${widget.mailItem.sent}',
                     style: const TextStyle(fontSize: 14),
                   ),
                 )
@@ -107,7 +109,7 @@ class _MessageByGroupTileState extends State<MessageExpansionTile> {
   }
 
   Future<void> dismissAction({required int index, required int action}) async {
-    String id = widget.messages[index].id;
+    // String id = widget.messages[index].id;
 
     if (action == 0) {
       //  await deleteMessage(messageId: id);
@@ -128,7 +130,7 @@ class _MessageByGroupTileState extends State<MessageExpansionTile> {
       message: '',
     ));
     */
-    widget.onSelect!(index);
+    widget.onSend!(index);
     return;
   }
 }

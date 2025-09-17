@@ -50,7 +50,7 @@ class _WriteMessageTileState extends State<WriteMessageTile> {
     super.dispose();
   }
 
-  @override
+  // @override
   Future<bool> canDismiss() {
     return canDismissItem;
   }
@@ -86,7 +86,7 @@ class _WriteMessageTileState extends State<WriteMessageTile> {
                       Row(children: [
                         if (widget.readOnly && !widget.message.sent) ...[
                           Expanded(
-                              flex: 1,
+                              flex: 5,
                               child: Text(
                                 widget.message.sender,
                                 style: const TextStyle(
@@ -94,7 +94,7 @@ class _WriteMessageTileState extends State<WriteMessageTile> {
                                 overflow: TextOverflow.ellipsis,
                               )),
                           Expanded(
-                            flex: 1,
+                            flex: 5,
                             child: Align(
                               alignment: Alignment.topRight,
                               child: Text(
@@ -105,6 +105,18 @@ class _WriteMessageTileState extends State<WriteMessageTile> {
                               ),
                             ),
                           ),
+                          if (!widget.isGroup)
+                            Expanded(
+                              flex: 1,
+                              child: Align(
+                                alignment: Alignment.topRight,
+                                child: Icon(
+                                    widget.message.read
+                                        ? Icons.mark_chat_read_outlined
+                                        : Icons.mark_chat_unread_outlined,
+                                    size: 20),
+                              ),
+                            ),
                         ]
                       ]),
                       Row(

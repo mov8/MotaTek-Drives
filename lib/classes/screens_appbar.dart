@@ -12,10 +12,11 @@ class ScreensAppBar extends StatelessWidget implements PreferredSizeWidget {
   String? updateSubHeading;
   // final VoidCallback? updateMethod;
   final Function(bool)? updateMethod;
-
+  final bool showDrawer;
   final bool showOverflow;
   final bool showAction;
   final VoidCallback? leadingMethod;
+  final Icon leadingIcon;
   List<String>? overflowPrompts;
   List<Icon>? overflowIcons;
   List<VoidCallback>? overflowMethods;
@@ -29,9 +30,11 @@ class ScreensAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.updateSubHeading,
     this.updateMethod,
     this.update = false,
+    this.showDrawer = false,
     this.showOverflow = false,
     this.showAction = false,
     this.leadingMethod,
+    this.leadingIcon = const Icon(Icons.arrow_back, size: 30),
     this.overflowPrompts,
     this.overflowIcons,
     this.overflowMethods,
@@ -106,27 +109,28 @@ class ScreensAppBar extends StatelessWidget implements PreferredSizeWidget {
       /// Shrink height a bit
       leading: IconButton(
         onPressed: () async {
-          if (update) {
-            if (updateHeading! != '') {
-              bool upload = await updateDialog(
-                  context: context,
-                  heading: updateHeading!,
-                  subHeading: updateSubHeading!);
-              if (upload) {
+          if (showDrawer) {
+            leadingMethod!();
+          } else {
+            if (update) {
+              if (updateHeading! != '') {
+                bool upload = await updateDialog(
+                    context: context,
+                    heading: updateHeading!,
+                    subHeading: updateSubHeading!);
+                if (upload) {
+                  updateMethod!(true);
+                }
+              } else {
                 updateMethod!(true);
               }
-            } else {
-              updateMethod!(true);
+            }
+            if (context.mounted) {
+              Navigator.pop(context);
             }
           }
-          if (context.mounted) {
-            Navigator.pop(context);
-          }
         },
-        icon: Icon(
-          Icons.arrow_back,
-          size: 30,
-        ),
+        icon: leadingIcon,
       ),
 
       actions: showAction

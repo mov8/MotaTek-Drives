@@ -287,7 +287,7 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
               duration: const Duration(milliseconds: 200),
               curve: Curves.easeInOutCubic);
           // refresh listeners else works only once
-          _expandNotifier.notifyListeners();
+          // _expandNotifier.notifyListeners();
         }
       ];
     } else {

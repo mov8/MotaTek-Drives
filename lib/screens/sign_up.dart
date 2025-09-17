@@ -466,7 +466,7 @@ class _SignupFormState extends State<SignupForm> {
                     border: OutlineInputBorder(),
                     labelText: 'Car Model',
                   ),
-                  value: models[0],
+                  // value: models[0],
                   items: models
                       .map((item) => DropdownMenuItem<String>(
                             value: item,

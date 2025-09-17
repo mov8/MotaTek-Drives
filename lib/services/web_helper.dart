@@ -1659,13 +1659,17 @@ Future<List<MailItem>> getMessagesByGroup() async {
         mailItems.add(MailItem(
           id: groupData['id'],
           name: groupData['name'],
-          unreadMessages: groupData['messages'] - int.parse(groupData['read']),
+          unreadMessages:
+              int.parse(groupData['received']) - int.parse(groupData['read']),
+          received: int.parse(groupData['received']),
+          sent: int.parse(groupData['sent']),
+          read: int.parse(groupData['read']),
           isGroup: groupData['group'] == 1,
         ));
       }
     }
   } catch (e) {
-    debugPrint("Can't access data on the web");
+    debugPrint("Can't access message data on the web ${e.toString()}");
   }
   return mailItems;
 }

@@ -15,12 +15,18 @@ class MailItem {
   final String id;
   final String name;
   final int unreadMessages;
+  final int received;
+  final int sent;
+  final int read;
   final int messages;
   final bool isGroup;
   MailItem({
     this.id = '',
     this.name = '',
     this.unreadMessages = 0,
+    this.received = 0,
+    this.sent = 0,
+    this.read = 0,
     this.messages = 0,
     this.isGroup = false,
   });

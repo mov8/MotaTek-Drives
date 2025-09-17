@@ -4,6 +4,9 @@ import 'package:drives/classes/classes.dart';
 import 'package:drives/screens/screens.dart';
 import 'package:drives/tiles/tiles.dart';
 import 'package:drives/services/services.dart';
+import 'package:socket_io_client/socket_io_client.dart' as sio;
+import 'package:drives/constants.dart';
+import 'dart:developer' as developer;
 
 /// Messages route supports 3 message views:
 /// 1 Summary - the user and group messages are mixed
@@ -21,20 +24,23 @@ class Messages extends StatefulWidget {
 }
 
 class _MessagesState extends State<Messages> {
-  late final LeadingWidgetController _leadingWidgetController;
   late final RoutesBottomNavController _bottomNavController;
-  late final GroupMessagesController _groupMessagesController;
-  late final UserMessagesController _userMessagesController;
-  late final MessageItemsController _messageItemsController;
+  // late final MessageItemsController _messageItemsController;
   final ImageRepository _imageRepository = ImageRepository();
   final GlobalKey _scaffoldKey = GlobalKey();
   late Future<bool> _dataLoaded;
   List<bool> _expanded = [];
-  MailItem _chosenItem = MailItem();
   List<MailItem> _mailItems = [];
   List<Message> _messages = [];
-  String _email = '';
-  // List<TripItem> tripItems = [];
+  int _openTile = -1;
+  bool _addContact = false;
+
+  sio.Socket socket = sio.io(urlBase, <String, dynamic>{
+    // sio.Socket socket = sio.io('http://192.168.1.10:5000', <String, dynamic>{
+    'transports': ['websocket'], // Specify WebSocket transport
+    'autoConnect': false, // Prevent auto-connection
+  });
+
   HomeItem homeItem = HomeItem(
       heading: 'Keep in contact ',
       subHeading: 'Message group members or individuals.',
@@ -42,28 +48,73 @@ class _MessagesState extends State<Messages> {
           'Tell members about new events, or keep in contact on a group drive',
       uri: 'assets/images',
       imageUrls: '[{"url": "message.png", "caption": ""}]');
-  String _title = 'Messages - summary';
-  String _subTitle = 'Tap + to start a new user conversation';
+  // String _title = 'Messages - summary';
+  // String _subTitle = 'Tap + to start a new user conversation';
 
   @override
   void initState() {
     super.initState();
-    _leadingWidgetController = LeadingWidgetController();
     _bottomNavController = RoutesBottomNavController();
-    _messageItemsController = MessageItemsController();
-    _groupMessagesController = GroupMessagesController();
-    _userMessagesController = UserMessagesController();
+    // _messageItemsController = MessageItemsController();
+
+    socket.onConnectError((_) => debugPrint('connect error'));
+    //socket.onConnectError((_) => debugPrint('connect error'));
+
+    socket.onError((data) => debugPrint('Error: ${data.toString()}'));
+
+    socket.onConnect((_) {
+      debugPrint('onConnect connected');
+      socket.emit('user_connect', {'token': Setup().jwt});
+    });
+
+    socket.on('message_from_group', (data) {
+      try {
+        if (_openTile > -1 && _mailItems[_openTile].isGroup) {
+          _messages[_messages.length - 1] = Message.fromSocketMap(data);
+          setState(() => appendEmptyMessage());
+        }
+      } catch (e) {
+        debugPrint('Error: ${e.toString()}');
+      }
+    });
+
+    socket.on('user_message', (data) {
+      try {
+        _messages[_messages.length - 1] = Message.fromSocketMap(data);
+        setState(() => appendEmptyMessage());
+      } catch (e) {
+        debugPrint('Error: ${e.toString()}');
+      }
+    });
+
+/*
+    if (socket.connected) {
+      socket
+          .emit('group_join', {'token': Setup().jwt, 'group': widget.group.id});
+    }
+*/
+    socket.connect();
+    debugPrint('should have connected');
+
     _dataLoaded = getMessages();
+  }
+
+  @override
+  void dispose() {
+    if (socket.connected) {
+      try {
+        socket.emit('cleave');
+      } catch (e) {
+        debugPrint('error disposing of group_messages: ${e.toString()}');
+      }
+    }
+    super.dispose();
   }
 
   Future<bool> getMessages() async {
     _mailItems = await getMessagesByGroup();
     _expanded = List.generate(_mailItems.length, (index) => false);
     return true;
-  }
-
-  _leadingWidget(context) {
-    return context?.openDrawer();
   }
 
   Widget _getPortraitBody() {
@@ -73,115 +124,93 @@ class _MessagesState extends State<Messages> {
         imageRepository: _imageRepository,
       );
     } else {
-      return ListView.builder(
-        itemCount: _mailItems.length,
-        itemBuilder: (context, index) => Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
-          child: MessageExpansionTile(
-            index: index,
-            mailItem: _mailItems[index],
-            onOpen: (index, value) => _getMessages(index, value),
-            onDismiss: (val1, val2) => (),
-            onSelect: (val) => (),
-            expanded: _expanded[index],
-            messages: _messages,
-            // ToDo: calculate how far away
+      return Column(children: [
+        if (_addContact) ...[
+          AddContactTile(
+            onAddMember: (email) => newContact(email: email),
+            onCancel: (_) => setState(() => _addContact = false),
+          )
+        ],
+        Expanded(
+            child: ListView.builder(
+          itemCount: _mailItems.length,
+          itemBuilder: (context, index) => Padding(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
+            child: MessageExpansionTile(
+              index: index,
+              mailItem: _mailItems[index],
+              onOpen: (index, value) => _getMessages(index, value),
+              onDismiss: (val1, val2) => (),
+              onSelect: (val) => (),
+              onSend: (val) => sendMessage(val),
+              expanded: _expanded[index],
+              messages: _messages,
+            ),
           ),
-        ),
-      );
+        ))
+      ]);
     }
   }
 
   void _getMessages(int index, bool value) async {
-    if (_mailItems[index].isGroup) {
-      _messages = await getGroupMessages(_mailItems[index].id);
+    developer.log('_getMessages index: $index  value: $value',
+        name: '_messages');
+    if (value) {
+      if (_mailItems[index].isGroup) {
+        _messages = await getGroupMessages(_mailItems[index].id);
+      } else {
+        _messages = await getUserMessages(_mailItems[index].id);
+      }
+      appendEmptyMessage();
+      setState(() => _expanded[index] = true);
+      socket.emit('group_join',
+          {'token': Setup().jwt, 'group': _mailItems[_openTile].id});
+      _openTile = index;
     } else {
-      _messages = await getUserMessages(_mailItems[index].id);
+      _openTile = -1;
+      setState(() => _expanded[index] = false);
+      if (_mailItems[index].isGroup) {
+        socket.emit('leave_group');
+      }
     }
-    setState(
-      () => _messages.add(
-        Message(
-          id: '',
-          sender: '${Setup().user.forename} ${Setup().user.surname}',
-          message: '',
-        ),
-      ),
-    );
   }
 
-  Widget _getPortraitBody2() {
-    if (Setup().user.email.isEmpty || !Setup().hasLoggedIn) {
-      return HomeTile(
-        homeItem: homeItem,
-        imageRepository: _imageRepository,
-      );
-    } else {
-      return SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            if (_chosenItem.name.isEmpty) ...[
-              SizedBox(
-                height: MediaQuery.of(context).size.height -
-                    AppBar().preferredSize.height -
-                    kBottomNavigationBarHeight -
-                    50,
-                width: MediaQuery.of(context).size.width,
-                child: MessageItems(
-                  controller: _messageItemsController,
-                  onSelect: (item, email) => setState(() {
-                    // _leadingWidgetController.changeWidget(1);
-                    _title =
-                        '${item.isGroup ? 'Group' : 'User'} - ${item.name}';
-                    _chosenItem = item;
-                    _subTitle = item.isGroup
-                        ? 'Swipe left to delete the message'
-                        : 'Swipe right to mark as read left to delete';
-                    _email = email;
-                  }),
-                ),
-              ),
-            ] else ...[
-              SizedBox(height: 40),
-              SizedBox(
-                height: MediaQuery.of(context).size.height -
-                    AppBar().preferredSize.height -
-                    kBottomNavigationBarHeight -
-                    50,
-                width: MediaQuery.of(context).size.width,
-                child: _chosenItem.isGroup
-                    ? GroupMessages(
-                        controller: _groupMessagesController,
-                        group: Group(
-                          id: _chosenItem.id,
-                          name: _chosenItem.name,
-                        ),
-                        onSelect: (idx) =>
-                            setState(() => debugPrint('Message index: $idx')),
-                      )
-                    : UserMessages(
-                        controller: _userMessagesController,
-                        user: User(
-                          uri: _chosenItem.id,
-                          email: _email,
-                        ),
-                        onSelect: (idx) =>
-                            setState(() => debugPrint('Message')),
-                        //  onCancel: (_) => setState(
-                        //    () => _userGroup = User(),
-                        //  ),
-                      ),
-              ),
-            ]
-          ],
-        ),
-      );
-    }
+  void sendMessage(int index) {
+    String target =
+        _mailItems[index].isGroup ? 'group_message' : 'user_message';
+    socket.emit(target, _messages[index].message);
+    appendEmptyMessage();
+  }
+
+  void appendEmptyMessage() {
+    _messages.add(
+      Message(
+          id: '',
+          sender: '${Setup().user.forename} ${Setup().user.surname}',
+          message: ''),
+    );
   }
 
   itemSelect(index) {
     // debugPrint('Index: $index');
+  }
+
+  _leadingMethod(context) {
+    context!.openDrawer();
+  }
+
+  _newContact() {
+    setState(() => _addContact = true);
+  }
+
+  newContact({required String email}) async {
+    GroupMember contact = await getUserByEmail(email);
+    String name = '${contact.forename} ${contact.surname}';
+    _expanded = List.generate(_mailItems.length, (index) => false);
+    _mailItems.add(MailItem(id: '', name: name, isGroup: false));
+    _expanded.add(true);
+    setState(() => _addContact = false);
   }
 
   @override
@@ -191,85 +220,15 @@ class _MessagesState extends State<Messages> {
       drawer: const MainDrawer(),
       appBar: ScreensAppBar(
         heading: 'Drives messaging',
-        prompt: 'Read and send messages to groups or individuals',
-        //   updateHeading: 'You have changed group details.',
-        //   updateSubHeading: 'Press Update to confirm the changes or Ignore',
-        //   update: _changed,
-        //   showAction: _changed,
+        prompt: 'Chat with groups or individuals',
+        showDrawer: true,
+        leadingIcon: Icon(Icons.menu, size: 30),
+        leadingMethod: () => _leadingMethod(_scaffoldKey.currentState),
         overflowIcons: [Icon(Icons.person_add)],
         overflowPrompts: ['Make new contact'],
-        overflowMethods: [_messageItemsController.addContact],
+        overflowMethods: [() => _newContact()],
         showOverflow: true,
-        //   updateMethod: (update) => upLoad(update: update),
       ),
-
-      /* AppBar(
-        automaticallyImplyLeading: false,
-        toolbarHeight: 80,
-        leading: LeadingWidget(
-          controller: _leadingWidgetController,
-          initialValue: 0,
-          onMenuTap: (index) {
-            setState(
-              () {
-                if (index == 0) {
-                  _leadingWidget(_scaffoldKey.currentState);
-                } else {
-                  if (_chosenItem.isGroup) {
-                    _groupMessagesController.leave();
-                  } else {
-                    _userMessagesController.leave();
-                  }
-                  _leadingWidgetController.changeWidget(0);
-                  _chosenItem = MailItem();
-                  _title = 'Messages - summary';
-                  _subTitle = 'Tap + to start a new user conversation';
-                }
-              },
-            );
-          },
-        ), // IconButton(
-        title: Text(
-          _title,
-          style: const TextStyle(
-              fontSize: 22, color: Colors.white, fontWeight: FontWeight.w700),
-        ),
-
-        bottom: PreferredSize(
-          preferredSize: Size.fromHeight(20),
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(10, 10, 5, 10),
-            child: Row(children: [
-              Expanded(
-                flex: 10,
-                child: Text(
-                  _subTitle,
-                  style: const TextStyle(
-                      fontSize: 20,
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700),
-                ),
-              ),
-              if (_title.contains('summary')) ...[
-                Expanded(
-                  flex: 1,
-                  child: IconButton(
-                    onPressed: () => _messageItemsController.addContact(),
-                    icon: Icon(
-                      Icons.add,
-                      size: 30,
-                      color: Colors.white,
-                    ),
-                  ),
-                )
-              ]
-            ]),
-          ),
-        ),
-
-        iconTheme: const IconThemeData(color: Colors.white),
-        backgroundColor: Colors.blue,
-      ), */
       body: FutureBuilder<bool>(
         future: _dataLoaded,
         builder: (BuildContext context, snapshot) {
