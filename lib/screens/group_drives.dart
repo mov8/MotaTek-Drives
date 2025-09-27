@@ -31,10 +31,20 @@ class _GroupDriveFormState extends State<GroupDriveForm>
   List<GroupMember> allMembers = [];
   List<MyTripItem> _myTripItems = [];
 
+  List<String> _overflowPrompts = [];
+  List<VoidCallback> _overflowMethods = [];
+  List<Icon> _overflowIcons = [];
+
   @override
   void initState() {
     super.initState();
     _tController = TabController(length: 2, vsync: this);
+    _overflowPrompts = ['Show all drives', 'Only future drives'];
+    _overflowMethods = [() => _setAdding(true), () => _setAdding(false)];
+    _overflowIcons = [
+      Icon(Icons.checklist_outlined),
+      Icon(Icons.more_time_outlined)
+    ];
     _dataLoaded = loadData();
   }
 
@@ -54,6 +64,10 @@ class _GroupDriveFormState extends State<GroupDriveForm>
     return true;
   }
 
+  void _setAdding(bool adding) {
+    setState(() => _adding = adding);
+  }
+
   @override
   Widget build(BuildContext context) {
     // _action = 0;
@@ -62,15 +76,9 @@ class _GroupDriveFormState extends State<GroupDriveForm>
       appBar: ScreensAppBar(
         heading: 'Organise a group drive',
         prompt: 'Invite group members to a group drive.',
-        overflowPrompts: ["Show all drives", "Only Future Events"],
-        overflowIcons: [
-          Icon(Icons.checklist_outlined),
-          Icon(Icons.more_time_outlined)
-        ],
-        overflowMethods: [
-          () => setState(() => _adding = !_adding),
-          () => setState(() => _adding = !_adding)
-        ],
+        overflowPrompts: _overflowPrompts,
+        overflowIcons: _overflowIcons,
+        overflowMethods: _overflowMethods,
         showOverflow: true,
         update: _changed == true,
         showAction: _changed == true,
@@ -172,6 +180,8 @@ class _GroupDriveFormState extends State<GroupDriveForm>
                       ),
                     ),
                   ),
+                  onExpansionChanged: (value) => _expansionChange(index, value),
+
                   //     subtitle: Text(
                   //       'Event date  ${dateFormatDoc.format(DateTime.parse(_trips[index].eventDate))} - press button to join',
                   //       style: TextStyle(fontSize: 14),
@@ -236,6 +246,23 @@ class _GroupDriveFormState extends State<GroupDriveForm>
               ),
             ),
     );
+  }
+
+  void _expansionChange(int index, bool value) {
+    setState(() {
+      if (value) {
+        _overflowPrompts = ['Join drive now'];
+        _overflowMethods = [() => startDrive(index)];
+        _overflowIcons = [Icon(Icons.directions_car_outlined)];
+      } else {
+        _overflowPrompts = ['Show all drives', 'Only future drives'];
+        _overflowMethods = [() => _setAdding(true), () => _setAdding(false)];
+        _overflowIcons = [
+          Icon(Icons.checklist_outlined),
+          Icon(Icons.more_time_outlined)
+        ];
+      }
+    });
   }
 
   startDrive(int index) async {
@@ -416,7 +443,6 @@ class _GroupDriveFormState extends State<GroupDriveForm>
       instructions = ''}) async {
     if (myTripItem.driveUri.isEmpty) {
       await myTripItem.publish();
-      myTripItem.saveLocal();
     }
     try {
       Map<String, dynamic> toEmail = {

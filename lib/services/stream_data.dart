@@ -1,4 +1,7 @@
 import 'dart:async';
+import 'package:latlong2/latlong.dart';
+import 'package:geolocator/geolocator.dart';
+import 'dart:developer' as developer;
 
 class StreamSocket {
   final _socketResponse = StreamController<String>();
@@ -27,6 +30,55 @@ class DataStream<T> {
 
   void close() {
     streamController.close();
+  }
+}
+
+class FollowRoute<T> {
+  int _index = 0;
+  int _delay = 1;
+  bool run = false;
+  StreamController<Position> controller;
+  List<LatLng> _points = [];
+  Position? position;
+
+  FollowRoute({required this.controller});
+
+  void follow({required List<LatLng> points, index = 0, delay = 1}) {
+    run = true;
+    _points = points;
+    _index = index;
+    _delay = delay;
+    move();
+  }
+
+  Position? get getPosition => position;
+
+  void move() async {
+    if (run) {
+      for (int i = _index; i < _points.length; i++) {
+        await Future.delayed(Duration(seconds: _delay), () {
+          position = Position(
+              longitude: _points[i].longitude,
+              latitude: _points[i].latitude,
+              timestamp: DateTime.now(),
+              accuracy: 1,
+              altitude: 0,
+              altitudeAccuracy: 0,
+              heading: 0,
+              headingAccuracy: 0,
+              speed: 0,
+              speedAccuracy: 0);
+          controller.add(position!);
+          developer.log(
+              'added to stream: $i lat: ${position!.latitude} lng: ${position!.longitude}',
+              name: '_debug');
+        });
+      }
+    }
+  }
+
+  void close() {
+    controller.close();
   }
 }
 

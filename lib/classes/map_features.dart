@@ -164,6 +164,7 @@ Future<PublishedFeatures> getPublishedFeatures(
 
   features.addAll(await getFeatures(
       zoom: 10, onTap: pinTap, pointOfInterestLookup: pointOfInterestLookup));
+  developer.log('updateCache getting feaures from API getPublishedFeatures');
   return PublishedFeatures(
     features: features,
     pointOfInterestLookup: pointOfInterestLookup,
@@ -241,6 +242,7 @@ class PublishedFeatures {
       this.showRoutes = false});
 
   Future<void> populate({double zoom = 10, onTap}) async {
+    features.clear();
     features.addAll(await getFeatures(zoom: zoom, onTap: onTap));
     return;
   }
@@ -249,16 +251,12 @@ class PublishedFeatures {
     required Fence screenFence,
     double zoom = 12,
   }) async {
-    if (features.isEmpty) {
-      return false;
-    }
     screenCenter = screenFence.getCentre(bounds: screenFence);
     bool updateCache = cache.isEmpty;
     bool updateDetails = false;
 
     if (!cacheFence.contains(bounds: screenFence)) {
       cacheFence = Fence.fromFence(bounds: screenFence, deltaDegrees: 0.5);
-      developer.log('Updating fence', name: '_cache');
       updateCache = true;
     }
 
@@ -271,165 +269,164 @@ class PublishedFeatures {
       goodRoads.clear();
       cacheFence.setBounds(bounds: screenFence, deltaDegrees: 0.5);
       updateDetails = true;
+      listToFilter.clear();
       listToFilter.addAll(features);
-      developer.log('updateCache filtering features: ${listToFilter.length} ',
-          name: '_cache');
     } else if (markers.isEmpty) {
       updateDetails = true;
+      listToFilter.clear();
       listToFilter.addAll(cache);
-      developer.log('markers.isEmpty filtering cache: ${listToFilter.length} ',
-          name: '_cache');
     } else if (zoom > 11) {
       for (Feature feature in markers) {
         if (!screenFence.contains(bounds: feature.getBounds())) {
           listToFilter.addAll(cache);
           updateDetails = true;
-          developer.log('Zoom > 11 filtering cache: ${listToFilter.length}',
-              name: '_cache');
           break;
         }
       }
     }
     if (updateDetails) {
-      developer.log('Updating details listToFilter: ${listToFilter.length}',
-          name: '_cache');
       markers.clear();
       cards.clear();
       routeCards.clear();
       for (int k = 0; k < listToFilter.length; k++) {
         Feature feature = listToFilter[k];
-        switch (feature.type) {
-          case 0:
-            if (showRoutes &&
-                cacheFence.overlapped(bounds: feature.getBounds())) {
-              List<mt.Route>? toAdd = await routeRepository.loadRoute(
-                  key: feature.row, id: feature.id, uri: feature.uri);
-              if (toAdd != null) {
-                if (updateCache) {
-                  routes.addAll(toAdd);
-                  cache.add(feature);
+        try {
+          switch (feature.type) {
+            case 0:
+              if (showRoutes &&
+                  cacheFence.overlapped(bounds: feature.getBounds())) {
+                List<mt.Route>? toAdd = await routeRepository.loadRoute(
+                    key: feature.row, id: feature.id, uri: feature.uri);
+                if (toAdd != null) {
+                  if (updateCache) {
+                    routes.addAll(toAdd);
+                    cache.add(feature);
+                  }
+                  if (zoom >= showZoom) {
+                    updateDetails = await addRouteMarker(
+                        screenFence: screenFence,
+                        routes: toAdd,
+                        feature: feature,
+                        visibleFeatures: markers,
+                        score: 1,
+                        pinTap: pinTap,
+                        zoom: zoom);
+                  }
+                  List<Card> poiCards = [];
+                  for (Feature poiFeature in features) {
+                    if (poiFeature.type != 0 &&
+                        poiFeature.drive == feature.drive) {
+                      Card? poiCard = await getCard(
+                          feature: poiFeature, index: poiCards.length);
+                      if (poiCard != null) {
+                        poiCards.add(poiCard);
+                      }
+                    }
+                  }
+                  Card? card = await getCard(
+                    feature: feature,
+                    index: routeCards.length,
+                    children: poiCards,
+                    expandNotifier: expandNotifier,
+                  );
+                  if (card != null) {
+                    if (routeCards.length > 3) {
+                      debugPrint('Check');
+                    }
+                    developer.log('adding to routeCards: ${routeCards.length}',
+                        name: '_cache');
+                    routeCards.add(card);
+                  }
                 }
-                if (zoom >= showZoom) {
-                  updateDetails = await addRouteMarker(
-                      screenFence: screenFence,
-                      routes: toAdd,
-                      feature: feature,
-                      visibleFeatures: markers,
-                      score: 1,
-                      pinTap: pinTap,
-                      zoom: zoom);
+              }
+
+              break;
+            case 1:
+              if ((!exclude.contains(feature.poiType) &&
+                      cacheFence.contains(
+                        bounds: feature.getBounds(),
+                      )) &&
+                  zoom >= showZoom &&
+                  updateCache) {
+                if ([17, 18].contains(feature.poiType) &&
+                    feature.child.runtimeType != EndMarkerWidget) {
+                  feature = Feature.fromFeature(
+                    feature: feature,
+                    child: EndMarkerWidget(
+                      index: feature.row,
+                      begining: feature.poiType == 17,
+                      width: 25,
+                      color: Colors.white60,
+                      onPress: pinTap,
+                    ),
+                  );
+                } else if (feature.child.runtimeType != PinMarkerWidget) {
+                  PointOfInterest? pointOfInterest =
+                      await pointOfInterestRepository.loadPointOfInterest(
+                          key: feature.row, id: feature.id, uri: feature.uri);
+                  feature = Feature.fromFeature(
+                    feature: feature,
+                    child: PinMarkerWidget(
+                      index: feature.row,
+                      color: feature.poiType == 13
+                          ? colourList[Setup().goodRouteColour]
+                          : colourList[Setup().pointOfInterestColour],
+                      width: (zoom * 2.5),
+                      overlay:
+                          markerIcon(getIconIndex(iconIndex: feature.poiType)),
+                      onPress: pinTap,
+                      rating: pointOfInterest!.getScore(),
+                    ),
+                  );
                 }
-                List<Card> poiCards = [];
-                for (Feature poiFeature in features) {
-                  if (poiFeature.type != 0 &&
-                      poiFeature.drive == feature.drive) {
-                    Card? poiCard = await getCard(
-                        feature: poiFeature, index: poiCards.length);
-                    if (poiCard != null) {
-                      poiCards.add(poiCard);
+                cache.add(feature);
+              }
+
+              if (!exclude.contains(feature.poiType) &&
+                  screenFence.contains(bounds: feature.getBounds())) {
+                markers.add(feature);
+                Card? card = await getCard(
+                    feature: feature,
+                    index: cards.length,
+                    expandNotifier: expandNotifier);
+                if (card != null) {
+                  cards.add(card);
+                }
+                updateDetails = true;
+              }
+              break;
+            case 2:
+              if (cacheFence.overlapped(bounds: feature.getBounds())) {
+                mt.Route? goodRoad = await goodRoadRepository.loadGoodRoad(
+                    key: feature.row, id: feature.id, uri: feature.uri);
+                if (goodRoad != null) {
+                  if (updateCache) {
+                    goodRoads.add(goodRoad);
+                    cache.add(feature);
+                  }
+                  if (zoom >= showZoom) {
+                    updateDetails = await moveRouteMarker(
+                        screenFence: screenFence,
+                        route: goodRoad,
+                        feature: feature,
+                        pinTap: pinTap,
+                        zoom: zoom);
+                    Card? card = await getCard(
+                        feature: feature,
+                        index: cards.length,
+                        expandNotifier: expandNotifier);
+                    if (card != null) {
+                      cards.add(card);
                     }
                   }
                 }
-                Card? card = await getCard(
-                  feature: feature,
-                  index: routeCards.length,
-                  children: poiCards,
-                  expandNotifier: expandNotifier,
-                );
-                if (card != null) {
-                  if (routeCards.length > 3) {
-                    debugPrint('Check');
-                  }
-                  developer.log('adding to routeCards: ${routeCards.length}',
-                      name: '_cache');
-                  routeCards.add(card);
-                }
               }
-            }
-            break;
-          case 1:
-            if ((!exclude.contains(feature.poiType) &&
-                    cacheFence.contains(
-                      bounds: feature.getBounds(),
-                    )) &&
-                zoom >= showZoom &&
-                updateCache) {
-              if ([17, 18].contains(feature.poiType) &&
-                  feature.child.runtimeType != EndMarkerWidget) {
-                feature = Feature.fromFeature(
-                  feature: feature,
-                  child: EndMarkerWidget(
-                    index: feature.row,
-                    begining: feature.poiType == 17,
-                    width: 25,
-                    color: Colors.white60,
-                    onPress: pinTap,
-                  ),
-                );
-              } else if (feature.child.runtimeType != PinMarkerWidget) {
-                PointOfInterest? pointOfInterest =
-                    await pointOfInterestRepository.loadPointOfInterest(
-                        key: feature.row, id: feature.id, uri: feature.uri);
-                feature = Feature.fromFeature(
-                  feature: feature,
-                  child: PinMarkerWidget(
-                    index: feature.row,
-                    color: feature.poiType == 13
-                        ? colourList[Setup().goodRouteColour]
-                        : colourList[Setup().pointOfInterestColour],
-                    width: (zoom * 2.5),
-                    overlay:
-                        markerIcon(getIconIndex(iconIndex: feature.poiType)),
-                    onPress: pinTap,
-                    rating: pointOfInterest!.getScore(),
-                  ),
-                );
-              }
-              cache.add(feature);
-            }
-
-            if (!exclude.contains(feature.poiType) &&
-                screenFence.contains(bounds: feature.getBounds())) {
-              markers.add(feature);
-              Card? card = await getCard(
-                  feature: feature,
-                  index: cards.length,
-                  expandNotifier: expandNotifier);
-              if (card != null) {
-                cards.add(card);
-              }
-              updateDetails = true;
-            }
-            break;
-          case 2:
-            if (cacheFence.overlapped(bounds: feature.getBounds())) {
-              mt.Route? goodRoad = await goodRoadRepository.loadGoodRoad(
-                  key: feature.row, id: feature.id, uri: feature.uri);
-              if (goodRoad != null) {
-                if (updateCache) {
-                  goodRoads.add(goodRoad);
-                  cache.add(feature);
-                }
-                if (zoom >= showZoom) {
-                  updateDetails = await moveRouteMarker(
-                      screenFence: screenFence,
-                      route: goodRoad,
-                      feature: feature,
-                      pinTap: pinTap,
-                      zoom: zoom);
-                  Card? card = await getCard(
-                      feature: feature,
-                      index: cards.length,
-                      expandNotifier: expandNotifier);
-                  if (card != null) {
-                    cards.add(card);
-                  }
-                }
-              }
-            }
-            break;
-          default:
-            break;
+              break;
+            default:
+              break;
+          }
+        } catch (e) {
+          debugPrint('switch error:');
         }
       }
 
@@ -523,8 +520,7 @@ class PublishedFeatures {
     LatLng? pos;
     bool debug = false;
 
-    Fence offsetFence = Fence.fromFence(
-        bounds: fence, deltaPercent: -5); //deltaDegrees: -0.015);
+    Fence offsetFence = Fence.fromFence(bounds: fence, deltaPercent: -5);
     for (int h = 0; h < polylines.length; h++) {
       int first = -1;
       int last = -1;

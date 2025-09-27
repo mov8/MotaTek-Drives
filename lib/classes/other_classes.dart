@@ -2,7 +2,7 @@
 import 'package:drives/classes/classes.dart';
 // import 'package:flutter/widgets.dart';
 import 'package:drives/constants.dart';
-// import 'package:latlong2/latlong.dart';
+import 'package:latlong2/latlong.dart';
 /*
             id: groupData['id'],
             name: groupData['name'],
@@ -20,6 +20,7 @@ class MailItem {
   final int read;
   final int messages;
   final bool isGroup;
+  final String email;
   MailItem({
     this.id = '',
     this.name = '',
@@ -29,6 +30,7 @@ class MailItem {
     this.read = 0,
     this.messages = 0,
     this.isGroup = false,
+    this.email = '',
   });
 }
 
@@ -42,6 +44,18 @@ class TripArguments {
 class MutableInt {
   int value;
   MutableInt({this.value = -1});
+}
+
+class RouteDelta {
+  int distance;
+  int routeIndex;
+  int pointIndex;
+  LatLng point;
+  RouteDelta(
+      {this.distance = 0,
+      this.routeIndex = -1,
+      this.pointIndex = -1,
+      this.point = const LatLng(0, 0)});
 }
 
 class MutableDouble {

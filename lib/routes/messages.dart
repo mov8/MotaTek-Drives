@@ -63,12 +63,13 @@ class _MessagesState extends State<Messages> {
     socket.onError((data) => debugPrint('Error: ${data.toString()}'));
 
     socket.onConnect((_) {
-      debugPrint('onConnect connected');
+      developer.log('socket.onConnect called', name: '_messages');
       socket.emit('user_connect', {'token': Setup().jwt});
     });
 
     socket.on('message_from_group', (data) {
       try {
+        developer.log('message_from_group', name: '_messages');
         if (_openTile > -1 && _mailItems[_openTile].isGroup) {
           _messages[_messages.length - 1] = Message.fromSocketMap(data);
           setState(() => appendEmptyMessage());
@@ -94,7 +95,7 @@ class _MessagesState extends State<Messages> {
     }
 */
     socket.connect();
-    debugPrint('should have connected');
+    developer.log('socket.connect called', name: '_messages');
 
     _dataLoaded = getMessages();
   }
@@ -156,6 +157,7 @@ class _MessagesState extends State<Messages> {
   void _getMessages(int index, bool value) async {
     developer.log('_getMessages index: $index  value: $value',
         name: '_messages');
+    _expanded = List.generate(_mailItems.length, (index) => false);
     if (value) {
       if (_mailItems[index].isGroup) {
         _messages = await getGroupMessages(_mailItems[index].id);
@@ -164,12 +166,15 @@ class _MessagesState extends State<Messages> {
       }
       appendEmptyMessage();
       setState(() => _expanded[index] = true);
-      socket.emit('group_join',
-          {'token': Setup().jwt, 'group': _mailItems[_openTile].id});
       _openTile = index;
+      try {
+        socket.emit('group_join',
+            {'token': Setup().jwt, 'group': _mailItems[_openTile].id});
+      } catch (e) {
+        developer.log('socketIo error: ${e.toString()}', name: '_messages');
+      }
     } else {
-      _openTile = -1;
-      setState(() => _expanded[index] = false);
+      setState(() => _openTile = -1);
       if (_mailItems[index].isGroup) {
         socket.emit('leave_group');
       }
@@ -177,10 +182,21 @@ class _MessagesState extends State<Messages> {
   }
 
   void sendMessage(int index) {
-    String target =
-        _mailItems[index].isGroup ? 'group_message' : 'user_message';
-    socket.emit(target, _messages[index].message);
-    appendEmptyMessage();
+    if (_mailItems[_openTile].isGroup) {
+      socket.emit('group_message', _messages[_messages.length - 1].message);
+    } else {
+      try {
+        socket.emit('user_message', {
+          'message': _messages[_messages.length - 1].message,
+          'token': Setup().jwt,
+          'user_email': _mailItems[_openTile].email,
+        });
+      } catch (e) {
+        developer.log('user_message error: ${e.toString()}', name: '_messages');
+      }
+      setState(() => appendEmptyMessage());
+    }
+    // setState(() => appendEmptyMessage());
   }
 
   void appendEmptyMessage() {
@@ -188,6 +204,7 @@ class _MessagesState extends State<Messages> {
       Message(
           id: '',
           sender: '${Setup().user.forename} ${Setup().user.surname}',
+          sent: true,
           message: ''),
     );
   }
@@ -208,8 +225,11 @@ class _MessagesState extends State<Messages> {
     GroupMember contact = await getUserByEmail(email);
     String name = '${contact.forename} ${contact.surname}';
     _expanded = List.generate(_mailItems.length, (index) => false);
-    _mailItems.add(MailItem(id: '', name: name, isGroup: false));
+    _mailItems.add(MailItem(id: '', name: name, isGroup: false, email: email));
     _expanded.add(true);
+    _messages.clear();
+    appendEmptyMessage();
+    _openTile = _mailItems.length - 1;
     setState(() => _addContact = false);
   }
 

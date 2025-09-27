@@ -77,7 +77,12 @@ Icon _getNavIcon(String modifier, String type, int index, int maneuvers) {
     Icons.arrow_upward,
     size: 40,
   );
-  if (index < maneuvers - 1 && type.contains('arrive')) {
+  if (index == 0) {
+    navIcon = const Icon(
+      Icons.flag_outlined,
+      size: 40,
+    );
+  } else if (index < maneuvers - 1 && type.contains('arrive')) {
     navIcon = const Icon(
       Icons.pin_drop,
       size: 40,

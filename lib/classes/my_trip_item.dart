@@ -15,6 +15,7 @@ import 'package:drives/models/other_models.dart';
 import 'package:drives/services/web_helper.dart' as wh;
 import 'package:latlong2/latlong.dart';
 import 'package:flutter/material.dart';
+// import 'package:drives/classes/directions.dart';
 
 class CurrentTripItem extends MyTripItem {
   CurrentTripItem._privateConstructor();
@@ -25,6 +26,7 @@ class CurrentTripItem extends MyTripItem {
   TripType tripType = TripType.none;
   HighliteActions highliteActions = HighliteActions.none;
   XFile? imageFile;
+  //late Directions _directions;
 
   static final _instance = CurrentTripItem._privateConstructor();
 

@@ -773,7 +773,7 @@ Future<PointOfInterest> getPointOfInterest(
         Uri.parse('$urlPointOfInterest/$uri'),
         headers: webHeader(),
       )
-      .timeout(const Duration(seconds: 5));
+      .timeout(const Duration(seconds: 10));
   if ([200, 201].contains(response.statusCode) && response.body.length > 10) {
     dynamic map = jsonDecode(response.body);
     PointOfInterest pointOfInterest = PointOfInterest(
@@ -839,9 +839,11 @@ Future<String> postManeuver(Maneuver maneuver, String driveUid) async {
 }
 
 Future<String> postManeuvers(List<Maneuver> maneuvers, String driveUid) async {
-  List<Map<String, dynamic>> maps = [
-    for (Maneuver maneuver in maneuvers) maneuver.toMap(driveUid: driveUid)
-  ];
+  List<Map<String, dynamic>> maps = [];
+  for (int i = 0; i < maneuvers.length; i++) {
+    maps.add(maneuvers[i].toMap(driveUid: driveUid));
+  }
+
   if (maps.isEmpty) {
     return jsonEncode({'message': 'no maneuvers to post'});
   }
@@ -2129,7 +2131,7 @@ Future<bool> sendDriverDetails(Follower driver) async {
       return false;
     }
   } catch (e) {
-    debugPrint("Can't access data on the web: ${e.toString()}");
+    debugPrint("Can't send driver details to the web: ${e.toString()}");
     return false;
   }
 }

@@ -36,16 +36,18 @@ class _MessageByGroupTileState extends State<MessageExpansionTile> {
       child: ExpansionTile(
         // onTap: () => widget.onSelect!(widget.index),
         //  backgroundColor: Colors.transparent,
-        leading: Badge.count(
-          backgroundColor: widget.mailItem.unreadMessages > 0
-              ? const Color.fromRGBO(158, 14, 4, 1)
-              : const Color.fromARGB(255, 91, 129, 194),
-          textColor: widget.mailItem.unreadMessages > 0
-              ? Colors.white
-              : const Color.fromRGBO(241, 238, 238, 1),
-          count: widget.mailItem.unreadMessages,
-          child: const Icon(Icons.messenger_outlined, size: 30),
-        ),
+        leading: widget.mailItem.isGroup
+            ? Icon(Icons.group, size: 30)
+            : Badge.count(
+                backgroundColor: widget.mailItem.unreadMessages > 0
+                    ? const Color.fromRGBO(158, 14, 4, 1)
+                    : const Color.fromARGB(255, 91, 129, 194),
+                textColor: widget.mailItem.unreadMessages > 0
+                    ? Colors.white
+                    : const Color.fromRGBO(241, 238, 238, 1),
+                count: widget.mailItem.unreadMessages,
+                child: const Icon(Icons.messenger_outlined, size: 30),
+              ),
 
         title: Text(
           '${widget.mailItem.name} ',
@@ -65,17 +67,18 @@ class _MessageByGroupTileState extends State<MessageExpansionTile> {
                 )
               ],
             ),
-            Row(
-              children: [
-                Expanded(
-                  flex: 1,
-                  child: Text(
-                    'unread messages: ${widget.mailItem.unreadMessages}',
-                    style: const TextStyle(fontSize: 18),
+            if (!widget.mailItem.isGroup)
+              Row(
+                children: [
+                  Expanded(
+                    flex: 1,
+                    child: Text(
+                      'unread messages: ${widget.mailItem.unreadMessages}',
+                      style: const TextStyle(fontSize: 18),
+                    ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
           ],
         ),
         onExpansionChanged: (value) => widget.onOpen!(widget.index, value),

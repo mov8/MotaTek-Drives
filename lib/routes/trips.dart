@@ -60,6 +60,7 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
   late final Future<bool> _dataLoaded;
   late Style _style;
   bool _showPreferences = false;
+  bool _publishedFeaturesUpdated = true;
   final TripsPreferences _preferences = TripsPreferences();
   final ScrollController _preferencesScrollController = ScrollController();
   final _dividerHeight = 35.0;
@@ -483,25 +484,33 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
               Fence newFence = Fence.fromBounds(
                   _animatedMapController.mapController.camera.visibleBounds);
               mapController.mapEventStream.listen((event) {});
-              _publishedFeatures.update(screenFence: newFence).then(
-                (update) {
-                  if (update) {
-                    setState(() => {});
-                  }
-                },
-              );
+              if (_publishedFeaturesUpdated) {
+                _publishedFeaturesUpdated = false;
+                _publishedFeatures.update(screenFence: newFence).then(
+                  (update) {
+                    if (update) {
+                      setState(() => {});
+                    }
+                  },
+                );
+                _publishedFeaturesUpdated = true;
+              }
             },
             onPositionChanged: (pos, change) async {
               Fence newFence = Fence.fromBounds(
                   _animatedMapController.mapController.camera.visibleBounds);
               // developer.log()
-              _publishedFeatures.update(screenFence: newFence).then(
-                (update) {
-                  if (update) {
-                    setState(() => {});
-                  }
-                },
-              );
+              if (_publishedFeaturesUpdated) {
+                _publishedFeaturesUpdated = false;
+                _publishedFeatures.update(screenFence: newFence).then(
+                  (update) {
+                    _publishedFeaturesUpdated = true;
+                    if (update) {
+                      setState(() => {});
+                    }
+                  },
+                );
+              }
             },
             initialCenter: LatLng(_currentPosition.latitude,
                 _currentPosition.longitude), // LatLng(51.507, 0.1276),

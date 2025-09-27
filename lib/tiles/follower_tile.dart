@@ -30,7 +30,13 @@ class FollowerTile extends StatefulWidget {
 }
 
 class _FollowerTileState extends State<FollowerTile> {
-  String status = '(not yet joined)';
+  final List<String> _statuses = [
+    "(hasn't replied to invitation)",
+    '',
+    '(accepted but not yet joined)',
+    '(has joined)'
+  ];
+  String _status = '';
 
   @override
   void initState() {
@@ -48,20 +54,45 @@ class _FollowerTileState extends State<FollowerTile> {
         title: SizedBox(
           height: 80,
           width: MediaQuery.of(context).size.width - 100,
-          child:
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(
-              '${widget.follower.forename} ${widget.follower.surname}',
-              style: const TextStyle(
-                  fontSize: 30,
-                  fontWeight: FontWeight.bold,
-                  overflow: TextOverflow.ellipsis),
-            ),
-            Text(
-              status,
-              style: const TextStyle(overflow: TextOverflow.ellipsis),
-            ),
-          ]),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    flex: 9,
+                    child: Text(
+                      '${widget.follower.forename} ${widget.follower.surname}',
+                      style: const TextStyle(
+                          fontSize: 25,
+                          fontWeight: FontWeight.bold,
+                          overflow: TextOverflow.ellipsis),
+                    ),
+                  ),
+                  if (widget.follower.email != Setup().user.email) ...[
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        'track',
+                        style: const TextStyle(fontSize: 18),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 1,
+                      child: Checkbox(
+                          value: widget.follower.track,
+                          onChanged: (value) => setState(
+                              () => widget.follower.track = value ?? false)),
+                    ),
+                  ],
+                ],
+              ),
+              Text(
+                _status,
+                style: const TextStyle(overflow: TextOverflow.ellipsis),
+              ),
+            ],
+          ),
         ),
         subtitle: SizedBox(
           height: 50,
@@ -90,6 +121,7 @@ class _FollowerTileState extends State<FollowerTile> {
           ]),
         ),
         leading: InitialsButton(
+            radius: 20,
             initials: getInitials(
                 name: '${widget.follower.forename} ${widget.follower.surname}'),
             onPressed: () => widget.onIconClick(widget.index),
@@ -108,29 +140,33 @@ class _FollowerTileState extends State<FollowerTile> {
           widget.follower.position.latitude,
           widget.follower.position.longitude);
       if (distance > 1000) {
-        status =
+        _status =
             '(${(distance * metersToMiles).toStringAsFixed(1)} miles away)';
       } else {
-        status = '(${distance.round()} meters away)';
+        _status = '(${distance.round()} meters away)';
       }
     }
   }
 
   calcStatus() {
-    if (widget.follower.position != LatLng(0.0, 0.0)) {
-      double distance = Geolocator.distanceBetween(
-          widget.currentPosition.latitude,
-          widget.currentPosition.longitude,
-          widget.follower.position.latitude,
-          widget.follower.position.longitude);
-      if (distance > 1000) {
-        status =
-            '(${(distance * metersToMiles).toStringAsFixed(1)} miles away)';
-      } else {
-        status = '(${distance.round()} meters away)';
+    _status = '(tracked with this device)';
+    if (widget.follower.email != Setup().user.email) {
+      _status = _statuses[widget.follower.accepted];
+      if (widget.follower.position != LatLng(0.0, 0.0)) {
+        double distance = Geolocator.distanceBetween(
+            widget.currentPosition.latitude,
+            widget.currentPosition.longitude,
+            widget.follower.position.latitude,
+            widget.follower.position.longitude);
+        if (distance > 1000) {
+          _status =
+              '(${(distance * metersToMiles).toStringAsFixed(1)} miles away)';
+        } else {
+          _status = '(${distance.round()} meters away)';
+        }
       }
+      return;
     }
-    return;
   }
 }
 

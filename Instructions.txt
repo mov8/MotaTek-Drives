@@ -1,3 +1,4 @@
+Redmi jumbleboy
 Problems with version updates on devices:
 Experienced a problem for a little while where after a build
 have to do a restart befor the latest build is put on the 
@@ -33,3 +34,13 @@ mariadb -uroot -pmysecret  <-- Start mariadb
 
 To copy a new app version to the Droplet
 scp /home/james/Python-3.10.0/Drives/drives/apks/motatek_drives.apk root@64.227.34.217:/root/app/static/apks/motatek_drives.apk
+
+To do sort out problem with group drives 
+- Took drive from API 
+- Inviter was mobile Stag
+- Invitee tablet AC was first to join trip
+- Inviter tracked invitee correctly
+- Invitee didn't
+
+- Then nulled the lat lng on both group_drive_invitations records and neither tracked
+

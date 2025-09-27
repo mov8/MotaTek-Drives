@@ -63,7 +63,7 @@ class GroupDriveInvitationTile extends StatefulWidget {
 class _GroupDriveInvitationTileState extends State<GroupDriveInvitationTile> {
   DateFormat dateFormat = DateFormat('d MMM y');
 
-  List<String> invState = ['undecided', 'declined', 'accepted'];
+  List<String> invState = ['undecided', 'declined', 'accepted', 'joined'];
   List<Photo> photos = [];
 
   @override

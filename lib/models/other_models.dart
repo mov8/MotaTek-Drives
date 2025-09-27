@@ -173,6 +173,14 @@ const List<Map> poiTypes = [
     'iconMaterial': 0xe5f1,
     'colour': 'Colors.red',
     'colourMaterial': 0xff4CAF50
+  },
+  {
+    'id': 19,
+    'name': 'End',
+    'icon': 'Icons.sports_score',
+    'iconMaterial': 0xe5f1,
+    'colour': 'Colors.transparent',
+    'colourMaterial': 0xff4CAF50
   }
 ];
 
@@ -204,6 +212,7 @@ Map<Color, String> uiColours = {
   Colors.grey: 'grey',
   Colors.brown: 'brown',
   Colors.black: 'black',
+  Colors.transparent: 'transparent',
 };
 
 List<Color> colourList = uiColours.keys.toList();
@@ -602,6 +611,10 @@ class MarkerWidget extends StatelessWidget {
         buttonFillColor = Colors.transparent;
         iconWidth = 25;
         break;
+      case 19:
+        buttonFillColor = Colors.transparent;
+        iconWidth = 25;
+        break;
       default:
         buttonFillColor =
             colourList[Setup().pointOfInterestColour]; //Colors.transparent;
@@ -625,13 +638,17 @@ class MarkerWidget extends StatelessWidget {
         child: Padding(
           //padding: const EdgeInsets.fromLTRB(2, 2, 3, 4),
           padding: const EdgeInsets.fromLTRB(0, 0, 1, 2),
-          child: [12, 17, 18].contains(type)
+
+          /// 12 waypoint 17 start  18 end  19 revist / start - end
+          child: [12, 17, 18, 19].contains(type)
               ? CircleAvatar(
-                  backgroundColor: Colors.red,
+                  backgroundColor: type == 19 ? Colors.transparent : Colors.red,
                   radius: 50, //iconWidth,
                   child: Text(
                     '${listIndex + 1}',
-                    style: const TextStyle(fontSize: 10, color: Colors.white),
+                    style: TextStyle(
+                        fontSize: 10,
+                        color: type == 19 ? Colors.transparent : Colors.white),
                   ),
                 )
               : Icon(
@@ -1822,18 +1839,21 @@ class OsmAmenity extends Marker {
 
 class Follower extends Marker {
   String uri;
-  String userId = '';
+  String userId;
   String driveId;
   String driveName;
-  String forename = '';
-  String surname = '';
-  String email = '';
-  String phoneNumber = '';
-  String manufacturer = '';
-  String model = '';
-  String registration = '';
-  String carColour = '';
-  int iconColour = 0;
+  String forename;
+  String surname;
+  String email;
+  String phoneNumber;
+  String manufacturer;
+  String model;
+  String registration;
+  String carColour;
+  int iconColour;
+  int routeIndex;
+  int accepted;
+  bool track;
   LatLng position; // = const LatLng(0, 0);
   Widget marker;
   DateTime reported = DateTime.now();
@@ -1858,6 +1878,9 @@ class Follower extends Marker {
       this.width = 20,
       this.height = 20,
       this.iconColour = 0,
+      this.routeIndex = -1,
+      this.accepted = 0,
+      this.track = false,
       required this.position,
       required this.marker})
       : super(
@@ -1889,13 +1912,18 @@ class Follower extends Marker {
         width: follower.width,
         height: follower.height,
         iconColour: follower.iconColour,
+        accepted: follower.accepted,
+        routeIndex: follower.routeIndex,
         position: position,
+        track: follower.track,
         marker: marker);
   }
 
   factory Follower.fromMap({required Map<String, dynamic> map}) {
+    double lat = map['lat'] ?? 0;
+    double lng = map['lng'] ?? 0;
     return Follower(
-        position: LatLng(0.0, 0.0),
+        position: LatLng(lat, lng),
         marker: Text(''),
         uri: map['invitation_id'] ?? '',
         userId: map['user_id'] ?? '',
@@ -1906,6 +1934,7 @@ class Follower extends Marker {
         phoneNumber: map['user_phone'] ?? '',
         email: map['user_email'] ?? '',
         carColour: map['colour'] ?? '',
+        accepted: int.parse(map['accepted'] ?? '0'),
         manufacturer: map['manufacturer'] ?? '',
         model: map['model'] ?? '',
         registration: map['registration'] ?? '');
@@ -1924,6 +1953,7 @@ class Follower extends Marker {
       'car_colour': carColour,
       'registration': registration,
       'icon_colour': iconColour,
+      'accepted': accepted,
       'position':
           '{"lat": ${position.latitude}, "long": ${position.longitude}}',
       'reported': reported.toString()
@@ -2445,6 +2475,8 @@ class TripMessage {
   String model;
   String carColour;
   String registration;
+  String phoneNumber;
+  int accepted;
   TripMessage(
       {this.id = '',
       this.type = '',
@@ -2456,7 +2488,9 @@ class TripMessage {
       this.manufacturer = '',
       this.model = '',
       this.carColour = '',
-      this.registration = ''});
+      this.registration = '',
+      this.phoneNumber = '',
+      this.accepted = 0});
   factory TripMessage.fromSocketMap(Map<String, dynamic> map) {
     return TripMessage(
         id: map['id'] ?? '',
@@ -2469,7 +2503,9 @@ class TripMessage {
         manufacturer: map['make'] ?? '',
         model: map['model'] ?? '',
         carColour: map['colour'] ?? '',
-        registration: map['reg'] ?? '');
+        registration: map['reg'] ?? '',
+        phoneNumber: map['phone'] ?? '',
+        accepted: map['accepted'] ?? 0);
   }
 }
 

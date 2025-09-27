@@ -2,7 +2,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-const appVersion = {'major': 0, 'minor': 0, 'patch': 5, 'suffix': 'beta db'};
+const appVersion = {'major': 0, 'minor': 0, 'patch': 9, 'suffix': 'beta db'};
 
 const apiAddress = 'https://drives.motatek.com/';
 // const wifiIpAddress = '192.168.1.14:5001'; // <- Home

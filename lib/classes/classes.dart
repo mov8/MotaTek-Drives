@@ -6,6 +6,7 @@ export 'package:drives/classes/cached_tile_identity.dart';
 export 'package:drives/classes/cached_vector_tile_provider.dart';
 export 'package:drives/classes/cached_vector_tile_layer.dart';
 export 'package:drives/classes/caches.dart';
+export 'package:drives/classes/directions.dart';
 export 'package:drives/classes/drive_invitations.dart';
 export 'package:drives/classes/fences.dart';
 export 'package:drives/classes/image_list_indicator.dart';

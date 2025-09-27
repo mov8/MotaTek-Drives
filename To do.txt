@@ -3,6 +3,19 @@ make sure the turn by turn distances change correcty
 add re-routing
 
 
+Try a new stratergy for route defining:
+Make every 2 waypoints a separate route mt.Route[n] - I can't see any disadvantage the having several 2 waypoint routes
+
+
+If a route is modified then either the router makes it's own decisions or anchors are used to constrain the router:
+        1 add 2 anchor points to define the bit of the route to be rerouted add option of defining a waypoint as an anchor
+        2 add a new waypoint to the route which will remove the section between the anchors.
+        3 calculate a new 3 waypoint route between the anchors that includes the new waypoint.
+        4 remove the anchor waypoints
+        5 repeat process if further modigications are needed
+
+Think about allowing a step back option on editing routes
+                   
 
 On next Flutter release see if Impeller is sorted: 
 change the android/app/src/main/AndroidManifest.xml

@@ -21,6 +21,20 @@ class TripHeaderTile extends StatefulWidget {
 }
 
 class _TripHeaderTileState extends State<TripHeaderTile> {
+  FocusNode fn1 = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    fn1.requestFocus();
+  }
+
+  @override
+  void dispose() {
+    fn1.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -30,9 +44,9 @@ class _TripHeaderTileState extends State<TripHeaderTile> {
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
             child: TextFormField(
                 readOnly: widget.appState == AppState.driveTrip,
+                focusNode: fn1,
                 //    enabled: _appState != AppState.driveTrip,
                 // autofocus: true,
-
                 textAlign: TextAlign.start,
                 keyboardType: TextInputType.streetAddress,
                 textCapitalization: TextCapitalization.words,

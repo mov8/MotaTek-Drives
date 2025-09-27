@@ -8,6 +8,7 @@ import 'package:drives/constants.dart';
 import 'package:drives/classes/classes.dart';
 import 'package:drives/classes/route.dart' as mt;
 // import 'package:drives/classes/vectors.dart';
+
 import 'package:path_provider/path_provider.dart';
 import 'package:drives/screens/screens.dart';
 import 'package:drives/services/services.dart' hide getPosition;
@@ -180,6 +181,7 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   final _cacheFence = Fence.create();
   LatLng topRight = const LatLng(0, 0);
   LatLng bottomLeft = const LatLng(0, 0);
+  LatLng testPos = LatLng(0, 0);
   bool _updateOverlays = true;
   late final ExpandNotifier _expandNotifier;
   final ScrollController _scrollController = ScrollController();
@@ -194,6 +196,8 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   late final FloatingTextEditController _floatingTextEditController1;
   late final FloatingTextEditController _floatingTextEditController2;
 
+  late final StreamController<Position> _debugPositionController;
+  late final FollowRoute _debugRoute;
   int initialLeadingWidgetValue = 0;
   late AlignOnUpdate _alignPositionOnUpdate;
   late AlignOnUpdate _alignDirectionOnUpdate;
@@ -211,13 +215,18 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
 
   final OsmFeatures _osmFeatures = OsmFeatures();
   // List<PointOfInterest> _pointsOfInterest = [];
+  final List<Marker> _debugMarkers = [];
+  final bool _debugging = false; // true;
+  final Directions _directions = Directions();
 
   double _width = 56.0;
   final double _height = 56.0;
   bool _expanded = false;
+  bool _pubUpdate = true;
   //double _width1 = 56.0;
   //double _height1 = 56.0;
   //bool _expanded1 = false;
+  final RouteDelta _distanceFromRoute = RouteDelta();
   late bool _hasRepainted;
   StreamSocket streamSocket = StreamSocket();
   sio.Socket socket = sio.io(urlBase, <String, dynamic>{
@@ -377,8 +386,24 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
     _bottomNavController = RoutesBottomNavController();
     _expandNotifier = ExpandNotifier(-1);
 
-    _locationSettings =
-        getGeolocatorSettings(defaultTargetPlatform: TargetPlatform.android);
+    _locationSettings = getGeolocatorSettings(
+        defaultTargetPlatform: TargetPlatform.android, distanceFilter: 5);
+
+    if (_debugging) {
+      _debugPositionController = StreamController<Position>();
+      _debugRoute = FollowRoute(controller: _debugPositionController);
+
+      _debugMarkers.add(
+        Marker(
+          child: Icon(
+            Icons.adb,
+            size: 30,
+            color: Colors.redAccent,
+          ),
+          point: LatLng(0, 0),
+        ),
+      );
+    }
 
     try {
       _loadedOK = dataFromDatabase();
@@ -404,8 +429,9 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
             debugPrint('message: ${tripMessage.message}');
           }
 
-          if (tripMessage.message.isNotEmpty ||
-              ['p', 's'].contains(tripMessage.type)) {
+          if (tripMessage.email != Setup().user.email &&
+              (tripMessage.message.isNotEmpty ||
+                  ['p', 's'].contains(tripMessage.type))) {
             try {
               if (['p', 's'].contains(tripMessage.type) &&
                   tripMessage.lat != 0 &&
@@ -413,28 +439,48 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
                 for (int i = 0; i < _following.length; i++) {
                   //for (Follower follower in _following) {
 
-                  if (_following[i].email == tripMessage.email) {
+                  if (_following[i].email == tripMessage.email &&
+                      _following[i].email != Setup().user.email) {
                     _following[i] = Follower.moveFollower(
                         follower: _following[i],
                         marker: _following[i].marker,
                         position: LatLng(tripMessage.lat, tripMessage.lng));
-                    /*    try {
-                      _followerTileController.changePosition(
-                          position: LatLng(tripMessage.lat, tripMessage.lng));
-                    } catch (e) {
-                      debugPrint('_followerTileController not attached');
-                    } */
                     if (tripMessage.type == 's') {
                       _following[i].manufacturer = tripMessage.manufacturer;
-                      _following[i].model = tripMessage.manufacturer;
+                      _following[i].model = tripMessage.model;
                       _following[i].carColour = tripMessage.carColour;
                       _following[i].registration = tripMessage.registration;
+                      _following[i].phoneNumber = tripMessage.phoneNumber;
+                      _following[i].position =
+                          LatLng(tripMessage.lat, tripMessage.lng);
+                      _following[i].accepted = tripMessage.accepted;
+                    }
+                    if (_following[i].track) {
+                      if (_following[i].routeIndex == -1) {
+                        _following[i].routeIndex =
+                            CurrentTripItem().routes.length;
+                        CurrentTripItem().routes.add(
+                              mt.Route(
+                                color: colourList[_following[i].iconColour],
+                                borderColor:
+                                    colourList[_following[i].iconColour],
+                                strokeWidth: 5,
+                                points: [
+                                  LatLng(tripMessage.lat, tripMessage.lng)
+                                ],
+                              ),
+                            );
+                      } else {
+                        CurrentTripItem()
+                            .routes[_following[i].routeIndex]
+                            .points
+                            .add(LatLng(tripMessage.lat, tripMessage.lng));
+                      }
                     }
                   }
                 }
               } else {
                 for (int i = 0; i < _following.length; i++) {
-                  //for (Follower follower in _following) {
                   if (_following[i].email == tripMessage.email) {
                     tripMessage.manufacturer = _following[i].manufacturer;
                     tripMessage.model = _following[i].model;
@@ -444,11 +490,10 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
                   }
                 }
 
-                if (tripMessage.email != Setup().user.email) {
-                  _tripMessages.add(tripMessage);
-                  showMessages(message: tripMessage);
-                }
+                _tripMessages.add(tripMessage);
+                showMessages(message: tripMessage);
               }
+
               setState(() {});
             } catch (e) {
               debugPrint('Error: ${e.toString()}');
@@ -482,13 +527,13 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
       );
 
       socket.onConnect((_) {
-        socket.emit('trip_join',
-            {'token': Setup().jwt, 'trip': CurrentTripItem().groupDriveId});
+        //    socket.emit('trip_join',
+        //        {'token': Setup().jwt, 'trip': CurrentTripItem().groupDriveId});
       });
 
       if (socket.connected) {
-        socket.emit('trip_join',
-            {'token': Setup().jwt, 'trip': CurrentTripItem().groupDriveId});
+//        socket.emit('trip_join',
+//            {'token': Setup().jwt, 'trip': CurrentTripItem().groupDriveId});
       }
     } catch (e) {
       debugPrint('Error initialising Drives: ${e.toString()}');
@@ -511,6 +556,9 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
       } catch (e) {
         debugPrint('error disposing of group_messages: ${e.toString()}');
       }
+    }
+    if (socket.connected) {
+      socket.close;
     }
     streamSocket.dispose();
     super.dispose();
@@ -539,56 +587,39 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   }
 
   Future<Map<String, dynamic>> addRoute(LatLng latLng1, LatLng latLng2) async {
-    String waypoint =
-        '${latLng1.longitude},${latLng1.latitude};${latLng2.longitude},${latLng2.latitude}';
-    return await getRoutePoints(waypoints: waypoint);
+    return await getRoutePoints(points: [latLng1, latLng2], addPoints: true);
   }
 
-  Future loadRoutes() async {
-    /*
-    int prior = -1;
-    int next = -1;
-    String waypoints = '';
-    for (int i = 0; i < CurrentTripItem().pointsOfInterest.length; i++) {
-      if (CurrentTripItem().pointsOfInterest[i].getType() == 12) {
-        if (prior == -1) {
-          prior = i;
-        } else if (next == -1) {
-          next = i;
-        } else {
-          prior = next;
-          next = i;
-        }
-        if (next > -1) {
-          waypoints =
-              '$waypoints${CurrentTripItem().pointsOfInterest[prior].point.longitude},${CurrentTripItem().pointsOfInterest[prior].point.latitude};';
-          waypoints =
-              '$waypoints${CurrentTripItem().pointsOfInterest[next].point.longitude},${CurrentTripItem().pointsOfInterest[next].point.latitude};';
-        }
-      }
-    }
+  Future reRoute({bool editing = true}) async {
+    List<LatLng> waypoints = [];
 
-    */
-    String waypoints = '';
-    String delim = '';
     for (int i = 0; i < CurrentTripItem().pointsOfInterest.length; i++) {
       PointOfInterest poi = CurrentTripItem().pointsOfInterest[i];
-      if ([12, 17, 18].contains(poi.getType())) {
-        waypoints =
-            '$waypoints$delim${poi.point.longitude},${poi.point.latitude}';
-        delim = ';';
+      if ([12, 17, 18, 19].contains(poi.getType())) {
+        waypoints.add(poi.point);
       }
     }
 
-    if (waypoints != '') {
-      CurrentTripItem().clearRoutes();
-      CurrentTripItem().clearManeuvers();
-      waypoints = waypoints.substring(0, waypoints.length - 1);
-      List<LatLng> points = await getRoutes(waypoints);
+    if (waypoints.isNotEmpty) {
+      Map<String, dynamic> routeData = {};
+      if (editing) {
+        CurrentTripItem().clearRoutes();
+        CurrentTripItem().clearManeuvers();
+
+        routeData = await getRoutePoints(points: waypoints, addPoints: true);
+        CurrentTripItem().maneuvers = routeData['maneuvers'];
+      } else {
+        routeData = await getRoutePoints(points: [
+          waypoints[waypoints.length - 2],
+          waypoints[waypoints.length - 1]
+        ], addPoints: true);
+        CurrentTripItem().maneuvers.addAll(routeData['maneuvers']);
+      }
+
       CurrentTripItem().addRoute(
         mt.Route(
             id: -1,
-            points: points, // Route,
+            points: routeData['points'], // Route,
             color: _routeColour(_goodRoad.isGood),
             borderColor: _routeColour(_goodRoad.isGood),
             strokeWidth: 5),
@@ -638,8 +669,8 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
 
     return apiData;
   }
-
-  Future<List<LatLng>> getRoutes(String waypoints) async {
+/*
+  Future<List<LatLng>> _get_Routes(String waypoints) async {
     dynamic jsonResponse;
     List<LatLng> routePoints = [];
     String avoid = setAvoiding();
@@ -654,6 +685,7 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
     }
     try {
       var router = jsonResponse['routes'][0]['geometry']['coordinates'];
+
       for (int i = 0; i < router.length; i++) {
         routePoints.add(LatLng(router[i][1], router[i][0]));
       }
@@ -662,7 +694,7 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
     }
     return routePoints;
   }
-
+*/
   ///
   /// Returns the routepoints and the waypoint data for the added waypoint
   /// _SimpleUri (http://10.101.1.150:5000/route/v1/driving/-0.0237985,52.9776561;-0.0237985,52.9776561?steps=true&annotations=true&geometries=geojson&overview=full&exclude=motorway&exclude=trunk&exclude=primary)
@@ -689,14 +721,27 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
       CurrentTripItem().tripState = TripState.notFollowing;
       CurrentTripItem().tripActions = TripActions.none;
       CurrentTripItem().highliteActions = HighliteActions.none;
-      checkWaypoints(pointsOfInterest: CurrentTripItem().pointsOfInterest);
-      renumberWaypoints(pointsOfInterest: CurrentTripItem().pointsOfInterest);
+      if (CurrentTripItem().pointsOfInterest.isNotEmpty) {
+        checkWaypoints(pointsOfInterest: CurrentTripItem().pointsOfInterest);
+        renumberWaypoints(pointsOfInterest: CurrentTripItem().pointsOfInterest);
+      }
+      _directions.maneuvers = CurrentTripItem().maneuvers;
+
       _tripStarted = false;
       if (args.groupDriveId.isNotEmpty) {
         CurrentTripItem().tripType = TripType.group;
       } else {
         CurrentTripItem().tripType = TripType.saved;
       }
+
+      if (_debugging) {
+        for (int i = 0; i < CurrentTripItem().maneuvers.length; i++) {
+          _debugMarkers.add(Marker(
+              point: CurrentTripItem().maneuvers[i].location,
+              child: Icon(Icons.bug_report, color: Colors.pink, size: 15)));
+        }
+      }
+
       initialLeadingWidgetValue = 0;
       initialNavBarValue = 2;
     }
@@ -1131,7 +1176,9 @@ enum TripState {
   addWaypoint(
       {required List<PointOfInterest> pointsOfInterest,
       bool currentPosition = false,
-      bool isAnchor = false}) async {
+      bool isAnchor = false,
+      bool isRevisit = false,
+      bool isLast = false}) async {
     LatLng pos;
     if (currentPosition) {
       pos = LatLng(_currentPosition.latitude, _currentPosition.longitude);
@@ -1144,6 +1191,8 @@ enum TripState {
 
     if (index == 0) {
       wpType = 17;
+    } else if (isRevisit || isLast) {
+      wpType = 19;
     } else if (index == pointsOfInterest.length) {
       wpType = 18;
     }
@@ -1156,18 +1205,18 @@ enum TripState {
       marker: MarkerWidget(
         type: wpType,
         angle: -_mapRotation * pi / 180, // degrees to radians
-        list: 2,
+        list: index,
         listIndex: index,
       ),
     );
-
+    int waypoints = index;
     pointsOfInterest.insert(index, waypoint);
-
-    int waypoints = renumberWaypoints(pointsOfInterest: pointsOfInterest);
-
-    if (waypoints > 1 && !isAnchor) {
+    if (CurrentTripItem().tripState == TripState.editing) {
+      waypoints = renumberWaypoints(pointsOfInterest: pointsOfInterest);
+    }
+    if (waypoints > 0 && !isAnchor) {
       debugPrint('reRouting');
-      await loadRoutes();
+      await reRoute(editing: CurrentTripItem().tripState == TripState.editing);
     }
     setState(() => _showMask = false);
   }
@@ -1184,7 +1233,8 @@ enum TripState {
 
   int insertAt(
       {required List<PointOfInterest> pointsOfInterest,
-      required LatLng position}) {
+      required LatLng position,
+      editing = false}) {
     int index = 0;
     int points = 0;
     int startIndex = -1;
@@ -1192,9 +1242,10 @@ enum TripState {
     LatLng firstPoint = LatLng(0, 0);
     LatLng lastPoint = LatLng(0, 0);
     LatLng testPoint = LatLng(0, 0);
+
     for (int i = 0; i < pointsOfInterest.length; i++) {
       int poiType = pointsOfInterest[i].getType();
-      if ([12, 17, 18].contains(poiType)) {
+      if ([12, 17, 18, 19].contains(poiType)) {
         points++;
         testPoint = pointsOfInterest[i].point;
         if (poiType == 17) {
@@ -1205,6 +1256,9 @@ enum TripState {
           lastPoint = testPoint;
         }
       }
+    }
+    if (!editing) {
+      return points;
     }
 
     /// Two special cases:
@@ -1245,8 +1299,6 @@ enum TripState {
           if (testPointFromStart > fromStart) return i;
         }
       }
-    } else {
-      return pointsOfInterest.length;
     }
 
     return index;
@@ -1302,7 +1354,7 @@ enum TripState {
     for (int i = 0; i < pointsOfInterest.length; i++) {
       PointOfInterest poi = pointsOfInterest[i];
       int poiType = poi.getType();
-      if ([12, 17, 18].contains(poiType)) {
+      if ([12, 17, 18, 19].contains(poiType)) {
         indexes.add(i);
         start = poiType == 17 ? i : start;
         end = poiType == 18 ? i : end;
@@ -1361,7 +1413,7 @@ enum TripState {
       if (pointsOfInterest[i].getType() == 18) {
         end = pointsOfInterest[i].point;
       }
-      if ([12, 17, 18].contains(pointsOfInterest[i].getType())) {
+      if ([12, 17, 18, 19].contains(pointsOfInterest[i].getType())) {
         ++wayPoints;
       }
     }
@@ -1428,7 +1480,7 @@ enum TripState {
   pointOfInterestRemove(int idx) async {
     /// Removing a poi:
     CurrentTripItem().removePointOfInterestAt(idx);
-    loadRoutes();
+    reRoute();
     setState(() {});
   }
 
@@ -1608,6 +1660,58 @@ enum TripState {
             height: 10,
           ),
 
+          if (_debugging) ...[
+            FloatingActionButton(
+              heroTag: 'goodRoad',
+              onPressed: () async {
+                CurrentTripItem().maneuvers.clear();
+                if (CurrentTripItem().maneuvers.isEmpty) {
+                  /// If the trip was generated through tracking there will be
+                  /// no point by point data so have to generate it from
+                  /// the API using sample points
+                  try {
+                    //  String points = await waypointsFromPoints(50);
+                    if (CurrentTripItem().routes[0].points.isNotEmpty) {
+                      // await getRoutePoints(waypoints: points);
+                    }
+                    List<LatLng> points = [];
+                    for (int i = 0; i < CurrentTripItem().routes.length; i++) {
+                      points.addAll(CurrentTripItem().routes[i].points);
+                    }
+
+                    Map<String, dynamic> routeData =
+                        await getRoutePoints(points: points, addPoints: false);
+
+                    CurrentTripItem().maneuvers = routeData['maneuvers'];
+                    debugPrint('maneuvers done');
+                  } catch (e) {
+                    debugPrint('error ${e.toString()}');
+                  }
+                }
+
+/*
+                dynamic response = await getRoutePoints(points: [
+                  CurrentTripItem().routes[0].points.first,
+                  CurrentTripItem().routes[0].points.last
+                ]);
+                Map<String, dynamic> routeData =
+                    processRouterData(jsonResponse: response, waypoints: '');
+                setState(
+                    () => CurrentTripItem().maneuvers = routeData['maneuvers']);
+
+                    */
+              },
+              backgroundColor: _goodRoad.isGood
+                  ? uiColours.keys.toList()[Setup().goodRouteColour]
+                  : Colors.blue,
+              shape: const CircleBorder(),
+              child: Icon(
+                Icons.bug_report_outlined,
+                color: Colors.white,
+              ),
+            ),
+            SizedBox(height: 10),
+          ],
           //Zoomer(height: 50, width: 50, onZoomChanged: (_) => (), zoom: 12),
           // if (/*[AppState.createTrip, AppState.driveTrip].contains(_appState) && */
           //     !_showSearch && !_showPreferences) ...[
@@ -1621,6 +1725,34 @@ enum TripState {
                 Icons.chat_outlined,
                 color: Colors.white,
               ),
+            ),
+            SizedBox(height: 10),
+            FloatingActionButton(
+              onPressed: () {
+                if (socket.connected) {
+                  if (testPos == LatLng(0, 0)) {
+                    testPos = LatLng(
+                        _animatedMapController
+                            .mapController.camera.center.latitude,
+                        _animatedMapController
+                            .mapController.camera.center.longitude);
+                  } else {
+                    double lat = testPos.latitude + 0.001;
+                    double lng = testPos.longitude + 0.001;
+                    testPos = LatLng(lat, lng);
+                  }
+                  socket.emit('trip_message', {
+                    'message': '',
+                    'lat': testPos.latitude,
+                    'lng': testPos.longitude,
+                  });
+                }
+              },
+              heroTag: 'test1',
+              backgroundColor: Colors.blue,
+              shape: const CircleBorder(),
+              child: Icon(Icons.add_alarm,
+                  color: _autoCentre ? Colors.white : Colors.grey),
             ),
             const SizedBox(height: 10),
           ],
@@ -1703,51 +1835,39 @@ enum TripState {
 
           FloatingActionButton(
             onPressed: () async {
-              if (_alignPositionOnUpdate == AlignOnUpdate.always) {
-                _alignPositionOnUpdate = AlignOnUpdate.never;
-                setState(() => _autoCentre = false);
+              if (CurrentTripItem().isTracking) {
+                if (_alignPositionOnUpdate == AlignOnUpdate.always) {
+                  _alignPositionOnUpdate = AlignOnUpdate.never;
+                  setState(() => _autoCentre = false);
+                } else {
+                  _alignPositionOnUpdate = AlignOnUpdate.always;
+                  _currentPosition = await Geolocator.getCurrentPosition();
+                  //     debugPrint('Position: ${_currentPosition.toString()}');
+                  _animatedMapController
+                      .animateTo(
+                          dest: LatLng(_currentPosition.latitude,
+                              _currentPosition.longitude))
+                      .then((_) => updateOverlays(
+                          zoom: _animatedMapController
+                              .mapController.camera.zoom));
+                  setState(() => _autoCentre = true);
+                }
               } else {
-                _alignPositionOnUpdate = AlignOnUpdate.always;
-                _currentPosition = await Geolocator.getCurrentPosition();
-                //     debugPrint('Position: ${_currentPosition.toString()}');
-                _animatedMapController
-                    .animateTo(
-                        dest: LatLng(_currentPosition.latitude,
-                            _currentPosition.longitude))
-                    .then((_) => updateOverlays(
-                        zoom:
-                            _animatedMapController.mapController.camera.zoom));
-                setState(() => _autoCentre = true);
+                _animatedMapController.animateTo(
+                    dest: LatLng(
+                        _currentPosition.latitude, _currentPosition.longitude));
               }
             },
             heroTag: 'mapCentre',
             backgroundColor: Colors.blue,
             shape: const CircleBorder(),
             child: Icon(Icons.my_location,
-                color: _autoCentre ? Colors.white : Colors.grey),
+                color: CurrentTripItem().isTracking
+                    ? _autoCentre
+                        ? Colors.white
+                        : Colors.grey
+                    : Colors.white),
           ),
-/*
-          FloatingActionButton(
-            onPressed: () {
-              if (socket.connected) {
-                socket.emit('trip_message', {
-                  'message': '',
-                  'lat': _animatedMapController
-                          .mapController.camera.center.latitude +
-                      0.01,
-                  'lng': _animatedMapController
-                          .mapController.camera.center.longitude +
-                      0.01
-                });
-              }
-            },
-            heroTag: 'test1',
-            backgroundColor: Colors.blue,
-            shape: const CircleBorder(),
-            child: Icon(Icons.add_alarm,
-                color: _autoCentre ? Colors.white : Colors.grey),
-          ),
-*/
         ],
       ],
     );
@@ -1799,9 +1919,14 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
             options: MapOptions(
               onMapEvent: checkMapEvent,
               onMapReady: () async {
+                developer.log('onMapReady', name: '_connect');
                 updateOverlays(zoom: 13);
                 if (!_tripStarted) {
-                  _currentPosition = await Geolocator.getCurrentPosition();
+                  if (_debugging) {
+                    _currentPosition = await _getDebugPosition();
+                  } else {
+                    _currentPosition = await Geolocator.getCurrentPosition();
+                  }
                   _animatedMapController.animateTo(
                       dest: LatLng(_currentPosition.latitude,
                           _currentPosition.longitude));
@@ -1814,6 +1939,8 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
                     _title = CurrentTripItem().heading;
                     if (!socket.connected) {
                       socket.connect();
+                      developer.log('socket.connect() called',
+                          name: '_connect');
                     }
                   }
                 }
@@ -1930,6 +2057,7 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
                   alignment: Alignment.topCenter),
               MarkerLayer(markers: _following),
               MarkerLayer(markers: _osmFeatures.amenities),
+              MarkerLayer(markers: _debugMarkers),
             ],
           ),
           if (_speed > 0.01) ...[
@@ -1978,6 +2106,10 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
     );
   }
 
+  Future<Position> _getDebugPosition() async {
+    return _debugRoute.getPosition ?? Geolocator.getCurrentPosition();
+  }
+
   int lineAtCentre(
       {required List<mt.Route> routes,
       required AnimatedMapController controller}) {
@@ -2009,27 +2141,70 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
     return closest;
   }
 
+  RouteDelta distanceFromRoute(
+      {required List<mt.Route> routes,
+      required LatLng position,
+      RouteDelta? routeDelta}) {
+    int distance = 200000;
+    int longers = 0;
+    routeDelta ??= RouteDelta();
+    routeDelta.point = position;
+    routeDelta.distance = distance;
+    for (int i = 0; i < routes.length; i++) {
+      mt.Route route = routes[i];
+      for (int j = 0; j < route.points.length; j++) {
+        distance = Geolocator.distanceBetween(
+                routeDelta.point.latitude,
+                routeDelta.point.longitude,
+                route.points[j].latitude,
+                route.points[j].longitude)
+            .toInt();
+        if (distance < routeDelta.distance) {
+          routeDelta.distance = distance;
+          routeDelta.pointIndex = j;
+          routeDelta.routeIndex = i;
+          routeDelta.point = route.points[j];
+          longers = 0;
+        } else {
+          ++longers;
+        }
+        if (longers > 20) {
+          break;
+        }
+      }
+    }
+    return routeDelta;
+  }
+
 /* TileProviders(
                     {'openmaptiles': _tileProvider()},
                   ), //
  */
 
   Align getDirections(int index) {
-    if (index >= 0 &&
-        CurrentTripItem().tripState == TripState.following &&
+    // if (index >= 0 &&
+    if (CurrentTripItem().tripState == TripState.following &&
         CurrentTripItem().maneuvers.isNotEmpty) {
-      CurrentTripItem().maneuvers[index].distance = Geolocator.distanceBetween(
-          _currentPosition.latitude,
-          _currentPosition.longitude,
-          CurrentTripItem().maneuvers[index].location.latitude,
-          CurrentTripItem().maneuvers[index].location.longitude);
+      //  CurrentTripItem().maneuvers[index].distance = Geolocator.distanceBetween(
+      //      _currentPosition.latitude,
+      //      _currentPosition.longitude,
+      //      CurrentTripItem().maneuvers[index].location.latitude,
+      //      CurrentTripItem().maneuvers[index].location.longitude);
+      _directions.maneuvers = CurrentTripItem().maneuvers;
+      _directions.update(
+          position:
+              LatLng(_currentPosition.latitude, _currentPosition.longitude));
 
+      index = _directions.currentIndex;
       return Align(
         alignment: Alignment.topLeft,
         child: DirectionTile(
           direction: CurrentTripItem().maneuvers[index],
           index: index,
           directions: CurrentTripItem().maneuvers.length,
+          metersToManeuver: _directions.distance,
+          distance: _distanceFromRoute.distance,
+          routeDelta: _distanceFromRoute,
         ),
       );
     } else {
@@ -2071,11 +2246,14 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
         if (!_cacheFence.contains(bounds: newFence)) {
           bool osmUpdate = await _osmFeatures.update(
               fence: _cacheFence, size: markerSize); // 20 - 30 for zoom 10 - 14
-          bool pubUpdate =
-              await _publishedFeatures.update(screenFence: _cacheFence);
-
-          if (osmUpdate || pubUpdate) {
-            setState(() => _updateOverlays = true);
+          if (_pubUpdate) {
+            _pubUpdate = false;
+            bool pubUpdate =
+                await _publishedFeatures.update(screenFence: _cacheFence);
+            _pubUpdate = true;
+            if (osmUpdate || pubUpdate) {
+              setState(() => _updateOverlays = true);
+            }
           }
         } else {
           _osmFeatures.resizeOsmAmenities(size: markerSize);
@@ -2124,6 +2302,8 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
       'Clear trip',
       'Anchor waypoint', //'Split route',
       'Remove waypoint', //'Remove section',
+      'Revisit waypoint',
+      'Last waypoint',
       'Great road end',
       'Follow route',
       'Stop following',
@@ -2153,6 +2333,8 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
       clearTrip,
       anchorWaypoint, // splitRoute,
       removeWaypoint, //removeSection,
+      revisitWaypoint,
+      lastWaypoint,
       greatRoadEnd,
       followRoute,
       stopFollowing,
@@ -2178,6 +2360,8 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
       Icons.delete,
       Icons.anchor, //Icons.cut,
       Icons.wrong_location, //Icons.add_photo_alternate,
+      Icons.replay,
+      Icons.sports_score,
       Icons.remove_road,
       Icons.directions,
       Icons.directions_off,
@@ -2200,6 +2384,12 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
         HighliteActions.waypointHighlited) {
       chipNames.clear();
       chipNames.add('Remove waypoint');
+      if (CurrentTripItem().pointsOfInterest.length != _poiHighlighted + 1) {
+        chipNames.add('Revisit waypoint');
+      }
+      if (_poiHighlighted == 0) {
+        chipNames.add('Last waypoint');
+      }
     } else {
       if (CurrentTripItem().tripState == TripState.none) {
         chipNames.clear();
@@ -2394,8 +2584,18 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
   void removeWaypoint() async {
     CurrentTripItem().pointsOfInterest.removeAt(_poiHighlighted);
     renumberWaypoints(pointsOfInterest: CurrentTripItem().pointsOfInterest);
-    await loadRoutes();
+    await reRoute();
     setState(() {});
+  }
+
+  void revisitWaypoint() async {
+    addWaypoint(
+        pointsOfInterest: CurrentTripItem().pointsOfInterest, isRevisit: true);
+  }
+
+  void lastWaypoint() async {
+    addWaypoint(
+        pointsOfInterest: CurrentTripItem().pointsOfInterest, isLast: true);
   }
 
   void pointOfInterest() async {
@@ -2515,6 +2715,8 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
   void clearTrip() {
     setState(() {
       CurrentTripItem().clearAll();
+      _debugMarkers.clear();
+      _following.clear();
       _lastLatLng = const LatLng(0.00, 0.00);
       _startLatLng = const LatLng(0.00, 0.00);
       CurrentTripItem().tripState = TripState.none;
@@ -2603,6 +2805,7 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
   void followRoute() async {
     Geolocator.getCurrentPosition().then((val) {
       getLocationUpdates();
+
       setState(() {
         CurrentTripItem().tripActions = TripActions.none;
         _currentPosition = val;
@@ -2610,7 +2813,7 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
         _animatedMapController.animateTo(
             dest:
                 LatLng(_currentPosition.latitude, _currentPosition.longitude));
-        _alignPositionOnUpdate = AlignOnUpdate.always;
+        //  _alignPositionOnUpdate = AlignOnUpdate.always;
         _alignDirectionOnUpdate =
             Setup().rotateMap ? AlignOnUpdate.always : AlignOnUpdate.never;
         _showTarget = false;
@@ -2622,6 +2825,12 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
   void stopFollowing() {
     _alignPositionOnUpdate = AlignOnUpdate.never;
     _alignDirectionOnUpdate = AlignOnUpdate.never;
+    try {
+      _positionStream.cancel();
+    } catch (e) {
+      debugPrint("can't stop: ${e.toString()}");
+    }
+
     setState(() => CurrentTripItem().tripState = TripState.stoppedFollowing);
   }
 
@@ -2671,7 +2880,7 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
 
   Future<bool> loadGroup({required String groupDriveId, int status = 2}) async {
     List<Follower> participants = [];
-    Follower? missingCarInfo;
+    Follower? myCarInfo;
     try {
       participants = await getDrivers(groupDriveId: groupDriveId, accepted: 2);
     } catch (e) {
@@ -2685,43 +2894,59 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
       // for (Follower follower in participants) {
       cIndex = cIndex < 16 ? ++cIndex : 2;
       if (Setup().user.email == follower.email) {
-        missingCarInfo = follower;
+        myCarInfo = follower;
       }
       try {
-        if (follower.email != Setup().user.email) {
-          _following.add(
-            Follower(
-              uri: follower.uri,
-              iconColour: cIndex,
-              driveId: follower.driveId,
-              forename: follower.forename,
-              surname: follower.surname,
-              phoneNumber: follower.phoneNumber,
+        // if (follower.email != Setup().user.email) {
+
+        _following.add(
+          Follower(
+            uri: follower.uri,
+            iconColour: cIndex,
+            driveId: follower.driveId,
+            forename: follower.forename,
+            surname: follower.surname,
+            phoneNumber: follower.phoneNumber,
+            manufacturer: follower.manufacturer,
+            model: follower.model,
+            carColour: follower.carColour,
+            registration: follower.registration,
+            email: follower.email,
+            position: follower.position,
+            marker: FollowerMarkerWidget(
+              index: i,
               manufacturer: follower.manufacturer,
               model: follower.model,
-              carColour: follower.carColour,
+              colour: follower.carColour,
               registration: follower.registration,
-              email: follower.email,
-              position: LatLng(0.0, 0.0),
-              marker: FollowerMarkerWidget(
-                index: i,
-                manufacturer: follower.manufacturer,
-                model: follower.model,
-                colour: follower.carColour,
-                registration: follower.registration,
-                angle: -_mapRotation * pi / 180,
-                colourIndex: cIndex,
-              ),
+              angle: -_mapRotation * pi / 180,
+              colourIndex: follower.email == Setup().user.email
+                  ? 17
+                  : cIndex, // 17 = transparent
             ),
-          );
-        }
+          ),
+        );
+        // }
       } catch (e) {
         debugPrint('Error: ${e.toString()}');
       }
     }
-    if (missingCarInfo != null) {
-      await carInfo(missingCarInfo);
+    if (myCarInfo == null) {
+      cIndex = cIndex < 16 ? ++cIndex : 2;
+      myCarInfo = Follower(
+        forename: Setup().user.forename,
+        surname: Setup().user.surname,
+        email: Setup().user.email,
+        phoneNumber: Setup().user.phone,
+        driveName: CurrentTripItem().heading,
+        iconColour: cIndex,
+        position: LatLng(_currentPosition.latitude, _currentPosition.longitude),
+        marker: FollowerMarkerWidget(colourIndex: 17),
+      );
+      _following.add(myCarInfo);
     }
+    await carInfo(myCarInfo);
+
     return true;
   }
 
@@ -3048,7 +3273,11 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
     double distance = 9999999;
     double testDistance;
     int closest = 0;
-    _currentPosition = await Geolocator.getCurrentPosition();
+    if (_debugging) {
+      _currentPosition = await _getDebugPosition();
+    } else {
+      _currentPosition = await Geolocator.getCurrentPosition();
+    }
     for (int i = 0; i < maneuvers.length; i++) {
       testDistance = Geolocator.distanceBetween(
           maneuvers[i].location.latitude,
@@ -3106,7 +3335,7 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
                             border: OutlineInputBorder(),
                             labelText: 'Saved Messages',
                           ),
-                          value: choices[0],
+                          initialValue: choices[0],
                           items: choices
                               .map(
                                 (item) => DropdownMenuItem<String>(
@@ -3243,7 +3472,7 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
         return AlertDialog(
           title: Text('Drive - ${driver.driveName}'),
           content: SizedBox(
-            width: 100,
+            width: 200,
             height: 300,
             child: Column(
               children: [
@@ -3251,36 +3480,11 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
                   height: 70,
                   child: Padding(
                     padding: const EdgeInsets.all(10),
-                    //  child: SingleChildScrollView(
                     child: Row(
                       children: [
                         Expanded(
                           child: TextFormField(
-                            initialValue: driver.registration,
                             autofocus: true,
-                            decoration: const InputDecoration(
-                              label: Text('Vehicle registration number'),
-                              border: OutlineInputBorder(),
-                              hintText: 'Registration No',
-                            ),
-                            textCapitalization: TextCapitalization.characters,
-                            textInputAction: TextInputAction.next,
-                            keyboardType: TextInputType.name,
-                            onChanged: (value) => driver.registration = value,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                SizedBox(
-                  height: 70,
-                  child: Padding(
-                    padding: const EdgeInsets.all(10),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: TextFormField(
                             initialValue: driver.manufacturer,
                             decoration: const InputDecoration(
                               label: Text('Vehicle manufacturer'),
@@ -3328,16 +3532,56 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
                     child: Row(
                       children: [
                         Expanded(
+                          flex: 2,
                           child: TextFormField(
                             initialValue: driver.carColour,
                             decoration: const InputDecoration(
-                              label: Text('Vehicle colour'),
+                              label: Text('Colour'),
                               border: OutlineInputBorder(),
                               hintText: 'Colour',
                             ),
-                            textInputAction: TextInputAction.done,
+                            textInputAction: TextInputAction.next,
                             keyboardType: TextInputType.name,
                             onChanged: (value) => driver.carColour = value,
+                          ),
+                        ),
+                        SizedBox(width: 5),
+                        Expanded(
+                          flex: 2,
+                          child: TextFormField(
+                            initialValue: driver.registration,
+                            decoration: const InputDecoration(
+                              label: Text('Registration'),
+                              border: OutlineInputBorder(),
+                              hintText: 'Reg No',
+                            ),
+                            textCapitalization: TextCapitalization.characters,
+                            textInputAction: TextInputAction.next,
+                            keyboardType: TextInputType.name,
+                            onChanged: (value) => driver.registration = value,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  height: 70,
+                  child: Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            initialValue: driver.phoneNumber,
+                            decoration: const InputDecoration(
+                              label: Text('Mobile'),
+                              border: OutlineInputBorder(),
+                              hintText: 'Mobile phone number',
+                            ),
+                            textInputAction: TextInputAction.done,
+                            keyboardType: TextInputType.phone,
+                            onChanged: (value) => driver.phoneNumber = value,
                           ),
                         ),
                       ],
@@ -3351,17 +3595,29 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
             TextButton(
               child: const Text('Ok', style: TextStyle(fontSize: 22)),
               onPressed: () async {
+                _currentPosition = await Geolocator.getCurrentPosition();
+                driver.position = LatLng(
+                    _currentPosition.latitude, _currentPosition.longitude);
                 await sendDriverDetails(driver);
+                if (!socket.connected) {
+                  socket.connect();
+                  developer.log('socket.connect() called', name: '_connect');
+                }
                 if (socket.connected) {
-                  socket.emit('trip_join_message', {
+                  socket.emit('trip_join', {
+                    'token': Setup().jwt,
+                    'trip': CurrentTripItem().groupDriveId,
                     'message': '',
                     'make': driver.manufacturer,
                     'model': driver.model,
                     'colour': driver.carColour,
                     'reg': driver.registration,
+                    'phone': driver.phoneNumber,
                     'lat': _currentPosition.latitude,
                     'lng': _currentPosition.longitude,
                   });
+                } else {
+                  debugPrint('Socket not connected');
                 }
 
                 if (context.mounted) {
@@ -3429,7 +3685,7 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
               itemBuilder: (context, index) {
                 int poiType =
                     CurrentTripItem().pointsOfInterest[index].getType();
-                bool isWaypoint = [12, 17, 18].contains(poiType);
+                bool isWaypoint = [12, 17, 18, 19].contains(poiType);
                 if (poiType != 16) {
                   // filter out followers
                   return isWaypoint
@@ -3469,7 +3725,7 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
           if (_editPointOfInterest > -1 &&
               _editPointOfInterest <
                   CurrentTripItem().pointsOfInterest.length &&
-              ![12, 17, 18].contains(CurrentTripItem()
+              ![12, 17, 18, 19].contains(CurrentTripItem()
                   .pointsOfInterest[_editPointOfInterest]
                   .getType())) ...[
             SliverToBoxAdapter(
@@ -3766,58 +4022,104 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
   /// must use _positionStream.cancel() to cancel stream when no longer reading from it
 
   void getLocationUpdates() {
-    _positionStream =
-        Geolocator.getPositionStream(locationSettings: _locationSettings)
-            .listen(
-      (position) {
-        _currentPosition = position;
-        _speed = _currentPosition.speed * 3.6 / 8 * 5; // M/S -> MPH
-        LatLng pos =
-            LatLng(_currentPosition.latitude, _currentPosition.longitude);
+    if (_debugging) {
+      _debugRoute.follow(points: CurrentTripItem().routes[0].points);
+      developer.log('_debugRoute.follow() called', name: '_debug');
 
-        if (CurrentTripItem().groupDriveId.isNotEmpty) {
-          if (socket.connected) {
-            socket.emit('trip_message', {
+      _debugPositionController.stream.listen(
+        (Position position) {
+          updatePosition(position);
+        },
+      );
+    } else {
+      _positionStream =
+          Geolocator.getPositionStream(locationSettings: _locationSettings)
+              .listen(updatePosition);
+    }
+  }
+
+  void updatePosition(position) {
+    _currentPosition = position;
+    developer.log(
+        'getLocationUpdates position - lat: ${position.latitude} lng: ${position.longitude}',
+        name: '_debug');
+    _speed = _currentPosition.speed * 3.6 / 8 * 5; // M/S -> MPH
+    LatLng pos = LatLng(_currentPosition.latitude, _currentPosition.longitude);
+
+    if (_debugging) {
+      _debugMarkers[0] = Marker(
+          point: LatLng(_currentPosition.latitude, _currentPosition.longitude),
+          child: Icon(Icons.bug_report, size: 30, color: Colors.teal));
+      _animatedMapController.animateTo(
+          dest: LatLng(_currentPosition.latitude, _currentPosition.longitude));
+    }
+
+    if (CurrentTripItem().groupDriveId.isNotEmpty) {
+      if (!socket.connected) {
+        developer.log('reconnectint to socket', name: '_connect');
+        socket.connect();
+        for (Follower follower in _following) {
+          if (follower.email == Setup().user.email) {
+            socket.emit('trip_join', {
+              'token': Setup().jwt,
+              'trip': CurrentTripItem().groupDriveId,
               'message': '',
+              'make': follower.manufacturer,
+              'model': follower.model,
+              'colour': follower.carColour,
+              'reg': follower.registration,
+              'phone': follower.phoneNumber,
               'lat': _currentPosition.latitude,
               'lng': _currentPosition.longitude,
             });
           }
         }
+      }
 
-        if (CurrentTripItem().tripState == TripState.recording) {
-          if (_lastLatLng == const LatLng(0.00, 0.00)) {
-            _lastLatLng = pos;
-            CurrentTripItem().clearRoutes();
-            CurrentTripItem().addRoute(mt.Route(
-                id: -1,
-                points: [pos],
-                borderColor: uiColours.keys.toList()[Setup().routeColour],
-                color: uiColours.keys.toList()[Setup().routeColour],
-                strokeWidth: 5));
-          }
-          CurrentTripItem()
-              .routes[CurrentTripItem().routes.length - 1]
-              .points
-              .add(pos);
+      if (socket.connected) {
+        developer.log('socket.emit() with location', name: '_connect');
+        socket.emit('trip_message', {
+          'message': '',
+          'lat': _currentPosition.latitude,
+          'lng': _currentPosition.longitude,
+        });
+      }
+    }
 
-          if (_goodRoad.isGood) {
-            CurrentTripItem()
-                .goodRoads[CurrentTripItem().goodRoads.length - 1]
-                .points
-                .add(pos);
-          }
-          //  debugPrint(
-          //      'CurrentTripItem().routes.length: ${CurrentTripItem().routes.length}  points: ${CurrentTripItem().routes[CurrentTripItem().routes.length - 1].points.length}');
+    if (CurrentTripItem().tripState == TripState.recording) {
+      if (_lastLatLng == const LatLng(0.00, 0.00)) {
+        _lastLatLng = pos;
+        CurrentTripItem().clearRoutes();
+        CurrentTripItem().addRoute(mt.Route(
+            id: -1,
+            points: [pos],
+            borderColor: uiColours.keys.toList()[Setup().routeColour],
+            color: uiColours.keys.toList()[Setup().routeColour],
+            strokeWidth: 5));
+      }
+      CurrentTripItem()
+          .routes[CurrentTripItem().routes.length - 1]
+          .points
+          .add(pos);
 
-          _lastLatLng =
-              LatLng(_currentPosition.latitude, _currentPosition.longitude);
-        } else if (CurrentTripItem().tripState == TripState.following) {
-          setState(() => _directionsIndex = getDirectionsIndex());
-        }
-        // },
-      },
-    );
+      if (_goodRoad.isGood) {
+        CurrentTripItem()
+            .goodRoads[CurrentTripItem().goodRoads.length - 1]
+            .points
+            .add(pos);
+      }
+      //  debugPrint(
+      //      'CurrentTripItem().routes.length: ${CurrentTripItem().routes.length}  points: ${CurrentTripItem().routes[CurrentTripItem().routes.length - 1].points.length}');
+
+      _lastLatLng =
+          LatLng(_currentPosition.latitude, _currentPosition.longitude);
+    } else if (CurrentTripItem().tripState == TripState.following) {
+      distanceFromRoute(
+          routes: CurrentTripItem().routes,
+          position: pos,
+          routeDelta: _distanceFromRoute);
+      setState(() => _directionsIndex = getDirectionsIndex());
+    }
   }
 
   void addGoodRoad({required LatLng position, name = 'Good road', audio = ''}) {
@@ -4020,10 +4322,18 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
       /// no point by point data so have to generate it from
       /// the API using sample points
       try {
-        String points = await waypointsFromPoints(50);
-        if (points.isNotEmpty) {
-          await getRoutePoints(waypoints: points);
+        //  String points = await waypointsFromPoints(50);F
+        if (CurrentTripItem().routes[0].points.isNotEmpty) {
+          // await getRoutePoints(waypoints: points);
         }
+        List<LatLng> points = [];
+        for (int i = 0; i < CurrentTripItem().routes.length; i++) {
+          points.addAll(CurrentTripItem().routes[i].points);
+        }
+
+        Map<String, dynamic> routeData =
+            await getRoutePoints(points: points, addPoints: true);
+        CurrentTripItem().maneuvers = routeData['maneuvers'];
       } catch (e) {
         debugPrint('error ${e.toString()}');
       }
@@ -4281,34 +4591,59 @@ Future<bool> changeTripStart(
                     values[2] ||
                     values[3] ||
                     values[4];
-                String points = '';
+                List<LatLng> points = [];
+                LatLng newPoint;
 
                 /// Now look at the waypoints
                 /// 1 Reverse the current waypoints if required
                 /// 2 Add the new waypoint for added start or end
+
+                Map<String, dynamic> tripData = {};
                 if (CurrentTripItem().routes.isNotEmpty && changed) {
-                  points = waypointsFromPointsOfInterest(
-                      reversed: values[0],
-                      newPointLat: values[1] || values[3]
-                          ? currentPosition.latitude
-                          : screenCenter.latitude,
-                      newPointLng: values[1] || values[3]
-                          ? currentPosition.longitude
-                          : screenCenter.longitude,
-                      atEnd: values[3] || values[4]);
+                  List<LatLng> currentPoints = CurrentTripItem()
+                      .routes[CurrentTripItem().routes.length - 1]
+                      .points;
 
-                  Map<String, dynamic> tripData = await getRoutePoints(
-                      waypoints: points, includeWaypoints: false);
-                  CurrentTripItem()
-                      .routes[CurrentTripItem().routes.length - 1]
-                      .points
-                      .clear();
-                  CurrentTripItem()
-                      .routes[CurrentTripItem().routes.length - 1]
-                      .points
-                      .addAll(tripData['points']);
+                  if (values[0]) {
+                    points = waypointsFromPointsOfInterest(reversed: true);
+                    tripData = await getRoutePoints(points: points);
+                    currentPoints.clear();
+                    currentPoints.addAll(tripData['points']);
+
+                    CurrentTripItem().maneuvers.clear();
+                    CurrentTripItem().maneuvers = tripData['maneuvers'];
+                  }
+                  if (values[1] || values[2] || values[3] || values[4]) {
+                    /// 1 / 3 start  2 / 4 finish from current position / screenCentre
+                    points = waypointsFromPointsOfInterest();
+                    newPoint = values[1] || values[3]
+                        ? LatLng(
+                            currentPosition.latitude, currentPosition.longitude)
+                        : LatLng(screenCenter.latitude, screenCenter.longitude);
+                    if (values[1] || values[3]) {
+                      tripData =
+                          await getRoutePoints(points: [newPoint, points[0]]);
+                      CurrentTripItem().routes.insert(
+                            0,
+                            mt.Route(
+                                points: tripData['points'],
+                                color: colourList[Setup().routeColour]),
+                          );
+                      tripData['maneuvers'].addAll(CurrentTripItem().maneuvers);
+                      CurrentTripItem().maneuvers = tripData['maneuvers'];
+                    } else {
+                      tripData = await getRoutePoints(
+                          points: [points[points.length - 1], newPoint]);
+                      CurrentTripItem().routes.add(
+                            mt.Route(
+                                points: tripData['points'],
+                                color: colourList[Setup().routeColour],
+                                strokeWidth: 5),
+                          );
+                      CurrentTripItem().maneuvers.addAll(tripData['maneuvers']);
+                    }
+                  }
                 }
-
                 if (context.mounted) {
                   Navigator.pop(context, true);
                 }
@@ -4324,51 +4659,6 @@ Future<bool> changeTripStart(
   );
   return changed;
 }
-
-/*
-  Adds a new 
-*/
-
-/*
-  Future<Map<String, dynamic>> appendRoute(
-      {required LatLng position, bool first = true}) async {
-    LatLng latLng1;
-    Map<String, dynamic> apiData = {};
-    if (first) {
-      apiData = await addRoute(position, position);
-      return apiData;
-    }
-    if (CurrentTripItem().routes.isNotEmpty &&
-        CurrentTripItem()
-                .routes[CurrentTripItem().routes.length - 1]
-                .points
-                .length >
-            1) {
-      latLng1 = CurrentTripItem()
-          .routes[CurrentTripItem().routes.length - 1]
-          .points[CurrentTripItem()
-              .routes[CurrentTripItem().routes.length - 1]
-              .points
-              .length -
-          1];
-    } else {
-      latLng1 = _startLatLng;
-    }
-    apiData = await addRoute(latLng1, position);
-    CurrentTripItem().addRoute(mt.Route(
-        id: -1,
-        points: apiData["points"], // Route,
-        color: _routeColour(_goodRoad.isGood),
-        borderColor: _routeColour(_goodRoad.isGood),
-        strokeWidth: 5));
-
-    CurrentTripItem().distance = CurrentTripItem().distance +
-        double.parse(apiData["distance"].toString());
-    setState(() {});
-
-    return apiData;
-  }
-*/
 
 addWaypointAt({required LatLng pos, bool before = false}) async {
   String name = 'End';
@@ -4401,12 +4691,6 @@ addWaypointAt({required LatLng pos, bool before = false}) async {
   } else {
     CurrentTripItem().pointsOfInterest.add(waypoint);
   }
-/*  
-  for (int i = 1; i < CurrentTripItem().pointsOfInterest.length - 1; i++) {
-    if ([12, 17].contains(CurrentTripItem().pointsOfInterest[i].getType())) {
-    }
-  }
-*/
 }
 
 Future<String> waypointsFromPoints(int points) async {
@@ -4424,9 +4708,14 @@ Future<String> waypointsFromPoints(int points) async {
 
   String waypoints = '${latLongs[0].longitude},${latLongs[0].latitude}';
   for (int i = 0; i < points - 2; i++) {
-    int idx = (gap + 1) * (i + 1);
-    waypoints =
-        '$waypoints;${latLongs[idx].longitude},${latLongs[idx].latitude}';
+    // int idx = (gap + 1) * (i + 1);
+    int idx = gap * (i + 1);
+    try {
+      waypoints =
+          '$waypoints;${latLongs[idx].longitude},${latLongs[idx].latitude}';
+    } catch (e) {
+      debugPrint('Error getting points: ${e.toString()}');
+    }
   }
 
   waypoints =
@@ -4485,12 +4774,12 @@ Future<String> waypointsFromManeuvers(
   return waypoints;
 }
 
-String waypointsFromPointsOfInterest(
+List<LatLng> waypointsFromPointsOfInterest(
     {bool reversed = false,
     double newPointLat = 0.0,
     newPointLng = 0.0,
     atEnd = false}) {
-  String waypoints = '';
+  List<LatLng> waypoints = [];
   List<PointOfInterest> pois = [];
   pois.addAll(CurrentTripItem().pointsOfInterest);
   if (reversed) {
@@ -4533,12 +4822,9 @@ String waypointsFromPointsOfInterest(
     CurrentTripItem().pointsOfInterest = pois;
   }
 
-  String delimiter = '';
   for (int i = 0; i < pois.length; i++) {
-    if ([12, 17, 18].contains(pois[i].getType())) {
-      waypoints =
-          '$waypoints$delimiter${pois[i].point.longitude},${pois[i].point.latitude}';
-      delimiter = ';';
+    if ([12, 17, 18, 19].contains(pois[i].getType())) {
+      waypoints.add(pois[i].point);
     }
   }
 
@@ -4558,16 +4844,19 @@ _leadingWidget(context) {
 /// 'points': the List<LatLng> of points that describe the route - PointOfInterest.route[x].points
 
 Future<Map<String, dynamic>> getRoutePoints(
-    {required String waypoints, bool includeWaypoints = true}) async {
+    {required List<LatLng> points, bool addPoints = true}) async {
   dynamic jsonResponse;
-  List<LatLng> routePoints = [];
-  final Map<String, dynamic> result = {
-    "name": '',
-    "distance": '0.0',
-    "duration": 0,
-    "summary": '',
-    "points": routePoints,
-  };
+  String delim = '';
+  String waypoints = '';
+  int i;
+  int jump = points.length > 50 ? (points.length ~/ 50) : 1;
+  jump = jump > 1 && jump * 50 > points.length ? jump - 1 : jump;
+
+  for (i = 0; i < points.length; i += jump) {
+    waypoints = '$waypoints$delim${points[i].longitude},${points[i].latitude}';
+    delim = ';';
+  }
+
   String avoid = setAvoiding();
   var url = Uri.parse(
       '$urlRouter$waypoints?steps=true&annotations=true&geometries=geojson&overview=full$avoid');
@@ -4576,23 +4865,39 @@ Future<Map<String, dynamic>> getRoutePoints(
     if ([200, 201].contains(response.statusCode)) {
       jsonResponse = jsonDecode(response.body);
       if (jsonResponse == null) {
-        return result;
+        return {'msg': 'Error'};
       }
     } else {
-      return jsonDecode('"msg": "err"}');
+      return {'msg': 'Error'};
     }
   } catch (e) {
     debugPrint('Http error: ${e.toString()}');
-    return result;
+    return {'msg': 'Error'};
   }
-  try {
-    var router = jsonResponse['routes'][0]['geometry']['coordinates'];
-    for (int i = 0; i < router.length; i++) {
-      routePoints.add(LatLng(router[i][1], router[i][0]));
-    }
-  } catch (e) {
-    debugPrint('Error getting distancence - ${e.toString()}');
-  }
+//  return jsonResponse;
+//}
+
+  /// processRouterData()
+  /// Takes the data sent from the router and generates the data for the map:
+  /// 1 The points - used for manual route planning
+  /// 2 The turn-by-turn directions
+
+//Map<String, dynamic> processRouterData(
+//    {required dynamic jsonResponse,
+//    required String waypoints,
+//    bool includeWaypoints = true,
+//    bool addPoints = true}) {
+  List<LatLng> routePoints = [];
+  List<Maneuver> maneuvers = [];
+  final Map<String, dynamic> result = {
+    "name": '',
+    "distance": '0.0',
+    "duration": 0,
+    "summary": '',
+    "maneuvers": maneuvers,
+    "points": routePoints,
+  };
+
   double distance = 0;
   double duration = 0;
   try {
@@ -4604,11 +4909,6 @@ Future<Map<String, dynamic>> getRoutePoints(
   }
   String summary =
       '${distance.toStringAsFixed(1)} miles - (${(duration / 60).floor()} minutes)';
-
-  String name =
-      '${jsonResponse['routes'][0]['legs'][0]['steps'][0]['name']}, ${jsonResponse['routes'][0]['legs'][0]['steps'][jsonResponse['routes'][0]['legs'][0]['steps'].length - 1]['name']}';
-  name =
-      '${jsonResponse['routes'][0]['legs'][0]['steps'][jsonResponse['routes'][0]['legs'][0]['steps'].length - 1]['name']}';
 
   /// ToDo: handling turn by turn:
   /// ...['steps'][n]['name'] => the current road name
@@ -4624,88 +4924,98 @@ Future<Map<String, dynamic>> getRoutePoints(
   /// var parts = str.split(':');
   /// var prefix = parts[0]
 
-  List<String> waypointList = waypoints.split(';');
-  CurrentTripItem().maneuvers.clear();
+  // List<String> waypointList = waypoints.split(';');
+  // CurrentTripItem().maneuvers.clear();
 
-  if (waypointList.length > 1 && waypointList[0] != waypointList[1]) {
-    // includeWaypoints = true;
-    String lastRoad = name;
-    String type = '';
-    int legs = jsonResponse['routes'][0]['legs'].length;
-    bool isWaypoint;
-    for (int j = 0; j < legs; j++) {
-      int steps = jsonResponse['routes'][0]['legs'][j]['steps'].length;
-      for (int k = 0; k < steps; k++) {
+  // if (waypointList.length > 1 && waypointList[0] != waypointList[1]) {
+  // includeWaypoints = true;  String lastRoad = name;
+
+  String type = '';
+
+  bool added = false;
+
+  if (addPoints) {
+    var router = jsonResponse['routes'][0]['geometry']['coordinates'];
+    for (int i = 0; i < router.length; i++) {
+      routePoints.add(LatLng(router[i][1], router[i][0]));
+    }
+  }
+
+  try {
+    List<dynamic> legs = jsonResponse['routes'][0]['legs'];
+    String lastRoad = legs[0]['steps'][0]['name'];
+    String name =
+        '$lastRoad - ${legs[0]['steps'][legs[0]['steps'].length - 1]['name']}';
+    for (int j = 0; j < legs.length; j++) {
+      List<dynamic> steps = legs[j]["steps"];
+      //  String _roadFrom = '';
+      //  String _roadTo = '';
+      double distance = 0;
+
+      for (int k = 0; k < steps.length; k++) {
+        Map<String, dynamic> maneuver = steps[k]['maneuver'];
         try {
-          type = jsonResponse['routes'][0]['legs'][j]['steps'][k]['maneuver']
-                  ['type'] ??
-              '';
-          type = '';
-          isWaypoint = (j < legs - 1 && type == 'arrive' && !includeWaypoints);
-          developer.log('waypoint',
-              name:
-                  'type: $type isWaypoint: ${isWaypoint ? 'true' : 'false'} j: $j  legs: $legs');
+          type = maneuver['type'] ?? '';
+          String modifier = maneuver['modifier'] ?? '';
+          added = false;
+          if ((modifier.isNotEmpty || type == 'depart')) {
+            if (modifier.isEmpty) {
+              debugPrint('empty');
+            }
 
-          if (type != 'arrive' || j == legs - 1 || includeWaypoints) {
-            CurrentTripItem().addManeuver(
-              Maneuver(
-                roadFrom: jsonResponse['routes'][0]['legs'][j]['steps'][k]
-                    ['name'],
-                roadTo: lastRoad,
-                bearingBefore: jsonResponse['routes'][0]['legs'][j]['steps'][k]
-                        ['maneuver']['bearing_before'] ??
-                    0,
-                bearingAfter: jsonResponse['routes'][0]['legs'][j]['steps'][k]
-                        ['maneuver']['bearing_after'] ??
-                    0,
-                exit: jsonResponse['routes'][0]['legs'][j]['steps'][k]
-                        ['maneuver']['exit'] ??
-                    0,
-                location: LatLng(
-                    jsonResponse['routes'][0]['legs'][j]['steps'][k]['maneuver']
-                        ['location'][1],
-                    jsonResponse['routes'][0]['legs'][j]['steps'][k]['maneuver']
-                        ['location'][0]),
-                modifier: jsonResponse['routes'][0]['legs'][j]['steps'][k]
-                        ['maneuver']['modifier'] ??
-                    ' ',
-                type: type,
-                distance: (jsonResponse['routes'][0]['legs'][j]['steps'][k]
-                        ['distance'])
-                    .toDouble(),
-              ),
-            );
-          } else {
-            isWaypoint = false;
+            if (type.contains('roundabout') || type.contains('rotary')) {
+              developer.log('type: $type', name: '_maneuver');
+            }
+            List<dynamic> lngLat = maneuver['location'];
+            added = (points.length == 2 ||
+                !points.contains(
+                    LatLng(lngLat[1].toDouble(), lngLat[0].toDouble())));
+            distance += steps[k]['distance'].toDouble();
+            if (added) {
+              maneuvers.add(
+                Maneuver(
+                  roadFrom: steps[k]['name'],
+                  roadTo: lastRoad,
+                  bearingBefore: maneuver['bearing_before'] ?? 0,
+                  bearingAfter: maneuver['bearing_after'] ?? 0,
+                  exit: maneuver['exit'] ?? 0,
+                  location: LatLng(lngLat[1].toDouble(), lngLat[0].toDouble()),
+                  modifier: modifier,
+                  type: type,
+                  distance: distance,
+                ),
+              );
+              distance = 0;
+            }
           }
         } catch (e) {
           String err = e.toString();
           debugPrint(err);
         }
-        if (k > 0) {
-          CurrentTripItem().maneuvers[k - 1].roadTo =
-              CurrentTripItem().maneuvers[k].roadFrom;
+        if (added) {
+          if (maneuvers.length > 1) {
+            maneuvers[maneuvers.length - 2].roadTo =
+                maneuvers[maneuvers.length - 1].roadFrom;
+          }
+          if (maneuvers.isNotEmpty) {
+            lastRoad = maneuvers[maneuvers.length - 1].roadTo;
+            maneuvers[maneuvers.length - 1].type =
+                maneuvers[maneuvers.length - 1]
+                    .type
+                    .replaceAll('rotary', 'roundabout');
+          }
         }
-
-        lastRoad = CurrentTripItem()
-            .maneuvers[CurrentTripItem().maneuvers.length - 1]
-            .roadTo;
-        CurrentTripItem()
-                .maneuvers[CurrentTripItem().maneuvers.length - 1]
-                .type =
-            CurrentTripItem()
-                .maneuvers[CurrentTripItem().maneuvers.length - 1]
-                .type
-                .replaceAll('rotary', 'roundabout');
       }
     }
+    result["name"] = name;
+    result["distance"] = distance.toStringAsFixed(1);
+    result["duration"] = jsonResponse['routes'][0]['duration'];
+    result["summary"] = summary;
+    result["maneuvers"] = maneuvers;
+    result["points"] = routePoints;
+  } catch (e) {
+    debugPrint('Error processing router data: ${e.toString()}');
   }
-
-  result["name"] = name;
-  result["distance"] = distance.toStringAsFixed(1);
-  result["duration"] = jsonResponse['routes'][0]['duration'];
-  result["summary"] = summary;
-  result["points"] = routePoints;
   return result;
 }
 
