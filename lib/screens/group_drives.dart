@@ -23,7 +23,6 @@ class _GroupDriveFormState extends State<GroupDriveForm>
   late TabController _tController;
   bool _showingDialog = false;
 
-  bool _adding = false;
   bool _changed = false;
   List<Map<String, dynamic>> _changes = [];
   int toInvite = 0;
@@ -64,9 +63,7 @@ class _GroupDriveFormState extends State<GroupDriveForm>
     return true;
   }
 
-  void _setAdding(bool adding) {
-    setState(() => _adding = adding);
-  }
+  void _setAdding(bool adding) {}
 
   @override
   Widget build(BuildContext context) {
@@ -81,6 +78,8 @@ class _GroupDriveFormState extends State<GroupDriveForm>
         overflowMethods: _overflowMethods,
         showOverflow: true,
         update: _changed == true,
+        // updateHeading: 'Save your group drive?',
+        // updateSubHeading: 'You have made changes.',
         showAction: _changed == true,
         updateMethod: (update) => checkInvitations(),
       ),
@@ -291,149 +290,162 @@ class _GroupDriveFormState extends State<GroupDriveForm>
           tripItem = _myTripItems[j];
         }
       }
-      if (tripItem.heading.isNotEmpty) {
-        _showingDialog = true;
-        bool sent = await updateDialog(
-            context: context, eventDetails: _changes[i], tripItem: tripItem);
-        if (sent) {
-          _changes.clear();
-          setState(() => _changed = false);
+      try {
+        if (tripItem.heading.isNotEmpty) {
+          _showingDialog = true;
+          bool sent = await updateDialog(
+              context: context, eventDetails: _changes[i], tripItem: tripItem);
+
+          if (sent) {
+            _changes.clear();
+            setState(() => _changed = false);
+          }
         }
+      } catch (e) {
+        debugPrint('Error: ${e.toString()}');
       }
     }
   }
 
-  Future updateDialog(
+  Future<bool> updateDialog(
       {required BuildContext context,
       required Map<String, dynamic> eventDetails,
-      required MyTripItem tripItem}) {
+      required MyTripItem tripItem,
+      dynamic tripDate,
+      String instructions = ''}) async {
     DateTime tripDate = DateTime.now();
     String instructions = '';
-    return showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: Text(
-            tripItem.heading,
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-          ),
-          content: SizedBox(
-            height: 250,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: EdgeInsets.fromLTRB(10, 20, 0, 5),
-                  child: InkWell(
-                    onTap: () async {
-                      tripDate = await showDatePicker(
-                            context: context,
-                            firstDate: DateTime.now(),
-                            lastDate: DateTime(DateTime.now().year + 2,
-                                DateTime.now().month, DateTime.now().day),
-                          ) ??
-                          tripDate;
-                      setState(() => {});
-                    },
-                    child: Row(
-                      children: [
-                        Expanded(
-                            flex: 4,
-                            child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Group drive date:',
-                                    style: TextStyle(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.bold),
-                                  ),
-                                  Text(
-                                    dateFormatDoc.format(tripDate),
-                                    style: TextStyle(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.bold),
-                                  ),
-                                ])),
-                        Expanded(
-                          flex: 1,
-                          child: Icon(Icons.calendar_month_outlined, size: 50),
+    bool? update = await showDialog<bool>(
+          context: context,
+          builder: (context) => StatefulBuilder(
+            builder: (context, setState) => AlertDialog(
+              title: Text(
+                tripItem.heading,
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              ),
+              content: SizedBox(
+                height: 250,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: EdgeInsets.fromLTRB(10, 20, 0, 5),
+                      child: InkWell(
+                        onTap: () async {
+                          tripDate = await showDatePicker(
+                                context: context,
+                                firstDate: DateTime.now(),
+                                lastDate: DateTime(DateTime.now().year + 2,
+                                    DateTime.now().month, DateTime.now().day),
+                              ) ??
+                              DateTime.now();
+                          setState(() => {});
+                        },
+                        child: Row(
+                          children: [
+                            Expanded(
+                                flex: 4,
+                                child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Group drive date:',
+                                        style: TextStyle(
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.bold),
+                                      ),
+                                      Text(
+                                        dateFormatDoc.format(tripDate),
+                                        style: TextStyle(
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.bold),
+                                      ),
+                                    ])),
+                            Expanded(
+                              flex: 1,
+                              child:
+                                  Icon(Icons.calendar_month_outlined, size: 50),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
+                    ),
+                    Padding(
+                      padding: EdgeInsets.fromLTRB(10, 20, 0, 5),
+                      child: Text(
+                        "Enter any instructions for trip",
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    Padding(
+                      padding: EdgeInsets.fromLTRB(10, 20, 0, 5),
+                      child: TextFormField(
+                        //  key: Key('${widget.contact.standId}${widget.index}_7'),
+                        readOnly: false,
+                        autofocus: false,
+                        minLines: 2,
+                        maxLines:
+                            null, // these 2 lines allow multiline wrapping
+                        keyboardType: TextInputType.multiline,
+                        textAlign: TextAlign.start,
+                        textCapitalization: TextCapitalization.sentences,
+                        textInputAction: TextInputAction.done,
+                        decoration: InputDecoration(
+                          border: const OutlineInputBorder(),
+                          contentPadding:
+                              const EdgeInsets.fromLTRB(10.0, 0.0, 10.0, 10.0),
+                          focusColor: Colors.blueGrey,
+                          hintText: 'Enter any instruction for trip',
+                          labelText: 'Instructions',
+                        ),
+                        style: const TextStyle(
+                          fontSize: 18,
+                        ),
+                        initialValue: instructions,
+                        onChanged: (text) => instructions = text,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () async {
+                    sendInvitations(
+                        eventDetails: eventDetails,
+                        driveDate: tripDate,
+                        myTripItem: tripItem,
+                        instructions: instructions);
+                    _showingDialog = false;
+                    Navigator.of(context).pop(true);
+                  },
+                  child: const Text(
+                    'Send',
+                    style: TextStyle(
+                      fontSize: 22,
                     ),
                   ),
                 ),
-                Padding(
-                  padding: EdgeInsets.fromLTRB(10, 20, 0, 5),
-                  child: Text(
-                    "Enter any instructions for trip",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                ),
-                Padding(
-                  padding: EdgeInsets.fromLTRB(10, 20, 0, 5),
-                  child: TextFormField(
-                    //  key: Key('${widget.contact.standId}${widget.index}_7'),
-                    readOnly: false,
-                    autofocus: false,
-                    minLines: 2,
-                    maxLines: null, // these 2 lines allow multiline wrapping
-                    keyboardType: TextInputType.multiline,
-                    textAlign: TextAlign.start,
-                    textCapitalization: TextCapitalization.sentences,
-                    textInputAction: TextInputAction.done,
-                    decoration: InputDecoration(
-                      border: const OutlineInputBorder(),
-                      contentPadding:
-                          const EdgeInsets.fromLTRB(10.0, 0.0, 10.0, 10.0),
-                      focusColor: Colors.blueGrey,
-                      hintText: 'Enter any instruction for trip',
-                      labelText: 'Instructions',
+                TextButton(
+                  onPressed: () {
+                    _showingDialog = false;
+                    Navigator.of(context).pop(false);
+                  },
+                  child: const Text(
+                    'Quit',
+                    style: TextStyle(
+                      fontSize: 22,
                     ),
-                    style: const TextStyle(
-                      fontSize: 18,
-                    ),
-                    initialValue: instructions,
-                    onChanged: (text) => instructions = text,
                   ),
-                ),
+                )
               ],
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () async {
-                sendInvitations(
-                    eventDetails: eventDetails,
-                    driveDate: tripDate,
-                    myTripItem: tripItem,
-                    instructions: instructions);
-                _showingDialog = false;
-                Navigator.of(context).pop(true);
-              },
-              child: const Text(
-                'Send',
-                style: TextStyle(
-                  fontSize: 22,
-                ),
-              ),
-            ),
-            TextButton(
-              onPressed: () {
-                _showingDialog = false;
-                Navigator.of(context).pop(false);
-              },
-              child: const Text(
-                'Quit',
-                style: TextStyle(
-                  fontSize: 22,
-                ),
-              ),
-            )
-          ],
-        ),
-      ),
-    );
+        ) ??
+        false;
+    return update;
   }
 
   sendInvitations(

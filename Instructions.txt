@@ -1,4 +1,6 @@
 Redmi jumbleboy
+deleting temp files C:\Users\james\AppData\Local\Temp
+
 Problems with version updates on devices:
 Experienced a problem for a little while where after a build
 have to do a restart befor the latest build is put on the 

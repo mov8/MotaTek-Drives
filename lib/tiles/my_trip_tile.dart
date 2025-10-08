@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:drives/classes/classes.dart';
 import 'package:drives/models/other_models.dart';
+import 'package:drives/constants.dart';
 
 class MyTripTile extends StatefulWidget {
   final MyTripItem myTripItem;
@@ -72,7 +73,8 @@ class _MyTripTileState extends State<MyTripTile> {
                   flex: 1,
                   child: Column(children: [
                     const Icon(Icons.social_distance),
-                    Text('${widget.myTripItem.closest} miles away')
+                    Text(
+                        '${(widget.myTripItem.distanceAway * metersToMiles).toStringAsFixed(1)} miles away')
                   ]),
                 ),
               ]),

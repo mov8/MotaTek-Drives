@@ -195,13 +195,15 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   late final LeadingWidgetController _leadingWidgetController;
   late final FloatingTextEditController _floatingTextEditController1;
   late final FloatingTextEditController _floatingTextEditController2;
+  late final DirectionTileController _directionTileController;
 
   late final StreamController<Position> _debugPositionController;
   late final FollowRoute _debugRoute;
   int initialLeadingWidgetValue = 0;
-  late AlignOnUpdate _alignPositionOnUpdate;
+  // late AlignOnUpdate _alignPositionOnUpdate;
   late AlignOnUpdate _alignDirectionOnUpdate;
   final List<Place> _places = [];
+  Map<String, dynamic> _waypointPositions = {};
   bool _autoCentre = false;
   double _zoom = 13;
   final _dividerHeight = 35.0;
@@ -217,16 +219,13 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   // List<PointOfInterest> _pointsOfInterest = [];
   final List<Marker> _debugMarkers = [];
   final bool _debugging = false; // true;
+  final String _debuggingRoute = 'Debug';
   final Directions _directions = Directions();
 
   double _width = 56.0;
   final double _height = 56.0;
   bool _expanded = false;
   bool _pubUpdate = true;
-  //double _width1 = 56.0;
-  //double _height1 = 56.0;
-  //bool _expanded1 = false;
-  final RouteDelta _distanceFromRoute = RouteDelta();
   late bool _hasRepainted;
   StreamSocket streamSocket = StreamSocket();
   sio.Socket socket = sio.io(urlBase, <String, dynamic>{
@@ -384,6 +383,7 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
     _floatingTextEditController1 = FloatingTextEditController();
     _floatingTextEditController2 = FloatingTextEditController();
     _bottomNavController = RoutesBottomNavController();
+    _directionTileController = DirectionTileController();
     _expandNotifier = ExpandNotifier(-1);
 
     _locationSettings = getGeolocatorSettings(
@@ -408,11 +408,11 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
     try {
       _loadedOK = dataFromDatabase();
       _title = 'Create a new trip';
-      developer.log(_title, name: '_title ! initState() 375');
       _allignPositionStreamController = StreamController<double?>.broadcast();
       _animatedMapController = AnimatedMapController(vsync: this);
       _allignDirectionStreamController = StreamController<void>.broadcast();
-      _alignPositionOnUpdate = AlignOnUpdate.never;
+      //   _alignPositionOnUpdate = AlignOnUpdate.never;
+      _autoCentre = false;
       _alignDirectionOnUpdate = AlignOnUpdate.never; // never;
       fn1 = FocusNode();
       listHeight = -1;
@@ -424,7 +424,6 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
         'message_from_trip',
         (data) {
           TripMessage tripMessage = TripMessage.fromSocketMap(data);
-          developer.log('trip_message: ${data.toString()}', name: '_socket');
           if (tripMessage.message.isNotEmpty) {
             debugPrint('message: ${tripMessage.message}');
           }
@@ -582,7 +581,6 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   }
 
   void _updateMarkerSize(double zoom) {
-    developer.log('_updateMarkerSize zoom: $zoom', name: '_overlays');
     setState(() {});
   }
 
@@ -699,14 +697,8 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   /// Returns the routepoints and the waypoint data for the added waypoint
   /// _SimpleUri (http://10.101.1.150:5000/route/v1/driving/-0.0237985,52.9776561;-0.0237985,52.9776561?steps=true&annotations=true&geometries=geojson&overview=full&exclude=motorway&exclude=trunk&exclude=primary)
 
-  List<Maneuver> getManeuvers() {
-    List<Maneuver> maneuvers = [];
-    return maneuvers;
-  }
-
   @override
   Widget build(BuildContext context) {
-    developer.log('Widget build', name: '_initialise');
     int initialNavBarValue = 2;
     initialLeadingWidgetValue =
         [AppState.createTrip, AppState.driveTrip].contains(_appState) ? 1 : 0;
@@ -716,8 +708,6 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
       CurrentTripItem().fromMyTripItem(myTripItem: args.trip);
       CurrentTripItem().groupDriveId = args.groupDriveId;
       _title = CurrentTripItem().heading;
-      // _groupChecked = true;
-      developer.log(_title, name: '_title at build 627');
       CurrentTripItem().tripState = TripState.notFollowing;
       CurrentTripItem().tripActions = TripActions.none;
       CurrentTripItem().highliteActions = HighliteActions.none;
@@ -764,10 +754,8 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
                 if (CurrentTripItem().tripState == TripState.editing) {
                   CurrentTripItem().tripState = TripState.notFollowing;
                   _title = CurrentTripItem().heading;
-                  developer.log(_title, name: '_title TripState.editing 641');
                 } else {
                   _title = 'Create a new trip';
-                  developer.log(_title, name: '_title ! TripState.editing 644');
                   adjustMapHeight(MapHeights.full);
                   _leadingWidgetController.changeWidget(0);
                   CurrentTripItem().clearAll();
@@ -831,7 +819,6 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   }
 
   Future<bool> dataFromDatabase() async {
-    developer.log('loading data', name: '_initialise');
     try {
       _currentPosition = await Geolocator.getCurrentPosition();
       if (Setup().hasLoggedIn) {
@@ -853,7 +840,6 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
     } catch (e) {
       debugPrint('Error getting features data: ${e.toString()}');
     }
-    developer.log('data loaded', name: '_initialise');
     _style = await VectorMapStyle().mapStyle();
     return true;
   }
@@ -1151,74 +1137,193 @@ enum TripState {
     return '${pos.latitude},${pos.longitude}';
   }
 
+  /// This version of addWaypoint() assumes the waypoint is allways added to the bottom
+  /// of the list.
+  /// It then calculates the route from the previous last waypoint to the new added one and
+  /// adds that tCurrentTripItem().routes[]. Each waypoint would then have its own route.
   ///
-  /// addWaypoint adds a waypoint to a map there are 5 scenarios:
-  /// 1 It's the first waypoint - just adds to the pointsOfInterest[]
-  /// 2 It's the second wapoint - adds to the pointsOfInterest[] and calculates the route
-  /// 3 It's a waypoint that extends the route adds to pointsOfInterest[] and recalculates the route
-  /// 4 It's a waypoint along the route - an anchor waypoint inserts the waypoint into pointsOfInterest[]
-  ///   This is a tricky bit. It has to find where in the list to be inserted. It should look up and down
-  ///   the pointsOfInterest[] looking for the adjacent waypoints. It can then be inserted in the correct position to allow
-  ///   the route to be regenerated without any double-backs etc. There is no recalculation of the route.
-  /// 5 It's a wawpoint between the end and start that modifies the route recalculates the route using all waypoints.
-  ///   Again the correct position will have to be calculated before the waypoint is inserted between the adjacent waypoints.
-  ///   To find the leave-route-point find the two closest existing waypoint to the new waypoint and insert the new waypoint
-  ///   between the two. Then recalculate the route.
-  ///
-  /// In this model waypoints are the only route defining points. PointsOfInterest do not determine the route taken, as
-  /// they could well be slightly off the route, accesible by foot only etc.
-  ///
-  /// Provision will have to be made to allow the user to modify a route by inserting a new waypoint, then removing a
-  /// waypoint.
-  ///
-  /// NB:  Waypoint types - Start: 17  End: 18  Other: 12
+  /// Now going to modify it
 
   addWaypoint(
       {required List<PointOfInterest> pointsOfInterest,
       bool currentPosition = false,
-      bool isAnchor = false,
       bool isRevisit = false,
-      bool isLast = false}) async {
+      bool isLast = false,
+      bool isAnchor = false}) async {
+    // int waypoints = 0;
+    int lastWpIndex = 0;
+    List<int> waypoints = [];
+    List<Map<String, double>> nearestWaypoints = [
+      {'index': 0, 'distance': 999999.0},
+      {'index': 0, 'distance': 999999.0}
+    ];
+
     LatLng pos;
+    int type = waypoints.isEmpty ? 17 : 18;
     if (currentPosition) {
       pos = LatLng(_currentPosition.latitude, _currentPosition.longitude);
     } else {
       pos = _animatedMapController.mapController.camera.center;
     }
 
-    int index = insertAt(pointsOfInterest: pointsOfInterest, position: pos);
-    int wpType = 12;
-
-    if (index == 0) {
-      wpType = 17;
-    } else if (isRevisit || isLast) {
-      wpType = 19;
-    } else if (index == pointsOfInterest.length) {
-      wpType = 18;
+    for (int i = 0; i < pointsOfInterest.length; i++) {
+      if (pointsOfInterest[i].waypoint > -1) {
+        double distance = Geolocator.distanceBetween(
+            pos.latitude,
+            pos.longitude,
+            pointsOfInterest[i].point.latitude,
+            pointsOfInterest[i].point.longitude);
+        if (distance < nearestWaypoints[0]['distance']!.toDouble()) {
+          nearestWaypoints[1]['distance'] =
+              nearestWaypoints[0]['distance']!.toDouble();
+          nearestWaypoints[0]['index'] = i.toDouble();
+          nearestWaypoints[0]['distance'] = distance;
+        } else if (distance < nearestWaypoints[1]['distance']!.toDouble()) {
+          nearestWaypoints[1]['distance'] = distance;
+          nearestWaypoints[1]['index'] = i.toDouble();
+        }
+        lastWpIndex = i;
+        waypoints.add(i);
+      }
     }
-
+    type = waypoints.isEmpty ? 17 : 18;
     PointOfInterest waypoint = PointOfInterest(
       driveId: CurrentTripItem().driveId,
-      type: wpType,
+      type: type,
       markerPoint: pos,
-      description: 'insertAt: $index isAnchor: $isAnchor',
+      description: 'isAnchor: $isAnchor',
       marker: MarkerWidget(
-        type: wpType,
-        angle: -_mapRotation * pi / 180, // degrees to radians
-        list: index,
-        listIndex: index,
+        description: isAnchor ? 'isAnchor' : '',
+        type: type,
+        angle: -_mapRotation * pi / 180,
+        list: waypoints.length + 1,
+        listIndex: pointsOfInterest.length,
       ),
     );
-    int waypoints = index;
-    pointsOfInterest.insert(index, waypoint);
-    if (CurrentTripItem().tripState == TripState.editing) {
-      waypoints = renumberWaypoints(pointsOfInterest: pointsOfInterest);
+    waypoint.setWaypoint(waypoints.length + 1);
+
+    if (waypoints.isNotEmpty) {
+      if (waypoints.length > 1) {
+        pointsOfInterest[lastWpIndex].setType(12);
+      }
+      if (waypoints.isNotEmpty && !isAnchor) {
+        debugPrint('reRouting');
+        Map<String, dynamic> routeData = await getRoutePoints(
+            points: [pointsOfInterest[lastWpIndex].point, pos],
+            addPoints: true);
+        if (routeData['msg'] == null) {
+          CurrentTripItem().routes.add(mt.Route(
+              points: routeData['points'],
+              strokeWidth: 5,
+              color: colourList[Setup().routeColour]));
+          CurrentTripItem().maneuvers.addAll(routeData['maneuvers']);
+        }
+        //   waypoint.markerPoint = routeData['points'].last;
+      }
     }
-    if (waypoints > 0 && !isAnchor) {
-      debugPrint('reRouting');
-      await reRoute(editing: CurrentTripItem().tripState == TripState.editing);
-    }
+    pointsOfInterest.add(waypoint);
     setState(() => _showMask = false);
+  }
+
+  /// Deleting a waypoint has to:
+  ///   renumber all the waypoints after the one removed
+  ///   remove the Route for the re
+  ///
+  ///   poi
+  ///   wp0     remove 1st wp   remove routes[0]  renumber waypoints
+  ///    |
+  ///   wp1     remove 2nd wp   remove routes[0, 1] renumber 2  recalculate route 0 - 2
+  ///    |
+  ///   wp2     remove last wp  rempve routes[1]
+  ///   poi
+
+  deleteWaypoint({int index = 0}) async {
+    if (!CurrentTripItem()
+        .pointsOfInterest[index]
+        .getDescription()
+        .contains('Anchor')) {
+      int wpToRemove = CurrentTripItem().pointsOfInterest[index].waypoint;
+
+      List<PointOfInterest> waypoints = [];
+
+      /// Identify all waypoints in pointsOfInterest[]
+      for (int i = 0; i < CurrentTripItem().pointsOfInterest.length; i++) {
+        if (CurrentTripItem().pointsOfInterest[i].waypoint != -1) {
+          waypoints.add(CurrentTripItem().pointsOfInterest[i]);
+        }
+      }
+
+      /// Identify all waypoints in maneuvers[] 1st one's type is 'depart' the rest 'arrive'
+      List<int> maneuverWps = [0];
+      Map<String, dynamic> routeData = {};
+      for (int i = 0; i < CurrentTripItem().maneuvers.length; i++) {
+        if (CurrentTripItem().maneuvers[i].type == 'arrive') {
+          maneuverWps.add(i);
+        }
+      }
+
+      if (wpToRemove == 1) {
+        /// First waypoint removed - delete maneuvers up to 1st 'arrive'
+        /// Change the type from 'arrive' to 'depart'
+        /// remove the routes[0]
+        CurrentTripItem().maneuvers.removeRange(0, maneuverWps[1]);
+        CurrentTripItem().maneuvers[maneuverWps[0]].type = 'depart';
+        CurrentTripItem().routes.removeAt(0);
+      } else if (wpToRemove == waypoints.length) {
+        /// Last waypoint removed - delete all maneuvesr after penultimate 'arrive'
+        /// remove the last routes
+        CurrentTripItem().maneuvers.removeRange(
+            maneuverWps[maneuverWps.length - 1],
+            CurrentTripItem().maneuvers.length - 1);
+        CurrentTripItem().routes.removeAt(CurrentTripItem().routes.length - 1);
+      } else {
+        /// have to remove all maneuvers from the previous 'arrive' to the next 'arrive'
+        /// have to remove the routes from the previous waypoint to the deleted one
+        /// and from the deleted one to the next one
+        /// calculate the route to bridge the gap;
+        routeData = await getRoutePoints(points: [
+          waypoints[wpToRemove - 2].point,
+          waypoints[wpToRemove].point
+        ], addPoints: true);
+
+        /// keep all maneuvers up to the waypoint before the one to be removed
+        List<Maneuver> newManeuvers = CurrentTripItem()
+            .maneuvers
+            .getRange(0, maneuverWps[wpToRemove - 1])
+            .toList();
+
+        /// add in all the newly calculated maneuvers
+        newManeuvers.addAll(routeData['maneuvers']);
+
+        /// finally add in all the maneuvers from the waypoint after the one to be deleted
+        newManeuvers.addAll(CurrentTripItem()
+            .maneuvers
+            .getRange(
+                maneuverWps[wpToRemove - 1], CurrentTripItem().maneuvers.length)
+            .toList());
+        CurrentTripItem().maneuvers = newManeuvers;
+
+        /// remove routes getting from waypoint to remove to next waypoint
+        CurrentTripItem().routes.removeAt(wpToRemove - 1);
+
+        /// remove routes getting from previous waypoint to the waypoints to remove
+        CurrentTripItem().routes.removeAt(wpToRemove - 2);
+
+        /// now insert our newly calculated route
+        CurrentTripItem().routes.insert(
+            wpToRemove - 2,
+            mt.Route(
+                points: routeData['points'],
+                color: colourList[Setup().routeColour],
+                strokeWidth: 5));
+      }
+      for (int i = index; i < CurrentTripItem().pointsOfInterest.length; i++) {
+        if (CurrentTripItem().pointsOfInterest[i].waypoint > -1) {
+          CurrentTripItem().pointsOfInterest[i].decrementWaypoint();
+        }
+      }
+    }
+    setState(() => CurrentTripItem().pointsOfInterest.removeAt(index));
   }
 
   /// insertAt()
@@ -1397,8 +1502,6 @@ enum TripState {
         result.add(end);
       }
     }
-    developer.log('waypointIndex() result:${result.toString()}',
-        name: '_waypoint');
     return result;
   }
 
@@ -1539,7 +1642,7 @@ enum TripState {
                             keyboardType: TextInputType.text,
                             onSelect: (chosen) async {
                               _autoCentre = false;
-                              _alignPositionOnUpdate = AlignOnUpdate.never;
+                              //   _alignPositionOnUpdate = AlignOnUpdate.never;
                               _alignDirectionOnUpdate = AlignOnUpdate.never;
                               _animatedMapController
                                   .animateTo(
@@ -1835,6 +1938,21 @@ enum TripState {
 
           FloatingActionButton(
             onPressed: () async {
+              _autoCentre = !_autoCentre;
+              if (_autoCentre) {
+                if (CurrentTripItem().tripState != TripState.following) {
+                  _currentPosition = await Geolocator.getCurrentPosition();
+                }
+
+                _animatedMapController
+                    .animateTo(
+                        dest: LatLng(_currentPosition.latitude,
+                            _currentPosition.longitude))
+                    .then((_) => updateOverlays(
+                        zoom:
+                            _animatedMapController.mapController.camera.zoom));
+              }
+/*
               if (CurrentTripItem().isTracking) {
                 if (_alignPositionOnUpdate == AlignOnUpdate.always) {
                   _alignPositionOnUpdate = AlignOnUpdate.never;
@@ -1853,10 +1971,15 @@ enum TripState {
                   setState(() => _autoCentre = true);
                 }
               } else {
+                if (CurrentTripItem().tripState != TripState.following) {
+                  _currentPosition = await Geolocator.getCurrentPosition();
+                }
                 _animatedMapController.animateTo(
                     dest: LatLng(
                         _currentPosition.latitude, _currentPosition.longitude));
+
               }
+              */
             },
             heroTag: 'mapCentre',
             backgroundColor: Colors.blue,
@@ -1919,7 +2042,6 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
             options: MapOptions(
               onMapEvent: checkMapEvent,
               onMapReady: () async {
-                developer.log('onMapReady', name: '_connect');
                 updateOverlays(zoom: 13);
                 if (!_tripStarted) {
                   if (_debugging) {
@@ -1939,8 +2061,6 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
                     _title = CurrentTripItem().heading;
                     if (!socket.connected) {
                       socket.connect();
-                      developer.log('socket.connect() called',
-                          name: '_connect');
                     }
                   }
                 }
@@ -1950,44 +2070,37 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
 
                 if ([TripState.manual, TripState.editing]
                     .contains(CurrentTripItem().tripState)) {
-                  CurrentTripItem().tripActions = TripActions.none;
+                  //  CurrentTripItem().tripActions = TripActions.none;
 
-                  int routeIdx = lineAtCentre(
-                      routes:
-                          CurrentTripItem().routes, // _publishedFeatures.routes
-                      controller: _animatedMapController);
-                  for (int i = 0; i < CurrentTripItem().routes.length; i++) {
-                    if (i == routeIdx) {
-                      CurrentTripItem().highliteActions =
-                          HighliteActions.routeHighlited;
-                      CurrentTripItem().routes[i].color =
-                          uiColours.keys.toList()[Setup().selectedColour];
-                    } else {
-                      CurrentTripItem().routes[i].color =
-                          uiColours.keys.toList()[Setup().routeColour];
+                  RouteDelta routeDelta = distanceFromRoute(
+                      routes: CurrentTripItem().routes,
+                      position:
+                          _animatedMapController.mapController.camera.center);
+                  if (CurrentTripItem().tripState == TripState.editing) {
+                    for (int i = 0; i < CurrentTripItem().routes.length; i++) {
+                      if (routeDelta.distance < 100) {
+                        CurrentTripItem().highliteActions =
+                            HighliteActions.routeHighlited;
+                        CurrentTripItem().routes[i].color =
+                            uiColours.keys.toList()[Setup().selectedColour];
+                      } else {
+                        CurrentTripItem().routes[i].color =
+                            uiColours.keys.toList()[Setup().routeColour];
+                      }
                     }
                   }
                   LatLng mapPos =
                       _animatedMapController.mapController.camera.center;
-                  for (int i = 0;
-                      i < CurrentTripItem().pointsOfInterest.length;
-                      i++) {
-                    LatLng wpPos = CurrentTripItem().pointsOfInterest[i].point;
-                    double distance = Geolocator.distanceBetween(
-                        mapPos.latitude,
-                        mapPos.longitude,
-                        wpPos.latitude,
-                        wpPos.longitude);
-                    if (distance < 200) {
-                      CurrentTripItem().highliteActions =
-                          HighliteActions.waypointHighlited;
-                      _poiHighlighted = i;
-                      developer.log(
-                          'Distance $distance markerType: ${CurrentTripItem().pointsOfInterest[i].getType()}',
-                          name: '_waypoint');
-                    }
+
+                  _waypointPositions = highlightNearestWaypoints(
+                      pointsOfInterest: CurrentTripItem().pointsOfInterest,
+                      position: mapPos);
+                  if ((_waypointPositions['nearest'] ?? 1000) < 200) {
+                    CurrentTripItem().highliteActions =
+                        HighliteActions.waypointHighlited;
+                    _poiHighlighted = _waypointPositions['nearestIndex'];
                   }
-                  highlightedIndex = routeIdx;
+                  setState(() => highlightedIndex = routeDelta.routeIndex);
                 }
 
                 if (hasGesure) {
@@ -2029,7 +2142,7 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
                 ),
                 alignPositionStream: _allignPositionStreamController.stream,
                 alignDirectionStream: _allignDirectionStreamController.stream,
-                alignPositionOnUpdate: _alignPositionOnUpdate,
+                //   alignPositionOnUpdate: _alignPositionOnUpdate,
                 alignDirectionOnUpdate: _alignDirectionOnUpdate,
                 style: const LocationMarkerStyle(
                   marker: DefaultLocationMarker(
@@ -2110,6 +2223,7 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
     return _debugRoute.getPosition ?? Geolocator.getCurrentPosition();
   }
 
+/*
   int lineAtCentre(
       {required List<mt.Route> routes,
       required AnimatedMapController controller}) {
@@ -2120,10 +2234,12 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
     int closest = -1;
     double distance = delta;
     LatLng centre = controller.mapController.camera.center;
+    double deltaX = 99999999999;
+    double deltaY = 99999999999;
     for (int i = 0; i < routes.length; i++) {
       for (LatLng point in routes[i].points) {
-        double deltaX = (point.longitude - centre.longitude).abs();
-        double deltaY = (point.latitude - centre.latitude).abs();
+        deltaX = (point.longitude - centre.longitude).abs();
+        deltaY = (point.latitude - centre.latitude).abs();
         if (deltaX < delta && deltaY < delta) {
           closest = i;
           if (deltaX > deltaY) {
@@ -2133,29 +2249,30 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
             }
           } else if (distance > deltaX) {
             distance = deltaX;
-            closest = i;
+            //  closest = i;
           }
         }
       }
     }
     return closest;
   }
-
+*/
   RouteDelta distanceFromRoute(
       {required List<mt.Route> routes,
       required LatLng position,
-      RouteDelta? routeDelta}) {
+      RouteDelta? routeDelta,
+      int trigger = 100}) {
     int distance = 200000;
-    int longers = 0;
     routeDelta ??= RouteDelta();
     routeDelta.point = position;
-    routeDelta.distance = distance;
+    routeDelta.distance = 200000;
+    routeDelta.pointIndex = -1;
     for (int i = 0; i < routes.length; i++) {
       mt.Route route = routes[i];
       for (int j = 0; j < route.points.length; j++) {
         distance = Geolocator.distanceBetween(
-                routeDelta.point.latitude,
-                routeDelta.point.longitude,
+                position.latitude,
+                position.longitude,
                 route.points[j].latitude,
                 route.points[j].longitude)
             .toInt();
@@ -2164,11 +2281,7 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
           routeDelta.pointIndex = j;
           routeDelta.routeIndex = i;
           routeDelta.point = route.points[j];
-          longers = 0;
-        } else {
-          ++longers;
-        }
-        if (longers > 20) {
+        } else if (distance <= trigger) {
           break;
         }
       }
@@ -2176,41 +2289,113 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
     return routeDelta;
   }
 
-/* TileProviders(
-                    {'openmaptiles': _tileProvider()},
-                  ), //
- */
-
   Align getDirections(int index) {
-    // if (index >= 0 &&
     if (CurrentTripItem().tripState == TripState.following &&
         CurrentTripItem().maneuvers.isNotEmpty) {
-      //  CurrentTripItem().maneuvers[index].distance = Geolocator.distanceBetween(
-      //      _currentPosition.latitude,
-      //      _currentPosition.longitude,
-      //      CurrentTripItem().maneuvers[index].location.latitude,
-      //      CurrentTripItem().maneuvers[index].location.longitude);
-      _directions.maneuvers = CurrentTripItem().maneuvers;
-      _directions.update(
-          position:
-              LatLng(_currentPosition.latitude, _currentPosition.longitude));
-
-      index = _directions.currentIndex;
       return Align(
         alignment: Alignment.topLeft,
         child: DirectionTile(
-          direction: CurrentTripItem().maneuvers[index],
-          index: index,
-          directions: CurrentTripItem().maneuvers.length,
-          metersToManeuver: _directions.distance,
-          distance: _distanceFromRoute.distance,
-          routeDelta: _distanceFromRoute,
-        ),
+            routes: CurrentTripItem().routes,
+            maneuvers: CurrentTripItem().maneuvers,
+            controller: _directionTileController,
+            currentIndex: (_) => (),
+            onTap: (index, routeIndex, pointIndex) => changeRoute(
+                lastManeuverIndex: index,
+                routeIndex: routeIndex,
+                pointIndex: pointIndex),
+            currentPosition:
+                LatLng(_currentPosition.latitude, _currentPosition.longitude)),
       );
     } else {
       return const Align(
         alignment: Alignment.topLeft,
       );
+    }
+  }
+
+  /// Waypoints are held in pointsOfInterest[]
+
+  Map<String, dynamic> highlightNearestWaypoints(
+      {required List<PointOfInterest> pointsOfInterest,
+      required LatLng position,
+      Color hightliteColour = Colors.orangeAccent}) {
+    Map<String, dynamic> response = {};
+    double nearest = 9999999;
+    double nextNearest = 9999999;
+    int nearestIndex = -1;
+    int nextNearestIndex = -1;
+
+    for (int i = 0; i < pointsOfInterest.length; i++) {
+      if ([12, 17, 18, 19].contains(pointsOfInterest[i].getType())) {
+        (pointsOfInterest[i].marker as MarkerWidget).colourIdx = 3;
+        double distance = Geolocator.distanceBetween(
+            position.latitude,
+            position.longitude,
+            pointsOfInterest[i].point.latitude,
+            pointsOfInterest[i].point.longitude);
+        if (distance < nextNearest) {
+          if (distance < nearest) {
+            nextNearest = nearest;
+            nextNearestIndex = nearestIndex;
+            nearest = distance;
+            nearestIndex = i;
+          } else {
+            nextNearest = distance;
+            nextNearestIndex = i;
+          }
+        }
+      }
+    }
+    if (nearestIndex != -1) {
+      response['nearest'] = nearest;
+      response['nearestIndex'] = nearestIndex;
+      (pointsOfInterest[nearestIndex].marker as MarkerWidget).colourIdx = 4;
+    }
+    if (nextNearestIndex != -1) {
+      response['nextNearest'] = nextNearest;
+      response['nextNearestIndex'] = nextNearestIndex;
+      (pointsOfInterest[nextNearestIndex].marker as MarkerWidget).colourIdx = 4;
+    }
+    return response;
+  }
+
+  Future<void> changeRoute(
+      {int lastManeuverIndex = 0,
+      int routeIndex = 0,
+      int pointIndex = 0}) async {
+    List<LatLng> points = [];
+
+    for (int i = 0; i <= lastManeuverIndex; i++) {
+      if (['depart', 'arrive'].contains(CurrentTripItem().maneuvers[i].type)) {
+        points.add(LatLng(CurrentTripItem().maneuvers[i].location.latitude,
+            CurrentTripItem().maneuvers[i].location.longitude));
+      }
+    }
+    points.add(LatLng(
+      _currentPosition.latitude,
+      _currentPosition.longitude,
+    ));
+
+    for (int i = lastManeuverIndex + 1;
+        i < CurrentTripItem().maneuvers.length;
+        i++) {
+      if (CurrentTripItem().maneuvers[i].type == 'arrive' ||
+          i == CurrentTripItem().maneuvers.length - 1) {
+        points.add(CurrentTripItem().maneuvers[i].location);
+      }
+    }
+
+    if (points.length > 2) {
+      Map<String, dynamic> tripData = await getRoutePoints(points: points);
+      CurrentTripItem().clearRoutes();
+      CurrentTripItem().addRoute(mt.Route(
+          id: -1,
+          strokeWidth: 5,
+          borderColor: colourList[Setup().routeColour],
+          points: tripData['points'],
+          color: colourList[Setup().routeColour]));
+      CurrentTripItem().maneuvers = tripData['maneuvers'];
+      setState(() => _directionTileController.updateRoute());
     }
   }
 
@@ -2222,12 +2407,7 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
     Fence newFence = Fence.fromBounds(
         _animatedMapController.mapController.camera.visibleBounds);
 
-    // developer.log(
-    //     'newFence: ${newFence.toString()}, _cacheFence: ${_cacheFence.toString()}',
-    //     name: '_overlays');
-
     zoom = _animatedMapController.mapController.camera.zoom;
-    // developer.log('_ipdateOverlays = true ', name: '_overlays');
 
     /// Updating the overlays depends on two factors:
     /// 1 The cached data needs refreshing
@@ -2235,14 +2415,10 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
 
     if (!_cacheFence.contains(bounds: newFence) || zoom != _zoom) {
       _zoom = zoom;
-      developer.log('_ipdateOverlays = true and newFence outside _cachedFence',
-          name: '_overlays');
       if (zoom > 10) {
         _updateOverlays = false;
         _cacheFence.setBounds(bounds: newFence, deltaDegrees: 0.5);
         double markerSize = 20 + ((zoom - 10) * 4);
-        developer.log('_ipdateOverlays markerSize: $markerSize',
-            name: '_overlays');
         if (!_cacheFence.contains(bounds: newFence)) {
           bool osmUpdate = await _osmFeatures.update(
               fence: _cacheFence, size: markerSize); // 20 - 30 for zoom 10 - 14
@@ -2281,9 +2457,6 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
   }
 
   List<ActionChip> getChips() {
-    developer.log(
-        'getChips() 2107 CurrentTripItem().tripState: ${CurrentTripItem().tripState.name}',
-        name: '_tripState');
     List<String> chipNames = [];
     List<ActionChip> chips = [];
     if (CurrentTripItem().tripState == TripState.startFollowing) {
@@ -2303,7 +2476,7 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
       'Anchor waypoint', //'Split route',
       'Remove waypoint', //'Remove section',
       'Revisit waypoint',
-      'Last waypoint',
+      'Reverse trip',
       'Great road end',
       'Follow route',
       'Stop following',
@@ -2334,7 +2507,7 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
       anchorWaypoint, // splitRoute,
       removeWaypoint, //removeSection,
       revisitWaypoint,
-      lastWaypoint,
+      reverseTrip,
       greatRoadEnd,
       followRoute,
       stopFollowing,
@@ -2361,7 +2534,7 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
       Icons.anchor, //Icons.cut,
       Icons.wrong_location, //Icons.add_photo_alternate,
       Icons.replay,
-      Icons.sports_score,
+      Icons.autorenew_outlined,
       Icons.remove_road,
       Icons.directions,
       Icons.directions_off,
@@ -2387,8 +2560,9 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
       if (CurrentTripItem().pointsOfInterest.length != _poiHighlighted + 1) {
         chipNames.add('Revisit waypoint');
       }
-      if (_poiHighlighted == 0) {
-        chipNames.add('Last waypoint');
+      if ([17, 18].contains(
+          CurrentTripItem().pointsOfInterest[_poiHighlighted].getType())) {
+        chipNames.add('Reverse trip');
       }
     } else {
       if (CurrentTripItem().tripState == TripState.none) {
@@ -2401,10 +2575,7 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
       if ([TripState.manual, TripState.editing]
           .contains(CurrentTripItem().tripState)) {
         chipNames
-          ..add(CurrentTripItem().highliteActions ==
-                  HighliteActions.routeHighlited
-              ? 'Anchor waypoint'
-              : 'Waypoint')
+          ..add('Waypoint')
           ..add('Point of interest');
       }
       if (CurrentTripItem().tripState == TripState.editing) {
@@ -2430,9 +2601,7 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
         chipNames.add('Clear trip');
       }
       if (CurrentTripItem().highliteActions == HighliteActions.routeHighlited) {
-        //    chipNames
-        //      ..add('Anchor waypoint') //'Split route')
-        //      ..add('Remove section');
+        chipNames.add('Anchor waypoint');
         if (CurrentTripItem().highliteActions ==
             HighliteActions.greatRoadStarted) {
           chipNames.add('Great road end');
@@ -2453,7 +2622,9 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
         TripState.following,
         TripState.stoppedFollowing,
         TripState.notFollowing,
-        TripState.loaded
+        TripState.loaded,
+        TripState.manual,
+        TripState.editing,
       ].contains(CurrentTripItem().tripState)) {
         if (CurrentTripItem().groupDriveId.isNotEmpty) {
           if (CurrentTripItem().tripActions == TripActions.showGroup) {
@@ -2472,7 +2643,9 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
         } else {
           chipNames.add('Steps');
         }
-
+      }
+      if (CurrentTripItem().tripState != TripState.editing &&
+          CurrentTripItem().routes.isNotEmpty) {
         if (CurrentTripItem().tripState != TripState.following &&
             CurrentTripItem().groupDriveId.isEmpty) {
           chipNames.add('Edit route');
@@ -2512,12 +2685,11 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
     _showMask = false;
     _showTarget = false;
     _autoCentre = true;
-    _alignPositionOnUpdate = AlignOnUpdate.never;
+    //  _alignPositionOnUpdate = AlignOnUpdate.never;
     _alignDirectionOnUpdate = AlignOnUpdate.never;
     _leadingWidgetController.changeWidget(1);
     _appState = AppState.createTrip;
     _title = 'Create a new trip automatically';
-    developer.log(_title, name: '_title automatic() 1866');
   }
 
   void addAutomatically() {
@@ -2536,7 +2708,6 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
     CurrentTripItem().tripState = TripState.manual;
     _leadingWidgetController.changeWidget(1);
     _title = 'Plan a new trip manually';
-    developer.log(_title, name: '_title manual() 1886');
   }
 
   void editing() {
@@ -2546,12 +2717,12 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
     CurrentTripItem().tripState = TripState.editing;
     _leadingWidgetController.changeWidget(1);
     _title = 'Edit trip ${CurrentTripItem().heading}';
-    developer.log(_title, name: '_title editing() 1896');
   }
 
   void addManually() {
     setState(() {
       manual();
+      CurrentTripItem().clearAll;
       CurrentTripItem().tripActions = TripActions.headingDetail;
       CurrentTripItem().tripState = TripState.manual;
       adjustMapHeight(MapHeights.headers);
@@ -2582,9 +2753,7 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
   }
 
   void removeWaypoint() async {
-    CurrentTripItem().pointsOfInterest.removeAt(_poiHighlighted);
-    renumberWaypoints(pointsOfInterest: CurrentTripItem().pointsOfInterest);
-    await reRoute();
+    await deleteWaypoint(index: _poiHighlighted);
     setState(() {});
   }
 
@@ -2593,7 +2762,7 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
         pointsOfInterest: CurrentTripItem().pointsOfInterest, isRevisit: true);
   }
 
-  void lastWaypoint() async {
+  void reverseTrip() async {
     addWaypoint(
         pointsOfInterest: CurrentTripItem().pointsOfInterest, isLast: true);
   }
@@ -2636,7 +2805,8 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
   void record() async {
     _alignDirectionOnUpdate =
         Setup().rotateMap ? AlignOnUpdate.always : AlignOnUpdate.never;
-    _alignPositionOnUpdate = AlignOnUpdate.always;
+    //  _alignPositionOnUpdate = AlignOnUpdate.always;
+
     _autoCentre = true;
     _showTarget = false;
     getLocationUpdates();
@@ -2644,7 +2814,6 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
     CurrentTripItem().tripActions = TripActions.none;
     _leadingWidgetController.changeWidget(1);
     _title = 'Creating trip automatically';
-    developer.log(_title, name: '_title record() 1972');
   }
 
   void startRecording() async {
@@ -2675,10 +2844,10 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
   }
 
   void stopRecording() async {
-    _positionStream.cancel();
+    _positionStream.pause();
     CurrentTripItem().tripState = TripState.stoppedRecording;
     _alignDirectionOnUpdate = AlignOnUpdate.never;
-    _alignPositionOnUpdate = AlignOnUpdate.never;
+    // _alignPositionOnUpdate = AlignOnUpdate.never;
     CurrentTripItem().tripState = TripState.stoppedRecording;
     if (CurrentTripItem().routes.isNotEmpty) {
       final LatLng pos =
@@ -2704,8 +2873,6 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
 
       /// Now save the data locally
       await _saveTrip();
-
-      developer.log(_title, name: '_title saveTrip() 2054');
     } catch (e) {
       String err = e.toString();
       debugPrint('Error: $err');
@@ -2722,6 +2889,11 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
       CurrentTripItem().tripState = TripState.none;
       _title = 'Create a new trip';
       _leadingWidgetController.changeWidget(0);
+      try {
+        _positionStream.cancel();
+      } catch (e) {
+        debugPrint("can't stop: ${e.toString()}");
+      }
     });
   }
 
@@ -2823,10 +2995,10 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
   }
 
   void stopFollowing() {
-    _alignPositionOnUpdate = AlignOnUpdate.never;
+    // _alignPositionOnUpdate = AlignOnUpdate.never;
     _alignDirectionOnUpdate = AlignOnUpdate.never;
     try {
-      _positionStream.cancel();
+      _positionStream.pause();
     } catch (e) {
       debugPrint("can't stop: ${e.toString()}");
     }
@@ -2958,7 +3130,6 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
       CurrentTripItem().tripState = TripState.editing;
       _title = 'Editing: ${CurrentTripItem().heading}';
       _leadingWidgetController.changeWidget(1);
-      developer.log(_title, name: 'editRoute() 2258');
     });
   }
 
@@ -3110,9 +3281,6 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
   /// }
 
   Widget _handleTripInfo() {
-    developer.log(
-        '_bottomSheetDivider listHeight: $listHeight  - TripActions.${CurrentTripItem().tripActions.name}',
-        name: '_handleTripInfo onTap 2411');
     if (listHeight > 0) {
       switch (CurrentTripItem().tripActions) {
         /// Nothing to show TODO: add a help message
@@ -3143,18 +3311,11 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
         /// User has just started creating a new drive
         case TripActions.headingDetail:
           return _exploreDetailsHeader();
-
-        ///
         default:
-          developer.log('_bottomSheetDivider',
-              name: '_handleTripIfo default onTap 2442');
           return SizedBox(height: 0);
       }
     } else {
       CurrentTripItem().tripActions = TripActions.none;
-      developer.log(
-          '_bottomSheetDivider - TripActions.${CurrentTripItem().tripActions.name}',
-          name: '_handleTripIfo default onTap 2447');
       return SizedBox(height: 0);
     }
   }
@@ -3185,8 +3346,6 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
         adjustMapHeight(mapHeight > mapHeights[0] - 50
             ? MapHeights.pointOfInterest
             : MapHeights.full);
-        developer.log('_bottomSheetDivider',
-            name: '_handleBottomSheetDivider onTap 2475');
         _handleTripInfo(); // <- remove keyboard
 
         //    _showExploreDetail();
@@ -3234,11 +3393,10 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
         itemBuilder: (context, index) => Padding(
           padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
           child: ManeuverTile(
-              index: index,
-              maneuver: CurrentTripItem().maneuvers[index],
-              maneuvers: CurrentTripItem().maneuvers.length,
-              onLongPress: maneuverLongPress,
-              distance: 0),
+            index: index,
+            maneuvers: CurrentTripItem().maneuvers,
+            onLongPress: maneuverLongPress,
+          ),
         ),
       ),
     );
@@ -3266,17 +3424,27 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
     _showTarget = true;
     _animatedMapController.animateTo(
         dest: CurrentTripItem().maneuvers[index].location);
+    CurrentTripItem().tripState = TripState.following;
+    debugPrint('index: $index');
+    _directions.update(position: CurrentTripItem().maneuvers[index].location);
+    setState(() => _directions.currentIndex = index);
     return;
   }
 
+/*
   Future<int> getClosestManeuver(List<Maneuver> maneuvers) async {
     double distance = 9999999;
     double testDistance;
     int closest = 0;
-    if (_debugging) {
-      _currentPosition = await _getDebugPosition();
-    } else {
-      _currentPosition = await Geolocator.getCurrentPosition();
+
+    /// When TrapState.following the position us
+    /// provided by the stream
+    if (CurrentTripItem().tripState != TripState.following) {
+      if (_debugging) {
+        _currentPosition = await _getDebugPosition();
+      } else {
+        _currentPosition = await Geolocator.getCurrentPosition();
+      }
     }
     for (int i = 0; i < maneuvers.length; i++) {
       testDistance = Geolocator.distanceBetween(
@@ -3291,7 +3459,7 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
     }
     return closest;
   }
-
+*/
   Future<void> followerIconClick(int index) async {
     String message = await messageGroup(index);
     if (message.isNotEmpty) {}
@@ -3471,8 +3639,9 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
         //  Map<String, dynamic> carData = {};
         return AlertDialog(
           title: Text('Drive - ${driver.driveName}'),
+          titlePadding: EdgeInsets.fromLTRB(30, 30, 0, 0),
           content: SizedBox(
-            width: 200,
+            width: 400,
             height: 300,
             child: Column(
               children: [
@@ -3601,7 +3770,6 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
                 await sendDriverDetails(driver);
                 if (!socket.connected) {
                   socket.connect();
-                  developer.log('socket.connect() called', name: '_connect');
                 }
                 if (socket.connected) {
                   socket.emit('trip_join', {
@@ -3772,12 +3940,11 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
     setState(() {
       CurrentTripItem().tripState = TripState.notFollowing;
       _alignDirectionOnUpdate = AlignOnUpdate.never;
-      _alignPositionOnUpdate = AlignOnUpdate.never;
+      // _alignPositionOnUpdate = AlignOnUpdate.never;
       CurrentTripItem().tripActions = TripActions.none;
       _appState = AppState.driveTrip;
       _showTarget = false;
       _title = CurrentTripItem().heading;
-      developer.log(_title, name: '_title onGetTrip() 2825');
       adjustMapHeight(MapHeights.full);
     });
 
@@ -4021,28 +4188,38 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
   /// every 10M
   /// must use _positionStream.cancel() to cancel stream when no longer reading from it
 
-  void getLocationUpdates() {
-    if (_debugging) {
-      _debugRoute.follow(points: CurrentTripItem().routes[0].points);
-      developer.log('_debugRoute.follow() called', name: '_debug');
-
-      _debugPositionController.stream.listen(
-        (Position position) {
-          updatePosition(position);
-        },
-      );
-    } else {
-      _positionStream =
-          Geolocator.getPositionStream(locationSettings: _locationSettings)
-              .listen(updatePosition);
+  void getLocationUpdates() async {
+    try {
+      if ([TripState.stoppedFollowing, TripState.stoppedRecording]
+          .contains(CurrentTripItem().tripState)) {
+        _positionStream.resume();
+      } else {
+        if (_debugging) {
+          if (_debuggingRoute.isEmpty) {
+            _debugRoute.follow(routes: CurrentTripItem().routes);
+          } else {
+            List<mt.Route> debugRoute =
+                await getRoutesByName(name: _debuggingRoute);
+            _debugRoute.follow(routes: debugRoute);
+          }
+          _positionStream = _debugPositionController.stream.listen(
+            (Position position) {
+              updatePosition(position);
+            },
+          );
+        } else {
+          _positionStream =
+              Geolocator.getPositionStream(locationSettings: _locationSettings)
+                  .listen(updatePosition);
+        }
+      }
+    } catch (e) {
+      developer.log('Stream error: ${e.toString()}', name: '_stream');
     }
   }
 
   void updatePosition(position) {
     _currentPosition = position;
-    developer.log(
-        'getLocationUpdates position - lat: ${position.latitude} lng: ${position.longitude}',
-        name: '_debug');
     _speed = _currentPosition.speed * 3.6 / 8 * 5; // M/S -> MPH
     LatLng pos = LatLng(_currentPosition.latitude, _currentPosition.longitude);
 
@@ -4056,7 +4233,6 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
 
     if (CurrentTripItem().groupDriveId.isNotEmpty) {
       if (!socket.connected) {
-        developer.log('reconnectint to socket', name: '_connect');
         socket.connect();
         for (Follower follower in _following) {
           if (follower.email == Setup().user.email) {
@@ -4077,7 +4253,6 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
       }
 
       if (socket.connected) {
-        developer.log('socket.emit() with location', name: '_connect');
         socket.emit('trip_message', {
           'message': '',
           'lat': _currentPosition.latitude,
@@ -4108,17 +4283,8 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
             .points
             .add(pos);
       }
-      //  debugPrint(
-      //      'CurrentTripItem().routes.length: ${CurrentTripItem().routes.length}  points: ${CurrentTripItem().routes[CurrentTripItem().routes.length - 1].points.length}');
-
       _lastLatLng =
           LatLng(_currentPosition.latitude, _currentPosition.longitude);
-    } else if (CurrentTripItem().tripState == TripState.following) {
-      distanceFromRoute(
-          routes: CurrentTripItem().routes,
-          position: pos,
-          routeDelta: _distanceFromRoute);
-      setState(() => _directionsIndex = getDirectionsIndex());
     }
   }
 
@@ -4353,7 +4519,8 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
         }
       }
     } catch (e) {
-      developer.log('_error', name: '_saveTrip() 3337 : ${e.toString()}');
+      developer.log('Error from saveLocal() : ${e.toString()}',
+          name: '_tripSave');
     }
 
     /// There is an issue with taking the map image in that it uses the Repaintboundary, which
@@ -4373,7 +4540,6 @@ VectorTileProvider _tileProvider() => NetworkVectorTileProvider(
       } else {
         break;
       }
-      developer.log(_title, name: '_title _saveTrip() 3343');
     }
     setState(() {
       CurrentTripItem().tripState = TripState.loaded;
@@ -4874,19 +5040,6 @@ Future<Map<String, dynamic>> getRoutePoints(
     debugPrint('Http error: ${e.toString()}');
     return {'msg': 'Error'};
   }
-//  return jsonResponse;
-//}
-
-  /// processRouterData()
-  /// Takes the data sent from the router and generates the data for the map:
-  /// 1 The points - used for manual route planning
-  /// 2 The turn-by-turn directions
-
-//Map<String, dynamic> processRouterData(
-//    {required dynamic jsonResponse,
-//    required String waypoints,
-//    bool includeWaypoints = true,
-//    bool addPoints = true}) {
   List<LatLng> routePoints = [];
   List<Maneuver> maneuvers = [];
   final Map<String, dynamic> result = {
@@ -4932,8 +5085,6 @@ Future<Map<String, dynamic>> getRoutePoints(
 
   String type = '';
 
-  bool added = false;
-
   if (addPoints) {
     var router = jsonResponse['routes'][0]['geometry']['coordinates'];
     for (int i = 0; i < router.length; i++) {
@@ -4952,58 +5103,73 @@ Future<Map<String, dynamic>> getRoutePoints(
       //  String _roadTo = '';
       double distance = 0;
 
+      int bearingBefore = 0;
+      int bearingAfter = 0;
       for (int k = 0; k < steps.length; k++) {
+        lastRoad = steps[k]['name'] ?? '';
         Map<String, dynamic> maneuver = steps[k]['maneuver'];
         try {
           type = maneuver['type'] ?? '';
           String modifier = maneuver['modifier'] ?? '';
-          added = false;
           if ((modifier.isNotEmpty || type == 'depart')) {
             if (modifier.isEmpty) {
               debugPrint('empty');
             }
 
             if (type.contains('roundabout') || type.contains('rotary')) {
-              developer.log('type: $type', name: '_maneuver');
+              try {
+                if (type.contains('exit')) {
+                  bearingAfter = maneuver['bearing_after'] ?? 0;
+                  modifier = bearingAfter > bearingBefore ? 'right' : 'left';
+                  if ((bearingAfter - bearingBefore).abs() < 60) {
+                    modifier = 'slightly $modifier';
+                  }
+                  //    modifier = '$modifier (${bearingAfter - bearingBefore})';
+                  maneuvers[maneuvers.length - 1].modifier = modifier;
+                  maneuvers[maneuvers.length - 1].bearingAfter = bearingAfter;
+                } else {
+                  bearingBefore = maneuver['bearing_before'] ?? 0;
+                }
+              } catch (e) {
+                developer.log('bearing error: ${e.toString()}',
+                    name: '_roundabout');
+              }
+            } else {
+              bearingBefore = maneuver['bearing_before'] ?? 0;
+              bearingAfter = maneuver['bearing_after'] ?? 0;
             }
+
             List<dynamic> lngLat = maneuver['location'];
-            added = (points.length == 2 ||
-                !points.contains(
-                    LatLng(lngLat[1].toDouble(), lngLat[0].toDouble())));
             distance += steps[k]['distance'].toDouble();
-            if (added) {
-              maneuvers.add(
-                Maneuver(
-                  roadFrom: steps[k]['name'],
-                  roadTo: lastRoad,
-                  bearingBefore: maneuver['bearing_before'] ?? 0,
-                  bearingAfter: maneuver['bearing_after'] ?? 0,
-                  exit: maneuver['exit'] ?? 0,
-                  location: LatLng(lngLat[1].toDouble(), lngLat[0].toDouble()),
-                  modifier: modifier,
-                  type: type,
-                  distance: distance,
-                ),
-              );
-              distance = 0;
-            }
+            maneuvers.add(
+              Maneuver(
+                roadFrom: steps[k]['name'],
+                roadTo: lastRoad,
+                bearingBefore: bearingBefore,
+                bearingAfter: bearingAfter,
+                exit: maneuver['exit'] ?? 0,
+                location: LatLng(lngLat[1].toDouble(), lngLat[0].toDouble()),
+                modifier: modifier,
+                type: type,
+                distance: distance,
+              ),
+            );
+            distance = 0;
           }
         } catch (e) {
           String err = e.toString();
           debugPrint(err);
         }
-        if (added) {
-          if (maneuvers.length > 1) {
-            maneuvers[maneuvers.length - 2].roadTo =
-                maneuvers[maneuvers.length - 1].roadFrom;
-          }
-          if (maneuvers.isNotEmpty) {
-            lastRoad = maneuvers[maneuvers.length - 1].roadTo;
-            maneuvers[maneuvers.length - 1].type =
-                maneuvers[maneuvers.length - 1]
-                    .type
-                    .replaceAll('rotary', 'roundabout');
-          }
+        if (maneuvers.length > 1) {
+          maneuvers[maneuvers.length - 2].roadTo =
+              maneuvers[maneuvers.length - 1].roadFrom;
+        }
+        if (maneuvers.isNotEmpty) {
+          lastRoad = maneuvers[maneuvers.length - 1].roadTo;
+          developer.log('lastRoad $lastRoad', name: '_roundabout');
+          maneuvers[maneuvers.length - 1].type = maneuvers[maneuvers.length - 1]
+              .type
+              .replaceAll('rotary', 'roundabout');
         }
       }
     }

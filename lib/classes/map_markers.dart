@@ -150,6 +150,7 @@ class EndMarkerWidget extends StatelessWidget {
 }
 
 IconData markerIcon(int type, {double size = 0}) {
+  type = type == -1 ? 17 : type;
   return IconData(poiTypes.toList()[type]['iconMaterial'],
       fontFamily: 'MaterialIcons');
 }

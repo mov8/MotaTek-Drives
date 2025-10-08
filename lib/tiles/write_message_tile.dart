@@ -1,4 +1,3 @@
-import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:drives/models/other_models.dart';
 import 'package:intl/intl.dart';
@@ -36,9 +35,6 @@ class _WriteMessageTileState extends State<WriteMessageTile> {
     super.initState();
     originator = widget.message.sent;
     _focusNode = FocusNode();
-    developer.log(
-        'id: ${widget.message.id} message: ${widget.message.message} sent: ${widget.message.sent.toString()}',
-        name: '_mail');
     if (widget.message.sender.isEmpty) {
       debugPrint('sender empty index : ${widget.index}');
     }

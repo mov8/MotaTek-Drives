@@ -63,13 +63,11 @@ class _MessagesState extends State<Messages> {
     socket.onError((data) => debugPrint('Error: ${data.toString()}'));
 
     socket.onConnect((_) {
-      developer.log('socket.onConnect called', name: '_messages');
       socket.emit('user_connect', {'token': Setup().jwt});
     });
 
     socket.on('message_from_group', (data) {
       try {
-        developer.log('message_from_group', name: '_messages');
         if (_openTile > -1 && _mailItems[_openTile].isGroup) {
           _messages[_messages.length - 1] = Message.fromSocketMap(data);
           setState(() => appendEmptyMessage());
@@ -95,8 +93,6 @@ class _MessagesState extends State<Messages> {
     }
 */
     socket.connect();
-    developer.log('socket.connect called', name: '_messages');
-
     _dataLoaded = getMessages();
   }
 
@@ -155,8 +151,6 @@ class _MessagesState extends State<Messages> {
   }
 
   void _getMessages(int index, bool value) async {
-    developer.log('_getMessages index: $index  value: $value',
-        name: '_messages');
     _expanded = List.generate(_mailItems.length, (index) => false);
     if (value) {
       if (_mailItems[index].isGroup) {

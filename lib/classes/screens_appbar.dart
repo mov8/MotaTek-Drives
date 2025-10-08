@@ -8,8 +8,8 @@ class ScreensAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String heading;
   final String prompt;
   final bool update;
-  String? updateHeading;
-  String? updateSubHeading;
+  String updateHeading;
+  String updateSubHeading;
   // final VoidCallback? updateMethod;
   final Function(bool)? updateMethod;
   final bool showDrawer;
@@ -26,8 +26,8 @@ class ScreensAppBar extends StatelessWidget implements PreferredSizeWidget {
     super.key,
     required this.heading,
     required this.prompt,
-    this.updateHeading,
-    this.updateSubHeading,
+    this.updateHeading = '',
+    this.updateSubHeading = '',
     this.updateMethod,
     this.update = false,
     this.showDrawer = false,
@@ -113,19 +113,22 @@ class ScreensAppBar extends StatelessWidget implements PreferredSizeWidget {
             leadingMethod!();
           } else {
             if (update) {
-              if (updateHeading! != '') {
-                bool upload = await updateDialog(
-                    context: context,
-                    heading: updateHeading!,
-                    subHeading: updateSubHeading!);
-                if (upload) {
-                  updateMethod!(true);
+              if (updateHeading == '' && updateMethod != null) {
+                await updateMethod!(true);
+                if (context.mounted) {
+                  Navigator.pop(context);
                 }
               } else {
-                updateMethod!(true);
+                bool upload = await updateDialog(
+                    context: context,
+                    heading: updateHeading,
+                    subHeading: updateSubHeading);
+                if (upload) {
+                  () => updateMethod!(true);
+                }
               }
             }
-            if (context.mounted) {
+            if (!update && context.mounted) {
               Navigator.pop(context);
             }
           }
@@ -151,68 +154,72 @@ class ScreensAppBar extends StatelessWidget implements PreferredSizeWidget {
   Size get preferredSize => const Size.fromHeight(kToolbarHeight + 45);
 }
 
-Future updateDialog(
-        {required BuildContext context,
-        String heading = '',
-        String subHeading = ''}) =>
-    // void Function()? updateMethod}) =>
-    showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text(
-            'Upload changes?',
-            style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
-          ),
-          content: SizedBox(
-            height: 120,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (heading.isNotEmpty)
-                  Text(
-                    heading,
-                    //   "You have declined ${_refused.length} invitation${_refused.length > 1 ? 's' : ''}",
-                    style: TextStyle(
-                      fontSize: 20,
+Future<bool> updateDialog(
+    {required BuildContext context,
+    String heading = '',
+    String subHeading = ''}) async {
+  // void Function()? updateMethod}) =>
+  bool? update = await showDialog<bool>(
+        context: context,
+        builder: (context) => StatefulBuilder(
+          builder: (context, setState) => AlertDialog(
+            title: const Text(
+              'Upload changes?',
+              style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
+            ),
+            content: SizedBox(
+              height: 120,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (heading.isNotEmpty)
+                    Text(
+                      heading,
+                      //   "You have declined ${_refused.length} invitation${_refused.length > 1 ? 's' : ''}",
+                      style: TextStyle(
+                        fontSize: 20,
+                      ),
                     ),
+                  if (subHeading.isNotEmpty)
+                    Text(
+                      subHeading,
+                      //    "You have accepted ${_accepted.length} invitation${_accepted.length > 1 ? 's' : ''}",
+                      style: TextStyle(fontSize: 20),
+                    ),
+                  SizedBox(
+                    height: 10,
                   ),
-                if (subHeading.isNotEmpty)
                   Text(
-                    subHeading,
-                    //    "You have accepted ${_accepted.length} invitation${_accepted.length > 1 ? 's' : ''}",
-                    style: TextStyle(fontSize: 20),
+                    "Save your changes now ?",
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
-                SizedBox(
-                  height: 10,
-                ),
-                Text(
-                  "Save your changes now ?",
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-              ],
+                ],
+              ),
             ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text(
+                  'Upload',
+                  style: TextStyle(
+                    fontSize: 22,
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text(
+                  'Ignore',
+                  style: TextStyle(
+                    fontSize: 22,
+                  ),
+                ),
+              )
+            ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text(
-                'Upload',
-                style: TextStyle(
-                  fontSize: 22,
-                ),
-              ),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text(
-                'Ignore',
-                style: TextStyle(
-                  fontSize: 22,
-                ),
-              ),
-            )
-          ],
         ),
-      ),
-    );
+      ) ??
+      false;
+
+  return update;
+}

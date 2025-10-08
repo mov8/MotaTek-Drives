@@ -1,8 +1,7 @@
-// import 'package:flutter/material.dart';
+import 'dart:developer' as developer;
 import 'package:drives/models/models.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
-import 'dart:developer' as developer;
 
 /// Class to handle the directions.
 /// The index returned of the current Maneuver should:
@@ -39,10 +38,14 @@ class Directions {
       findNextManeuver(position: position);
     }
     double delta = getDistance(currentIndex);
-
-    passed = delta > distance ? ++passed : 0;
+    developer.log('delta: $delta  distance: $distance', name: '_directions');
+    if (delta > distance) {
+      passed++;
+    } else {
+      distance = delta;
+      passed = 0;
+    }
     if (passed > 5) {
-      distance = 999999;
       if (currentIndex == 0) {
         currentIndex++;
         increment = 1;
@@ -57,11 +60,14 @@ class Directions {
           findNextManeuver(position: position);
         }
       }
+      passed = 0;
+      distance = 999999999;
       delta = getDistance(currentIndex);
     }
     distance = distance > delta ? delta : distance;
-    developer.log('directions.dart currentIndex : $currentIndex',
-        name: '_maneuvers');
+    developer.log(
+        'passed > 5 currentIndex: $currentIndex  increment: $increment',
+        name: '_directions');
   }
 
   void findNextManeuver({required LatLng position}) {
@@ -77,6 +83,9 @@ class Directions {
     if (oldIndex > -1 && increment == 0) {
       increment = currentIndex > oldIndex ? 1 : -1;
     }
+    developer.log(
+        'findNextManeuver oldIndex: $oldIndex  currentIndex: $currentIndex  increment: $increment',
+        name: '_directions');
   }
 
   double getDistance(int i) {

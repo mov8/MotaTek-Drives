@@ -1,6 +1,5 @@
 import 'dart:typed_data';
 import 'dart:async';
-import 'dart:developer' as developer;
 import 'package:drives/models/other_models.dart';
 import 'package:drives/services/services.dart';
 import 'package:drives/classes/classes.dart';
@@ -62,8 +61,6 @@ class PointOfInterestRepository {
       zoom = 30}) async {
     // PointOfInterest pointOfIntest = PointOfInterest(markerPoint: MarkerPoint(), marker: marker)
     if (!_pointOfInterestCache.containsKey(key)) {
-      developer.log('uri:$uri uncached', name: '_cache');
-      //  try {
       if (id >= 0) {
         _pointOfInterestCache[key] = await loadPointOfInterestLocal(id: id);
       } else if (uri.isNotEmpty) {
@@ -72,11 +69,7 @@ class PointOfInterestRepository {
         _pointOfInterestCache[key] = PointOfInterest(
             markerPoint: const LatLng(0, 0), marker: const FeatureMarker());
       }
-    } else {
-      //  debugPrint('Point of obtained from cache');
-      developer.log('uri:$uri cached', name: '_cache');
     }
-    //  debugPrint(fetched);
     return _pointOfInterestCache[key]!;
   }
 

@@ -52,7 +52,9 @@ class _DriveInvitationsState extends State<DriveInvitations>
             controller: _tController,
             labelStyle: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
             tabs: [
-              Tab(icon: Icon(Icons.group_outlined), text: 'Invite Drivers'),
+              Tab(
+                  icon: Icon(Icons.group_outlined),
+                  text: 'Invite Group Members'),
               // Tab(icon: Icon(Icons.outgoing_mail), text: 'Send Invitations'),
               Tab(icon: Icon(Icons.map_outlined), text: 'Drive Details'),
             ],
@@ -228,110 +230,6 @@ class _DriveInvitationsState extends State<DriveInvitations>
     }
     return count;
   }
-/*
-  Widget invitation() {
-    DateTime tripDate = _date!;
-    int toInvite = invitees();
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (toInvite == 0) ...[
-            Center(
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(0, 100, 0, 0),
-                child: Text(
-                  "You haven't invited anyone yet",
-                  style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ),
-          ],
-          if (toInvite > 0) ...[
-            Padding(
-              padding: EdgeInsets.fromLTRB(10, 20, 0, 5),
-              child: InkWell(
-                onTap: () async {
-                  _date = await showDatePicker(
-                        context: context,
-                        firstDate: DateTime.now(),
-                        lastDate: DateTime(DateTime.now().year + 2,
-                            DateTime.now().month, DateTime.now().day),
-                      ) ??
-                      tripDate;
-                  setState(() => {});
-                },
-                child: Row(
-                  children: [
-                    Expanded(
-                      flex: 4,
-                      child: Text(
-                        'Group drive date: ${dateFormatDoc.format(_date!)}',
-                        style: TextStyle(
-                            fontSize: 20, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                    Expanded(
-                      flex: 1,
-                      child: Icon(Icons.calendar_month_outlined),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            Padding(
-              padding: EdgeInsets.fromLTRB(10, 20, 0, 5),
-              child: Text(
-                "Enter the instructions for trip",
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-            ),
-            Padding(
-              padding: EdgeInsets.fromLTRB(10, 20, 0, 5),
-              child: TextFormField(
-                //  key: Key('${widget.contact.standId}${widget.index}_7'),
-                readOnly: false,
-                autofocus: false,
-                minLines: 2,
-                maxLines: null, // these 2 lines allow multiline wrapping
-                keyboardType: TextInputType.multiline,
-                textAlign: TextAlign.start,
-                textCapitalization: TextCapitalization.sentences,
-                textInputAction: TextInputAction.done,
-                decoration: InputDecoration(
-                  border: const OutlineInputBorder(),
-                  contentPadding:
-                      const EdgeInsets.fromLTRB(10.0, 0.0, 10.0, 10.0),
-                  focusColor: Colors.blueGrey,
-                  hintText: 'Enter any instruction for trip',
-                  labelText: 'Instructions',
-                ),
-                style: const TextStyle(
-                  fontSize: 18,
-                ),
-                initialValue: _instructions,
-                onChanged: (text) => _instructions = text,
-              ),
-            ),
-            Center(
-              child: ActionChip(
-                onPressed: () => sendInvitations(),
-                backgroundColor: Colors.blue,
-                avatar: const Icon(
-                  Icons.outgoing_mail,
-                  color: Colors.white,
-                ),
-                label: Text(
-                    'Send $toInvite invitation${toInvite == 1 ? '' : 's'}',
-                    style: const TextStyle(fontSize: 18, color: Colors.white)),
-              ),
-            )
-          ],
-        ],
-      ),
-    );
-  }
-  */
 
   Widget tripDescription() {
     return SingleChildScrollView(
@@ -352,7 +250,8 @@ class _DriveInvitationsState extends State<DriveInvitations>
                     flex: 1,
                     child: Column(children: [
                       const Icon(Icons.route),
-                      Text('${widget.myTripItem.distance} miles long')
+                      Text(
+                          '${widget.myTripItem.distance.toStringAsFixed(1)} miles long')
                     ]),
                   ),
                   Expanded(
@@ -367,7 +266,8 @@ class _DriveInvitationsState extends State<DriveInvitations>
                     flex: 1,
                     child: Column(children: [
                       const Icon(Icons.social_distance),
-                      Text('${widget.myTripItem.closest} miles away')
+                      Text(
+                          '${(widget.myTripItem.distanceAway * metersToMiles).toStringAsFixed(1)} miles away')
                     ]),
                   ),
                 ]),

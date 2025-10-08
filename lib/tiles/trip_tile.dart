@@ -191,7 +191,8 @@ class _TripTileState extends State<TripTile> {
                         flex: 1,
                         child: Column(children: [
                           const Icon(Icons.route),
-                          Text('${widget.tripItem.distance} miles long')
+                          Text(
+                              '${widget.tripItem.distance.toStringAsFixed(1)} miles long')
                         ]),
                       ),
                       Expanded(
@@ -205,7 +206,8 @@ class _TripTileState extends State<TripTile> {
                         flex: 1,
                         child: Column(children: [
                           const Icon(Icons.social_distance),
-                          Text('${widget.tripItem.closest} miles away')
+                          Text(
+                              '${(widget.tripItem.distanceAway * metersToMiles).toStringAsFixed(1)} miles away')
                         ]),
                       ),
                     ]),

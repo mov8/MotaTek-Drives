@@ -4,7 +4,6 @@ import 'package:drives/services/services.dart';
 import 'package:drives/screens/dialogs.dart';
 import 'package:drives/classes/classes.dart';
 import 'package:drives/constants.dart';
-import 'package:drives/screens/dialogs.dart';
 
 class SignupForm extends StatefulWidget {
   final LoginState loginState;
@@ -445,7 +444,7 @@ class _SignupFormState extends State<SignupForm> {
                     border: OutlineInputBorder(),
                     labelText: 'Car Manufacturer',
                   ),
-                  value: manufacturers[0],
+                  initialValue: manufacturers[0],
                   items: manufacturers
                       .map(
                         (item) => DropdownMenuItem<String>(

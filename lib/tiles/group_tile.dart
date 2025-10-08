@@ -2,7 +2,6 @@ import 'package:drives/constants.dart';
 import 'package:flutter/material.dart';
 import 'package:drives/models/other_models.dart';
 import 'package:drives/classes/classes.dart';
-import 'dart:developer' as developer;
 
 /// Groups is the class that organises driving groups it handles:
 ///
@@ -28,14 +27,12 @@ class GroupTileController {
   _GroupTileState? _groupTileState;
 
   void _addState(_GroupTileState groupTileState) {
-    developer.log('_addState called', name: '_addState');
     _groupTileState = groupTileState;
   }
 
   bool get isAttached => _groupTileState != null;
 
   void newGroup() {
-    developer.log('newGroup called', name: '_addState');
     assert(isAttached, 'Controller must be attached to widget to clear');
     try {
       _groupTileState?.addGroup();
@@ -46,7 +43,6 @@ class GroupTileController {
   }
 
   void newMember() {
-    developer.log('newGroup called', name: '_addState');
     assert(isAttached, 'Controller must be attached to widget to clear');
     try {
       _groupTileState?.addMember();
@@ -57,7 +53,6 @@ class GroupTileController {
   }
 
   void editGroupName() {
-    developer.log('newGroup called', name: '_addState');
     assert(isAttached, 'Controller must be attached to widget to clear');
     try {
       _groupTileState?.editGroupName();
@@ -113,14 +108,9 @@ class _GroupTileState extends State<GroupTile> {
   void initState() {
     super.initState();
     widget.controller._addState(this);
-    developer.log('initState _addState called', name: '_addState');
     _isEditing = widget.group.name.isEmpty;
     _index = widget.index;
     _isNewGroup = widget.group.name.isEmpty;
-//    _groupMemberState = GroupMemberState.none;
-    developer.log('@initState _groupMemberState: ${_groupMemberState.name}',
-        name: '_GroupMemberState');
-    developer.log('InitState() _isNewGroup: $_isNewGroup', name: '_newGroup');
   }
 
   @override
@@ -130,9 +120,6 @@ class _GroupTileState extends State<GroupTile> {
 
   @override
   Widget build(BuildContext context) {
-    //  addMember();
-    developer.log('@build _groupMemberState: ${_groupMemberState.name}',
-        name: '_GroupMemberState');
     return Card(
       elevation: 5,
       clipBehavior: Clip.antiAlias,
@@ -234,11 +221,7 @@ class _GroupTileState extends State<GroupTile> {
   }
 
   addNewMember(member) {
-    developer.log(
-        '@addNewMember start _groupMemberState: ${_groupMemberState.name}',
-        name: '_GroupMemberState');
     if (member != null && _groupMemberState == GroupMemberState.isNew) {
-      developer.log('addMember() ${member.email}', name: '_member');
       widget.group.addMember(member);
       if (widget.onAdd != null) {
         widget.onAdd!(1);
@@ -252,20 +235,14 @@ class _GroupTileState extends State<GroupTile> {
       _isEditing = false;
       _isNewGroup = false;
     });
-    developer.log(
-        '@addNewMember end _groupMemberState: ${_groupMemberState.name}',
-        name: '_GroupMemberState');
   }
 
   onCancel() {
-    developer.log('onCancel called in groupTile', name: '_dropdown');
     if (widget.onDelete != null && _isNewGroup) {
       widget.onDelete!('');
     }
 
     setState(() {
-      developer.log('@onCancel _groupMemberState: ${_groupMemberState.name}',
-          name: '_GroupMemberState');
       _groupMemberState = GroupMemberState.none;
       _addMember = false;
     });
@@ -278,7 +255,6 @@ class _GroupTileState extends State<GroupTile> {
   }
 
   Widget handleChips() {
-    developer.log('hancleChips _newGroup: $_isNewGroup', name: '_newGroup');
     if (_showChip) {
       return ActionChip(
         shape: RoundedRectangleBorder(
@@ -298,8 +274,6 @@ class _GroupTileState extends State<GroupTile> {
       );
     }
     if (!_addMember) {
-      developer.log('_isNewGroup is true should show buttons',
-          name: '_newGroup');
       return Wrap(
         spacing: 5,
         children: [
@@ -320,54 +294,6 @@ class _GroupTileState extends State<GroupTile> {
                 style: TextStyle(fontSize: 18, color: Colors.white),
               ),
             ),
-          /*   if (widget.group.name.length > 2) ...[
-            ActionChip(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              onPressed: () => setState(() {
-                _addMember = true;
-                _groupMemberState = GroupMemberState.isNew;
-                developer.log(
-                    '@AddMember action chip _groupMemberState: ${_groupMemberState.name}',
-                    name: '_GroupMemberState');
-                if (widget.onAdd != null) {
-                  //       widget.onAdd!(1);
-                }
-                // _isUpdated = true;
-              }),
-              backgroundColor: Colors.blue,
-              avatar: const Icon(
-                Icons.groups_outlined,
-                color: Colors.white,
-              ),
-              label: const Text(
-                "Add member",
-                style: TextStyle(fontSize: 18, color: Colors.white),
-              ),
-            ),
-            /* if (widget.group.edited)
-              ActionChip(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                onPressed: () {
-                  if (widget.onEdit != null) {
-                    widget.onEdit!(widget.index, true);
-                  }
-                },
-                backgroundColor: Colors.blue,
-                avatar: const Icon(
-                  Icons.groups_outlined,
-                  color: Colors.white,
-                ),
-                label: const Text(
-                  "Save changes",
-                  style: TextStyle(fontSize: 18, color: Colors.white),
-                ),
-              ),
-            */
-          ] */
         ],
       );
     }
@@ -384,13 +310,6 @@ class _GroupTileState extends State<GroupTile> {
     setState(() {
       _addMember = true;
       _groupMemberState = GroupMemberState.isNew;
-      developer.log(
-          '@AddMember action chip _groupMemberState: ${_groupMemberState.name}',
-          name: '_GroupMemberState');
-      if (widget.onAdd != null) {
-        //       widget.onAdd!(1);
-      }
-      // _isUpdated = true;
     });
   }
 

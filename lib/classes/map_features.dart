@@ -6,7 +6,6 @@ import 'package:drives/models/models.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter/material.dart';
-import 'dart:developer' as developer;
 
 enum PinTypes {
   beautySpot,
@@ -164,7 +163,6 @@ Future<PublishedFeatures> getPublishedFeatures(
 
   features.addAll(await getFeatures(
       zoom: 10, onTap: pinTap, pointOfInterestLookup: pointOfInterestLookup));
-  developer.log('updateCache getting feaures from API getPublishedFeatures');
   return PublishedFeatures(
     features: features,
     pointOfInterestLookup: pointOfInterestLookup,
@@ -263,7 +261,6 @@ class PublishedFeatures {
     List<Feature> listToFilter = [];
 
     if (updateCache) {
-      developer.log('Updating cache', name: '_cache');
       cache.clear();
       routes.clear();
       goodRoads.clear();
@@ -333,8 +330,6 @@ class PublishedFeatures {
                     if (routeCards.length > 3) {
                       debugPrint('Check');
                     }
-                    developer.log('adding to routeCards: ${routeCards.length}',
-                        name: '_cache');
                     routeCards.add(card);
                   }
                 }
@@ -505,7 +500,6 @@ class PublishedFeatures {
           markers.add(moved);
           Card? card = await getCard(feature: moved, index: cards.length);
           if (card != null) {
-            developer.log('adding routeCard moveRouteMarker', name: '_cache');
             cards.add(card);
           }
         }

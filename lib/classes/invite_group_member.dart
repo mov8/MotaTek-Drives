@@ -78,8 +78,6 @@ class _InviteMemberState extends State<InviteMember> {
         developer.log('_focusNode1.requestFocus()', name: '_addState');
       }
     }
-    developer.log('rebuild: _groupMemberState: ${_groupMemberState.toString()}',
-        name: '_state');
     return Card(
       elevation: widget.elevation,
       surfaceTintColor: widget.color,
@@ -232,15 +230,11 @@ class _InviteMemberState extends State<InviteMember> {
                           if (_groupMemberState == GroupMemberState.complete) {
                             await sendInvitation();
                             if (widget.onInvite != null) {
-                              developer.log('widget.onInvite 234',
-                                  name: '_exit');
                               widget.onInvite!(newMember);
                             }
                             setState(() => clearData(cancel: false));
                           } else {
                             if (widget.onInvite != null) {
-                              developer.log('widget.onCancel 241',
-                                  name: '_exit');
                               widget.onInvite!(newMember);
                             }
                           }
@@ -265,7 +259,6 @@ class _InviteMemberState extends State<InviteMember> {
                       ),
                       onPressed: () {
                         if (widget.onCancel != null) {
-                          developer.log('widget.onCancel 268', name: '_exit');
                           widget.onCancel!(true);
                         }
                       },
@@ -292,9 +285,6 @@ class _InviteMemberState extends State<InviteMember> {
   }
 
   bool dataComplete() {
-    developer.log(
-        'dataComplete start _groupMemberState: ${_groupMemberState.toString()}',
-        name: '_state');
     bool update = false;
     bool complete = false;
 
@@ -322,11 +312,8 @@ class _InviteMemberState extends State<InviteMember> {
       _fieldStates[2] = emailRegex.hasMatch(newMember.email);
 
       if (_fieldStates[2]) {
-        developer.log('Its a valid email ', name: '_dropdown');
         if (_dropdownOptions.contains(newMember.email)) {
           _groupMemberState = GroupMemberState.resistered;
-          developer.log(
-              'dataComplete 316 start _groupMemberState changed to: ${_groupMemberState.toString()}');
           _fieldStates[0] = true;
           _fieldStates[1] = true;
           _dropdownOptions.clear();
@@ -337,10 +324,6 @@ class _InviteMemberState extends State<InviteMember> {
             .toList()
             .isEmpty) {
           _groupMemberState = GroupMemberState.isNew;
-          developer.log(
-              'dataComplete 326 start _groupMemberState changed to: ${_groupMemberState.toString()}');
-          //% _controller1.setNextAction(nextAction: TextInputAction.next);
-          //  _textInputAction = TextInputAction.next;
           _fieldStates[0] = false;
           _fieldStates[1] = false;
         }
@@ -353,30 +336,21 @@ class _InviteMemberState extends State<InviteMember> {
     if (update) {
       if (_groupMemberState == GroupMemberState.isNew && complete) {
         _groupMemberState = GroupMemberState.complete;
-        developer.log(
-            'dataComplete 341 start _groupMemberState changed to: ${_groupMemberState.toString()}');
       }
       setState(() => ());
     }
-    developer.log(
-        'dataComplete end _groupMemberState: ${_groupMemberState.toString()}',
-        name: '_state');
-    developer.log('complete => ${complete.toString()}', name: '_exit');
     return complete;
   }
 
   Future<bool> addMemberFromApi({required String email}) async {
     if (_groupMemberState == GroupMemberState.resistered) {
       _groupMemberState = GroupMemberState.added;
-      developer.log(
-          'dataComplete 355 start _groupMemberState changed to: ${_groupMemberState.toString()}');
       await getUserByEmail(email).then((newMember) {
         if (widget.onInvite != null) {
           widget.onInvite!(newMember);
         }
-      }); //widget.group.addMember(newMember));
+      });
       _fieldStates = [true, true, true];
-      // _controller1.clear(); // Clear TextEditController
       _controller2.text = newMember.forename;
       _controller3.text = newMember.surname;
       return true;
@@ -386,15 +360,11 @@ class _InviteMemberState extends State<InviteMember> {
   }
 
   clearData({bool cancel = false}) {
-    _groupMemberState = GroupMemberState.complete; // _addMember = false;
-    developer.log(
-        'dataComplete 374 start _groupMemberState changed to: ${_groupMemberState.toString()}');
-    //% _controller1.clear;
+    _groupMemberState = GroupMemberState.complete;
     _controller2.clear;
     _controller3.clear;
     _fieldStates = [false, false, false];
     if (cancel && widget.onCancel != null) {
-      developer.log('widget.onCancel 392', name: '_exit');
       widget.onCancel!(true);
     }
   }
@@ -422,8 +392,6 @@ class _InviteMemberState extends State<InviteMember> {
     sent = await putIntroduced(inviteeData);
     // widget.addMember;
     _groupMemberState = GroupMemberState.added;
-    developer.log(
-        'dataComplete 405 start _groupMemberState changed to: ${_groupMemberState.toString()}');
     return sent;
   }
 }

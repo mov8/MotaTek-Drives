@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'dart:ui' as ui;
 import 'dart:io';
-import 'dart:developer' as developer;
 import 'package:drives/constants.dart';
 import 'package:drives/classes/classes.dart';
 import 'package:drives/models/models.dart';
@@ -333,7 +332,6 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
       case 0:
         TripItem tripItem = await _publishedFeatures.tripItemRepository
             .loadTripItem(key: feature.row, id: feature.id, uri: feature.uri);
-        developer.log('in trips adding to tripItemRepository', name: '_cache');
         mapInfo['title'] = 'Published Trip';
         mapInfo['isRoute'] = true;
         mapInfo['content'] = Padding(
@@ -453,7 +451,6 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
   Widget? cardsList({required List<Card> cards}) {
     Widget? scrollList;
     try {
-      developer.log('cardsList cards: ${cards.length}', name: '_cache');
       if (cards.isNotEmpty) {
         scrollList = ScrollablePositionedList.builder(
           itemCount: cards.length,
@@ -499,7 +496,6 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
             onPositionChanged: (pos, change) async {
               Fence newFence = Fence.fromBounds(
                   _animatedMapController.mapController.camera.visibleBounds);
-              // developer.log()
               if (_publishedFeaturesUpdated) {
                 _publishedFeaturesUpdated = false;
                 _publishedFeatures.update(screenFence: newFence).then(

@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
-//import 'package:intl/intl.dart';
-//import 'package:drives/models/other_models.dart';
 import 'package:drives/constants.dart';
 import 'package:drives/classes/classes.dart';
 import 'package:drives/services/services.dart';
-import 'dart:developer' as developer;
 
 /// InviteMember handles the adding of a new member to a group there are 2 options:
 ///   The invitee is already registered
@@ -14,10 +11,6 @@ import 'dart:developer' as developer;
 ///
 class AddContactTileController {
   _AddContactTileState? _addContactTileState;
-
-//  void _addState(_AddContactTileState addContactTileState) {
-//    _addContactTileState = addContactTileState;
-//  }
 
   bool get isAttached => _addContactTileState != null;
 
@@ -35,7 +28,6 @@ class AddContactTileController {
 class AddContactTile extends StatefulWidget {
   final Function(bool)? onCancel;
   final Function(String)? onAddMember;
-  // final GroupMember newMember;
   final Color color;
   final double elevation;
   const AddContactTile(
@@ -80,8 +72,6 @@ class _AddContactTileState extends State<AddContactTile> {
     if (_email.isEmpty) {
       _focusNode1.requestFocus();
     }
-    developer.log('rebuild: _groupMemberState: ${_groupMemberState.toString()}',
-        name: '_state');
     return Card(
       elevation: widget.elevation,
       surfaceTintColor: widget.color,
@@ -154,9 +144,6 @@ class _AddContactTileState extends State<AddContactTile> {
   }
 
   bool dataComplete() {
-    developer.log(
-        'dataComplete start _groupMemberState: ${_groupMemberState.toString()}',
-        name: '_state');
     bool update = false;
     bool complete = false;
 
@@ -178,11 +165,8 @@ class _AddContactTileState extends State<AddContactTile> {
       _fieldStates[2] = emailRegex.hasMatch(_email);
 
       if (_fieldStates[2]) {
-        developer.log('Its a valid email ', name: '_dropdown');
         if (_dropdownOptions.contains(_email)) {
           _groupMemberState = GroupMemberState.resistered;
-          developer.log(
-              'dataComplete 316 start _groupMemberState changed to: ${_groupMemberState.toString()}');
           _fieldStates[0] = true;
           _fieldStates[1] = true;
           _dropdownOptions.clear();
@@ -193,10 +177,7 @@ class _AddContactTileState extends State<AddContactTile> {
             .toList()
             .isEmpty) {
           _groupMemberState = GroupMemberState.isNew;
-          developer.log(
-              'dataComplete 326 start _groupMemberState changed to: ${_groupMemberState.toString()}');
           _controller1.setNextAction(nextAction: TextInputAction.next);
-          //  _textInputAction = TextInputAction.next;
           _fieldStates[0] = false;
           _fieldStates[1] = false;
         }
@@ -209,14 +190,9 @@ class _AddContactTileState extends State<AddContactTile> {
     if (update) {
       if (_groupMemberState == GroupMemberState.isNew && complete) {
         _groupMemberState = GroupMemberState.complete;
-        developer.log(
-            'dataComplete 341 start _groupMemberState changed to: ${_groupMemberState.toString()}');
       }
       setState(() => ());
     }
-    developer.log(
-        'dataComplete end _groupMemberState: ${_groupMemberState.toString()}',
-        name: '_state');
     return complete;
   }
 
@@ -224,12 +200,7 @@ class _AddContactTileState extends State<AddContactTile> {
     if (_groupMemberState == GroupMemberState.resistered) {
       _groupMemberState = GroupMemberState.added;
       _email = email;
-      developer.log(
-          'dataComplete 355 start _groupMemberState changed to: ${_groupMemberState.toString()}');
-      //    await getUserByEmail(email)
-      //        .then((newMember) {}); //widget.group.addMember(newMember));
       _fieldStates = [true, true, true];
-      // _controller1.clear(); // Clear TextEditController
       return true;
     } else {
       return false;
@@ -238,8 +209,6 @@ class _AddContactTileState extends State<AddContactTile> {
 
   clearData({bool cancel = false}) {
     _groupMemberState = GroupMemberState.complete; // _addMember = false;
-    developer.log(
-        'dataComplete 374 start _groupMemberState changed to: ${_groupMemberState.toString()}');
     _controller1.clear;
     _controller2.clear;
     _fieldStates = [false, false, false];

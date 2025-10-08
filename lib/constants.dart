@@ -8,8 +8,8 @@ const apiAddress = 'https://drives.motatek.com/';
 // const wifiIpAddress = '192.168.1.14:5001'; // <- Home
 const wifiIpAddress = 'http://192.168.1.109:5001/'; // <- Boston
 
-// const urlBase = wifiIpAddress;
-const urlBase = apiAddress;
+const urlBase = wifiIpAddress;
+// const urlBase = apiAddress;
 
 const mapsApiKey = '';
 
@@ -26,14 +26,28 @@ const List<String> routes = [
 
 enum LoginState { notLoggedin, cancel, login, register, edit, resetPassword }
 
+enum LoginStatus {
+  noData,
+  noEmail,
+  emailInvalid,
+  emailUnknown,
+  emailKnown,
+  noPassword,
+  passwordValid,
+  passwordUnknown,
+  passwordTooShort,
+}
+
 enum LoginError {
   noData,
   noEmail,
   noPassword,
+  invalidEmail,
   wrongEmail,
   wrongPassword,
   wrongData,
   allOk,
+  none,
 }
 
 enum MarkerTypes {
@@ -151,6 +165,8 @@ const LatLng ukNorthEast = LatLng(61, 2);
 const LatLng ukSouthWest = LatLng(49, -8);
 
 const double metersToMiles = 0.000621371192;
+const double metersToTenths = 160.934;
+const double metersToYards = 1.0936133;
 
 const List<String> tableDefs = [
   /// CACHES

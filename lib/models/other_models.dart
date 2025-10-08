@@ -227,6 +227,16 @@ const List<Color> pinColours = [
 
 void myFunc() {}
 
+Future<String> distanceFromMe(
+    {required LatLng position, decimalPlaces = 1, metric = false}) async {
+  Position pos = await Geolocator.getCurrentPosition();
+  double meters = Geolocator.distanceBetween(
+      pos.latitude, pos.longitude, position.latitude, position.longitude);
+  String unit = metric ? 'Km' : 'miles';
+  double factor = metric ? .001 : metersToMiles;
+  return '${(meters * factor).toStringAsFixed(decimalPlaces)} $unit';
+}
+
 class CutRoute {
   int routeIndex = 0; // holds the polyLine Index in Routes
   int pointIndex = 0; // holds the index of LatLng on the above polyLine
@@ -434,6 +444,7 @@ class PointOfInterest extends Marker {
   String driveUri;
   double _score;
   int scored;
+  int waypoint;
   DateTime published = DateTime.now();
   Widget marker = MarkerWidget(type: 12);
   late LatLng markerPoint = const LatLng(52.05884, -1.345583);
@@ -454,6 +465,7 @@ class PointOfInterest extends Marker {
     this.url = '',
     this.driveUri = '',
     double score = 1,
+    this.waypoint = -1,
     this.scored = 0,
     this.sounds = '',
   })  : _images = handleWebImages(
@@ -474,6 +486,29 @@ class PointOfInterest extends Marker {
           child: marker,
           point: markerPoint,
         );
+
+  factory PointOfInterest.fromMap(
+      {required var map, int driveId = -1, int listIndex = 0}) {
+    return PointOfInterest(
+      id: map['id'],
+      driveId: driveId,
+      type: map['type'],
+      name: map['name'],
+      description: map['description'],
+      width: map['type'] == 12 ? 10 : 30,
+      height: map['type'] == 12 ? 10 : 30,
+      images: map['images'],
+      markerPoint: LatLng(map['latitude'], map['longitude']),
+      marker: MarkerWidget(
+        type: map['type'],
+        list: -1,
+        listIndex: listIndex,
+        name: map['name'],
+        description: map['description'],
+        images: map['images'],
+      ),
+    );
+  }
 
   IconData setIcon({required type}) {
     return markerIcon(type);
@@ -502,6 +537,21 @@ class PointOfInterest extends Marker {
   void setType(int type) {
     _type = type;
     //  debugPrint('marker.type: ${marker.runtimeType.toString()}');
+  }
+
+  void setWaypoint(int id) {
+    waypoint = id;
+    marker = MarkerWidget(type: _type, listIndex: id);
+  }
+
+  void incrementWaypoint() {
+    waypoint++;
+    marker = MarkerWidget(type: _type, listIndex: waypoint);
+  }
+
+  void decrementWaypoint() {
+    waypoint--;
+    marker = MarkerWidget(type: _type, listIndex: waypoint);
   }
 
   int getType() {
@@ -561,7 +611,7 @@ class MarkerWidget extends StatelessWidget {
   final double angle;
   final double score;
   final int scored;
-  final int colourIdx;
+  int colourIdx;
   final int list;
   int listIndex;
 
@@ -591,7 +641,6 @@ class MarkerWidget extends StatelessWidget {
     double iconWidth = width * 0.75;
     Color buttonFillColor = colourList[Setup().pointOfInterestColour];
     Color iconColor = Colors.blueAccent;
-    developer.log('Marker widget type: $type', name: '_marker');
     switch (type) {
       case 12:
         buttonFillColor = colourList[Setup()
@@ -642,14 +691,22 @@ class MarkerWidget extends StatelessWidget {
           /// 12 waypoint 17 start  18 end  19 revist / start - end
           child: [12, 17, 18, 19].contains(type)
               ? CircleAvatar(
-                  backgroundColor: type == 19 ? Colors.transparent : Colors.red,
+                  backgroundColor: type == 19
+                      ? Colors.transparent
+                      : colourIdx < 0
+                          ? Colors.red
+                          : colourList[colourIdx], // Colors.red,
                   radius: 50, //iconWidth,
-                  child: Text(
-                    '${listIndex + 1}',
-                    style: TextStyle(
-                        fontSize: 10,
-                        color: type == 19 ? Colors.transparent : Colors.white),
-                  ),
+                  child: description.contains('isAnchor')
+                      ? Icon(Icons.anchor, color: Colors.white)
+                      : Text(
+                          '${listIndex + 1}',
+                          style: TextStyle(
+                              fontSize: 10,
+                              color: type == 19
+                                  ? Colors.transparent
+                                  : Colors.white),
+                        ),
                 )
               : Icon(
                   markerIcon(type),
@@ -2016,9 +2073,6 @@ class HomeItem {
 
   factory HomeItem.fromMap(
       {required Map<String, dynamic> map, String url = ''}) {
-    // dynamic iurl = jsonDecode(map['image_urls']);
-    // developer.log(iurl, name: '_images');
-    // developer.log(uri, name: '_images');
     return HomeItem(
       id: map['id'] ?? -1,
       uri: '$url${map['uri']}',
@@ -2180,6 +2234,7 @@ class TripItem {
   String imageUrls = '';
   double score = 5;
   double distance = 0;
+  double distanceAway = 0;
   int pointsOfInterest = 0;
   int closest = 12;
   int scored = 10;
@@ -2198,6 +2253,7 @@ class TripItem {
       this.imageUrls = '',
       this.score = 5,
       this.distance = 0,
+      this.distanceAway = 0,
       this.pointsOfInterest = 0,
       this.closest = 12,
       this.scored = 10,
@@ -2260,8 +2316,8 @@ class TripItem {
       imageUrls: imageUrls.isEmpty
           ? map['image_urls'] ?? ''
           : imageUrls, // has to be calculated
-      score: (map['average_rating'] ?? 5.0).toDouble() ?? 5.0,
-      distance: map['distance'] is double ? map['distance'] : 0.0,
+      score: map['average_rating'] ?? 5,
+      distance: map['distance'] ?? 0,
       pointsOfInterest: map['points_of_interest'] is int
           ? map['points_of_interest'] ?? 0
           : (map['points_ofInterest'] ?? []).length,
@@ -2298,23 +2354,14 @@ Future<List<MyTripItem>> tripItemFromDb(
     int driveId = -1;
     int highlights = 0;
     String tripImages = '';
-
+    double distance = 0;
     for (int i = 0; i < maps.length; i++) {
       if (maps[i]['drive_id'] != driveId) {
-        if (trips.isNotEmpty) {
-          int distance = closestWaypoint(
-                  pointsOfInterest: trips[trips.length - 1].pointsOfInterest,
-                  location: pos)
-              .toInt();
-          trips[trips.length - 1].closest = distance;
-          if (tripImages.isNotEmpty) {
-            trips[trips.length - 1].images = '[$tripImages]';
-          }
-          trips[trips.length - 1].highlights = highlights;
-        }
+        distance = Geolocator.distanceBetween(maps[i]['latitude'],
+            maps[i]['longitude'], pos.latitude, pos.longitude);
         driveId = maps[i]['drive_id'];
         tripImages = '{"url": "$directory/drive$driveId.png", "caption": ""}';
-        //  '$directory/drive$driveId.png'; //unList(maps[i]['map_image']);
+        highlights = 0;
         trips.add(MyTripItem(
             id: driveId,
             driveId: driveId,
@@ -2326,43 +2373,30 @@ Future<List<MyTripItem>> tripItemFromDb(
             published: maps[i]['added'],
             images:
                 '[{"url": "$directory/drive$driveId.png", "caption": ""}]', //maps[i]['map_image'],
-            distance: double.parse(maps[i]['distance'].toString()),
+            distance: maps[i]['distance'],
+            distanceAway: distance,
+            highlights: 0,
             pointsOfInterest: [
-              PointOfInterest(
-                id: maps[i]['id'],
-                driveId: driveId,
-                type: maps[i]['type'],
-                name: maps[i]['name'],
-                description: maps[i]['description'],
-                width: maps[i]['type'] == 12 ? 10 : 30,
-                height: maps[i]['type'] == 12 ? 10 : 30,
-                images: maps[i]['images'],
-                markerPoint: LatLng(maps[i]['latitude'], maps[i]['longitude']),
-                marker: MarkerWidget(
-                  type: maps[i]['type'],
-                  list: -1,
-                  listIndex: i,
-                  name: maps[i]['name'],
-                  description: maps[i]['description'],
-                  images: maps[i]['images'],
-                ),
-              ),
+              PointOfInterest.fromMap(
+                  map: maps[i], driveId: driveId, listIndex: i)
             ],
             closest: 15));
         if (maps[i]['type'] != 12) highlights++;
       } else {
-        trips[trips.length - 1].addPointOfInterest(PointOfInterest(
-            id: maps[i]['id'],
-            driveId: driveId,
-            type: maps[i]['type'],
-            name: maps[i]['name'],
-            description: maps[i]['description'],
-            width: maps[i]['type'] == 12 ? 10 : 30,
-            height: maps[i]['type'] == 12 ? 10 : 30,
-            images: maps[i]['images'],
-            markerPoint: LatLng(maps[i]['latitude'], maps[i]['longitude']),
-            marker: MarkerWidget(type: maps[i]['type'])));
-        if (maps[i]['type'] != 12) highlights++;
+        double poiDistance = distance = Geolocator.distanceBetween(
+            maps[i]['latitude'],
+            maps[i]['longitude'],
+            pos.latitude,
+            pos.longitude);
+        if (poiDistance < trips[trips.length - 1].distance) {
+          trips[trips.length - 1].distance = poiDistance;
+        }
+        trips[trips.length - 1].addPointOfInterest(PointOfInterest.fromMap(
+            map: maps[i], driveId: driveId, listIndex: i));
+        if (![12, 17, 18].contains(maps[i]['type'])) {
+          highlights++;
+          trips[trips.length - 1].highlights = highlights;
+        }
       }
       if (maps[i]['images'].isNotEmpty) {
         tripImages =
@@ -2370,26 +2404,16 @@ Future<List<MyTripItem>> tripItemFromDb(
       }
     } //
     if (trips.isNotEmpty) {
-      int distance = closestWaypoint(
-              pointsOfInterest: trips[trips.length - 1].pointsOfInterest,
-              location: pos)
-          .toInt();
-      trips[trips.length - 1].closest = distance;
       if (tripImages.isNotEmpty) {
         trips[trips.length - 1].images = '[$tripImages]';
       }
-      trips[trips.length - 1].highlights = highlights;
     }
-    // for maps;
   } catch (e) {
     String err = e.toString();
     debugPrint('Error loading Drive $err');
   }
   return trips;
 }
-
-/// class User
-/// "DatabaseException(ambiguous column name: id (code 1 SQLITE_ERROR): , while compiling: SELECT id as drive_id, title, sub_title, b…"
 
 class Drive {
   int id = 0;
@@ -2421,17 +2445,6 @@ class Drive {
       id = await saveDrive(drive: this);
     } catch (e) {
       debugPrint('Error saving trip: ${e.toString()}');
-    }
-    try {
-      //   await savePointsOfInterestLocal(pointsOfInterest);
-    } catch (e) {
-      debugPrint('Error savePointsOfInterest: ${e.toString()}');
-    }
-
-    try {
-      // await savePolylinesLocal(id: 0, driveId: id, polylines: polyLines);
-    } catch (e) {
-      debugPrint('Error in savePolyLinesLocal: ${e.toString()}');
     }
     return true;
   }

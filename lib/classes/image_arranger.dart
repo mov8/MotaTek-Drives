@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:developer' as developer;
 import 'dart:io';
 import 'dart:math';
 import 'package:drives/models/models.dart';
@@ -59,8 +58,6 @@ class _ImageArrangerState extends State<ImageArranger> {
                     if (widget.onChange != null) {
                       widget.onChange!(photo.index);
                       imageIndex = photo.index;
-                      developer.log('InkWell onTap image: ${photo.index}',
-                          name: '_image');
                     }
                   },
                   child: Transform.rotate(

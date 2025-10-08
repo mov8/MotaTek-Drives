@@ -1,13 +1,9 @@
-// import 'dart:ffi';
 import 'dart:io';
 import 'dart:typed_data';
 import 'dart:convert';
-import 'dart:developer' as developer;
-// import 'package:drives/classes/classes.dart';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter_map/flutter_map.dart';
-// import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:drives/constants.dart';
@@ -17,9 +13,6 @@ import 'package:drives/classes/other_classes.dart';
 import 'package:drives/models/models.dart';
 import 'package:drives/services/web_helper.dart';
 import 'dart:async';
-
-// import 'package:vector_map_tiles/vector_map_tiles.dart';
-// import 'dart:convert';
 
 class DbHelper {
   static Database? _db;
@@ -215,11 +208,7 @@ Future<User> getUser() async {
       );
       Setup().user = user;
       Setup().hasLoggedIn = true;
-      developer.log('getUser() user found email $email password $password',
-          name: '_login');
       return user;
-    } else {
-      developer.log('getUser() user not found in SQLite table', name: '_login');
     }
   } catch (e) {
     debugPrint('Error retrieving user');
@@ -318,7 +307,6 @@ Future<int> saveUser(User user) async {
         whereArgs: [id],
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
-      developer.log('Updates user - user id: $id', name: '_login');
       return id;
     } else if (maps.isEmpty) {
       final insertedId = await db.insert(
@@ -326,10 +314,6 @@ Future<int> saveUser(User user) async {
         usMap,
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
-      int userRecords = await recordCount('users');
-      developer.log(
-          'Added user id: $insertedId - number of users: $userRecords',
-          name: '_login');
       return insertedId;
     } else {
       return int.parse(maps[0]['id'].toString());
@@ -946,8 +930,8 @@ Future<Map<String, dynamic>> getDrive(int driveId) async {
       'subTitle': maps[0]['sub_title'].toString(),
       'body': maps[0]['body'].toString(),
       'added': DateTime.parse(maps[0]['added'] as String),
-      'distance': double.parse(maps[0]['distance'].toString()),
-      'pois': int.parse(maps[0]['points_of_interest'].toString()),
+      'distance': maps[0]['distance'],
+      'pois': maps[0]['points_of_interest'],
       // 'pois': int.parse(maps[0]['points_of_interest'].toString()),
     };
   } catch (e) {
@@ -1052,7 +1036,7 @@ Future<int> saveMyTripItem(MyTripItem myTripItem) async {
       }
     }
 
-    /// Points of interest must be saved first as goodRoads have a referenc
+    /// Points of interest must be saved first as goodRoads have a reference
     /// to the pointOfInterest automatically generated
     await savePointsOfInterestLocal(
         driveId: id, pointsOfInterest: myTripItem.pointsOfInterest);
@@ -1548,6 +1532,20 @@ Future<void> deleteFollowerByDriveId(int driveId) async {
 /// Get the polylines for a drive from SQLite
 /// Will initially only load the descriptive details and only
 /// load the details if the drive is selected
+///
+
+Future<List<mt.Route>> getRoutesByName({required String name}) async {
+  final db = await DbHelper().db;
+  List<Map<String, dynamic>> maps = await db.query(
+    'drives',
+    where: 'LOWER(title) = ? ',
+    whereArgs: [name.toLowerCase()],
+  );
+  List<mt.Route> polylines = [];
+  int driveId = maps[0]['id'];
+  polylines = await loadPolyLinesLocal(driveId);
+  return polylines;
+}
 
 Future<List<mt.Route>> loadPolyLinesLocal(int driveId, {type = 0}) async {
   final db = await DbHelper().db;

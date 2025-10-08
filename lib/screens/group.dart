@@ -27,8 +27,6 @@ class _GroupFormState extends State<GroupForm> {
 
   bool _changed = false;
   bool _expanded = false;
-  bool _addingGroup = false;
-
   final List<Group> _dismissed = [];
   final List<Group> _unInvite = [];
 
@@ -160,8 +158,7 @@ class _GroupFormState extends State<GroupForm> {
                               .add(Group(id: groups[index].id, name: email));
                           setState(() => _changed = true);
                         } else {
-                          groups.removeLast();
-                          setState(() => _addingGroup = false);
+                          setState(() => groups.removeLast());
                         }
                       },
                       onAdd: (value) => setState(() => _changed = true),
@@ -176,64 +173,6 @@ class _GroupFormState extends State<GroupForm> {
           ],
         ),
       ),
-      if (!_expanded && !_addingGroup)
-        Padding(
-          padding: EdgeInsetsGeometry.fromLTRB(20, 10, 10, 60),
-          child: Wrap(
-            spacing: 5,
-            children: [
-              /* if (!_expanded && !_addingGroup)
-                ActionChip(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  onPressed: () {
-                    setState(
-                      () {
-                        expanded.add(true);
-                        groups.add(Group(
-                            id: Uuid().v7().toString().replaceAll('-', ''),
-                            name: ''));
-                        _addingGroup = true;
-                      },
-                    );
-                    try {
-                      _controller.newGroup();
-                    } catch (e) {
-                      developer.log('_controller.newGroup called ',
-                          name: '_addState');
-                    }
-                  }, // widget.onAddLink!(index),
-                  backgroundColor: Colors.blue,
-                  avatar: const Icon(
-                    Icons.groups_outlined,
-                    color: Colors.white,
-                  ),
-                  label: const Text(
-                    "Add a new group",
-                    style: TextStyle(fontSize: 18, color: Colors.white),
-                  ),
-                ),
-                */
-              /*  if (hasChanged() || _dismissed.isNotEmpty)
-                ActionChip(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  onPressed: () => upLoad(update: true),
-                  backgroundColor: Colors.blue,
-                  avatar: const Icon(
-                    Icons.cloud_upload_outlined,
-                    color: Colors.white,
-                  ),
-                  label: const Text(
-                    "Upload changes",
-                    style: TextStyle(fontSize: 18, color: Colors.white),
-                  ),
-                ), */
-            ],
-          ),
-        ),
     ]);
   }
 
@@ -243,7 +182,6 @@ class _GroupFormState extends State<GroupForm> {
         expanded.add(true);
         groups.add(
             Group(id: Uuid().v7().toString().replaceAll('-', ''), name: ''));
-        _addingGroup = true;
       },
     );
     try {

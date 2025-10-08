@@ -28,6 +28,56 @@ then run flutter pub get
 
 C:\Users\james\Projects\Drives\mobile app\drives\build\app\outputs\flutter-apk\app-debug.apk
 
+Issues from 30 Sept 25
+1 Resolve problem of inviting new users, and their successful logging in DONE
+2 Resolve the roundabout issue DONE
+3 Check maneuvers are keeping up with progress DONE
+4 Download maps to device before starting trip
+5 Re-routing is essential
+6 Resolve the group position problem - one user displays position correctly the other doesn't
+7 Sort out the handling of different font sized on devices - Gemini gave a stear.
+8 Double check editing - changing the route with anchor points.
+9 Documentation
+
+
+
+Possible route for offline maps using http.MockClient to intercept the call to the router
+Look at VectorMapStyle as that processes the URL
+void main() async {
+  theHttpClient = http.MockClient((request) async {
+    if (request.url == Uri.parse('https://www.example.com/')) {
+      return http.Response('hello world!', 200);
+    }
+    return http.Response('', 404);
+  });
+
+
+For editing the route it would probably be best to let the user choose the action of any waypoints added:
+  Start from here
+  End here
+  add to route
+We could highlight the waypoints that would would be route leave and re-join points.
+Trying to guess the user's intentions is difficult, and frustrating for the user.
+
+One simple option would be to have 3 buttons "start trip here"  "end trip here"  "waypoint" this would allow the user to
+change the start and end easitl, and either anchor the route or change the route with just 3 buttons. It would be very 
+nice to highlite the waypoints that would be anchors if the target is off the route. 
+This option should be available in both "create trip" and "edit trip" mode.
+
+
+Advice from Gemini:
+
+    Prioritize Apple Silicon (M1/M2): If your budget allows, a used MacBook Air (M1, 2020) or Mac Mini (M1, 2020) will give you the best performance-to-price ratio and longest usability.
+
+    RAM: 8GB Unified Memory (for Apple Silicon) or 8GB RAM (for Intel) is your minimum. Don't go below this.
+
+    Storage: 256GB SSD is the minimum. Try for 512GB if possible.
+
+    macOS Version: Ensure it can run macOS Ventura or newer. This is crucial for recent Xcode versions.
+
+
+
+
 
 
 

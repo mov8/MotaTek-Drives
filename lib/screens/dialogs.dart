@@ -309,12 +309,41 @@ AlertDialog buildColumnDialog(
 
 Future<LoginState> loginDialog(BuildContext context,
     {required User user}) async {
-  String status = '';
+  // String status = '';
 //  List<String> registered = [];
 //  LoginError loginError = LoginError.noData;
   bool isRegistered = false;
-  bool emailValid = false;
+  final FocusNode focusNode = FocusNode();
   user.password = '';
+  List<dynamic> statusPrompts = [
+    {'hint': '', 'button': '', 'error': false}, // noData
+    {'hint': 'email missing', 'button': '', 'error': true}, // noEmail
+    {'hint': 'email invalid', 'button': '', 'error': false}, // emailInvalid
+    {
+      'hint': 'email not registered',
+      'button': 'Register',
+      'error': false
+    }, // emailUnknown
+    {
+      'hint': 'leave empty to reset password',
+      'button': 'Reset',
+      'error': false,
+    }, // emailKnown
+    {'hint': 'enter password', 'button': '', 'error': false}, // noPassword
+    {'hint': '', 'button': 'Login', 'error': false}, // validPassword
+    {
+      'hint': 'incorrect password',
+      'button': 'Clear',
+      'error': true
+    }, // passwordUnknown
+    {
+      'hint': 'must be longer than 7 characters',
+      'button': '',
+      'error': false
+    }, // passwordTooShort
+  ];
+
+  LoginStatus loginStatus = LoginStatus.noData;
 
   LoginState? loginState = await showDialog<LoginState>(
     context: context,
@@ -345,66 +374,111 @@ Future<LoginState> loginDialog(BuildContext context,
                     textCapitalization: TextCapitalization.none,
                     decoration: const InputDecoration(
                         hintText: 'Enter your email address'),
-                    onChanged: (value) async {
+                    onChanged: (value) {
                       user.email = value.toLowerCase();
+
+                      /// Clear error message if correcting email
+                      if (loginStatus != LoginStatus.noData) {
+                        setState(() => loginStatus = LoginStatus.noData);
+                      }
                     },
                     onSubmitted: (text) async {
                       debugPrint('Submitted $text');
+                      loginStatus = LoginStatus.noPassword;
                       if (emailRegex.hasMatch(user.email)) {
-                        emailValid = true;
                         isRegistered = await checkEmail(email: user.email);
-                        if (!isRegistered) {
-                          status = 'Unregistered email address';
+                        if (isRegistered) {
+                          setState(() {
+                            focusNode.requestFocus();
+                            loginStatus = LoginStatus.emailKnown;
+                          });
+                        } else {
+                          setState(
+                              () => loginStatus = LoginStatus.emailUnknown);
                         }
                       } else {
-                        status = 'Invalid email address';
+                        setState(() => loginStatus = LoginStatus.emailInvalid);
                       }
-                      setState(() => (status));
                     },
                   ),
                 )
               ],
             ),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                      decoration: const InputDecoration(
-                        hintText: 'Password - leave empty if fogotten',
-                      ),
-                      textInputAction: TextInputAction.done,
-                      keyboardType: TextInputType.visiblePassword,
-                      onChanged: (value) =>
-                          setState(() => user.password = value),
-                      onSubmitted: (_) async {
-                        if (!isRegistered) {
-                          Setup().user = user;
-                          Navigator.pop(context, LoginState.register);
-                        } else if (user.password.isEmpty && isRegistered) {
-                          Setup().user = user;
-                          Navigator.pop(context, LoginState.resetPassword);
-                        } else {
-                          Map<String, dynamic> response =
-                              await tryLogin(user: Setup().user);
-                          status = response['msg'] ?? '';
-                          if (context.mounted && status == 'OK') {
-                            Setup().user = user;
-                            Navigator.pop(context, LoginState.login);
+
+            /// Password only entered if email is known
+            if ([
+              LoginStatus.emailKnown,
+              LoginStatus.passwordUnknown,
+              LoginStatus.passwordValid,
+              LoginStatus.passwordTooShort
+            ].contains(loginStatus))
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                        decoration: InputDecoration(
+                          hintText: 'enter password - at least 8 characters',
+                        ),
+                        textInputAction: TextInputAction.done,
+                        keyboardType: TextInputType.visiblePassword,
+                        focusNode: focusNode,
+                        onChanged: (value) => setState(() {
+                              if (value.length < 8) {
+                                loginStatus = LoginStatus.passwordTooShort;
+                              } else {
+                                loginStatus = LoginStatus.passwordValid;
+                              }
+                              user.password = value;
+                            }),
+                        onSubmitted: (_) async {
+                          if (user.password.length < 8) {
+                            setState(() =>
+                                loginStatus = LoginStatus.passwordTooShort);
+                          } else {
+                            Map<String, dynamic> response =
+                                await tryLogin(user: Setup().user);
+                            String status = response['msg'] ?? '';
+                            if (context.mounted && status == 'OK') {
+                              Setup().user = user;
+                              focusNode.dispose();
+                              Navigator.pop(context, LoginState.login);
+                            } else {
+                              setState(() =>
+                                  loginStatus = LoginStatus.passwordUnknown);
+                            }
                           }
-                        }
-                      }),
-                )
-              ],
-            ),
+                          /*
+                          if (!isRegistered) {
+                            Setup().user = user;
+                            Navigator.pop(context, LoginState.register);
+                          } else if (user.password.isEmpty && isRegistered) {
+                            Setup().user = user;
+                            Navigator.pop(context, LoginState.resetPassword);
+                          } else {
+                            Map<String, dynamic> response =
+                                await tryLogin(user: Setup().user);
+                            status = response['msg'] ?? '';
+                            if (context.mounted && status == 'OK') {
+                              Setup().user = user;
+                              Navigator.pop(context, LoginState.login);
+                            }
+                          }
+                          */
+                        }),
+                  )
+                ],
+              ),
 
             const SizedBox(height: 20),
             Row(
               children: [
                 Expanded(
                   child: Text(
-                    status,
-                    style: const TextStyle(
-                        color: Colors.red,
+                    statusPrompts[loginStatus.index]['hint'],
+                    style: TextStyle(
+                        color: statusPrompts[loginStatus.index]['error']
+                            ? Colors.red
+                            : Colors.black,
                         fontSize: 18,
                         fontWeight: FontWeight.normal),
                   ),
@@ -415,27 +489,28 @@ Future<LoginState> loginDialog(BuildContext context,
           ]),
         ),
         actions: [
-          if (emailValid)
+          if (statusPrompts[loginStatus.index]['button'].isNotEmpty)
             TextButton(
               onPressed: () async {
-                if (!isRegistered) {
+                if (loginStatus == LoginStatus.emailUnknown) {
                   Setup().user = user;
                   Navigator.pop(context, LoginState.register);
                 } else if ((user.password.isEmpty ||
-                        status == 'Incorrect password') &&
-                    isRegistered) {
+                    loginStatus == LoginStatus.passwordUnknown)) {
                   Setup().user = user;
+                  focusNode.dispose();
                   Navigator.pop(context, LoginState.resetPassword);
                 } else {
                   Map<String, dynamic> response =
                       await tryLogin(user: Setup().user);
-                  status = response['msg'] ?? '';
+                  String status = response['msg'] ?? '';
                   if (context.mounted && status == 'OK') {
                     Setup().user = user;
+                    focusNode.dispose();
                     Navigator.pop(context, LoginState.login);
                   }
                   if (response["response_status_code"] == 204) {
-                    setState(() => status = 'Incorrect password');
+                    setState(() => loginStatus == LoginStatus.passwordUnknown);
                   }
                 }
               },
@@ -443,18 +518,15 @@ Future<LoginState> loginDialog(BuildContext context,
               ///     onPressed: () => Navigator.pop(context,
               ///         user.password.isEmpty ? LoginState.register : LoginState.login),
               child: Text(
-                user.password.isEmpty
-                    ? isRegistered
-                        ? 'Reset password'
-                        : 'Register'
-                    : user.password.length < 8
-                        ? ''
-                        : 'Login',
+                statusPrompts[loginStatus.index]['button'],
                 style: TextStyle(fontSize: 20),
               ),
             ),
           TextButton(
-            onPressed: () => Navigator.pop(context, LoginState.cancel),
+            onPressed: () {
+              focusNode.dispose();
+              Navigator.pop(context, LoginState.cancel);
+            },
             child: const Text(
               'Cancel',
               style: TextStyle(fontSize: 20),

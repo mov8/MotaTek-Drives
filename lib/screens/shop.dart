@@ -2,7 +2,6 @@ import 'package:drives/tiles/tiles.dart';
 import 'package:flutter/material.dart';
 import 'package:drives/models/models.dart';
 import 'package:drives/services/services.dart';
-import 'dart:developer' as developer;
 
 class ShopForm extends StatefulWidget {
   // var setup;
@@ -198,7 +197,6 @@ class _ShopFormState extends State<ShopForm> {
       newItem();
     }
     setState(() => _expanded = false);
-    developer.log('onAddImage', name: '_callback');
     return;
   }
 
@@ -220,22 +218,17 @@ You can plan trips either on your own or you can explore in a group''',
         imageUrls: _items[index].imageUrls,
         itemIndex: index,
         imageFolder: 'shop_item');
-    developer.log(_items[index].imageUrls, name: '_callback');
     setState(() => ());
   }
 
   onAddLink(int index) {
-    developer.log('onAddLink', name: '_callback');
     setState(() => _items[index].links =
         _items[index].links < 2 ? ++_items[index].links : _items[index].links);
   }
 
   onPost(int index) {
-    developer.log('onPost', name: '_callback');
     postShopItem(_items[index]);
   }
 
-  void onSelect(int index) {
-    developer.log('onSelect', name: '_callback');
-  }
+  void onSelect(int index) {}
 }

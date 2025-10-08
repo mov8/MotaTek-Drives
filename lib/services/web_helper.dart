@@ -2,14 +2,12 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 import 'dart:convert';
-import 'dart:developer' as developer;
 import 'dart:typed_data';
 import 'package:drives/constants.dart';
 import 'package:drives/classes/classes.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
-// import 'package:intl/intl.dart';
 import 'package:drives/models/models.dart';
 import 'package:drives/classes/utilities.dart' as utils;
 import 'package:drives/services/db_helper.dart';
@@ -367,8 +365,8 @@ Future<Map<String, dynamic>> tryLogin({required User user}) async {
 }
 
 Future<dynamic> postTrip(MyTripItem tripItem) async {
-  Map<String, dynamic> map = tripItem.toMap();
-  List<Photo> photos = photosFromJson(photoString: tripItem.images);
+  Map<String, dynamic> map = tripItem.toDrivesMap();
+  // List<Photo> photos = photosFromJson(photoString: tripItem.images);
   double maxLat = -90;
   double minLat = 90;
   double maxLong = -180;
@@ -382,11 +380,20 @@ Future<dynamic> postTrip(MyTripItem tripItem) async {
     }
   }
 
-  var request = http.MultipartRequest('POST', Uri.parse('$urlDrive/add'));
+  map['score'] = 5;
+  map['max_lat'] = maxLat;
+  map['min_lat'] = minLat;
+  map['max_long'] = maxLong;
+  map['min_long'] = minLong;
+  map['added'] = DateTime.now().toString();
 
-  dynamic response;
+  // var request = http.MultipartRequest('POST', Uri.parse('$urlDrive/add'));
+
+  final http.Response response = await postWebData(
+          uri: Uri.parse('$urlDrive/add'), body: jsonEncode(map), secure: true)
+      .timeout(const Duration(seconds: 20));
   try {
-    request.headers['Authorization'] = 'Bearer ${Setup().jwt}';
+    /*   request.headers['Authorization'] = 'Bearer ${Setup().jwt}';
     request.files.add(await http.MultipartFile.fromPath('file', photos[0].url));
     request.fields['title'] = map['heading'];
     request.fields['sub_title'] = map['subHeading'];
@@ -399,8 +406,8 @@ Future<dynamic> postTrip(MyTripItem tripItem) async {
     request.fields['max_long'] = maxLong.toString();
     request.fields['min_long'] = minLong.toString();
     request.fields['added'] = DateTime.now().toString();
-
-    response = await request.send().timeout(const Duration(seconds: 30));
+*/
+//    response = await request.send().timeout(const Duration(seconds: 30));
   } catch (e) {
     if (e is TimeoutException) {
       debugPrint('Request timed out');
@@ -411,9 +418,9 @@ Future<dynamic> postTrip(MyTripItem tripItem) async {
 
   if ([200, 201].contains(response.statusCode)) {
     // 201 = Created
-    dynamic responseData = await response.stream.bytesToString();
+    //  dynamic responseData = await response.stream.bytesToString();
     // debugPrint('Server response: $responseData');
-    return jsonDecode(responseData);
+    return jsonEncode({'msg': response.statusCode});
   } else {
     // debugPrint('Failed to post trip: ${response.statusCode}');
     return jsonEncode({'token': '', 'code': response.statusCode});
@@ -1399,7 +1406,6 @@ Widget showWebImage(String imageUrl,
         },
         errorBuilder:
             (BuildContext context, Object exception, StackTrace? stackTrace) {
-          developer.log('Image url error: $imageUrl', name: '_image');
           return ImageMissing(width: width);
         },
       ),

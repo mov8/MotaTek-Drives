@@ -1,6 +1,5 @@
 // import 'package:flutter/foundation.dart';
 import 'dart:convert';
-import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:drives/constants.dart';
 import 'package:drives/models/other_models.dart';
@@ -112,9 +111,6 @@ class _HomeState extends State<Home> {
       ///   Login dialog appears
       /// 3 Email on device and password < 8 characters
       ///   Sign_up form appears to allow completion of registration
-      developer.log(
-          'tryLoggingIn() ${Setup().user.password.isEmpty ? 'Use passord empty' : 'password found'}',
-          name: '_login');
       //   int code = 0;
 
       if (Setup().user.password.isEmpty) {
@@ -123,10 +119,6 @@ class _HomeState extends State<Home> {
 
       LoginState loginState = LoginState.notLoggedin;
       bool serverUp = await serverListening();
-      developer.log(
-          'tryLoggingIn() ${serverUp ? 'Server is up' : 'Server down'} on $urlBase',
-          name: '_login');
-
       if (serverUp) {
         /// Try silent login first
 
@@ -134,8 +126,6 @@ class _HomeState extends State<Home> {
             Setup().user.email.isNotEmpty &&
             Setup().user.password.length > 8) {
           bool refreshed = await refreshToken();
-          developer.log(refreshed ? 'JWT refreshed' : 'JWT NOT REFRESHED',
-              name: '_login');
           if (refreshed) {
             Setup().hasLoggedIn = true;
             return true;
@@ -150,10 +140,8 @@ class _HomeState extends State<Home> {
           if (status == 'OK') {
             await saveUser(Setup().user);
             Setup().hasLoggedIn = true;
-            developer.log('Setup().user found and logged in', name: '_login');
             return status == 'OK';
           }
-          developer.log('Setup().user found but NOT LOGGED IN', name: '_login');
 
           /// Have user details on device but not on server
           loginState = LoginState.register;
@@ -170,7 +158,6 @@ class _HomeState extends State<Home> {
           if (loginState == LoginState.login) {
             Map<String, dynamic> response = await tryLogin(user: user);
             if (response['msg'] == 'OK') {
-              developer.log('Login was successful', name: '_login');
               Setup().hasLoggedIn = true;
               await saveUser(user);
               Setup().user = user;

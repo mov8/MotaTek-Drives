@@ -1,11 +1,9 @@
 import 'dart:async';
 import 'dart:ui' as ui;
 import 'dart:io';
-import 'dart:math';
 import 'dart:typed_data';
 import 'dart:convert';
-import 'package:uuid/uuid.dart';
-import 'package:http/http.dart' as http;
+import 'package:geolocator/geolocator.dart';
 import 'package:drives/constants.dart';
 import 'package:drives/classes/utilities.dart' as ut;
 import 'package:image_picker/image_picker.dart';
@@ -160,6 +158,7 @@ class MyTripItem {
   String images;
   double score;
   double distance;
+  double distanceAway;
   int closest;
   int highlights;
   bool showMethods;
@@ -184,6 +183,7 @@ class MyTripItem {
     this.images = '',
     this.score = 5,
     this.distance = 0,
+    this.distanceAway = 0,
     this.closest = 12,
     this.highlights = 0,
     this.groupDriveId = '',
@@ -196,8 +196,8 @@ class MyTripItem {
         goodRoads = goodRoads ?? [];
 
   clearAll() {
-//    id = -1;
-    //   driveId = -1;
+    id = -1; // These 2 lines were commented out
+    driveId = -1; // Not sure why
     heading = '';
     subHeading = '';
     body = '';
@@ -212,6 +212,10 @@ class MyTripItem {
   }
 
   loadGroup() async {}
+
+  // clearRoutes() {
+  //   routes.clear();
+//  }
 
   initialise(pointsOfInterest, maneuvers, routes, goodRoads) {
     this.pointsOfInterest = pointsOfInterest;
@@ -292,6 +296,16 @@ class MyTripItem {
     goodRoads.insert(index, route);
   }
 
+  double updateDistance() {
+    double distance = 0;
+    for (int i = 0; i < maneuvers.length; i++) {
+      distance += maneuvers[i].distance;
+    }
+    distance = distance * metersToMiles;
+    this.distance = double.parse(distance.toStringAsFixed(2));
+    return this.distance;
+  }
+
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -329,7 +343,7 @@ class MyTripItem {
 
   Future<int> saveLocal() async {
     int result = -1;
-    distance = tripDistanceMeters(maneuvers) * metersToMiles;
+    updateDistance();
     driveId = await saveMyTripItem(this);
     try {
       Uint8List? pngBytes = Uint8List.fromList([]);
@@ -364,7 +378,7 @@ class MyTripItem {
     clearAll();
     Map<String, dynamic> map = await getDrive(driveId);
     LatLng pos = const LatLng(0, 0);
-    int distance = 99999;
+    // double distance = 99999;
     try {
       await ut.getPosition().then((currentPosition) {
         pos = LatLng(currentPosition.latitude, currentPosition.longitude);
@@ -377,22 +391,21 @@ class MyTripItem {
       subHeading = map['subTitle'];
       body = map['body'];
       published = map['added'].toString();
-      distance = map['distance'].toInt();
+      distance = map['distance'];
       images = '{"url": "$directory/drive$id.png", "caption": ""}';
       pointsOfInterest = await loadPointsOfInterestLocal(driveId);
       for (int i = 0; i < pointsOfInterest.length; i++) {
-        distance = min(
-            ut.distanceBetween(pointsOfInterest[i].point, pos).toInt(),
-            distance);
         if (pointsOfInterest[i].getImages().isNotEmpty) {
           images = '$images,${ut.unList(pointsOfInterest[i].getImages())}';
         }
       }
-      closest = distance;
+      closest = distance.toInt();
       images = '[$images]';
       maneuvers = await loadManeuversLocal(driveId);
-      distance = (tripDistanceMeters(maneuvers) * metersToMiles).toInt();
-
+      if (maneuvers.isNotEmpty) {
+        distanceAway = Geolocator.distanceBetween(pos.latitude, pos.longitude,
+            maneuvers[0].location.latitude, maneuvers[0].location.longitude);
+      }
       List<mt.Route> polyLines = await loadPolyLinesLocal(driveId, type: 0);
       for (int i = 0; i < polyLines.length; i++) {
         routes.add(
@@ -428,7 +441,11 @@ class MyTripItem {
     if (fromLocal) {
       await loadLocal(id);
     }
-    var uuid = const Uuid();
+    // var uuid = const Uuid();
+    await postTrip(this);
+    return true;
+  }
+/*
     Map<String, dynamic> response = await postDriveHeader();
     if (response['status'] == 'OK') {
       driveUri = response['uri'];
@@ -483,61 +500,5 @@ class MyTripItem {
     }
     return meters.toInt();
   }
-
-  Future<Map<String, dynamic>> postDriveHeader() async {
-    List<Photo> photos = photosFromJson(photoString: images);
-    double maxLat = -90;
-    double minLat = 90;
-    double maxLong = -180;
-    double minLong = 180;
-    for (mt.Route polyline in routes) {
-      for (LatLng point in polyline.points) {
-        maxLat = point.latitude > maxLat ? point.latitude : maxLat;
-        minLat = point.latitude < minLat ? point.latitude : minLat;
-        maxLong = point.longitude > maxLong ? point.longitude : maxLong;
-        minLong = point.longitude < minLong ? point.longitude : minLong;
-      }
-    }
-
-    var request = http.MultipartRequest('POST', Uri.parse('$urlDrive/add'));
-
-    dynamic response;
-
-    try {
-      request.headers['Authorization'] = 'Bearer ${Setup().jwt}';
-      request.files
-          .add(await http.MultipartFile.fromPath('file', photos[0].url));
-      request.fields['title'] = heading;
-      request.fields['sub_title'] = subHeading;
-      request.fields['body'] = body;
-      request.fields['distance'] = distance.toString();
-      request.fields['pois'] = pointsOfInterest.length.toString();
-      request.fields['score'] = '5';
-      request.fields['max_lat'] = maxLat.toString();
-      request.fields['min_lat'] = minLat.toString();
-      request.fields['max_long'] = maxLong.toString();
-      request.fields['min_long'] = minLong.toString();
-      request.fields['added'] = DateTime.now().toString();
-
-      response = await request.send().timeout(const Duration(seconds: 30));
-    } catch (e) {
-      if (e is TimeoutException) {
-        return {'status': 'failed', 'error': 'timed out'};
-      } else {
-        return {'status': 'failed', 'error': e.toString()};
-      }
-    }
-
-    if ([200, 201].contains(response.statusCode)) {
-      // 201 = Created
-      dynamic responseData = await response.stream.bytesToString();
-      // debugPrint('Server response: $responseData');
-      return jsonDecode(responseData);
-    } else {
-      return {
-        'status': 'failed',
-        'error': 'status code ${response.statusCode}'
-      };
-    }
-  }
+  */
 }

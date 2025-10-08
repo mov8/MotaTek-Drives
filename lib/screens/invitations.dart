@@ -1,4 +1,3 @@
-import 'dart:developer' as developer;
 import 'package:drives/tiles/tiles.dart';
 import 'package:flutter/material.dart';
 import 'package:drives/models/models.dart';
@@ -172,9 +171,6 @@ class _InvitationsScreenState extends State<InvitationsScreen> {
                 key: UniqueKey(),
                 //    direction: DismissDirection.endToStart,
                 confirmDismiss: (direction) async {
-                  developer.log(
-                      'confirmDismiss ${(direction == DismissDirection.startToEnd).toString()}',
-                      name: '_dismiss');
                   _edited = true;
                   if (direction == DismissDirection.startToEnd) {
                     setState(() => invitations[index].accepted = 2);
@@ -184,9 +180,6 @@ class _InvitationsScreenState extends State<InvitationsScreen> {
                   return true;
                 },
                 onDismissed: (direction) {
-                  developer.log(
-                      'onDismiss ${(direction == DismissDirection.startToEnd).toString()}',
-                      name: '_dismiss');
                   if (direction == DismissDirection.endToStart) {
                     _refused.add(invitations[index]);
                     _edited = true;
