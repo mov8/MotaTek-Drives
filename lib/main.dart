@@ -19,6 +19,7 @@ void main() async {
   await Setup().loaded;
   Setup().hasLoggedIn = false;
   debugPrint('Setup().user.surname ${Setup().user.surname}');
+  final CreateTripController createTripController = CreateTripController();
   // tryLoggingIn();
   runApp(
     // debugInvertOversizedImages = true;
@@ -29,7 +30,8 @@ void main() async {
         'splash': (BuildContext context) => const Splash(),
         'home': (BuildContext context) => const Home(),
         'trips': (BuildContext context) => const Trips(),
-        'createTrip': (BuildContext context) => const CreateTrip(),
+        'createTrip': (BuildContext context) =>
+            CreateTrip(controller: createTripController),
         'myTrips': (BuildContext context) => const MyTrips(),
         'shop': (BuildContext context) => const Shop(),
         'messages': (BuildContext context) => const Messages(),

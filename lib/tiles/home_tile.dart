@@ -34,9 +34,7 @@ class _HomeTileState extends State<HomeTile> {
     super.initState();
     photos = photosFromJson(
         photoString: widget.homeItem.imageUrls,
-        endPoint:
-            //     '${urlBase.contains('motatek') ? uploadHttps : uploadHttps}/${widget.homeItem.uri}/');
-            '$urlHomePageItem/images/${widget.homeItem.uri}/'); //images/${widget.homeItem.uri}');
+        endPoint: '$urlHomePageItem/images/${widget.homeItem.uri}/');
   }
 
   @override

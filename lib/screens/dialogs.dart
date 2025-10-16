@@ -5,6 +5,7 @@ import 'dart:async';
 import 'package:drives/constants.dart';
 import 'package:drives/services/services.dart';
 import 'package:drives/models/models.dart';
+import 'package:socket_io_client/socket_io_client.dart' as sio;
 //import 'package:drives/screens/screens.dart';
 
 const Duration fakeAPIDuration = Duration(seconds: 1);
@@ -447,23 +448,6 @@ Future<LoginState> loginDialog(BuildContext context,
                                   loginStatus = LoginStatus.passwordUnknown);
                             }
                           }
-                          /*
-                          if (!isRegistered) {
-                            Setup().user = user;
-                            Navigator.pop(context, LoginState.register);
-                          } else if (user.password.isEmpty && isRegistered) {
-                            Setup().user = user;
-                            Navigator.pop(context, LoginState.resetPassword);
-                          } else {
-                            Map<String, dynamic> response =
-                                await tryLogin(user: Setup().user);
-                            status = response['msg'] ?? '';
-                            if (context.mounted && status == 'OK') {
-                              Setup().user = user;
-                              Navigator.pop(context, LoginState.login);
-                            }
-                          }
-                          */
                         }),
                   )
                 ],
@@ -537,6 +521,189 @@ Future<LoginState> loginDialog(BuildContext context,
     ),
   );
   return loginState ?? LoginState.cancel;
+}
+
+class DriverDetails {
+  BuildContext context;
+  LatLng position;
+  sio.Socket socket;
+  String groupDriveId;
+  DriverDetails(
+      {required this.context,
+      required this.groupDriveId,
+      required this.position,
+      required this.socket});
+  Future<String> getDetails(Follower driver) async {
+    showDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        //  Map<String, dynamic> carData = {};
+        return AlertDialog(
+          title: Text('Drive - ${driver.driveName}'),
+          titlePadding: EdgeInsets.fromLTRB(30, 30, 0, 0),
+          content: SizedBox(
+            width: 400,
+            height: 300,
+            child: Column(
+              children: [
+                SizedBox(
+                  height: 70,
+                  child: Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            autofocus: true,
+                            initialValue: driver.manufacturer,
+                            decoration: const InputDecoration(
+                              label: Text('Vehicle manufacturer'),
+                              border: OutlineInputBorder(),
+                              hintText: 'Manufacturer',
+                            ),
+                            textInputAction: TextInputAction.next,
+                            textCapitalization: TextCapitalization.words,
+                            keyboardType: TextInputType.name,
+                            onChanged: (value) => driver.manufacturer = value,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  height: 70,
+                  child: Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            initialValue: driver.model,
+                            decoration: const InputDecoration(
+                              label: Text('Vehicle model'),
+                              border: OutlineInputBorder(),
+                              hintText: 'Model',
+                            ),
+                            textInputAction: TextInputAction.next,
+                            textCapitalization: TextCapitalization.words,
+                            keyboardType: TextInputType.name,
+                            onChanged: (value) => driver.model = value,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  height: 70,
+                  child: Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          flex: 2,
+                          child: TextFormField(
+                            initialValue: driver.carColour,
+                            decoration: const InputDecoration(
+                              label: Text('Colour'),
+                              border: OutlineInputBorder(),
+                              hintText: 'Colour',
+                            ),
+                            textInputAction: TextInputAction.next,
+                            keyboardType: TextInputType.name,
+                            onChanged: (value) => driver.carColour = value,
+                          ),
+                        ),
+                        SizedBox(width: 5),
+                        Expanded(
+                          flex: 2,
+                          child: TextFormField(
+                            initialValue: driver.registration,
+                            decoration: const InputDecoration(
+                              label: Text('Registration'),
+                              border: OutlineInputBorder(),
+                              hintText: 'Reg No',
+                            ),
+                            textCapitalization: TextCapitalization.characters,
+                            textInputAction: TextInputAction.next,
+                            keyboardType: TextInputType.name,
+                            onChanged: (value) => driver.registration = value,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  height: 70,
+                  child: Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            initialValue: driver.phoneNumber,
+                            decoration: const InputDecoration(
+                              label: Text('Mobile'),
+                              border: OutlineInputBorder(),
+                              hintText: 'Mobile phone number',
+                            ),
+                            textInputAction: TextInputAction.done,
+                            keyboardType: TextInputType.phone,
+                            onChanged: (value) => driver.phoneNumber = value,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Ok', style: TextStyle(fontSize: 22)),
+              onPressed: () async {
+                driver.position = position;
+                await sendDriverDetails(driver);
+                if (!socket.connected) {
+                  socket.connect();
+                }
+                if (socket.connected) {
+                  socket.emit('trip_join', {
+                    'token': Setup().jwt,
+                    'trip': groupDriveId,
+                    'message': '',
+                    'make': driver.manufacturer,
+                    'model': driver.model,
+                    'colour': driver.carColour,
+                    'reg': driver.registration,
+                    'phone': driver.phoneNumber,
+                    'lat': position.latitude,
+                    'lng': position.longitude,
+                  });
+                } else {
+                  debugPrint('Socket not connected');
+                }
+
+                if (context.mounted) {
+                  Navigator.pop(context);
+                }
+              },
+            ),
+            TextButton(
+              child: const Text('Cancel', style: TextStyle(fontSize: 22)),
+              onPressed: () {
+                Navigator.pop(context, '');
+              },
+            ),
+          ],
+        );
+      },
+    );
+    return '';
+  }
 }
 
 class DialogOkCancel extends StatefulWidget {

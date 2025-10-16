@@ -67,7 +67,7 @@ class PointOfInterestRepository {
         _pointOfInterestCache[key] = await getPointOfInterest(uri: uri);
       } else {
         _pointOfInterestCache[key] = PointOfInterest(
-            markerPoint: const LatLng(0, 0), marker: const FeatureMarker());
+            point: const LatLng(0, 0), child: const FeatureMarker());
       }
     }
     return _pointOfInterestCache[key]!;

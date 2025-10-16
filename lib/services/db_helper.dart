@@ -1015,8 +1015,8 @@ Future<int> saveMyTripItem(MyTripItem myTripItem) async {
     if (myTripItem.driveUri.isNotEmpty) {
       final directory = Setup().appDocumentDirectory;
       for (PointOfInterest pointOfInterest in myTripItem.pointsOfInterest) {
-        if (pointOfInterest.getImages().isNotEmpty) {
-          var pics = jsonDecode(pointOfInterest.getImages());
+        if (pointOfInterest.images.isNotEmpty) {
+          var pics = jsonDecode(pointOfInterest.images);
           String jsonImages = '';
           for (Map<String, dynamic> pic in pics) {
             String url = Uri.parse(
@@ -1031,7 +1031,7 @@ Future<int> saveMyTripItem(MyTripItem myTripItem) async {
             await getAndSaveImage(url: url, filePath: imagePath);
             jsonImages = '$jsonImages,{"url":"$imagePath", "caption":""}';
           }
-          pointOfInterest.setImages('[${jsonImages.substring(1)}]');
+          pointOfInterest.images = '[${jsonImages.substring(1)}]';
         }
       }
     }
@@ -1160,11 +1160,15 @@ Future<List<PointOfInterest>> loadPointsOfInterestLocal(int driveId) async {
         type: maps[i]['type'],
         name: maps[i]['name'],
         description: maps[i]['description'],
-        width: maps[i]['type'] == 12 ? 10 : 30,
-        height: maps[i]['type'] == 12 ? 10 : 30,
+        width: maps[i]['type'] == 12 ? 25 : 30,
+        height: maps[i]['type'] == 12 ? 25 : 30,
         images: maps[i]['images'],
-        markerPoint: LatLng(maps[i]['latitude'], maps[i]['longitude']),
-        marker: MarkerWidget(type: maps[i]['type'], list: 0, listIndex: i),
+        waypoint: maps[i]['waypoint'] ?? i,
+        point: LatLng(maps[i]['latitude'], maps[i]['longitude']),
+        child: MarkerWidget(
+            type: maps[i]['type'],
+            list: 0,
+            listIndex: maps[i]['waypoint'] ?? i),
       ),
     );
   }
@@ -1190,8 +1194,12 @@ Future<PointOfInterest> loadPointOfInterestLocal(
     width: maps.first['type'] == 12 ? 10 : 30,
     height: maps.first['type'] == 12 ? 10 : 30,
     images: maps.first['images'],
-    markerPoint: LatLng(maps.first['latitude'], maps.first['longitude']),
-    marker: MarkerWidget(type: maps.first['type'], list: 0, listIndex: index),
+    waypoint: maps.first['waypoint'],
+    point: LatLng(maps.first['latitude'], maps.first['longitude']),
+    child: MarkerWidget(
+        type: maps.first['type'],
+        list: 0,
+        listIndex: maps.first['waypoint']), //listIndex: index),
   );
 
   return pointOfInterest;
@@ -1214,10 +1222,11 @@ Future<int> savePointOfInterestLocal(
   int id = -1;
   Map<String, dynamic> poiMap = {
     'drive_id': driveId,
-    'type': pointOfInterest.getType(),
-    'name': pointOfInterest.getName(),
-    'description': pointOfInterest.getDescription(),
-    'images': pointOfInterest.getImages(),
+    'type': pointOfInterest.type,
+    'name': pointOfInterest.name,
+    'description': pointOfInterest.description,
+    'images': pointOfInterest.images,
+    'waypoint': pointOfInterest.waypoint,
     'latitude': pointOfInterest.point.latitude,
     'longitude': pointOfInterest.point.longitude,
     'sounds': pointOfInterest.sounds,

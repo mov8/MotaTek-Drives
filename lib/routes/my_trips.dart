@@ -104,15 +104,15 @@ import 'package:uuid/rng.dart';
     if (_myTripItems.isEmpty) {
       _myTripItems.add(
         MyTripItem(
-            heading: 'Save your favourite trips for later or to share',
+            heading: 'Save your favourite trips for later, or to share',
             subHeading:
                 'Add points of interest, nice roads, pubs restaurants etc.',
             body:
                 'Describe the trip and why you liked it. You can share the trip with members of a group. You can also publish a trip for other people to enjoy',
             pointsOfInterest: [
               PointOfInterest(
-                markerPoint: const LatLng(-52, 0),
-                marker: const Icon(Icons.ac_unit),
+                point: const LatLng(-52, 0),
+                child: const Icon(Icons.ac_unit),
               ),
             ],
             distance: 35,

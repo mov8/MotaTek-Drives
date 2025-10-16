@@ -121,7 +121,7 @@ class _HomeState extends State<Home> {
       bool serverUp = await serverListening();
       if (serverUp) {
         /// Try silent login first
-
+        Setup().serverUp = true;
         if (Setup().jwt.isNotEmpty &&
             Setup().user.email.isNotEmpty &&
             Setup().user.password.length > 8) {
@@ -217,8 +217,7 @@ class _HomeState extends State<Home> {
             'New trip planning app for individuals, groups of friends and clubs',
         subHeading: 'Stop polishing your car and start driving it...',
         body:
-            '''Drives is a new app to help you make the most of the countryside around you. 
-You can plan trips either on your own or you can explore in a group''',
+            '''Drives is a new app to help you make the most of the countryside around you. You can plan trips either on your own or you can explore in a group''',
         imageUrls: '[{"url": "aiaston.png", "caption": ""}]',
       ));
 

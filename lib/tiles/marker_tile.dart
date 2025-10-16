@@ -82,6 +82,7 @@ class _MarkerTileState extends State<MarkerTile> {
           ),
           onPressed: () => {},
         ),
+
         children: <Widget>[
           SingleChildScrollView(
             child: Column(
@@ -163,7 +164,7 @@ class _MarkerTileState extends State<MarkerTile> {
   getRating() async {
     getPointOfInterestRating(widget.url).then((ratingMap) {
       setState(() {
-        score = ratingMap['rating'];
+        score = ratingMap['rating'].toDouble();
         scored = ratingMap['scored'];
       });
     });

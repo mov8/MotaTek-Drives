@@ -77,12 +77,12 @@ class _LeadingWidgetState extends State<LeadingWidget>
     super.dispose();
   }
 
+  int get value => widget.value;
+
   void changeWidget(id) {
     setState(() {
       showBadge = false;
       _widgetId = id;
-      // debugPrint('widgetId: $_widgetId');
-      // widget.value = id;
       if (_widgetId == 0) {
         _animationIconController.reverse();
       } else {

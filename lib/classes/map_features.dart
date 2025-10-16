@@ -370,7 +370,7 @@ class PublishedFeatures {
                       overlay:
                           markerIcon(getIconIndex(iconIndex: feature.poiType)),
                       onPress: pinTap,
-                      rating: pointOfInterest!.getScore(),
+                      rating: pointOfInterest!.score,
                     ),
                   );
                 }

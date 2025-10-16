@@ -461,7 +461,7 @@ Future<String> postWithPhotos(
 Future<String> postPointOfInterest(
     PointOfInterest pointOfInterest, String tripUri) async {
   Map<String, dynamic> map = pointOfInterest.toMap();
-  List<Photo> photos = photosFromJson(photoString: pointOfInterest.getImages());
+  List<Photo> photos = photosFromJson(photoString: pointOfInterest.images);
   var request =
       http.MultipartRequest('POST', Uri.parse('$urlPointOfInterest/add'));
 
@@ -629,9 +629,9 @@ Future<List<PointOfInterest>> getPointsOfInterest(ne, sw) async {
           width: 30,
           height: 30,
           images: pois[i]['images'],
-          markerPoint: LatLng(pois[i]['latitude'], pois[i]['longitude']),
+          point: LatLng(pois[i]['latitude'], pois[i]['longitude']),
           driveUri: pois[i]['drives'] ?? '',
-          marker: MarkerWidget(
+          child: MarkerWidget(
             type: pois[i]['_type'],
             name: pois[i]['name'],
             description: pois[i]['description'],
@@ -788,12 +788,12 @@ Future<PointOfInterest> getPointOfInterest(
       name: map['name'],
       description: map['description'],
       images: map['images'],
-      markerPoint: LatLng(map['latitude'], map['longitude']),
+      point: LatLng(map['latitude'], map['longitude']),
       score: map["average_rating"],
       scored: map["ratings_count"],
       driveUri: map['drives'],
       url: map['id'],
-      marker: MarkerWidget(
+      child: MarkerWidget(
         type: map['_type'],
       ),
     );
@@ -801,9 +801,7 @@ Future<PointOfInterest> getPointOfInterest(
     return pointOfInterest;
   } else {
     return PointOfInterest(
-        name: '',
-        marker: MarkerWidget(type: 1),
-        markerPoint: const LatLng(0, 0));
+        name: '', child: MarkerWidget(type: 1), point: const LatLng(0, 0));
   }
 }
 
@@ -1157,7 +1155,7 @@ putPointOfInterestRating(String uri, double score) async {
 }
 
 Future<Map<String, dynamic>> getPointOfInterestRating(String uri) async {
-  Map<String, dynamic> rating = {'rating': '0'};
+  Map<String, dynamic> rating = {'rating': '0.0'};
   final http.Response response = await http
       .get(
         Uri.parse('$urlPointOfInterestRating/$uri'),
@@ -1202,8 +1200,8 @@ Future<MyTripItem> getTripSummary(String tripUuid) async {
             url: '/${trip['id']}/${trip['points_of_interest'][i]['id']}/',
             score: trip['points_of_interest'][i]['average_rating'] ?? 1,
             scored: trip['points_of_interest'][i]['ratings_count'] ?? 0,
-            markerPoint: posn,
-            marker: marker,
+            point: posn,
+            child: marker,
           ));
         } catch (e) {
           // debugPrint('Error: ${e.toString()}');
@@ -1302,8 +1300,8 @@ Future<MyTripItem> getMyTrip(String tripUuid) async {
             url: '${trip['id']}/${trip['points_of_interest'][i]['id']}',
             score: trip['points_of_interest'][i]['average_rating'] ?? 1,
             scored: trip['points_of_interest'][i]['ratings_count'] ?? 0,
-            markerPoint: posn,
-            marker: marker,
+            point: posn,
+            child: marker,
           ));
         } catch (e) {
           // debugPrint('Error: ${e.toString()}');

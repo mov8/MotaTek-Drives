@@ -76,12 +76,6 @@ enum AppState {
 
 enum TripType { none, saved, group }
 
-List<Icon> tripTypeIcons = [
-  Icon(Icons.add_location_alt_outlined),
-  Icon(Icons.bookmark_outline),
-  Icon(Icons.group_outlined)
-];
-
 enum TripState {
   none,
   editing,
@@ -104,6 +98,7 @@ enum TripActions {
   saved,
   headingDetail,
   pointOfInterest,
+  goodRoad,
   showGroup,
   showSteps,
   showMessages,
@@ -231,7 +226,7 @@ const List<String> tableDefs = [
 
   /// POINTS_OF_INTEREST
   '''CREATE TABLE points_of_interest(id INTEGER PRIMARY KEY AUTOINCREMENT, drive_id INTEGER, type INTEGER, 
-  name TEXT, description TEXT, images TEXT, sounds TEXT, latitude REAL, longitude REAL)''',
+  waypoint INTEGER, name TEXT, description TEXT, images TEXT, sounds TEXT, latitude REAL, longitude REAL)''',
 
   /// POLYLINES
   '''CREATE TABLE polylines(id INTEGER PRIMARY KEY AUTOINCREMENT, drive_id INTEGER, 

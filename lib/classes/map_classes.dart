@@ -731,7 +731,7 @@ class _PortraitBody extends State<PortraitBody> with TickerProviderStateMixin {
                       overlay:
                           markerIcon(getIconIndex(iconIndex: feature.poiType)),
                       onPress: pinTap,
-                      rating: pointOfInterest!.getScore(),
+                      rating: pointOfInterest!.score,
                     ));
               }
               cache.add(feature);
@@ -909,9 +909,9 @@ class _PortraitBody extends State<PortraitBody> with TickerProviderStateMixin {
         if (pointOfInterest != null) {
           mapInfo = {
             'key': features[index].row,
-            'title': pointOfInterest.getName(),
-            'content': pointOfInterest.getDescription(),
-            'images': pointOfInterest.getImages()
+            'title': pointOfInterest.name,
+            'content': pointOfInterest.description,
+            'images': pointOfInterest.images
           };
         } //);
         break;
@@ -931,9 +931,9 @@ class _PortraitBody extends State<PortraitBody> with TickerProviderStateMixin {
               if (pointOfInterest != null) {
                 mapInfo = {
                   'key': feature.row,
-                  'title': pointOfInterest.getName(),
-                  'content': pointOfInterest.getDescription(),
-                  'images': pointOfInterest.getImages()
+                  'title': pointOfInterest.name,
+                  'content': pointOfInterest.description,
+                  'images': pointOfInterest.images
                 };
                 return mapInfo;
               }

@@ -268,6 +268,7 @@ class Setup {
   int bottomNavIndex = 0;
   int recordDetail = 5;
   bool allowNotifications = true;
+  bool serverUp = false;
   bool hasLoggedIn = false;
   bool loggingIn = false;
   bool hasRefreshedShop = false;
@@ -435,40 +436,40 @@ class Setup {
 class PointOfInterest extends Marker {
   // GlobalKey? handle;
   int id;
-  String _images;
+  String images;
   final int driveId;
-  int _type;
-  String _name;
-  String _description;
+  int type;
+  String name;
+  String description;
   String url;
   String driveUri;
-  double _score;
+  double score;
   int scored;
   int waypoint;
   DateTime published = DateTime.now();
   Widget marker = MarkerWidget(type: 12);
-  late LatLng markerPoint = const LatLng(52.05884, -1.345583);
+
   List<Photo> photos;
   String sounds;
 
   PointOfInterest({
     this.id = -1,
     this.driveId = -1,
-    int type = -1,
-    String name = '',
-    String description = '',
+    this.type = -1,
+    this.name = '',
+    this.description = '',
     super.width = 30,
     super.height = 30,
     String images = '',
-    required LatLng markerPoint,
-    required Widget marker,
+    super.child = const Text(''),
+    super.point = const LatLng(0, 0),
     this.url = '',
     this.driveUri = '',
-    double score = 1,
+    this.score = 1,
     this.waypoint = -1,
     this.scored = 0,
     this.sounds = '',
-  })  : _images = handleWebImages(
+  })  : images = handleWebImages(
           images,
         ),
         photos = photosFromJson(
@@ -477,15 +478,7 @@ class PointOfInterest extends Marker {
             ),
             endPoint: url.contains(Setup().appDocumentDirectory) || url == ''
                 ? url
-                : '$urlDriveImages/$driveUri/$url/'),
-        _type = type,
-        _name = name,
-        _description = description,
-        _score = score,
-        super(
-          child: marker,
-          point: markerPoint,
-        );
+                : '$urlDriveImages/$driveUri/$url/');
 
   factory PointOfInterest.fromMap(
       {required var map, int driveId = -1, int listIndex = 0}) {
@@ -498,8 +491,8 @@ class PointOfInterest extends Marker {
       width: map['type'] == 12 ? 10 : 30,
       height: map['type'] == 12 ? 10 : 30,
       images: map['images'],
-      markerPoint: LatLng(map['latitude'], map['longitude']),
-      marker: MarkerWidget(
+      point: LatLng(map['latitude'], map['longitude']),
+      child: MarkerWidget(
         type: map['type'],
         list: -1,
         listIndex: listIndex,
@@ -510,80 +503,55 @@ class PointOfInterest extends Marker {
     );
   }
 
+  factory PointOfInterest.clone(
+      {required PointOfInterest pointOfInterest,
+      int colourIndex = -1,
+      int type = -1,
+      LatLng position = const LatLng(0, 0),
+      Widget? marker}) {
+    position = position == LatLng(0, 0) ? pointOfInterest.point : position;
+    Widget marker = pointOfInterest.child;
+    if (colourIndex > -1) {
+      marker = MarkerWidget(
+          listIndex: pointOfInterest.waypoint,
+          type: pointOfInterest.type,
+          colourIdx: colourIndex);
+    }
+    if (type != -1) {
+      marker = MarkerWidget(
+          listIndex: pointOfInterest.waypoint,
+          type: type,
+          colourIdx: Setup().pointOfInterestColour);
+    } else {
+      type = pointOfInterest.type;
+    }
+    return PointOfInterest(
+        id: pointOfInterest.id,
+        driveId: pointOfInterest.driveId,
+        point: position,
+        type: pointOfInterest.type,
+        name: pointOfInterest.name,
+        waypoint: pointOfInterest.waypoint,
+        child: marker,
+        description: pointOfInterest.description);
+  }
+
   IconData setIcon({required type}) {
     return markerIcon(type);
-  }
-
-  set position(LatLng pos) {
-    markerPoint = pos;
-  }
-
-  void setImages(String images) {
-    _images = images;
-  }
-
-  void setMarker({required Widget marker}) {
-    marker = marker;
-  }
-
-  String getImages() {
-    return _images;
   }
 
   String getEndpoint() {
     return '$driveUri/$url';
   }
 
-  void setType(int type) {
-    _type = type;
-    //  debugPrint('marker.type: ${marker.runtimeType.toString()}');
-  }
-
-  void setWaypoint(int id) {
-    waypoint = id;
-    marker = MarkerWidget(type: _type, listIndex: id);
-  }
-
   void incrementWaypoint() {
     waypoint++;
-    marker = MarkerWidget(type: _type, listIndex: waypoint);
+    marker = MarkerWidget(type: type, listIndex: waypoint);
   }
 
   void decrementWaypoint() {
     waypoint--;
-    marker = MarkerWidget(type: _type, listIndex: waypoint);
-  }
-
-  int getType() {
-    return _type;
-  }
-
-  String getName() {
-    return _name;
-  }
-
-  void setName(String name) {
-    _name = name;
-  }
-
-  String getDescription() {
-    return _description;
-  }
-
-  void setDescription(String description) {
-    _description = description;
-  }
-
-  LatLng getMarkerPoint() {
-    return markerPoint;
-  }
-
-  void setScore(double score) {
-    _score = score;
-  }
-
-  double getScore() {
-    return _score;
+    marker = MarkerWidget(type: type, listIndex: waypoint);
   }
 
   Map<String, dynamic> toMap() {
@@ -591,9 +559,9 @@ class PointOfInterest extends Marker {
       'id': id,
       'url': url,
       'driveId': driveId,
-      'type': _type,
-      'name': _name,
-      'description': _description,
+      'type': type,
+      'name': name,
+      'description': description,
       'latitude': point.latitude, //markerPoint.latitude,
       'longitude': point.longitude, //markerPoint.longitude,
     };
@@ -611,13 +579,13 @@ class MarkerWidget extends StatelessWidget {
   final double angle;
   final double score;
   final int scored;
-  int colourIdx;
+  final int colourIdx;
   final int list;
-  int listIndex;
+  final int listIndex;
 
-  MarkerWidget(
+  const MarkerWidget(
       {super.key,
-      required this.type,
+      this.type = 12,
       this.name = '',
       this.description = '',
       this.info = '',
@@ -627,13 +595,13 @@ class MarkerWidget extends StatelessWidget {
       this.angle = 0,
       this.score = 0,
       this.scored = 0,
-      this.colourIdx = -1,
+      this.colourIdx = 3,
       this.list = -1,
       this.listIndex = -1});
 
-  void setListIndex(int idx) {
-    listIndex = idx;
-  }
+  //void setListIndex(int idx) {
+  //  listIndex = idx;
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -672,14 +640,19 @@ class MarkerWidget extends StatelessWidget {
 
         break;
     }
+
     // Want to counter rotate the icons so that they are vertical when the map rotates
     // -_mapRotation * pi / 180 to convert from _mapRotation in degrees to radians
     return Transform.rotate(
       angle: angle,
       child: RawMaterialButton(
         onPressed: () {
-          pointOfInterestDialog(context, name, description, images, url,
-              imageUrls, score, scored, type);
+          try {
+            pointOfInterestDialog(context, name, description, images, url,
+                imageUrls, score, scored, type);
+          } catch (e) {
+            debugPrint('error: ${e.toString()}');
+          }
         },
         elevation: 2.0,
         fillColor: buttonFillColor,
@@ -693,20 +666,14 @@ class MarkerWidget extends StatelessWidget {
               ? CircleAvatar(
                   backgroundColor: type == 19
                       ? Colors.transparent
-                      : colourIdx < 0
-                          ? Colors.red
-                          : colourList[colourIdx], // Colors.red,
+                      : colourList[colourIdx], // Colors.red,
                   radius: 50, //iconWidth,
-                  child: description.contains('isAnchor')
-                      ? Icon(Icons.anchor, color: Colors.white)
-                      : Text(
-                          '${listIndex + 1}',
-                          style: TextStyle(
-                              fontSize: 10,
-                              color: type == 19
-                                  ? Colors.transparent
-                                  : Colors.white),
-                        ),
+                  child: Text(
+                    '${listIndex + 1}',
+                    style: TextStyle(
+                        fontSize: 10,
+                        color: type == 19 ? Colors.transparent : Colors.white),
+                  ),
                 )
               : Icon(
                   markerIcon(type),
@@ -787,7 +754,6 @@ class FollowerMarkerWidget extends StatelessWidget {
   final String model;
   final String colour;
   final String registration;
-
   final double angle;
   final double iconSize;
 
@@ -913,11 +879,8 @@ pointOfInterestDialog(
       style: const TextStyle(fontSize: 20),
       textAlign: TextAlign.center,
     ),
-    // scrollable: true,
     elevation: 5,
-    content: // SingleChildScrollView(
-        //child:
-        MarkerTile(
+    content: MarkerTile(
       index: -1,
       name: name,
       description: description,
@@ -1639,6 +1602,7 @@ List<Photo> photosFromJson({String photoString = '', String endPoint = ''}) {
     try {
       dynamic jsonPhotos = jsonDecode(photoString);
       List<Photo> photos = [];
+      endPoint = Setup().serverUp ? endPoint : '';
       for (dynamic jsonPhoto in jsonPhotos) {
         jsonPhoto =
             photoString.contains('[{') ? jsonPhoto : jsonDecode(jsonPhoto);
