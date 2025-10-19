@@ -30,6 +30,7 @@ class CreateTripValues {
   bool rotateMap = false;
   bool showProgress = false;
   int leadingWidget = 0;
+  int initialLeadingWidget = 0;
   String title = 'Drives';
   MapHeights mapHeight = MapHeights.full;
   GoodRoad goodRoad = GoodRoad();
@@ -107,6 +108,7 @@ class CurrentTripItem extends MyTripItem {
   bool isSaved = false;
   bool isTracking = false;
   TripState tripState = TripState.none;
+  AppState appState = AppState.createTrip;
   TripActions tripActions = TripActions.none;
   TripType tripType = TripType.none;
   HighliteActions highliteActions = HighliteActions.none;
@@ -309,8 +311,21 @@ class CurrentTripItem extends MyTripItem {
           IconButton(
             onPressed: () async {
               if (++backBufferIndex < backBuffer.length) {
-                await replaceRoutes(
-                    points: backBuffer[backBufferIndex], updateBuffer: false);
+                if (backBuffer[backBufferIndex].length == 1) {
+                  int start = -1;
+                  for (int i = 0; i < pointsOfInterest.length; i++) {
+                    if (pointsOfInterest[i].type == 17) {
+                      start = i;
+                      break;
+                    }
+                  }
+                  if (start > -1) {
+                    pointsOfInterest.removeAt(start);
+                  }
+                } else {
+                  await replaceRoutes(
+                      points: backBuffer[backBufferIndex], updateBuffer: false);
+                }
                 onUpdate!(true);
               }
             },
@@ -326,10 +341,21 @@ class CurrentTripItem extends MyTripItem {
           actions.add(
             IconButton(
               onPressed: () async {
-                if (backBufferIndex-- > 0) {
-                  await replaceRoutes(
-                      points: backBuffer[backBufferIndex], updateBuffer: false);
-                  onUpdate!(true);
+                if (--backBufferIndex >= 0) {
+                  if (backBuffer[backBufferIndex].length == 1) {
+                    pointsOfInterest.add(
+                      PointOfInterest(
+                          point: backBuffer[backBufferIndex][0],
+                          type: 17,
+                          waypoint: 1,
+                          child: MarkerWidget(listIndex: 1, type: 17)),
+                    );
+                  } else {
+                    await replaceRoutes(
+                        points: backBuffer[backBufferIndex],
+                        updateBuffer: false);
+                    onUpdate!(true);
+                  }
                 }
               },
               icon: Icon(
@@ -389,8 +415,10 @@ class CurrentTripItem extends MyTripItem {
       tripValues.title = heading;
     } else {
       tripValues.title = 'Create a new trip';
-      tripState = TripState.none;
       clearAll();
+      tripState == TripState.none;
+      tripValues.leadingWidget = 0;
+      tripValues.mapHeight = MapHeights.full;
     }
   }
 
@@ -412,7 +440,13 @@ class CurrentTripItem extends MyTripItem {
 
   void newPointOfInterest({required LatLng position, int type = 15}) {
     pointsOfInterest.add(PointOfInterest(
-        point: position, type: type, child: MarkerWidget(type: type)));
+        point: position,
+        type: type,
+        waypoint: pointsOfInterest.length - 1,
+        child: MarkerWidget(
+          type: type,
+          listIndex: pointsOfInterest.length - 1,
+        )));
     isSaved = false;
   }
 
@@ -437,8 +471,8 @@ class CurrentTripItem extends MyTripItem {
           child: MarkerWidget(type: 17, listIndex: 0),
         ),
       );
-      //  backBuffer.add([point]);
-      //  backBufferIndex = 0;
+      backBuffer.add([point]);
+      backBufferIndex = 0;
     } else {
       if (revisit) {
         insertAt = 0;
@@ -676,9 +710,14 @@ class CurrentTripItem extends MyTripItem {
     tripValues.goodRoad.isGood = false;
   }
 
-  void changePosition({required LatLng position}) {
+  void changePosition(
+      {required LatLng position, required Function(bool) onChange}) {
     isChanged = false;
+    tripValues.position = position;
+    HighliteActions currentHighlite = highliteActions;
     highliteActions = HighliteActions.none;
+    Point currentNearestWaypPoints = nearestWaypoints;
+    //   highliteActions = HighliteActions.none;
     if ([TripState.manual, TripState.editing].contains(tripState)) {
       Map<String, dynamic> waypointPositions =
           findNearestWaypoints(position: position);
@@ -707,6 +746,8 @@ class CurrentTripItem extends MyTripItem {
         goodRoads.last.points.addAll(newList);
       }
     }
+    onChange(highliteActions != currentHighlite ||
+        currentNearestWaypPoints != nearestWaypoints);
   }
 
   Map<String, dynamic> findNearestWaypoints({required LatLng position}) {
@@ -714,7 +755,6 @@ class CurrentTripItem extends MyTripItem {
     double nextNearest = 9999999;
     int nearestIndex = -1;
     int nextNearestIndex = -1;
-    nearestWaypoints = Point(0, 0);
 
     for (int i = 0; i < pointsOfInterest.length; i++) {
       if ([12, 17, 18, 19].contains(pointsOfInterest[i].type)) {

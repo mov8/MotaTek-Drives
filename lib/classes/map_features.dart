@@ -177,7 +177,7 @@ class OsmFeatures {
   Function(int)? pinTap;
   List<OsmAmenity> amenities = [];
   Fence? cacheFence = Fence.create();
-  OsmFeatures({this.amenities = const [], this.pinTap, this.cacheFence});
+  OsmFeatures({required this.amenities, this.pinTap, this.cacheFence});
   Future<bool> update({required Fence fence, double size = 30}) async {
     try {
       amenities =

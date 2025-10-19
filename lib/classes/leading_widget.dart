@@ -45,6 +45,7 @@ class _LeadingWidgetState extends State<LeadingWidget>
   AnimatedIconData _animatedIcon = AnimatedIcons.menu_arrow;
   // bool isarrowmenu = false;
   late int _widgetId; // 0 = hamburger 1 = back
+  late int _initialValue;
   bool showBadge = true;
 
   @override
@@ -52,6 +53,7 @@ class _LeadingWidgetState extends State<LeadingWidget>
     super.initState();
     // bool changeId = _widgetId != widget.initialValue;
     _widgetId = widget.initialValue;
+    _initialValue = widget.initialValue;
     widget.controller._addState(this);
     _animationIconController = AnimationController(
       vsync: this,
@@ -83,11 +85,31 @@ class _LeadingWidgetState extends State<LeadingWidget>
     setState(() {
       showBadge = false;
       _widgetId = id;
-      if (_widgetId == 0) {
-        _animationIconController.reverse();
+
+      /// If initialValue == 0 then anmatedIcon is menu_arrow  - forward = menu -> arrow
+      /// If initialValue == 1 then anmatedIcon is arrow_menu  - forward = arrow -> menu
+      /// Always want the widgetId => 0 for the hamburger
+
+      /// haburger to arrow animated icon
+      if (_initialValue == 0) {
+        if (_widgetId == 0) {
+          _animationIconController.reverse();
+
+          /// arrow to hamburger
+        } else {
+          _animationIconController.forward();
+
+          /// hamburger to arrow
+        }
       } else {
-        _animationIconController.forward();
+        /// arrow to burger animated icon
+        if (_widgetId == 0) {
+          _animationIconController.forward();
+        } else {
+          _animationIconController.reverse();
+        }
       }
+
       animation =
           Tween<double>(begin: 0.0, end: 1.0).animate(_animationIconController);
     });

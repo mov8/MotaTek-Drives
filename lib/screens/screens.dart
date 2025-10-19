@@ -8,6 +8,7 @@ export 'package:drives/screens/home.dart';
 export 'package:drives/screens/introduce.dart';
 export 'package:drives/screens/main_drawer.dart';
 export 'package:drives/screens/message_by_items.dart';
+export 'package:drives/screens/messages_detail.dart';
 export 'package:drives/screens/my_groups.dart';
 export 'package:drives/screens/painters.dart';
 export 'package:drives/screens/group_drives.dart';

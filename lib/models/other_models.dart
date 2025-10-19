@@ -536,6 +536,29 @@ class PointOfInterest extends Marker {
         description: pointOfInterest.description);
   }
 
+  factory PointOfInterest.update({required PointOfInterest pointOfInterest}) {
+    Widget marker = MarkerWidget(
+      listIndex: pointOfInterest.waypoint,
+      type: pointOfInterest.type,
+      colourIdx: Setup().pointOfInterestColour,
+      name: pointOfInterest.name,
+      description: pointOfInterest.description,
+      info: pointOfInterest.description,
+      images: pointOfInterest.images,
+      score: pointOfInterest.score,
+    );
+
+    return PointOfInterest(
+        id: pointOfInterest.id,
+        driveId: pointOfInterest.driveId,
+        point: pointOfInterest.point,
+        type: pointOfInterest.type,
+        name: pointOfInterest.name,
+        waypoint: pointOfInterest.waypoint,
+        child: marker,
+        description: pointOfInterest.description);
+  }
+
   IconData setIcon({required type}) {
     return markerIcon(type);
   }
@@ -565,6 +588,105 @@ class PointOfInterest extends Marker {
       'latitude': point.latitude, //markerPoint.latitude,
       'longitude': point.longitude, //markerPoint.longitude,
     };
+  }
+}
+
+class NewMarkerWidget extends StatelessWidget {
+  final PointOfInterest pointOfInterest;
+  const NewMarkerWidget({super.key, required this.pointOfInterest});
+  @override
+  Widget build(BuildContext context) {
+    int width = 40;
+    double angle = 0;
+    int colourIdx = 5;
+    double iconWidth = width * 0.75;
+    Color buttonFillColor = colourList[Setup().pointOfInterestColour];
+    Color iconColor = Colors.blueAccent;
+    switch (pointOfInterest.type) {
+      case 12:
+        buttonFillColor = colourList[Setup()
+            .waypointColour]; //uiColours.keys.toList()[Setup().waypointColour];
+        iconWidth = 25;
+        break;
+      case 16:
+        buttonFillColor = Colors.transparent;
+        iconColor = colourList[colourIdx];
+        iconWidth = 22;
+        break;
+      case 17:
+        buttonFillColor = Colors.transparent;
+        iconWidth = 25;
+        break;
+      case 18:
+        buttonFillColor = Colors.transparent;
+        iconWidth = 25;
+        break;
+      case 19:
+        buttonFillColor = Colors.transparent;
+        iconWidth = 25;
+        break;
+      default:
+        buttonFillColor =
+            colourList[Setup().pointOfInterestColour]; //Colors.transparent;
+        iconWidth = 25;
+        iconColor = Colors.white;
+
+        break;
+    }
+
+    // Want to counter rotate the icons so that they are vertical when the map rotates
+    // -_mapRotation * pi / 180 to convert from _mapRotation in degrees to radians
+    return Transform.rotate(
+      angle: angle,
+      child: RawMaterialButton(
+        onPressed: () {
+          List<String> imageUrls = [];
+          try {
+            pointOfInterestDialog(
+                context,
+                pointOfInterest.name,
+                pointOfInterest.description,
+                pointOfInterest.images,
+                pointOfInterest.url,
+                imageUrls,
+                pointOfInterest.score,
+                pointOfInterest.scored,
+                pointOfInterest.type);
+          } catch (e) {
+            debugPrint('error: ${e.toString()}');
+          }
+        },
+        elevation: 2.0,
+        fillColor: buttonFillColor,
+        shape: const CircleBorder(),
+        child: Padding(
+          //padding: const EdgeInsets.fromLTRB(2, 2, 3, 4),
+          padding: const EdgeInsets.fromLTRB(0, 0, 1, 2),
+
+          /// 12 waypoint 17 start  18 end  19 revist / start - end
+          child: [12, 17, 18, 19].contains(pointOfInterest.type)
+              ? CircleAvatar(
+                  backgroundColor: pointOfInterest.type == 19
+                      ? Colors.transparent
+                      : colourList[colourIdx], // Colors.red,
+                  radius: 50, //iconWidth,
+                  child: Text(
+                    '${pointOfInterest.waypoint + 1}',
+                    style: TextStyle(
+                        fontSize: 10,
+                        color: pointOfInterest.type == 19
+                            ? Colors.transparent
+                            : Colors.white),
+                  ),
+                )
+              : Icon(
+                  markerIcon(pointOfInterest.type),
+                  size: iconWidth,
+                  color: iconColor,
+                ),
+        ),
+      ),
+    );
   }
 }
 

@@ -52,6 +52,7 @@ class PointOfInterestTile extends StatefulWidget {
   final Function? onIconTap;
   final Function? onDelete;
   final Function? onRated;
+  final Function? onSave;
   final bool expanded;
   final bool canEdit;
 
@@ -66,6 +67,7 @@ class PointOfInterestTile extends StatefulWidget {
     this.onExpandChange,
     this.onDelete,
     this.onRated,
+    this.onSave,
     this.expanded = false,
     this.canEdit = true,
   });
@@ -335,7 +337,7 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                             ),
                             avatar: const Icon(Icons.save,
                                 size: 20, color: Colors.white),
-                            onPressed: () => widget.onExpandChange,
+                            onPressed: () => widget.onSave!(widget.index),
                             backgroundColor: Colors.blueAccent,
                           )
                         ],

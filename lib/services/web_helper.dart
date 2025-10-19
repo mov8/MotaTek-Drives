@@ -476,6 +476,7 @@ Future<String> postPointOfInterest(
     request.fields['name'] = map['name'];
     request.fields['description'] = map['description'];
     request.fields['type'] = map['type'].toString();
+    request.fields['waypoint'] = map['waypoint'];
     request.fields['latitude'] = map['latitude'].toString();
     request.fields['longitude'] = map['longitude'].toString();
     response = await request.send().timeout(const Duration(seconds: 30));
@@ -624,6 +625,7 @@ Future<List<PointOfInterest>> getPointsOfInterest(ne, sw) async {
       pointsOfInterest.add(
         PointOfInterest(
           type: pois[i]['_type'],
+          waypoint: pois[i]['waypoint'],
           name: pois[i]['name'],
           description: pois[i]['description'],
           width: 30,
@@ -785,6 +787,7 @@ Future<PointOfInterest> getPointOfInterest(
     dynamic map = jsonDecode(response.body);
     PointOfInterest pointOfInterest = PointOfInterest(
       type: map['_type'],
+      waypoint: map['waypoint'],
       name: map['name'],
       description: map['description'],
       images: map['images'],
@@ -1192,6 +1195,7 @@ Future<MyTripItem> getTripSummary(String tripUuid) async {
           );
           gotPointsOfInterest.add(PointOfInterest(
             type: trip['points_of_interest'][i]['_type'],
+            waypoint: trip['points_of_interest'][i]['waypoint'],
             name: trip['points_of_interest'][i]['name'],
             description: trip['points_of_interest'][i]['description'],
             width: trip['points_of_interest'][i]['_type'] == 12 ? 10 : 30,
@@ -1291,6 +1295,7 @@ Future<MyTripItem> getMyTrip(String tripUuid) async {
           );
           gotPointsOfInterest.add(PointOfInterest(
             type: trip['points_of_interest'][i]['_type'],
+            waypoint: trip['points_of_interest'][i]['waypoint'],
             name: trip['points_of_interest'][i]['name'],
             description: trip['points_of_interest'][i]['description'],
             width: trip['points_of_interest'][i]['_type'] == 12 ? 10 : 30,

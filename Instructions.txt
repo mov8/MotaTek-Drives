@@ -37,6 +37,7 @@ mariadb -uroot -pmysecret  <-- Start mariadb
 To copy a new app version to the Droplet
 scp /home/james/Python-3.10.0/Drives/drives/apks/motatek_drives.apk root@64.227.34.217:/root/app/static/apks/motatek_drives.apk
 
+done:
 To do sort out problem with group drives 
 - Took drive from API 
 - Inviter was mobile Stag

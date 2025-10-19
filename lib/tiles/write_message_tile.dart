@@ -26,7 +26,7 @@ class WriteMessageTile extends StatefulWidget {
 }
 
 class _WriteMessageTileState extends State<WriteMessageTile> {
-  DateFormat dateFormat = DateFormat('dd/MM/yy HH:mm');
+  //DateFormat dateFormat = DateFormat('dd/MM/yy HH:mm');
   late bool originator;
   late Future<bool> canDismissItem;
   late FocusNode _focusNode;

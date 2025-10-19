@@ -23,3 +23,4 @@ export 'package:drives/tiles/shop_item_tile.dart';
 export 'package:drives/tiles/trip_header_tile.dart';
 export 'package:drives/tiles/trip_message_tile.dart';
 export 'package:drives/tiles/trip_tile.dart';
+export 'package:drives/tiles/write_message_tile.dart';
