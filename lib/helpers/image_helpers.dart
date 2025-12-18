@@ -1,7 +1,9 @@
-import 'dart:io';
+import 'package:universal_io/universal_io.dart';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:drives/models/other_models.dart';
+import '/models/other_models.dart';
+import '/helpers/edit_helpers.dart';
 
 /// https://www.youtube.com/watch?v=MSv38jO4EJk
 
@@ -291,4 +293,102 @@ Future<String> loadDeviceImage(
     debugPrint('Error loading image: $err');
   }
   return imageUrls;
+}
+
+/// getDeviceImage() is a streamlined method for getting images from
+/// a device
+///   index is the position in any list of photos
+///   fileName is the file path/name without the extension
+
+Future<Photo?> getDeviceImage(
+    {int index = 0,
+    String folder = '',
+    String fileName = 'image',
+    ImageSource source = ImageSource.gallery}) async {
+  ImagePicker picker = ImagePicker();
+  try {
+    XFile? image = await picker.pickImage(source: source, imageQuality: 10);
+    if (image != null) {
+      Directory targetDirectory =
+          Directory('${Setup().appDocumentDirectory}/$folder');
+      if (!await targetDirectory.exists()) {
+        await targetDirectory.create();
+      }
+      final target =
+          '${targetDirectory.path}/$fileName.${image.path.split('.').last}';
+      File(image.path).copy(target);
+      File(image.path).delete();
+      return Photo(url: target, index: index);
+    }
+  } catch (e) {
+    debugPrint('Error getting image from gallery: ${e.toString()}');
+  }
+  return null;
+}
+
+/// Creates a list of photos from a json string of the following format:
+///  '[{"url": "assets/images/map.png", "caption": ""}, {"url": "assets/images/splash.png", "caption": ""},
+///   {"url": "assets/images/CarGroup.png", "caption": "" }]',
+///  post-constructor function handleWebImages converts a simple image file name to a map to reduce web traffic
+///  for some strange reason the string must start with a single quote.
+///
+/// The photoString comes directly from the api. It is an escaped string with all embedded "s escaped with a \ ie \"
+///    ["{\"url\":\"4ecb1d1f-ed47-4e4d-9614-d1a4bc398b15.jpg\",\"caption\":\"image1\",\"rotation\":0}"]
+///   1st jsonDecode turns it ito jsonPhotos a list of Flutter Strings ie.
+///     [0]{"url":"4ecb1d1f-ed47-4e4d-9614-d1a4bc398b15.jpg","caption":"image1","rotation":0} <-- JsonString - length 82
+///   2nd jsonDecode on the jsonString converts it to a Map (Photo) with keys url: caption: rotation:
+///
+///
+
+List<Photo> photosFromJson({String photoString = '', String endPoint = ''}) {
+  if (photoString.isNotEmpty) {
+    int index = 0;
+    try {
+      /// 1st jsonDecode() converts sent escaped String to a list of JsonString
+      dynamic jsonPhotos = jsonDecode(photoString);
+      if (jsonPhotos is String) {
+        jsonPhotos = jsonDecode(jsonPhotos);
+      }
+      List<Photo> photos = [];
+      endPoint =
+          Setup().serverUp && !photoString.contains('assets/') ? endPoint : '';
+      for (dynamic jsonPhoto in jsonPhotos) {
+        jsonPhoto =
+            photoString.contains('[{') ? jsonPhoto : jsonDecode(jsonPhoto);
+        photos
+            .add(Photo.fromJson(jsonPhoto, endPoint: endPoint, index: index++));
+      }
+      return photos;
+    } catch (e) {
+      debugPrint('Error photosFromJsonL ${e.toString()}');
+    }
+  }
+  return [];
+}
+
+String photosToString({required List<Photo> photos}) {
+  String uriString = '';
+  String delim = '';
+  for (int i = 0; i < photos.length; i++) {
+    uriString =
+        '$uriString$delim{"url":\"${photos[i].url}\","caption":\"${photos[i].caption}\","rotation":${photos[i].rotation}}';
+    delim = ',';
+  }
+  return '[$uriString]';
+}
+
+List<Photo> photosFromMap(String photoString) {
+  List<Photo> photos = [
+    for (Map<String, String> url in jsonDecode(photoString)) Photo.fromJson(url)
+  ];
+  return photos;
+}
+
+String photosToJson(List<Photo> photos) {
+  String photoString = '';
+  for (int i = 0; i < photos.length; i++) {
+    photoString = '$photoString, ${photos[i].toJson()} ';
+  }
+  photoString = '[${photoString.substring(1, photoString.length)}]';
+  return photoString;
 }

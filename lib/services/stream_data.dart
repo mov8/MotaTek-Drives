@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:drives/classes/route.dart' as mt;
+import '/classes/route.dart' as mt;
 
 class StreamSocket {
   final _socketResponse = StreamController<String>();
@@ -34,7 +34,9 @@ class DataStream<T> {
 }
 
 class FollowRoute<T> {
+  int _currentIndex = 0;
   int _index = 0;
+  int _route = 0;
   int _delay = 1;
   bool run = false;
   StreamController<Position> controller;
@@ -53,11 +55,16 @@ class FollowRoute<T> {
 
   Position? get getPosition => position;
 
+  int get getIndex => _currentIndex;
+  LatLng getPositionAt(int index) => _routes[_route].points[index];
+
   void move() async {
     if (run) {
       for (int r = 0; r < _routes.length; r++) {
         List<LatLng> points = _routes[r].points;
+        _route = r;
         for (int i = _index; i < points.length; i++) {
+          _currentIndex = i;
           await Future.delayed(Duration(seconds: _delay), () {
             position = Position(
                 longitude: points[i].longitude,

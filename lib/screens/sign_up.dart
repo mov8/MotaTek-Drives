@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:drives/models/other_models.dart';
-import 'package:drives/services/services.dart';
-import 'package:drives/screens/dialogs.dart';
-import 'package:drives/classes/classes.dart';
-import 'package:drives/constants.dart';
+// import 'package:flutter/services.dart';
+import '/models/other_models.dart';
+import '/services/services.dart';
+import '/screens/dialogs.dart';
+import '/classes/classes.dart';
+import '/constants.dart';
+import '/helpers/edit_helpers.dart';
 
 class SignupForm extends StatefulWidget {
   final LoginState loginState;
@@ -92,35 +94,37 @@ class _SignupFormState extends State<SignupForm> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: ScreensAppBar(
-          heading: 'User details',
-          prompt: 'Please update your details.',
-          updateHeading: 'You have changed your details.',
-          updateSubHeading: 'Press Update to confirm the changes or Ignore',
-          update: hasChanged && isComplete(),
-          updateMethod: (update) => register(update: update),
-        ),
-        body: FutureBuilder<bool>(
-          future: _loadedOk,
-          builder: (BuildContext context, snapshot) {
-            if (snapshot.hasError) {
-              debugPrint('Snapshot error: ${snapshot.error}');
-            } else if (snapshot.hasData) {
-              // _building = false;
-              return portraitView();
-            } else {
-              return const SizedBox(
-                width: double.infinity,
-                height: double.infinity,
-                child: Align(
-                  alignment: Alignment.center,
-                  child: CircularProgressIndicator(),
-                ),
-              );
-            }
-            throw ('Error - FutureBuilder in create_trips.dart');
-          },
-        ));
+      backgroundColor: Colors.blue,
+      appBar: ScreensAppBar(
+        heading: 'User details',
+        prompt: 'Please update your details.',
+        updateHeading: 'You have changed your details.',
+        updateSubHeading: 'Press Save to confirm the changes or Ignore',
+        update: hasChanged && isComplete(),
+        updateMethod: (update) => register(update: update),
+      ),
+      body: FutureBuilder<bool>(
+        future: _loadedOk,
+        builder: (BuildContext context, snapshot) {
+          if (snapshot.hasError) {
+            debugPrint('Snapshot error: ${snapshot.error}');
+          } else if (snapshot.hasData) {
+            // _building = false;
+            return portraitView();
+          } else {
+            return const SizedBox(
+              width: double.infinity,
+              height: double.infinity,
+              child: Align(
+                alignment: Alignment.center,
+                child: CircularProgressIndicator(),
+              ),
+            );
+          }
+          throw ('Error - FutureBuilder in create_trips.dart');
+        },
+      ),
+    );
   }
 
   Widget portraitView() {
@@ -139,16 +143,17 @@ class _SignupFormState extends State<SignupForm> {
                     child: TextFormField(
                         autofocus: true,
                         // focusNode: _focusNode,
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                          hintText: 'Enter your forename',
-                          labelText: 'Forename',
-                        ),
+                        decoration: InputDecoration(
+                            border: OutlineInputBorder(),
+                            hintText: 'Enter your forename',
+                            hintStyle: hintStyle(context: context),
+                            labelText: 'Forename',
+                            labelStyle: labelStyle(context: context)),
                         textInputAction: TextInputAction.next,
                         textCapitalization: TextCapitalization.words,
                         textAlign: TextAlign.left,
                         initialValue: Setup().user.forename.toString(),
-                        style: Theme.of(context).textTheme.bodyLarge,
+                        style: textStyle(context: context),
                         onChanged: (text) {
                           Setup().user.forename = text;
                           hasChanged = true;
@@ -168,16 +173,17 @@ class _SignupFormState extends State<SignupForm> {
                   Expanded(
                     flex: 5,
                     child: TextFormField(
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                          hintText: 'Enter surname',
-                          labelText: 'Surname',
-                        ),
+                        decoration: InputDecoration(
+                            border: OutlineInputBorder(),
+                            hintText: 'Enter surname',
+                            hintStyle: hintStyle(context: context),
+                            labelText: 'Surname',
+                            labelStyle: labelStyle(context: context)),
                         textAlign: TextAlign.left,
                         textInputAction: TextInputAction.next,
                         textCapitalization: TextCapitalization.words,
                         initialValue: Setup().user.surname.toString(),
-                        style: Theme.of(context).textTheme.bodyLarge,
+                        style: textStyle(context: context),
                         onChanged: (text) {
                           hasChanged = true;
                           Setup().user.surname = text;
@@ -201,15 +207,16 @@ class _SignupFormState extends State<SignupForm> {
                   readOnly:
                       mode != 0, //Only allow emails to be altered if new user
                   keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    hintText: 'Enter your email address',
-                    labelText: 'Email address',
-                  ),
+                  decoration: InputDecoration(
+                      border: OutlineInputBorder(),
+                      hintText: 'Enter your email address',
+                      hintStyle: hintStyle(context: context),
+                      labelText: 'Email address',
+                      labelStyle: labelStyle(context: context)),
                   textInputAction: TextInputAction.next,
                   textAlign: TextAlign.left,
                   initialValue: Setup().user.email.toString(),
-                  style: Theme.of(context).textTheme.bodyLarge,
+                  style: textStyle(context: context),
                   onChanged: (text) {
                     hasChanged = true;
                     Setup().user.email = text;
@@ -228,15 +235,16 @@ class _SignupFormState extends State<SignupForm> {
               padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
               child: TextFormField(
                   keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    hintText: 'Enter your phone number',
-                    labelText: 'Phone number',
-                  ),
+                  decoration: InputDecoration(
+                      border: OutlineInputBorder(),
+                      hintText: 'Enter your phone number',
+                      hintStyle: hintStyle(context: context),
+                      labelText: 'Phone number',
+                      labelStyle: labelStyle(context: context)),
                   textInputAction: TextInputAction.next,
                   textAlign: TextAlign.left,
                   initialValue: Setup().user.phone.toString(),
-                  style: Theme.of(context).textTheme.bodyLarge,
+                  style: textStyle(context: context),
                   onChanged: (text) {
                     hasChanged = true;
                     Setup().user.phone = text;
@@ -262,19 +270,21 @@ class _SignupFormState extends State<SignupForm> {
                       child: Column(
                         children: [
                           TextFormField(
-                              decoration: const InputDecoration(
-                                border: OutlineInputBorder(),
-                                hintText: 'Enter your password',
-                                labelText: 'Password',
-                                //  errorText: 'Minimum of 8 characters',
-                                // error: false,
-                              ),
+                              decoration: InputDecoration(
+                                  border: OutlineInputBorder(),
+                                  hintText: 'Enter your password',
+                                  hintStyle: hintStyle(context: context),
+                                  labelText: 'Password',
+                                  labelStyle: labelStyle(context: context)
+                                  //  errorText: 'Minimum of 8 characters',
+                                  // error: false,
+                                  ),
                               textAlign: TextAlign.left,
                               //     minLength: 8,
                               keyboardType: TextInputType.visiblePassword,
                               textInputAction: TextInputAction.done,
                               initialValue: Setup().user.password.toString(),
-                              style: Theme.of(context).textTheme.bodyLarge,
+                              style: textStyle(context: context),
                               validator: (val) =>
                                   Setup().user.newPassword.length < 8 &&
                                           isComplete()
@@ -305,16 +315,17 @@ class _SignupFormState extends State<SignupForm> {
                       flex: 2,
                       child: TextFormField(
                         decoration: InputDecoration(
-                          border: OutlineInputBorder(),
-                          hintText: 'Validation code',
-                          labelText: 'Emailed code',
-                        ),
+                            border: OutlineInputBorder(),
+                            hintText: 'Validation code',
+                            hintStyle: hintStyle(context: context),
+                            labelText: 'Emailed code',
+                            labelStyle: labelStyle(context: context)),
                         textAlign: TextAlign.left,
                         maxLength: 6,
                         keyboardType: TextInputType.number,
                         textInputAction: TextInputAction.next,
                         initialValue: '',
-                        style: Theme.of(context).textTheme.bodyLarge,
+                        style: textStyle(context: context),
                         validator: (val) =>
                             Setup().user.password.length < 6 && isComplete()
                                 ? 'Six digits needed'
@@ -399,17 +410,17 @@ class _SignupFormState extends State<SignupForm> {
                     flex: 2,
                     child: TextFormField(
                       readOnly: true,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        hintText: '',
-                        labelText: 'Current Password',
-                      ),
+                      decoration: InputDecoration(
+                          border: OutlineInputBorder(),
+                          hintText: '',
+                          labelText: 'Current Password',
+                          labelStyle: labelStyle(context: context)),
                       textAlign: TextAlign.left,
                       keyboardType: TextInputType.visiblePassword,
                       textInputAction: TextInputAction.next,
                       initialValue: Setup().user.password.toString(),
                       onChanged: (text) => Setup().user.newPassword = text,
-                      style: Theme.of(context).textTheme.bodyLarge,
+                      style: textStyle(context: context),
                     ),
                   ),
                   SizedBox(width: 10),
@@ -417,17 +428,19 @@ class _SignupFormState extends State<SignupForm> {
                     flex: 2,
                     child: TextFormField(
                       readOnly: false,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         border: OutlineInputBorder(),
                         hintText: '',
+                        hintStyle: hintStyle(context: context),
                         labelText: 'New Password',
+                        labelStyle: labelStyle(context: context),
                       ),
                       textAlign: TextAlign.left,
                       keyboardType: TextInputType.visiblePassword,
                       textInputAction: TextInputAction.next,
                       initialValue: Setup().user.newPassword.toString(),
                       onChanged: (text) => Setup().user.newPassword = text,
-                      style: Theme.of(context).textTheme.bodyLarge,
+                      style: Theme.of(context).textTheme.bodyMedium,
                     ),
                   ),
                 ]
@@ -450,7 +463,7 @@ class _SignupFormState extends State<SignupForm> {
                         (item) => DropdownMenuItem<String>(
                           value: item,
                           child: Text(item,
-                              style: Theme.of(context).textTheme.bodyLarge!),
+                              style: Theme.of(context).textTheme.bodyMedium!),
                         ),
                       )
                       .toList(),
@@ -470,7 +483,7 @@ class _SignupFormState extends State<SignupForm> {
                       .map((item) => DropdownMenuItem<String>(
                             value: item,
                             child: Text(item,
-                                style: Theme.of(context).textTheme.bodyLarge!),
+                                style: Theme.of(context).textTheme.bodyMedium!),
                           ))
                       .toList(),
                   onChanged: (item) =>
@@ -514,46 +527,43 @@ class _SignupFormState extends State<SignupForm> {
   }
 
   Future<String> register({bool update = false}) async {
-    if (!update) {
-      return 'Ok';
-    }
-
     String response = 'Error';
+    if (update) {
+      Map<String, dynamic> status =
+          await postUser(user: Setup().user, register: true);
 
-    Map<String, dynamic> status =
-        await postUser(user: Setup().user, register: true);
+      switch (status['code']) {
+        case 201:
+          if (Setup().user.password.isNotEmpty &&
+              Setup().user.newPassword.isNotEmpty) {
+            Setup().user.password = Setup().user.newPassword;
+            Setup().user.newPassword = '';
+          }
+          saveUser(Setup().user);
+          Setup().setupToDb();
+          response = 'Ok';
+          break;
 
-    switch (status['code']) {
-      case 201:
-        if (Setup().user.password.isNotEmpty &&
-            Setup().user.newPassword.isNotEmpty) {
-          Setup().user.password = Setup().user.newPassword;
-          Setup().user.newPassword = '';
-        }
-        saveUser(Setup().user);
-        Setup().setupToDb();
-        response = 'Ok';
-        break;
+        case 400:
+          response = 'Submitted data error - please check all boxes';
+          break;
 
-      case 400:
-        response = 'Submitted data error - please check all boxes';
-        break;
+        case 401: // unauthorised
+          response = 'Password is incorrect';
+          break;
 
-      case 401: // unauthorised
-        response = 'Password is incorrect';
-        break;
+        case 404: // Not found
+          response =
+              'Validation code is incorrect - please check for latest email';
+          break;
 
-      case 404: // Not found
-        response =
-            'Validation code is incorrect - please check for latest email';
-        break;
-
-      default:
-        response = 'Failed to save user - check Internet connection';
-        break;
+        default:
+          response = 'Failed to save user - check Internet connection';
+          break;
+      }
     }
-
     // Navigator.pop(context); 406 Notacceptable 409 conflict
+    setState(() => hasChanged = false);
     return response;
   }
 }

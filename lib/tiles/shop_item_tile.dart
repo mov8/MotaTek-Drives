@@ -1,43 +1,73 @@
+import 'package:drives/constants.dart';
 import 'package:flutter/material.dart';
-import 'package:drives/models/other_models.dart';
-import 'package:drives/classes/classes.dart';
-import 'dart:io';
+import '/models/other_models.dart';
+import '/classes/classes.dart';
+import 'package:universal_io/universal_io.dart';
 import 'package:intl/intl.dart';
+import 'dart:developer' as developer;
+import '/helpers/helpers.dart';
+
+class ShopItemTileController {
+  _ShopItemTileState? _shopItemTileState;
+
+  void _addState(_ShopItemTileState shopItemTileState) {
+    _shopItemTileState = shopItemTileState;
+  }
+
+  bool get isAttached => _shopItemTileState != null;
+  void contract() {
+    assert(isAttached, 'Controller must be attached to widget to clear');
+    try {
+      _shopItemTileState?.changeOpenState();
+    } catch (e) {
+      String err = e.toString();
+      debugPrint('Error clearing AutoComplete: $err');
+    }
+  }
+
+  void updatePhotos() {
+    assert(isAttached, 'Controller must be attached to widget to clear');
+    try {
+      _shopItemTileState?.getPhotos();
+    } catch (e) {
+      String err = e.toString();
+      debugPrint('Error getting photos: $err');
+    }
+  }
+
+  void addLink() {
+    assert(isAttached, 'Controller must be attached to widget to clear');
+    try {
+      _shopItemTileState?.addLink();
+    } catch (e) {
+      String err = e.toString();
+      debugPrint('Error getting photos: $err');
+    }
+  }
+}
 
 class ShopItemTile extends StatefulWidget {
-//  final PointOfInterestController? pointOfInterestController;
-//  final BuildContext context;
-//
   final ShopItem shopItem;
+  final ShopItemTileController controller;
   final int index;
-  final Function(int)? onIconTap;
-  final Function(int)? onExpandChange;
-  final Function(int)? onDelete;
-  final Function(int)? onPost;
-  final Function(int)? onAddImage;
-  // final Function(int, int)? onRemoveImage;
-  final Function(int)? onAddLink;
+  final Function(bool, ShopItemTileController)? onExpandChange;
   final Function(int, int)? onRated;
-  final Function(int)? onSelect; // final Key key;
+  final Function(int)? onChange;
   final bool expanded;
   final bool canEdit;
-
-  const ShopItemTile(
-      {super.key,
-      // required this.context,
-      required this.index,
-      required this.shopItem,
-      this.onIconTap,
-      this.onExpandChange,
-      this.onDelete,
-      this.onPost,
-      this.onAddImage,
-      //   this.onRemoveImage,
-      this.onAddLink,
-      this.onRated,
-      this.expanded = false,
-      this.canEdit = true,
-      this.onSelect});
+  bool? changed;
+  ShopItemTile({
+    super.key,
+    required this.controller,
+    required this.index,
+    required this.shopItem,
+    this.onExpandChange,
+    this.onRated,
+    this.onChange,
+    this.expanded = false,
+    this.canEdit = true,
+  });
+//      this.onSelect});
   @override
   State<ShopItemTile> createState() => _ShopItemTileState();
 }
@@ -63,10 +93,14 @@ class _ShopItemTileState extends State<ShopItemTile> {
   ];
   int imageIndex = 0;
   List<DropdownMenuItem<String>> dropDownMenuItems = [];
+  ExpansibleController _expansibleController = ExpansibleController();
+  List<FocusNode> linkNodes = [FocusNode(), FocusNode()];
 
   @override
   void initState() {
     super.initState();
+    widget.controller._addState(this);
+    developer.log('ShopItemTile initState called', name: '_groupTile');
     expanded = widget.expanded;
     canEdit = widget.canEdit;
     index = widget.index;
@@ -75,56 +109,86 @@ class _ShopItemTileState extends State<ShopItemTile> {
           (item) => DropdownMenuItem<String>(value: item, child: Text(item)),
         )
         .toList();
+    _links = widget.shopItem.url1.isNotEmpty ? 1 : 0;
+    _links = widget.shopItem.url2.isNotEmpty ? 2 : _links;
+    //  getPhotos();
+  }
+
+  @override
+  void dispose() {
+    linkNodes[0].dispose();
+    linkNodes[1].dispose();
+    developer.log('ShopItemTile dispose called', name: '_groupTile');
+    super.dispose();
+  }
+
+  changeOpenState() {
+    if (widget.expanded) {
+      debugPrint('Controller closing tile $index');
+      _expansibleController.collapse();
+    } else {
+      debugPrint('tile $index is already closed - widget.expanded = false');
+    }
+  }
+
+  getPhotos() {
+    try {
+      imageUrlLength = widget.shopItem.imageUrls.length;
+      photos = photosFromJson(
+          photoString: widget.shopItem.imageUrls,
+          endPoint: '$urlShopItem/images/${widget.shopItem.uri}/');
+      imageIndex = 0;
+    } catch (e) {
+      debugPrint('Error: ${e.toString()}');
+    }
+  }
+
+  addLink() {
+    if (_links < 2) {
+      _links++;
+      setState(() => linkNodes[_links - 1].requestFocus());
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     if (widget.shopItem.imageUrls.length != imageUrlLength) {
-      photos = photosFromJson(
-          photoString: widget.shopItem.imageUrls,
-          endPoint: '${widget.shopItem.uri}/');
-      imageUrlLength = widget.shopItem.imageUrls.length;
-      imageIndex = 0;
+      getPhotos();
     }
-    _links = widget.shopItem.url1.isNotEmpty ? 1 : 0;
-    _links = widget.shopItem.url2.isNotEmpty ? 2 : _links;
+
     return Card(
       key: Key('$widget.key'),
       child: Padding(
         padding: const EdgeInsets.all(8.0),
         child: ExpansionTile(
-          // controller: ExpansionTileController(),
+          controller: _expansibleController,
           title: widget.shopItem.heading == ''
-              ? const Text(
+              ? Text(
                   'Add a home page item',
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: headlineStyle(
+                      context: context, size: 2, color: Colors.black),
                 )
               : Text(
                   widget.shopItem.heading,
-                  style: const TextStyle(
-                      color: Colors.black, fontWeight: FontWeight.bold),
+                  style: headlineStyle(
+                      context: context, size: 2, color: Colors.black),
                 ),
           subtitle: Row(children: [
             Expanded(
                 flex: 1,
-                child: Text('pub ${dateFormat.format(DateTime.now())}')),
-            const Expanded(flex: 1, child: Text('rank 0'))
+                child: Text(
+                  'pub ${dateFormat.format(DateTime.now())}',
+                  style:
+                      textStyle(context: context, size: 3, color: Colors.black),
+                )),
+            Expanded(
+                flex: 1,
+                child: Text('rank 0',
+                    style: textStyle(
+                        context: context, size: 3, color: Colors.black)))
           ]),
-          initiallyExpanded: expanded,
-          onExpansionChanged: (expanded) {
-            setState(() {
-              widget.onExpandChange!(expanded ? index : -1);
-            });
-          },
-          leading: IconButton(
-            iconSize: 25,
-            icon: const Icon(Icons.newspaper_outlined),
-            onPressed: widget.onIconTap!(widget.index),
-          ),
+          onExpansionChanged: (expanded) =>
+              widget.onExpandChange!(expanded, widget.controller),
           children: [
             SizedBox(
               height: 950,
@@ -136,14 +200,21 @@ class _ShopItemTileState extends State<ShopItemTile> {
                       Expanded(
                         flex: 2,
                         child: DropdownButtonFormField<String>(
-                          decoration: const InputDecoration(
+                          decoration: InputDecoration(
                             border: OutlineInputBorder(),
+                            labelStyle: labelStyle(
+                                context: context, color: Colors.black, size: 2),
                             labelText: 'Coverage',
+                            hintStyle: hintStyle(
+                                context: context, color: Colors.blueGrey),
                           ),
-                          value: widget.shopItem.coverage,
+                          initialValue: widget.shopItem.coverage,
                           items: dropDownMenuItems,
+                          style: textStyle(
+                              context: context, color: Colors.black, size: 2),
                           onChanged: (item) {
                             widget.shopItem.coverage = item ?? 'all';
+                            widget.onChange!(index);
                           },
                         ),
                       ),
@@ -161,16 +232,26 @@ class _ShopItemTileState extends State<ShopItemTile> {
                               keyboardType: const TextInputType
                                   .numberWithOptions(), //for(i = -1; i < 100; i++) i.toString()],
                               textCapitalization: TextCapitalization.sentences,
-                              decoration: const InputDecoration(
+                              decoration: InputDecoration(
                                 border: OutlineInputBorder(),
                                 hintText: "-1 invisible higher the better",
                                 labelText: 'Ad ranking',
+                                labelStyle: labelStyle(
+                                    context: context,
+                                    size: 2,
+                                    color: Colors.black),
                               ),
-                              style: Theme.of(context).textTheme.bodyLarge,
+                              style: textStyle(
+                                  context: context,
+                                  size: 2,
+                                  color: Colors
+                                      .black), //Theme.of(context).textTheme.bodyLarge,
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
-                              onChanged: (text) =>
-                                  widget.shopItem.heading = text),
+                              onChanged: (text) {
+                                widget.onChange!(index);
+                                widget.shopItem.heading = text;
+                              }),
                         ),
                       ),
                     ]),
@@ -187,16 +268,27 @@ class _ShopItemTileState extends State<ShopItemTile> {
                               textAlign: TextAlign.start,
                               keyboardType: TextInputType.streetAddress,
                               textCapitalization: TextCapitalization.sentences,
-                              decoration: const InputDecoration(
+                              decoration: InputDecoration(
                                 border: OutlineInputBorder(),
-                                hintText: "What is the shop item's heading...",
-                                labelText: 'Shop item heading',
+                                hintText: "What is the promotion's heading...",
+                                labelText: 'Promotion heading',
+                                labelStyle: labelStyle(
+                                    context: context,
+                                    size: 2,
+                                    color: Colors.black),
                               ),
-                              style: Theme.of(context).textTheme.bodyLarge,
+                              style: textStyle(
+                                  context: context,
+                                  size: 2,
+                                  color: Colors
+                                      .black), //Theme.of(context).textTheme.bodyLarge,
+                              //   style:Theme.of(context).textTheme.bodyLarge,
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
-                              onChanged: (text) =>
-                                  widget.shopItem.heading = text),
+                              onChanged: (text) {
+                                widget.onChange!(index);
+                                widget.shopItem.heading = text;
+                              }),
                         ),
                       ),
                     ]),
@@ -214,17 +306,28 @@ class _ShopItemTileState extends State<ShopItemTile> {
                                 keyboardType: TextInputType.streetAddress,
                                 textCapitalization:
                                     TextCapitalization.sentences,
-                                decoration: const InputDecoration(
+                                decoration: InputDecoration(
                                   border: OutlineInputBorder(),
                                   hintText:
                                       "What is the shop item's sub-heading...",
                                   labelText: 'Shop item sub-heading',
+                                  labelStyle: labelStyle(
+                                      context: context,
+                                      size: 2,
+                                      color: Colors.black),
                                 ),
-                                style: Theme.of(context).textTheme.bodyLarge,
+                                style: textStyle(
+                                    context: context,
+                                    size: 2,
+                                    color: Colors
+                                        .black), //Theme.of(context).textTheme.bodyLarge,
+                                //style: Theme.of(context).textTheme.bodyLarge,
                                 autovalidateMode:
                                     AutovalidateMode.onUserInteraction,
-                                onChanged: (text) =>
-                                    widget.shopItem.subHeading = text),
+                                onChanged: (text) {
+                                  widget.onChange!(index);
+                                  widget.shopItem.subHeading = text;
+                                }),
                           ),
                         )
                       ],
@@ -244,15 +347,27 @@ class _ShopItemTileState extends State<ShopItemTile> {
                                 keyboardType: TextInputType.streetAddress,
                                 textCapitalization:
                                     TextCapitalization.sentences,
-                                decoration: const InputDecoration(
+                                decoration: InputDecoration(
                                   border: OutlineInputBorder(),
-                                  hintText: 'Ad content...',
-                                  labelText: 'Adverisment body',
+                                  hintText: 'Promo content...',
+                                  labelText: 'Promotion body',
+                                  labelStyle: labelStyle(
+                                      context: context,
+                                      size: 2,
+                                      color: Colors.black),
                                 ),
-                                style: Theme.of(context).textTheme.bodyLarge,
+                                style: textStyle(
+                                    context: context,
+                                    size: 2,
+                                    color: Colors
+                                        .black), //Theme.of(context).textTheme.bodyLarge,
+                                // style: Theme.of(context).textTheme.bodyLarge,
                                 autovalidateMode:
                                     AutovalidateMode.onUserInteraction,
-                                onChanged: (text) => widget.shopItem.body = text
+                                onChanged: (text) {
+                                  widget.onChange!(index);
+                                  widget.shopItem.body = text;
+                                }
                                 //body = text
                                 ),
                           ),
@@ -267,11 +382,13 @@ class _ShopItemTileState extends State<ShopItemTile> {
                               Expanded(
                                 flex: 8,
                                 child: ImageArranger(
-                                  onChange: (idx) =>
-                                      setState(() => imageIndex = idx),
+                                  onChange: (idx) => setState(() {
+                                    widget.onChange!(index);
+                                    imageIndex = idx;
+                                  }),
+                                  //  urlChange: (_) => (),
                                   urlChange: (imageUrls) =>
                                       widget.shopItem.imageUrls = imageUrls,
-
                                   photos: photos,
                                   endPoint: '', // widget.homeItem.uri,
                                   showCaptions: true,
@@ -289,8 +406,8 @@ class _ShopItemTileState extends State<ShopItemTile> {
                               padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
                               child: TextFormField(
                                 readOnly: !canEdit,
+                                focusNode: linkNodes[0],
                                 initialValue: widget.shopItem.buttonText1,
-                                autofocus: canEdit,
                                 textInputAction: TextInputAction.next,
                                 textAlign: TextAlign.start,
                                 keyboardType: TextInputType.streetAddress,
@@ -301,11 +418,16 @@ class _ShopItemTileState extends State<ShopItemTile> {
                                   hintText: "Link button label",
                                   labelText: 'Button 1 label',
                                 ),
-                                style: Theme.of(context).textTheme.bodyLarge,
+                                style: textStyle(
+                                    context: context,
+                                    size: 2,
+                                    color: Colors.black),
                                 autovalidateMode:
                                     AutovalidateMode.onUserInteraction,
-                                onChanged: (text) =>
-                                    widget.shopItem.buttonText1 = text,
+                                onChanged: (text) {
+                                  widget.onChange!(index);
+                                  widget.shopItem.buttonText1 = text;
+                                },
                               ),
                             ),
                           )
@@ -317,10 +439,11 @@ class _ShopItemTileState extends State<ShopItemTile> {
                             child: Padding(
                               padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
                               child: TextFormField(
-                                readOnly: !canEdit,
+                                //  readOnly: !canEdit,
                                 initialValue: widget.shopItem.url1,
-                                autofocus: canEdit,
-                                textInputAction: TextInputAction.next,
+                                textInputAction: _links > 1
+                                    ? TextInputAction.next
+                                    : TextInputAction.done,
                                 textAlign: TextAlign.start,
                                 keyboardType: TextInputType.url,
                                 textCapitalization: TextCapitalization.none,
@@ -329,11 +452,16 @@ class _ShopItemTileState extends State<ShopItemTile> {
                                   hintText: "What is the link url for button 1",
                                   labelText: 'Link 1 url',
                                 ),
-                                style: Theme.of(context).textTheme.bodyLarge,
+                                style: textStyle(
+                                    context: context,
+                                    size: 2,
+                                    color: Colors.black),
                                 autovalidateMode:
                                     AutovalidateMode.onUserInteraction,
-                                onChanged: (text) =>
-                                    widget.shopItem.url1 = text,
+                                onChanged: (text) {
+                                  widget.onChange!(index);
+                                  widget.shopItem.url1 = text;
+                                },
                               ),
                             ),
                           )
@@ -347,9 +475,8 @@ class _ShopItemTileState extends State<ShopItemTile> {
                             child: Padding(
                               padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
                               child: TextFormField(
-                                readOnly: !canEdit,
                                 initialValue: widget.shopItem.buttonText1,
-                                autofocus: canEdit,
+                                focusNode: linkNodes[1],
                                 textInputAction: TextInputAction.next,
                                 textAlign: TextAlign.start,
                                 keyboardType: TextInputType.streetAddress,
@@ -360,11 +487,16 @@ class _ShopItemTileState extends State<ShopItemTile> {
                                   hintText: "Link button label",
                                   labelText: 'Button 2 label',
                                 ),
-                                style: Theme.of(context).textTheme.bodyLarge,
+                                style: textStyle(
+                                    context: context,
+                                    size: 2,
+                                    color: Colors.black),
                                 autovalidateMode:
                                     AutovalidateMode.onUserInteraction,
-                                onChanged: (text) =>
-                                    widget.shopItem.buttonText2 = text,
+                                onChanged: (text) {
+                                  widget.onChange!(index);
+                                  widget.shopItem.buttonText2 = text;
+                                },
                               ),
                             ),
                           )
@@ -376,10 +508,8 @@ class _ShopItemTileState extends State<ShopItemTile> {
                             child: Padding(
                               padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
                               child: TextFormField(
-                                readOnly: canEdit,
                                 initialValue: widget.shopItem.url1,
-                                autofocus: canEdit,
-                                textInputAction: TextInputAction.next,
+                                textInputAction: TextInputAction.done,
                                 textAlign: TextAlign.start,
                                 keyboardType: TextInputType.streetAddress,
                                 textCapitalization:
@@ -389,91 +519,22 @@ class _ShopItemTileState extends State<ShopItemTile> {
                                   hintText: "What is the link url for button 2",
                                   labelText: 'Link 2 url',
                                 ),
-                                style: Theme.of(context).textTheme.bodyLarge,
+                                style: textStyle(
+                                    context: context,
+                                    size: 2,
+                                    color: Colors.black),
                                 autovalidateMode:
                                     AutovalidateMode.onUserInteraction,
-                                onChanged: (text) =>
-                                    widget.shopItem.url2 = text,
+                                onChanged: (text) {
+                                  widget.onChange!(index);
+                                  widget.shopItem.url2 = text;
+                                },
                               ),
                             ),
                           )
                         ],
                       ),
                     ],
-                    Wrap(
-                      spacing: 5,
-                      children: [
-                        if (widget.onAddImage != null)
-                          ActionChip(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            onPressed: () => widget.onAddImage!(index),
-                            backgroundColor: Colors.blue,
-                            avatar: const Icon(
-                              Icons.image,
-                              color: Colors.white,
-                            ),
-                            label: const Text(
-                              "Image", // - ${_action.toString()}',
-                              style:
-                                  TextStyle(fontSize: 18, color: Colors.white),
-                            ),
-                          ),
-                        if (widget.onDelete != null)
-                          ActionChip(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            onPressed: () =>
-                                widget.onDelete!(index), //_action = 2),
-                            backgroundColor: Colors.blue,
-                            avatar: const Icon(
-                              Icons.delete,
-                              color: Colors.white,
-                            ),
-                            label: const Text(
-                              "Delete",
-                              style:
-                                  TextStyle(fontSize: 18, color: Colors.white),
-                            ),
-                          ),
-                        if (widget.onAddLink != null)
-                          ActionChip(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            onPressed: () => widget.onAddLink!(index),
-                            backgroundColor: Colors.blue,
-                            avatar: const Icon(
-                              Icons.add_link,
-                              color: Colors.white,
-                            ),
-                            label: const Text(
-                              "Link",
-                              style:
-                                  TextStyle(fontSize: 18, color: Colors.white),
-                            ),
-                          ),
-                        if (widget.onPost != null)
-                          ActionChip(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            onPressed: () => widget.onPost!(index),
-                            backgroundColor: Colors.blue,
-                            avatar: const Icon(
-                              Icons.cloud_upload,
-                              color: Colors.white,
-                            ),
-                            label: const Text(
-                              "Upload",
-                              style:
-                                  TextStyle(fontSize: 18, color: Colors.white),
-                            ),
-                          ),
-                      ],
-                    )
                   ],
                 ),
               ),

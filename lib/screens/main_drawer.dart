@@ -1,10 +1,10 @@
-// import 'package:drives/routes/home.dart';
-import 'package:drives/constants.dart';
-import 'package:drives/screens/invitations.dart';
+// import '/routes/home.dart';
+import '/constants.dart';
+import '/screens/invitations.dart';
 import 'package:flutter/material.dart';
-import 'package:drives/screens/screens.dart';
-import 'package:drives/services/services.dart';
-import 'package:drives/models/other_models.dart';
+import '/screens/screens.dart';
+import '/services/services.dart';
+import '/models/other_models.dart';
 
 class MainDrawer extends StatefulWidget {
   const MainDrawer({super.key});
@@ -32,18 +32,18 @@ class _MainDrawerState extends State<MainDrawer> {
                     child: Icon(
                       Icons.pin_drop,
                       color: Colors.white,
-                      size: 60,
+                      size: 50,
                     ),
                   ),
                   Expanded(
-                    flex: 6,
+                    flex: 8,
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.start,
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Text('Drives ',
                             style:
-                                TextStyle(color: Colors.white, fontSize: 32)),
+                                TextStyle(color: Colors.white, fontSize: 30)),
                         Padding(
                             padding: EdgeInsets.fromLTRB(0, 0, 0, 4),
                             child: Text(
@@ -195,6 +195,28 @@ class _MainDrawerState extends State<MainDrawer> {
                 context,
                 MaterialPageRoute(
                     builder: (context) => const InvitationsScreen()),
+              );
+            },
+          ),
+          ListTile(
+            leading: const Icon(
+              Icons.help_outline,
+              size: 30,
+            ),
+            title: const Text(
+              'Drives documentation',
+              style: TextStyle(
+                color: Colors.blue,
+                fontSize: 20,
+              ),
+            ),
+            onTap: () {
+              //   getMessagesByGroup();
+              // getInvitationssByUser();
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => const DocumentationForm()),
               );
             },
           ),

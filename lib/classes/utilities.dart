@@ -1,6 +1,6 @@
 import 'dart:math';
-import 'package:drives/models/models.dart';
-import 'package:drives/classes/route.dart' as mt_rt;
+import '/models/models.dart';
+import '/classes/route.dart' as mt_rt;
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter/widgets.dart';
@@ -35,11 +35,14 @@ Future<Position> getPosition() async {
   return Setup().lastPosition;
 }
 
-double distanceBetween(LatLng point1, LatLng point2, {bool miles = true}) {
-  double distance = Geolocator.distanceBetween(point1.latitude,
-          point1.longitude, point2.latitude, point2.longitude) /
-      1000;
-
+double distanceBetween(LatLng point1, LatLng point2,
+    {bool miles = true, bool meters = false}) {
+  double distance = Geolocator.distanceBetween(
+      point1.latitude, point1.longitude, point2.latitude, point2.longitude);
+  if (meters) {
+    return distance;
+  }
+  distance = distance / 1000;
   return miles ? distance / 8 * 5 : distance;
 
   /*

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:drives/classes/classes.dart';
+import '/classes/classes.dart';
 
 class MessageByGroupTile extends StatefulWidget {
   final MailItem mailItem;

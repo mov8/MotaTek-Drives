@@ -1,10 +1,11 @@
-import 'package:drives/classes/initials_button.dart';
+import '/classes/initials_button.dart';
 import 'package:flutter/material.dart';
-import 'package:drives/models/other_models.dart';
-import 'package:drives/classes/utilities.dart';
+import '/models/other_models.dart';
+import '/classes/utilities.dart';
+import '/helpers/edit_helpers.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:drives/constants.dart';
+import '/constants.dart';
 
 class FollowerTile extends StatefulWidget {
   final Follower follower;
@@ -48,11 +49,16 @@ class _FollowerTileState extends State<FollowerTile> {
     calcStatus();
     return Material(
       child: ListTile(
-        shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(10))),
+        //  shape: const RoundedRectangleBorder(
+        //     borderRadius: BorderRadius.all(
+        //       Radius.circular(10),
+        //     ),
+        //   ),
+        shape:
+            ContinuousRectangleBorder(borderRadius: BorderRadius.circular(20)),
         contentPadding: const EdgeInsets.fromLTRB(5, 5, 5, 10),
         title: SizedBox(
-          height: 80,
+          height: 83,
           width: MediaQuery.of(context).size.width - 100,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -63,10 +69,8 @@ class _FollowerTileState extends State<FollowerTile> {
                     flex: 9,
                     child: Text(
                       '${widget.follower.forename} ${widget.follower.surname}',
-                      style: const TextStyle(
-                          fontSize: 25,
-                          fontWeight: FontWeight.bold,
-                          overflow: TextOverflow.ellipsis),
+                      style: headlineStyle(
+                          context: context, size: 2, color: Colors.black),
                     ),
                   ),
                   if (widget.follower.email != Setup().user.email) ...[
@@ -74,31 +78,43 @@ class _FollowerTileState extends State<FollowerTile> {
                       flex: 2,
                       child: Text(
                         'track',
-                        style: const TextStyle(fontSize: 18),
+                        style: textStyle(
+                            context: context, size: 3, color: Colors.black),
                       ),
                     ),
                     Expanded(
                       flex: 1,
                       child: Checkbox(
-                          value: widget.follower.track,
-                          onChanged: (value) => setState(
-                              () => widget.follower.track = value ?? false)),
+                        value: widget.follower.track,
+                        onChanged: (value) => setState(
+                            () => widget.follower.track = value ?? false),
+                      ),
                     ),
                   ],
                 ],
               ),
               Text(
                 _status,
-                style: const TextStyle(overflow: TextOverflow.ellipsis),
+                style:
+                    textStyle(context: context, size: 2, color: Colors.black),
               ),
             ],
           ),
         ),
         subtitle: SizedBox(
-          height: 50,
+          height: 60,
           width: MediaQuery.of(context).size.width - 100,
-          child: Column(children: [
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('make: ${widget.follower.manufacturer}',
+                style:
+                    labelStyle(context: context, color: Colors.black, size: 3)),
+            Text('model: ${widget.follower.model}',
+                style:
+                    labelStyle(context: context, color: Colors.black, size: 3)),
+            /*
             Row(children: [
+             
               Expanded(
                 flex: 1,
                 child: Text('make: ${widget.follower.manufacturer}'),
@@ -108,14 +124,19 @@ class _FollowerTileState extends State<FollowerTile> {
                 child: Text('model: ${widget.follower.model}'),
               ),
             ]),
+            */
             Row(children: [
               Expanded(
                 flex: 1,
-                child: Text('colour: ${widget.follower.carColour}'),
+                child: Text('colour: ${widget.follower.carColour}',
+                    style: labelStyle(
+                        context: context, color: Colors.black, size: 3)),
               ),
               Expanded(
                 flex: 2,
-                child: Text('registration: ${widget.follower.registration}'),
+                child: Text('registration: ${widget.follower.registration}',
+                    style: labelStyle(
+                        context: context, color: Colors.black, size: 3)),
               ),
             ]),
           ]),

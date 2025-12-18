@@ -1,8 +1,9 @@
-//import 'dart:io';
+//import 'package:universal_io/universal_io.dart';
 import 'package:flutter/material.dart';
-import 'package:drives/classes/classes.dart';
-import 'package:drives/models/other_models.dart';
-import 'package:drives/constants.dart';
+import '/classes/classes.dart';
+import '/models/other_models.dart';
+import '/helpers/helpers.dart';
+import '/constants.dart';
 
 class MyTripTile extends StatefulWidget {
   final MyTripItem myTripItem;
@@ -36,50 +37,83 @@ class _MyTripTileState extends State<MyTripTile> {
       child: Padding(
         padding: const EdgeInsets.fromLTRB(5, 5, 5, 5),
         child: ExpansionTile(
-          title: Column(children: [
-            Row(children: [
-              Expanded(
-                flex: 8,
-                child: Text(
-                  widget.myTripItem.heading,
-                  style: const TextStyle(
-                    color: Colors.black,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ]),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(5, 0, 5, 15),
-              child: Row(children: [
+          title: Column(
+            children: [
+              Row(children: [
                 Expanded(
-                  flex: 1,
-                  child: Column(children: [
-                    const Icon(Icons.route),
-                    Text(
-                        '${widget.myTripItem.distance.toStringAsFixed(1)} miles long')
-                  ]),
-                ),
-                Expanded(
-                  flex: 1,
-                  child: Column(children: [
-                    const Icon(Icons.landscape),
-                    Text(
-                        '${widget.myTripItem.pointsOfInterest.length} highlights')
-                  ]),
-                ),
-                Expanded(
-                  flex: 1,
-                  child: Column(children: [
-                    const Icon(Icons.social_distance),
-                    Text(
-                        '${(widget.myTripItem.distanceAway * metersToMiles).toStringAsFixed(1)} miles away')
-                  ]),
+                  flex: 8,
+                  child: Text(widget.myTripItem.heading,
+                      style: headlineStyle(
+                          context: context, color: Colors.black, size: 2)),
                 ),
               ]),
-            )
-          ]),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(5, 0, 5, 15),
+                child: Row(
+                  children: [
+                    Expanded(
+                      flex: 1,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.route),
+                          Text(
+                            'Distance',
+                            style: labelStyle(
+                                context: context, color: Colors.black, size: 3),
+                          ),
+                          Text(
+                            '${widget.myTripItem.distance.toStringAsFixed(1)} miles',
+                            style: labelStyle(
+                                context: context, color: Colors.black, size: 3),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      flex: 1,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.landscape),
+                          Text(
+                            '${widget.myTripItem.pointsOfInterest.length}',
+                            style: labelStyle(
+                                context: context, color: Colors.black, size: 3),
+                          ),
+                          Text(
+                            'highlights',
+                            style: labelStyle(
+                                context: context, color: Colors.black, size: 3),
+                          )
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      flex: 1,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.social_distance),
+                          Text(
+                            (widget.myTripItem.distanceAway * metersToMiles)
+                                .toStringAsFixed(1),
+                            style: labelStyle(
+                                context: context, color: Colors.black, size: 3),
+                          ),
+                          Text(
+                            'miles away',
+                            style: labelStyle(
+                                context: context, color: Colors.black, size: 3),
+                          )
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            ],
+          ),
           // backgroundColor: Colors.white,
           onExpansionChanged: (expanded) {
             if (widget.onExpandChange != null) {
@@ -106,11 +140,8 @@ class _MyTripTileState extends State<MyTripTile> {
                             alignment: Alignment.topLeft,
                             child: Text(
                               widget.myTripItem.subHeading,
-                              style: const TextStyle(
-                                color: Colors.black,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
+                              style: titleStyle(
+                                  context: context, color: Colors.black),
                               textAlign: TextAlign.left,
                             ),
                           ),
@@ -167,8 +198,8 @@ class _MyTripTileState extends State<MyTripTile> {
                             alignment: Alignment.topLeft,
                             child: Text(
                               widget.myTripItem.body,
-                              style: const TextStyle(
-                                  color: Colors.black, fontSize: 20),
+                              style: textStyle(
+                                  context: context, color: Colors.black),
                               textAlign: TextAlign.left,
                             ),
                           ),
@@ -184,37 +215,37 @@ class _MyTripTileState extends State<MyTripTile> {
                                 child: TextButton(
                                   onPressed: () async =>
                                       widget.onLoadTrip(widget.index),
-                                  child: const Column(
+                                  child: Column(
                                     children: [
-                                      Icon(Icons.file_open_outlined),
-                                      Text('Start Trip')
+                                      Icon(Icons.file_open_outlined, size: 30),
+                                      Text('Load Trip',
+                                          style: textStyle(
+                                              context: context,
+                                              color: Colors.black,
+                                              size: 3))
                                     ],
                                   ),
                                 ),
                               ),
-                              /* Expanded(
-                                flex: 1,
-                                child: TextButton(
-                                  onPressed: () async =>
-                                      widget.onShareTrip(widget.index),
-                                  child: const Column(
-                                    children: [
-                                      Icon(Icons.directions_car_outlined),
-                                      Text('Group Trip')
-                                    ],
-                                  ),
-                                ),
-                              ), */
                               if (widget.onPublishTrip != null) ...[
                                 Expanded(
                                   flex: 1,
                                   child: TextButton(
                                     onPressed: () async =>
                                         widget.onPublishTrip!(widget.index),
-                                    child: const Column(
+                                    child: Column(
                                       children: [
-                                        Icon(Icons.cloud_upload_outlined),
-                                        Text('Publish Trip')
+                                        Icon(
+                                          Icons.cloud_upload_outlined,
+                                          size: 30,
+                                        ),
+                                        Text(
+                                          'Publish Trip',
+                                          style: labelStyle(
+                                              context: context,
+                                              color: Colors.black,
+                                              size: 3),
+                                        ),
                                       ],
                                     ),
                                   ),
@@ -225,10 +256,16 @@ class _MyTripTileState extends State<MyTripTile> {
                                 child: TextButton(
                                   onPressed: () async =>
                                       widget.onDeleteTrip(widget.index),
-                                  child: const Column(
+                                  child: Column(
                                     children: [
-                                      Icon(Icons.delete_forever),
-                                      Text('Delete Trip')
+                                      Icon(Icons.delete_forever, size: 30),
+                                      Text(
+                                        'Delete Trip',
+                                        style: labelStyle(
+                                            context: context,
+                                            color: Colors.black,
+                                            size: 3),
+                                      )
                                     ],
                                   ),
                                 ),

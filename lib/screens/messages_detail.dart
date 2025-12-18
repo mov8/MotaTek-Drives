@@ -1,9 +1,9 @@
-import 'package:drives/constants.dart';
+import '/constants.dart';
 import 'package:flutter/material.dart';
-import 'package:drives/models/other_models.dart';
-import 'package:drives/services/services.dart';
-import 'package:drives/classes/classes.dart';
-import 'package:drives/tiles/tiles.dart';
+import '/models/other_models.dart';
+import '/services/services.dart';
+import '/classes/classes.dart';
+import '/tiles/tiles.dart';
 import 'package:socket_io_client/socket_io_client.dart' as sio;
 
 class MessageDetailsForm extends StatefulWidget {

@@ -5,8 +5,9 @@ import 'package:intl/intl.dart';
 const appVersion = {'major': 0, 'minor': 0, 'patch': 9, 'suffix': 'beta db'};
 
 const apiAddress = 'https://drives.motatek.com/';
-// const wifiIpAddress = '192.168.1.14:5001'; // <- Home
-const wifiIpAddress = 'http://192.168.1.109:5001/'; // <- Boston
+const wifiIpAddress = 'http://10.101.1.216:5001/'; // <- Home
+// const wifiIpAddress = 'http://10.222.211.105:5001/'; // < Redmi
+// const wifiIpAddress = 'http://192.168.1.109:5001/'; // <- Boston
 
 const urlBase = wifiIpAddress;
 // const urlBase = apiAddress;
@@ -24,6 +25,8 @@ const List<String> routes = [
   'messages'
 ];
 
+int oneTenthMile = 161;
+
 enum LoginState { notLoggedin, cancel, login, register, edit, resetPassword }
 
 enum LoginStatus {
@@ -36,6 +39,7 @@ enum LoginStatus {
   passwordValid,
   passwordUnknown,
   passwordTooShort,
+  emailHasChars,
 }
 
 enum LoginError {
@@ -113,7 +117,14 @@ enum HighliteActions {
   waypointHighlited,
 }
 
-enum GroupMemberState { none, isNew, resistered, incomplete, complete, added }
+enum GroupActions {
+  none,
+  editName,
+  addGroup,
+  addMember,
+}
+
+enum GroupMemberState { none, isNew, registered, incomplete, complete, added }
 
 enum GroupAction { add, delete, edit, invite, uninvite, update, leave }
 
@@ -144,6 +155,16 @@ const Map<int, String> responseCodes = {
   408: 'timed out',
   410: 'missing' // User not found
 };
+
+const List<String> contactChoices = [
+  'All OK',
+  'Stopping for fuel',
+  'Stopping for food',
+  'Mechanical problem',
+  'Stopping for a break',
+  'Stuck in traffic',
+  'Lost the way',
+];
 
 enum InviteState { undecided, declined, accepted }
 
@@ -238,8 +259,8 @@ const List<String> tableDefs = [
   point_of_interest_colour_2 INTEGER, selected_colour INTEGER, highlighted_colour INTEGER, published_trip_colour INTEGER, 
   record_detail INTEGER, allow_notifications INTEGER, jwt TEXT, dark INTEGER, avoid_motorways INTEGER, 
   avoid_a_roads INTEGER, avoid_b_roads INTEGER, avoid_toll_roads INTEGER, avoid_ferries INTEGER, 
-  osm_pubs INTEGER, osm_restaurants INTEGER, osm_fuel INTEGER, osm_toilets INTEGER,
-  osm_atms INTEGER, osm_historical INTEGER, bottom_nav_index INTEGER, route TEXT, app_state TEXT)''',
+  osm_pubs INTEGER, osm_restaurants INTEGER, osm_fuel INTEGER, osm_toilets INTEGER, 
+  osm_atms INTEGER, osm_historical INTEGER, bottom_nav_index INTEGER, route TEXT, app_state TEXT, male_voice INTEGER)''',
 
   /// SHOP_ITEMS
   '''CREATE TABLE shop_items(id INTEGER PRIMARY KEY AUTOINCREMENT, 
@@ -281,6 +302,8 @@ const List<String> tableDefs = [
 
 // const urlBase = 'http://192.168.1.109:5001/';
 // const urlBase = 'https://drives.motatek.com/';
+
+const String urlDocs = 'http://127.0.0.1:1313/docs/'; // <- localhost
 const String urlDrive = '${urlBase}v1/drive';
 const String urlDriveImages = '${urlBase}v1/drive/images';
 const String urlDriveRating = '${urlBase}v1/drive_rating';
@@ -292,6 +315,8 @@ const String urlGroupMember = '${urlBase}v1/group_member';
 const String urlHomePageItem = '${urlBase}v1/home_page_item';
 const String urlIntroduced = '${urlBase}v1/introduced';
 const String urlManeuver = '${urlBase}v1/maneuver';
+const String urlTextToSpeech = '${urlBase}v1/text_to_speech';
+// const String urlTextToSpeech = 'https://motatek.com/mailer/send/';
 const String urlMessage = '${urlBase}v1/message';
 const String urlPointOfInterest = '${urlBase}v1/point_of_interest';
 const String urlPointOfInterestRating = '${urlBase}v1/point_of_interest_rating';

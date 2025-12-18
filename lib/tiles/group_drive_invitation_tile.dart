@@ -1,11 +1,12 @@
-import 'package:drives/classes/classes.dart';
-import 'package:drives/services/services.dart';
+import '/classes/classes.dart';
+import '/services/services.dart';
 import 'package:flutter/material.dart';
-import 'package:drives/models/models.dart';
-import 'package:drives/constants.dart';
+import '/models/models.dart';
+import '/constants.dart';
+import '/helpers/edit_helpers.dart';
 import 'package:intl/intl.dart';
 // import 'dart:developer' as develper;
-/*
+
 class GroupDriveInvitationTileController {
   _GroupDriveInvitationTileState? _groupDriveInvitationTileState;
   void _addState(_GroupDriveInvitationTileState groupDriveInvitationTileState) {
@@ -14,22 +15,21 @@ class GroupDriveInvitationTileController {
 
   bool get isAttached => _groupDriveInvitationTileState != null;
 
-  void join() {
-        assert(isAttached, 'Controller must be attached to widget');
+  void contract() {
+    assert(isAttached, 'Controller must be attached to widget to clear');
     try {
-      _groupDriveInvitationTileState?.join();
+      _groupDriveInvitationTileState?.changeOpenState();
     } catch (e) {
       String err = e.toString();
-      debugPrint('Error loading image: $err');
+      debugPrint('Error clearing AutoComplete: $err');
     }
   }
 }
 
-*/
-
 class GroupDriveInvitationTile extends StatefulWidget {
   final EventInvitation eventInvitation;
   final ImageRepository imageRepository;
+  final GroupDriveInvitationTileController controller;
   final bool expanded;
   final TripItem? tripItem;
   final List<Photo>? photos;
@@ -37,7 +37,7 @@ class GroupDriveInvitationTile extends StatefulWidget {
   final Function(int)? onDownload;
   final Function(int)? onSelect;
   final Function(int, int)? onRespond;
-  final Function(int, bool)? onExpansionChange;
+  final Function(bool, GroupDriveInvitationTileController)? onExpandChange;
 
   final int index;
 
@@ -45,6 +45,7 @@ class GroupDriveInvitationTile extends StatefulWidget {
       {super.key,
       required this.eventInvitation,
       required this.imageRepository,
+      required this.controller,
       this.tripItem,
       this.photos,
       this.expanded = false,
@@ -53,7 +54,7 @@ class GroupDriveInvitationTile extends StatefulWidget {
       this.onDownload,
       this.onSelect,
       this.onRespond,
-      this.onExpansionChange});
+      this.onExpandChange});
 
   @override
   State<GroupDriveInvitationTile> createState() =>
@@ -62,13 +63,23 @@ class GroupDriveInvitationTile extends StatefulWidget {
 
 class _GroupDriveInvitationTileState extends State<GroupDriveInvitationTile> {
   DateFormat dateFormat = DateFormat('d MMM y');
-
+  final ExpansibleController _expansibleController = ExpansibleController();
   List<String> invState = ['undecided', 'declined', 'accepted', 'joined'];
   List<Photo> photos = [];
 
   @override
   void initState() {
     super.initState();
+  }
+
+  changeOpenState() {
+    if (widget.expanded) {
+      debugPrint('Controller closing tile $widget.index');
+      _expansibleController.collapse();
+    } else {
+      debugPrint(
+          'tile $widget.index is already closed - widget.expanded = false');
+    }
   }
 
   @override
@@ -78,6 +89,7 @@ class _GroupDriveInvitationTileState extends State<GroupDriveInvitationTile> {
       child: Padding(
         padding: const EdgeInsets.fromLTRB(5, 5, 5, 5),
         child: ExpansionTile(
+          controller: _expansibleController,
           leading: Column(
             children: [
               Icon(
@@ -97,12 +109,13 @@ class _GroupDriveInvitationTileState extends State<GroupDriveInvitationTile> {
           //     icon: const Icon(Icons.delete),
           //     onPressed: () => widget.onDelete,
           //   ),
+
           title: Text(
             widget.eventInvitation.name,
             style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             overflow: TextOverflow.ellipsis,
           ),
-          initiallyExpanded: widget.expanded,
+          //  initiallyExpanded: widget.expanded,
           subtitle: Column(
             children: [
               Row(
@@ -110,9 +123,13 @@ class _GroupDriveInvitationTileState extends State<GroupDriveInvitationTile> {
                   Expanded(
                     flex: 1,
                     child: Text(
-                      'Drive date: ${dateFormat.format(widget.eventInvitation.eventDate)} ',
-                      style: const TextStyle(fontSize: 16),
-                    ),
+                        'Drive date: ${dateFormat.format(widget.eventInvitation.eventDate)} ',
+                        style: labelStyle(
+                            context: context,
+                            size: 3,
+                            color:
+                                Colors.black) // const TextStyle(fontSize: 16),
+                        ),
                   )
                 ],
               ),
@@ -121,9 +138,13 @@ class _GroupDriveInvitationTileState extends State<GroupDriveInvitationTile> {
                   Expanded(
                     flex: 1,
                     child: Text(
-                      'invited: ${dateFormat.format(widget.eventInvitation.invitationDate)}',
-                      style: const TextStyle(fontSize: 16),
-                    ),
+                        'invited: ${dateFormat.format(widget.eventInvitation.invitationDate)}',
+                        style: labelStyle(
+                            context: context,
+                            size: 3,
+                            color:
+                                Colors.black) //const TextStyle(fontSize: 16),
+                        ),
                   ),
                 ],
               ),
@@ -132,9 +153,13 @@ class _GroupDriveInvitationTileState extends State<GroupDriveInvitationTile> {
                   Expanded(
                     flex: 1,
                     child: Text(
-                      'by: ${widget.eventInvitation.forename} ${widget.eventInvitation.surname}',
-                      style: const TextStyle(fontSize: 18),
-                    ),
+                        'by: ${widget.eventInvitation.forename} ${widget.eventInvitation.surname}',
+                        style: labelStyle(
+                            context: context,
+                            size: 2,
+                            color:
+                                Colors.black) //const TextStyle(fontSize: 18),
+                        ),
                   ),
                 ],
               ),
@@ -142,10 +167,10 @@ class _GroupDriveInvitationTileState extends State<GroupDriveInvitationTile> {
           ),
 
           onExpansionChanged: (val) {
-            widget.onExpansionChange!(widget.index, val);
-            photos = photosFromJson(
-                photoString: widget.tripItem!.imageUrls,
-                endPoint: '$urlDriveImages/');
+            widget.onExpandChange!(val, widget.controller);
+            photos = widget.photos ?? []; //photosFromJson(
+            // photoString: widget.tripItem!.imageUrls,
+            // endPoint: '$urlDriveImages/');
           }, //  getSummary(val),
           children: [
             if (widget.tripItem == null) ...[
@@ -189,31 +214,81 @@ class _GroupDriveInvitationTileState extends State<GroupDriveInvitationTile> {
                       flex: 1,
                       child: Column(children: [
                         const Icon(Icons.publish),
-                        Text(widget.tripItem!.published)
+                        Text('published',
+                            style: labelStyle(
+                                context: context,
+                                size: 3,
+                                color: Colors.black)),
+                        Text(widget.tripItem!.published,
+                            style: labelStyle(
+                                context: context,
+                                size: 3,
+                                color: Colors.black)),
                       ]),
                     ),
                     Expanded(
                       flex: 1,
-                      child: Column(children: [
-                        const Icon(Icons.route),
-                        Text(
-                            '${widget.tripItem!.distance.toStringAsFixed(1)} miles long')
-                      ]),
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.route),
+                            Text(
+                              '${widget.tripItem!.distance.toStringAsFixed(1)}',
+                              style: labelStyle(
+                                  context: context,
+                                  size: 3,
+                                  color: Colors.black),
+                            ),
+                            Text(
+                              'miles long',
+                              style: labelStyle(
+                                  context: context,
+                                  size: 3,
+                                  color: Colors.black),
+                            ) //)
+                          ]),
                     ),
                     Expanded(
                       flex: 1,
-                      child: Column(children: [
-                        const Icon(Icons.landscape),
-                        Text('${widget.tripItem!.pointsOfInterest} highlights')
-                      ]),
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.landscape),
+                            Text(
+                              widget.tripItem!.pointsOfInterest.toString(),
+                              style: labelStyle(
+                                  context: context,
+                                  size: 3,
+                                  color: Colors.black),
+                            ),
+                            Text(
+                              'highlights',
+                              style: labelStyle(
+                                  context: context,
+                                  size: 3,
+                                  color: Colors.black),
+                            ), //)
+                          ]),
                     ),
                     Expanded(
                       flex: 1,
-                      child: Column(children: [
-                        const Icon(Icons.social_distance),
-                        Text(
-                            '${(widget.tripItem!.distanceAway * metersToMiles).toStringAsFixed(1)} miles away')
-                      ]),
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.social_distance),
+                            Text(
+                                (widget.tripItem!.distanceAway * metersToMiles)
+                                    .toStringAsFixed(1),
+                                style: labelStyle(
+                                    context: context,
+                                    size: 3,
+                                    color: Colors.black)),
+                            Text(' miles away',
+                                style: labelStyle(
+                                    context: context,
+                                    size: 3,
+                                    color: Colors.black)) //)
+                          ]),
                     ),
                   ],
                 ),
@@ -240,7 +315,8 @@ class _GroupDriveInvitationTileState extends State<GroupDriveInvitationTile> {
                 child: Align(
                   alignment: Alignment.topLeft,
                   child: Text(widget.tripItem!.body,
-                      style: const TextStyle(color: Colors.black, fontSize: 20),
+                      style: textStyle(
+                          context: context, size: 3, color: Colors.black),
                       textAlign: TextAlign.left),
                 ),
               )),
@@ -254,8 +330,8 @@ class _GroupDriveInvitationTileState extends State<GroupDriveInvitationTile> {
                           flex: 7,
                           child: Text(
                             'author: ${widget.tripItem!.author}',
-                            style: const TextStyle(
-                                color: Colors.black, fontSize: 18),
+                            style: labelStyle(
+                                context: context, size: 3, color: Colors.black),
                           ),
                         ),
                         Expanded(
@@ -284,9 +360,15 @@ class _GroupDriveInvitationTileState extends State<GroupDriveInvitationTile> {
                               }
                             },
                           ),
-                          const Align(
+                          Align(
                             alignment: Alignment.center,
-                            child: Text('join trip'),
+                            child: Text(
+                              'join trip',
+                              style: labelStyle(
+                                  context: context,
+                                  size: 3,
+                                  color: Colors.black),
+                            ),
                           ),
                         ],
                       ),
@@ -354,9 +436,15 @@ class _GroupDriveInvitationTileState extends State<GroupDriveInvitationTile> {
                             icon: const Icon(Icons.download),
                             onPressed: () => widget.onDownload!(widget.index),
                           ),
-                          const Align(
+                          Align(
                             alignment: Alignment.center,
-                            child: Text('download'),
+                            child: Text(
+                              'download',
+                              style: labelStyle(
+                                  context: context,
+                                  size: 3,
+                                  color: Colors.black),
+                            ),
                           ),
                         ],
                       ),
@@ -373,15 +461,14 @@ class _GroupDriveInvitationTileState extends State<GroupDriveInvitationTile> {
   }
 
   TextStyle getStyle(value) {
-    return TextStyle(
-        decoration: widget.eventInvitation.accepted == value
-            ? TextDecoration.underline
-            : TextDecoration.none,
-        fontWeight: widget.eventInvitation.accepted == value
-            ? FontWeight.bold
-            : FontWeight.normal);
+    TextStyle style = widget.eventInvitation.accepted == value
+        ? textStyle(context: context, color: Colors.black, size: 3).copyWith(
+            decoration: TextDecoration.underline, fontWeight: FontWeight.bold)
+        : textStyle(context: context, color: Colors.black, size: 3).copyWith(
+            decoration: TextDecoration.none, fontWeight: FontWeight.normal);
+    return style;
   }
-
+/*
   getSummary(bool val) async {
     if (widget.onExpansionChange != null) {
       widget.onExpansionChange!(widget.index, val);
@@ -392,6 +479,7 @@ class _GroupDriveInvitationTileState extends State<GroupDriveInvitationTile> {
           endPoint: '$urlDriveImages/');
     }
   }
+  */
 
   respond(value) async {
     widget.eventInvitation.accepted = value;

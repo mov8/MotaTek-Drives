@@ -1,9 +1,10 @@
-import 'package:drives/constants.dart';
+import '/constants.dart';
 import 'package:flutter/material.dart';
-import 'package:drives/models/other_models.dart';
-import 'package:drives/tiles/tiles.dart';
-import 'package:drives/services/services.dart';
-import 'package:drives/classes/classes.dart';
+// import 'package:flutter/services.dart';
+import '/models/other_models.dart';
+import '/tiles/tiles.dart';
+import '/services/services.dart';
+import '/classes/classes.dart';
 import 'package:uuid/uuid.dart';
 import 'dart:developer' as developer;
 
@@ -16,14 +17,15 @@ class GroupForm extends StatefulWidget {
 }
 
 class _GroupFormState extends State<GroupForm> {
-  late Future<bool> dataloaded;
-  late GroupTileController _controller;
+  late Future<bool> _dataLoaded;
+  GroupTileController? _activeController = GroupTileController();
   List<Group> groups = [];
-  List<bool> expanded = [];
+//  List<bool> expanded = [];
+  GroupActions _groupActions = GroupActions.none;
 
   String groupName = 'Driving Group';
   bool edited = false;
-  int groupIndex = 0;
+  int? _index = 0;
 
   bool _changed = false;
   bool _expanded = false;
@@ -33,8 +35,7 @@ class _GroupFormState extends State<GroupForm> {
   @override
   void initState() {
     super.initState();
-    _controller = GroupTileController();
-    dataloaded = dataFromWeb();
+    _dataLoaded = dataFromWeb();
   }
 
   @override
@@ -44,37 +45,59 @@ class _GroupFormState extends State<GroupForm> {
 
   Future<bool> dataFromWeb() async {
     groups = await getManagedGroups();
-    groupIndex = 0;
+    // groupIndex = 0;
     for (int i = 0; i < groups.length; i++) {
-      expanded.add(false);
+      _expanded = false;
     }
     return true;
+  }
+
+  expansionChanged(int index, bool expanded, GroupTileController controller) {
+    if (expanded) {
+      try {
+        _activeController?.contract();
+      } catch (_) {
+        debugPrint('Contract() failed');
+      }
+      setState(() {
+        _index = index;
+        _activeController = controller;
+        _expanded = true;
+      });
+    } else {
+      // closing open tile
+      setState(() {
+        _expanded = false;
+        _index = null;
+        _activeController = null;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     if (groups.isNotEmpty) {}
     return Scaffold(
+      backgroundColor: Colors.blue,
       appBar: ScreensAppBar(
         heading: 'Drives group management',
         prompt: 'Swipe left to remove ${_expanded ? 'member' : 'group'}',
-        updateHeading: 'You have changed group details.',
-        updateSubHeading: 'Press Update to confirm the changes or Ignore',
+        updateHeading: 'You have edited details.',
+        updateSubHeading: 'Save or Ignore changes',
         update: _changed,
         showAction: _changed,
         overflowIcons: _expanded
             ? [Icon(Icons.person_add), Icon(Icons.edit)]
             : [Icon(Icons.group_add)],
-        overflowPrompts:
-            _expanded ? ['Add member', 'Edit group name'] : ['Add group'],
-        overflowMethods: _expanded
-            ? [_controller.newMember, _controller.editGroupName]
-            : [addGroup],
+        overflowPrompts: _expanded
+            ? ['Invite new member', 'Edit group name']
+            : ['Add group'],
+        overflowMethods: _expanded ? [addMember, editGroup] : [addGroup],
         showOverflow: true,
         updateMethod: (update) => upLoad(update: update),
       ),
       body: FutureBuilder<bool>(
-        future: dataloaded,
+        future: _dataLoaded,
         builder: (BuildContext context, snapshot) {
           if (snapshot.hasError) {
             debugPrint('Snapshot has error: ${snapshot.error}');
@@ -123,9 +146,6 @@ class _GroupFormState extends State<GroupForm> {
                   child: Dismissible(
                     key: UniqueKey(), // UniqueKey is essential for dismissible
                     direction: DismissDirection.endToStart,
-                    //      confirmDismiss: (direction) async {
-                    //        return direction == DismissDirection.endToStart;
-                    //      },
                     onDismissed: (direction) {
                       if (direction == DismissDirection.endToStart) {
                         _dismissed.add(Group(id: groups[index].id, name: ''));
@@ -136,22 +156,27 @@ class _GroupFormState extends State<GroupForm> {
                     background: Container(color: Colors.blueGrey),
                     child: GroupTile(
                       group: groups[index],
-                      controller: _controller,
+                      controller: GroupTileController(),
+                      actions: _groupActions,
                       index: index,
+                      //   editing: _editName,
                       onEdit: (index, update) {
                         if (update) {
+                          _groupActions = GroupActions.none;
                           updateGroups(
                               groups: [groups[index]],
                               action: GroupAction.update);
-                          setState(() => groups[index].edited = false);
+                          groups[index].edited = false;
+
                           _changed = true;
                         } else {
                           groups[index].edited = true;
                           _changed = true;
                         }
+                        setState(() => _groupActions = GroupActions.none);
                       },
-                      onExpand: (index, value) => onExpand(index, value),
-                      // onAdd: (index) => onAdd(index),
+                      onExpand: (index, value, controller) =>
+                          expansionChanged(index, value, controller),
                       onDelete: (email) {
                         if (email.isNotEmpty) {
                           _unInvite
@@ -161,9 +186,10 @@ class _GroupFormState extends State<GroupForm> {
                           setState(() => groups.removeLast());
                         }
                       },
+                      onCancel: (_) =>
+                          setState(() => _groupActions = GroupActions.none),
                       onAdd: (value) => setState(() => _changed = true),
-                      // onInvite: (index, value) => onInvite(index),
-                      expanded: expanded[index],
+                      expanded: _expanded,
                     ),
                   ),
                 ),
@@ -179,16 +205,20 @@ class _GroupFormState extends State<GroupForm> {
   void addGroup() {
     setState(
       () {
-        expanded.add(true);
+        _expanded = true;
         groups.add(
             Group(id: Uuid().v7().toString().replaceAll('-', ''), name: ''));
+        _groupActions = GroupActions.addGroup;
       },
     );
-    try {
-      _controller.newGroup();
-    } catch (e) {
-      developer.log('_controller.newGroup called ', name: '_addState');
-    }
+  }
+
+  void editGroup() {
+    setState(() => _groupActions = GroupActions.editName);
+  }
+
+  void addMember() {
+    setState(() => _groupActions = GroupActions.addMember);
   }
 
   bool hasChanged() {
@@ -221,18 +251,8 @@ class _GroupFormState extends State<GroupForm> {
     setState(() => _changed = false);
   }
 
-  /// There is a bit of a problem with an expansion tile's expanded state updating its parent
-  /// as calling setState() in the parent to reflect the expansion change prevents the expansiontile expanding
-  /// The solution is to set each expansion tile's expanded state through its initiallyExpanded: parameter.
-  /// The parent has to maintain a list of expansion states for each tile and update it when the
-  /// tile expands of contracts through a callback. The maintained state is then used to set the initiallyExpanded
-  /// so the parent's setState() leaves the tile in the correct expansion state.
-
-  onExpand(int index, bool value) {
-    for (int i = 0; i < expanded.length; i++) {
-      expanded[i] = false;
-    }
-    expanded[index] = value;
-    setState(() => (_expanded = value));
+  editGroupName() {
+    developer.log('editGroupName setState() 276', name: '_groupTile');
+    setState(() => _groupActions = GroupActions.editName);
   }
 }

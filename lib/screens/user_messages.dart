@@ -1,10 +1,9 @@
-import 'package:drives/tiles/write_message_tile.dart';
+import '/tiles/write_message_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:drives/constants.dart';
-import 'package:drives/models/other_models.dart';
-import 'package:drives/services/services.dart';
-
+import '/constants.dart';
+import '/models/other_models.dart';
+import '/services/services.dart';
 import 'package:socket_io_client/socket_io_client.dart' as sio;
 
 class UserMessagesController {

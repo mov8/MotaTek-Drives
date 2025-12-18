@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:universal_io/universal_io.dart';
 import 'dart:typed_data';
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -6,12 +6,12 @@ import 'package:latlong2/latlong.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
-import 'package:drives/constants.dart';
-import 'package:drives/classes/route.dart' as mt;
-import 'package:drives/classes/my_trip_item.dart';
-import 'package:drives/classes/other_classes.dart';
-import 'package:drives/models/models.dart';
-import 'package:drives/services/web_helper.dart';
+import '/constants.dart';
+import '/classes/route.dart' as mt;
+import '/classes/my_trip_item.dart';
+import '/classes/other_classes.dart';
+import '/models/models.dart';
+import '/services/web_helper.dart';
 import 'dart:async';
 
 class DbHelper {
@@ -1002,6 +1002,13 @@ Future<int> saveMyTripItem(MyTripItem myTripItem) async {
   int id = myTripItem.id;
   Map<String, dynamic> map = myTripItem.toDrivesMap();
   try {
+    List<Map<String, dynamic>> maps =
+        await db.rawQuery("SELECT id, title FROM drives");
+    debugPrint('Drives data: ${maps.toString()}');
+  } catch (e) {
+    debugPrint('Error accessing drives: ${e.toString()}');
+  }
+  try {
     if (id < 0) {
       map.remove("id");
       id = await db.insert('drives', map);
@@ -1010,6 +1017,13 @@ Future<int> saveMyTripItem(MyTripItem myTripItem) async {
           where: 'id = ?',
           whereArgs: [id],
           conflictAlgorithm: ConflictAlgorithm.replace);
+      try {
+        List<Map<String, dynamic>> maps =
+            await db.rawQuery("SELECT id, title FROM drives");
+        debugPrint('Drives data: ${maps.toString()}');
+      } catch (e) {
+        debugPrint('Error accessing drives: ${e.toString()}');
+      }
     }
     // Now process Trip images that have been downloaded and are to be save locally
     if (myTripItem.driveUri.isNotEmpty) {
@@ -1040,6 +1054,7 @@ Future<int> saveMyTripItem(MyTripItem myTripItem) async {
     /// to the pointOfInterest automatically generated
     await savePointsOfInterestLocal(
         driveId: id, pointsOfInterest: myTripItem.pointsOfInterest);
+    await deletePolyLinesByDriveId(id);
     await savePolylinesLocal(
         driveId: id, polylines: myTripItem.routes, type: 0);
     await savePolylinesLocal(
@@ -1157,6 +1172,7 @@ Future<List<PointOfInterest>> loadPointsOfInterestLocal(int driveId) async {
       PointOfInterest(
         id: maps[i]['id'],
         driveId: driveId,
+        colourIndex: -1,
         type: maps[i]['type'],
         name: maps[i]['name'],
         description: maps[i]['description'],
@@ -1165,10 +1181,6 @@ Future<List<PointOfInterest>> loadPointsOfInterestLocal(int driveId) async {
         images: maps[i]['images'],
         waypoint: maps[i]['waypoint'] ?? i,
         point: LatLng(maps[i]['latitude'], maps[i]['longitude']),
-        child: MarkerWidget(
-            type: maps[i]['type'],
-            list: 0,
-            listIndex: maps[i]['waypoint'] ?? i),
       ),
     );
   }
@@ -1196,10 +1208,6 @@ Future<PointOfInterest> loadPointOfInterestLocal(
     images: maps.first['images'],
     waypoint: maps.first['waypoint'],
     point: LatLng(maps.first['latitude'], maps.first['longitude']),
-    child: MarkerWidget(
-        type: maps.first['type'],
-        list: 0,
-        listIndex: maps.first['waypoint']), //listIndex: index),
   );
 
   return pointOfInterest;
@@ -1231,28 +1239,15 @@ Future<int> savePointOfInterestLocal(
     'longitude': pointOfInterest.point.longitude,
     'sounds': pointOfInterest.sounds,
   };
-  if (pointOfInterest.id > -1) {
-    id = pointOfInterest.id;
-    try {
-      await db.update('points_of_interest', poiMap,
-          where: 'id = ?',
-          whereArgs: [id],
-          conflictAlgorithm: ConflictAlgorithm.replace);
-    } catch (e) {
-      debugPrint('Error saving points of interest: ${e.toString()}');
-      return -1;
-    }
-  } else {
-    try {
-      id = await db.insert(
-        'points_of_interest',
-        poiMap,
-        conflictAlgorithm: ConflictAlgorithm.replace,
-      );
-      pointOfInterest.id = id;
-    } catch (e) {
-      debugPrint('Error saving point of interest: ${e.toString()}');
-    }
+  try {
+    id = await db.insert(
+      'points_of_interest',
+      poiMap,
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+    pointOfInterest.id = id;
+  } catch (e) {
+    debugPrint('Error saving point of interest: ${e.toString()}');
   }
   if (poiMap['images'].isNotEmpty) {
     dynamic images = jsonDecode(poiMap['images']);
@@ -1297,13 +1292,7 @@ Future<bool> saveManeuversLocal({
 }) async {
   final db = await DbHelper().db;
   Map<String, dynamic> manMap = {};
-
-  //List<Maneuver> savedManeuvers = await loadManeuversLocal(driveId);
-  // if (savedManeuvers.isNotEmpty) {
   await deleteManeuversByDriveId(driveId);
-  // }
-  //savedManeuvers.addAll(maneuvers);
-
   Batch batch = db.batch();
 
   for (int i = 0; i < maneuvers.length; i++) {
@@ -1311,7 +1300,7 @@ Future<bool> saveManeuversLocal({
       maneuvers[i].driveId = driveId;
       manMap = maneuvers[i].toMap();
       manMap.remove('id');
-      manMap.remove('drive_uid');
+      // manMap.remove('drive_uid');
       manMap['drive_id'] = driveId;
       batch.insert('maneuvers', manMap);
     } catch (err) {
@@ -1386,12 +1375,8 @@ Future<bool> savePolylinesLocal(
     List<PointOfInterest> pointsOfInterest = const [],
     type = 0}) async {
   final db = await DbHelper().db;
-
   for (int i = 0; i < polylines.length; i++) {
-    int id = polylines[i].id;
-
     Map<String, dynamic> plMap = {
-      'id': id,
       'drive_id': driveId,
       'type': type,
       'points': pointsToString(polylines[i].points),
@@ -1403,35 +1388,18 @@ Future<bool> savePolylinesLocal(
           ? pointsOfInterest[polylines[i].pointOfInterestIndex].id
           : -1,
     };
-
-    if (id > -1) {
-      try {
-        await db.update('polylines', plMap,
-            where: 'id = ?',
-            whereArgs: [plMap['id']],
-            conflictAlgorithm: ConflictAlgorithm.replace);
-      } catch (e) {
-        debugPrint("Database error storing polylines: ${e.toString()}");
-        return false;
-      }
-    } else {
-      try {
-        plMap.remove('id');
-      } catch (e) {
-        debugPrint('Map.remove() error: ${e.toString()}');
-      }
-      // Check if its a good road, and if so save the associated point of interest
-      try {
-        await db.insert(
-          'polylines',
-          plMap,
-          conflictAlgorithm: ConflictAlgorithm.replace,
-        );
-      } catch (e) {
-        debugPrint('Error inserting polylines: ${e.toString}');
-      }
+    // Check if its a good road, and if so save the associated point of interest
+    try {
+      await db.insert(
+        'polylines',
+        plMap,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    } catch (e) {
+      debugPrint('Error inserting polylines: ${e.toString}');
     }
   }
+  // }
   return true;
 }
 
@@ -1547,7 +1515,7 @@ Future<List<mt.Route>> getRoutesByName({required String name}) async {
   final db = await DbHelper().db;
   List<Map<String, dynamic>> maps = await db.query(
     'drives',
-    where: 'LOWER(title) = ? ',
+    where: 'LOWER(RTRIM(title)) = ?',
     whereArgs: [name.toLowerCase()],
   );
   List<mt.Route> polylines = [];

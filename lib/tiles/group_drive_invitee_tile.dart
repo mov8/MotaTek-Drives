@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:drives/models/other_models.dart';
-import 'package:drives/classes/utilities.dart';
-//import 'package:drives/constants.dart';
+import '/models/other_models.dart';
+import '/classes/utilities.dart';
+//import '/constants.dart';
 
 class GroupDriveEnviteeTile extends StatefulWidget {
   final EventInvitation invitation;

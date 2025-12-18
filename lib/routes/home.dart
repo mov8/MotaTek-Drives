@@ -1,13 +1,11 @@
-// import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:drives/constants.dart';
-import 'package:drives/models/other_models.dart';
-import 'package:drives/tiles/home_tile.dart';
-import 'package:drives/classes/classes.dart';
-import 'package:drives/services/services.dart' hide getPosition;
-import 'package:drives/screens/screens.dart';
-
+import '/constants.dart';
+import '/models/other_models.dart';
+import '/tiles/home_tile.dart';
+import '/classes/classes.dart';
+import '/services/services.dart' hide getPosition;
+import '/screens/screens.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 class Home extends StatefulWidget {
@@ -64,7 +62,13 @@ class _HomeState extends State<Home> {
       //Setup().hasLoggedIn = true;
       Setup().loggingIn = true;
       await tryLoggingIn().then((_) async {
-        homeItems = await getHomeItems(1); // get API data
+        if (Setup().serverUp) {
+          homeItems = await getHomeItems(1);
+        } // get API data
+
+        /// If the app hangs sometimes it's
+        /// due to getting the current position have to restart the
+        /// phone
 
         Setup().lastPosition = await getPosition();
         //  Setup().appState = '{"route": 2, "trip_id": 233}';
@@ -218,7 +222,7 @@ class _HomeState extends State<Home> {
         subHeading: 'Stop polishing your car and start driving it...',
         body:
             '''Drives is a new app to help you make the most of the countryside around you. You can plan trips either on your own or you can explore in a group''',
-        imageUrls: '[{"url": "aiaston.png", "caption": ""}]',
+        imageUrls: '[{"url": "assets/images/aiaston.png", "caption": ""}]',
       ));
 
       homeItems.add(
@@ -232,7 +236,7 @@ class _HomeState extends State<Home> {
             body:
                 '''Uploaded trips can be rated to let you know how much others enjoyed it. Waypoints like scenery, nice roads, pubs and restaurants can be rated too.''',
             imageUrls:
-                '[{"url": "meeting.png", "caption": ""}]'), //CarGroup.png'),
+                '[{"url": "assets/images/meeting.png", "caption": ""}]'), //CarGroup.png'),
       );
     }
 
@@ -292,6 +296,7 @@ class _HomeState extends State<Home> {
   Widget build(BuildContext context) {
     WakelockPlus.enable();
     return Scaffold(
+      // backgroundColor: Colors.blue,
       key: _scaffoldKey,
       drawer: const MainDrawer(),
       appBar: AppBar(

@@ -1,8 +1,7 @@
 import 'dart:async';
-import 'package:drives/constants.dart';
+import '/constants.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:drives/models/models.dart';
+import '/models/models.dart';
 
 class Splash extends StatefulWidget {
   const Splash({super.key});
@@ -15,15 +14,12 @@ class _SplashState extends State<Splash> {
   @override
   void initState() {
     super.initState();
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
     Future.delayed(Duration(seconds: _delaySecs), () {
-      SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual,
-          overlays: SystemUiOverlay.values);
       int routeIndex = Setup().bottomNavIndex;
 
       if (routeIndex != 0) {
         Setup().bottomNavIndex = 0;
-        Setup().setupToDb();
+        //   Setup().setupToDb();
       }
       //  routeIndex = 4;
       if (mounted) {
@@ -48,7 +44,6 @@ class _SplashState extends State<Splash> {
   }
 
   Widget _getPortraitBody() {
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
     return const Stack(children: [
       Image(
         image: AssetImage('assets/images/splash.png'),
@@ -57,6 +52,7 @@ class _SplashState extends State<Splash> {
         width: double.infinity,
         alignment: Alignment.center,
       ),
+      /*
       Positioned(
         top: 50,
         left: 120,
@@ -81,6 +77,7 @@ class _SplashState extends State<Splash> {
           ),
         ),
       )
+      */
     ]);
   }
 }

@@ -1,7 +1,7 @@
-//import 'package:drives/models/models.dart'; //my_trip_item.dart';
-import 'package:drives/classes/classes.dart';
+//import '/models/models.dart'; //my_trip_item.dart';
+import '/classes/classes.dart';
 // import 'package:flutter/widgets.dart';
-import 'package:drives/constants.dart';
+import '/constants.dart';
 import 'package:latlong2/latlong.dart';
 /*
             id: groupData['id'],

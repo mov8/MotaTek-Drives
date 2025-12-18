@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:drives/constants.dart';
-import 'package:drives/models/models.dart';
+import '/constants.dart';
+import '/models/models.dart';
 
 class RoutesBottomNavController {
   _RoutesBottomNavState? _routesBottomNavState;
@@ -88,6 +88,7 @@ class _RoutesBottomNavState extends State<RoutesBottomNav>
   Widget build(BuildContext context) {
     //  debugPrint('selectedIndex: $_index');
     return NavigationBar(
+      elevation: 5,
       height: 60,
       surfaceTintColor: Colors.blue,
       onDestinationSelected: (int index) {
@@ -97,6 +98,26 @@ class _RoutesBottomNavState extends State<RoutesBottomNav>
       },
       indicatorColor: Colors.lightBlue,
       selectedIndex: _index,
+      // labelTextStyle: WidgetStateProperty.all(
+      //   const TextStyle(fontSize: 12, color: Color.fromARGB(255, 87, 23, 238)),
+      // ),
+      labelTextStyle: WidgetStateProperty.resolveWith<TextStyle>(
+        (Set<WidgetState> states) {
+          // If the tab is currently selected:
+          if (states.contains(WidgetState.selected)) {
+            return const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: Colors.blue,
+            );
+          }
+          // Default style for unselected tabs:
+          return const TextStyle(
+            fontSize: 10,
+            color: Colors.deepPurple,
+          );
+        },
+      ),
       destinations: List<Widget>.generate(
           6,
           (index) => _navigationDestination(
@@ -145,7 +166,9 @@ class _RoutesBottomNavState extends State<RoutesBottomNav>
           child: Icon(icons[index]),
         ),
         selectedIcon: Badge(
-          label: Text(badgeValue.toString()),
+          label: Text(
+            badgeValue.toString(),
+          ),
           child: Icon(iconsSelected[index]),
         ),
         label: labels[index],

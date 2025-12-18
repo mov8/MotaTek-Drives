@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:drives/models/other_models.dart';
-import 'package:drives/services/db_helper.dart';
-import 'package:drives/screens/dialogs.dart';
+// import 'package:flutter/services.dart';
+import '/models/other_models.dart';
+import '/services/db_helper.dart';
+import '/screens/dialogs.dart';
 import 'dart:convert';
 
 class GroupMemberForm extends StatefulWidget {
@@ -41,6 +42,7 @@ class _GroupMemberFormState extends State<GroupMemberForm> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.blue,
       appBar: AppBar(
         backgroundColor: Colors.blue,
         elevation: 0,

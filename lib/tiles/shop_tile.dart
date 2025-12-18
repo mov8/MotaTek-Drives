@@ -1,18 +1,63 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:drives/models/other_models.dart';
-import 'package:drives/classes/classes.dart';
+import '/models/other_models.dart';
+import '/classes/classes.dart';
+import '/helpers/helpers.dart';
+import '/constants.dart';
 
+/*
+class ShopTileController {
+  _ShopTileState? _shopTileState;
+
+  void _addState(_ShopTileState shopTileState) {
+    _shopTileState = shopTileState;
+  }
+
+  bool get isAttached => _shopTileState != null;
+
+  void newGroup() {
+    assert(isAttached, 'Controller must be attached to widget to clear');
+    try {
+      _shopTileState?.addGroup();
+    } catch (e) {
+      String err = e.toString();
+      debugPrint('Error clearing AutoComplete: $err');
+    }
+  }
+
+  void newMember() {
+    assert(isAttached, 'Controller must be attached to widget to clear');
+    try {
+      _shopTileState?.addMember();
+    } catch (e) {
+      String err = e.toString();
+      debugPrint('Error clearing AutoComplete: $err');
+    }
+  }
+
+  void editGroupName() {
+    assert(isAttached, 'Controller must be attached to widget to clear');
+    try {
+      _shopTileState?.editGroupName();
+    } catch (e) {
+      String err = e.toString();
+      debugPrint('Error clearing AutoComplete: $err');
+    }
+  }
+}
+*/
 class ShopTile extends StatefulWidget {
   final ShopItem shopItem;
   final ImageRepository imageRepository;
   final Function(int)? onSelect;
   final Function(int)? onDelete;
+  // final ShopTileController controller;
   final int index;
 
   const ShopTile({
     super.key,
     required this.shopItem,
+    //  required this.controller,
     required this.imageRepository,
     this.onSelect,
     this.onDelete,
@@ -33,9 +78,10 @@ class _ShopTileState extends State<ShopTile> {
   @override
   void initState() {
     super.initState();
+    //   widget.controller._addState(this);
     photos = photosFromJson(
         photoString: widget.shopItem.imageUrls,
-        endPoint: '${widget.shopItem.uri}/');
+        endPoint: '$urlShopItem/images/${widget.shopItem.uri}/');
     _pageController.addListener(() => pageControlListener());
   }
 

@@ -1,14 +1,16 @@
-import 'dart:io';
+import 'package:universal_io/universal_io.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:drives/constants.dart';
+import '/constants.dart';
 import 'package:image_picker/image_picker.dart';
+import '/helpers/edit_helpers.dart';
 // import 'package:path_provider/path_provider.dart';
-import 'package:drives/classes/classes.dart';
-import 'package:drives/models/other_models.dart';
-import 'package:drives/services/services.dart';
+import '/classes/classes.dart';
+import '/models/other_models.dart';
+import '/services/services.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'dart:developer' as developer;
 
 /// An example of a widget with a controller.
 /// The controller allows to the widget to be controlled externally
@@ -112,9 +114,9 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
       child: Card(
         child: ExpansionTile(
           title: Text(
-              widget.pointOfInterest.name.isEmpty
+              CurrentTripItem().pointsOfInterest[widget.index].name.isEmpty
                   ? 'Point of interest to record'
-                  : widget.pointOfInterest.name,
+                  : CurrentTripItem().pointsOfInterest[widget.index].name,
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -125,7 +127,9 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
           initiallyExpanded: expanded,
           leading: Icon(
               markerIcon(
-                getIconIndex(iconIndex: widget.pointOfInterest.type),
+                getIconIndex(
+                    iconIndex:
+                        CurrentTripItem().pointsOfInterest[widget.index].type),
               ),
               color: colourList[Setup().pointOfInterestColour]),
           children: [
@@ -137,16 +141,20 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                   if (canEdit) ...[
                     Row(
                       children: [
-                        //    if (canEdit) ...[
                         Expanded(
                           flex: 10,
                           child: DropdownButtonFormField<String>(
-                            decoration: const InputDecoration(
+                            style: textStyle(
+                                context: context, color: Colors.black),
+                            decoration: InputDecoration(
                               border: OutlineInputBorder(),
                               labelText: 'Type',
+                              labelStyle: labelStyle(context: context),
                             ),
                             initialValue: getIconIndex(
-                                    iconIndex: widget.pointOfInterest.type)
+                                    iconIndex: CurrentTripItem()
+                                        .pointsOfInterest[widget.index]
+                                        .type)
                                 .toString(),
                             items: poiTypes
                                 .map((item) => DropdownMenuItem<String>(
@@ -157,15 +165,23 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                                               fontFamily: 'MaterialIcons'),
                                           color: Color(item['colourMaterial']),
                                         ),
-                                        Text('    ${item['name']}')
+                                        Text(
+                                          '    ${item['name']}',
+                                          style: labelStyle(
+                                              context: context,
+                                              color: Colors.black,
+                                              size: 3),
+                                        )
                                       ]),
                                     ))
                                 .toList(),
                             onChanged: (item) {
-                              int type = item == null ? -1 : int.parse(item);
-                              widget.pointOfInterest = PointOfInterest.clone(
-                                  pointOfInterest: widget.pointOfInterest,
-                                  type: type);
+                              CurrentTripItem().pointsOfInterest[widget.index] =
+                                  PointOfInterest.clone(
+                                pointOfInterest: CurrentTripItem()
+                                    .pointsOfInterest[widget.index],
+                                type: item == null ? -1 : int.parse(item),
+                              );
                             },
                           ),
                         ),
@@ -177,10 +193,12 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                               child: Align(
                                 alignment: Alignment.bottomCenter,
                                 child: ActionChip(
-                                  label: const Text(
+                                  label: Text(
                                     'Image',
-                                    style: TextStyle(
-                                        fontSize: 18, color: Colors.white),
+                                    style: labelStyle(
+                                        context: context,
+                                        color: Colors.white,
+                                        size: 3),
                                   ),
                                   avatar: const Icon(Icons.perm_media_outlined,
                                       size: 20, color: Colors.white),
@@ -201,24 +219,37 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                             padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
                             child: TextFormField(
                                 readOnly: false,
-                                initialValue: widget.pointOfInterest.name,
+                                initialValue: CurrentTripItem()
+                                    .pointsOfInterest[widget.index]
+                                    .name,
                                 autofocus: canEdit,
                                 textInputAction: TextInputAction.next,
                                 textAlign: TextAlign.start,
                                 keyboardType: TextInputType.streetAddress,
                                 textCapitalization:
                                     TextCapitalization.sentences,
-                                decoration: const InputDecoration(
+                                decoration: InputDecoration(
                                   border: OutlineInputBorder(),
                                   hintText:
                                       "What is the point of interest's name...",
+                                  hintStyle: hintStyle(context: context),
                                   labelText: 'Point of interest name',
+                                  labelStyle: labelStyle(
+                                    context: context,
+                                  ),
                                 ),
-                                style: Theme.of(context).textTheme.bodyLarge,
+                                style: textStyle(
+                                    context: context,
+                                    color: Colors.black,
+                                    size: 3),
                                 autovalidateMode:
                                     AutovalidateMode.onUserInteraction,
-                                onFieldSubmitted: (text) =>
-                                    widget.pointOfInterest.name = text),
+                                onChanged: (value) => CurrentTripItem()
+                                    .pointsOfInterest[widget.index]
+                                    .name = value,
+                                onFieldSubmitted: (text) => CurrentTripItem()
+                                    .pointsOfInterest[widget.index]
+                                    .name = text),
                           ),
                         ),
                         Expanded(
@@ -231,9 +262,12 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                                 child: ActionChip(
                                   label: Text(
                                     'Memo',
-                                    style: TextStyle(
-                                        fontSize: 18,
-                                        color: widget.pointOfInterest.sounds
+                                    style: labelStyle(
+                                        context: context,
+                                        size: 3,
+                                        color: CurrentTripItem()
+                                                .pointsOfInterest[widget.index]
+                                                .sounds
                                                 .isNotEmpty
                                             ? Colors.white
                                             : Colors.grey),
@@ -243,8 +277,10 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                                           ? Icons.volume_off_outlined
                                           : Icons.volume_up_outlined,
                                       size: 20,
-                                      color: widget
-                                              .pointOfInterest.sounds.isNotEmpty
+                                      color: CurrentTripItem()
+                                              .pointsOfInterest[widget.index]
+                                              .sounds
+                                              .isNotEmpty
                                           ? Colors.white
                                           : Colors.grey),
                                   onPressed: () {
@@ -268,46 +304,58 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                           child: Padding(
                             padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
                             child: TextFormField(
-                                readOnly: false,
-                                maxLines: null,
-                                textInputAction: TextInputAction.done,
-                                //     expands: true,
-                                initialValue:
-                                    widget.pointOfInterest.description,
-                                textAlign: TextAlign.start,
-                                keyboardType: TextInputType.streetAddress,
-                                textCapitalization:
-                                    TextCapitalization.sentences,
-                                decoration: canEdit
-                                    ? const InputDecoration(
-                                        border: OutlineInputBorder(),
-                                        hintText:
-                                            'Describe Point of Interest...',
-                                        labelText:
-                                            'Point of interest description',
-                                      )
-                                    : null,
-                                style: Theme.of(context).textTheme.bodyLarge,
-                                autovalidateMode:
-                                    AutovalidateMode.onUserInteraction,
-                                onFieldSubmitted: (text) => widget
-                                    .pointOfInterest
-                                    .description = text //body = text
-                                ),
+                              readOnly: false,
+                              maxLines: null,
+                              textInputAction: TextInputAction.done,
+                              initialValue: CurrentTripItem()
+                                  .pointsOfInterest[widget.index]
+                                  .description,
+                              textAlign: TextAlign.start,
+                              keyboardType: TextInputType.streetAddress,
+                              textCapitalization: TextCapitalization.sentences,
+                              decoration: canEdit
+                                  ? InputDecoration(
+                                      border: OutlineInputBorder(),
+                                      hintText: 'Describe Point of Interest...',
+                                      hintStyle: hintStyle(context: context),
+                                      labelText:
+                                          'Point of interest description',
+                                      labelStyle: labelStyle(context: context),
+                                    )
+                                  : null,
+                              style: textStyle(
+                                  context: context,
+                                  color: Colors.black,
+                                  size: 3),
+                              autovalidateMode:
+                                  AutovalidateMode.onUserInteraction,
+                              onChanged: (text) => CurrentTripItem()
+                                  .pointsOfInterest[widget.index]
+                                  .description = text,
+                              onFieldSubmitted: (text) => CurrentTripItem()
+                                  .pointsOfInterest[widget.index]
+                                  .description = text,
+                            ),
                           ),
                         ),
                       ],
                     ),
-                    if (widget.pointOfInterest.photos.isNotEmpty)
+                    if (CurrentTripItem()
+                        .pointsOfInterest[widget.index]
+                        .photos
+                        .isNotEmpty)
                       Row(
                         children: <Widget>[
                           Expanded(
                             flex: 8,
                             child: ImageArranger(
-                              urlChange: (url) => setState(
-                                  () => widget.pointOfInterest.images = url),
-                              photos: widget.pointOfInterest.photos,
-                              endPoint: widget.pointOfInterest.url,
+                              urlChange: (url) => setState(() =>
+                                  CurrentTripItem()
+                                      .pointsOfInterest[widget.index]
+                                      .images = url),
+                              photos: CurrentTripItem()
+                                  .pointsOfInterest[widget.index]
+                                  .photos,
                               showCaptions: true,
                             ),
                           ),
@@ -355,22 +403,24 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
   }
 
   Future<void> _play() async {
-    if (await File(widget.pointOfInterest.sounds).exists()) {
-      DeviceFileSource source = DeviceFileSource(widget.pointOfInterest.sounds);
+    if (await File(CurrentTripItem().pointsOfInterest[widget.index].sounds)
+        .exists()) {
+      DeviceFileSource source = DeviceFileSource(
+          CurrentTripItem().pointsOfInterest[widget.index].sounds);
       player.play(source);
     }
   }
 
   String getTitle() {
     String title = '';
-    if (widget.pointOfInterest.name.isEmpty) {
-      if (widget.pointOfInterest.type == 13) {
+    if (CurrentTripItem().pointsOfInterest[widget.index].name.isEmpty) {
+      if (CurrentTripItem().pointsOfInterest[widget.index].type == 13) {
         title = 'Details of good road to record';
       } else {
         title = 'Details of point of interest to record';
       }
     } else {
-      title = widget.pointOfInterest.name;
+      title = CurrentTripItem().pointsOfInterest[widget.index].name;
     }
     return title;
   }
@@ -379,13 +429,12 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
     return ExpansionTile(
       backgroundColor: Colors.transparent,
       collapsedBackgroundColor: Colors.transparent,
-      //   controller: _expansionTileController,
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Align(
             alignment: AlignmentDirectional.topStart,
-            child: Text(widget.pointOfInterest.name,
+            child: Text(CurrentTripItem().pointsOfInterest[widget.index].name,
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -398,7 +447,8 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                 flex: 1,
                 child: StarRating(
                     onRatingChanged: changeRating,
-                    rating: widget.pointOfInterest.score),
+                    rating:
+                        CurrentTripItem().pointsOfInterest[widget.index].score),
               ),
             ],
           ),
@@ -407,26 +457,15 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
               flex: 1,
               child: Align(
                 alignment: Alignment.bottomLeft,
-                //DateFormat("dd MMM yy HH:mm").format(DateTime.now()),
                 child: Text(
-                    'published ${DateFormat("dd MMM yyyy").format(widget.pointOfInterest.published)}',
+                    'published ${DateFormat("dd MMM yyyy").format(CurrentTripItem().pointsOfInterest[widget.index].published)}',
                     style: const TextStyle(fontSize: 12)),
               ),
             ),
           ]),
         ],
       ),
-      //  collapsedBackgroundColor: Colors.transparent,
-      //  backgroundColor: Colors.transparent,
       initiallyExpanded: expanded,
-      // onExpansionChanged: expandChange(expanded: expanded),
-      /*
-      leading: Icon(
-          markerIcon(
-            getIconIndex(iconIndex: widget.pointOfInterest.getType()),
-          ),
-          color: colourList[Setup().pointOfInterestColour]),
-      */
       children: [
         SingleChildScrollView(
           child: Padding(
@@ -459,8 +498,9 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                               readOnly: !canEdit,
                               maxLines: null,
                               textInputAction: TextInputAction.done,
-                              //     expands: true,
-                              initialValue: widget.pointOfInterest.description,
+                              initialValue: CurrentTripItem()
+                                  .pointsOfInterest[widget.index]
+                                  .description,
                               textAlign: TextAlign.start,
                               keyboardType: TextInputType.streetAddress,
                               textCapitalization: TextCapitalization.sentences,
@@ -475,70 +515,38 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                               style: Theme.of(context).textTheme.bodyLarge,
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
-                              onFieldSubmitted: (text) => widget.pointOfInterest
-                                  .description = text //body = text
-                              ),
+                              onFieldSubmitted: (text) => CurrentTripItem()
+                                  .pointsOfInterest[widget.index]
+                                  .description = text),
                         ),
                       ),
                     ],
                   ),
-                  if (widget.pointOfInterest.images.isNotEmpty) // &&
-                    // widget.pointOfInterest.url.isEmpty)
-                    Row(children: <Widget>[
-                      Expanded(
-                        flex: 8,
-                        child: SizedBox(
-                          height: 350,
-                          child: FittedBox(
-                            fit: BoxFit.contain,
-                            child: PhotoCarousel(
-                              imageRepository: widget.imageRepository,
-                              photos: widget.pointOfInterest.photos,
-                              height: 300,
-                              width: 300,
-                            ),
-                            //     ),
-                          ),
-                        ),
-                      ),
-                    ]),
-                  /*S
-                  if (widget.pointOfInterest.url.isNotEmpty) ...[
+                  if (CurrentTripItem()
+                      .pointsOfInterest[widget.index]
+                      .images
+                      .isNotEmpty) // &&
                     Row(
-                      children: [
+                      children: <Widget>[
                         Expanded(
-                          flex: 1,
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(10, 0, 5, 0),
-                            child: Row(
-                              children: [
-                                StarRating(
-                                    onRatingChanged: changeRating,
-                                    rating: widget.pointOfInterest.getScore()),
-                                Align(
-                                  alignment: Alignment.topLeft,
-                                  child: Text(
-                                    '(${widget.pointOfInterest.scored})',
-                                    style: const TextStyle(
-                                        color: Colors.black, fontSize: 15),
-                                  ),
-                                )
-                              ],
+                          flex: 8,
+                          child: SizedBox(
+                            height: 350,
+                            child: FittedBox(
+                              fit: BoxFit.contain,
+                              child: PhotoCarousel(
+                                imageRepository: widget.imageRepository,
+                                photos: CurrentTripItem()
+                                    .pointsOfInterest[widget.index]
+                                    .photos,
+                                height: 300,
+                                width: 300,
+                              ),
                             ),
                           ),
                         ),
-                        Expanded(
-                          flex: 1,
-                          child: IconButton(
-                            icon: const Icon(Icons.share),
-                            onPressed: () =>
-                                widget.onIconTap, // () => (setState(() {}),),
-                          ),
-                        )
                       ],
                     ),
-                  ],
-                  */
                 ],
               ),
             ),
@@ -551,8 +559,14 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
   loadImage(int id) async {
     if (widget.index == id) {
       try {
+        if (File("/data/user/0/com.motatek.drives/cache/scaled_1000003608.jpg")
+            .existsSync()) {
+          File("/data/user/0/com.motatek.drives/cache/scaled_1000003608.jpg")
+              .deleteSync();
+        }
         ImagePicker picker = ImagePicker();
         await //ImagePicker()
+
             picker
                 .pickImage(source: ImageSource.gallery, imageQuality: 10)
                 .then(
@@ -563,22 +577,36 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
 
                 /// Don't know what type of image so have to get file extension from picker file
                 int num = 1;
-                if (widget.pointOfInterest.images.isNotEmpty) {
+                if (CurrentTripItem()
+                        .pointsOfInterest[widget.index]
+                        .images
+                        .isNotEmpty &&
+                    CurrentTripItem().pointsOfInterest[widget.index].images !=
+                        "[]") {
                   /// count number of images
-                  num =
-                      '{'.allMatches(widget.pointOfInterest.images).length + 1;
+                  num = '{'
+                          .allMatches(CurrentTripItem()
+                              .pointsOfInterest[widget.index]
+                              .images)
+                          .length +
+                      1;
                 }
                 debugPrint('Image count: $num');
                 String imagePath =
                     '$directory/point_of_interest_${id}_$num.${pickedFile.path.split('.').last}';
                 File(pickedFile.path).copy(imagePath);
+                File(pickedFile.path).delete();
                 setState(() {
-                  widget.pointOfInterest.images =
-                      '[${widget.pointOfInterest.images.isNotEmpty ? '${widget.pointOfInterest.images.substring(1, widget.pointOfInterest.images.length - 1)},' : ''}{"url":"$imagePath","caption":"image $num"}]';
-                  widget.pointOfInterest.photos.add(Photo(
-                      url: imagePath,
-                      index: widget.pointOfInterest.photos.length));
-                  debugPrint('Images: $widget.pointOfInterest.images');
+                  CurrentTripItem().pointsOfInterest[widget.index].images =
+                      '[${CurrentTripItem().pointsOfInterest[widget.index].images.isNotEmpty ? '${CurrentTripItem().pointsOfInterest[widget.index].images.substring(1, CurrentTripItem().pointsOfInterest[widget.index].images.length - 1)},' : ''}{"url":"$imagePath","caption":"image $num"}]';
+                  CurrentTripItem().pointsOfInterest[widget.index].photos.add(
+                      Photo(
+                          url: imagePath,
+                          index: CurrentTripItem()
+                              .pointsOfInterest[widget.index]
+                              .photos
+                              .length));
+                  // debugPrint('Images: $widget.pointOfInterest.images');
                 });
               }
             } catch (e) {
@@ -630,12 +658,14 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
   }
 
   changeRating(value) {
-    if (widget.pointOfInterest.url.isNotEmpty) {
-      putPointOfInterestRating(widget.pointOfInterest.url, value);
+    if (CurrentTripItem().pointsOfInterest[widget.index].url.isNotEmpty) {
+      putPointOfInterestRating(
+          CurrentTripItem().pointsOfInterest[widget.index].url, value);
       if (widget.onRated != null) {
         widget.onRated!(value, widget.index);
       }
-      setState(() => widget.pointOfInterest.score = value.toDouble());
+      setState(() => CurrentTripItem().pointsOfInterest[widget.index].score =
+          value.toDouble());
     }
   }
 }

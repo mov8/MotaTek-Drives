@@ -1,8 +1,9 @@
-import 'package:drives/constants.dart';
+import '/constants.dart';
 import 'package:flutter/material.dart';
-import 'package:drives/models/other_models.dart';
-import 'package:drives/services/services.dart';
-import 'package:drives/classes/classes.dart';
+// import 'package:flutter/services.dart';
+import '/models/other_models.dart';
+import '/services/services.dart';
+import '/classes/classes.dart';
 
 class MyGroupsForm extends StatefulWidget {
   // var setup;
@@ -38,11 +39,12 @@ class _MyGroupsFormState extends State<MyGroupsForm> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.blue,
       appBar: ScreensAppBar(
         heading: 'Drives groups to which I belong',
         prompt: 'Swipe left to remove yourself from group.',
         updateHeading: 'You have changed group details.',
-        updateSubHeading: 'Press Update to confirm the changes or Ignore',
+        updateSubHeading: 'Press Save to confirm the changes or Ignore',
         update: _changed,
         showAction: _changed,
         updateMethod: (update) => _update(update: update),
@@ -75,6 +77,7 @@ class _MyGroupsFormState extends State<MyGroupsForm> {
     if (update) {
       updateGroups(groups: _dismissed, action: GroupAction.leave);
     }
+    setState(() => _changed = false);
   }
 
   Widget portraitView() {

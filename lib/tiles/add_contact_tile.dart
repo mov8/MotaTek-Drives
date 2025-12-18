@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:drives/constants.dart';
-import 'package:drives/classes/classes.dart';
-import 'package:drives/services/services.dart';
+import '/constants.dart';
+import '/classes/classes.dart';
+import '/services/services.dart';
 
 /// InviteMember handles the adding of a new member to a group there are 2 options:
 ///   The invitee is already registered
@@ -119,10 +119,10 @@ class _AddContactTileState extends State<AddContactTile> {
                           ),
                           keyboardType: TextInputType.emailAddress,
                           onSelect: (chosen) async {
-                            _groupMemberState = GroupMemberState.resistered;
+                            _groupMemberState = GroupMemberState.registered;
                             await addMemberFromApi(email: chosen);
                             setState(() => _groupMemberState =
-                                GroupMemberState.resistered);
+                                GroupMemberState.registered);
                           },
                           onChange: (text) {
                             _email = text;
@@ -166,7 +166,7 @@ class _AddContactTileState extends State<AddContactTile> {
 
       if (_fieldStates[2]) {
         if (_dropdownOptions.contains(_email)) {
-          _groupMemberState = GroupMemberState.resistered;
+          _groupMemberState = GroupMemberState.registered;
           _fieldStates[0] = true;
           _fieldStates[1] = true;
           _dropdownOptions.clear();
@@ -197,7 +197,7 @@ class _AddContactTileState extends State<AddContactTile> {
   }
 
   Future<bool> addMemberFromApi({required String email}) async {
-    if (_groupMemberState == GroupMemberState.resistered) {
+    if (_groupMemberState == GroupMemberState.registered) {
       _groupMemberState = GroupMemberState.added;
       _email = email;
       _fieldStates = [true, true, true];

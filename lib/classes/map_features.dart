@@ -1,8 +1,8 @@
-import 'package:drives/services/services.dart'; // hide getPosition;
-import 'package:drives/classes/classes.dart';
-import 'package:drives/tiles/tiles.dart';
-import 'package:drives/classes/route.dart' as mt;
-import 'package:drives/models/models.dart';
+import '/services/services.dart'; // hide getPosition;
+import '/classes/classes.dart';
+import '/tiles/tiles.dart';
+import '/classes/route.dart' as mt;
+import '/models/models.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter/material.dart';
@@ -310,16 +310,23 @@ class PublishedFeatures {
                         zoom: zoom);
                   }
                   List<Card> poiCards = [];
+
                   for (Feature poiFeature in features) {
-                    if (poiFeature.type != 0 &&
-                        poiFeature.drive == feature.drive) {
-                      Card? poiCard = await getCard(
-                          feature: poiFeature, index: poiCards.length);
-                      if (poiCard != null) {
-                        poiCards.add(poiCard);
+                    try {
+                      if (poiFeature.type != 0 &&
+                          poiFeature.drive == feature.drive) {
+                        Card? poiCard = await getCard(
+                            feature: poiFeature, index: poiCards.length);
+                        if (poiCard != null) {
+                          poiCards.add(poiCard);
+                        }
                       }
+                    } catch (e) {
+                      debugPrint(
+                          'Error getting points of interest ${e.toString()}');
                     }
                   }
+
                   Card? card = await getCard(
                     feature: feature,
                     index: routeCards.length,

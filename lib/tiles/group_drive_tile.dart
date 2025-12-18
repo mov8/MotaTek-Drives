@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:drives/models/models.dart';
+import '/models/models.dart';
 import 'package:intl/intl.dart';
 
 class GroupDriveTile extends StatefulWidget {

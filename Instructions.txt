@@ -47,3 +47,11 @@ To do sort out problem with group drives
 
 - Then nulled the lat lng on both group_drive_invitations records and neither tracked
 
+If Flutter doesn't compile try:
+flutter run -v 
+
+Understanding state for controllers:
+Had a problem where I was trying to set a variable within the GroupMemberTile. I wanted to set a variable that would
+signify that the Group Name was to be edited. I tried using the GroupMemberTileController to set the editing flag within a setState() 
+inside the Tile. I then got a setstate-called-after-dispose-error-in-flutter.  
+

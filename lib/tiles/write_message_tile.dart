@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:drives/models/other_models.dart';
-import 'package:intl/intl.dart';
-import 'package:drives/classes/utilities.dart';
+import '/models/other_models.dart';
+// import 'package:intl/intl.dart';
+import '/classes/utilities.dart';
+import '/helpers/edit_helpers.dart';
 
 class WriteMessageTile extends StatefulWidget {
   final Message message;
@@ -138,8 +139,10 @@ class _WriteMessageTileState extends State<WriteMessageTile> {
                                       10.0, 0.0, 10.0, 10.0),
                                   focusColor: Colors.blueGrey,
                                   hintText: 'write your message.',
+                                  hintStyle: hintStyle(context: context),
                                   labelText:
                                       '${widget.isGroup ? 'Group ' : ''}Message',
+                                  labelStyle: labelStyle(context: context),
                                   suffix: widget.readOnly
                                       ? null
                                       : IconButton(
@@ -151,9 +154,8 @@ class _WriteMessageTileState extends State<WriteMessageTile> {
                                           ),
                                         ),
                                 ),
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                ),
+                                style: textStyle(
+                                    context: context, color: Colors.black),
                                 initialValue: widget.message.message,
                                 onChanged: (text) => setState(
                                   () {

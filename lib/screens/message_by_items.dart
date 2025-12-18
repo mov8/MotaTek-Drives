@@ -1,9 +1,9 @@
-import 'package:drives/classes/classes.dart';
-import 'package:drives/models/models.dart';
-import 'package:drives/tiles/tiles.dart';
+import '/classes/classes.dart';
+import '/models/models.dart';
+import '/tiles/tiles.dart';
 import 'package:flutter/material.dart';
-// import 'package:drives/models/other_models.dart';
-import 'package:drives/services/services.dart';
+// import '/models/other_models.dart';
+import '/services/services.dart';
 
 class MessageItemsController {
   _MessageItemsState? _messageItemsState;

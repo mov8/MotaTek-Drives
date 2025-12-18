@@ -3,7 +3,7 @@ import 'dart:async';
 import 'dart:developer' as developer;
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/services.dart';
-import 'package:drives/models/models.dart';
+import '/models/models.dart';
 
 class NetworkState extends StatelessWidget {
   final List<ConnectivityResult> _status = [ConnectivityResult.none];

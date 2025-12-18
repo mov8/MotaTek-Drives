@@ -1,16 +1,140 @@
-import 'dart:io';
+// import 'package:universal_io/universal_io.dart';
+import 'package:universal_io/universal_io.dart';
 import 'dart:async';
 import 'package:uuid/uuid.dart';
 import 'package:flutter/material.dart';
 import 'package:record/record.dart';
-import 'package:drives/models/models.dart';
+import '/models/models.dart';
+import 'autocomplete_widget.dart';
+import '/services/web_helper.dart';
+import '/classes/other_classes.dart';
+import '/helpers/edit_helpers.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:latlong2/latlong.dart';
 
-//import 'package:drives/classes/classes.dart';
+//import '/classes/classes.dart';
 //import ''
 // Below example of implementing a voice recording widget
 // https://ahmedghaly15.medium.com/flutter-deep-dive-implementing-seamless-audio-recording-4249ecbb04bb
+
+class PlaceFinder extends StatefulWidget {
+  final double width;
+  final double height;
+  final Function(LatLng)? onSelect;
+  const PlaceFinder(
+      {super.key, this.width = 20, this.height = 20, this.onSelect});
+
+  @override
+  State<PlaceFinder> createState() => _PlaceFinderState();
+}
+
+class _PlaceFinderState extends State<PlaceFinder> {
+  final List<Place> _places = [];
+  bool _expanded = false;
+  double _width = 0;
+  double _height = 0;
+  @override
+  void initState() {
+    super.initState();
+    _width = widget.width;
+    _height = widget.height;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(seconds: 1),
+      // color: Colors.blueAccent,
+      width: _width,
+      height: _height,
+      decoration: BoxDecoration(
+          color: Colors.blue,
+          borderRadius: BorderRadius.circular(_height / 2),
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black54,
+                offset: const Offset(1, 3),
+                blurRadius: 5,
+                spreadRadius: 0)
+          ]),
+      curve: Curves.fastOutSlowIn,
+      onEnd: () => setState(() => _expanded = _width > _height),
+      child: _expanded
+          ? Row(
+              children: [
+                SizedBox(
+                  width: _width - _height,
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(20, 5, 2, 5),
+                    child: AutocompletePlace(
+                      options: _places,
+                      optionsMaxHeight: 100,
+                      searchLength: 3,
+                      style: textStyle(context: context, color: Colors.black),
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: Colors.white,
+                        border: _width > _height ? OutlineInputBorder() : null,
+                        hintText: 'Enter place name...',
+                      ),
+                      keyboardType: TextInputType.text,
+                      onSelect: (chosen) =>
+                          widget.onSelect!(LatLng(chosen.lat, chosen.lng)),
+                      onChange: (text) => (debugPrint('onChange: $text')),
+                      onUpdateOptionsRequest: (query) {
+                        debugPrint('Query: $query');
+                        getDropdownItems(query);
+                      },
+                    ),
+                  ),
+                ),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(4, 4, 0, 0),
+                    child: IconButton(
+                      onPressed: () {
+                        setState(() => _width = _height);
+                        _expanded = false;
+                      },
+                      icon: Icon(
+                          _width > _height
+                              ? Icons.search_off_outlined
+                              : Icons.search_outlined,
+                          size: _height / 2,
+                          color: Colors.white),
+                    ),
+                  ),
+                ),
+              ],
+            )
+          : Align(
+              alignment: Alignment.centerRight,
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(0, 0, 4, 0),
+                child: IconButton(
+                  onPressed: () {
+                    setState(() {
+                      _expanded = false;
+                      _width = MediaQuery.of(context).size.width - 40;
+                    });
+                  },
+                  icon: Icon(Icons.search,
+                      size: _height / 2, color: Colors.white),
+                ),
+              ),
+            ),
+    );
+  }
+
+  getDropdownItems(String query) async {
+    _places.clear();
+    _places.addAll(await getPlaces(value: query));
+    setState(() {});
+  }
+}
+
 class FloatingChecklist extends StatefulWidget {
   // final Function(int) onMenuTap;
   final Function(int, bool)? onCheck;
@@ -72,11 +196,15 @@ class _FloatingChecklistState extends State<FloatingChecklist> {
   Widget build(BuildContext context) {
     return AnimatedContainer(
       duration: const Duration(seconds: 1),
-      // color: Colors.blueAccent,
       width: _width,
       height: _height,
-      decoration: BoxDecoration(
-          color: Colors.blue, borderRadius: BorderRadius.circular(30)),
+      decoration: BoxDecoration(boxShadow: [
+        BoxShadow(
+            color: Colors.black54,
+            offset: const Offset(1, 3),
+            blurRadius: 5,
+            spreadRadius: 0)
+      ], color: Colors.blue, borderRadius: BorderRadius.circular(30)),
       curve: Curves.fastOutSlowIn,
       onEnd: () => setState(() {
         _expanded = _width > widget.width && _height > widget.height;
@@ -290,8 +418,13 @@ class _FloatingTextEditState extends State<FloatingTextEdit> {
       duration: const Duration(seconds: 1),
       width: _width,
       height: _height,
-      decoration: BoxDecoration(
-          color: Colors.blue, borderRadius: BorderRadius.circular(_height / 2)),
+      decoration: BoxDecoration(boxShadow: [
+        BoxShadow(
+            color: Colors.black54,
+            offset: const Offset(1, 3),
+            blurRadius: 5,
+            spreadRadius: 0)
+      ], color: Colors.blue, borderRadius: BorderRadius.circular(_height / 2)),
       curve: Curves.fastOutSlowIn,
       onEnd: () => setState(() => _expanded = _width > _height),
       child: _expanded
@@ -449,144 +582,3 @@ class _FloatingTextEditState extends State<FloatingTextEdit> {
     }
   }
 }
-/*
-class FloatingAutocomplete extends StatefulWidget {
-  // final Function(int) onMenuTap;
-  final Function(Map<String, bool>)? onCheck;
-  final Function(bool)? onClose;
-
-  List<Map<String, bool>> choices;
-  double maxWidth;
-  double maxHeight;
-  double width;
-  double height;
-  Color backgoundColor;
-  IconData closedIcon;
-  IconData openIcon;
-  double closedIconSize;
-  Color closedIconColor;
-  double openIconSize;
-  Color openIconColor;
-
-  FloatingAutocomplete(
-      {super.key,
-      required this.choices,
-      this.height = 56,
-      this.maxHeight = 150,
-      this.width = 56,
-      this.maxWidth = 200,
-      this.backgoundColor = Colors.blue,
-      this.closedIcon = Icons.settings,
-      this.closedIconSize = 30,
-      this.closedIconColor = Colors.white,
-      this.openIcon = Icons.settings,
-      this.openIconSize = 30,
-      this.openIconColor = Colors.white,
-      this.onCheck,
-      this.onClose});
-  @override
-  State<FloatingAutocomplete> createState() => _FloatingAutocompleteState();
-}
-
-class _FloatingAutocompleteState extends State<FloatingAutocomplete> {
-  late double _width;
-  late double _maxWidth;
-  late double _height;
-  late double _maxHeight;
-  late bool _expanded;
-  late List _choices;
-  List _places = [];
-
-  @override
-  void initState() {
-    super.initState();
-    _width = widget.width;
-    _maxWidth = widget.maxWidth;
-    _height = widget.height;
-    _maxHeight = widget.maxHeight;
-    _choices = widget.choices;
-    _expanded = false;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return         AnimatedContainer(
-          duration: const Duration(seconds: 1),
-          // color: Colors.blueAccent,
-          width: _width,
-          height: _height,
-          decoration: BoxDecoration(
-              color: Colors.blue,
-              borderRadius: BorderRadius.circular(_height / 2)),
-          curve: Curves.fastOutSlowIn,
-          onEnd: () => setState(() => _expanded = _width > _height),
-          child: _expanded
-              ? Row(
-                  children: [
-                    SizedBox(
-                      width: _width - _height,
-                      child: Padding(
-                          padding: EdgeInsets.fromLTRB(20, 5, 2, 5),
-                          child: AutocompletePlace(
-                            options: _places,
-                            searchLength: 3,
-                            decoration: InputDecoration(
-                              filled: true,
-
-                              fillColor: Colors.white,
-                              //     enabledBorder: OutlineInputBorder(),
-                              border: _width > _height
-                                  ? OutlineInputBorder()
-                                  : null,
-                              //     enabled: _width > _height,
-                              hintText: 'Enter place name...',
-                            ),
-                            keyboardType: TextInputType.text,
-                            onSelect: (chosen) => (),
-                            onChange: (text) => (debugPrint('onChange: $text')),
-                            onUpdateOptionsRequest: (query) {
-                              debugPrint('Query: $query');
-                              getDropdownItems(query);
-                            },
-                          )),
-                    ),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: Padding(
-                        padding: EdgeInsets.fromLTRB(4, 4, 0, 0),
-                        child: IconButton(
-                          onPressed: () {
-                            setState(() => _width = _height);
-                            _expanded = false;
-                          },
-                          icon: Icon(
-                              _width > _height
-                                  ? Icons.search_off_outlined
-                                  : Icons.search_outlined,
-                              size: _height / 2,
-                              color: Colors.white),
-                        ),
-                      ),
-                    ),
-                  ],
-                )
-              : Align(
-                  alignment: Alignment.centerRight,
-                  child: Padding(
-                    padding: EdgeInsets.fromLTRB(0, 0, 4, 0),
-                    child: IconButton(
-                      onPressed: () {
-                        setState(() {
-                          _expanded = false;
-                          _width = MediaQuery.of(context).size.width - 40;
-                        });
-                      },
-                      icon: Icon(Icons.search,
-                          size: _height / 2, color: Colors.white),
-                    ),
-                  ),
-                ),
-        ),
-  }
-}
-*/

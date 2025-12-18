@@ -1,0 +1,75 @@
+Sorting out images - adding the rotation and caption function
+webHelper 1132 handles pointOfInterest images
+    originally TripItem just the String imageUrl but now with rotation and captions 
+    in images it holds a list of Photo 
+
+TripTile generates the trip info it is called in map_features.dart
+
+Outstanding problems:
+Waypoint marker size publishedFeatures
+My Trip titles on phone are not spaced properly
+Putting drive details in on createTrip doesn't scroll enough on phone
+Look at displaying HTML for the helps
+The steps actionChip not showing after saveing trip, though it is after loading from mytrips
+
+Stop Following leaves only the Steps ActionChip showing also the Title remains "Following drive .."
+
+Password dialog needs a bit of attention. 
+    Once email has been:
+        1 validated as a proper address then register button
+        2 an existing user login button & password dialog
+
+After deleting all My Drives on going back into My Trip I got a Red Screen.
+
+The tap here to re-route flag doesn't work consistently particularly after a couple of re-routes. It probably needs to identify the next maneuver - so it
+never thinks its following the new route. 
+
+There appears to be a bit of an issue with the roundabout descriptions on the Boston to Skegness at the second roundabout it says take exit 3 left when it should say right ?
+
+Thursday 
+    Sort out the maneuvers prompts properly - done
+
+Friday
+    Sort out picking up new route after re-routing - done
+    Look at simplifying the text-to-speech prompts to allow them to be cached as mp3s - done
+    Check the tracking option with the simulator - done
+    Sort out how the helps will work
+
+Saturday
+    Resolve tracking issue - done
+    Remove memory cache for offline maps - done
+
+    Think about sound files with the group trip messaging - might be possible to stream audio using socketio
+    Implement off-line cache for the sounds in ["half a", "a quarter of"] a mile ["at the roundabout take the {nth} exit", "turn left", "turn right", "fork left", "fork right"] - done
+
+Sunday
+    Ensure style can be accessed offline.
+    Ensure all the default asset images are loaded OK when offline
+
+Monday
+    decide about brochures.
+    Start documentation.
+
+Tuesday
+
+Wedesday
+
+Thursday
+
+Friday
+
+Saturday
+
+
+
+CreateTrip.directionTile - Inkwell.onTap() -> widget.onTap() -> createTrip.changeRoute() -> currentTripItem.changeRoutes() ~ 745 does all the calculating
+
+DirectionDescriptos.maneuverIndex is the key parameter that has to be set after re-routing.
+
+
+my_trip_item.dart  Future<bool> changeRoute() does the re-route 
+    it's called from rout create_trip.dart via the directionTileController in directions_tile.dart
+
+
+
+

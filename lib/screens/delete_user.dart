@@ -1,10 +1,11 @@
-// import 'package:drives/classes/classes.dart';
-import 'package:drives/classes/autocomplete_widget.dart';
+// import '/classes/classes.dart';
+import '/classes/autocomplete_widget.dart';
 import 'package:flutter/material.dart';
-import 'package:drives/models/other_models.dart';
-import 'package:drives/services/db_helper.dart';
-import 'package:drives/services/web_helper.dart';
-import 'package:drives/constants.dart';
+// import 'package:flutter/services.dart';
+import '/models/other_models.dart';
+import '/services/db_helper.dart';
+import '/services/web_helper.dart';
+import '/constants.dart';
 
 /*
  app sends a dict {"email": "", "user": bool, "trips": bool, "pois": bool,
@@ -105,6 +106,7 @@ class _DeleteTripsFormState extends State<DeleteUserForm> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.blue,
       appBar: AppBar(
         backgroundColor: Colors.blue,
         elevation: 0,

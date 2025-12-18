@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:drives/models/other_models.dart';
-import 'package:drives/classes/classes.dart';
-import 'package:drives/models/models.dart';
-import 'package:drives/constants.dart';
+import '/models/other_models.dart';
+import '/classes/classes.dart';
+import '/models/models.dart';
+import '/helpers/helpers.dart';
+import '/constants.dart';
 
 class HomeTile extends StatefulWidget {
   final HomeItem homeItem;

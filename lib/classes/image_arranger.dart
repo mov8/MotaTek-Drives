@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
-import 'dart:io';
+// import 'package:universal_io/universal_io.dart';
+import 'package:universal_io/universal_io.dart';
 import 'dart:math';
-import 'package:drives/models/models.dart';
-import 'package:drives/classes/classes.dart';
-import 'package:drives/services/services.dart';
+import '/models/models.dart';
+import '/classes/classes.dart';
+import '/services/services.dart';
+import '/helpers/edit_helpers.dart';
 
 class ImageArranger extends StatefulWidget {
   final Function(String) urlChange;
@@ -18,7 +20,7 @@ class ImageArranger extends StatefulWidget {
     super.key,
     required this.urlChange,
     required this.photos,
-    required this.endPoint,
+    this.endPoint = '',
     this.imageUrl = '',
     this.showCaptions = false,
     this.height = 175,
@@ -101,9 +103,12 @@ class _ImageArrangerState extends State<ImageArranger> {
                       textAlign: TextAlign.start,
                       keyboardType: TextInputType.streetAddress,
                       textCapitalization: TextCapitalization.sentences,
+                      style: textStyle(
+                          context: context, color: Colors.black, size: 2),
                       decoration: InputDecoration(
                           border: OutlineInputBorder(),
                           hintText: 'Image caption',
+                          hintStyle: hintStyle(context: context),
                           labelText: 'Image ${imageIndex + 1} caption',
                           prefixIcon: IconButton(
                             onPressed: () => setState(() {
@@ -118,13 +123,17 @@ class _ImageArrangerState extends State<ImageArranger> {
                           suffixIcon: IconButton(
                             onPressed: () {
                               if (widget.photos.isNotEmpty) {
+                                if (File(widget.photos[imageIndex].url)
+                                    .existsSync()) {
+                                  File(widget.photos[imageIndex].url)
+                                      .deleteSync();
+                                }
                                 widget.photos.removeAt(imageIndex);
                                 updateWidgetUris();
                               }
                             },
                             icon: Icon(Icons.delete_outlined),
                           )),
-                      style: Theme.of(context).textTheme.bodyLarge,
                       autovalidateMode: AutovalidateMode.onUserInteraction,
                       onChanged: (text) =>
                           (widget.photos[imageIndex].caption = text)
@@ -143,7 +152,7 @@ class _ImageArrangerState extends State<ImageArranger> {
     List<String> urls = [
       for (Photo photo in widget.photos) photo.toMapString()
     ];
-    widget.urlChange(urls.toString());
+    setState(() => widget.urlChange(urls.toString()));
   }
 
   onDeleteImage(int idx) {

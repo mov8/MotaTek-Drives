@@ -1,12 +1,13 @@
-import 'package:drives/screens/messages_summary.dart';
+import '/screens/messages_summary.dart';
 import 'package:flutter/material.dart';
-import 'package:drives/models/other_models.dart';
-import 'package:drives/classes/classes.dart';
-import 'package:drives/screens/screens.dart';
-import 'package:drives/tiles/tiles.dart';
-import 'package:drives/services/services.dart';
+// import 'package:flutter/services.dart';
+import '/models/other_models.dart';
+import '/classes/classes.dart';
+import '/screens/screens.dart';
+import '/tiles/tiles.dart';
+import '/services/services.dart';
 import 'package:socket_io_client/socket_io_client.dart' as sio;
-import 'package:drives/constants.dart';
+import '/constants.dart';
 // import 'dart:developer' as developer;
 
 /// Messages route supports 3 message views:
@@ -48,7 +49,7 @@ class _MessagesState extends State<Messages> {
       body:
           'Tell members about new events, or keep in contact on a group drive',
       uri: 'assets/images',
-      imageUrls: '[{"url": "message.png", "caption": ""}]');
+      imageUrls: '[{"url": "assets/images/message.png", "caption": ""}]');
 
   @override
   void initState() {
@@ -164,6 +165,7 @@ class _MessagesState extends State<Messages> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.blue,
       key: _scaffoldKey,
       drawer: const MainDrawer(),
       appBar: AppBar(
@@ -191,9 +193,16 @@ class _MessagesState extends State<Messages> {
             ? [
                 IconButton(
                     icon: Icon(Icons.person_add, size: 30),
-                    onPressed: () => setState(() => _addContact = true))
+                    onPressed: () => setState(() => _addContact = true)),
+                IconButton(
+                    onPressed: () => {},
+                    icon: Icon(Icons.help_outline_outlined)),
               ]
-            : null,
+            : [
+                IconButton(
+                    onPressed: () => {},
+                    icon: Icon(Icons.help_outline_outlined))
+              ],
         bottom: PreferredSize(
           preferredSize: Size.fromHeight(40),
           child: Padding(

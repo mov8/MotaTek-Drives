@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
+// import 'package:flutter/services.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'dart:ui' as ui;
-import 'dart:io';
-import 'package:drives/constants.dart';
-import 'package:drives/classes/classes.dart';
-import 'package:drives/models/models.dart';
-import 'package:drives/screens/main_drawer.dart';
-import 'package:drives/screens/dialogs.dart';
-import 'package:drives/services/services.dart';
+import 'package:universal_io/universal_io.dart';
+import '/constants.dart';
+import '/classes/classes.dart';
+import '/models/models.dart';
+import '/screens/main_drawer.dart';
+import '/screens/dialogs.dart';
+import '/services/services.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:drives/classes/route.dart' as mt;
+import '/classes/route.dart' as mt;
+import '/helpers/edit_helpers.dart';
 import 'package:vector_map_tiles/vector_map_tiles.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_map_animations/flutter_map_animations.dart';
@@ -65,13 +67,11 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
   final _dividerHeight = 35.0;
   int _resizeDelay = 0;
   bool refreshTrips = true;
-  // bool _showDetails = false;
   List<double> mapHeights = [0, 0, 0, 0];
   double mapHeight = -1; //250;
   double listHeight = -1;
   PublishedFeatures _publishedFeatures = PublishedFeatures(
       features: [], pinTap: (_) => (), pointOfInterestLookup: {});
-  //late StyleReader _styleReader;
   final GlobalKey _appBarKey = GlobalKey();
   final GlobalKey _bottomNavKey = GlobalKey();
   @override
@@ -142,9 +142,9 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
               title: Padding(
                 padding: EdgeInsets.fromLTRB(0, 10, 0, 10),
                 child: Text(
-                  'Download this trip',
-                  style: const TextStyle(
-                      fontSize: 24, fontWeight: FontWeight.bold),
+                  'Download this trip to -',
+                  style: titleStyle(
+                      context: context, color: Colors.black, size: 1),
                 ),
               ),
               elevation: 5,
@@ -153,16 +153,16 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
                 children: [
                   CheckboxListTile(
                     title: Wrap(children: [
-                      Text('Download to ',
-                          style: TextStyle(color: Colors.black, fontSize: 18)),
+                      //  Text('To ',
+                      //      style: textStyle(
+                      //          context: context, color: Colors.black, size: 2)),
                       Text('My Trip ',
-                          style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold)),
+                          style: titleStyle(
+                              context: context, color: Colors.black, size: 2)),
                       Icon(Icons.map_outlined),
-                      Text(' to edit or drive the trip now',
-                          style: TextStyle(color: Colors.black, fontSize: 18))
+                      Text('to edit or drive the trip now',
+                          style: textStyle(
+                              context: context, color: Colors.black, size: 2))
                     ]),
                     value: options.newTrip,
                     onChanged: (value) =>
@@ -171,16 +171,16 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
                   ),
                   CheckboxListTile(
                     title: Wrap(children: [
-                      Text('Download to ',
-                          style: TextStyle(color: Colors.black, fontSize: 18)),
+                      //  Text('To ',
+                      //      style: textStyle(
+                      //          context: context, color: Colors.black, size: 2)),
                       Text('My Drives ',
-                          style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold)),
+                          style: titleStyle(
+                              context: context, color: Colors.black, size: 2)),
                       Icon(Icons.person_outline_outlined),
-                      Text(' to edit or drive the trip later',
-                          style: TextStyle(color: Colors.black, fontSize: 18))
+                      Text('to edit or drive the trip later',
+                          style: textStyle(
+                              context: context, color: Colors.black, size: 2))
                     ]),
                     value: options.myTrip,
                     onChanged: (value) =>
@@ -240,7 +240,7 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
               child: Text(
                 infoMap['title'],
                 style:
-                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    titleStyle(context: context, color: Colors.black, size: 2),
               ),
             ), //textStyle),
             elevation: 5,
@@ -334,49 +334,53 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
             .loadTripItem(key: feature.row, id: feature.id, uri: feature.uri);
         mapInfo['title'] = 'Published Trip';
         mapInfo['isRoute'] = true;
-        mapInfo['content'] = Padding(
-          padding: EdgeInsets.fromLTRB(20, 0, 0, 10),
-          child: Column(
-            children: [
-              Align(
-                alignment: AlignmentDirectional.topStart,
-                child: Text(
-                  tripItem.heading,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+        if (mounted) {
+          mapInfo['content'] = Padding(
+            padding: EdgeInsets.fromLTRB(20, 0, 0, 10),
+            child: Column(
+              children: [
+                Align(
+                  alignment: AlignmentDirectional.topStart,
+                  child: Text(
+                    tripItem.heading,
+                    style: textStyle(
+                        context: context, color: Colors.black, size: 3),
                   ),
                 ),
-              ),
-              Row(children: [
-                Expanded(
-                  flex: 1,
-                  child: Align(
-                    alignment: Alignment.bottomLeft,
-                    child: Text('published ${tripItem.author}',
-                        style: const TextStyle(fontSize: 12)),
-                  ),
-                ),
-              ]),
-              Row(children: [
-                Expanded(
+                Row(children: [
+                  Expanded(
                     flex: 1,
-                    child: StarRating(
-                        rating: tripItem.score, onRatingChanged: () => {})),
-              ]),
-              Row(children: [
-                Expanded(
-                  flex: 1,
-                  child: Align(
-                    alignment: Alignment.bottomLeft,
-                    child: Text('published ${tripItem.published}',
-                        style: const TextStyle(fontSize: 12)),
+                    child: Align(
+                      alignment: Alignment.bottomLeft,
+                      child: Text('by ${tripItem.author}',
+                          style: textStyle(
+                              context: context, color: Colors.black, size: 3)),
+                    ),
                   ),
-                ),
-              ]),
-            ],
-          ),
-        );
+                ]),
+                Row(children: [
+                  Expanded(
+                      flex: 1,
+                      child: StarRating(
+                          rating: tripItem.score, onRatingChanged: () => {})),
+                ]),
+                Row(children: [
+                  Expanded(
+                    flex: 1,
+                    child: Align(
+                      alignment: Alignment.bottomLeft,
+                      child: Text(
+                        'on ${tripItem.published}',
+                        style: textStyle(
+                            context: context, color: Colors.black, size: 3),
+                      ),
+                    ),
+                  ),
+                ]),
+              ],
+            ),
+          );
+        }
         break;
       case 1:
         PointOfInterest? pointOfInterest = await _publishedFeatures
@@ -548,21 +552,24 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
               children: [
                 Icon(Icons.route_outlined,
                     size: 25, color: colourList[Setup().publishedTripColour]),
-                const Text(
+                Text(
                   'Published trip',
-                  style: TextStyle(fontSize: 16),
+                  style:
+                      labelStyle(context: context, size: 3, color: Colors.blue),
                 ),
                 Icon(Icons.location_on,
                     size: 25, color: colourList[Setup().pointOfInterestColour]),
-                const Text(
+                Text(
                   'Point of interest',
-                  style: TextStyle(fontSize: 16),
+                  style: labelStyle(
+                      context: context, size: 3, color: Colors.green),
                 ),
                 Icon(Icons.route_outlined,
                     size: 25, color: colourList[Setup().goodRouteColour]),
-                const Text(
+                Text(
                   'Good road',
-                  style: TextStyle(fontSize: 16),
+                  style:
+                      labelStyle(context: context, size: 3, color: Colors.red),
                 ),
               ],
             ),
@@ -684,6 +691,8 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: false,
+      backgroundColor: Colors.blue,
       key: _scaffoldKey,
       drawer: const MainDrawer(),
       appBar: AppBar(
@@ -699,6 +708,10 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
               fontSize: 20, color: Colors.white, fontWeight: FontWeight.w700),
         ),
         iconTheme: const IconThemeData(color: Colors.white),
+        actions: [
+          IconButton(
+              onPressed: () => {}, icon: Icon(Icons.help_outline_outlined))
+        ],
 
         backgroundColor: Colors.blue,
         bottom: (_showPreferences)
@@ -739,7 +752,7 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
               ),
             );
           }
-          throw ('Error - FutureBuilder line 554 in trips.dart');
+          throw ('Error - FutureBuilder line 752 in trips.dart');
         },
       ),
 
@@ -754,11 +767,18 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
       drawerEnableOpenDragGesture: false,
     );
   }
+
+  onPlaceSelect(LatLng position) async {
+    CurrentTripItem().tripValues.autoCentre = false;
+    _animatedMapController.animateTo(dest: position);
+  }
 }
 
 class HandleFabs extends StatelessWidget {
   final AnimatedMapController animatedMapController;
-  const HandleFabs({super.key, required this.animatedMapController});
+  double _width = 56.0;
+  final double _height = 56.0;
+  HandleFabs({super.key, required this.animatedMapController});
 
   @override
   Widget build(BuildContext context) {
@@ -769,42 +789,32 @@ class HandleFabs extends StatelessWidget {
         const SizedBox(
           height: 220,
         ),
+        PlaceFinder(
+          height: _height,
+          width: _width,
+          onSelect: (position) =>
+              animatedMapController.animateTo(dest: position),
+        ),
+        const SizedBox(
+          height: 15,
+        ),
         FloatingActionButton(
           heroTag: 'location',
           onPressed: () async {
             Position currentPosition = await Geolocator.getCurrentPosition();
-            //        debugPrint('Position: ${currentPosition.toString()}');
             animatedMapController.animateTo(
               dest: LatLng(currentPosition.latitude, currentPosition.longitude),
             );
           },
           backgroundColor: Colors.blue,
           shape: const CircleBorder(),
-          child: const Icon(Icons.my_location),
+          child: const Icon(
+            Icons.my_location,
+            color: Colors.white,
+          ),
         ),
         const SizedBox(
           height: 15,
-        ),
-        FloatingActionButton(
-          heroTag: 'zoomIn',
-          onPressed: () async {
-            animatedMapController.animatedZoomIn();
-          },
-          backgroundColor: Colors.blue, //.withOpacity(0.5),
-          shape: const CircleBorder(),
-          child: const Icon(Icons.zoom_in, size: 30),
-        ),
-        const SizedBox(
-          height: 15,
-        ),
-        FloatingActionButton(
-          heroTag: 'zoomOut',
-          onPressed: () async {
-            animatedMapController.animatedZoomOut();
-          },
-          backgroundColor: Colors.blue,
-          shape: const CircleBorder(),
-          child: const Icon(Icons.zoom_out, size: 30),
         ),
       ],
     );

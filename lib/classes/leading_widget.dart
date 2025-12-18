@@ -1,7 +1,7 @@
 // https://stackoverflow.com/questions/63781518/flutter-how-to-use-animated-icon-in-the-appbar-i-want-to-use-this-animated-ic
 // https://api.flutter.dev/flutter/material/AnimatedIcons-class.html
 import 'package:flutter/material.dart';
-import 'package:drives/models/models.dart';
+import '/models/models.dart';
 
 class LeadingWidgetController {
   _LeadingWidgetState? _leadingWidgetState;

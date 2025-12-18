@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:drives/services/web_helper.dart';
-import 'package:drives/constants.dart';
-import 'package:drives/classes/classes.dart';
+// import 'package:flutter/services.dart';
+import '/helpers/edit_helpers.dart';
+import '/services/web_helper.dart';
+import '/constants.dart';
+import '/classes/classes.dart';
 
 class IntroduceForm extends StatefulWidget {
   const IntroduceForm({super.key, setup});
@@ -44,13 +46,14 @@ class _IntroduceFormState extends State<IntroduceForm> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.blue,
       appBar: ScreensAppBar(
         heading: 'Introduce a new user to Drives',
         prompt: 'Please enter all the details below.',
         updateHeading: 'You have added user details.',
-        updateSubHeading: 'Press Update to confirm the changes or Ignore',
+        updateSubHeading: 'Press Save to confirm the changes or Ignore',
         update: _isComplete,
-        updateMethod: (update) => invite(update: true),
+        updateMethod: (ok) => invite(update: ok),
         showAction: _isComplete,
       ),
       body: portraitView(),
@@ -75,7 +78,9 @@ class _IntroduceFormState extends State<IntroduceForm> {
                 decoration: InputDecoration(
                   border: OutlineInputBorder(),
                   hintText: 'Enter forename',
+                  hintStyle: hintStyle(context: context),
                   labelText: 'Forename',
+                  labelStyle: labelStyle(context: context),
                   suffixIcon: Icon(_fieldStates[0]
                       ? Icons.check_circle_outline
                       : Icons.star_outline),
@@ -83,7 +88,7 @@ class _IntroduceFormState extends State<IntroduceForm> {
                 textCapitalization: TextCapitalization.words,
                 keyboardType: TextInputType.name,
                 textAlign: TextAlign.left,
-                style: Theme.of(context).textTheme.bodyLarge,
+                style: textStyle(context: context),
                 onChanged: (text) {
                   invited['forename'] = text;
                   if (!_isComplete && dataComplete()) {
@@ -100,14 +105,16 @@ class _IntroduceFormState extends State<IntroduceForm> {
                 decoration: InputDecoration(
                     border: OutlineInputBorder(),
                     hintText: 'Enter surname',
+                    hintStyle: hintStyle(context: context),
                     labelText: 'Surname',
+                    labelStyle: labelStyle(context: context),
                     suffixIcon: Icon(_fieldStates[1]
                         ? Icons.check_circle_outline
                         : Icons.star_outline)),
                 textAlign: TextAlign.left,
                 keyboardType: TextInputType.name,
                 textCapitalization: TextCapitalization.words,
-                style: Theme.of(context).textTheme.bodyLarge,
+                style: textStyle(context: context),
                 onChanged: (text) {
                   invited['surname'] = text;
                   text;
@@ -126,12 +133,14 @@ class _IntroduceFormState extends State<IntroduceForm> {
                 decoration: InputDecoration(
                     border: OutlineInputBorder(),
                     hintText: 'Enter email address',
+                    hintStyle: hintStyle(context: context),
                     labelText: 'Email address',
+                    labelStyle: labelStyle(context: context),
                     suffixIcon: Icon(_fieldStates[2]
                         ? Icons.check_circle_outline
                         : Icons.star_outline)),
                 textAlign: TextAlign.left,
-                style: Theme.of(context).textTheme.bodyLarge,
+                style: textStyle(context: context),
                 onChanged: (text) {
                   invited['email'] = text;
                   if (!_isComplete && dataComplete()) {
@@ -152,13 +161,15 @@ class _IntroduceFormState extends State<IntroduceForm> {
                 decoration: InputDecoration(
                     border: OutlineInputBorder(),
                     hintText: 'Enter mobile phone number',
+                    hintStyle: hintStyle(context: context),
                     labelText: 'Mobile phone number',
+                    labelStyle: labelStyle(context: context),
                     suffixIcon: Icon(_fieldStates[3]
                         ? Icons.check_circle_outline
                         : Icons.star_outline)),
                 textAlign: TextAlign.left,
                 keyboardType: TextInputType.phone,
-                style: Theme.of(context).textTheme.bodyLarge,
+                style: textStyle(context: context),
                 onChanged: (text) {
                   invited['phone'] = text;
                   if (!_isComplete && dataComplete()) {
@@ -179,6 +190,7 @@ class _IntroduceFormState extends State<IntroduceForm> {
       await inviteWebUser(body: jsonEncode(invited)) == 200;
       setState(() => clearData());
     }
+    setState(() => _isComplete = false);
     return;
   }
 

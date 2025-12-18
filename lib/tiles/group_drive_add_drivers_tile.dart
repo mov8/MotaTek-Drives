@@ -1,7 +1,7 @@
-import 'package:drives/tiles/tiles.dart';
+import '/tiles/tiles.dart';
 import 'package:flutter/material.dart';
-import 'package:drives/classes/classes.dart';
-import 'package:drives/models/other_models.dart';
+import '/classes/classes.dart';
+import '/models/other_models.dart';
 
 class GroupDriveAddDriversTile extends StatefulWidget {
   final MyTripItem myTripItem;

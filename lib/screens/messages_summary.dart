@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:drives/models/other_models.dart';
-import 'package:drives/services/services.dart';
-import 'package:drives/classes/classes.dart';
-import 'package:drives/tiles/tiles.dart';
+import '/models/other_models.dart';
+import '/services/services.dart';
+import '/classes/classes.dart';
+import '/tiles/tiles.dart';
 
 class MessagesSummaryForm extends StatefulWidget {
   final List<MailItem> mailItems;

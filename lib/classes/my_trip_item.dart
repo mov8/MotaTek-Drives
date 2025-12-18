@@ -1,24 +1,29 @@
 import 'dart:async';
 import 'dart:ui' as ui;
-import 'dart:io';
+import 'package:uuid/uuid.dart';
+// import 'dart:io';
+import 'package:universal_io/universal_io.dart';
 import 'dart:typed_data';
 import 'dart:convert';
 import 'dart:math';
-// import 'package:drives/routes/create_trip.dart';
+// import '/routes/create_trip.dart';
+import 'package:vector_map_tiles/vector_map_tiles.dart' as vmt;
 import 'package:geolocator/geolocator.dart';
-import 'package:drives/constants.dart' hide routes;
-import 'package:drives/classes/utilities.dart' as ut;
-import 'package:drives/helpers/create_trip_helpers.dart';
+import '/constants.dart' hide routes;
+import '/classes/utilities.dart' as ut;
+import '/helpers/create_trip_helpers.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:drives/services/services.dart';
-import 'package:drives/classes/route.dart' as mt;
-import 'package:drives/models/other_models.dart';
-import 'package:drives/classes/other_classes.dart';
-import 'package:drives/services/web_helper.dart' as wh;
+import '/services/services.dart';
+import '/classes/route.dart' as mt;
+import '/models/other_models.dart';
+import '/classes/classes.dart';
+import '/services/web_helper.dart' as wh;
 import 'package:latlong2/latlong.dart';
 import 'package:flutter/material.dart';
-// import 'package:drives/classes/directions.dart';
+// import '/tiles/tiles.dart';
 import 'dart:developer' as developer;
+
+//import 'package:path/path.dart';
 
 class CreateTripValues {
   bool showMask = false;
@@ -27,6 +32,9 @@ class CreateTripValues {
   bool stopStream = false;
   bool startStream = false;
   bool pauseStream = false;
+  bool resumeStream = false;
+  bool streamStarted = false;
+  bool streamFinished = false;
   bool rotateMap = false;
   bool showProgress = false;
   int leadingWidget = 0;
@@ -37,7 +45,7 @@ class CreateTripValues {
   LatLng lastLatLng = LatLng(0, 0);
   LatLng startLatLng = LatLng(0, 0);
   LatLng position = LatLng(0, 0);
-
+  int pointOfInterestIndex = 0;
   bool setState = true;
   CreateTripValues();
   void manual() {
@@ -50,9 +58,9 @@ class CreateTripValues {
 
   void automatic() {
     showMask = false;
-    showTarget = true; // false;
+    showTarget = false;
     autoCentre = true;
-    title = 'Plan a new trip manually';
+    title = 'Record a trip as you drive';
     leadingWidget = 1;
   }
 
@@ -68,27 +76,50 @@ class CreateTripValues {
     showMask = false;
     showTarget = false;
     autoCentre = true;
-    title = 'Track drive automatically ';
+    title = 'Track drive ';
     leadingWidget = 1;
     rotateMap = Setup().rotateMap;
+    startFollowing();
   }
 
   stopFollowing() {
     stopStream = true;
     startStream = false;
     pauseStream = false;
+    resumeStream = false;
+    lastLatLng = position;
   }
 
   startFollowing() {
     stopStream = false;
     startStream = true;
     pauseStream = false;
+    resumeStream = false;
+    showTarget = false;
   }
 
   pauseFollowing() {
     stopStream = false;
     startStream = false;
     pauseStream = true;
+    resumeStream = false;
+    lastLatLng = position;
+    mapHeight = MapHeights.full;
+  }
+
+  stopTracking() {
+    stopStream = true;
+    startStream = false;
+    pauseStream = false;
+    resumeStream = false;
+    mapHeight = MapHeights.full;
+  }
+
+  resumeFollowing() {
+    stopStream = false;
+    startStream = false;
+    pauseStream = false;
+    resumeStream = true;
   }
 
   beforeWaypoint() {
@@ -103,6 +134,13 @@ class CreateTripValues {
   }
 }
 
+class Progress {
+  LatLng currentPosition = LatLng(0, 0);
+  int nextManeuver = 0;
+  int lastManeuver = 0;
+  Progress({currentPosition, nextManeuver, lastManeuver});
+}
+
 class CurrentTripItem extends MyTripItem {
   CurrentTripItem._privateConstructor();
   bool isSaved = false;
@@ -114,9 +152,14 @@ class CurrentTripItem extends MyTripItem {
   HighliteActions highliteActions = HighliteActions.none;
   String title = '';
   CreateTripValues tripValues = CreateTripValues();
+  Progress progress = Progress();
   int goodRoadStartIndex = 0;
   int goodRoadStopIndex = 0;
+  double size = 0.5;
+  int files = 0;
+  int downloaded = 0;
   Point nearestWaypoints = Point(0, 0);
+  int nextManeuverIndex = 0;
   bool isChanged = false;
   int nearestRoute = 0;
   XFile? imageFile;
@@ -269,44 +312,42 @@ class CurrentTripItem extends MyTripItem {
     tripValues.showTarget = false;
   }
 
-  Row getTripTitle() {
+  Future<void> downloadTiles(
+      {required BuildContext context, vmt.Style? style}) async {
+    style ??= await VectorMapStyle().mapStyle();
+    if (context.mounted) {
+      OfflineTiles offlineTiles = OfflineTiles(
+          context: context,
+          apiProvider: style!.providers.get('openmaptiles'),
+          routes: routes);
+      await offlineTiles.downloadMaps();
+    }
+    return;
+  }
+
+  String getTripTitle() {
     String title = 'Create a new drive';
-    IconData titleIcon = Icons.add_location_alt_outlined;
-    for (int i = 1; i < titleData.length; i++) {
-      if (titleData[i]['states'].contains(tripState)) {
-        title = '${titleData[i]['label']} $heading';
-        titleIcon = titleData[i]['icon'];
-        break;
+    // IconData titleIcon = Icons.add_location_alt_outlined;
+    if (tripValues.title.isNotEmpty && heading.isEmpty) {
+      title = tripValues.title;
+    } else {
+      for (int i = 1; i < titleData.length; i++) {
+        if (titleData[i]['states'].contains(tripState)) {
+          title = '${titleData[i]['label']} $heading';
+          // titleIcon = titleData[i]['icon'];
+          break;
+        }
       }
     }
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.start,
-      children: [
-        Expanded(
-            flex: 1,
-            child: Icon(
-              titleIcon,
-              size: 30,
-              color: Colors.white,
-            )),
-        SizedBox(width: 3),
-        Expanded(
-          flex: 12,
-          child: Text(
-            title,
-            style: const TextStyle(
-                fontSize: 22, color: Colors.white, fontWeight: FontWeight.w700),
-          ),
-        ),
-      ],
-    );
+    return title;
   }
 
-  List<Widget> getActions({Function(bool)? onUpdate}) {
+  List<Widget> getActions(
+      {required BuildContext context, Function(bool)? onUpdate}) {
     List<Widget> actions = [];
     if ([TripState.editing, TripState.manual].contains(tripState)) {
-      if (backBuffer.isNotEmpty) {
+      if (backBuffer.length > 1) {
         actions.add(
           IconButton(
             onPressed: () async {
@@ -319,7 +360,7 @@ class CurrentTripItem extends MyTripItem {
                       break;
                     }
                   }
-                  if (start > -1) {
+                  if (start >= pointsOfInterest.length - 1 && start > -1) {
                     pointsOfInterest.removeAt(start);
                   }
                 } else {
@@ -347,8 +388,7 @@ class CurrentTripItem extends MyTripItem {
                       PointOfInterest(
                           point: backBuffer[backBufferIndex][0],
                           type: 17,
-                          waypoint: 1,
-                          child: MarkerWidget(listIndex: 1, type: 17)),
+                          waypoint: 1),
                     );
                   } else {
                     await replaceRoutes(
@@ -366,7 +406,25 @@ class CurrentTripItem extends MyTripItem {
           );
         }
       }
+    } else if (tripState == TripState.loaded) {
+      actions.add(
+        IconButton(
+          onPressed: () async {
+            await downloadTiles(context: context);
+          },
+          icon: Icon(
+            Icons.map_outlined,
+            color: Colors.white,
+          ),
+        ),
+      );
     }
+    actions.add(
+      IconButton(
+        onPressed: () => {},
+        icon: Icon(Icons.help_outline_outlined),
+      ),
+    );
     return actions;
   }
 
@@ -426,8 +484,22 @@ class CurrentTripItem extends MyTripItem {
     int status = -1;
     if (maneuvers.isEmpty) {
       List<LatLng> points = [];
+
+      /// Have changed the way a tracked route is processed. Instead of trying to process
+      /// the polylines to calculate the waypoints the new method drops a PointOfInterest every
+      /// mile that can now be used to get the waypoints. This was because of the inconsistent
+      /// spacing of the points in the polylines. Roundaboutes consume lots of ponts.
+      /// It also has the added benefit of showing mile distance points along the route, and is
+      /// consistent with the editing approach.
+/*
       for (int i = 0; i < routes.length; i++) {
         points.addAll(routes[i].points);
+      }
+*/
+      for (int i = 0; i < pointsOfInterest.length; i++) {
+        if ([12, 17, 18].contains(pointsOfInterest[i].type)) {
+          points.add(pointsOfInterest[i].point);
+        }
       }
       await replaceRoutes(points: points);
       backBuffer.clear();
@@ -440,14 +512,16 @@ class CurrentTripItem extends MyTripItem {
 
   void newPointOfInterest({required LatLng position, int type = 15}) {
     pointsOfInterest.add(PointOfInterest(
-        point: position,
-        type: type,
-        waypoint: pointsOfInterest.length - 1,
-        child: MarkerWidget(
-          type: type,
-          listIndex: pointsOfInterest.length - 1,
-        )));
+      point: position,
+      type: type,
+      waypoint: pointsOfInterest.length - 1,
+    ));
     isSaved = false;
+  }
+
+  loadBackBuffer() {
+    backBuffer.clear();
+    backBuffer.add(extractWaypoints(pointsOfInterest: pointsOfInterest));
   }
 
   /// Waypoint handling routines
@@ -468,7 +542,6 @@ class CurrentTripItem extends MyTripItem {
           type: 17,
           waypoint: 0,
           point: point,
-          child: MarkerWidget(type: 17, listIndex: 0),
         ),
       );
       backBuffer.add([point]);
@@ -547,13 +620,9 @@ class CurrentTripItem extends MyTripItem {
         reorderedPointsOfInterest.add(
           PointOfInterest(
             type: wpType,
-            waypoint: wpIndex,
+            waypoint: wpIndex++,
             point: maneuvers[i].location,
-            child: MarkerWidget(
-              type: wpType,
-              listIndex: wpIndex++,
-              colourIdx: colourIndex,
-            ),
+            colourIndex: colourIndex,
           ),
         );
       }
@@ -575,14 +644,12 @@ class CurrentTripItem extends MyTripItem {
       {required List<PointOfInterest> pointsOfInterest}) {
     List<LatLng> points = [];
     pointsOfInterest.sort((a, b) => a.waypoint.compareTo(b.waypoint));
-    int waypoint = 1;
+    int waypoint = 0;
     for (int i = 0; i < pointsOfInterest.length; i++) {
       if ([12, 17, 18, 19].contains(pointsOfInterest[i].type)) {
-        pointsOfInterest[i].waypoint = waypoint;
-        pointsOfInterest[i].marker = MarkerWidget(
-          type: pointsOfInterest[i].type,
-          listIndex: waypoint++,
-        );
+        pointsOfInterest[i].waypoint = waypoint++;
+        pointsOfInterest[i] =
+            PointOfInterest.clone(pointOfInterest: pointsOfInterest[i]);
         points.add(pointsOfInterest[i].point);
       }
     }
@@ -606,39 +673,41 @@ class CurrentTripItem extends MyTripItem {
       }
       Map<String, dynamic> routeData =
           await getRoutePoints(points: points, addPoints: true);
-      maneuvers.clear();
-      int wps = 0;
+      if ((routeData["msg"] ?? " ") != "Error") {
+        maneuvers.clear();
+        int wps = 0;
 
-      /// Ensure that waypoints don't have both "arrive" and "depart"
-      for (int i = 0; i < routeData['maneuvers'].length; i++) {
-        wps = ['arrive', 'depart'].contains(routeData['maneuvers'][i].type)
-            ? wps + 1
-            : wps;
-        bool add = i == 0;
-        if (!add) {
-          add =
-              !(['arrive', 'depart'].contains(routeData['maneuvers'][i].type) &&
-                  ['arrive', 'depart']
-                      .contains(routeData['maneuvers'][i - 1].type));
+        /// Ensure that waypoints don't have both "arrive" and "depart"
+        for (int i = 0; i < routeData['maneuvers'].length; i++) {
+          wps = ['arrive', 'depart'].contains(routeData['maneuvers'][i].type)
+              ? wps + 1
+              : wps;
+          bool add = i == 0;
+          if (!add) {
+            add = !(['arrive', 'depart']
+                    .contains(routeData['maneuvers'][i].type) &&
+                ['arrive', 'depart']
+                    .contains(routeData['maneuvers'][i - 1].type));
+          }
+          if (add) {
+            maneuvers.add(routeData['maneuvers'][i]);
+          }
         }
-        if (add) {
-          maneuvers.add(routeData['maneuvers'][i]);
-        }
+
+        routes.clear();
+        addRoute(mt.Route(
+            points: routeData['points'],
+            color: colourList[Setup().routeColour],
+            borderColor: colourList[Setup().routeColour],
+            strokeWidth: 5));
+
+        /// Add next 2 lines to ensure the waypoint can be extracted from the maneuvers
+        maneuvers[maneuvers.length - 1].type = 'arrive';
+        maneuvers[maneuvers.length - 1].location = points[points.length - 1];
+        reorderWaypoints(revisit: revisit);
+      } else {
+        routes.clear();
       }
-
-      routes.clear();
-      addRoute(mt.Route(
-          points: routeData['points'],
-          color: colourList[Setup().routeColour],
-          borderColor: colourList[Setup().routeColour],
-          strokeWidth: 5));
-
-      /// Add next 2 lines to ensure the waypoint can be extracted from the maneuvers
-      maneuvers[maneuvers.length - 1].type = 'arrive';
-      maneuvers[maneuvers.length - 1].location = points[points.length - 1];
-      reorderWaypoints(revisit: revisit);
-    } else {
-      routes.clear();
     }
   }
 
@@ -648,6 +717,11 @@ class CurrentTripItem extends MyTripItem {
     await replaceRoutes(points: backBuffer[0]);
   }
 
+  /// Recalculate route
+  /// aims:
+  ///   1 maintain all the maneuvers already passed
+  ///   3 rejoin the route at the nearest sensible waypoint - type arrive
+  ///
   Future<bool> changeRoute(
       {required LatLng position,
       int lastManeuverIndex = 0,
@@ -661,12 +735,32 @@ class CurrentTripItem extends MyTripItem {
             CurrentTripItem().maneuvers[i].location.longitude));
       }
     }
+
+    /// now add current position as a waypoint
     points.add(LatLng(
       position.latitude,
       position.longitude,
     ));
 
+    /// Now look for closest waypoint to rejoin the route
+    double distance = 999999999999;
+    int nextManeuver = 0;
     for (int i = lastManeuverIndex + 1; i < maneuvers.length; i++) {
+      if (maneuvers[i].type == 'arrive' || i == maneuvers.length - 1) {
+        double delta = Geolocator.distanceBetween(
+            position.latitude,
+            position.longitude,
+            maneuvers[i].location.latitude,
+            maneuvers[i].location.longitude);
+        if (delta < distance) {
+          delta = distance;
+          nextManeuver = i;
+        }
+      }
+    }
+
+    /// Complete list of waypoints to feed the router
+    for (int i = nextManeuver; i < maneuvers.length; i++) {
       if (maneuvers[i].type == 'arrive' || i == maneuvers.length - 1) {
         points.add(maneuvers[i].location);
       }
@@ -681,7 +775,8 @@ class CurrentTripItem extends MyTripItem {
           borderColor: colourList[Setup().routeColour],
           points: tripData['points'],
           color: colourList[Setup().routeColour]));
-      CurrentTripItem().maneuvers = tripData['maneuvers'];
+      // CurrentTripItem().maneuvers = tripData['maneuvers'];
+      maneuvers = tripData['maneuvers'];
     }
     return points.length > 2;
   }
@@ -791,6 +886,9 @@ class CurrentTripItem extends MyTripItem {
       {required LatLng position,
       required int nearestIndex,
       required int nextNearestIndex}) {
+    developer.log(
+        'nearestIndex: $nearestIndex   nextNearestIndex: $nextNearestIndex',
+        name: '_waypoint');
     if (nearestIndex > -1) {
       pointsOfInterest[nearestIndex] = PointOfInterest.clone(
           pointOfInterest: pointsOfInterest[nearestIndex],
@@ -857,20 +955,6 @@ class CurrentTripItem extends MyTripItem {
     }
   }
 }
-/*
-PointOfInterest highlightWaypoint(
-    {required PointOfInterest pointOfInterest, bool highlighted = true}) {
-  int index = pointOfInterest.waypoint;
-  int type = pointOfInterest.type;
-  int colourIndex = highlighted ? Setup().highlightedColour : 3;
-  LatLng position = pointOfInterest.point;
-  MarkerWidget marker =
-      MarkerWidget(type: type, listIndex: index, colourIdx: colourIndex);
-  return PointOfInterest(
-      type: type, waypoint: index, point: position, child: marker);
-}
-
-*/
 
 class MyTripItem {
   int id;
@@ -1057,11 +1141,6 @@ class MyTripItem {
     };
   }
 
-  /*
-            '''CREATE TABLE drives(id INTEGER PRIMARY KEY AUTOINCREMENT, uri INTEGER, title TEXT, sub_title TEXT, body TEXT, 
-          map_image TEXT, distance REAL, points_of_interest INTEGER, added DATETIME)''');
-  */
-
   Map<String, dynamic> toDrivesMap() {
     return {
       'id': id,
@@ -1075,10 +1154,89 @@ class MyTripItem {
     };
   }
 
+  Map<String, dynamic> myTripToMap() {
+    List<Map<String, dynamic>> pointsOfInterestMap = [{}];
+    List<Map<String, dynamic>> maneuversMap = [{}];
+    List<Map<String, dynamic>> routesMap = [{}];
+    List<Map<String, dynamic>> goodRoadsMap = [{}];
+
+    double maxLat = -90;
+    double minLat = 90;
+    double maxLong = -180;
+    double minLong = 180;
+
+    String getUuid() {
+      String uuidString = Uuid().v7();
+      return uuidString.replaceAll(RegExp(r'-'), '');
+    }
+
+    if (driveUri.isEmpty) {
+      driveUri = getUuid();
+    }
+    for (PointOfInterest pointOfInterest in pointsOfInterest) {
+      pointOfInterest.url = getUuid();
+      pointsOfInterestMap.add(pointOfInterest.toApiMap());
+    }
+    for (Maneuver maneuver in maneuvers) {
+      //    Map<String, dynamic> maneuverMap = maneuver.toMap();
+      //    maneuverMap['drive_uri'] = driveUri;
+      maneuversMap.add(maneuver.toMap());
+      maxLat = maneuver.location.latitude > maxLat
+          ? maneuver.location.latitude
+          : maxLat;
+      minLat = maneuver.location.latitude < minLat
+          ? maneuver.location.latitude
+          : minLat;
+      maxLong = maneuver.location.longitude > maxLong
+          ? maneuver.location.longitude
+          : maxLong;
+      minLong = maneuver.location.longitude < minLong
+          ? maneuver.location.longitude
+          : minLong;
+    }
+    for (mt.Route route in routes) {
+      routesMap.add(routeToMap(route: route));
+    }
+    for (mt.Route goodRoad in goodRoads) {
+      routesMap.add(routeToMap(route: goodRoad));
+    }
+
+    Map<String, dynamic> tripMap = {
+      'drive_uri': driveUri,
+      'title': heading,
+      'sub_title': subHeading,
+      'body': body,
+      'published': published,
+      'publisher': publisher,
+      'points_of_interest': pointsOfInterestMap,
+      'maneuvers': maneuversMap,
+      'routes': routesMap,
+      'good_roads': goodRoadsMap,
+      'images': images,
+      'score': score,
+      'distance': distance,
+      'max_lat': maxLat,
+      'min_lat': minLat,
+      'max_long': maxLong,
+      'min_long': minLong,
+      'added': DateTime.now().toString()
+    };
+
+    return tripMap;
+  }
+
+  Map<String, dynamic> routeToMap({required mt.Route route}) {
+    return {
+      'points': pointsToString(route.points),
+      'colour': colourList.indexOf(route.color),
+      'stroke': route.strokeWidth,
+    };
+  }
+
   Future<int> saveLocal() async {
     int result = -1;
     updateDistance();
-    driveId = await saveMyTripItem(this);
+    id = await saveMyTripItem(this);
     try {
       Uint8List? pngBytes = Uint8List.fromList([]);
       if (driveUri.isEmpty) {
@@ -1092,7 +1250,8 @@ class MyTripItem {
         pngBytes = await wh.getImageBytes(url: url);
       }
       if (pngBytes != null) {
-        String url = '${Setup().appDocumentDirectory}/drive$driveId.png';
+        String url =
+            '${Setup().appDocumentDirectory}/drive$id.png'; // driveId.png';
         final imgFile = File(url);
         imgFile.writeAsBytes(pngBytes);
         if (imgFile.existsSync()) {

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'package:drives/classes/classes.dart';
+import '/classes/classes.dart';
 
 class SetPreferences extends StatelessWidget {
   final TripsPreferences preferences;

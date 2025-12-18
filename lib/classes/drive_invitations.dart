@@ -1,9 +1,11 @@
-import 'dart:io';
-import 'package:drives/services/web_helper.dart';
+// import 'package:universal_io/universal_io.dart';
+import 'package:universal_io/universal_io.dart';
+import '/services/web_helper.dart';
 import 'package:flutter/material.dart';
-import 'package:drives/models/other_models.dart';
-import 'package:drives/classes/classes.dart';
-import 'package:drives/constants.dart';
+import '/models/other_models.dart';
+import '/classes/classes.dart';
+import '/helpers/helpers.dart';
+import '/constants.dart';
 
 class DriveInvitations extends StatefulWidget {
   final int index;
@@ -108,30 +110,39 @@ class _DriveInvitationsState extends State<DriveInvitations>
                   ]),
                   children: [
                     if (widget.groupDrivers[index].invitees.isNotEmpty)
-                      SizedBox(
-                        height: 500,
-                        child: ListView.builder(
-                          itemCount: widget.groupDrivers[index].invitees.length,
-                          itemBuilder: (context, idx) => Padding(
-                            padding: EdgeInsets.symmetric(
-                                horizontal: 0.0, vertical: 5.0),
-                            child: ListTile(
-                              leading: getLeading(
-                                  groupIndex: index, driverIndex: idx),
-                              title: Text(
-                                '${widget.groupDrivers[index].invitees[idx]['forename'] ?? ''} ${widget.groupDrivers[index].invitees[idx]['surname'] ?? ''}',
-                                style: TextStyle(
-                                    fontSize: 18, fontWeight: FontWeight.bold),
-                              ),
-                              subtitle: Text(
-                                widget.groupDrivers[index].invitees[idx]
-                                        ['email'] ??
-                                    '',
-                                style: TextStyle(fontSize: 18),
-                              ),
+                      //  Expanded(
+                      //    flex: 1,
+                      //   child: SingleChildScrollView(
+                      // child:
+                      ListView.builder(
+                        itemCount: widget.groupDrivers[index].invitees.length,
+
+                        /// Shrinkwrap calculates the space needed so NOT for very long lists
+                        shrinkWrap: true,
+                        // 2. This disables scrolling within this inner list, so the
+                        //    user scrolls the main page instead.
+                        physics: NeverScrollableScrollPhysics(),
+                        itemBuilder: (context, idx) => Padding(
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 0.0, vertical: 5.0),
+                          child: ListTile(
+                            leading:
+                                getLeading(groupIndex: index, driverIndex: idx),
+                            title: Text(
+                              '${widget.groupDrivers[index].invitees[idx]['forename'] ?? ''} ${widget.groupDrivers[index].invitees[idx]['surname'] ?? ''}',
+                              style: TextStyle(
+                                  fontSize: 18, fontWeight: FontWeight.bold),
+                            ),
+                            subtitle: Text(
+                              widget.groupDrivers[index].invitees[idx]
+                                      ['email'] ??
+                                  '',
+                              style: TextStyle(fontSize: 18),
                             ),
                           ),
                         ),
+                        //     ),
+                        //   ),
                       ),
                     if (widget.groupDrivers[index].invitees.isEmpty)
                       SizedBox(
@@ -251,7 +262,13 @@ class _DriveInvitationsState extends State<DriveInvitations>
                     child: Column(children: [
                       const Icon(Icons.route),
                       Text(
-                          '${widget.myTripItem.distance.toStringAsFixed(1)} miles long')
+                        '${widget.myTripItem.distance.toStringAsFixed(1)} miles long',
+                        style: labelStyle(
+                          context: context,
+                          size: 3,
+                          color: Colors.black,
+                        ),
+                      )
                     ]),
                   ),
                   Expanded(
@@ -259,7 +276,13 @@ class _DriveInvitationsState extends State<DriveInvitations>
                     child: Column(children: [
                       const Icon(Icons.landscape),
                       Text(
-                          '${widget.myTripItem.pointsOfInterest.length} highlights')
+                        '${widget.myTripItem.pointsOfInterest.length} highlights',
+                        style: labelStyle(
+                          context: context,
+                          size: 3,
+                          color: Colors.black,
+                        ),
+                      )
                     ]),
                   ),
                   Expanded(
@@ -267,7 +290,13 @@ class _DriveInvitationsState extends State<DriveInvitations>
                     child: Column(children: [
                       const Icon(Icons.social_distance),
                       Text(
-                          '${(widget.myTripItem.distanceAway * metersToMiles).toStringAsFixed(1)} miles away')
+                        '${(widget.myTripItem.distanceAway * metersToMiles).toStringAsFixed(1)} miles away',
+                        style: labelStyle(
+                          context: context,
+                          size: 3,
+                          color: Colors.black,
+                        ),
+                      )
                     ]),
                   ),
                 ]),

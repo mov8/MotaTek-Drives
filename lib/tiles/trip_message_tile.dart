@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:drives/models/other_models.dart';
+import '/models/other_models.dart';
 import 'package:intl/intl.dart';
 
 class TripMessageTile extends StatefulWidget {

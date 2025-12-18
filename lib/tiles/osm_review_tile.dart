@@ -1,8 +1,9 @@
-import 'package:drives/services/services.dart';
+import '/services/services.dart';
 import 'package:flutter/material.dart';
-import 'package:drives/models/other_models.dart';
-import 'package:drives/classes/classes.dart';
-import 'package:drives/constants.dart';
+import '/models/other_models.dart';
+import '/classes/classes.dart';
+import '/constants.dart';
+import '/helpers/edit_helpers.dart';
 
 class OsmReviewTile extends StatefulWidget {
   final int index;
@@ -40,10 +41,6 @@ class _OsmReviewTileState extends State<OsmReviewTile>
     super.initState();
     _tController = TabController(length: 2, vsync: this);
     photos = [];
-    //  WidgetsBinding.instance.addPostFrameCallback((_) {
-    //    _reviews = widget.reviews.length;
-    //    _tController.index = _reviews == 0 ? 1 : 0;
-    //  });
   }
 
   @override
@@ -59,32 +56,36 @@ class _OsmReviewTileState extends State<OsmReviewTile>
       _tController.index = _reviews == 0 ? 1 : 0;
     }
     return SingleChildScrollView(
-        child: Column(
-      children: [
-        TabBar(
-          controller: _tController,
-          labelStyle: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-          tabs: [
-            Tab(
-                icon: Icon(Icons.reviews_outlined),
-                text: '$_reviews Review${_reviews == 1 ? '' : 's'}'),
-            Tab(icon: Icon(Icons.star_rate_outlined), text: 'Add Review'),
-          ],
-        ),
-        SizedBox(
-          height: MediaQuery.of(context).size.height - 300,
-          width: MediaQuery.of(context).size.width - 50,
-          // SingleChildScrollView(
-          child: TabBarView(
+      child: Column(
+        children: [
+          TabBar(
             controller: _tController,
-            children: [
-              reviews(),
-              addReview(),
+            labelStyle:
+                textStyle(context: context, size: 2, color: Colors.black),
+            tabs: [
+              Tab(
+                  icon: Icon(Icons.reviews_outlined),
+                  text: '$_reviews Review${_reviews == 1 ? '' : 's'}'),
+              Tab(icon: Icon(Icons.star_rate_outlined), text: 'Add Review'),
             ],
           ),
-        ),
-      ],
-    ));
+          SizedBox(
+            height: MediaQuery.of(context).size.height - 300,
+            width: MediaQuery.of(context).size.width - 50,
+            child: TabBarView(
+              controller: _tController,
+              children: [
+                reviews(),
+                addReview(),
+              ],
+            ),
+          ),
+          SizedBox(
+            height: 20,
+          ),
+        ],
+      ),
+    );
   }
 
   Widget reviews() {
@@ -113,8 +114,8 @@ class _OsmReviewTileState extends State<OsmReviewTile>
                       flex: 1,
                       child: Text(
                         widget.reviews[index]['rating'].toString(),
-                        style: TextStyle(
-                            fontSize: 20, fontWeight: FontWeight.bold),
+                        style: textStyle(
+                            context: context, size: 2, color: Colors.black),
                       ),
                     ),
                   ]),
@@ -124,7 +125,8 @@ class _OsmReviewTileState extends State<OsmReviewTile>
                       padding: EdgeInsetsGeometry.fromLTRB(10, 0, 0, 0),
                       child: Text(
                           widget.reviews[index]['rated'].substring(0, 16),
-                          style: TextStyle(fontSize: 18),
+                          style: textStyle(
+                              context: context, size: 2, color: Colors.black),
                           textAlign: TextAlign.start),
                     ),
                   ),
@@ -134,7 +136,8 @@ class _OsmReviewTileState extends State<OsmReviewTile>
                       child: Padding(
                         padding: EdgeInsetsGeometry.fromLTRB(10, 0, 0, 0),
                         child: Text(widget.reviews[index]['comment'],
-                            style: TextStyle(fontSize: 22),
+                            style: textStyle(
+                                context: context, size: 2, color: Colors.black),
                             textAlign: TextAlign.start),
                       ),
                     ),
@@ -152,7 +155,8 @@ class _OsmReviewTileState extends State<OsmReviewTile>
                       child: Padding(
                         padding: EdgeInsetsGeometry.fromLTRB(10, 0, 0, 0),
                         child: Text(widget.reviews[index]['rated_by'],
-                            style: TextStyle(fontSize: 18),
+                            style: textStyle(
+                                context: context, size: 2, color: Colors.black),
                             textAlign: TextAlign.start),
                       ),
                     ),
@@ -167,14 +171,7 @@ class _OsmReviewTileState extends State<OsmReviewTile>
   }
 
   Widget addReview() {
-    return //SizedBox(
-        // height: 600,
-        // width: 250,
-        // child:
-        //   SingleChildScrollView(
-        //  child:
-        Column(
-      //  mainAxisSize: MainAxisSize.max,
+    return Column(
       children: [
         Row(
           children: [
@@ -190,7 +187,8 @@ class _OsmReviewTileState extends State<OsmReviewTile>
               flex: 8,
               child: Text(
                 widget.amenity.replaceFirst(RegExp('_'), ' '),
-                style: TextStyle(fontSize: 30),
+                style:
+                    textStyle(context: context, size: 2, color: Colors.black),
               ),
             ),
           ],
@@ -204,10 +202,8 @@ class _OsmReviewTileState extends State<OsmReviewTile>
                   child: Text(
                     '${widget.name.contains('The') ? '' : 'The '}${widget.name} has not yet been rated. Review it now to help other people.',
                     maxLines: 3,
-                    style: TextStyle(
-                      fontSize: 20,
-                      overflow: TextOverflow.ellipsis,
-                    ), //, overflow: TextOverflow.visible),
+                    style: textStyle(
+                        context: context, color: Colors.black, size: 3),
                   ),
                 ),
               ),
@@ -233,11 +229,11 @@ class _OsmReviewTileState extends State<OsmReviewTile>
                       hintText: 'Describe your experience ...',
                       labelText: 'My review',
                     ),
-                    style: Theme.of(context).textTheme.bodyLarge,
+                    style: textStyle(
+                        context: context, size: 2, color: Colors.black),
                     autovalidateMode: AutovalidateMode.onUserInteraction,
                     onChanged: (text) => widget.reviewData['comment'] = text,
-                    onFieldSubmitted: (_) => ()) //body = text
-                ),
+                    onFieldSubmitted: (_) => ())),
           ),
         ]),
         Row(children: [
@@ -247,9 +243,10 @@ class _OsmReviewTileState extends State<OsmReviewTile>
               child: Align(
                 alignment: Alignment.bottomCenter,
                 child: ActionChip(
-                  label: const Text(
+                  label: Text(
                     'Image',
-                    style: TextStyle(fontSize: 18, color: Colors.white),
+                    style: labelStyle(
+                        context: context, size: 3, color: Colors.white),
                   ),
                   avatar: const Icon(Icons.photo_album,
                       size: 20, color: Colors.white),
@@ -285,8 +282,6 @@ class _OsmReviewTileState extends State<OsmReviewTile>
               : null,
         ),
       ],
-      //  ),
-      //  ),
     );
   }
 }

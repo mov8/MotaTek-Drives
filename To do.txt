@@ -33,14 +33,14 @@ Issues from 30 Sept 25
 2 Resolve the roundabout issue DONE
 3 Check maneuvers are keeping up with progress DONE
 4 Download maps to device before starting trip
-5 Re-routing is essential
-6 Resolve the group position problem - one user displays position correctly the other doesn't
+5 Re-routing is essential DONE
+6 Resolve the group position problem - one user displays position correctly the other doesn't DONE
 7 Sort out the handling of different font sized on devices - Gemini gave a stear.
-8 Double check editing - changing the route with anchor points.
+8 Double check editing - changing the route with anchor points. DONE
 9 Documentation
 
 
-
+Doesn't work - 
 Possible route for offline maps using http.MockClient to intercept the call to the router
 Look at VectorMapStyle as that processes the URL
 void main() async {
@@ -51,7 +51,7 @@ void main() async {
     return http.Response('', 404);
   });
 
-
+Done
 For editing the route it would probably be best to let the user choose the action of any waypoints added:
   Start from here
   End here
@@ -64,7 +64,7 @@ change the start and end easitl, and either anchor the route or change the route
 nice to highlite the waypoints that would be anchors if the target is off the route. 
 This option should be available in both "create trip" and "edit trip" mode.
 
-
+Done
 Advice from Gemini:
 
     Prioritize Apple Silicon (M1/M2): If your budget allows, a used MacBook Air (M1, 2020) or Mac Mini (M1, 2020) will give you the best performance-to-price ratio and longest usability.

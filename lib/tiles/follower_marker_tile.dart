@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '/helpers/edit_helpers.dart';
 
 class FollowerMarkerTile extends StatefulWidget {
   final int index;
@@ -10,6 +11,7 @@ class FollowerMarkerTile extends StatefulWidget {
   const FollowerMarkerTile({
     super.key,
     required this.index,
+    required BuildContext context,
     this.manufacturer = '',
     this.model = '',
     this.colour = '',
@@ -37,22 +39,23 @@ class _FollowerMarkerTileState extends State<FollowerMarkerTile> {
           width: 150,
           child:
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(
-              '${widget.manufacturer} ${widget.model}',
-              style: const TextStyle(
+            Text('${widget.manufacturer} ${widget.model}',
+                style: textStyle(
+                    context: context,
+                    color: Colors.black,
+                    size:
+                        2) /* const TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
-                  overflow: TextOverflow.ellipsis),
-            ),
+                  overflow: TextOverflow.ellipsis),*/
+                ),
             Text(
               'Colour ${widget.colour}',
-              style: const TextStyle(
-                  fontSize: 18, overflow: TextOverflow.ellipsis),
+              style: textStyle(context: context, color: Colors.black, size: 2),
             ),
             Text(
               'Registration ${widget.registration}',
-              style: const TextStyle(
-                  fontSize: 18, overflow: TextOverflow.ellipsis),
+              style: textStyle(context: context, color: Colors.black, size: 2),
             ),
           ]),
         ),

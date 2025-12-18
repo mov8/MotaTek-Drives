@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:drives/classes/classes.dart';
+import '/classes/classes.dart';
+import '/helpers/edit_helpers.dart';
+import 'package:flutter/services.dart';
 
 class AutocompleteWidget extends StatelessWidget {
   final List<String> options;
@@ -87,6 +89,8 @@ class AutocompleteAsync extends StatefulWidget {
   final TextInputType? keyboardType;
   final TextInputAction? textInputAction;
   final InputDecoration? decoration;
+  final TextStyle? style;
+  final List<TextInputFormatter>? inputFormatters;
 
   const AutocompleteAsync(
       {super.key,
@@ -99,9 +103,11 @@ class AutocompleteAsync extends StatefulWidget {
       this.onSelect,
 //      this.autofocus = false,
       this.onChange,
+      this.inputFormatters,
       this.onUpdateOptionsRequest,
       this.decoration,
       this.keyboardType,
+      this.style,
       this.textInputAction});
 
   @override
@@ -142,9 +148,10 @@ class _AutocompleteAsyncState extends State<AutocompleteAsync> {
           controller: fieldTextEditingController,
           keyboardType: widget.keyboardType,
           textInputAction: _nextAction,
-          //        autofocus: widget.autofocus,
+          inputFormatters: widget.inputFormatters,
           focusNode: fieldFocusNode,
           decoration: widget.decoration,
+          style: widget.style,
           onChanged: (text) {
             if (text.isEmpty) {
               _options.clear();
@@ -181,7 +188,10 @@ class _AutocompleteAsyncState extends State<AutocompleteAsync> {
               child: ListView(
                 children: options.map((String option) {
                   return ListTile(
-                    title: Text(option),
+                    title: Text(
+                      option,
+                      style: widget.style,
+                    ),
                     onTap: () {
                       onSelected(option);
                     },
@@ -222,6 +232,7 @@ class AutocompletePlace extends StatefulWidget {
   final List<Place> options;
   final TextInputType? keyboardType;
   final InputDecoration? decoration;
+  final TextStyle? style;
   final double optionsMaxHeight;
   const AutocompletePlace(
       {super.key,
@@ -231,6 +242,7 @@ class AutocompletePlace extends StatefulWidget {
       this.onSelect,
       this.onChange,
       this.onUpdateOptionsRequest,
+      this.style,
       this.optionsMaxHeight = 200,
       this.decoration,
       this.keyboardType});
@@ -265,6 +277,7 @@ class _AutocompletePlace extends State<AutocompletePlace> {
           FocusNode fieldFocusNode,
           VoidCallback onFieldSubmitted) {
         return TextField(
+          style: widget.style,
           autofocus: true,
           controller: fieldTextEditingController,
           keyboardType: widget.keyboardType,

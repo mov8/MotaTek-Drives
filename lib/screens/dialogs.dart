@@ -2,11 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'dart:async';
-import 'package:drives/constants.dart';
-import 'package:drives/services/services.dart';
-import 'package:drives/models/models.dart';
+import '/constants.dart';
+import '/services/services.dart';
+import '/helpers/edit_helpers.dart';
+import '/models/models.dart';
+import '/classes/classes.dart';
+import '/tiles/tiles.dart';
 import 'package:socket_io_client/socket_io_client.dart' as sio;
-//import 'package:drives/screens/screens.dart';
+import 'package:flutter_phone_direct_caller/flutter_phone_direct_caller.dart';
+//import '/screens/screens.dart';
 
 const Duration fakeAPIDuration = Duration(seconds: 1);
 const Duration debounceDuration = Duration(milliseconds: 500);
@@ -34,12 +38,16 @@ List<TextButton> actionButtons(
   for (int i = 0; i < buttonTexts.length; i++) {
     textButtons.add(TextButton(
         style: TextButton.styleFrom(
-          padding: const EdgeInsets.all(16.0),
-          backgroundColor: const Color.fromARGB(255, 204, 224, 241),
-          textStyle: const TextStyle(fontSize: 30),
-        ),
-        child:
-            Text(buttonTexts[i], style: Theme.of(context).textTheme.bodyLarge!),
+            padding: const EdgeInsets.all(16.0),
+            //  backgroundColor: const Color.fromARGB(255, 204, 224, 241),
+            textStyle: labelStyle(
+                context: context,
+                color: Colors.deepPurple,
+                size: 3) //const TextStyle(fontSize: 30),
+            ),
+        child: Text(buttonTexts[i],
+            style: titleStyle(
+                context: context, color: Colors.deepPurple, size: 2)),
         onPressed: () {
           if (callbacks.isNotEmpty && callbacks.length > i) {
             callbacks[i]();
@@ -48,6 +56,326 @@ List<TextButton> actionButtons(
         }));
   }
   return textButtons;
+}
+
+pointOfInterestDialog(
+    BuildContext context,
+    String name,
+    String description,
+    String images,
+    String url,
+    List<String> imageUrls,
+    double score,
+    int scored,
+    int type) async {
+  Widget okButton = TextButton(
+    child: const Text("Ok"),
+    onPressed: () {
+      Navigator.pop(context, true);
+    },
+  );
+
+  // set up the AlertDialog
+  AlertDialog alert = AlertDialog(
+    title: Text(
+      name.isEmpty ? 'Waypoint' : name,
+      style: headlineStyle(context: context, size: 2, color: Colors.black),
+      textAlign: TextAlign.center,
+    ),
+    elevation: 5,
+    content: MarkerTile(
+      index: -1,
+      name: name,
+      description: description,
+      images: images,
+      url: url,
+      imageUrls: imageUrls,
+      type: type,
+      score: score,
+      scored: scored,
+      onRated: () => {},
+      canEdit: false,
+      expanded: false,
+    ),
+    actions: [
+      okButton,
+    ],
+  );
+
+  // show the dialog
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      // result = alert;
+
+      return alert;
+    },
+  );
+}
+
+osmDataDialog(
+    BuildContext context,
+    String name,
+    String amenity,
+    String postcode,
+    int iconCodepoint,
+    String osmId,
+    ImageRepository imageRepository,
+    List<dynamic> reviews) async {
+  Map<String, dynamic> reviewData = {};
+  AlertDialog alert = AlertDialog(
+    title: Text(
+      name,
+      style: textStyle(context: context, color: Colors.black, size: 2),
+      textAlign: TextAlign.center,
+    ),
+    scrollable: true,
+    elevation: 5,
+    content: StatefulBuilder(
+      builder: (BuildContext context, StateSetter setState) {
+        return SizedBox(
+          height: 600,
+          child: OsmReviewTile(
+              index: 1,
+              imageRepository: imageRepository,
+              name: name,
+              amenity: amenity,
+              postcode: postcode,
+              iconCodepoint: iconCodepoint,
+              reviewData: reviewData,
+              reviews: reviews),
+        );
+      },
+    ),
+    actions: [
+      TextButton(
+        child: const Text(
+          "Ok",
+          style: TextStyle(fontSize: 20),
+        ),
+        onPressed: () {
+          postWithPhotos(
+            url: '$urlOsmReview/add',
+            fields: {
+              'amenity': amenity,
+              'osm_data_id': osmId,
+              'comment': reviewData['comment'] ?? '',
+              'images': reviewData['imageUrls'] ?? '',
+              'rated': dateFormatSQL.format(DateTime.now()),
+              'rating': reviewData['rating'] ?? 5.0
+            },
+            photos: photosFromJson(photoString: reviewData['imageUrls'] ?? ''),
+          );
+          Navigator.pop(context, true);
+        },
+      ),
+      TextButton(
+        child: const Text(
+          "Cancel",
+          style: TextStyle(fontSize: 20),
+        ),
+        onPressed: () => Navigator.pop(context, false),
+      ),
+    ],
+  );
+
+  // show the dialog
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      // result = alert;
+
+      return alert;
+    },
+  );
+}
+
+AlertDialog followerDialog({
+  required BuildContext context,
+  required sio.Socket socket,
+  String forename = '',
+  String surname = '',
+  String phoneNumber = '',
+  String manufacturer = '',
+  String model = '',
+  String colour = '',
+  String registration = '',
+}) {
+  // set up the AlertDialog
+  return AlertDialog(
+    title: Text(
+      '$forename $surname',
+      style: headlineStyle(context: context, color: Colors.black, size: 2),
+      textAlign: TextAlign.center,
+    ),
+    elevation: 5,
+    content: FollowerMarkerTile(
+        index: -1,
+        context: context,
+        manufacturer: manufacturer,
+        model: model,
+        colour: colour,
+        registration: registration),
+    actions: [
+      TextButton(
+        child: const Text("Contact", style: TextStyle(fontSize: 22)),
+        onPressed: () {
+          Navigator.pop(context, true);
+        },
+      ),
+      TextButton(
+        child: const Text("Dismiss", style: TextStyle(fontSize: 22)),
+        onPressed: () {
+          Navigator.pop(context, false);
+        },
+      )
+    ],
+  );
+}
+
+AlertDialog contactDiolog({
+  required BuildContext context,
+  //  Follower? follower,
+  Map<String, String>? follower,
+  required sio.Socket socket,
+}) {
+  String message = contactChoices[0];
+  return AlertDialog(
+    title: follower != null
+        ? Text('Message ${follower["forename"]} ${follower["surname"]}',
+            style:
+                headlineStyle(context: context, color: Colors.black, size: 1))
+        : Padding(
+            padding: EdgeInsets.symmetric(horizontal: 30),
+            child: Text(
+              'Broadcast Message',
+              style:
+                  headlineStyle(context: context, color: Colors.black, size: 2),
+            ),
+          ),
+    content: SizedBox(
+      width: 200,
+      height: 150,
+      child: Column(
+        children: [
+          Row(children: [
+            Expanded(
+              flex: 1,
+              child: Padding(
+                padding: const EdgeInsets.all(10),
+                child: DropdownButtonFormField<String>(
+                    isExpanded: true,
+                    style: textStyle(
+                        context: context, color: Colors.black, size: 2),
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      labelText: 'Saved Messages',
+                    ),
+                    initialValue: contactChoices[0],
+                    items: contactChoices
+                        .map(
+                          (item) => DropdownMenuItem<String>(
+                            value: item,
+                            child: Text(
+                              item,
+                              style: textStyle(
+                                  context: context,
+                                  size: 2,
+                                  color: Colors.black),
+                            ),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (item) => message = item!),
+              ),
+            ),
+          ]),
+          if (follower != null) ...[
+            Row(
+              children: [
+                ElevatedButton(
+                  onPressed: () async {
+                    await FlutterPhoneDirectCaller.callNumber(
+                        follower["phoneNumber"] ?? '');
+                  },
+                  child: Expanded(
+                    flex: 1,
+                    child: Padding(
+                      padding: const EdgeInsets.all(10),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.phone),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Call ${follower["phoneNumber"] ?? ""}',
+                            style: textStyle(
+                                context: context, color: Colors.black, size: 2),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ] else ...[
+            SizedBox(
+              height: 70,
+              child: Padding(
+                padding: const EdgeInsets.all(10),
+                //  child: SingleChildScrollView(
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        autofocus: true,
+                        minLines: 1,
+                        maxLines: 2,
+                        style: textStyle(
+                            context: context, color: Colors.black, size: 2),
+                        decoration: InputDecoration(
+                          border: OutlineInputBorder(),
+                          hintText: 'Enter group message',
+                          hintStyle: hintStyle(context: context),
+                        ),
+                        textInputAction: TextInputAction.done,
+                        keyboardType: TextInputType.multiline,
+                        onChanged: (value) => message = value,
+                      ),
+                    ),
+                  ],
+                ),
+                //    ),
+              ),
+            ),
+          ]
+        ],
+      ),
+    ),
+    actions: <Widget>[
+      TextButton(
+        child: const Text('Chat', style: TextStyle(fontSize: 22)),
+        onPressed: () {
+          socket.emit('trip_message', {'message': message});
+          Navigator.pop(context, message);
+        },
+      ),
+      TextButton(
+        child: const Text('Send', style: TextStyle(fontSize: 22)),
+        onPressed: () {
+          socket.emit('trip_message', {'message': message});
+          Navigator.pop(context, message);
+        },
+      ),
+      TextButton(
+        child: const Text('Close', style: TextStyle(fontSize: 22)),
+        onPressed: () {
+          Navigator.pop(context, '');
+        },
+      ),
+    ],
+  );
 }
 
 class Utility {
@@ -182,7 +510,7 @@ class Utility {
           children: <Widget>[
             Text(
               alertMessage,
-              style: const TextStyle(fontSize: 20),
+              style: textStyle(context: context, size: 2, color: Colors.black),
             )
           ],
         ),
@@ -232,17 +560,14 @@ class Utility {
     AlertDialog alert = AlertDialog(
       title: Text(
         alertTitle,
-        style: const TextStyle(
-          fontSize: 24,
-          fontWeight: FontWeight.bold,
-        ),
+        style: headlineStyle(context: context, size: 1, color: Colors.black),
       ),
       content: SingleChildScrollView(
         child: ListBody(
           children: <Widget>[
             Text(
               alertMessage,
-              style: const TextStyle(fontSize: 20),
+              style: textStyle(context: context, size: 2, color: Colors.black),
             )
           ],
         ),
@@ -311,10 +636,11 @@ AlertDialog buildColumnDialog(
 Future<LoginState> loginDialog(BuildContext context,
     {required User user}) async {
   // String status = '';
-//  List<String> registered = [];
+  List<String> registered = [];
 //  LoginError loginError = LoginError.noData;
-  bool isRegistered = false;
+//  bool isRegistered = false;
   final FocusNode focusNode = FocusNode();
+  TextEditingController controller = TextEditingController();
   user.password = '';
   List<dynamic> statusPrompts = [
     {'hint': '', 'button': '', 'error': false}, // noData
@@ -334,7 +660,7 @@ Future<LoginState> loginDialog(BuildContext context,
     {'hint': '', 'button': 'Login', 'error': false}, // validPassword
     {
       'hint': 'incorrect password',
-      'button': 'Clear',
+      'button': 'Reset Password',
       'error': true
     }, // passwordUnknown
     {
@@ -359,7 +685,8 @@ Future<LoginState> loginDialog(BuildContext context,
           const SizedBox(
             width: 10,
           ),
-          Text('Login'),
+          Text('Login',
+              style: textStyle(context: context, color: Colors.black, size: 1)),
         ]),
         content: SizedBox(
           height: 160,
@@ -369,34 +696,61 @@ Future<LoginState> loginDialog(BuildContext context,
               children: [
                 Expanded(
                   child: TextField(
+                    controller: controller,
                     autofocus: true,
                     textInputAction: TextInputAction.next,
                     keyboardType: TextInputType.emailAddress,
                     textCapitalization: TextCapitalization.none,
-                    decoration: const InputDecoration(
-                        hintText: 'Enter your email address'),
-                    onChanged: (value) {
+                    inputFormatters: [
+                      LowerCaseTextFormatter(),
+                    ],
+                    decoration: InputDecoration(
+                        hintText: 'Enter your email address',
+                        hintStyle: hintStyle(context: context)),
+                    style: textStyle(
+                        context: context, color: Colors.black, size: 3),
+                    onChanged: (value) async {
                       user.email = value.toLowerCase();
 
                       /// Clear error message if correcting email
                       if (loginStatus != LoginStatus.noData) {
                         setState(() => loginStatus = LoginStatus.noData);
                       }
+
+                      /// If a possible email then get a list of all emails matching the
+                      /// data entered so far
+                      bool found = false;
+                      if (user.email.contains('.') &&
+                          user.email.contains('@')) {
+                        if (registered.isEmpty) {
+                          registered = await getApiOptions(
+                              value: user.email, secure: false);
+                          found = registered.length == 1;
+                        } else {
+                          found = false;
+                          for (String email in registered) {
+                            found =
+                                found ? found : email.startsWith(user.email);
+                          }
+                          if (!found) {
+                            registered.clear();
+                          }
+                        }
+                      }
+                      if (emailRegex.hasMatch(user.email) && found) {
+                        setState(() => loginStatus = LoginStatus.emailKnown);
+                        focusNode.requestFocus();
+                      }
                     },
                     onSubmitted: (text) async {
+                      text = text.toLowerCase();
+                      controller.text = text.toLowerCase();
                       debugPrint('Submitted $text');
-                      loginStatus = LoginStatus.noPassword;
-                      if (emailRegex.hasMatch(user.email)) {
-                        isRegistered = await checkEmail(email: user.email);
-                        if (isRegistered) {
-                          setState(() {
-                            focusNode.requestFocus();
-                            loginStatus = LoginStatus.emailKnown;
-                          });
-                        } else {
-                          setState(
-                              () => loginStatus = LoginStatus.emailUnknown);
-                        }
+                      if (loginStatus == LoginStatus.emailKnown) {
+                        loginStatus = LoginStatus.noPassword;
+                        setState(() => focusNode.requestFocus());
+                      } else if (emailRegex.hasMatch(user.email)) {
+                        setState(() => loginStatus = LoginStatus.emailUnknown);
                       } else {
                         setState(() => loginStatus = LoginStatus.emailInvalid);
                       }
@@ -419,10 +773,12 @@ Future<LoginState> loginDialog(BuildContext context,
                     child: TextField(
                         decoration: InputDecoration(
                           hintText: 'enter password - at least 8 characters',
+                          hintStyle: hintStyle(context: context),
                         ),
                         textInputAction: TextInputAction.done,
                         keyboardType: TextInputType.visiblePassword,
                         focusNode: focusNode,
+                        style: textStyle(context: context, color: Colors.black),
                         onChanged: (value) => setState(() {
                               if (value.length < 8) {
                                 loginStatus = LoginStatus.passwordTooShort;
@@ -459,12 +815,13 @@ Future<LoginState> loginDialog(BuildContext context,
                 Expanded(
                   child: Text(
                     statusPrompts[loginStatus.index]['hint'],
-                    style: TextStyle(
-                        color: statusPrompts[loginStatus.index]['error']
-                            ? Colors.red
-                            : Colors.black,
-                        fontSize: 18,
-                        fontWeight: FontWeight.normal),
+                    style: textStyle(
+                      context: context,
+                      size: 3,
+                      color: statusPrompts[loginStatus.index]['error']
+                          ? Colors.red
+                          : Colors.black,
+                    ),
                   ),
                 )
               ],
@@ -493,14 +850,12 @@ Future<LoginState> loginDialog(BuildContext context,
                     focusNode.dispose();
                     Navigator.pop(context, LoginState.login);
                   }
-                  if (response["response_status_code"] == 204) {
+                  if ([204, 401].contains(response["response_status_code"])) {
+                    loginStatus = LoginStatus.passwordUnknown;
                     setState(() => loginStatus == LoginStatus.passwordUnknown);
                   }
                 }
               },
-
-              ///     onPressed: () => Navigator.pop(context,
-              ///         user.password.isEmpty ? LoginState.register : LoginState.login),
               child: Text(
                 statusPrompts[loginStatus.index]['button'],
                 style: TextStyle(fontSize: 20),
@@ -556,11 +911,16 @@ class DriverDetails {
                           child: TextFormField(
                             autofocus: true,
                             initialValue: driver.manufacturer,
-                            decoration: const InputDecoration(
+                            decoration: InputDecoration(
                               label: Text('Vehicle manufacturer'),
+                              labelStyle: labelStyle(
+                                  context: context, color: Colors.deepPurple),
                               border: OutlineInputBorder(),
                               hintText: 'Manufacturer',
+                              hintStyle: hintStyle(context: context),
                             ),
+                            style: textStyle(
+                                context: context, color: Colors.black),
                             textInputAction: TextInputAction.next,
                             textCapitalization: TextCapitalization.words,
                             keyboardType: TextInputType.name,
@@ -580,11 +940,15 @@ class DriverDetails {
                         Expanded(
                           child: TextFormField(
                             initialValue: driver.model,
-                            decoration: const InputDecoration(
+                            decoration: InputDecoration(
                               label: Text('Vehicle model'),
+                              labelStyle: labelStyle(context: context),
                               border: OutlineInputBorder(),
                               hintText: 'Model',
+                              hintStyle: hintStyle(context: context),
                             ),
+                            style: textStyle(
+                                context: context, color: Colors.black),
                             textInputAction: TextInputAction.next,
                             textCapitalization: TextCapitalization.words,
                             keyboardType: TextInputType.name,
@@ -605,11 +969,15 @@ class DriverDetails {
                           flex: 2,
                           child: TextFormField(
                             initialValue: driver.carColour,
-                            decoration: const InputDecoration(
+                            decoration: InputDecoration(
                               label: Text('Colour'),
+                              labelStyle: labelStyle(context: context),
                               border: OutlineInputBorder(),
                               hintText: 'Colour',
+                              hintStyle: hintStyle(context: context),
                             ),
+                            style: textStyle(
+                                context: context, color: Colors.black),
                             textInputAction: TextInputAction.next,
                             keyboardType: TextInputType.name,
                             onChanged: (value) => driver.carColour = value,
@@ -620,11 +988,14 @@ class DriverDetails {
                           flex: 2,
                           child: TextFormField(
                             initialValue: driver.registration,
-                            decoration: const InputDecoration(
-                              label: Text('Registration'),
-                              border: OutlineInputBorder(),
-                              hintText: 'Reg No',
-                            ),
+                            decoration: InputDecoration(
+                                label: Text('Registration'),
+                                labelStyle: labelStyle(context: context),
+                                border: OutlineInputBorder(),
+                                hintText: 'Reg No',
+                                hintStyle: hintStyle(context: context)),
+                            style: textStyle(
+                                context: context, color: Colors.black),
                             textCapitalization: TextCapitalization.characters,
                             textInputAction: TextInputAction.next,
                             keyboardType: TextInputType.name,
@@ -644,11 +1015,14 @@ class DriverDetails {
                         Expanded(
                           child: TextFormField(
                             initialValue: driver.phoneNumber,
-                            decoration: const InputDecoration(
-                              label: Text('Mobile'),
-                              border: OutlineInputBorder(),
-                              hintText: 'Mobile phone number',
-                            ),
+                            decoration: InputDecoration(
+                                label: Text('Mobile'),
+                                labelStyle: labelStyle(context: context),
+                                border: OutlineInputBorder(),
+                                hintText: 'Mobile phone number',
+                                hintStyle: hintStyle(context: context)),
+                            style: textStyle(
+                                context: context, color: Colors.black),
                             textInputAction: TextInputAction.done,
                             keyboardType: TextInputType.phone,
                             onChanged: (value) => driver.phoneNumber = value,
@@ -828,13 +1202,20 @@ Future<LatLng> locationDialog(BuildContext context, Function callback) async {
                                     fieldViewBuilder: (context, controller,
                                         focusNode, onEditingComplete) {
                                       return TextFormField(
-                                          textCapitalization:
-                                              TextCapitalization.characters,
-                                          controller: controller,
-                                          focusNode: focusNode,
-                                          onEditingComplete: onEditingComplete,
-                                          decoration: const InputDecoration(
-                                              hintText: 'Waypoint'));
+                                        textCapitalization:
+                                            TextCapitalization.characters,
+                                        controller: controller,
+                                        focusNode: focusNode,
+                                        onEditingComplete: onEditingComplete,
+                                        decoration: InputDecoration(
+                                          hintText: 'Waypoint',
+                                          hintStyle:
+                                              hintStyle(context: context),
+                                        ),
+                                        style: textStyle(
+                                            context: context,
+                                            color: Colors.black),
+                                      );
                                     },
                                     onSelected: (String selection) {
                                       // waypoints[i] = selection;
@@ -939,14 +1320,20 @@ Future<List<Polyline>> routeDialog(
                                       fieldViewBuilder: (context, controller,
                                           focusNode, onEditingComplete) {
                                         return TextFormField(
-                                            textCapitalization:
-                                                TextCapitalization.characters,
-                                            controller: controller,
-                                            focusNode: focusNode,
-                                            onEditingComplete:
-                                                onEditingComplete,
-                                            decoration: InputDecoration(
-                                                hintText: 'Waypoint ${i + 1}'));
+                                          textCapitalization:
+                                              TextCapitalization.characters,
+                                          controller: controller,
+                                          focusNode: focusNode,
+                                          onEditingComplete: onEditingComplete,
+                                          decoration: InputDecoration(
+                                            hintText: 'Waypoint ${i + 1}',
+                                            helperStyle:
+                                                hintStyle(context: context),
+                                          ),
+                                          style: textStyle(
+                                              context: context,
+                                              color: Colors.black),
+                                        );
                                       },
                                       onSelected: (String selection) {
                                         waypoints[i] = selection;

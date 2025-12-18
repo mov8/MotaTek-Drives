@@ -1,22 +1,23 @@
-// import 'package:drives/constants.dart';
-// import 'package:drives/constants.dart';
+// import '/constants.dart';
+// import '/constants.dart';
 // import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 // import 'package:path/path.dart' hide Style;
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'dart:ui' as ui;
-import 'dart:io';
-import 'package:drives/classes/classes.dart';
-import 'package:drives/models/models.dart';
-import 'package:drives/tiles/tiles.dart';
-import 'package:drives/screens/main_drawer.dart';
-import 'package:drives/screens/dialogs.dart';
-import 'package:drives/services/services.dart'; // hide getPosition;
+// import 'package:universal_io/universal_io.dart';
+import 'package:universal_io/universal_io.dart';
+import '/classes/classes.dart';
+import '/models/models.dart';
+import '/tiles/tiles.dart';
+import '/screens/main_drawer.dart';
+import '/screens/dialogs.dart';
+import '/services/services.dart'; // hide getPosition;
 import 'package:latlong2/latlong.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:drives/classes/route.dart' as mt;
-// import 'package:drives/constants.dart';
+import '/classes/route.dart' as mt;
+// import '/constants.dart';
 import 'package:vector_map_tiles/vector_map_tiles.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_map_animations/flutter_map_animations.dart';
@@ -91,6 +92,7 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.blue,
       key: _scaffoldKey,
       drawer: const MainDrawer(),
       appBar: AppBar(

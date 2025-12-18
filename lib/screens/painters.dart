@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
-import 'package:drives/constants.dart';
-import 'dart:developer' as developer;
+import '/constants.dart';
+// import 'dart:developer' as developer;
 
 // import 'package:latlong2/latlong.dart' hide Path;
 
@@ -123,9 +123,6 @@ class RoundaboutPainter extends CustomPainter {
     /// ie +90 would be right @ 90 degrees a sweepAngle of 270 degrees
     ///    -90 would be left @ 90 degrees a sweepAngle of 90 degrees
     /// 0.0174532925 is the degrees to radians convertion factor
-
-    // developer.log('index: $index  exitAngle: $exitAngle  exit: $exit',
-    //     name: '_roundabout');
 
     outlineBrush.color = Colors.grey;
     canvas.drawArc(rect, 0.5 * pi, 2 * pi, false, outlineBrush);

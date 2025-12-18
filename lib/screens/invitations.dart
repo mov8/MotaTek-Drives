@@ -1,9 +1,10 @@
-import 'package:drives/tiles/tiles.dart';
+import '/tiles/tiles.dart';
 import 'package:flutter/material.dart';
-import 'package:drives/models/models.dart';
-import 'package:drives/classes/classes.dart';
-import 'package:drives/services/web_helper.dart';
-import 'package:drives/constants.dart';
+// import 'package:flutter/services.dart';
+import '/models/models.dart';
+import '/classes/classes.dart';
+import '/services/web_helper.dart';
+import '/constants.dart';
 
 class InvitationsScreen extends StatefulWidget {
   // var setup;
@@ -19,9 +20,9 @@ class _InvitationsScreenState extends State<InvitationsScreen> {
   bool choosing = true;
   late Future<bool> dataloaded;
   late FocusNode fn1;
-  // bool _expanded = false;
-  int _openIndex = -1;
-  List<bool> expanded = [];
+  bool _expanded = false;
+  int? _openIndex = -1;
+  //List<bool> expanded = [];
 
   List<EventInvitation> invitations = [];
   final List<EventInvitation> _refused = [];
@@ -36,7 +37,7 @@ class _InvitationsScreenState extends State<InvitationsScreen> {
   String testString = '';
   TripItem? _tripItem = TripItem(heading: '');
   List<Photo>? _photos = [];
-
+  GroupDriveInvitationTileController? _activeController;
   @override
   void initState() {
     super.initState();
@@ -54,7 +55,7 @@ class _InvitationsScreenState extends State<InvitationsScreen> {
 
   Future<bool> dataFromWeb() async {
     invitations = await getInvitationsByUser(state: 2);
-    expanded = List.filled(invitations.length, false);
+    _expanded = false;
     return true;
   }
 
@@ -62,6 +63,7 @@ class _InvitationsScreenState extends State<InvitationsScreen> {
   Widget build(BuildContext context) {
     // introduces = [];
     return Scaffold(
+      backgroundColor: Colors.blue,
       appBar: ScreensAppBar(
         heading: 'Group drive invitations',
         prompt: 'Swipe right to accept, left to decline.',
@@ -131,28 +133,28 @@ class _InvitationsScreenState extends State<InvitationsScreen> {
   }
 
   _startDrive() {
-    startDrive(_openIndex);
+    startDrive(_openIndex!);
   }
 
   _downloadDrive() {
-    saveDrive(_openIndex);
+    saveDrive(_openIndex!);
   }
 
   getData1() async {
     invitations = await getInvitationsByUser(state: 0);
-    expanded = List.filled(invitations.length, false);
+    _expanded = false;
     setState(() => {});
   }
 
   getData2() async {
     invitations = await getInvitationsByUser(state: 1);
-    expanded = List.filled(invitations.length, false);
+    _expanded = false;
     setState(() => {});
   }
 
   getData3() async {
     invitations = await getInvitationsByUser(state: 2);
-    expanded = List.filled(invitations.length, false);
+    _expanded = false;
     setState(() => {});
   }
 
@@ -193,14 +195,15 @@ class _InvitationsScreenState extends State<InvitationsScreen> {
                 background: Container(color: Colors.blueGrey),
                 child: GroupDriveInvitationTile(
                   imageRepository: _imageRepository,
+                  controller: GroupDriveInvitationTileController(),
                   tripItem: _tripItem,
                   photos: _photos,
                   eventInvitation: invitations[index],
                   onSelect: (idx) => startDrive(idx),
                   onDownload: (idx) => saveDrive(idx),
-                  onExpansionChange: (index, value) =>
-                      expansionChange(index, value),
-                  expanded: expanded[index],
+                  onExpandChange: (open, controller) =>
+                      expanded(index, open, controller),
+                  expanded: _expanded,
                   onRespond: (idx, val) {
                     if (val == 2) {
                       _accepted.add(invitations[idx]);
@@ -247,14 +250,41 @@ class _InvitationsScreenState extends State<InvitationsScreen> {
     ]);
   }
 
+/*
   void expansionChange(index, value) async {
     expanded[index] = value;
     //  _expanded = value;
     _openIndex = index;
     _tripItem = await getTripItem(index);
-    _photos = photosFromJson(
-        photoString: _tripItem!.imageUrls, endPoint: '$urlDriveImages/');
+    _photos = _tripItem!.photos;
     setState(() => setOverflows(value));
+  }
+*/
+  expanded(
+      int index, bool expanded, GroupDriveInvitationTileController controller) {
+    if (expanded) {
+      try {
+        _activeController?.contract();
+      } catch (_) {
+        debugPrint('Contract() failed');
+      }
+      setState(() {
+        _openIndex = index;
+        _activeController = controller;
+        _expanded = true;
+        // _prompt = 'Edit ${_items[index].heading}';
+      });
+    } else {
+      if (index == _openIndex) {
+        // closing open tile
+        setState(() {
+          // _prompt = 'Add, delete or edit promotions';
+          _expanded = false;
+          _openIndex = null;
+          _activeController = null;
+        });
+      }
+    }
   }
 
   Future<TripItem?> getTripItem(int index) async {

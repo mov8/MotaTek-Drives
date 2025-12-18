@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:drives/classes/classes.dart';
-import 'package:drives/constants.dart';
-import 'package:drives/routes/routes.dart';
+import '/classes/classes.dart';
+import '/constants.dart';
+import '/routes/routes.dart';
 import 'package:latlong2/latlong.dart';
-import 'dart:developer' as developer;
+import '/models/models.dart';
+//import 'dart:developer' as developer;
 
 /// CreateTripChips controls the chips in CreateTrip
 /// it controls the state of both the trip and the parent
@@ -139,7 +140,7 @@ class CreateTripChips extends StatelessWidget {
         'actions': [],
         'highlight': [],
         'loaded': false,
-        'saved': false,
+        'saved': null,
         'group': false
       },
       {
@@ -150,7 +151,7 @@ class CreateTripChips extends StatelessWidget {
         'actions': [],
         'highlight': [],
         'loaded': false,
-        'saved': false,
+        'saved': null,
         'group': false
       },
       {
@@ -161,7 +162,7 @@ class CreateTripChips extends StatelessWidget {
         'actions': [],
         'highlight': [],
         'loaded': true,
-        'saved': false,
+        'saved': null,
         'group': false
       },
       {
@@ -174,7 +175,7 @@ class CreateTripChips extends StatelessWidget {
           TripState.editing
         ],
         'actions': [],
-        'highlight': [],
+        'highlight': [HighliteActions.none],
         'loaded': true,
         'saved': false,
         'group': false
@@ -188,27 +189,14 @@ class CreateTripChips extends StatelessWidget {
           TripState.loaded,
           TripState.none,
           TripState.notFollowing,
+          TripState.stoppedFollowing,
+          TripState.stoppedRecording,
           TripState.manual,
         ],
         'actions': [],
-        'highlight': [],
+        'highlight': [HighliteActions.none],
         'loaded': true,
-        'saved': false,
-        'group': false
-      },
-      {
-        'label': 'Start tracking',
-        'method': followRoute,
-        'icon': Icons.play_arrow,
-        'states': [
-          TripState.automatic,
-          TripState.stoppedRecording,
-          TripState.paused
-        ],
-        'actions': [],
-        'highlight': [],
-        'loaded': true,
-        'saved': false,
+        'saved': null,
         'group': false
       },
       {
@@ -218,8 +206,8 @@ class CreateTripChips extends StatelessWidget {
         'states': [TripState.editing],
         'actions': [],
         'highlight': [HighliteActions.routeHighlited],
-        'loaded': true,
-        'saved': false,
+        'loaded': null,
+        'saved': null,
         'group': false,
         'goodRoad': false,
       },
@@ -236,6 +224,21 @@ class CreateTripChips extends StatelessWidget {
         'goodRoad': true
       },
       {
+        'label': 'Start tracking',
+        'method': trackRoute,
+        'icon': Icons.play_arrow,
+        'states': [
+          TripState.automatic,
+          TripState.stoppedRecording,
+          TripState.paused
+        ],
+        'actions': [],
+        'highlight': [],
+        'loaded': null,
+        'saved': null,
+        'group': false
+      },
+      {
         'label': 'Pause tracking',
         'method': pauseRecording,
         'icon': Icons.pause,
@@ -243,47 +246,45 @@ class CreateTripChips extends StatelessWidget {
         'actions': [],
         'highlight': [],
         'loaded': true,
-        'saved': false,
+        'saved': null,
         'group': false
       },
       {
         'label': 'End tracking',
-        'method': pauseRecording,
+        'method': endTracking,
         'icon': Icons.stop,
-        'states': [TripState.recording],
+        'states': [TripState.recording, TripState.paused],
         'actions': [],
         'highlight': [],
         'loaded': true,
-        'saved': false,
+        'saved': null,
         'group': false
       },
       {
-        'label': 'Start following',
+        'label': 'Follow drive',
         'method': followRoute,
         'icon': Icons.play_arrow,
         'states': [
           TripState.loaded,
-          TripState.automatic,
-          TripState.stoppedRecording,
+          TripState.stoppedFollowing,
           TripState.notFollowing,
-          TripState.paused
         ],
         'actions': [],
         'highlight': [],
         'loaded': true,
-        'saved': false,
-        'group': false
+        'saved': null,
+        'group': null
       },
       {
         'label': 'Stop following',
         'method': stopFollowing,
         'icon': Icons.stop,
-        'states': [TripState.recording, TripState.following, TripState.paused],
+        'states': [TripState.following],
         'actions': [],
         'highlight': [],
         'loaded': true,
-        'saved': false,
-        'group': false
+        'saved': null,
+        'group': null
       },
       {
         'label': 'Steps',
@@ -300,8 +301,8 @@ class CreateTripChips extends StatelessWidget {
         'actions': [TripActions.none],
         'highlight': [],
         'loaded': true,
-        'saved': false,
-        'group': false
+        'saved': null,
+        'group': null
       },
       {
         'label': 'Group',
@@ -316,7 +317,7 @@ class CreateTripChips extends StatelessWidget {
         'actions': [TripActions.none],
         'highlight': [],
         'loaded': true,
-        'saved': false,
+        'saved': null,
         'group': true
       },
       {
@@ -331,13 +332,13 @@ class CreateTripChips extends StatelessWidget {
         ],
         'highlight': [],
         'loaded': true,
-        'saved': false,
+        'saved': null,
         'group': false
       },
       {
         'label': 'Messages',
         'method': messages,
-        'icon': Icons.pause,
+        'icon': Icons.chat_outlined,
         'states': [
           TripState.following,
           TripState.stoppedFollowing,
@@ -347,7 +348,7 @@ class CreateTripChips extends StatelessWidget {
         'actions': [],
         'highlight': [],
         'loaded': true,
-        'saved': false,
+        'saved': null,
         'group': true
       },
     ];
@@ -364,8 +365,10 @@ class CreateTripChips extends StatelessWidget {
       }
 
       bool highlightsOk(int i) {
-        return (chipDetails[i]['highlight'].isEmpty ||
-            chipDetails[i]['highlight'].contains(tripItem.highliteActions));
+        return ((chipDetails[i]['highlight'].isEmpty ||
+                chipDetails[i]['highlight']
+                    .contains(tripItem.highliteActions)) &&
+            chipDetails[i]['highlight'] != HighliteActions.none);
       }
 
       bool loadedOk(int i) {
@@ -424,8 +427,8 @@ class CreateTripChips extends StatelessWidget {
     tripItem.clearAll();
     tripItem.tripActions = TripActions.headingDetail;
     tripItem.tripState = TripState.automatic;
-    onUpdate();
-    // createTripController.updateValues(values: tripItem.tripValues);
+    //  onUpdate();
+
     leadingWidgetController?.changeWidget(1);
     tripItem.tripValues.mapHeight = MapHeights.headers;
     createTripController.getTripInfo(prompt: false);
@@ -437,10 +440,9 @@ class CreateTripChips extends StatelessWidget {
     tripItem.tripActions = TripActions.headingDetail;
     tripItem.tripValues.showTarget = true;
     tripItem.tripValues.setState = true;
-    tripItem.tripValues.leadingWidget = 1;
-    tripItem.tripValues.mapHeight = MapHeights.headers;
-    // onUpdate();
-    // createTripController.updateValues(values: tripItem.tripValues);
+    tripItem.tripValues.title = 'Create trip manually';
+    //  tripItem.tripValues.leadingWidget = 1;
+    //  tripItem.tripValues.mapHeight = MapHeights.headers;
     leadingWidgetController?.changeWidget(1);
     tripItem.tripValues.mapHeight = MapHeights.headers;
     createTripController.getTripInfo(prompt: false);
@@ -451,16 +453,19 @@ class CreateTripChips extends StatelessWidget {
     tripItem.tripState = TripState.none;
     tripItem.tripActions = TripActions.none;
     tripItem.highliteActions = HighliteActions.none;
+    tripItem.tripValues.mapHeight = MapHeights.full;
     tripItem.tripValues.setState = true;
     tripItem.clearAll();
     leadingWidgetController?.changeWidget(0);
-    onUpdate();
-    // createTripController.updateValues(values: tripItem.tripValues);
+    createTripController.updateValues(values: tripItem.tripValues);
   }
 
   void editing() {
     tripItem.tripState = TripState.editing;
+    tripItem.tripActions = TripActions.none;
     tripItem.tripValues.editing();
+    tripItem.loadBackBuffer();
+
     tripItem.tripValues.mapHeight = MapHeights.full;
     leadingWidgetController?.changeWidget(1);
     createTripController.updateValues(values: tripItem.tripValues);
@@ -518,20 +523,23 @@ class CreateTripChips extends StatelessWidget {
       tripItem.isSaved = false;
       return;
     }
-
+    tripItem.title = tripItem.heading;
     tripItem.tripValues.showProgress = true;
     tripItem.tripValues.setState = true;
     // createTripController. updatetripItem(values: tripItem.tripValues);
     onUpdate();
     tripItem.mapImage ?? await createTripController.getMapImage();
     await tripItem.save();
-    tripItem.tripState = TripState.editing;
-    tripItem.tripValues.leadingWidget = 1;
+    tripItem.tripState = TripState.loaded;
+    tripItem.tripActions = TripActions.readOnly;
+    tripItem.tripValues.leadingWidget = 0;
     tripItem.tripValues.showProgress = false;
-    tripItem.tripValues.showTarget = true;
+    tripItem.tripValues.showTarget = false;
     tripItem.tripValues.setState = true;
+
     leadingWidgetController?.changeWidget(1);
-    // createTripController. updatetripItem(values: tripItem.tripValues);
+    // createTripController.updateValues(values: tripItem.tripValues);
+    // createTripController.updatetripItem(values: tripItem.tripValues);
     onUpdate();
     return;
   }
@@ -540,12 +548,24 @@ class CreateTripChips extends StatelessWidget {
     await tripItem.deleteWaypoint(position: tripItem.tripValues.position);
     tripItem.tripValues.setState = true;
     tripItem.tripValues.showTarget = true;
+    tripItem.tripValues.mapHeight = MapHeights.full;
     createTripController.updateValues(values: tripItem.tripValues);
   }
 
   void pauseRecording() {
     tripItem.tripState = TripState.paused;
     tripItem.tripValues.pauseFollowing();
+    createTripController.updateValues(values: tripItem.tripValues);
+  }
+
+  void endTracking() {
+    tripItem.tripState = TripState.stoppedRecording;
+    tripItem.tripValues.stopTracking;
+    tripItem.pointsOfInterest.add(PointOfInterest(
+        point: tripItem.tripValues.position,
+        type: 18,
+        waypoint: tripItem.pointsOfInterest.length));
+    createTripController.updateValues(values: tripItem.tripValues);
   }
 
   void greatRoad() {
@@ -574,8 +594,9 @@ class CreateTripChips extends StatelessWidget {
     //  onUpdate();
   }
 
-  void reverseTrip() {
-    tripItem.reverseRoute();
+  void reverseTrip() async {
+    await tripItem.reverseRoute();
+    onUpdate();
     return;
   }
 
@@ -585,6 +606,8 @@ class CreateTripChips extends StatelessWidget {
     tripItem.tripValues.setState = true;
     tripItem.tripValues.mapHeight = MapHeights.pointOfInterest;
     tripItem.newPointOfInterest(position: tripItem.tripValues.position);
+    tripItem.tripValues.pointOfInterestIndex =
+        tripItem.pointsOfInterest.length - 1;
     createTripController.updateValues(values: tripItem.tripValues);
     // onUpdate();
     return;
@@ -596,8 +619,8 @@ class CreateTripChips extends StatelessWidget {
         [TripState.manual, TripState.editing].contains(tripItem.tripState);
     tripItem.tripValues.mapHeight = MapHeights.headers;
     tripItem.tripValues.setState = true;
-    onUpdate();
-    // createTripController.updateValues(values: tripItem.tripValues);
+    // onUpdate();
+    createTripController.updateValues(values: tripItem.tripValues);
   }
 
   void group() {
@@ -605,8 +628,8 @@ class CreateTripChips extends StatelessWidget {
     tripItem.tripValues.showTarget = false;
     tripItem.tripValues.mapHeight = MapHeights.headers;
     tripItem.tripValues.setState = true;
-    onUpdate();
-    //createTripController.updateValues(values: tripItem.tripValues);
+    // onUpdate();
+    createTripController.updateValues(values: tripItem.tripValues);
   }
 
   void messages() {
@@ -614,41 +637,48 @@ class CreateTripChips extends StatelessWidget {
     tripItem.tripValues.showTarget = false;
     tripItem.tripValues.mapHeight = MapHeights.headers;
     tripItem.tripValues.setState = true;
-    onUpdate();
-    // createTripController.updateValues(values: tripItem.tripValues);
+    // onUpdate();
+    createTripController.updateValues(values: tripItem.tripValues);
   }
 
   void tripData() {
     tripItem.tripActions = TripActions.none;
     tripItem.tripValues.mapHeight = MapHeights.full;
     tripItem.tripValues.setState = true;
+    // onUpdate();
+    createTripController.updateValues(values: tripItem.tripValues);
+  }
+
+  void trackRoute() {
+    tripItem.tripState = TripState.recording;
+    if (tripItem.tripValues.pauseStream) {
+      tripItem.tripValues.resumeFollowing();
+    } else {
+      tripItem.tripValues.startFollowing();
+    }
     onUpdate();
-    // createTripController.updateValues(values: tripItem.tripValues);
+    createTripController.drive();
+    return;
   }
-  /*
-  void pointOfInterest() async {
-    _showMask = true;
-    LatLng pos = _animatedMapController.mapController.camera.center;
-    String name = await getPoiName(latLng: pos, name: 'Point of interest');
-    await _addPointOfInterest(id, userId, 15, name, '', 30.0, pos, '');
-    CurrentTripItem().isSaved = false;
-    setState(() {
-      _showMask = false;
-      CurrentTripItem().tripActions = TripActions.pointOfInterest;
-      _editPointOfInterest = CurrentTripItem().pointsOfInterest.length - 1;
-      adjustMapHeight(MapHeights.pointOfInterest);
-    });
-  }
-  */
 
   void followRoute() {
     tripItem.tripState = TripState.following;
-    onUpdate();
+    if (tripItem.tripValues.pauseStream) {
+      tripItem.tripValues.resumeFollowing();
+    } else {
+      tripItem.tripValues.startFollowing();
+    }
+    // onUpdate();
+    createTripController.drive();
     return;
   }
 
   void stopFollowing() {
     tripItem.tripState = TripState.stoppedFollowing;
+
+    tripItem.tripValues.pauseFollowing();
+    createTripController.drive();
+    //  createTripController.updateValues(values: tripItem.tripValues);
     onUpdate();
   }
 }

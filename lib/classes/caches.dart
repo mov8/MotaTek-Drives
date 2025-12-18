@@ -1,14 +1,18 @@
 import 'dart:typed_data';
 import 'dart:async';
-import 'package:drives/models/other_models.dart';
-import 'package:drives/services/services.dart';
-import 'package:drives/classes/classes.dart';
+// import 'package:universal_io/universal_io.dart';
+import 'package:universal_io/universal_io.dart';
+import 'dart:developer' as developer;
+import '/models/other_models.dart';
+import '/services/services.dart';
+import '/classes/classes.dart';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:drives/classes/route.dart' as mt;
+import '/classes/route.dart' as mt;
 import 'package:vector_map_tiles/vector_map_tiles.dart';
+// import 'package:path_provider/path_provider.dart';
 
-// import 'package:drives/classes/classes.dart';
+// import '/classes/classes.dart';
 
 /// TripItemRepository handles the cache for TripItems in the Trips route
 /// The [List<Feature>] initially hold the bare bones of the TripItems id, uri
@@ -67,7 +71,8 @@ class PointOfInterestRepository {
         _pointOfInterestCache[key] = await getPointOfInterest(uri: uri);
       } else {
         _pointOfInterestCache[key] = PointOfInterest(
-            point: const LatLng(0, 0), child: const FeatureMarker());
+            point: const LatLng(0, 0),
+            markerType: 1); //child1: const FeatureMarker());
       }
     }
     return _pointOfInterestCache[key]!;
@@ -171,8 +176,11 @@ class GoodRoadRepository {
   }
 }
 
+/// TileRepository doesn't try to maintain a memory cache as the VectorTile class has a pretty good
+/// cache, and it would only double the memory footprint.
+/// This repository only stores tiles offline for patchy internet.
+
 class TileRepository {
-  final Map<String, Uint8List> _tilesCache = {};
   final VectorTileProvider deligate;
   TileRepository({required this.deligate});
   FutureOr<Uint8List> loadTile({
@@ -180,20 +188,38 @@ class TileRepository {
     required int id,
     required String uri,
   }) async {
+    Directory? cacheDirectory;
+    cacheDirectory ??= await getCache();
     Uint8List? data = Uint8List.fromList([]);
     String key = '${tile.z}.${tile.x}.${tile.y}';
-    if (!_tilesCache.containsKey(key)) {
-      if (id >= 0) {
-        _tilesCache[key] = await loadTileLocal(key: key);
-      } else if (uri.isNotEmpty) {
-        _tilesCache[key] = await deligate.provide(tile);
-      }
+    developer.log('getting tile $key', name: '__map');
+    File mapFile =
+        File('${cacheDirectory.path}/_${tile.z}_${tile.x}_${tile.y}.pbf');
+    bool tileExists = await mapFile.exists();
+    if (tileExists) {
+      data = await mapFile.readAsBytes();
+      developer.log('map got from file $key', name: '__map');
     } else {
-      // debugPrint('Tile $key returned from cache');
+      data = await deligate.provide(tile);
+      await mapFile.writeAsBytes(data);
+      if (mapFile.existsSync()) {
+        developer.log('map ${mapFile.toString()} fle written ok',
+            name: '__map');
+      } else {
+        developer.log('map $key fle not written ok', name: '__map');
+      }
+      developer.log('map $key got from api', name: '__map');
     }
-    data = _tilesCache[key];
-    return data!;
+    return data;
   }
+}
+
+Future<Directory> getCache() async {
+  Directory cacheDirectory = Directory('${Setup().appDocumentDirectory}/cache');
+  if (!await cacheDirectory.exists()) {
+    await Directory('${Setup().appDocumentDirectory}/cache').create();
+  }
+  return cacheDirectory;
 }
 
 class ImageRepository {

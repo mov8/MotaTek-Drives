@@ -1,22 +1,28 @@
 import 'dart:convert';
 import 'dart:developer' as developer;
-import 'dart:io';
-import 'package:drives/services/services.dart'; // hide getPosition;
-import 'package:drives/classes/classes.dart';
+import 'package:universal_io/universal_io.dart';
+import 'package:drives/helpers/edit_helpers.dart';
+import 'package:uuid/uuid.dart';
+import '/services/services.dart'; // hide getPosition;
+import '/classes/classes.dart';
 import 'package:intl/intl.dart';
+// import '/services/services.dart';
 //import 'package:image_picker/image_picker.dart';
+// import '/helpers/edit_helpers.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:drives/constants.dart';
-import 'package:drives/classes/utilities.dart' as utils;
-import 'package:drives/screens/screens.dart';
-import 'package:drives/classes/route.dart' as mt;
-import 'package:drives/tiles/tiles.dart';
+import '/constants.dart';
+import '/classes/utilities.dart' as utils;
+import '/screens/screens.dart';
+import '/classes/route.dart' as mt;
+// import '/tiles/tiles.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter/material.dart';
 // import 'package:path_provider/path_provider.dart';
-
+import 'package:flutter_phone_direct_caller/flutter_phone_direct_caller.dart';
+import 'package:socket_io_client/socket_io_client.dart' as sio;
 import 'package:geolocator/geolocator.dart';
+// import 'package:uuid/v6.dart';
 
 /// https://api.flutter.dev/flutter/material/Icons-class.html  get the icon codepoint from here
 /// https://api.flutter.dev/flutter/material/Icons/add_road-constant.html
@@ -289,6 +295,7 @@ class Setup {
   int tripCount = 0;
   int shopCount = 0;
   int messageCount = 0;
+  bool maleVoice = false;
   MyTripItem? currentTrip;
   Position lastPosition = Position(
     longitude: 0.0,
@@ -368,6 +375,7 @@ class Setup {
         osmHistorical = maps[0]['osm_historical'] == 1;
         bottomNavIndex = maps[0]['bottom_nav_index'];
         appState = maps[0]['app_state'];
+        maleVoice = (maps[0]['male_voice'] ?? 0) == 1;
       } catch (e) {
         debugPrint('Failed to load Setup() from db: ${e.toString()}');
       }
@@ -439,6 +447,9 @@ class PointOfInterest extends Marker {
   String images;
   final int driveId;
   int type;
+  double angle;
+  int colourIndex;
+  List<String>? imageUrls;
   String name;
   String description;
   String url;
@@ -446,9 +457,9 @@ class PointOfInterest extends Marker {
   double score;
   int scored;
   int waypoint;
+  int markerType;
   DateTime published = DateTime.now();
-  Widget marker = MarkerWidget(type: 12);
-
+  late final Widget marker;
   List<Photo> photos;
   String sounds;
 
@@ -456,12 +467,15 @@ class PointOfInterest extends Marker {
     this.id = -1,
     this.driveId = -1,
     this.type = -1,
+    this.angle = 0,
+    this.colourIndex = 10,
     this.name = '',
     this.description = '',
     super.width = 30,
     super.height = 30,
     String images = '',
-    super.child = const Text(''),
+    this.imageUrls,
+    this.markerType = 0,
     super.point = const LatLng(0, 0),
     this.url = '',
     this.driveUri = '',
@@ -478,7 +492,21 @@ class PointOfInterest extends Marker {
             ),
             endPoint: url.contains(Setup().appDocumentDirectory) || url == ''
                 ? url
-                : '$urlDriveImages/$driveUri/$url/');
+                : '$urlDriveImages/$driveUri/$url/'),
+        super(
+            child: markerType == 0
+                ? MarkerWidget(
+                    type: type,
+                    name: name,
+                    description: description,
+                    listIndex: waypoint,
+                    images: images,
+                    imageUrls: [],
+                    colourIdx: colourIndex,
+                    angle: angle,
+                    scored: scored,
+                    score: score)
+                : FeatureMarker());
 
   factory PointOfInterest.fromMap(
       {required var map, int driveId = -1, int listIndex = 0}) {
@@ -492,91 +520,39 @@ class PointOfInterest extends Marker {
       height: map['type'] == 12 ? 10 : 30,
       images: map['images'],
       point: LatLng(map['latitude'], map['longitude']),
-      child: MarkerWidget(
-        type: map['type'],
-        list: -1,
-        listIndex: listIndex,
-        name: map['name'],
-        description: map['description'],
-        images: map['images'],
-      ),
     );
   }
 
-  factory PointOfInterest.clone(
-      {required PointOfInterest pointOfInterest,
-      int colourIndex = -1,
-      int type = -1,
-      LatLng position = const LatLng(0, 0),
-      Widget? marker}) {
+  factory PointOfInterest.clone({
+    required PointOfInterest pointOfInterest,
+    int colourIndex = -1,
+    int type = -1,
+    bool changeType = false,
+    LatLng position = const LatLng(0, 0),
+  }) {
     position = position == LatLng(0, 0) ? pointOfInterest.point : position;
-    Widget marker = pointOfInterest.child;
-    if (colourIndex > -1) {
-      marker = MarkerWidget(
-          listIndex: pointOfInterest.waypoint,
-          type: pointOfInterest.type,
-          colourIdx: colourIndex);
-    }
-    if (type != -1) {
-      marker = MarkerWidget(
-          listIndex: pointOfInterest.waypoint,
-          type: type,
-          colourIdx: Setup().pointOfInterestColour);
-    } else {
-      type = pointOfInterest.type;
-    }
     return PointOfInterest(
         id: pointOfInterest.id,
+        url: pointOfInterest.url,
+        driveUri: pointOfInterest.driveUri,
+        height: pointOfInterest.height,
+        width: pointOfInterest.width,
         driveId: pointOfInterest.driveId,
-        point: position,
-        type: pointOfInterest.type,
+        point: position == LatLng(0, 0) ? pointOfInterest.point : position,
+        imageUrls: pointOfInterest.imageUrls,
+        images: pointOfInterest.images,
+        type: type == -1 ? pointOfInterest.type : type,
+        markerType:
+            type == pointOfInterest.type ? pointOfInterest.markerType : 0,
         name: pointOfInterest.name,
         waypoint: pointOfInterest.waypoint,
-        child: marker,
+        score: pointOfInterest.score,
+        scored: pointOfInterest.scored,
+        angle: pointOfInterest.angle,
+        colourIndex:
+            colourIndex == -1 ? pointOfInterest.colourIndex : colourIndex,
         description: pointOfInterest.description);
   }
-
-  factory PointOfInterest.update({required PointOfInterest pointOfInterest}) {
-    Widget marker = MarkerWidget(
-      listIndex: pointOfInterest.waypoint,
-      type: pointOfInterest.type,
-      colourIdx: Setup().pointOfInterestColour,
-      name: pointOfInterest.name,
-      description: pointOfInterest.description,
-      info: pointOfInterest.description,
-      images: pointOfInterest.images,
-      score: pointOfInterest.score,
-    );
-
-    return PointOfInterest(
-        id: pointOfInterest.id,
-        driveId: pointOfInterest.driveId,
-        point: pointOfInterest.point,
-        type: pointOfInterest.type,
-        name: pointOfInterest.name,
-        waypoint: pointOfInterest.waypoint,
-        child: marker,
-        description: pointOfInterest.description);
-  }
-
-  IconData setIcon({required type}) {
-    return markerIcon(type);
-  }
-
-  String getEndpoint() {
-    return '$driveUri/$url';
-  }
-
-  void incrementWaypoint() {
-    waypoint++;
-    marker = MarkerWidget(type: type, listIndex: waypoint);
-  }
-
-  void decrementWaypoint() {
-    waypoint--;
-    marker = MarkerWidget(type: type, listIndex: waypoint);
-  }
-
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -589,105 +565,63 @@ class PointOfInterest extends Marker {
       'longitude': point.longitude, //markerPoint.longitude,
     };
   }
+
+  Map<String, dynamic> toApiMap() {
+    List<Map<String, dynamic>> photosMap = [];
+
+    for (Photo photo in photos) {
+      String uuidString = Uuid().v7();
+      uuidString = uuidString.replaceAll(RegExp(r'-'), '');
+      photosMap.add({
+        'url': uuidString,
+        'caption': photo.caption,
+        'rotation': photo.rotation,
+        'file': photo.url
+      });
+    }
+    return {
+      'url': url,
+      'type': type,
+      'name': name,
+      'waypoint': waypoint,
+      'score': score,
+      'scored': scored,
+      'images': photosMap,
+      'description': description,
+      'latitude': point.latitude,
+      'longitude': point.longitude,
+    };
+  }
 }
 
-class NewMarkerWidget extends StatelessWidget {
-  final PointOfInterest pointOfInterest;
-  const NewMarkerWidget({super.key, required this.pointOfInterest});
-  @override
-  Widget build(BuildContext context) {
-    int width = 40;
-    double angle = 0;
-    int colourIdx = 5;
-    double iconWidth = width * 0.75;
-    Color buttonFillColor = colourList[Setup().pointOfInterestColour];
-    Color iconColor = Colors.blueAccent;
-    switch (pointOfInterest.type) {
-      case 12:
-        buttonFillColor = colourList[Setup()
-            .waypointColour]; //uiColours.keys.toList()[Setup().waypointColour];
-        iconWidth = 25;
-        break;
-      case 16:
-        buttonFillColor = Colors.transparent;
-        iconColor = colourList[colourIdx];
-        iconWidth = 22;
-        break;
-      case 17:
-        buttonFillColor = Colors.transparent;
-        iconWidth = 25;
-        break;
-      case 18:
-        buttonFillColor = Colors.transparent;
-        iconWidth = 25;
-        break;
-      case 19:
-        buttonFillColor = Colors.transparent;
-        iconWidth = 25;
-        break;
-      default:
-        buttonFillColor =
-            colourList[Setup().pointOfInterestColour]; //Colors.transparent;
-        iconWidth = 25;
-        iconColor = Colors.white;
-
-        break;
-    }
-
-    // Want to counter rotate the icons so that they are vertical when the map rotates
-    // -_mapRotation * pi / 180 to convert from _mapRotation in degrees to radians
-    return Transform.rotate(
-      angle: angle,
-      child: RawMaterialButton(
-        onPressed: () {
-          List<String> imageUrls = [];
-          try {
-            pointOfInterestDialog(
-                context,
-                pointOfInterest.name,
-                pointOfInterest.description,
-                pointOfInterest.images,
-                pointOfInterest.url,
-                imageUrls,
-                pointOfInterest.score,
-                pointOfInterest.scored,
-                pointOfInterest.type);
-          } catch (e) {
-            debugPrint('error: ${e.toString()}');
-          }
-        },
-        elevation: 2.0,
-        fillColor: buttonFillColor,
-        shape: const CircleBorder(),
-        child: Padding(
-          //padding: const EdgeInsets.fromLTRB(2, 2, 3, 4),
-          padding: const EdgeInsets.fromLTRB(0, 0, 1, 2),
-
-          /// 12 waypoint 17 start  18 end  19 revist / start - end
-          child: [12, 17, 18, 19].contains(pointOfInterest.type)
-              ? CircleAvatar(
-                  backgroundColor: pointOfInterest.type == 19
-                      ? Colors.transparent
-                      : colourList[colourIdx], // Colors.red,
-                  radius: 50, //iconWidth,
-                  child: Text(
-                    '${pointOfInterest.waypoint + 1}',
-                    style: TextStyle(
-                        fontSize: 10,
-                        color: pointOfInterest.type == 19
-                            ? Colors.transparent
-                            : Colors.white),
-                  ),
-                )
-              : Icon(
-                  markerIcon(pointOfInterest.type),
-                  size: iconWidth,
-                  color: iconColor,
-                ),
-        ),
-      ),
-    );
-  }
+class MarkerData {
+  final int type; // default type 12 => waypoint
+  final String name;
+  final String description;
+  final String info;
+  final String images;
+  final String url;
+  final List<String>? imageUrls;
+  final double angle;
+  final double score;
+  final int scored;
+  final int colourIdx;
+  final int list;
+  final int listIndex;
+  const MarkerData(
+      {this.type = 12,
+      this.name = '',
+      this.description = '',
+      this.info = '',
+      this.images = '',
+      this.url = '',
+      this.imageUrls,
+      this.angle = 0,
+      this.score = 0,
+      this.scored = 0,
+      this.colourIdx = 10,
+      this.list = 0,
+      this.listIndex = 0});
 }
 
 class MarkerWidget extends StatelessWidget {
@@ -788,7 +722,8 @@ class MarkerWidget extends StatelessWidget {
               ? CircleAvatar(
                   backgroundColor: type == 19
                       ? Colors.transparent
-                      : colourList[colourIdx], // Colors.red,
+                      : colourList[
+                          colourIdx == -1 ? 3 : colourIdx], // Colors.red,
                   radius: 50, //iconWidth,
                   child: Text(
                     '${listIndex + 1}',
@@ -872,19 +807,23 @@ class FollowerMarkerWidget extends StatelessWidget {
   final int colourIndex;
   final String forename;
   final String surname;
+  final String phoneNumber;
   final String manufacturer;
   final String model;
   final String colour;
   final String registration;
   final double angle;
   final double iconSize;
+  final sio.Socket socket;
 
   const FollowerMarkerWidget(
       {super.key,
+      required this.socket,
       this.index = -1,
       this.colourIndex = -1,
       this.forename = '',
       this.surname = '',
+      this.phoneNumber = '',
       this.manufacturer = '',
       this.model = '',
       this.colour = '',
@@ -906,9 +845,31 @@ class FollowerMarkerWidget extends StatelessWidget {
       angle: angle,
       child: RawMaterialButton(
         onPressed: () async {
-          if (context.mounted) {
-            followerDialog(context, forename, surname, manufacturer, model,
-                colour, registration);
+          bool? call = await showDialog<bool>(
+              context: context,
+              builder: (context) => followerDialog(
+                  context: context,
+                  socket: socket,
+                  phoneNumber: phoneNumber,
+                  forename: forename,
+                  surname: surname,
+                  manufacturer: manufacturer,
+                  model: model,
+                  colour: colour,
+                  registration: registration));
+          if (context.mounted && call == true) {
+            showDialog(
+              context: context,
+              builder: (context) => contactDiolog(
+                context: context,
+                socket: socket,
+                follower: {
+                  'forename': forename,
+                  'surname': surname,
+                  'phoneNumber': phoneNumber
+                },
+              ),
+            );
           }
         },
         elevation: 2.0,
@@ -975,197 +936,6 @@ class FeatureMarker extends StatelessWidget {
       ),
     );
   }
-}
-
-pointOfInterestDialog(
-    BuildContext context,
-    String name,
-    String description,
-    String images,
-    String url,
-    List<String> imageUrls,
-    double score,
-    int scored,
-    int type) async {
-  Widget okButton = TextButton(
-    child: const Text("Ok"),
-    onPressed: () {
-      Navigator.pop(context, true);
-    },
-  );
-
-  // set up the AlertDialog
-  AlertDialog alert = AlertDialog(
-    title: Text(
-      name,
-      style: const TextStyle(fontSize: 20),
-      textAlign: TextAlign.center,
-    ),
-    elevation: 5,
-    content: MarkerTile(
-      index: -1,
-      name: name,
-      description: description,
-      images: images,
-      url: url,
-      imageUrls: imageUrls,
-      type: type,
-      score: score,
-      scored: scored,
-      //  onIconTap: () => {},
-      //  onExpandChange: () => {},
-      //  onDelete: () => {},
-      onRated: () => {},
-      canEdit: false,
-      expanded: false,
-    ),
-    actions: [
-      okButton,
-    ],
-  );
-
-  // show the dialog
-  showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      // result = alert;
-
-      return alert;
-    },
-  );
-}
-
-osmDataDialog(
-    BuildContext context,
-    String name,
-    String amenity,
-    String postcode,
-    int iconCodepoint,
-    String osmId,
-    ImageRepository imageRepository,
-    List<dynamic> reviews) async {
-  Map<String, dynamic> reviewData = {};
-  AlertDialog alert = AlertDialog(
-    title: Text(
-      name,
-      style: const TextStyle(fontSize: 20),
-      textAlign: TextAlign.center,
-    ),
-    scrollable: true,
-    elevation: 5,
-    content: StatefulBuilder(
-      builder: (BuildContext context, StateSetter setState) {
-        return SizedBox(
-          height: 600,
-          child: OsmReviewTile(
-              index: 1,
-              imageRepository: imageRepository,
-              name: name,
-              amenity: amenity,
-              postcode: postcode,
-              iconCodepoint: iconCodepoint,
-              reviewData: reviewData,
-              reviews: reviews),
-        );
-      },
-    ),
-    actions: [
-      TextButton(
-        child: const Text(
-          "Ok",
-          style: TextStyle(fontSize: 20),
-        ),
-        onPressed: () {
-          postWithPhotos(
-              url: '$urlOsmReview/add',
-              fields: {
-                'amenity': amenity,
-                'osm_data_id': osmId,
-                'comment': reviewData['comment'] ?? '',
-                'images': reviewData['imageUrls'] ?? '',
-                'rated': dateFormatSQL.format(DateTime.now()),
-                'rating': reviewData['rating'] ?? 5.0
-              },
-              photos:
-                  photosFromJson(photoString: reviewData['imageUrls'] ?? ''));
-          Navigator.pop(context, true);
-        },
-      ),
-      TextButton(
-        child: const Text(
-          "Cancel",
-          style: TextStyle(fontSize: 20),
-        ),
-        onPressed: () => Navigator.pop(context, false),
-      ),
-    ],
-  );
-
-  // show the dialog
-  showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      // result = alert;
-
-      return alert;
-    },
-  );
-}
-/*
-      this.forename = '',
-      this.surname = '',
-      this.manufacturer = '',
-      this.model = '',
-      this.colour = '',
-      this.registration = '',
-
-*/
-
-followerDialog(
-  BuildContext context,
-  String forename,
-  String surname,
-  String manufacturer,
-  String model,
-  String colour,
-  String registration,
-) async {
-  // set up the AlertDialog
-  AlertDialog alert = AlertDialog(
-    title: Text(
-      '$forename $surname',
-      style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-      textAlign: TextAlign.center,
-    ),
-    elevation: 5,
-    content: FollowerMarkerTile(
-        index: -1,
-        manufacturer: manufacturer,
-        model: model,
-        colour: colour,
-        registration: registration),
-    actions: [
-      TextButton(
-        child: const Text("Contact", style: TextStyle(fontSize: 22)),
-        onPressed: () {
-          Navigator.pop(context, true);
-        },
-      ),
-      TextButton(
-        child: const Text("Dismiss", style: TextStyle(fontSize: 22)),
-        onPressed: () {
-          Navigator.pop(context, false);
-        },
-      )
-    ],
-  );
-
-  showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return alert;
-    },
-  );
 }
 
 class Group {
@@ -1628,10 +1398,11 @@ class Photo {
 
   factory Photo.fromJson(Map<String, dynamic> json,
       {int index = -1, String endPoint = ''}) {
-    String url =
-        json['url'].contains(Setup().appDocumentDirectory) || json['url'] == ""
-            ? json['url']
-            : '$endPoint${json['url']}';
+    String url = json['url'].contains(Setup().appDocumentDirectory) ||
+            json['url'] == "" ||
+            json['url'].contains('http')
+        ? json['url']
+        : '$endPoint${json['url']}';
     return Photo(
         url: url,
         id: json['id'] ?? -1,
@@ -1660,6 +1431,15 @@ class Photo {
     } else {
       return '{"url": "$url", "caption": "$caption", "rotation": $rotation}';
     }
+  }
+
+  String toEscapedString() {
+    Map<String, dynamic> json = {
+      'url': url,
+      'caption': caption,
+      'rotation': rotation
+    };
+    return jsonEncode(json);
   }
 }
 
@@ -1710,49 +1490,6 @@ class GoodRoadCacheItem {
       southWest: LatLng(map['min_lat'] ?? 50.0, map['min_lng'] ?? 0),
     );
   }
-}
-
-/// Creates a list of photos from a json string of the following format:
-///  '[{"url": "assets/images/map.png", "caption": ""}, {"url": "assets/images/splash.png", "caption": ""},
-///   {"url": "assets/images/CarGroup.png", "caption": "" }]',
-///  post-constructor function handleWebImages converts a simple image file name to a map to reduce web traffic
-///  for some strange reason the string must start with a single quote.
-// https://drives.motatek.com/v1/drive/images/0eb23770eb894d54bb209e8ecf59e44b/068bc425ff79711680004c519c16a4b3/
-List<Photo> photosFromJson({String photoString = '', String endPoint = ''}) {
-  if (photoString.isNotEmpty) {
-    int index = 0;
-    try {
-      dynamic jsonPhotos = jsonDecode(photoString);
-      List<Photo> photos = [];
-      endPoint = Setup().serverUp ? endPoint : '';
-      for (dynamic jsonPhoto in jsonPhotos) {
-        jsonPhoto =
-            photoString.contains('[{') ? jsonPhoto : jsonDecode(jsonPhoto);
-        photos
-            .add(Photo.fromJson(jsonPhoto, endPoint: endPoint, index: index++));
-      }
-      return photos;
-    } catch (e) {
-      developer.log('Error photodFromJson - endpoint: $endPoint');
-    }
-  }
-  return [];
-}
-
-List<Photo> photosFromMap(String photoString) {
-  List<Photo> photos = [
-    for (Map<String, String> url in jsonDecode(photoString)) Photo.fromJson(url)
-  ];
-  return photos;
-}
-
-String photosToJson(List<Photo> photos) {
-  String photoString = '';
-  for (int i = 0; i < photos.length; i++) {
-    photoString = '$photoString, ${photos[i].toJson()} ';
-  }
-  photoString = '[${photoString.substring(1, photoString.length)}]';
-  return photoString;
 }
 
 class User {
@@ -1855,7 +1592,7 @@ class Maneuver {
   Map<String, dynamic> toMap({String driveUid = ''}) {
     return {
       'id': id,
-      'drive_uid': driveUid,
+      //  'drive_uid': driveUid,
       'road_from': roadFrom,
       'road_to': roadTo,
       'exit': exit,
@@ -2023,7 +1760,7 @@ class Follower extends Marker {
       this.iconColour = 0,
       this.routeIndex = -1,
       this.accepted = 0,
-      this.track = false,
+      this.track = true,
       required this.position,
       required this.marker})
       : super(
@@ -2112,9 +1849,6 @@ class Follower extends Marker {
 /// API url list is converted to {"url": "uuid.jpg", "caption": ""}, {...}
 String handleWebImages(String urls) {
   String mappedUrls = urls;
-  if (urls.contains('711d53.jpg')) {
-    debugPrint('Found it');
-  }
   if (urls.isNotEmpty &&
       !urls.contains('{') &&
       !urls.contains('assets') &&
@@ -2159,6 +1893,7 @@ class HomeItem {
 
   factory HomeItem.fromMap(
       {required Map<String, dynamic> map, String url = ''}) {
+    developer.log("HomeItem.fromMap(): ${map['image_urls']}", name: 'photos');
     return HomeItem(
       id: map['id'] ?? -1,
       uri: '$url${map['uri']}',
@@ -2217,6 +1952,7 @@ class ShopItem {
 
   factory ShopItem.fromMap(
       {required Map<String, dynamic> map, String url = ''}) {
+    developer.log("ShopItem.fromMap(): ${map['image_urls']}", name: 'photos');
     return ShopItem(
         id: map['id'] ?? -1,
         uri: '$url${map['uri']}',
@@ -2318,6 +2054,7 @@ class TripItem {
   String authorUrl = '';
   String published = '';
   String imageUrls = '';
+  List<Photo> photos;
   double score = 5;
   double distance = 0;
   double distanceAway = 0;
@@ -2344,6 +2081,7 @@ class TripItem {
       this.closest = 12,
       this.scored = 10,
       this.downloads = 18,
+      this.photos = const [],
       this.uri = '',
       this.polylines = const []});
 
@@ -2423,6 +2161,7 @@ Future<List<MyTripItem>> tripItemFromDb(
   await utils.getPosition().then((currentPosition) {
     pos = LatLng(currentPosition.latitude, currentPosition.longitude);
   });
+
   String drivesQuery =
       '''SELECT drives.id, drives.uri, drives.title, drives.sub_title, drives.body, drives.distance, drives.points_of_interest, drives.added,
     points_of_interest.*  

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '/helpers/edit_helpers.dart';
 
 class InitialsButton extends StatelessWidget {
   final String initials;
@@ -17,7 +18,7 @@ class InitialsButton extends StatelessWidget {
     this.backgroundColor = Colors.blue,
     this.textColor = Colors.white,
     this.fontWeight = FontWeight.bold,
-    this.fontSize = 30,
+    this.fontSize = 24,
   });
 
   @override
@@ -29,11 +30,10 @@ class InitialsButton extends StatelessWidget {
         backgroundColor: backgroundColor,
         child: FittedBox(
           fit: BoxFit.scaleDown,
-          child: Text(
-            initials,
-            style: TextStyle(
-                color: textColor, fontWeight: fontWeight, fontSize: fontSize),
-          ),
+          child: Text(initials,
+              style: headlineStyle(context: context, size: 2) //TextStyle(
+              // color: textColor, fontWeight: fontWeight, fontSize: fontSize),
+              ),
         ),
       ),
     );

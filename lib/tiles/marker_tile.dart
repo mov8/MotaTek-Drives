@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:drives/models/other_models.dart';
-import 'package:drives/services/web_helper.dart';
-
-import 'package:drives/classes/classes.dart'; //star_ratings.dart';
+import '/models/other_models.dart';
+import '/services/web_helper.dart';
+import '/helpers/edit_helpers.dart';
+import '/classes/classes.dart'; //star_ratings.dart';
 
 class MarkerTile extends StatefulWidget {
   final int index;
@@ -66,7 +66,7 @@ class _MarkerTileState extends State<MarkerTile> {
         ),
         title: Text(
           '${poiTypes[widget.type]['name']}',
-          style: const TextStyle(fontSize: 16),
+          style: textStyle(context: context, size: 2, color: Colors.black),
         ),
         collapsedBackgroundColor: widget.index.isOdd
             ? Colors.white
@@ -96,7 +96,8 @@ class _MarkerTileState extends State<MarkerTile> {
                           widget.description.isEmpty
                               ? 'No description'
                               : widget.description,
-                          style: const TextStyle(fontSize: 14),
+                          style: textStyle(
+                              context: context, color: Colors.black, size: 3),
                         ),
                       ),
                     ),
@@ -138,8 +139,10 @@ class _MarkerTileState extends State<MarkerTile> {
                               alignment: Alignment.topLeft,
                               child: Text(
                                 '($scored)',
-                                style: const TextStyle(
-                                    color: Colors.black, fontSize: 15),
+                                style: textStyle(
+                                    context: context,
+                                    size: 2,
+                                    color: Colors.black),
                               ),
                             )
                           ],

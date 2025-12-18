@@ -1,7 +1,10 @@
-import 'package:drives/tiles/tiles.dart';
+import '/tiles/tiles.dart';
 import 'package:flutter/material.dart';
-import 'package:drives/models/models.dart';
-import 'package:drives/services/services.dart';
+// import 'package:flutter/services.dart';
+import '/models/models.dart';
+import '/services/services.dart';
+import '/classes/classes.dart';
+import '/helpers/edit_helpers.dart';
 
 class HomeForm extends StatefulWidget {
   const HomeForm({super.key, setup});
@@ -13,6 +16,11 @@ class _HomeFormState extends State<HomeForm> {
   late Future<bool> _dataloaded;
   List<HomeItem> _items = [];
   bool _expanded = false;
+  int? _index;
+  List<bool> _changes = [];
+  bool _changed = false;
+  String _prompt = 'Add, delete or edit page';
+  HomeItemTileController? _activeController;
 
   @override
   void initState() {
@@ -35,7 +43,41 @@ class _HomeFormState extends State<HomeForm> {
     if (_items.isEmpty) {
       newHomeItem();
     }
+    for (int i = 0; i < _items.length; i++) {
+      _changes.add(false);
+    }
     return true;
+  }
+
+  expanded(int index, bool expanded, HomeItemTileController controller) {
+    if (expanded) {
+      try {
+        _activeController?.contract();
+      } catch (_) {
+        debugPrint('Contract() failed');
+      }
+      setState(() {
+        _index = index;
+        _activeController = controller;
+        _expanded = true;
+        _prompt = 'Edit ${_items[index].heading}';
+      });
+    } else {
+      if (index == _index) {
+        // closing open tile
+        setState(() {
+          _prompt = 'Add, delete or edit page';
+          _expanded = false;
+          _index = null;
+          _activeController = null;
+        });
+      }
+    }
+  }
+
+  recordChange(int index) {
+    _changes[index] = true;
+    setState(() => _changed = true);
   }
 
   Widget portraitView() {
@@ -52,23 +94,21 @@ class _HomeFormState extends State<HomeForm> {
                         horizontal: 10.0, vertical: 5.0),
                     child: HomeItemTile(
                       homeItem: _items[index],
+                      controller: HomeItemTileController(),
                       index: index,
                       onRated: (index, rate) => (),
                       onAddImage: (index) => loadImage(index),
                       onIconTap: (index) => (),
                       onSelect: (index) => postHomeItem(_items[index]),
                       onDelete: (index) => removeHomeItem(index),
-                      onExpandChange: (idx) =>
-                          setState(() => _expanded = idx != -1),
+                      onChange: (index) => recordChange(index),
+                      onExpandChange: (open, controller) =>
+                          expanded(index, open, controller),
                     ),
                   ),
                 ),
               )
             ],
-            Align(
-              alignment: Alignment.bottomLeft,
-              child: _handleChips(),
-            )
           ],
         ),
       )
@@ -78,38 +118,28 @@ class _HomeFormState extends State<HomeForm> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.blue,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
-
-        /// Removes Shadow
-        toolbarHeight: 40,
-        title: const Text(
-          'Drives News Items',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(60),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(5, 10, 5, 10),
-            child: Text(
-              "Home page articles",
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ),
-
-        /// Shrink height a bit
-        leading: BackButton(onPressed: () => Navigator.pop(context)),
+      backgroundColor: Colors.blue,
+      appBar: ScreensAppBar(
+        heading: 'Drives Home Contents',
+        prompt: _prompt,
+        updateHeading: 'You have edited details.',
+        updateSubHeading: 'Save or Ignore changes',
+        update: _changed,
+        showAction: _changed,
+        overflowIcons: _expanded
+            ? [
+                Icon(Icons.delete),
+                Icon(Icons.image),
+                Icon(Icons.add_link),
+                Icon(Icons.upload)
+              ]
+            : [Icon(Icons.post_add)],
+        overflowPrompts:
+            _expanded ? ['Delete page', 'Add image', 'Upload'] : ['Add page'],
+        overflowMethods:
+            _expanded ? [onDelete, onAddImage, onPost] : [newHomeItem],
+        showOverflow: true,
+        updateMethod: (update) => onPostAll(update),
       ),
       body: FutureBuilder<bool>(
         future: _dataloaded,
@@ -130,34 +160,6 @@ class _HomeFormState extends State<HomeForm> {
           }
           throw ('Error - FutureBuilder group.dart');
         },
-      ),
-    );
-  }
-
-  Widget _handleChips() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
-      child: Wrap(
-        spacing: 10,
-        children: [
-          if (!_expanded) ...[
-            ActionChip(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              onPressed: () => setState(() => newHomeItem()),
-              backgroundColor: Colors.blue,
-              avatar: const Icon(
-                Icons.note_add_sharp,
-                color: Colors.white,
-              ),
-              label: const Text(
-                'New home page article', // - ${_action.toString()}',
-                style: TextStyle(fontSize: 18, color: Colors.white),
-              ),
-            ),
-          ],
-        ],
       ),
     );
   }
@@ -189,5 +191,67 @@ class _HomeFormState extends State<HomeForm> {
         itemIndex: index,
         imageFolder: 'home_page_item');
     setState(() => ());
+  }
+
+  Future<void> onDelete() async {
+    _items.removeAt(_index!);
+    _changes.removeAt(_index!);
+    if (_items.isEmpty) {
+      newHomeItem();
+    }
+    setState(() {
+      _expanded = false;
+      _index = null;
+      _activeController = null;
+    });
+    return;
+  }
+
+  onAddImage() async {
+    int taken = _items[_index!].imageUrls.countOccurrences('com.motatek') + 1;
+    Photo? image =
+        await getDeviceImage(folder: 'home_item', fileName: 'pic_$taken');
+    if (image != null) {
+      /// Don't need to specify endpoint as it's handled in the tile
+      List<Photo> testPhotos =
+          photosFromJson(photoString: _items[_index!].imageUrls);
+      testPhotos.add(image);
+      //  developer.log('before: ${_items[_index!].imageUrls}', name: 'photos_1');
+      String testUri = photosToString(photos: testPhotos);
+      _items[_index!].imageUrls = testUri;
+      //  developer.log('after: ${_items[_index!].imageUrls}', name: 'photos_1');
+    }
+
+    debugPrint(_items[_index!].imageUrls.toString());
+    setState(() => (_activeController!.updatePhotos()));
+  }
+
+  onPost() {
+    try {
+      postHomeItem(_items[_index!]);
+      _changes[_index!] = false;
+      for (int i = 0; i < _changes.length; i++) {
+        _changed = _changes[i];
+        if (_changed) {
+          break;
+        }
+      }
+    } catch (e) {
+      debugPrint("Can't save ${_items[_index!].heading} - ${e.toString()}");
+    }
+  }
+
+  onPostAll(bool save) {
+    if (save) {
+      for (int i = 0; i < _items.length; i++) {
+        if (_changes[i]) {
+          try {
+            postHomeItem(_items[i]);
+          } catch (e) {
+            debugPrint("Can't save ${_items[i].heading} - ${e.toString()}");
+          }
+        }
+      }
+    }
   }
 }

@@ -1,9 +1,9 @@
-// import 'package:drives/models/models.dart'; //my_trip_item.dart';
-// import 'package:drives/constants.dart';
+// import '/models/models.dart'; //my_trip_item.dart';
+// import '/constants.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 // import 'package:flutter/material.dart';
-import 'package:drives/classes/route.dart' as mt;
+import '/classes/route.dart' as mt;
 
 /// The issue of slow data loading is to be addressed by only retrieving the data
 /// needed. A geofence will be calculated that will contain a customisable
@@ -275,7 +275,7 @@ class PointSearchItem {
   }
 }
 
-Fence fenceFromPolylines({required mt.Route polyline}) {
+Fence fenceFromPolylines({required mt.Route polyline, margin = 0}) {
   double maxLat = -90;
   double minLat = 90;
   double maxLong = -180;
@@ -287,7 +287,8 @@ Fence fenceFromPolylines({required mt.Route polyline}) {
     minLong = point.longitude < minLong ? point.longitude : minLong;
   }
   return Fence(
-      northEast: LatLng(maxLat, maxLong), southWest: LatLng(minLat, minLong));
+      northEast: LatLng(maxLat - margin, maxLong + margin),
+      southWest: LatLng(minLat + margin, minLong - margin));
 }
 
 /// Checks whether [bounds] is contained within [fence]

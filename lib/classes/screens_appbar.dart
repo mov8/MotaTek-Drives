@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import '/helpers/edit_helpers.dart';
 
 /// Use VoidCallback rather than Function to get a stateless Widget
 /// to execute a parent method. To exucute the method in the stateless
 /// widget don't use () => callback, but just callback
+///
 
 class ScreensAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String heading;
@@ -11,7 +13,7 @@ class ScreensAppBar extends StatelessWidget implements PreferredSizeWidget {
   String updateHeading;
   String updateSubHeading;
   // final VoidCallback? updateMethod;
-  final Function(bool)? updateMethod;
+  final Function? updateMethod;
   final bool showDrawer;
   final bool showOverflow;
   final bool showAction;
@@ -114,7 +116,7 @@ class ScreensAppBar extends StatelessWidget implements PreferredSizeWidget {
           } else {
             if (update) {
               if (updateHeading == '' && updateMethod != null) {
-                await updateMethod!(true);
+                await updateMethod!();
                 if (context.mounted) {
                   Navigator.pop(context);
                 }
@@ -122,9 +124,16 @@ class ScreensAppBar extends StatelessWidget implements PreferredSizeWidget {
                 bool upload = await updateDialog(
                     context: context,
                     heading: updateHeading,
+                    //    onUpdate: (update) => updateMethod!(update),
                     subHeading: updateSubHeading);
-                if (upload) {
-                  () => updateMethod!(true);
+                try {
+                  if (upload) {
+                    updateMethod!(upload);
+                  } else if (context.mounted) {
+                    Navigator.pop(context);
+                  }
+                } catch (e) {
+                  debugPrint('Error: ${e.toString}');
                 }
               }
             }
@@ -156,6 +165,7 @@ class ScreensAppBar extends StatelessWidget implements PreferredSizeWidget {
 
 Future<bool> updateDialog(
     {required BuildContext context,
+    // required Function(bool) onUpdate,
     String heading = '',
     String subHeading = ''}) async {
   // void Function()? updateMethod}) =>
@@ -163,9 +173,10 @@ Future<bool> updateDialog(
         context: context,
         builder: (context) => StatefulBuilder(
           builder: (context, setState) => AlertDialog(
-            title: const Text(
-              'Upload changes?',
-              style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
+            title: Text(
+              'Save changes?',
+              style: headlineStyle(
+                  context: context, color: Colors.deepOrange, size: 1),
             ),
             content: SizedBox(
               height: 120,
@@ -173,25 +184,24 @@ Future<bool> updateDialog(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (heading.isNotEmpty)
-                    Text(
-                      heading,
-                      //   "You have declined ${_refused.length} invitation${_refused.length > 1 ? 's' : ''}",
-                      style: TextStyle(
-                        fontSize: 20,
-                      ),
-                    ),
+                    Text(heading,
+                        //   "You have declined ${_refused.length} invitation${_refused.length > 1 ? 's' : ''}",
+                        style: textStyle(
+                            context: context, size: 2, color: Colors.black)),
                   if (subHeading.isNotEmpty)
                     Text(
                       subHeading,
                       //    "You have accepted ${_accepted.length} invitation${_accepted.length > 1 ? 's' : ''}",
-                      style: TextStyle(fontSize: 20),
+                      style: textStyle(
+                          context: context, size: 2, color: Colors.black),
                     ),
                   SizedBox(
                     height: 10,
                   ),
                   Text(
-                    "Save your changes now ?",
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    "Tap button below.",
+                    style: textStyle(
+                        context: context, size: 2, color: Colors.black),
                   ),
                 ],
               ),
@@ -200,7 +210,7 @@ Future<bool> updateDialog(
               TextButton(
                 onPressed: () => Navigator.of(context).pop(true),
                 child: const Text(
-                  'Upload',
+                  'Save',
                   style: TextStyle(
                     fontSize: 22,
                   ),

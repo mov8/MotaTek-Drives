@@ -1,14 +1,16 @@
 import 'package:drives/constants.dart';
+import 'package:drives/helpers/edit_helpers.dart';
 import 'package:flutter/material.dart';
 import 'package:drives/models/other_models.dart';
 import 'package:drives/classes/classes.dart';
+import 'dart:developer' as developer;
 
 /// Groups is the class that organises driving groups it handles:
 ///
 ///   Adding a new group
 ///     Group name and owner added to API
 ///
-///   Deleteting an existing group
+///   Deleting an existing group
 ///     Group deleted from API all records in group_member removed from API
 ///
 ///   Editing a group name
@@ -17,11 +19,22 @@ import 'package:drives/classes/classes.dart';
 ///   Adding a new group member. Only the group owner can add a new member.
 ///   Members can remove themselves from a group
 ///   Group owners can remove a member
-///     If the member is on the API then a new record is added to group_mambers
+///     If the member is on the API then a new record is added to group_members
 ///     If not on API invitation email sent and details added to invited table on API from InviteMember class
 ///
-///   Deleteing an existing group mamber
+///   Deleting an existing group member
 ///     The record in group_members is removed
+///
+///
+/// PAINFUL 2-Day lesson on controllers and child widget state.
+/// Controllers shouldn't be used for setting variables in the controlled widget if the controller
+/// is handed to the parent in the case of an ExpansionTile. This is because if the parent has to
+/// be recreated because the change affects it too, then the child will get redrawn, and the controller
+/// will be linked to the new widgets state in the initState(). This gives rise to the error of trying to
+/// call setState() on a widget that has already been disposed of. Lessons:
+///   1 Controllers should be used to do something to children that doesn't need the parent to call setState()
+///   2 Changing children's variables should be done through the child's constructor, which gets called when
+///     the parent calls setState()
 
 class GroupTileController {
   _GroupTileState? _groupTileState;
@@ -32,33 +45,13 @@ class GroupTileController {
 
   bool get isAttached => _groupTileState != null;
 
-  void newGroup() {
+  void contract() {
     assert(isAttached, 'Controller must be attached to widget to clear');
     try {
-      _groupTileState?.addGroup();
+      _groupTileState?.contract();
     } catch (e) {
       String err = e.toString();
-      debugPrint('Error clearing AutoComplete: $err');
-    }
-  }
-
-  void newMember() {
-    assert(isAttached, 'Controller must be attached to widget to clear');
-    try {
-      _groupTileState?.addMember();
-    } catch (e) {
-      String err = e.toString();
-      debugPrint('Error clearing AutoComplete: $err');
-    }
-  }
-
-  void editGroupName() {
-    assert(isAttached, 'Controller must be attached to widget to clear');
-    try {
-      _groupTileState?.editGroupName();
-    } catch (e) {
-      String err = e.toString();
-      debugPrint('Error clearing AutoComplete: $err');
+      debugPrint('Error closing tile: $err');
     }
   }
 }
@@ -66,11 +59,14 @@ class GroupTileController {
 class GroupTile extends StatefulWidget {
   final Group group;
   final bool expanded;
+  final GroupActions actions;
   final Function(int, bool)? onEdit;
   final Function(String)? onDelete;
   final Function(int)? onAdd;
   final Function(int)? onSelect;
-  final Function(int, bool)? onExpand;
+  final Function(int)? onCancel;
+  final Function(int, bool, GroupTileController)? onExpand;
+
   final GroupTileController controller;
 
   final int index;
@@ -79,11 +75,13 @@ class GroupTile extends StatefulWidget {
     required this.index,
     required this.group,
     required this.controller,
+    this.actions = GroupActions.none,
     this.expanded = false,
     this.onEdit,
     this.onDelete,
     this.onAdd,
     this.onSelect,
+    this.onCancel,
     this.onExpand,
   });
 
@@ -92,8 +90,6 @@ class GroupTile extends StatefulWidget {
 }
 
 class _GroupTileState extends State<GroupTile> {
-  bool _isEditing = false;
-  final bool _showChip = false;
   bool _titleOk = false;
   bool _isNewGroup = false;
   bool _addMember = false;
@@ -103,19 +99,25 @@ class _GroupTileState extends State<GroupTile> {
   final List<String> dropdownOptions = [];
   int _memberCount = 0;
   late GroupMemberState _groupMemberState = GroupMemberState.none;
+  final ExpansibleController _expansibleController = ExpansibleController();
 
   @override
   void initState() {
     super.initState();
     widget.controller._addState(this);
-    _isEditing = widget.group.name.isEmpty;
+    developer.log('initState _addState called', name: '_groupTile');
     _index = widget.index;
     _isNewGroup = widget.group.name.isEmpty;
   }
 
   @override
   void dispose() {
+    developer.log('dispose called', name: '_groupTile');
     super.dispose();
+  }
+
+  addGroup() {
+    setState(() => _isNewGroup = true);
   }
 
   @override
@@ -127,20 +129,22 @@ class _GroupTileState extends State<GroupTile> {
       child: ExpansionTile(
         tilePadding: EdgeInsets.all(10),
         initiallyExpanded: widget.expanded,
+        controller: _expansibleController,
         onExpansionChanged: (expanded) => expandChange(expanded),
         title: getTitle(),
         subtitle: Padding(
           padding: EdgeInsetsGeometry.fromLTRB(5, 10, 0, 0),
           child: Text(
             '$_memberCount ${_memberCount == 1 ? 'member' : 'members'}',
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+            style:
+                headlineStyle(context: context, size: 2, color: Colors.black),
           ),
         ),
         children: [
           ...List.generate(
             widget.group.groupMembers().length,
             (index) => Dismissible(
-              key: UniqueKey(), // Key('gmlt$index'),
+              key: UniqueKey(),
               direction: DismissDirection.endToStart,
               onDismissed: (direction) {
                 if (widget.group
@@ -168,28 +172,25 @@ class _GroupTileState extends State<GroupTile> {
                       ? Icon(Icons.person_add_alt_1_outlined, size: 30)
                       : Icon(Icons.how_to_reg_outlined, size: 30),
                   title: Text(
-                    memberName(member: widget.group.groupMembers()[index]),
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
+                      memberName(member: widget.group.groupMembers()[index]),
+                      style: headlineStyle(
+                          context: context, size: 2, color: Colors.black)),
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(widget.group.groupMembers()[index].email,
-                          style: TextStyle(fontSize: 20)),
+                          style: textStyle(
+                              context: context, size: 2, color: Colors.black)),
                       Text(widget.group.groupMembers()[index].phone,
-                          style: TextStyle(fontSize: 20))
+                          style: textStyle(
+                              context: context, color: Colors.black, size: 2))
                     ],
                   ),
                 ),
               ),
             ),
           ),
-          if (!_addMember)
-            Padding(
-              padding: EdgeInsetsGeometry.fromLTRB(5, 30, 5, 10),
-              child: Wrap(spacing: 10, children: [handleChips()]),
-            ),
-          if (_groupMemberState == GroupMemberState.isNew) ...[
+          if (widget.actions == GroupActions.addMember) ...[
             InviteMember(
               group: widget.group,
               color: cardColor,
@@ -216,12 +217,9 @@ class _GroupTileState extends State<GroupTile> {
   /// exposed and the buttons change to Invite (if validated) or cancel
   /// Once the invitation has been sent a new empty member is added to the Group.members
 
-  addGroup() {
-    setState(() => _isNewGroup = true);
-  }
-
   addNewMember(member) {
-    if (member != null && _groupMemberState == GroupMemberState.isNew) {
+    if (member != null && member.userId.isNotEmpty) {
+      // && _groupMemberState == GroupMemberState.isNew) {
       widget.group.addMember(member);
       if (widget.onAdd != null) {
         widget.onAdd!(1);
@@ -232,7 +230,6 @@ class _GroupTileState extends State<GroupTile> {
     setState(() {
       _groupMemberState = GroupMemberState.none;
       _addMember = false;
-      _isEditing = false;
       _isNewGroup = false;
     });
   }
@@ -241,7 +238,9 @@ class _GroupTileState extends State<GroupTile> {
     if (widget.onDelete != null && _isNewGroup) {
       widget.onDelete!('');
     }
-
+    if (widget.onCancel != null && !_isNewGroup) {
+      widget.onCancel!(widget.index);
+    }
     setState(() {
       _groupMemberState = GroupMemberState.none;
       _addMember = false;
@@ -250,54 +249,12 @@ class _GroupTileState extends State<GroupTile> {
 
   expandChange(bool expanded) {
     if (widget.onExpand != null) {
-      widget.onExpand!(_index, expanded);
+      widget.onExpand!(widget.index, expanded, widget.controller);
     }
   }
 
-  Widget handleChips() {
-    if (_showChip) {
-      return ActionChip(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-        onPressed: () => setState(
-            () => ()), //_addMember = true), // widget.onAddLink!(index),
-        backgroundColor: Colors.blue,
-        avatar: const Icon(
-          Icons.cancel_outlined,
-          color: Colors.white,
-        ),
-        label: const Text(
-          "Cancel",
-          style: TextStyle(fontSize: 18, color: Colors.white),
-        ),
-      );
-    }
-    if (!_addMember) {
-      return Wrap(
-        spacing: 5,
-        children: [
-          if (widget.group.name.length < 2)
-            ActionChip(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              onPressed: () =>
-                  widget.onDelete!(''), // widget.onAddLink!(index),
-              backgroundColor: Colors.blue,
-              avatar: const Icon(
-                Icons.group_off_outlined,
-                color: Colors.white,
-              ),
-              label: const Text(
-                "Cancel",
-                style: TextStyle(fontSize: 18, color: Colors.white),
-              ),
-            ),
-        ],
-      );
-    }
-    return SizedBox();
+  contract() {
+    _expansibleController.collapse();
   }
 
   void notifyParent({int index = 0}) {
@@ -310,6 +267,7 @@ class _GroupTileState extends State<GroupTile> {
     setState(() {
       _addMember = true;
       _groupMemberState = GroupMemberState.isNew;
+      if (widget.onAdd != null) {}
     });
   }
 
@@ -318,12 +276,9 @@ class _GroupTileState extends State<GroupTile> {
       return Icon(_titleOk ? Icons.check_circle_outline : Icons.star_outline);
     } else {
       return widget.group.name.length < 3
-          ? IconButton(
-              onPressed: () => setState(() => _isEditing = false),
-              icon: Icon(Icons.cancel_outlined))
+          ? IconButton(onPressed: () => (), icon: Icon(Icons.cancel_outlined))
           : IconButton(
               onPressed: () => setState(() {
-                    _isEditing = false;
                     if (widget.onEdit != null) {
                       widget.onEdit!(_index, false);
                     }
@@ -335,7 +290,9 @@ class _GroupTileState extends State<GroupTile> {
   Widget getTitle() {
     _memberCount = widget.group.groupMembers().length;
 
-    if ((_isEditing || _isNewGroup) && !_addMember) {
+    if ([GroupActions.editName, GroupActions.addGroup]
+            .contains(widget.actions) &&
+        !_addMember) {
       return TextFormField(
         autofocus: true,
         initialValue: widget.group.name,
@@ -348,13 +305,12 @@ class _GroupTileState extends State<GroupTile> {
           labelText: 'Group name',
           suffixIcon: titleSuffix(),
         ),
-        style: Theme.of(context).textTheme.bodyLarge,
+        style: textStyle(context: context, size: 2, color: Colors.black),
         autovalidateMode: AutovalidateMode.onUserInteraction,
         onChanged: (text) {
           widget.group.name = text;
           if (_titleOk != text.length > 2) {
             setState(() => _titleOk = text.length > 2);
-            //   setState(() => _showChip = true);
           }
         },
       );
@@ -365,34 +321,22 @@ class _GroupTileState extends State<GroupTile> {
             flex: 10,
             child: Text(
               widget.group.name,
-              style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
+              style:
+                  headlineStyle(context: context, size: 2, color: Colors.black),
             ),
           ),
-          /* Expanded(
-            flex: 2,
-            child: IconButton(
-              iconSize: 30,
-              icon: const Icon(
-                Icons.edit_outlined,
-              ),
-              color: Colors.black,
-              onPressed: () => setState(() => _isEditing = true),
-            ),
-          ), */
         ],
       );
     } else {
       _memberCount = 0;
-      return Text('Add a new driving group',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold));
+      return Text(
+        'Add a new driving group',
+        style: headlineStyle(context: context, size: 2, color: Colors.black),
+      );
     }
   }
 
   String memberName({required GroupMember member}) {
     return ('${member.forename} ${member.surname}').trim();
-  }
-
-  void editGroupName() {
-    setState(() => _isEditing = true);
   }
 }

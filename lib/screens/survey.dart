@@ -3,9 +3,9 @@ import 'dart:convert';
 // import 'package:material_symbols_icons/get.dart';
 // import 'package:material_symbols_icons/material_symbols_icons.dart';
 // import 'package:material_symbols_icons/get.dart';
-import 'package:drives/models/other_models.dart';
-import 'package:drives/services/services.dart';
-import 'package:drives/classes/classes.dart';
+import '/models/other_models.dart';
+import '/services/services.dart';
+import '/classes/classes.dart';
 
 // https://pinetools.com/add-text-each-line
 
@@ -397,6 +397,7 @@ class _SurveyFormState extends State<SurveyForm> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.blue,
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.blue,
@@ -517,7 +518,7 @@ class _SurveyFormState extends State<SurveyForm> {
                       border: OutlineInputBorder(),
                       labelText: 'Stand number',
                     ),
-                    value: stands[standIndex],
+                    initialValue: stands[standIndex],
                     //      items: colourChoices(context),
                     onChanged: (chosen) {
                       standIndex = stands.indexOf(chosen!);
@@ -576,7 +577,7 @@ class _SurveyFormState extends State<SurveyForm> {
                         border: OutlineInputBorder(),
                         labelText: 'Stand name',
                       ),
-                      value: standNames[standIndex].trim(),
+                      initialValue: standNames[standIndex].trim(),
                       onChanged: (chosen) => setState(() {
                         _title = chosen!;
                         standIndex = standNames.indexOf(chosen);
@@ -599,7 +600,7 @@ class _SurveyFormState extends State<SurveyForm> {
                         border: OutlineInputBorder(),
                         labelText: 'Action',
                       ),
-                      value: actions[0].trim(),
+                      initialValue: actions[0].trim(),
                       onChanged: (chosen) => setState(() =>
                           (_stands[standIndex].action = chosen.toString())),
                     ),
@@ -1017,7 +1018,7 @@ class _ContactTileState extends State<ContactTile> {
                       border: OutlineInputBorder(),
                       labelText: 'Contacts position',
                     ),
-                    value: positions[0].trim(),
+                    initialValue: positions[0].trim(),
                     onChanged: (chosen) => setState(
                         () => (widget.contact.position = chosen.toString())),
                     //  uiColours.keys.toList().toString().indexOf(item.toString())),
@@ -1035,7 +1036,7 @@ class _ContactTileState extends State<ContactTile> {
                       border: OutlineInputBorder(),
                       labelText: 'Contact type',
                     ),
-                    value: contact[0].trim(),
+                    initialValue: contact[0].trim(),
                     onChanged: (chosen) => setState(
                         () => (widget.contact.contact = chosen.toString())),
                     //  uiColours.keys.toList().toString().indexOf(item.toString())),

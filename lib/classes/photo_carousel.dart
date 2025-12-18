@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
-import 'package:drives/classes/classes.dart';
-import 'package:drives/models/models.dart';
+import '/classes/classes.dart';
+import '/models/models.dart';
 
 class PhotoCarousel extends StatefulWidget {
   final bool canEdit;
@@ -121,13 +121,18 @@ class _PhotoCarouselState extends State<PhotoCarousel> {
 
   Future<List<Image>> getImageList({required List<Photo> photos}) async {
     List<Image> images = [];
+
     for (int i = 0; i < photos.length; i++) {
-      Map<int, Image> imageMap = await widget.imageRepository
-          .loadImage(key: photos[i].key, id: photos[i].id, uri: photos[i].url);
-      photos[i].key = imageMap.keys.first;
-      // photos[i].caption = '${i + 1} Image caption';
-      // photos[i].rotation = 3;
-      images.add(imageMap.values.first);
+      if (photos[i].url.contains('assets/images')) {
+        images.add(Image.asset(photos[i].url));
+      } else {
+        Map<int, Image> imageMap = await widget.imageRepository.loadImage(
+            key: photos[i].key, id: photos[i].id, uri: photos[i].url);
+        photos[i].key = imageMap.keys.first;
+        // photos[i].caption = '${i + 1} Image caption';
+        // photos[i].rotation = 3;
+        images.add(imageMap.values.first);
+      }
     }
     return images;
   }

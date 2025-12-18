@@ -1,9 +1,10 @@
-import 'package:drives/services/services.dart';
 import 'package:flutter/material.dart';
-import 'package:drives/models/other_models.dart';
-import 'package:drives/tiles/tiles.dart';
-import 'package:drives/screens/main_drawer.dart';
-import 'package:drives/classes/classes.dart';
+import 'package:flutter/services.dart';
+import '/classes/classes.dart';
+import '/models/other_models.dart';
+import '/services/services.dart';
+import '/screens/main_drawer.dart';
+import '/tiles/tiles.dart';
 
 class Shop extends StatefulWidget {
   const Shop({super.key});
@@ -23,6 +24,16 @@ class _ShopState extends State<Shop> {
   @override
   void initState() {
     super.initState();
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        // Make the navigation bar transparent
+        systemNavigationBarColor: Colors.transparent,
+        // Ensure the navigation bar icons are visible
+        systemNavigationBarIconBrightness: Brightness.dark,
+      ),
+    );
+    // SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    //SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
     _leadingWidgetController = LeadingWidgetController();
     _bottomNavController = RoutesBottomNavController();
     _dataLoaded = _getShopData();
@@ -69,9 +80,9 @@ class _ShopState extends State<Shop> {
             heading: 'Promote your business, club or event.',
             subHeading: 'Target your audience precisely.',
             body:
-                '''If you run a business or a club selling to motorists you can promote to them accurately.
-  Audiences can be catigorised by car manufacturer, geographic region, club or group.''',
-            imageUrls: '[{"url": "MobileMarketing.png", "caption": ""}]',
+                '''If you run a business or a club selling to motorists you can promote to them accurately. Audiences can be catigorised by car manufacturer, geographic region, club or group.''',
+            imageUrls:
+                '[{"url": "assets/images/MobileMarketing.png", "caption": ""}]',
             url1: 'https://motatek.com/',
             buttonText1: 'Enquire Now'),
       );
@@ -128,6 +139,7 @@ class _ShopState extends State<Shop> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.blue,
       key: _scaffoldKey,
       drawer: const MainDrawer(),
       appBar: AppBar(
@@ -142,6 +154,10 @@ class _ShopState extends State<Shop> {
               fontSize: 20, color: Colors.white, fontWeight: FontWeight.w700),
         ),
         iconTheme: const IconThemeData(color: Colors.white),
+        actions: [
+          IconButton(
+              onPressed: () => {}, icon: Icon(Icons.help_outline_outlined))
+        ],
         backgroundColor: Colors.blue,
       ),
       body: FutureBuilder<bool>(
@@ -150,7 +166,6 @@ class _ShopState extends State<Shop> {
           if (snapshot.hasError) {
             debugPrint('Snapshot error: ${snapshot.error}');
           } else if (snapshot.hasData) {
-            // _building = false;
             return _getPortraitBody();
           } else {
             return const SizedBox(
@@ -162,7 +177,6 @@ class _ShopState extends State<Shop> {
               ),
             );
           }
-
           throw ('Error - FutureBuilder in main.dart');
         },
       ),
@@ -171,6 +185,8 @@ class _ShopState extends State<Shop> {
         initialValue: 4,
         onMenuTap: (_) => {},
       ),
+
+      // ),
     );
   }
 }

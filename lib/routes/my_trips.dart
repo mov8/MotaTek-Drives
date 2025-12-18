@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:drives/models/models.dart';
-import 'package:drives/classes/classes.dart';
-import 'package:drives/tiles/my_trip_tile.dart';
-import 'package:drives/screens/screens.dart';
-//import 'package:flutter_map/flutter_map.dart';
-import 'package:drives/services/services.dart';
+import '/models/models.dart';
+import '/classes/classes.dart';
+import '/tiles/my_trip_tile.dart';
+import '/screens/screens.dart';
+import '/services/services.dart';
+import '/helpers/edit_helpers.dart';
 import 'package:latlong2/latlong.dart';
 
 class MyTrips extends StatefulWidget {
@@ -104,7 +104,7 @@ import 'package:uuid/rng.dart';
     if (_myTripItems.isEmpty) {
       _myTripItems.add(
         MyTripItem(
-            heading: 'Save your favourite trips for later, or to share',
+            heading: 'Save your trips for later, or to share',
             subHeading:
                 'Add points of interest, nice roads, pubs restaurants etc.',
             body:
@@ -112,7 +112,7 @@ import 'package:uuid/rng.dart';
             pointsOfInterest: [
               PointOfInterest(
                 point: const LatLng(-52, 0),
-                child: const Icon(Icons.ac_unit),
+                //    child1: const Icon(Icons.ac_unit),
               ),
             ],
             distance: 35,
@@ -127,23 +127,20 @@ import 'package:uuid/rng.dart';
     }
     return ListView(
       children: [
-        Card(
+        /* Card(
           child: Column(
             children: [
               SizedBox(
                 child: Padding(
-                    padding: EdgeInsets.fromLTRB(5, 0, 5, 15),
+                    padding: EdgeInsets.fromLTRB(5, 15, 5, 15),
                     child: Align(
-                      alignment: Alignment.topCenter,
+                      alignment: Alignment.center,
                       child: Text(
                         _myTripItems[0].images.contains('assets')
                             ? 'Save your trips to enjoy again...'
                             : "Trips I've already explored...",
-                        style: const TextStyle(
-                          color: Colors.blue,
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: headlineStyle(
+                            context: context, color: Colors.blue, size: 1),
                         textAlign: TextAlign.left,
                       ),
                     )),
@@ -151,6 +148,7 @@ import 'package:uuid/rng.dart';
             ],
           ),
         ),
+        */
         for (int i = 0; i < _myTripItems.length; i++) ...[
           Padding(
             padding: const EdgeInsets.fromLTRB(5, 5, 5, 5),
@@ -174,22 +172,25 @@ import 'package:uuid/rng.dart';
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.blue,
       key: _scaffoldKey,
       drawer: const MainDrawer(),
       appBar: AppBar(
-        automaticallyImplyLeading: false,
-        leading: LeadingWidget(
-            controller: _leadingWidgetController,
-            onMenuTap: (index) =>
-                _leadingWidget(_scaffoldKey.currentState)), // IconButton(
-        title: const Text(
-          "Trips I've already saved",
-          style: TextStyle(
-              fontSize: 20, color: Colors.white, fontWeight: FontWeight.w700),
-        ),
-        iconTheme: const IconThemeData(color: Colors.white),
-        backgroundColor: Colors.blue,
-      ),
+          automaticallyImplyLeading: false,
+          leading: LeadingWidget(
+              controller: _leadingWidgetController,
+              onMenuTap: (index) =>
+                  _leadingWidget(_scaffoldKey.currentState)), // IconButton(
+          title: Text(
+            "My Drives",
+            style: headlineStyle(context: context, size: 1),
+          ),
+          iconTheme: const IconThemeData(color: Colors.white),
+          backgroundColor: Colors.blue,
+          actions: [
+            IconButton(
+                onPressed: () => {}, icon: Icon(Icons.help_outline_outlined))
+          ]),
       body: FutureBuilder<bool>(
         future: _dataLoaded,
         builder: (BuildContext context, snapshot) {

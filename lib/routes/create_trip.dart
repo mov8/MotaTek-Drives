@@ -1,21 +1,23 @@
 import 'dart:async';
+import 'dart:core';
 import 'dart:ui' as ui;
-import 'dart:io';
+import 'package:universal_io/universal_io.dart';
 import 'dart:developer' as developer;
 import 'package:intl/intl.dart';
 import 'dart:math';
-import 'package:drives/constants.dart';
-import 'package:drives/classes/classes.dart';
-import 'package:drives/classes/route.dart' as mt;
-// import 'package:drives/classes/vectors.dart';
-import 'package:drives/helpers/create_trip_helpers.dart';
-
+import '/constants.dart';
+import '/classes/classes.dart';
+import '/classes/route.dart' as mt;
+import '/helpers/create_trip_helpers.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:drives/screens/screens.dart';
-import 'package:drives/services/services.dart' hide getPosition;
-import 'package:drives/models/models.dart';
-import 'package:drives/tiles/tiles.dart';
+import '/screens/screens.dart';
+import '/services/services.dart' hide getPosition;
+import '/models/models.dart';
+import '/helpers/edit_helpers.dart';
+import '/tiles/tiles.dart';
 import 'package:flutter/material.dart';
+// import 'package:flutter/services.dart';
 import 'package:flutter/rendering.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -155,8 +157,17 @@ class CreateTripController {
     }
     return false;
   }
+
+  void drive({bool follow = false}) {
+    try {
+      _createTripState?.getLocationUpdates();
+    } catch (e) {
+      debugPrint('Controller error: ${e.toString()}');
+    }
+  }
 /*
   void editing() {
+  getLocationUpdates()
     try {
       _createTripState?.editing();
     } catch (e) {
@@ -235,8 +246,9 @@ class CreateCurrentTripItem().tripValues {
   double mapHeight = 250;
   double listHeight = 0;
   final TripPreferences _preferences = TripPreferences();
-  int _editPointOfInterest = -1;
+  // int CurrentTripItem().tripValues.pointOfInterestIndex = -1;
   late Position _currentPosition;
+  late CachedVectorTileProvider _cachedProvider; //(delegate: _style.providers);
   int _resizeDelay = 0;
   bool _resized = false;
 //  bool _repainted = false;
@@ -266,7 +278,7 @@ class CreateCurrentTripItem().tripValues {
   late final FloatingTextEditController _floatingTextEditController1;
   late final FloatingTextEditController _floatingTextEditController2;
   late final DirectionTileController _directionTileController;
-
+  late TileProviders _cachedProviders;
   late final StreamController<Position> _debugPositionController;
   late final FollowRoute _debugRoute;
   int initialLeadingWidgetValue = 0;
@@ -288,7 +300,7 @@ class CreateCurrentTripItem().tripValues {
   final OsmFeatures _osmFeatures = OsmFeatures(amenities: []);
   // List<PointOfInterest> _pointsOfInterest = [];
   final List<Marker> _debugMarkers = [];
-  final bool _debugging = false; // true;
+  final bool _debugging = true;
   final String _debuggingRoute = 'Debug';
   final Directions _directions = Directions();
 
@@ -324,12 +336,6 @@ class CreateCurrentTripItem().tripValues {
           images: images,
           point: latLng,
           sounds: audio,
-          child: MarkerWidget(
-            type: iconIdx,
-            angle: -_mapRotation * pi / 180, // degrees to radians
-            list: 0,
-            listIndex: CurrentTripItem().pointsOfInterest.length,
-          ),
         ),
       );
       setState(() {
@@ -389,6 +395,8 @@ class CreateCurrentTripItem().tripValues {
     if (_debugging) {
       _debugPositionController = StreamController<Position>();
       _debugRoute = FollowRoute(controller: _debugPositionController);
+/*
+
 
       _debugMarkers.add(
         Marker(
@@ -400,6 +408,7 @@ class CreateCurrentTripItem().tripValues {
           point: LatLng(0, 0),
         ),
       );
+*/
     }
 
     try {
@@ -489,7 +498,7 @@ class CreateCurrentTripItem().tripValues {
                 _tripMessages.add(tripMessage);
                 showMessages(message: tripMessage);
               }
-              developer.log('setState() 496', name: '_setState');
+              //      developer.log('setState() 496', name: '_setState');
               setState(() {});
             } catch (e) {
               debugPrint('Error: ${e.toString()}');
@@ -547,17 +556,19 @@ class CreateCurrentTripItem().tripValues {
             .contains(CurrentTripItem().tripState)
         ? 1
         : 0;
-    developer.log(
-        'Build 1 setting initialLeadingValue to: $initialLeadingWidgetValue',
-        name: '_leading');
+    //  developer.log(
+    //      'Build 1 setting initialLeadingValue to: $initialLeadingWidgetValue',
+    //      name: '_leading');
 
     if (ModalRoute.of(context)?.settings.arguments != null &&
         listHeight == -1) {
       final args = ModalRoute.of(context)!.settings.arguments as TripArguments;
       CurrentTripItem().load(arguments: args);
+      // CurrentTripItem().downloadTiles(style: _style);
       CurrentTripItem().tripValues.mapHeight = MapHeights.full;
-      _tripStarted = false;
 
+      _tripStarted = false;
+      /*
       if (_debugging) {
         for (int i = 0; i < CurrentTripItem().maneuvers.length; i++) {
           _debugMarkers.add(
@@ -568,16 +579,19 @@ class CreateCurrentTripItem().tripValues {
           );
         }
       }
+      */
 
       initialLeadingWidgetValue = CurrentTripItem().tripValues.leadingWidget;
-      developer.log(
-          'Build 2 setting initialLeadingValue to: $initialLeadingWidgetValue',
-          name: '_leading');
+      //  developer.log(
+      //      'Build 2 setting initialLeadingValue to: $initialLeadingWidgetValue',
+      //      name: '_leading');
 
       initialNavBarValue = 2;
     }
     return Scaffold(
+      backgroundColor: Colors.blue,
       key: _scaffoldKey,
+
       drawer: const MainDrawer(),
       resizeToAvoidBottomInset: false, // Stops keyboard moving FABS
       appBar: AppBar(
@@ -597,22 +611,15 @@ class CreateCurrentTripItem().tripValues {
                 _leadingWidgetController.changeWidget(0);
                 adjustMapHeight(CurrentTripItem().tripValues.mapHeight);
                 setState(() => ());
-                /*
-                setState(() {
-                  CurrentTripItem().onBackPressed();
-                  if (CurrentTripItem().tripState == TripState.none) {
-                    adjustMapHeight(MapHeights.full);
-                  }
-                  _leadingWidgetController.changeWidget(0);
-                });
-                */
               }
             },
           ),
-          title: CurrentTripItem().getTripTitle(),
+          title: Text(CurrentTripItem().getTripTitle(),
+              style: headlineStyle(context: context, size: 2)),
           iconTheme: const IconThemeData(color: Colors.white),
           backgroundColor: Colors.blue,
           actions: CurrentTripItem().getActions(
+              context: context,
               onUpdate: (val) => val ? setState(() => ()) : () => ())),
 
       bottomNavigationBar: RoutesBottomNav(
@@ -620,7 +627,6 @@ class CreateCurrentTripItem().tripValues {
           controller: _bottomNavController,
           initialValue: initialNavBarValue,
           onMenuTap: (_) => {}),
-      backgroundColor: Colors.grey[300],
       floatingActionButton: _handleFabs(),
       body: FutureBuilder<bool>(
         future: _loadedOK,
@@ -670,7 +676,12 @@ class CreateCurrentTripItem().tripValues {
     } catch (e) {
       debugPrint('Error getting features data: ${e.toString()}');
     }
+
     _style = await VectorMapStyle().mapStyle();
+    VectorTileProvider apiProvider = _style.providers.get('openmaptiles');
+    _cachedProvider = CachedVectorTileProvider(delegate: apiProvider);
+    _cachedProviders = TileProviders({'openmaptiles': _cachedProvider});
+
     return true;
   }
 
@@ -716,6 +727,17 @@ class CreateCurrentTripItem().tripValues {
         },
       );
     }
+  }
+
+  double appBarHeight() {
+    double abHeight = 200;
+    final abKeyContext = _appBarKey.currentContext;
+    if (abKeyContext != null) {
+      final box = abKeyContext.findRenderObject() as RenderBox;
+      abHeight = box.size.height;
+      // box.size.bottomRight(origin)
+    }
+    return abHeight;
   }
 
   Future<Map<String, dynamic>> getDialogData(
@@ -823,7 +845,8 @@ class CreateCurrentTripItem().tripValues {
       if (ModalRoute.of(context)!.settings.arguments != null) {
         _leadingWidgetController.changeWidget(1);
         adjustMapHeight(MapHeights.full);
-        _editPointOfInterest = CurrentTripItem().pointsOfInterest.length - 1;
+        CurrentTripItem().tripValues.pointOfInterestIndex =
+            CurrentTripItem().pointsOfInterest.length - 1;
       }
 
       _hasRepainted = true;
@@ -859,7 +882,7 @@ class CreateCurrentTripItem().tripValues {
     //  debugPrint('resetting _poiDetailIndex');
     if (_poiDetailIndex > -1) {
       _poiDetailIndex = -1;
-      developer.log('setState() 848', name: '_setState');
+      //    developer.log('setState() 848', name: '_setState');
       setState(() {});
     }
   }
@@ -891,94 +914,15 @@ class CreateCurrentTripItem().tripValues {
       children: [
         if (listHeight == 0) ...[
           SizedBox(
-            height: 220,
+            height: appBarHeight() +
+                (CurrentTripItem().tripState == TripState.following
+                    ? 250
+                    : 130),
           ),
-          AnimatedContainer(
-            duration: const Duration(seconds: 1),
-            // color: Colors.blueAccent,
-            width: _width,
+          PlaceFinder(
             height: _height,
-            decoration: BoxDecoration(
-                color: Colors.blue,
-                borderRadius: BorderRadius.circular(_height / 2)),
-            curve: Curves.fastOutSlowIn,
-            onEnd: () => setState(() => _expanded = _width > _height),
-            child: _expanded
-                ? Row(
-                    children: [
-                      SizedBox(
-                        width: _width - _height,
-                        child: Padding(
-                          padding: EdgeInsets.fromLTRB(20, 5, 2, 5),
-                          child: AutocompletePlace(
-                            options: _places,
-                            optionsMaxHeight: 100,
-                            searchLength: 3,
-                            decoration: InputDecoration(
-                              filled: true,
-
-                              fillColor: Colors.white,
-                              //     enabledBorder: OutlineInputBorder(),
-                              border: _width > _height
-                                  ? OutlineInputBorder()
-                                  : null,
-                              //     enabled: _width > _height,
-                              hintText: 'Enter place name...',
-                            ),
-                            keyboardType: TextInputType.text,
-                            onSelect: (chosen) async {
-                              CurrentTripItem().tripValues.autoCentre = false;
-                              //   _alignPositionOnUpdate = AlignOnUpdate.never;
-                              _alignDirectionOnUpdate = AlignOnUpdate.never;
-                              _animatedMapController
-                                  .animateTo(
-                                      dest: LatLng(chosen.lat, chosen.lng))
-                                  .then((_) => updateOverlays());
-                            },
-                            onChange: (text) => (debugPrint('onChange: $text')),
-                            onUpdateOptionsRequest: (query) {
-                              debugPrint('Query: $query');
-                              getDropdownItems(query);
-                            },
-                          ),
-                        ),
-                      ),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: Padding(
-                          padding: EdgeInsets.fromLTRB(4, 4, 0, 0),
-                          child: IconButton(
-                            onPressed: () {
-                              setState(() => _width = _height);
-                              _expanded = false;
-                            },
-                            icon: Icon(
-                                _width > _height
-                                    ? Icons.search_off_outlined
-                                    : Icons.search_outlined,
-                                size: _height / 2,
-                                color: Colors.white),
-                          ),
-                        ),
-                      ),
-                    ],
-                  )
-                : Align(
-                    alignment: Alignment.centerRight,
-                    child: Padding(
-                      padding: EdgeInsets.fromLTRB(0, 0, 4, 0),
-                      child: IconButton(
-                        onPressed: () {
-                          setState(() {
-                            _expanded = false;
-                            _width = MediaQuery.of(context).size.width - 40;
-                          });
-                        },
-                        icon: Icon(Icons.search,
-                            size: _height / 2, color: Colors.white),
-                      ),
-                    ),
-                  ),
+            width: _width,
+            onSelect: (position) => onPlaceSelect(position),
           ),
           const SizedBox(
             height: 10,
@@ -1048,50 +992,13 @@ class CreateCurrentTripItem().tripValues {
           const SizedBox(
             height: 10,
           ),
-          if (_debugging) ...[
-            FloatingActionButton(
-              heroTag: 'goodRoad',
-              onPressed: () async {
-                CurrentTripItem().maneuvers.clear();
-                if (CurrentTripItem().maneuvers.isEmpty) {
-                  /// If the trip was generated through tracking there will be
-                  /// no point by point data so have to generate it from
-                  /// the API using sample points
-                  try {
-                    //  String points = await waypointsFromPoints(50);
-                    if (CurrentTripItem().routes[0].points.isNotEmpty) {
-                      // await getRoutePoints(waypoints: points);
-                    }
-                    List<LatLng> points = [];
-                    for (int i = 0; i < CurrentTripItem().routes.length; i++) {
-                      points.addAll(CurrentTripItem().routes[i].points);
-                    }
-
-                    Map<String, dynamic> routeData =
-                        await getRoutePoints(points: points, addPoints: false);
-
-                    CurrentTripItem().maneuvers = routeData['maneuvers'];
-                    debugPrint('maneuvers done');
-                  } catch (e) {
-                    debugPrint('error ${e.toString()}');
-                  }
-                }
-              },
-              backgroundColor: CurrentTripItem().tripValues.goodRoad.isGood
-                  ? uiColours.keys.toList()[Setup().goodRouteColour]
-                  : Colors.blue,
-              shape: const CircleBorder(),
-              child: Icon(
-                Icons.bug_report_outlined,
-                color: Colors.white,
-              ),
-            ),
-            SizedBox(height: 10),
-          ],
           if (CurrentTripItem().groupDriveId.isNotEmpty) ...[
             FloatingActionButton(
               heroTag: 'broadcast',
-              onPressed: () => messageGroup(-1),
+              onPressed: () => showDialog(
+                  context: context,
+                  builder: (context) => contactDiolog(
+                      context: context, socket: socket)), // messageGroup(-1),
               backgroundColor: Colors.blue,
               shape: const CircleBorder(),
               child: Icon(
@@ -1100,40 +1007,10 @@ class CreateCurrentTripItem().tripValues {
               ),
             ),
             SizedBox(height: 10),
-            FloatingActionButton(
-              onPressed: () {
-                if (socket.connected) {
-                  if (testPos == LatLng(0, 0)) {
-                    testPos = LatLng(
-                        _animatedMapController
-                            .mapController.camera.center.latitude,
-                        _animatedMapController
-                            .mapController.camera.center.longitude);
-                  } else {
-                    double lat = testPos.latitude + 0.001;
-                    double lng = testPos.longitude + 0.001;
-                    testPos = LatLng(lat, lng);
-                  }
-                  socket.emit('trip_message', {
-                    'message': '',
-                    'lat': testPos.latitude,
-                    'lng': testPos.longitude,
-                  });
-                }
-              },
-              heroTag: 'test1',
-              backgroundColor: Colors.blue,
-              shape: const CircleBorder(),
-              child: Icon(Icons.add_alarm,
-                  color: CurrentTripItem().tripValues.autoCentre
-                      ? Colors.white
-                      : Colors.grey),
-            ),
-            const SizedBox(height: 10),
           ],
           if ([TripState.recording, TripState.following]
               .contains(CurrentTripItem().tripState)) ...[
-            const SizedBox(height: 10),
+            // const SizedBox(height: 10),
             if (CurrentTripItem().tripValues.goodRoad.isGood) ...[
               FloatingActionButton(
                 heroTag: 'goodRoad',
@@ -1165,7 +1042,7 @@ class CreateCurrentTripItem().tripValues {
                         name: description,
                         audio: audio);
                     CurrentTripItem().tripValues.goodRoad.isGood = true;
-                    _editPointOfInterest =
+                    CurrentTripItem().tripValues.pointOfInterestIndex =
                         CurrentTripItem().pointsOfInterest.length - 1;
                   },
                 ),
@@ -1196,7 +1073,7 @@ class CreateCurrentTripItem().tripValues {
                   LatLng(_currentPosition.latitude, _currentPosition.longitude),
                   audio,
                 );
-                _editPointOfInterest =
+                CurrentTripItem().tripValues.pointOfInterestIndex =
                     CurrentTripItem().pointsOfInterest.length - 1;
               }),
               fillColor: Colors.white,
@@ -1241,10 +1118,19 @@ class CreateCurrentTripItem().tripValues {
     );
   }
 
+  onPlaceSelect(LatLng position) async {
+    CurrentTripItem().tripValues.autoCentre = false;
+    //   _alignPositionOnUpdate = AlignOnUpdate.never;
+    _alignDirectionOnUpdate = AlignOnUpdate.never;
+    _animatedMapController
+        .animateTo(dest: position)
+        .then((_) => updateOverlays());
+  }
+
   getDropdownItems(String query) async {
     _places.clear();
     _places.addAll(await getPlaces(value: query));
-    developer.log('setState() 1233', name: '_setState');
+    //  developer.log('setState() 1233', name: '_setState');
     setState(() {});
   }
 
@@ -1287,6 +1173,7 @@ class CreateCurrentTripItem().tripValues {
                     }
                     CurrentTripItem().tripValues.title =
                         CurrentTripItem().heading;
+                    CurrentTripItem().tripValues.showTarget = false;
                     if (!socket.connected) {
                       socket.connect();
                     }
@@ -1294,20 +1181,24 @@ class CreateCurrentTripItem().tripValues {
                 }
               },
               onPositionChanged: (position, hasGesure) {
-                CurrentTripItem().changePosition(
-                    position:
-                        _animatedMapController.mapController.camera.center,
-                    onChange: (update) => update ? setState(() => ()) : null);
-                if (hasGesure) {
-                  // _updateMarkerSize(position.zoom);
-                }
+                try {
+                  CurrentTripItem().changePosition(
+                      position:
+                          _animatedMapController.mapController.camera.center,
+                      onChange: (update) => update ? setState(() => ()) : null);
+                  if (hasGesure) {
+                    // _updateMarkerSize(position.zoom);
+                  }
 
-                if (_updateOverlays) {
-                  updateOverlays(zoom: position.zoom);
-                }
+                  if (_updateOverlays) {
+                    updateOverlays(zoom: position.zoom);
+                  }
 
-                _mapRotation =
-                    _animatedMapController.mapController.camera.rotation;
+                  _mapRotation =
+                      _animatedMapController.mapController.camera.rotation;
+                } catch (e) {
+                  debugPrint('Error: ${e.toString()}');
+                }
               },
               initialCenter: routePoints[0],
               initialZoom: _zoom, // 15,
@@ -1325,33 +1216,37 @@ class CreateCurrentTripItem().tripValues {
                   theme: _style.theme, //_style.theme,
                   maximumZoom: 13,
                   //sprites: _style.sprites,
-                  tileProviders: _style.providers,
-                  showTileDebugInfo: true,
+                  tileProviders: _cachedProviders, // _style.providers,
+                  // showTileDebugInfo: true,
                   layerMode: VectorTileLayerMode.vector,
                   //  cacheFolder: getCacheFolder,
                   tileOffset: TileOffset.DEFAULT),
-              CurrentLocationLayer(
-                focalPoint: const FocalPoint(
-                  ratio: Point(0.0, 1.0),
-                  offset: Point(0.0, -60.0),
-                ),
-                alignPositionStream: _allignPositionStreamController.stream,
-                alignDirectionStream: _allignDirectionStreamController.stream,
-                //   alignPositionOnUpdate: _alignPositionOnUpdate,
-                alignDirectionOnUpdate: _alignDirectionOnUpdate,
-                style: const LocationMarkerStyle(
-                  marker: DefaultLocationMarker(
-                    child: Icon(
-                      Icons.navigation,
-                      color: Colors.white,
-                    ),
+              if (!_debugging) ...[
+                CurrentLocationLayer(
+                  focalPoint: const FocalPoint(
+                    ratio: Point(0.0, 1.0),
+                    offset: Point(0.0, -60.0),
                   ),
-                  markerSize: ui.Size(30, 30),
-                  markerDirection: MarkerDirection.heading,
-                ),
-              ),
+                  alignPositionStream: _allignPositionStreamController.stream,
+                  alignDirectionStream: _allignDirectionStreamController.stream,
+                  //   alignPositionOnUpdate: _alignPositionOnUpdate,
+                  alignDirectionOnUpdate: _alignDirectionOnUpdate,
+                  style: const LocationMarkerStyle(
+                    marker: DefaultLocationMarker(
+                      child: Icon(
+                        Icons.navigation,
+                        color: Colors.white,
+                      ),
+                    ),
+                    markerSize: ui.Size(30, 30),
+                    markerDirection: MarkerDirection.heading,
+                  ),
+                )
+              ],
               mt.RouteLayer(
-                polylines: CurrentTripItem().routes,
+                polylines: getPolyLines(),
+
+                ///CurrentTripItem().routes,
               ),
               mt.RouteLayer(
                 polylines: _publishedFeatures.goodRoads,
@@ -1423,6 +1318,10 @@ class CreateCurrentTripItem().tripValues {
     );
   }
 
+  List<mt.Route> getPolyLines() {
+    return CurrentTripItem().routes;
+  }
+
   LatLng chipPosition() {
     try {
       return _animatedMapController.mapController.camera.center;
@@ -1441,16 +1340,17 @@ class CreateCurrentTripItem().tripValues {
       return Align(
         alignment: Alignment.topLeft,
         child: DirectionTile(
-            routes: CurrentTripItem().routes,
-            maneuvers: CurrentTripItem().maneuvers,
-            controller: _directionTileController,
-            currentIndex: (_) => (),
-            onTap: (index, routeIndex, pointIndex) => changeRoute(
-                lastManeuverIndex: index,
-                routeIndex: routeIndex,
-                pointIndex: pointIndex),
-            currentPosition:
-                LatLng(_currentPosition.latitude, _currentPosition.longitude)),
+          routes: CurrentTripItem().routes,
+          maneuvers: CurrentTripItem().maneuvers,
+          controller: _directionTileController,
+          currentIndex: (_) => (),
+          onTap: (index, routeIndex, pointIndex) => changeRoute(
+              lastManeuverIndex: index,
+              routeIndex: routeIndex,
+              pointIndex: pointIndex),
+          currentPosition: CurrentTripItem().tripValues.position,
+          driveId: CurrentTripItem().driveUri,
+        ),
       );
     } else {
       return const Align(
@@ -1541,6 +1441,10 @@ class CreateCurrentTripItem().tripValues {
     CurrentTripItem().tripValues = values;
     adjustMapHeight(values.mapHeight);
     _leadingWidgetController.changeWidget(values.leadingWidget);
+    if (CurrentTripItem().tripValues.stopStream) {
+      _positionStream.cancel();
+    }
+
     if (values.setState) {
       setState(() => {});
     }
@@ -1583,6 +1487,10 @@ class CreateCurrentTripItem().tripValues {
             position: follower.position,
             marker: FollowerMarkerWidget(
               index: i,
+              socket: socket,
+              forename: follower.forename,
+              surname: follower.surname,
+              phoneNumber: follower.phoneNumber,
               manufacturer: follower.manufacturer,
               model: follower.model,
               colour: follower.carColour,
@@ -1609,7 +1517,10 @@ class CreateCurrentTripItem().tripValues {
         driveName: CurrentTripItem().heading,
         iconColour: cIndex,
         position: LatLng(_currentPosition.latitude, _currentPosition.longitude),
-        marker: FollowerMarkerWidget(colourIndex: 17),
+        marker: FollowerMarkerWidget(
+          colourIndex: 17,
+          socket: socket,
+        ),
       );
       _following.add(myCarInfo);
     }
@@ -1670,7 +1581,13 @@ class CreateCurrentTripItem().tripValues {
           return SizedBox(height: 0);
       }
     } else {
-      // setState(() => CurrentTripItem().tripActions = TripActions.none);
+      if ([
+        TripActions.showGroup,
+        TripActions.showMessages,
+        TripActions.showSteps
+      ].contains(CurrentTripItem().tripActions)) {
+        setState(() => CurrentTripItem().tripActions = TripActions.none);
+      }
       return SizedBox(height: 0);
     }
   }
@@ -1706,7 +1623,7 @@ class CreateCurrentTripItem().tripValues {
         //    _showExploreDetail();
       }),
       onVerticalDragUpdate: (DragUpdateDetails details) {
-        developer.log('setState() 1689', name: '_setState');
+        //  developer.log('setState() 1689', name: '_setState');
         setState(() {
           if (mapHeights[0] == 0) {
             mapHeights[0] = MediaQuery.of(context).size.height - 190;
@@ -1754,6 +1671,7 @@ class CreateCurrentTripItem().tripValues {
           child: ManeuverTile(
             index: index,
             maneuvers: CurrentTripItem().maneuvers,
+            routes: CurrentTripItem().routes,
             onLongPress: maneuverLongPress,
           ),
         ),
@@ -1779,12 +1697,30 @@ class CreateCurrentTripItem().tripValues {
     );
   }
 
-  void maneuverLongPress(int index) {
+  void maneuverLongPress(int index) async {
     CurrentTripItem().tripValues.showTarget = true;
     _animatedMapController.animateTo(
         dest: CurrentTripItem().maneuvers[index].location);
     // CurrentTripItem().tripState = TripState.following;
     debugPrint('index: $index');
+    final String fileName = await getSpeech(
+        text:
+            'Stop the car you idiot, I want to get out', //CurrentTripItem().maneuvers[index].modifier,
+        fileName: 'text.mp3');
+    if (fileName.isNotEmpty) {
+      final bool exists = await File(fileName).exists();
+      if (exists) {
+        debugPrint('File size: ${File(fileName).lengthSync}');
+        DeviceFileSource source = DeviceFileSource(fileName);
+        try {
+          final player = AudioPlayer(); //..setReleaseMode(ReleaseMode.stop);
+          // player.setSourceAsset(fileName);
+          player.play(source); //(source);
+        } catch (e) {
+          debugPrint('Error : ${e.toString()}');
+        }
+      }
+    }
     _directions.update(position: CurrentTripItem().maneuvers[index].location);
     setState(() => _directions.currentIndex = index);
     return;
@@ -1796,135 +1732,8 @@ class CreateCurrentTripItem().tripValues {
     return;
   }
 
-  Future<String> messageGroup(int index) async {
-    List<String> choices = [
-      'All OK',
-      'Stopping for fuel',
-      'Stopping for food',
-      'Mechanical problem',
-      'Stopping for a break',
-      'Stuck in traffic',
-      'Lost the way',
-    ];
-    String message = choices[0];
-    showDialog<void>(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: index > -1
-              ? Text(
-                  'Message ${_following[index].forename} ${_following[index].surname}')
-              : const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 30),
-                  child: Text('Broadcast Message')),
-          content: SizedBox(
-            width: 200,
-            height: 150,
-            child: Column(
-              children: [
-                Row(children: [
-                  Expanded(
-                    flex: 1,
-                    child: Padding(
-                      padding: const EdgeInsets.all(10),
-                      child: DropdownButtonFormField<String>(
-                          isExpanded: true,
-                          decoration: const InputDecoration(
-                            border: OutlineInputBorder(),
-                            labelText: 'Saved Messages',
-                          ),
-                          initialValue: choices[0],
-                          items: choices
-                              .map(
-                                (item) => DropdownMenuItem<String>(
-                                  value: item,
-                                  child: Text(item,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodyLarge!),
-                                ),
-                              )
-                              .toList(),
-                          onChanged: (item) => message = item!),
-                    ),
-                  ),
-                ]),
-                if (index > -1) ...[
-                  Row(
-                    children: [
-                      ElevatedButton(
-                        onPressed: () async {
-                          await FlutterPhoneDirectCaller.callNumber(
-                              _following[index].phoneNumber);
-                        },
-                        child: Expanded(
-                          flex: 1,
-                          child: Padding(
-                            padding: const EdgeInsets.all(10),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(Icons.phone),
-                                const SizedBox(width: 8),
-                                Text(
-                                    'Telephone ${_following[index].phoneNumber}'),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ] else ...[
-                  SizedBox(
-                    height: 70,
-                    child: Padding(
-                      padding: const EdgeInsets.all(10),
-                      //  child: SingleChildScrollView(
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: TextFormField(
-                              autofocus: true,
-                              minLines: 1,
-                              maxLines: 2,
-                              decoration: const InputDecoration(
-                                border: OutlineInputBorder(),
-                                hintText: 'Enter group message',
-                              ),
-                              textInputAction: TextInputAction.done,
-                              keyboardType: TextInputType.multiline,
-                              onChanged: (value) => message = value,
-                            ),
-                          ),
-                        ],
-                      ),
-                      //    ),
-                    ),
-                  ),
-                ]
-              ],
-            ),
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Send', style: TextStyle(fontSize: 22)),
-              onPressed: () {
-                socket.emit('trip_message', {'message': message});
-                Navigator.pop(context, message);
-              },
-            ),
-            TextButton(
-              child: const Text('Cancel', style: TextStyle(fontSize: 22)),
-              onPressed: () {
-                Navigator.pop(context, '');
-              },
-            ),
-          ],
-        );
-      },
-    );
-    return '';
+  messageGroup(int index) async {
+    return contactDiolog(context: context, socket: socket);
   }
 
   Future<String> showMessages({required TripMessage message}) async {
@@ -1968,7 +1777,8 @@ class CreateCurrentTripItem().tripValues {
       builder: (BuildContext context) {
         //  Map<String, dynamic> carData = {};
         return AlertDialog(
-          title: Text('Drive - ${driver.driveName}'),
+          title: Text('Drive - ${driver.driveName}',
+              style: textStyle(context: context, color: Colors.black, size: 2)),
           titlePadding: EdgeInsets.fromLTRB(30, 30, 0, 0),
           content: SizedBox(
             width: 400,
@@ -1985,11 +1795,14 @@ class CreateCurrentTripItem().tripValues {
                           child: TextFormField(
                             autofocus: true,
                             initialValue: driver.manufacturer,
-                            decoration: const InputDecoration(
-                              label: Text('Vehicle manufacturer'),
-                              border: OutlineInputBorder(),
-                              hintText: 'Manufacturer',
-                            ),
+                            style: textStyle(
+                                context: context, color: Colors.black),
+                            decoration: InputDecoration(
+                                label: Text('Vehicle manufacturer'),
+                                labelStyle: labelStyle(context: context),
+                                border: OutlineInputBorder(),
+                                hintText: 'Manufacturer',
+                                hintStyle: hintStyle(context: context)),
                             textInputAction: TextInputAction.next,
                             textCapitalization: TextCapitalization.words,
                             keyboardType: TextInputType.name,
@@ -2009,15 +1822,18 @@ class CreateCurrentTripItem().tripValues {
                         Expanded(
                           child: TextFormField(
                             initialValue: driver.model,
-                            decoration: const InputDecoration(
-                              label: Text('Vehicle model'),
-                              border: OutlineInputBorder(),
-                              hintText: 'Model',
-                            ),
+                            decoration: InputDecoration(
+                                label: Text('Vehicle model'),
+                                labelStyle: labelStyle(context: context),
+                                border: OutlineInputBorder(),
+                                hintText: 'Model',
+                                hintStyle: hintStyle(context: context)),
                             textInputAction: TextInputAction.next,
                             textCapitalization: TextCapitalization.words,
                             keyboardType: TextInputType.name,
                             onChanged: (value) => driver.model = value,
+                            style: textStyle(
+                                context: context, color: Colors.black),
                           ),
                         ),
                       ],
@@ -2034,14 +1850,17 @@ class CreateCurrentTripItem().tripValues {
                           flex: 2,
                           child: TextFormField(
                             initialValue: driver.carColour,
-                            decoration: const InputDecoration(
-                              label: Text('Colour'),
-                              border: OutlineInputBorder(),
-                              hintText: 'Colour',
-                            ),
+                            decoration: InputDecoration(
+                                label: Text('Colour'),
+                                labelStyle: labelStyle(context: context),
+                                border: OutlineInputBorder(),
+                                hintText: 'Colour',
+                                hintStyle: hintStyle(context: context)),
                             textInputAction: TextInputAction.next,
                             keyboardType: TextInputType.name,
                             onChanged: (value) => driver.carColour = value,
+                            style: textStyle(
+                                context: context, color: Colors.black),
                           ),
                         ),
                         SizedBox(width: 5),
@@ -2049,15 +1868,18 @@ class CreateCurrentTripItem().tripValues {
                           flex: 2,
                           child: TextFormField(
                             initialValue: driver.registration,
-                            decoration: const InputDecoration(
-                              label: Text('Registration'),
-                              border: OutlineInputBorder(),
-                              hintText: 'Reg No',
-                            ),
+                            decoration: InputDecoration(
+                                label: Text('Registration'),
+                                labelStyle: labelStyle(context: context),
+                                border: OutlineInputBorder(),
+                                hintText: 'Reg No',
+                                hintStyle: hintStyle(context: context)),
                             textCapitalization: TextCapitalization.characters,
                             textInputAction: TextInputAction.next,
                             keyboardType: TextInputType.name,
                             onChanged: (value) => driver.registration = value,
+                            style: textStyle(
+                                context: context, color: Colors.black),
                           ),
                         ),
                       ],
@@ -2072,12 +1894,15 @@ class CreateCurrentTripItem().tripValues {
                       children: [
                         Expanded(
                           child: TextFormField(
+                            style: textStyle(
+                                context: context, color: Colors.black),
                             initialValue: driver.phoneNumber,
-                            decoration: const InputDecoration(
-                              label: Text('Mobile'),
-                              border: OutlineInputBorder(),
-                              hintText: 'Mobile phone number',
-                            ),
+                            decoration: InputDecoration(
+                                label: Text('Mobile'),
+                                labelStyle: labelStyle(context: context),
+                                border: OutlineInputBorder(),
+                                hintText: 'Mobile phone number',
+                                hintStyle: hintStyle(context: context)),
                             textInputAction: TextInputAction.done,
                             keyboardType: TextInputType.phone,
                             onChanged: (value) => driver.phoneNumber = value,
@@ -2150,10 +1975,9 @@ class CreateCurrentTripItem().tripValues {
         slivers: [
           SliverToBoxAdapter(
             child: PointOfInterestTile(
-              key: ValueKey(_editPointOfInterest),
-              index: _editPointOfInterest,
-              pointOfInterest: CurrentTripItem()
-                  .pointsOfInterest[index], // _editPointOfInterest],
+              key: ValueKey(CurrentTripItem().tripValues.pointOfInterestIndex),
+              index: CurrentTripItem().tripValues.pointOfInterestIndex,
+              pointOfInterest: CurrentTripItem().pointsOfInterest[index],
               imageRepository: _publishedFeatures.imageRepository,
               onExpandChange: (expanded) => expandChange,
               onIconTap: iconButtonTapped,
@@ -2169,93 +1993,115 @@ class CreateCurrentTripItem().tripValues {
     );
   }
 
-  SizedBox _showExploreDetail({readOnly = false}) {
-    return SizedBox(
-      height: listHeight,
-      child: CustomScrollView(
-        controller: _scrollController,
-        slivers: [
-          if (_editPointOfInterest < 0) ...[
-            // if (CurrentTripItem().pointsOfInterest.isEmpty) ...[
-            SliverToBoxAdapter(
-              child: _exploreDetailsHeader(),
-            ),
-            SliverReorderableList(
-              itemBuilder: (context, index) {
-                int poiType = CurrentTripItem().pointsOfInterest[index].type;
-                bool exclude = [12, 16, 17, 18, 19].contains(poiType);
-                if (!exclude) {
-                  // filter out followers
-                  return // isWaypoint
-                      // ? waypointTile(index)
-                      //  :
-                      PointOfInterestTile(
-                    key: ValueKey(index),
-                    index: index,
-                    pointOfInterest: CurrentTripItem().pointsOfInterest[index],
-                    imageRepository: _publishedFeatures.imageRepository,
-                    onExpandChange: (expanded) => expandChange,
-                    onIconTap: iconButtonTapped,
-                    onDelete: removePointOfInterest,
-                    onRated: onPointOfInterestRatingChanged,
-                    onSave: (index) => onPointOfInterestSaved(index: index),
-                    canEdit: !readOnly,
-                  );
-                } else {
-                  return SizedBox(
-                    key: ValueKey(index),
-                    height: 1,
-                  );
-                }
-              },
-              itemCount: CurrentTripItem().pointsOfInterest.length,
-              onReorder: (int oldIndex, int newIndex) {
-                developer.log('setState() 2191', name: '_setState');
-                setState(
-                  () {
-                    if (oldIndex < newIndex) {
-                      newIndex = -1;
-                    }
-                    CurrentTripItem().movePointOfInterest(oldIndex, newIndex);
-                  },
-                );
-              },
-            ),
-            //  SizedBox(height: 50),
-          ],
-          if (_editPointOfInterest > -1 &&
-              _editPointOfInterest <
-                  CurrentTripItem().pointsOfInterest.length &&
-              ![12, 17, 18, 19].contains(CurrentTripItem()
-                  .pointsOfInterest[_editPointOfInterest]
-                  .type)) ...[
-            SliverToBoxAdapter(
-              child: PointOfInterestTile(
-                key: ValueKey(_editPointOfInterest),
-                index: _editPointOfInterest,
-                pointOfInterest:
-                    CurrentTripItem().pointsOfInterest[_editPointOfInterest],
-                imageRepository: _publishedFeatures.imageRepository,
-                onExpandChange: (expanded) => expandChange,
-                onIconTap: iconButtonTapped,
-                onDelete: removePointOfInterest,
-                onRated: onPointOfInterestRatingChanged,
-                onSave: (index) => onPointOfInterestSaved(index: index),
-                // expanded: true,
-                canEdit: !readOnly,
+  Widget _showExploreDetail({readOnly = false}) {
+    if (CurrentTripItem().pointsOfInterest.isEmpty) {
+      return Center(
+        heightFactor: 10,
+        child: Text('No features recorded yet.',
+            style: titleStyle(context: context, size: 1)),
+      );
+    } else {
+      int pois = 0;
+      return SizedBox(
+        height: listHeight,
+        child: CustomScrollView(
+          controller: _scrollController,
+          slivers: [
+            if (CurrentTripItem().tripValues.pointOfInterestIndex < 0 ||
+                CurrentTripItem().tripState == TripState.editing) ...[
+              // if (CurrentTripItem().pointsOfInterest.isEmpty) ...[
+              SliverToBoxAdapter(
+                child: _exploreDetailsHeader(),
               ),
-            )
-          ]
-        ],
-      ),
-    );
+              SliverReorderableList(
+                itemBuilder: (context, index) {
+                  int poiType = CurrentTripItem().pointsOfInterest[index].type;
+                  bool exclude = [12, 16, 17, 18, 19].contains(poiType);
+
+                  for (int i = 0;
+                      i < CurrentTripItem().pointsOfInterest.length;
+                      i++) {
+                    if (![12, 16, 17, 18, 19]
+                        .contains(CurrentTripItem().pointsOfInterest[i].type)) {
+                      pois++;
+                    }
+                  }
+                  ;
+                  if (!exclude) {
+                    // filter out followers
+                    return // isWaypoint
+                        // ? waypointTile(index)
+                        //  :
+                        PointOfInterestTile(
+                      key: ValueKey(index),
+                      index: index,
+                      pointOfInterest:
+                          CurrentTripItem().pointsOfInterest[index],
+                      imageRepository: _publishedFeatures.imageRepository,
+                      onExpandChange: (expanded) => expandChange,
+                      onIconTap: iconButtonTapped,
+                      onDelete: removePointOfInterest,
+                      onRated: onPointOfInterestRatingChanged,
+                      onSave: (index) => onPointOfInterestSaved(index: index),
+                      canEdit: !readOnly,
+                    );
+                  } else {
+                    return SizedBox(
+                      key: ValueKey(index),
+                      height: 1,
+                    );
+                  }
+                },
+                itemCount: pois,
+                onReorder: (int oldIndex, int newIndex) {
+                  setState(
+                    () {
+                      if (oldIndex < newIndex) {
+                        newIndex = -1;
+                      }
+                      CurrentTripItem().movePointOfInterest(oldIndex, newIndex);
+                    },
+                  );
+                },
+              ),
+            ],
+            if (CurrentTripItem().tripValues.pointOfInterestIndex > -1 &&
+                CurrentTripItem().tripValues.pointOfInterestIndex <
+                    CurrentTripItem().pointsOfInterest.length &&
+                ![12, 17, 18, 19].contains(CurrentTripItem()
+                    .pointsOfInterest[
+                        CurrentTripItem().tripValues.pointOfInterestIndex]
+                    .type)) ...[
+              SliverToBoxAdapter(
+                child: PointOfInterestTile(
+                  key: ValueKey(
+                      CurrentTripItem().tripValues.pointOfInterestIndex),
+                  index: CurrentTripItem().tripValues.pointOfInterestIndex,
+                  pointOfInterest: CurrentTripItem().pointsOfInterest[
+                      CurrentTripItem().tripValues.pointOfInterestIndex],
+                  imageRepository: _publishedFeatures.imageRepository,
+                  onExpandChange: (expanded) => expandChange,
+                  onIconTap: iconButtonTapped,
+                  onDelete: removePointOfInterest,
+                  onRated: onPointOfInterestRatingChanged,
+                  onSave: (index) => onPointOfInterestSaved(index: index),
+                  // expanded: true,
+                  canEdit: !readOnly,
+                ),
+              )
+            ]
+          ],
+        ),
+      );
+    }
   }
 
+/*
   void _scrollDown() {
     _scrollController.animateTo(_scrollController.position.maxScrollExtent,
         duration: const Duration(seconds: 2), curve: Curves.fastOutSlowIn);
   }
-
+*/
   Future<void> deleteTrip(int index) async {
     Utility().showOkCancelDialog(
         context: context,
@@ -2293,10 +2139,10 @@ class CreateCurrentTripItem().tripValues {
 
   void onPointOfInterestSaved({index = -1}) {
     if (index > -1) {
-      PointOfInterest updated = PointOfInterest.update(
+      PointOfInterest updated = PointOfInterest.clone(
           pointOfInterest: CurrentTripItem().pointsOfInterest[index]);
 
-      CurrentTripItem().pointsOfInterest[index] = updated;
+      setState(() => CurrentTripItem().pointsOfInterest[index] = updated);
       debugPrint('done');
     }
   }
@@ -2312,81 +2158,93 @@ class CreateCurrentTripItem().tripValues {
     }
   }
 
+/*
+  Widget _editTripDetails() {
+    return _exploreDetailsHeader();
+  }
+*/
+
   Widget _exploreDetailsHeader() {
     bool autofocus = CurrentTripItem().tripActions == TripActions.headingDetail;
     return FocusScope(
       // FocusScope  Sorted problems with TextInputAction.next / done
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
-            child: TextFormField(
-              autofocus: autofocus, //  tripItem.heading.isEmpty,
-              focusNode: fn1,
-              readOnly: CurrentTripItem().tripState == TripState.following,
-              textAlign: TextAlign.start,
-              keyboardType: TextInputType.text,
-              textCapitalization: TextCapitalization.words,
-              textInputAction: TextInputAction.next,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: 'Give your trip a name...',
-                labelText: 'Trip name',
-              ),
-              style: Theme.of(context).textTheme.bodyLarge,
-              initialValue: CurrentTripItem().heading,
-              // autovalidateMode: AutovalidateMode.onUserInteraction,
-              onChanged: (text) => CurrentTripItem().heading = text,
-              onFieldSubmitted: (text) => (debugPrint('submitted : $text')),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-            child: TextFormField(
-              readOnly: CurrentTripItem().tripState == TripState.following,
-              // autofocus: autofocus,
-              textAlign: TextAlign.start,
-              keyboardType: TextInputType.multiline,
-              maxLines: null,
-              textCapitalization: TextCapitalization.sentences,
-              textInputAction: TextInputAction.next,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: 'Enter a short summary of your trip...',
-                labelText: 'Trip summary',
-              ),
-              style: Theme.of(context).textTheme.bodyLarge,
-              initialValue: CurrentTripItem()
-                  .subHeading, //widget.port.warning.toString(),
-              autovalidateMode: AutovalidateMode.onUserInteraction,
-              onChanged: (text) => CurrentTripItem().subHeading = text,
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-            child: TextFormField(
-              readOnly: CurrentTripItem().tripState == TripState.following,
-              //  autofocus: autofocus,
-              textInputAction: TextInputAction.done,
-              textAlign: TextAlign.start,
-              maxLines: null,
-              keyboardType: TextInputType.multiline,
-              textCapitalization: TextCapitalization.sentences,
+      child: SingleChildScrollView(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+              child: TextFormField(
+                autofocus: autofocus, //  tripItem.heading.isEmpty,
+                focusNode: fn1,
+                readOnly: CurrentTripItem().tripState == TripState.following,
+                textAlign: TextAlign.start,
+                keyboardType: TextInputType.text,
+                textCapitalization: TextCapitalization.words,
+                textInputAction: TextInputAction.next,
 
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: 'Describe details of your trip...',
-                labelText: 'Trip details',
+                decoration: InputDecoration(
+                    border: OutlineInputBorder(),
+                    hintText: 'Give your trip a name...',
+                    hintStyle: hintStyle(context: context),
+                    labelText: 'Trip name',
+                    labelStyle: labelStyle(context: context)),
+                style: textStyle(context: context),
+                initialValue: CurrentTripItem().heading,
+                // autovalidateMode: AutovalidateMode.onUserInteraction,
+                onChanged: (text) => CurrentTripItem().heading = text,
+                onFieldSubmitted: (text) => (debugPrint('submitted : $text')),
               ),
-              style: Theme.of(context).textTheme.bodyLarge,
-              initialValue:
-                  CurrentTripItem().body, //widget.port.warning.toString(),
-              autovalidateMode: AutovalidateMode.onUserInteraction,
-              onFieldSubmitted: (_) => adjustMapHeight(MapHeights.full),
-              onChanged: (text) => CurrentTripItem().body = text,
             ),
-          ),
-        ],
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+              child: TextFormField(
+                readOnly: CurrentTripItem().tripState == TripState.following,
+                // autofocus: autofocus,
+                textAlign: TextAlign.start,
+                keyboardType: TextInputType.multiline,
+                maxLines: null,
+                textCapitalization: TextCapitalization.sentences,
+                textInputAction: TextInputAction.next,
+                decoration: InputDecoration(
+                    border: OutlineInputBorder(),
+                    hintText: 'Enter a short summary of your trip...',
+                    hintStyle: hintStyle(context: context),
+                    labelText: 'Trip summary',
+                    labelStyle: labelStyle(context: context)),
+                style: textStyle(context: context),
+                initialValue: CurrentTripItem()
+                    .subHeading, //widget.port.warning.toString(),
+                autovalidateMode: AutovalidateMode.onUserInteraction,
+                onChanged: (text) => CurrentTripItem().subHeading = text,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+              child: TextFormField(
+                readOnly: CurrentTripItem().tripState == TripState.following,
+                //  autofocus: autofocus,
+                textInputAction: TextInputAction.done,
+                textAlign: TextAlign.start,
+                maxLines: null,
+                keyboardType: TextInputType.multiline,
+                textCapitalization: TextCapitalization.sentences,
+
+                decoration: InputDecoration(
+                    border: OutlineInputBorder(),
+                    hintText: 'Describe details of your trip...',
+                    hintStyle: hintStyle(context: context),
+                    labelText: 'Trip details',
+                    labelStyle: labelStyle(context: context)),
+                style: textStyle(context: context),
+                initialValue:
+                    CurrentTripItem().body, //widget.port.warning.toString(),
+                autovalidateMode: AutovalidateMode.onUserInteraction,
+                onFieldSubmitted: (_) => adjustMapHeight(MapHeights.full),
+                onChanged: (text) => CurrentTripItem().body = text,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -2417,10 +2275,17 @@ class CreateCurrentTripItem().tripValues {
 
   void getLocationUpdates() async {
     try {
-      if ([TripState.stoppedFollowing, TripState.stoppedRecording]
-          .contains(CurrentTripItem().tripState)) {
+      if (CurrentTripItem().tripValues.pauseStream) {
+        _positionStream.pause();
+      } else if (CurrentTripItem().tripValues.resumeStream) {
         _positionStream.resume();
+      } else if (CurrentTripItem().tripValues.stopStream) {
+        CurrentTripItem().pointsOfInterest.add(PointOfInterest(
+            type: 18, point: CurrentTripItem().tripValues.lastLatLng));
       } else {
+        if (CurrentTripItem().tripValues.streamFinished) {
+          _positionStream.cancel();
+        }
         if (_debugging) {
           if (_debuggingRoute.isEmpty) {
             _debugRoute.follow(routes: CurrentTripItem().routes);
@@ -2429,6 +2294,7 @@ class CreateCurrentTripItem().tripValues {
                 await getRoutesByName(name: _debuggingRoute);
             _debugRoute.follow(routes: debugRoute);
           }
+          // if (_debugPositionController.stream.)
           _positionStream = _debugPositionController.stream.listen(
             (Position position) {
               updatePosition(position);
@@ -2439,6 +2305,13 @@ class CreateCurrentTripItem().tripValues {
               Geolocator.getPositionStream(locationSettings: _locationSettings)
                   .listen(updatePosition);
         }
+        CurrentTripItem().tripValues.streamStarted = true;
+        CurrentTripItem().tripValues.streamFinished = false;
+        CurrentTripItem().tripValues.lastLatLng = LatLng(0, 0);
+        CurrentTripItem().tripValues.startLatLng = LatLng(0, 0);
+        CurrentTripItem().tripValues.position = LatLng(0, 0);
+        _positionStream
+            .onDone(() => CurrentTripItem().tripValues.streamFinished = true);
       }
     } catch (e) {
       developer.log('Stream error: ${e.toString()}', name: '_stream');
@@ -2446,16 +2319,48 @@ class CreateCurrentTripItem().tripValues {
   }
 
   void updatePosition(position) {
+    // developer.log('updatePosition() called', name: '_tracking');
     _currentPosition = position;
-    _speed = _currentPosition.speed * 3.6 / 8 * 5; // M/S -> MPH
-    LatLng pos = LatLng(_currentPosition.latitude, _currentPosition.longitude);
+    _speed = position.speed * 3.6 / 8 * 5; // M/S -> MPH
+
+    LatLng pos = LatLng(
+        position.latitude,
+        position
+            .longitude); // LatLng(_currentPosition.latitude, _currentPosition.longitude);
 
     if (_debugging) {
-      _debugMarkers[0] = Marker(
-          point: LatLng(_currentPosition.latitude, _currentPosition.longitude),
-          child: Icon(Icons.bug_report, size: 30, color: Colors.teal));
+      _speed = 43.0;
+      if (_debugMarkers.isEmpty) {
+        _debugMarkers.add(Marker(
+            point: LatLng(position.latitude, position.longitude),
+            child: Icon(Icons.navigation, size: 40, color: Colors.blue)));
+      } else {
+        _debugMarkers[0] = Marker(
+            point: LatLng(position.latitude, position.longitude),
+            child: Icon(Icons.navigation, size: 40, color: Colors.blue));
+      }
+      // child: Icon(Icons.bug_report, size: 30, color: Colors.teal));
       _animatedMapController.animateTo(
-          dest: LatLng(_currentPosition.latitude, _currentPosition.longitude));
+          dest: LatLng(position.latitude, position.longitude));
+      if (_following.isNotEmpty) {
+        try {
+          int index = _debugRoute.getIndex;
+          int jump = 12;
+          for (int i = 0; i < _following.length; i++) {
+            if (index > jump * (i + 1)) {
+              _following[i] = Follower.moveFollower(
+                follower: _following[i],
+                marker: _following[i].marker,
+                position: _debugRoute.getPositionAt(index - (jump * (i + 1))),
+              );
+            } else {
+              break;
+            }
+          }
+        } catch (e) {
+          debugPrint('Error setting followin ${e.toString()}');
+        }
+      }
     }
 
     if (CurrentTripItem().groupDriveId.isNotEmpty) {
@@ -2472,8 +2377,8 @@ class CreateCurrentTripItem().tripValues {
               'colour': follower.carColour,
               'reg': follower.registration,
               'phone': follower.phoneNumber,
-              'lat': _currentPosition.latitude,
-              'lng': _currentPosition.longitude,
+              'lat': position.latitude,
+              'lng': position.longitude,
             });
           }
         }
@@ -2482,36 +2387,61 @@ class CreateCurrentTripItem().tripValues {
       if (socket.connected) {
         socket.emit('trip_message', {
           'message': '',
-          'lat': _currentPosition.latitude,
-          'lng': _currentPosition.longitude,
+          'lat': position.latitude,
+          'lng': position.longitude,
         });
       }
-    }
-
-    if (CurrentTripItem().tripState == TripState.recording) {
-      if (CurrentTripItem().tripValues.lastLatLng == const LatLng(0.00, 0.00)) {
-        CurrentTripItem().tripValues.lastLatLng = pos;
-        CurrentTripItem().clearRoutes();
+    } else if (CurrentTripItem().tripState == TripState.recording) {
+      double distance = Geolocator.distanceBetween(
+          pos.latitude,
+          pos.longitude,
+          CurrentTripItem().tripValues.lastLatLng.latitude,
+          CurrentTripItem().tripValues.lastLatLng.longitude);
+      if (distance > 1000) {
         CurrentTripItem().addRoute(mt.Route(
             id: -1,
             points: [pos],
             borderColor: uiColours.keys.toList()[Setup().routeColour],
             color: uiColours.keys.toList()[Setup().routeColour],
             strokeWidth: 5));
+        if (CurrentTripItem().routes.length == 1) {
+          CurrentTripItem()
+              .pointsOfInterest
+              .add(PointOfInterest(type: 17, point: pos, waypoint: 0));
+        } else {
+          CurrentTripItem().pointsOfInterest.add(PointOfInterest(
+              type: 12,
+              point: pos,
+              waypoint: CurrentTripItem().pointsOfInterest.length));
+        }
+        developer.log(
+            'Distance from start point in CreateTrip: ${distance * metersToMiles}',
+            name: '_tracking');
+      } else {
+        distance = Geolocator.distanceBetween(
+            pos.latitude,
+            pos.longitude,
+            CurrentTripItem().pointsOfInterest.last.point.latitude,
+            CurrentTripItem().pointsOfInterest.last.point.longitude);
+        setState(() => (CurrentTripItem().routes.last.points.add(pos)));
+        if (distance > 1 / metersToMiles) {
+          developer.log(
+              'Distance from PointOfInterest.last.location in CreateTrip: ${distance * metersToMiles}',
+              name: '_tracking');
+          CurrentTripItem().pointsOfInterest.add(PointOfInterest(
+              type: 12,
+              point: pos,
+              waypoint: CurrentTripItem().pointsOfInterest.length));
+        }
       }
-      CurrentTripItem()
-          .routes[CurrentTripItem().routes.length - 1]
-          .points
-          .add(pos);
-
       if (CurrentTripItem().tripValues.goodRoad.isGood) {
-        CurrentTripItem()
-            .goodRoads[CurrentTripItem().goodRoads.length - 1]
-            .points
-            .add(pos);
+        CurrentTripItem().goodRoads.last.points.add(pos);
       }
-      CurrentTripItem().tripValues.lastLatLng =
-          LatLng(_currentPosition.latitude, _currentPosition.longitude);
+      CurrentTripItem().tripValues.lastLatLng = pos;
+    }
+
+    if (CurrentTripItem().tripState == TripState.following) {
+      setState(() => _directionsIndex = getDirectionsIndex());
     }
   }
 
@@ -2523,14 +2453,7 @@ class CreateCurrentTripItem().tripValues {
         name: name,
         point: position,
         sounds: audio,
-        child: MarkerWidget(
-          type: 13,
-          description: '',
-          angle: -_mapRotation * pi / 180,
-          list: 0,
-          listIndex:
-              id == -1 ? CurrentTripItem().pointsOfInterest.length : id + 1,
-        ),
+        waypoint: id == -1 ? CurrentTripItem().pointsOfInterest.length : id + 1,
       ),
     );
     CurrentTripItem().addGoodRoad(
@@ -2551,8 +2474,8 @@ class CreateCurrentTripItem().tripValues {
     if (CurrentTripItem().tripState == TripState.following) {
       for (int i = 0; i < CurrentTripItem().maneuvers.length; i++) {
         temp = Geolocator.distanceBetween(
-            _currentPosition.latitude,
-            _currentPosition.longitude,
+            CurrentTripItem().tripValues.position.latitude,
+            CurrentTripItem().tripValues.position.longitude,
             CurrentTripItem().maneuvers[i].location.latitude,
             CurrentTripItem().maneuvers[i].location.longitude);
         if (temp < distance) {
@@ -2605,33 +2528,34 @@ class CreateCurrentTripItem().tripValues {
 
   locationLatLng(pos) {
     //  debugPrint(pos.toString());
-    developer.log('setState() 2574', name: '_setState');
+    //  developer.log('setState() 2574', name: '_setState');
     setState(() {
       //   _showSearch = false;
       _animatedMapController.animateTo(dest: pos);
     });
   }
 
+/*
   Color _routeColour(bool goodRoad) {
     return goodRoad
         ? uiColours.keys.toList()[Setup().goodRouteColour]
         : uiColours.keys.toList()[Setup().routeColour];
   }
-
+*/
   routeTapped(routes, details) {
     if (details != null) {
-      developer.log('setState() 2589', name: '_setState');
+      //   developer.log('setState() 2589', name: '_setState');
       setState(() {});
     }
   }
 
   expandChange(var details) {
     if (details != null) {
-      developer.log('setState() 2596', name: '_setState');
+      //   developer.log('setState() 2596', name: '_setState');
       setState(
         () {
           //    debugPrint('ExpandChanged: $details');
-          _editPointOfInterest = details;
+          CurrentTripItem().tripValues.pointOfInterestIndex = details;
           if (details >= 0) {
             adjustMapHeight(MapHeights.pointOfInterest);
           } else {
@@ -2645,15 +2569,19 @@ class CreateCurrentTripItem().tripValues {
   }
 
   iconButtonTapped(var details) {
-    if (_editPointOfInterest > -1) {
+    if (CurrentTripItem().tripValues.pointOfInterestIndex > -1) {
       _animatedMapController.animateTo(
-          dest: CurrentTripItem().pointsOfInterest[_editPointOfInterest].point);
+          dest: CurrentTripItem()
+              .pointsOfInterest[
+                  CurrentTripItem().tripValues.pointOfInterestIndex]
+              .point);
     }
   }
 
   removePointOfInterest(var details) {
-    if (_editPointOfInterest > -1) {
-      CurrentTripItem().removePointOfInterestAt(_editPointOfInterest);
+    if (CurrentTripItem().tripValues.pointOfInterestIndex > -1) {
+      CurrentTripItem().removePointOfInterestAt(
+          CurrentTripItem().tripValues.pointOfInterestIndex);
     }
   }
 
@@ -2676,59 +2604,16 @@ class CreateCurrentTripItem().tripValues {
           debugPrint('FloatingTextEditController not attached');
         }
       }
-      developer.log('setState() 2644', name: '_setState');
+      //   developer.log('setState() 2644', name: '_setState');
       //    setState(() {
       //      debugPrint('Map event: ${details.toString()}');
       //    });
     }
   }
 
-  bool getTripDetails({bool prompt = false}) {
-    if (CurrentTripItem().heading.isEmpty) {
-      if (prompt) {
-        Utility().showConfirmDialog(context, "Can't save - more info needed",
-            "Please enter what you'd like to call this trip.");
-      }
-      developer.log('setState() 2658', name: '_setState');
-      setState(() {
-        adjustMapHeight(MapHeights.headers);
-        CurrentTripItem().tripActions = TripActions.headingDetail;
-        fn1.requestFocus();
-      });
-      return false;
-    }
-
-    if (CurrentTripItem().subHeading.isEmpty) {
-      if (prompt) {
-        Utility().showConfirmDialog(context, "Can't save - more info needed",
-            'Please give a brief summary of this trip.');
-      }
-      developer.log('setState() 2672', name: '_setState');
-      setState(() {
-        adjustMapHeight(MapHeights.headers);
-        CurrentTripItem().tripActions = TripActions.headingDetail;
-      });
-      return false;
-    }
-
-    if (CurrentTripItem().body.isEmpty) {
-      if (prompt) {
-        Utility().showConfirmDialog(context, "Can't save - more info needed",
-            'Please give some interesting details about this trip.');
-      }
-      developer.log('setState() 2685', name: '_setState');
-      setState(() {
-        adjustMapHeight(MapHeights.headers);
-        CurrentTripItem().tripActions = TripActions.headingDetail;
-      });
-      return false;
-    }
-    return true;
-  }
-
   Future<ui.Image> getMapImage({int delay = 1}) async {
     if (CurrentTripItem().mapImage == null) {
-      developer.log('setState() 2697', name: '_setState');
+      //     developer.log('setState() 2697', name: '_setState');
       setState(() {
         CurrentTripItem().tripActions = TripActions.saving;
         CurrentTripItem().highliteActions = HighliteActions.none;
@@ -2745,6 +2630,49 @@ class CreateCurrentTripItem().tripValues {
       await Future.delayed(Duration(seconds: 1));
     }
     return CurrentTripItem().mapImage!;
+  }
+
+  bool getTripDetails({bool prompt = false}) {
+    if (CurrentTripItem().heading.isEmpty) {
+      if (prompt) {
+        Utility().showConfirmDialog(context, "Can't save - more info needed",
+            "Please enter what you'd like to call this trip.");
+      }
+      //  developer.log('setState() 2658', name: '_setState');
+      setState(() {
+        adjustMapHeight(MapHeights.headers);
+        CurrentTripItem().tripActions = TripActions.headingDetail;
+        fn1.requestFocus();
+      });
+      return false;
+    }
+
+    if (CurrentTripItem().subHeading.isEmpty) {
+      if (prompt) {
+        Utility().showConfirmDialog(context, "Can't save - more info needed",
+            'Please give a brief summary of this trip.');
+      }
+      //  developer.log('setState() 2672', name: '_setState');
+      setState(() {
+        adjustMapHeight(MapHeights.headers);
+        CurrentTripItem().tripActions = TripActions.headingDetail;
+      });
+      return false;
+    }
+
+    if (CurrentTripItem().body.isEmpty) {
+      if (prompt) {
+        Utility().showConfirmDialog(context, "Can't save - more info needed",
+            'Please give some interesting details about this trip.');
+      }
+      //  developer.log('setState() 2685', name: '_setState');
+      setState(() {
+        adjustMapHeight(MapHeights.headers);
+        CurrentTripItem().tripActions = TripActions.headingDetail;
+      });
+      return false;
+    }
+    return true;
   }
 
   Widget _getOverlay2() {

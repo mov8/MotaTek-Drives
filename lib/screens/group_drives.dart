@@ -1,15 +1,13 @@
-import 'package:drives/constants.dart';
-import 'package:drives/tiles/tiles.dart';
+import 'package:drives/helpers/edit_helpers.dart';
+import '/constants.dart';
+import '/tiles/tiles.dart';
 import 'package:flutter/material.dart';
-import 'package:drives/classes/classes.dart';
-import 'package:drives/models/models.dart';
-import 'package:drives/services/services.dart';
+import '/classes/classes.dart';
+import '/models/models.dart';
+import '/services/services.dart';
 
 class GroupDriveForm extends StatefulWidget {
-  // var setup;
-
   const GroupDriveForm({super.key, setup});
-
   @override
   State<GroupDriveForm> createState() => _GroupDriveFormState();
 }
@@ -17,7 +15,6 @@ class GroupDriveForm extends StatefulWidget {
 class _GroupDriveFormState extends State<GroupDriveForm>
     with TickerProviderStateMixin {
   late Future<bool> _dataLoaded;
-  // late Future<bool> _localDataloaded;
   late List<GroupDriveByGroup> _groups;
   late List<GroupEvent> _trips;
   late TabController _tController;
@@ -49,7 +46,6 @@ class _GroupDriveFormState extends State<GroupDriveForm>
 
   @override
   void dispose() {
-    // Clean up the focus node when the Form is disposed.
     _tController.dispose();
     super.dispose();
   }
@@ -63,16 +59,24 @@ class _GroupDriveFormState extends State<GroupDriveForm>
     return true;
   }
 
-  void _setAdding(bool adding) {}
+  void _setAdding(bool adding) async {
+    DateTime today = DateTime.now();
+    _trips = await getMembersByDrive(
+        startDate: adding
+            ? DateTime(2000, 01, 01)
+            : DateTime(today.year, today.month, today.day - 2));
+    setState(() => ());
+  }
 
   @override
   Widget build(BuildContext context) {
     // _action = 0;
     return Scaffold(
+      backgroundColor: Colors.blue,
       resizeToAvoidBottomInset: false, // stop keyboard overflows
       appBar: ScreensAppBar(
-        heading: 'Organise a group drive',
-        prompt: 'Invite group members to a group drive.',
+        heading: 'Organise a group event',
+        prompt: 'Invite group members to a group event.',
         overflowPrompts: _overflowPrompts,
         overflowIcons: _overflowIcons,
         overflowMethods: _overflowMethods,
@@ -81,7 +85,7 @@ class _GroupDriveFormState extends State<GroupDriveForm>
         // updateHeading: 'Save your group drive?',
         // updateSubHeading: 'You have made changes.',
         showAction: _changed == true,
-        updateMethod: (update) => checkInvitations(),
+        updateMethod: (update) => checkInvitations(update),
       ),
       body: FutureBuilder<bool>(
         future: _dataLoaded,
@@ -112,13 +116,23 @@ class _GroupDriveFormState extends State<GroupDriveForm>
         if (!_showingDialog)
           TabBar(
             controller: _tController,
-            labelStyle: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+            labelStyle: labelStyle(context: context),
+            unselectedLabelStyle: labelStyle(context: context),
+            indicatorWeight: 4,
+            labelColor: Colors.white,
+            unselectedLabelColor: Colors.deepPurple,
+            indicatorColor: Colors.deepOrange,
             tabs: [
               Tab(
-                  icon: Icon(Icons.event_available_outlined),
+                  icon: Icon(
+                    Icons.event_available_outlined,
+                    color: Colors.white,
+                    size: 35,
+                  ),
                   text: 'Organised Events'),
               Tab(
-                  icon: Icon(Icons.edit_calendar_outlined),
+                  icon: Icon(Icons.edit_calendar_outlined,
+                      color: Colors.white, size: 35),
                   text: 'Organise New Event'),
             ],
           ),
@@ -136,7 +150,6 @@ class _GroupDriveFormState extends State<GroupDriveForm>
                   debugPrint('Value: ${value.toString()}');
                   _changes = value;
                   setState(() => _changed = value.isNotEmpty);
-                  // _changed = value.isNotEmpty;
                 },
               ),
             ],
@@ -155,93 +168,119 @@ class _GroupDriveFormState extends State<GroupDriveForm>
               itemBuilder: (context, index) => Padding(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 0.0, vertical: 5.0),
-                child: ExpansionTile(
-                  title: SizedBox(
-                    height: 60,
-                    child: InkWell(
-                      onLongPress: () => startDrive(index),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          //      IconButton(
-                          //          onPressed: () => startDrive(index),
-                          //          icon: Icon(Icons.directions_car_outlined, size: 30)),
-                          Text(
-                            _trips[index].eventName,
-                            style: TextStyle(
-                                fontSize: 20, fontWeight: FontWeight.bold),
+                child: Card(
+                  elevation: 5,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(5, 5, 5, 5),
+                    child: ExpansionTile(
+                      backgroundColor: Colors.white,
+                      title: SizedBox(
+                        height: 60,
+                        child: InkWell(
+                          onLongPress: () => startDrive(index),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              //      IconButton(
+                              //          onPressed: () => startDrive(index),
+                              //          icon: Icon(Icons.directions_car_outlined, size: 30)),
+                              Text(
+                                _trips[index].eventName,
+                                style: TextStyle(
+                                    fontSize: 20, fontWeight: FontWeight.bold),
+                              ),
+                              Text(
+                                'On ${dateFormatDoc.format(DateTime.parse(_trips[index].eventDate))}  (long-press to join trip now)',
+                                style: TextStyle(fontSize: 14),
+                              ),
+                            ],
                           ),
-                          Text(
-                            'On ${dateFormatDoc.format(DateTime.parse(_trips[index].eventDate))}  (long-press to join trip now)',
-                            style: TextStyle(fontSize: 14),
-                          ),
-                        ],
+                        ),
                       ),
+                      onExpansionChanged: (value) =>
+                          _expansionChange(index, value),
+
+                      //     subtitle: Text(
+                      //       'Event date  ${dateFormatDoc.format(DateTime.parse(_trips[index].eventDate))} - press button to join',
+                      //       style: TextStyle(fontSize: 14),
+                      //     ),
+                      children: [
+                        ListView.builder(
+                          physics: const NeverScrollableScrollPhysics(),
+                          // This tells the ListView to calculate its full height based on its children.
+                          // WARNING: This is bad for performance on very long lists!
+                          shrinkWrap: true,
+                          itemCount: _trips[index].invitees.length,
+                          itemBuilder: (context, mIndex) => Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 0.0, vertical: 5.0),
+                            child: Padding(
+                              padding: EdgeInsetsGeometry.fromLTRB(5, 0, 5, 0),
+                              child: ListTile(
+                                //   shape: ShapeBorder()
+                                leading: Icon(inviteIcons[int.parse(
+                                    _trips[index].invitees[mIndex]['state'])]),
+                                title: Text(
+                                    '${_trips[index].invitees[mIndex]['forename']} ${_trips[index].invitees[mIndex]['surname']}',
+                                    style: TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold)),
+                                subtitle: Text(
+                                    '${_trips[index].invitees[mIndex]['email']}    ${_trips[index].invitees[mIndex]['phone']}'),
+                                tileColor: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  onExpansionChanged: (value) => _expansionChange(index, value),
-
-                  //     subtitle: Text(
-                  //       'Event date  ${dateFormatDoc.format(DateTime.parse(_trips[index].eventDate))} - press button to join',
-                  //       style: TextStyle(fontSize: 14),
-                  //     ),
-                  children: [
-                    ListView.builder(
-                      physics: const NeverScrollableScrollPhysics(),
-                      // This tells the ListView to calculate its full height based on its children.
-                      // WARNING: This is bad for performance on very long lists!
-                      shrinkWrap: true,
-                      itemCount: _trips[index].invitees.length,
-                      itemBuilder: (context, mIndex) => Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 0.0, vertical: 5.0),
-                        child: ListTile(
-                            leading: Icon(inviteIcons[int.parse(
-                                _trips[index].invitees[mIndex]['state'])]),
-                            title: Text(
-                                '${_trips[index].invitees[mIndex]['forename']} ${_trips[index].invitees[mIndex]['surname']}',
-                                style: TextStyle(
-                                    fontSize: 20, fontWeight: FontWeight.bold)),
-                            subtitle: Text(
-                                '${_trips[index].invitees[mIndex]['email']}    ${_trips[index].invitees[mIndex]['phone']}')),
-                      ),
-                    ),
-                  ],
                 ),
               ),
             )
           : Center(
               child: Padding(
-                padding: EdgeInsets.fromLTRB(20, 120, 20, 0),
+                padding: EdgeInsets.fromLTRB(20, 100, 20, 0),
                 child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text("You haven't organised any group drives.",
-                          style: TextStyle(
-                              fontSize: 22, fontWeight: FontWeight.bold)),
-                      SizedBox(height: 10),
-                      Row(children: [
-                        Text("1. Create and saved a drive.",
-                            style: TextStyle(
-                                fontSize: 22, fontWeight: FontWeight.bold)),
-                        if (_myTripItems.isNotEmpty)
-                          Icon(
-                            Icons.check,
-                          ),
-                      ]),
-                      SizedBox(height: 5),
-                      Row(children: [
-                        Text("2. Create a group of participants.",
-                            style: TextStyle(
-                                fontSize: 22, fontWeight: FontWeight.bold)),
-                        if (_groups.isNotEmpty) Icon(Icons.check),
-                      ]),
-                      SizedBox(height: 5),
-                      Text("3. Organise the new drive.",
-                          style: TextStyle(
-                              fontSize: 22, fontWeight: FontWeight.bold)),
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "No future group events.",
+                      style: headlineStyle(context: context, size: 1),
+                    ),
+                    SizedBox(height: 10),
+                    Row(children: [
+                      Text(
+                        "1. Create and saved a trip.",
+                        style: headlineStyle(
+                          context: context,
+                          size: 2,
+                        ),
+                      ),
+                      if (_myTripItems.isNotEmpty)
+                        Icon(Icons.check, color: Colors.white, size: 30),
                     ]),
+                    SizedBox(height: 5),
+                    Row(children: [
+                      Text("2. Create a group of participants.",
+                          style: headlineStyle(
+                            context: context,
+                            size: 2,
+                          )),
+                      if (_groups.isNotEmpty)
+                        Icon(Icons.check, color: Colors.white, size: 30),
+                    ]),
+                    SizedBox(height: 5),
+                    Text(
+                      "3. Invite group members.",
+                      style: headlineStyle(
+                        context: context,
+                        size: 2,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
     );
@@ -282,7 +321,7 @@ class _GroupDriveFormState extends State<GroupDriveForm>
     return true;
   }
 
-  checkInvitations() async {
+  checkInvitations(bool update) async {
     MyTripItem tripItem = MyTripItem();
     for (int i = 0; i < _changes.length; i++) {
       for (int j = 0; j < _myTripItems.length; j++) {
@@ -305,6 +344,7 @@ class _GroupDriveFormState extends State<GroupDriveForm>
         debugPrint('Error: ${e.toString()}');
       }
     }
+    setState(() => _changed = false);
   }
 
   Future<bool> updateDialog(
@@ -319,10 +359,9 @@ class _GroupDriveFormState extends State<GroupDriveForm>
           context: context,
           builder: (context) => StatefulBuilder(
             builder: (context, setState) => AlertDialog(
-              title: Text(
-                tripItem.heading,
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-              ),
+              title: Text(tripItem.heading,
+                  style: headlineStyle(
+                      context: context, color: Colors.black, size: 2)),
               content: SizedBox(
                 height: 250,
                 child: Column(
@@ -344,24 +383,23 @@ class _GroupDriveFormState extends State<GroupDriveForm>
                         child: Row(
                           children: [
                             Expanded(
-                                flex: 4,
-                                child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Group drive date:',
-                                        style: TextStyle(
-                                            fontSize: 20,
-                                            fontWeight: FontWeight.bold),
-                                      ),
-                                      Text(
-                                        dateFormatDoc.format(tripDate),
-                                        style: TextStyle(
-                                            fontSize: 20,
-                                            fontWeight: FontWeight.bold),
-                                      ),
-                                    ])),
+                              flex: 4,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Group drive date:',
+                                      style: headlineStyle(
+                                          context: context,
+                                          color: Colors.black,
+                                          size: 2)),
+                                  Text(dateFormatDoc.format(tripDate),
+                                      style: headlineStyle(
+                                          context: context,
+                                          color: Colors.black,
+                                          size: 2)),
+                                ],
+                              ),
+                            ),
                             Expanded(
                               flex: 1,
                               child:
@@ -375,8 +413,8 @@ class _GroupDriveFormState extends State<GroupDriveForm>
                       padding: EdgeInsets.fromLTRB(10, 20, 0, 5),
                       child: Text(
                         "Enter any instructions for trip",
-                        style: TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold),
+                        style: headlineStyle(
+                            context: context, color: Colors.black, size: 2),
                       ),
                     ),
                     Padding(
@@ -399,10 +437,14 @@ class _GroupDriveFormState extends State<GroupDriveForm>
                           focusColor: Colors.blueGrey,
                           hintText: 'Enter any instruction for trip',
                           labelText: 'Instructions',
+                          labelStyle: labelStyle(
+                              context: context, color: Colors.black, size: 3),
+                          hintStyle: hintStyle(
+                            context: context,
+                          ),
                         ),
-                        style: const TextStyle(
-                          fontSize: 18,
-                        ),
+                        style: textStyle(
+                            context: context, color: Colors.black, size: 2),
                         initialValue: instructions,
                         onChanged: (text) => instructions = text,
                       ),

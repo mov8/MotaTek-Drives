@@ -1,8 +1,9 @@
 import 'dart:convert';
-import 'package:drives/classes/autocomplete_widget.dart';
+import '/classes/autocomplete_widget.dart';
 import 'package:flutter/material.dart';
-import 'package:drives/services/db_helper.dart';
-import 'package:drives/services/web_helper.dart';
+// import 'package:flutter/services.dart';
+import '/services/db_helper.dart';
+import '/services/web_helper.dart';
 
 class InviteForm extends StatefulWidget {
   const InviteForm({super.key});
@@ -39,6 +40,7 @@ class _InviteFormState extends State<InviteForm> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.blue,
       appBar: AppBar(
         backgroundColor: Colors.blue,
         elevation: 0,

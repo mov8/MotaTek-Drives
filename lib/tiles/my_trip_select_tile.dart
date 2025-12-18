@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:drives/models/other_models.dart';
-import 'package:drives/classes/classes.dart';
+import '/models/other_models.dart';
+import '/classes/classes.dart';
 
 class MyTripSelectTile extends StatefulWidget {
   final MyTripItem myTripItem;

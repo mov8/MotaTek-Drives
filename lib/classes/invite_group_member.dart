@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:drives/models/other_models.dart';
-import 'package:drives/constants.dart';
-import 'package:drives/classes/classes.dart';
-import 'package:drives/services/services.dart';
+import '/models/other_models.dart';
+import '/constants.dart';
+import '/classes/classes.dart';
+import '/services/services.dart';
+import '/helpers/edit_helpers.dart';
 import 'dart:developer' as developer;
 
 /// InviteMember handles the adding of a new member to a group there are 2 options:
@@ -69,6 +70,79 @@ class _InviteMemberState extends State<InviteMember> {
     super.dispose();
   }
 
+  Widget suffix(List<bool> fieldStates) {
+    if (!fieldStates[2]) {
+      // return Icon(Icons.star_outline);
+      return Padding(
+        padding: EdgeInsetsGeometry.fromLTRB(0, 0, 5, 0),
+        child: InkWell(
+          radius: 33,
+          onTap: () => cancelInvite(),
+          child: Icon(
+            Icons.cancel_outlined,
+            size: 30,
+            color: Colors.redAccent,
+          ),
+        ),
+      );
+    } else if ([GroupMemberState.complete, GroupMemberState.registered]
+        .contains(_groupMemberState)) {
+      return SizedBox(
+        width: 82,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            Padding(
+              padding: EdgeInsetsGeometry.fromLTRB(0, 0, 5, 0),
+              child: InkWell(
+                radius: 33,
+                onTap: () => invite(),
+                child: Icon(Icons.check_circle_outline, size: 30),
+              ),
+            ),
+            Padding(
+              padding: EdgeInsetsGeometry.fromLTRB(0, 0, 5, 0),
+              child: InkWell(
+                radius: 33,
+                onTap: () => cancelInvite(),
+                child: Icon(
+                  Icons.cancel_outlined,
+                  size: 30,
+                  color: Colors.redAccent,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    } else {
+      return IconButton(
+        onPressed: () => cancelInvite,
+        icon: Icon(Icons.check_circle_outline),
+      );
+    }
+  }
+
+  invite() async {
+    if (_groupMemberState == GroupMemberState.complete) {
+      await sendInvitation();
+      if (widget.onInvite != null) {
+        widget.onInvite!(newMember);
+      }
+      setState(() => clearData(cancel: false));
+    } else {
+      if (widget.onInvite != null) {
+        widget.onInvite!(newMember);
+      }
+    }
+  }
+
+  cancelInvite() {
+    if (widget.onCancel != null) {
+      widget.onCancel!(true);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (newMember.email.isEmpty) {
@@ -84,134 +158,141 @@ class _InviteMemberState extends State<InviteMember> {
       child: ListTile(
         title: Text(
           "Email address of person to invite",
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          style: textStyle(context: context, color: Colors.black, size: 2),
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            //   if (![GroupMemberState.added, GroupMemberState.resistered]
-            //       .contains(_groupMemberState)) ...[
-            //if (_groupMemberState != GroupMemberState.none) ...[
             Padding(
               padding: EdgeInsetsGeometry.fromLTRB(0, 0, 0, 0),
-              child: Padding(
-                padding: EdgeInsetsGeometry.all(10),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        flex: 1,
+                        child: Padding(
+                          padding: EdgeInsetsGeometry.fromLTRB(0, 20, 0, 0),
+                          child: AutocompleteAsync(
+                            controller: _controller1,
+                            options: _dropdownOptions,
+                            inputFormatters: [LowerCaseTextFormatter()],
+                            searchLength: 1,
+                            style: textStyle(
+                                context: context, color: Colors.black, size: 2),
+                            //       autofocus: true,
+                            //   textInputAction: _textInputAction,
+                            decoration: InputDecoration(
+                              border: OutlineInputBorder(),
+                              hintText: 'Enter users email address',
+                              hintStyle: hintStyle(context: context),
+                              labelText: 'Email address',
+                              labelStyle: labelStyle(context: context),
+                              //  prefix: Icon(Icons.cancel_outlined),
+                              suffixIcon: suffix(_fieldStates),
+                            ),
+                            keyboardType: TextInputType.emailAddress,
+                            onSelect: (chosen) async {
+                              _groupMemberState = GroupMemberState.registered;
+                              if (await addMemberFromApi(email: chosen)) {
+                                newMember.email = chosen;
+                                setState(() => _groupMemberState =
+                                    GroupMemberState.registered);
+                              }
+                            },
+                            onChange: (text) {
+                              newMember.email = text;
+                              dataComplete();
+                            },
+                            onUpdateOptionsRequest: (query) =>
+                                getDropdownItems(query),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  //   if ([
+                  //     GroupMemberState.isNew,
+                  //     GroupMemberState.complete,
+                  //     GroupMemberState.added
+                  //   ].contains(_groupMemberState)) ...[
+                  if (![GroupMemberState.none, GroupMemberState.registered]
+                      .contains(_groupMemberState)) ...[
+                    SizedBox(height: 20),
                     Row(
                       children: [
                         Expanded(
                           flex: 1,
-                          child: Padding(
-                            padding: EdgeInsetsGeometry.fromLTRB(0, 20, 0, 0),
-                            child: AutocompleteAsync(
-                              controller: _controller1,
-                              options: _dropdownOptions,
-                              searchLength: 1,
-                              //       autofocus: true,
-                              //   textInputAction: _textInputAction,
-                              decoration: InputDecoration(
-                                border: OutlineInputBorder(),
-                                hintText: 'Enter users email address',
-                                labelText: 'Email address',
-                                suffixIcon: Icon(_fieldStates[2]
-                                    ? Icons.check_circle_outline
-                                    : Icons.star_outline),
-                              ),
-                              keyboardType: TextInputType.emailAddress,
-                              onSelect: (chosen) async {
-                                _groupMemberState = GroupMemberState.resistered;
-                                await addMemberFromApi(email: chosen);
-                                setState(() => _groupMemberState =
-                                    GroupMemberState.resistered);
-                              },
-                              onChange: (text) {
-                                newMember.email = text;
-                                dataComplete();
-                              },
-                              onUpdateOptionsRequest: (query) =>
-                                  getDropdownItems(query),
+                          child: TextFormField(
+                            focusNode: _focusNode2,
+                            //   initialValue: newMember.forename,
+                            readOnly: _groupMemberState ==
+                                GroupMemberState.registered,
+                            keyboardType: TextInputType.name,
+                            controller: _controller2,
+                            textInputAction: TextInputAction.next,
+                            textCapitalization: TextCapitalization.words,
+                            decoration: InputDecoration(
+                              border: OutlineInputBorder(),
+                              hintText: "Enter forename",
+                              hintStyle: hintStyle(context: context),
+                              labelText: 'Forename',
+                              labelStyle: labelStyle(context: context, size: 3),
+                              suffixIcon: Icon(_fieldStates[0]
+                                  ? Icons.check_circle_outline
+                                  : Icons.star_outline),
                             ),
+                            style: textStyle(
+                                context: context, size: 2, color: Colors.black),
+                            autovalidateMode:
+                                AutovalidateMode.onUserInteraction,
+                            onChanged: (text) {
+                              newMember.forename = text;
+                              dataComplete();
+                            },
+                          ),
+                        ),
+                        SizedBox(width: 10),
+                        Expanded(
+                          flex: 1,
+                          child: TextFormField(
+                            autofocus: true,
+                            keyboardType: TextInputType.name,
+                            //  initialValue: newMember.surname ?? '',
+                            readOnly: _groupMemberState ==
+                                GroupMemberState.registered,
+                            textInputAction: TextInputAction.done,
+                            controller: _controller3,
+                            textCapitalization: TextCapitalization.words,
+                            decoration: InputDecoration(
+                              border: OutlineInputBorder(),
+                              hintText: "Enter surname",
+                              hintStyle: hintStyle(context: context),
+                              labelText: 'Surname',
+                              labelStyle: labelStyle(context: context, size: 3),
+                              suffixIcon: Icon(_fieldStates[1]
+                                  ? Icons.check_circle_outline
+                                  : Icons.star_outline),
+                            ),
+                            style: textStyle(
+                                context: context, size: 2, color: Colors.black),
+                            autovalidateMode:
+                                AutovalidateMode.onUserInteraction,
+                            onChanged: (text) {
+                              newMember.surname = text;
+                              dataComplete();
+                            },
                           ),
                         ),
                       ],
                     ),
-                    //   if ([
-                    //     GroupMemberState.isNew,
-                    //     GroupMemberState.complete,
-                    //     GroupMemberState.added
-                    //   ].contains(_groupMemberState)) ...[
-                    if (_groupMemberState != GroupMemberState.none) ...[
-                      SizedBox(height: 20),
-                      Row(
-                        children: [
-                          Expanded(
-                            flex: 1,
-                            child: TextFormField(
-                              focusNode: _focusNode2,
-                              //   initialValue: newMember.forename,
-                              readOnly: _groupMemberState ==
-                                  GroupMemberState.resistered,
-                              keyboardType: TextInputType.name,
-                              controller: _controller2,
-                              textInputAction: TextInputAction.next,
-                              textCapitalization: TextCapitalization.words,
-                              decoration: InputDecoration(
-                                border: OutlineInputBorder(),
-                                hintText: "Enter forename of invitee",
-                                labelText: 'Forename',
-                                suffixIcon: Icon(_fieldStates[0]
-                                    ? Icons.check_circle_outline
-                                    : Icons.star_outline),
-                              ),
-                              style: Theme.of(context).textTheme.bodyLarge,
-                              autovalidateMode:
-                                  AutovalidateMode.onUserInteraction,
-                              onChanged: (text) {
-                                newMember.forename = text;
-                                dataComplete();
-                              },
-                            ),
-                          ),
-                          SizedBox(width: 10),
-                          Expanded(
-                            flex: 1,
-                            child: TextFormField(
-                              autofocus: true,
-                              keyboardType: TextInputType.name,
-                              //  initialValue: newMember.surname ?? '',
-                              readOnly: _groupMemberState ==
-                                  GroupMemberState.resistered,
-                              textInputAction: TextInputAction.done,
-                              controller: _controller3,
-                              textCapitalization: TextCapitalization.words,
-                              decoration: InputDecoration(
-                                border: OutlineInputBorder(),
-                                hintText: "Enter surname of invitee",
-                                labelText: 'Surname',
-                                suffixIcon: Icon(_fieldStates[1]
-                                    ? Icons.check_circle_outline
-                                    : Icons.star_outline),
-                              ),
-                              style: Theme.of(context).textTheme.bodyLarge,
-                              autovalidateMode:
-                                  AutovalidateMode.onUserInteraction,
-                              onChanged: (text) {
-                                newMember.surname = text;
-                                dataComplete();
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
                   ],
-                ),
+                ],
               ),
             ),
             //  ],
-            Align(
+            /*  Align(
               alignment: Alignment.center,
               child: Padding(
                 padding: EdgeInsetsGeometry.fromLTRB(0, 20, 0, 0),
@@ -219,7 +300,7 @@ class _InviteMemberState extends State<InviteMember> {
                   alignment: WrapAlignment.center,
                   spacing: 10,
                   children: [
-                    if ([GroupMemberState.complete, GroupMemberState.resistered]
+                    if ([GroupMemberState.complete, GroupMemberState.registered]
                         .contains(
                             _groupMemberState)) // (_addMember || _isRegistered)
                       ActionChip(
@@ -278,6 +359,7 @@ class _InviteMemberState extends State<InviteMember> {
                 ),
               ),
             ),
+            */
           ],
         ),
       ),
@@ -313,7 +395,7 @@ class _InviteMemberState extends State<InviteMember> {
 
       if (_fieldStates[2]) {
         if (_dropdownOptions.contains(newMember.email)) {
-          _groupMemberState = GroupMemberState.resistered;
+          _groupMemberState = GroupMemberState.registered;
           _fieldStates[0] = true;
           _fieldStates[1] = true;
           _dropdownOptions.clear();
@@ -343,7 +425,7 @@ class _InviteMemberState extends State<InviteMember> {
   }
 
   Future<bool> addMemberFromApi({required String email}) async {
-    if (_groupMemberState == GroupMemberState.resistered) {
+    if (_groupMemberState == GroupMemberState.registered) {
       _groupMemberState = GroupMemberState.added;
       await getUserByEmail(email).then((newMember) {
         if (widget.onInvite != null) {

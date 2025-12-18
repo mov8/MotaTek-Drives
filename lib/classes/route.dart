@@ -4,7 +4,7 @@ import 'dart:math';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:drives/screens/painters.dart';
+import '/screens/painters.dart';
 
 /// A polyline with an id
 class Route extends Polyline {

@@ -1,7 +1,9 @@
-import 'package:drives/tiles/tiles.dart';
+import 'package:drives/helpers/edit_helpers.dart';
+import '/tiles/tiles.dart';
 import 'package:flutter/material.dart';
-import 'package:drives/models/models.dart';
-import 'package:drives/services/services.dart';
+import '/models/models.dart';
+import '/classes/classes.dart';
+import '/services/services.dart';
 
 class ShopForm extends StatefulWidget {
   // var setup;
@@ -15,20 +17,17 @@ class ShopForm extends StatefulWidget {
 class _ShopFormState extends State<ShopForm> {
   late Future<bool> _dataloaded;
   List<ShopItem> _items = [];
-  int _action = 0;
-  int _index = 0;
+  int? _index;
   int toInvite = 0;
   bool _expanded = false;
-
-//  final List<String> _titles = [
-//    "Shop page adverts",
-//    "Ad - ",
-//  ];
+  String _prompt = 'Add, delete or edit promotions';
+  bool _changed = false;
+  final List<bool> _changes = [];
+  ShopItemTileController? _activeController = ShopItemTileController();
 
   @override
   void initState() {
     super.initState();
-    // _dataloaded = dataFromDatabase();
     _dataloaded = dataFromWeb();
   }
 
@@ -43,8 +42,47 @@ class _ShopFormState extends State<ShopForm> {
     if (_items.isEmpty) {
       newItem();
     }
-
+    for (int i = 0; i < _items.length; i++) {
+      _changes.add(false);
+    }
     return true;
+  }
+
+  /// expanded() is a bit tricky so for example
+  /// The state needed is that only one tile is ever expanded
+  /// A single controller for all tiles just doesn't work
+  /// A list of controllers is problematic too as when the tile
+  /// goes out of view it gets disposed of
+  /// The answer is to create a controller instance for each tile
+  /// as created, and hand that controller back to the parent when
+  /// the expansionChange callback triggers. The parent can then
+  /// use the controller to close the open tile if another one
+  /// has been opened.
+
+  expanded(int index, bool expanded, ShopItemTileController controller) {
+    if (expanded) {
+      try {
+        _activeController?.contract();
+      } catch (_) {
+        debugPrint('Contract() failed');
+      }
+      setState(() {
+        _index = index;
+        _activeController = controller;
+        _expanded = true;
+        _prompt = 'Edit ${_items[index].heading}';
+      });
+    } else {
+      if (index == _index) {
+        // closing open tile
+        setState(() {
+          _prompt = 'Add, delete or edit promotions';
+          _expanded = false;
+          _index = null;
+          _activeController = null;
+        });
+      }
+    }
   }
 
   Widget portraitView({required BuildContext context}) {
@@ -61,62 +99,25 @@ class _ShopFormState extends State<ShopForm> {
                         horizontal: 10.0, vertical: 5.0),
                     child: ShopItemTile(
                       shopItem: _items[index],
+                      controller: ShopItemTileController(),
                       index: index,
-                      onExpandChange: (index) => expandCallBack(index),
+                      onExpandChange: (open, controller) =>
+                          expanded(index, open, controller),
                       onRated: (index, rate) => rating(rate, index),
-                      onIconTap: (index) => callBack(index),
-                      onAddImage: (index) => onAddImage(index),
-                      //    onRemoveImage: (index, imageIndex) =>
-                      //        onRemoveImage(index, imageIndex),
-                      onAddLink: (index) => onAddLink(index),
-                      onPost: (index) => onPost(index),
-                      onDelete: (index) => onDelete(index),
+                      onChange: (index) => setState(() {
+                        _changes[index] = true;
+                        _changed = true;
+                      }),
+                      expanded: index == _index,
                     ),
                   ),
                 ),
               )
             ],
-            if (!_expanded)
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 20),
-                child: Wrap(
-                  spacing: 10,
-                  children: [
-                    ActionChip(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      onPressed: () => setState(() => newItem()),
-                      backgroundColor: Colors.blue,
-                      avatar: const Icon(
-                        Icons.group_add,
-                        color: Colors.white,
-                      ),
-                      label: const Text(
-                        'New Item', // - ${_action.toString()}',
-                        style: TextStyle(fontSize: 18, color: Colors.white),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            //       Align(
-            //         alignment: Alignment.bottomLeft,
-            //         child: _handleChips(),
-            //       )
           ],
         ),
       )
     ]);
-  }
-
-  void callBack(int index) {
-    debugPrint('Callback index: $index');
-  }
-
-  void expandCallBack(int index) {
-    setState(() => _expanded = !_expanded);
   }
 
   void rating(int rate, int index) {
@@ -125,48 +126,30 @@ class _ShopFormState extends State<ShopForm> {
 
   @override
   Widget build(BuildContext context) {
-    // _action = 0;
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.blue,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
-
-        /// Removes Shadow
-        toolbarHeight: 40,
-        title: const Text(
-          'Drives Shop Items',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(60),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(5, 10, 5, 10),
-            child: Text(
-              _items.isEmpty ? 'Add a ne promotion' : _items[_index].heading,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ),
-
-        /// Shrink height a bit
-        leading: BackButton(
-          onPressed: () {
-            if (--_action >= 0) {
-              setState(() {});
-            } else {
-              Navigator.pop(context);
-            }
-          },
-        ),
+      backgroundColor: Colors.blue,
+      appBar: ScreensAppBar(
+        heading: 'Drives Shop Contents',
+        prompt: _prompt,
+        updateHeading: 'You have edited details.',
+        updateSubHeading: 'Save or Ignore changes',
+        update: _changed,
+        showAction: _changed,
+        overflowIcons: _expanded
+            ? [
+                Icon(Icons.delete),
+                Icon(Icons.image),
+                Icon(Icons.add_link),
+                Icon(Icons.upload)
+              ]
+            : [Icon(Icons.post_add)],
+        overflowPrompts: _expanded
+            ? ['Delete promotion', 'Add image', 'Add link', 'Upload']
+            : ['Add promotion'],
+        overflowMethods:
+            _expanded ? [onDelete, onAddImage, onAddLink, onPost] : [newItem],
+        showOverflow: true,
+        updateMethod: (update) => onPostAll(update),
       ),
       body: FutureBuilder<bool>(
         future: _dataloaded,
@@ -191,44 +174,91 @@ class _ShopFormState extends State<ShopForm> {
     );
   }
 
-  Future<void> onDelete(int index) async {
-    _items.removeAt(index);
+  Future<void> onDelete() async {
+    if (_items[_index!].uri.isNotEmpty) {
+      try {
+        deleteShopItem(shopUri: _items[_index!].uri);
+      } catch (e) {
+        debugPrint("Can't delete promotion");
+      }
+    }
+    _items.removeAt(_index!);
+    _changes.removeAt(_index!);
     if (_items.isEmpty) {
       newItem();
     }
-    setState(() => _expanded = false);
+    setState(() {
+      _expanded = false;
+      _index = null;
+      _activeController = null;
+    });
     return;
   }
 
   newItem() {
     _items.add(
       ShopItem(
-        heading: 'New trip planning app',
-        subHeading: 'Stop polishing your car and start driving it...',
-        body:
-            '''Drives is a new app to help you make the most of the countryside around you. 
-You can plan trips either on your own or you can explore in a group''',
+        heading: 'Product being promoted...',
+        subHeading: 'Product tag line...',
+        body: 'The benefits of the item being promoted...',
         links: 0,
       ),
     );
+    setState(() => _changes.add(false));
   }
 
-  onAddImage(int index) async {
-    _items[index].imageUrls = await loadDeviceImage(
-        imageUrls: _items[index].imageUrls,
-        itemIndex: index,
-        imageFolder: 'shop_item');
-    setState(() => ());
+  onAddImage() async {
+    int taken = _items[_index!].imageUrls.countOccurrences('com.motatek') + 1;
+    Photo? image =
+        await getDeviceImage(folder: 'shop_item', fileName: 'promo_$taken');
+    if (image != null) {
+      List<Photo> photos =
+          photosFromJson(photoString: _items[_index!].imageUrls);
+      photos.add(image);
+      String newUri = photosToString(photos: photos);
+      _items[_index!].imageUrls = newUri;
+    }
+
+    debugPrint(_items[_index!].imageUrls.toString());
+    setState(() => (_activeController!.updatePhotos()));
   }
 
-  onAddLink(int index) {
-    setState(() => _items[index].links =
-        _items[index].links < 2 ? ++_items[index].links : _items[index].links);
+  onAddLink() {
+    _items[_index!].links = _items[_index!].links < 2
+        ? ++_items[_index!].links
+        : _items[_index!].links;
+    _activeController!.addLink();
   }
 
-  onPost(int index) {
-    postShopItem(_items[index]);
+  onPost() {
+    bool isChanged = false;
+    try {
+      postShopItem(_items[_index!]);
+      _changes[_index!] = false;
+      for (int i = 0; i < _changes.length; i++) {
+        isChanged = _changes[i];
+        if (isChanged) {
+          break;
+        }
+      }
+    } catch (e) {
+      debugPrint("Can't save ${_items[_index!].heading} - ${e.toString()}");
+    }
+    setState(() => _changed = isChanged);
   }
 
-  void onSelect(int index) {}
+  onPostAll(bool save) {
+    if (save) {
+      for (int i = 0; i < _items.length; i++) {
+        if (_changes[i]) {
+          try {
+            postShopItem(_items[i]);
+          } catch (e) {
+            debugPrint("Can't save ${_items[i].heading} - ${e.toString()}");
+          }
+        }
+      }
+      setState(() => _changed = false);
+    }
+  }
 }

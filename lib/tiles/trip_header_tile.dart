@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:drives/models/other_models.dart';
-import 'package:drives/constants.dart';
+import '/models/other_models.dart';
+import '/constants.dart';
 
 class TripHeaderTile extends StatefulWidget {
   final TripItem tripItem;

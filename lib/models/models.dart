@@ -1,1 +1,1 @@
-export 'package:drives/models/other_models.dart';
+export '/models/other_models.dart';
