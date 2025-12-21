@@ -234,7 +234,7 @@ class _MainDrawerState extends State<MainDrawer> {
             ),
             onTap: () async {
               //   login(context);
-              User user = await getUser();
+              User user = await getPrivateRepository().getUser();
 
               // 'test@test.com';
               user.password = '';
@@ -259,7 +259,7 @@ class _MainDrawerState extends State<MainDrawer> {
                     );
                   }
                 } else if (loginState == LoginState.login) {
-                  await saveUser(Setup().user);
+                  await getPrivateRepository().saveUser(Setup().user);
                   Setup().setupToDb();
                 }
               }

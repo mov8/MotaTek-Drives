@@ -1065,7 +1065,7 @@ class MyTripItem {
     int id = pointsOfInterest[index].id;
     pointsOfInterest.removeAt(index);
     if (id > -1) {
-      deletePointOfInterestById(id);
+      getPrivateRepository().deletePointOfInterestById(id);
     }
   }
 
@@ -1227,7 +1227,7 @@ class MyTripItem {
 
   Map<String, dynamic> routeToMap({required mt.Route route}) {
     return {
-      'points': pointsToString(route.points),
+      'points': getPrivateRepository().pointsToString(route.points),
       'colour': colourList.indexOf(route.color),
       'stroke': route.strokeWidth,
     };
@@ -1236,7 +1236,7 @@ class MyTripItem {
   Future<int> saveLocal() async {
     int result = -1;
     updateDistance();
-    id = await saveMyTripItem(this);
+    id = await getPrivateRepository().saveMyTripItem(this);
     try {
       Uint8List? pngBytes = Uint8List.fromList([]);
       if (driveUri.isEmpty) {
@@ -1270,7 +1270,7 @@ class MyTripItem {
 
   Future<void> loadLocal(int driveId) async {
     clearAll();
-    Map<String, dynamic> map = await getDrive(driveId);
+    Map<String, dynamic> map = await getPrivateRepository().getDrive(driveId);
     LatLng pos = const LatLng(0, 0);
     // double distance = 99999;
     try {
@@ -1287,7 +1287,8 @@ class MyTripItem {
       published = map['added'].toString();
       distance = map['distance'];
       images = '{"url": "$directory/drive$id.png", "caption": ""}';
-      pointsOfInterest = await loadPointsOfInterestLocal(driveId);
+      pointsOfInterest =
+          await getPrivateRepository().loadPointsOfInterestLocal(driveId);
       for (int i = 0; i < pointsOfInterest.length; i++) {
         if (pointsOfInterest[i].images.isNotEmpty) {
           images = '$images,${ut.unList(pointsOfInterest[i].images)}';
@@ -1295,12 +1296,13 @@ class MyTripItem {
       }
       closest = distance.toInt();
       images = '[$images]';
-      maneuvers = await loadManeuversLocal(driveId);
+      maneuvers = await getPrivateRepository().loadManeuversLocal(driveId);
       if (maneuvers.isNotEmpty) {
         distanceAway = Geolocator.distanceBetween(pos.latitude, pos.longitude,
             maneuvers[0].location.latitude, maneuvers[0].location.longitude);
       }
-      List<mt.Route> polyLines = await loadPolyLinesLocal(driveId, type: 0);
+      List<mt.Route> polyLines =
+          await getPrivateRepository().loadPolyLinesLocal(driveId, type: 0);
       for (int i = 0; i < polyLines.length; i++) {
         routes.add(
           mt.Route(
@@ -1312,7 +1314,8 @@ class MyTripItem {
               strokeWidth: polyLines[i].strokeWidth),
         );
       }
-      polyLines = await loadPolyLinesLocal(driveId, type: 1);
+      polyLines =
+          await getPrivateRepository().loadPolyLinesLocal(driveId, type: 1);
       for (int i = 0; i < polyLines.length; i++) {
         // pointsOfInterest[polylines[i].pointOfInterestIndex].id
         // polyLines.pointOfInterestIndex is its pointOfInterest.id

@@ -2,7 +2,7 @@ import 'dart:convert';
 import '/classes/autocomplete_widget.dart';
 import 'package:flutter/material.dart';
 // import 'package:flutter/services.dart';
-import '/services/db_helper.dart';
+import '/services/services.dart';
 import '/services/web_helper.dart';
 
 class InviteForm extends StatefulWidget {
@@ -207,7 +207,7 @@ class _InviteFormState extends State<InviteForm> {
   void onConfirmDeleteMember(int value) {
     // debugPrint('Returned value: ${value.toString()}');
     if (value > -1) {
-      deleteGroupMemberById(value);
+      // deleteGroupMemberById(value);
       //  widget.groupMember?.index = -1;
       Navigator.pop(context);
     }

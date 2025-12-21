@@ -4,7 +4,13 @@ import '/constants.dart';
 import '/models/other_models.dart';
 import '/tiles/home_tile.dart';
 import '/classes/classes.dart';
-import '/services/services.dart' hide getPosition;
+// import '/services/services.dart'; // hide getPosition;
+import '/services/web_helper.dart' hide getPosition;
+import '/services/geolocator_helper.dart';
+import '/services/stream_data.dart' hide getPosition;
+import '/services/private_storage_local.dart';
+import '/services/private_storage.dart';
+
 import '/screens/screens.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
@@ -117,8 +123,12 @@ class _HomeState extends State<Home> {
       ///   Sign_up form appears to allow completion of registration
       //   int code = 0;
 
+      if (Setup().isWeb) {
+        return true;
+      }
+
       if (Setup().user.password.isEmpty) {
-        await getUser();
+        await getPrivateRepository().getUser();
       }
 
       LoginState loginState = LoginState.notLoggedin;
@@ -142,7 +152,7 @@ class _HomeState extends State<Home> {
           //    code = response['response_status_code'] ?? 0;
 
           if (status == 'OK') {
-            await saveUser(Setup().user);
+            await getPrivateRepository().saveUser(Setup().user);
             Setup().hasLoggedIn = true;
             return status == 'OK';
           }
@@ -163,7 +173,7 @@ class _HomeState extends State<Home> {
             Map<String, dynamic> response = await tryLogin(user: user);
             if (response['msg'] == 'OK') {
               Setup().hasLoggedIn = true;
-              await saveUser(user);
+              await getPrivateRepository().saveUser(user);
               Setup().user = user;
               return true;
             }

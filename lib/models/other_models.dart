@@ -1,7 +1,8 @@
 import 'dart:convert';
 import 'dart:developer' as developer;
+import 'package:flutter/foundation.dart';
 import 'package:universal_io/universal_io.dart';
-import 'package:drives/helpers/edit_helpers.dart';
+// import 'package:drives/helpers/edit_helpers.dart';
 import 'package:uuid/uuid.dart';
 import '/services/services.dart'; // hide getPosition;
 import '/classes/classes.dart';
@@ -11,15 +12,17 @@ import 'package:intl/intl.dart';
 // import '/helpers/edit_helpers.dart';
 import 'package:path_provider/path_provider.dart';
 import '/constants.dart';
-import '/classes/utilities.dart' as utils;
+// import '/classes/utilities.dart' as utils;
 import '/screens/screens.dart';
 import '/classes/route.dart' as mt;
 // import '/tiles/tiles.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter/material.dart';
+// import 'package:flutter/foundation.dart'; // for kIsWeb
+import 'package:universal_io/io.dart';
 // import 'package:path_provider/path_provider.dart';
-import 'package:flutter_phone_direct_caller/flutter_phone_direct_caller.dart';
+// import 'package:flutter_phone_direct_caller/flutter_phone_direct_caller.dart';
 import 'package:socket_io_client/socket_io_client.dart' as sio;
 import 'package:geolocator/geolocator.dart';
 // import 'package:uuid/v6.dart';
@@ -295,6 +298,8 @@ class Setup {
   int tripCount = 0;
   int shopCount = 0;
   int messageCount = 0;
+  bool isWeb = kIsWeb;
+  bool isIOS = Platform.isIOS;
   bool maleVoice = false;
   MyTripItem? currentTrip;
   Position lastPosition = Position(
@@ -344,7 +349,7 @@ class Setup {
   Future<bool> setupFromDb() async {
     //  var setupRecords = await recordCount('setup');
     //  debugPrint('Setup contains $setupRecords records');
-    List<Map<String, dynamic>> maps = await getSetup(0);
+    List<Map<String, dynamic>> maps = await getPrivateRepository().getSetup(0);
     if (maps.isNotEmpty) {
       try {
         id = maps[0]['id'];
@@ -380,14 +385,14 @@ class Setup {
         debugPrint('Failed to load Setup() from db: ${e.toString()}');
       }
     }
-    user = await getUser();
+    user = await getPrivateRepository().getUser();
     return true;
   }
 
   Future<void> setupToDb() async {
-    await insertSetup(this);
+    await getPrivateRepository().insertSetup(this);
   }
-
+/*
   Future<List<Map<String, dynamic>>> getSetupById(int id) async {
     final db = await DbHelper().db;
     List<Map<String, dynamic>> maps = await db.query(
@@ -397,6 +402,8 @@ class Setup {
     );
     return maps;
   }
+
+  */
 
   Map<String, dynamic> toMap() {
     return {
@@ -430,7 +437,7 @@ class Setup {
       'app_state': appState,
     };
   }
-
+/*
   Future<void> deleteSetupById(int id) async {
     final db = await DbHelper().db;
     await db.delete(
@@ -439,6 +446,7 @@ class Setup {
       whereArgs: [id],
     );
   }
+*/
 }
 
 class PointOfInterest extends Marker {
@@ -2153,6 +2161,8 @@ class TripItem {
   }
 }
 
+/*
+
 Future<List<MyTripItem>> tripItemFromDb(
     {int driveId = -1, bool showMethods = false}) async {
   final db = await DbHelper().db;
@@ -2239,7 +2249,7 @@ Future<List<MyTripItem>> tripItemFromDb(
   }
   return trips;
 }
-
+*/
 class Drive {
   int id = 0;
   int userId = 0;
@@ -2267,7 +2277,7 @@ class Drive {
 
   Future<bool> saveLocally() async {
     try {
-      id = await saveDrive(drive: this);
+      id = await getPrivateRepository().saveDrive(drive: this);
     } catch (e) {
       debugPrint('Error saving trip: ${e.toString()}');
     }
@@ -2434,6 +2444,7 @@ class MessageLocal {
   }
 }
 
+/*
 Future<List<MessageLocal>> messagesFromDb({int driveId = -1}) async {
   final db = await DbHelper().db;
   String messagesQuery =
@@ -2470,7 +2481,7 @@ Future<List<MessageLocal>> messagesFromDb({int driveId = -1}) async {
   }
   return messages;
 }
-
+*/
 class PopupValue {
   int dropdownIdx = -1;
   String text1 = '';

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 // import 'package:flutter/services.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
@@ -9,7 +10,7 @@ import '/models/models.dart';
 import '/screens/main_drawer.dart';
 import '/screens/dialogs.dart';
 import '/services/services.dart';
-import 'package:latlong2/latlong.dart';
+// import 'package:latlong2/latlong.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import '/classes/route.dart' as mt;
@@ -17,6 +18,8 @@ import '/helpers/edit_helpers.dart';
 import 'package:vector_map_tiles/vector_map_tiles.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_map_animations/flutter_map_animations.dart';
+import 'package:flutter_map_maplibre/flutter_map_maplibre.dart';
+import 'package:maplibre_gl/maplibre_gl.dart'; // hide LatLng;
 
 /// Improving performance -
 /// Use classes not functions
@@ -74,6 +77,9 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
       features: [], pinTap: (_) => (), pointOfInterestLookup: {});
   final GlobalKey _appBarKey = GlobalKey();
   final GlobalKey _bottomNavKey = GlobalKey();
+
+  MapLibreMapController? _controller;
+
   @override
   void initState() {
     super.initState();
@@ -122,10 +128,12 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
     } catch (e) {
       debugPrint('Error getting data: ${e.toString()}');
     }
-    try {
-      _style = await VectorMapStyle().mapStyle();
-    } catch (e) {
-      debugPrint('Error getting data: ${e.toString()}');
+    if (!kIsWeb) {
+      try {
+        _style = await VectorMapStyle().mapStyle();
+      } catch (e) {
+        debugPrint('Error getting data: ${e.toString()}');
+      }
     }
     return true;
   }
@@ -475,9 +483,22 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
     if (listHeight == -1) {
       adjustMapHeight(MapHeights.full);
     }
-
     return Stack(
       children: [
+        const MapLibreLayer(
+          initStyle: _style,
+        ),
+        /*       MapLibreMap(
+          // ignore: avoid_redundant_argument_values --- EXAMPLE ---
+          styleString: 'https://demotiles.maplibre.org/style.json',
+          onMapCreated: (c) => _controller = c,
+          initialCameraPosition: const CameraPosition(
+            target: LatLng(0, 0),
+            zoom: 1.0,
+          ),
+        ),
+*/
+/*
         FlutterMap(
           mapController: _animatedMapController.mapController,
           options: MapOptions(
@@ -526,14 +547,20 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
                     InteractiveFlag.pinchMove),
           ),
           children: [
-            VectorTileLayer(
-              theme: _style.theme,
-              // sprites: _style.sprites,
-              tileProviders: _style.providers,
-              layerMode: VectorTileLayerMode.vector,
-              tileOffset: TileOffset.DEFAULT,
-              // cacheFolder: getCacheFolder,
-            ),
+            if (kIsWeb)
+              TileLayer(
+                urlTemplate:
+                    'https://tile.openstreetmap.org/{z}/{x}/{y}.png', //  drives.motatek.com/static/tiles/{z}/{x}/{y}.pbf',
+              ),
+            if (!kIsWeb)
+              VectorTileLayer(
+                theme: _style.theme,
+                // sprites: _style.sprites,
+                tileProviders: _style.providers,
+                layerMode: VectorTileLayerMode.raster, //  vector,
+                tileOffset: TileOffset.DEFAULT,
+                // cacheFolder: getCacheFolder,
+              ),
             PolylineLayer(polylines: _publishedFeatures.routes),
             PolylineLayer(polylines: _publishedFeatures.goodRoads),
             MarkerLayer(
@@ -542,6 +569,7 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
             ),
           ],
         ),
+        */
         Positioned(
           bottom: 0,
           left: 0,
@@ -770,7 +798,7 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
 
   onPlaceSelect(LatLng position) async {
     CurrentTripItem().tripValues.autoCentre = false;
-    _animatedMapController.animateTo(dest: position);
+    //----   _animatedMapController.animateTo(dest: position);
   }
 }
 
@@ -802,9 +830,9 @@ class HandleFabs extends StatelessWidget {
           heroTag: 'location',
           onPressed: () async {
             Position currentPosition = await Geolocator.getCurrentPosition();
-            animatedMapController.animateTo(
-              dest: LatLng(currentPosition.latitude, currentPosition.longitude),
-            );
+            //--  animatedMapController.animateTo(
+            //--    dest: LatLng(currentPosition.latitude, currentPosition.longitude),
+            //--  );
           },
           backgroundColor: Colors.blue,
           shape: const CircleBorder(),

@@ -18,8 +18,10 @@ https://pub.dev/packages/flutter_map_animations/example  shows how to animate ma
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized(); // <- needed to allow await to work
+
   await Setup().loaded;
   Setup().hasLoggedIn = false;
+
   debugPrint('Setup().user.surname ${Setup().user.surname}');
   final CreateTripController createTripController = CreateTripController();
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
@@ -81,23 +83,24 @@ void main() async {
       builder: (context, child) {
         // Wrap the entire app in AnnotatedRegion and MediaQuery for colour and font scaling
         return AnnotatedRegion<SystemUiOverlayStyle>(
-            value: SystemUiOverlayStyle(
-              statusBarBrightness: Brightness.light, // For iOS
-              // the order of the contrast and the colour may be critical.
-              systemStatusBarContrastEnforced: false,
-              statusBarColor: Colors.blue,
-              // The next line doesn't make any difference
-              statusBarIconBrightness: Brightness.dark,
-              systemNavigationBarContrastEnforced: false,
-              systemNavigationBarColor: Colors.blue,
-              systemNavigationBarIconBrightness: Brightness.dark,
-            ),
-            child: MediaQuery(
-              data: MediaQuery.of(context)
-                  .copyWith(textScaler: TextScaler.linear(0.9)),
-              // The child is the Navigator widget that contains all screens to which the test scaling will be applied
-              child: child!,
-            ));
+          value: SystemUiOverlayStyle(
+            statusBarBrightness: Brightness.light, // For iOS
+            // the order of the contrast and the colour may be critical.
+            systemStatusBarContrastEnforced: false,
+            statusBarColor: Colors.blue,
+            // The next line doesn't make any difference
+            statusBarIconBrightness: Brightness.dark,
+            systemNavigationBarContrastEnforced: false,
+            systemNavigationBarColor: Colors.blue,
+            systemNavigationBarIconBrightness: Brightness.dark,
+          ),
+          child: MediaQuery(
+            data: MediaQuery.of(context)
+                .copyWith(textScaler: TextScaler.linear(0.9)),
+            // The child is the Navigator widget that contains all screens to which the test scaling will be applied
+            child: child!,
+          ),
+        );
       },
     ),
   ); //);

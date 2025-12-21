@@ -410,7 +410,7 @@ class _SurveyFormState extends State<SurveyForm> {
         leading: BackButton(
           onPressed: () {
             try {
-              insertSetup(Setup());
+              getPrivateRepository().insertSetup(Setup());
               Navigator.pop(context);
             } catch (e) {
               debugPrint('Setup error: ${e.toString()}');
@@ -474,14 +474,15 @@ class _SurveyFormState extends State<SurveyForm> {
 
   Future<bool> getData() async {
     //await alterSurveyTables();
-    List<Map<String, dynamic>> standMaps = await getSurveyData(table: 'stands');
+    List<Map<String, dynamic>> standMaps =
+        await getPrivateRepository().getSurveyData(table: 'stands');
     debugPrint('${standMaps.length} stand records found');
     _seen = standMaps.length;
     try {
       for (Map<String, dynamic> map in standMaps) {
         Stand stand = Stand.fromMap(map: map);
-        List<Map<String, dynamic>> contactMaps =
-            await getSurveyData(table: 'contacts', standId: stand.id);
+        List<Map<String, dynamic>> contactMaps = await getPrivateRepository()
+            .getSurveyData(table: 'contacts', standId: stand.id);
         if (contactMaps.isNotEmpty) {
           stand.contacts.clear();
         }
@@ -548,14 +549,15 @@ class _SurveyFormState extends State<SurveyForm> {
                         if (value == true) {
                           Map<String, dynamic> map =
                               _stands[standIndex].toMap();
-                          int id =
-                              await saveSurveyData(map: map, table: 'stands');
+                          int id = await getPrivateRepository()
+                              .saveSurveyData(map: map, table: 'stands');
                           _stands[standIndex].id = id;
                           for (Contact contact
                               in _stands[standIndex].contacts) {
                             contact.standId = id;
                             map = contact.toMap();
-                            await saveSurveyData(map: map, table: 'contacts');
+                            await getPrivateRepository()
+                                .saveSurveyData(map: map, table: 'contacts');
                           }
                         }
                         setState(() => ());
@@ -719,14 +721,15 @@ saveAllStands() async {
 
 saveStand({int index = -1}) async {
   Map<String, dynamic> map = _stands[index].toMap();
-  int id = await saveSurveyData(map: map, table: 'stands');
+  int id =
+      await getPrivateRepository().saveSurveyData(map: map, table: 'stands');
 
   if (id >= 0) {
     _stands[index].id = id;
     for (Contact contact in _stands[index].contacts) {
       contact.standId = id;
       map = contact.toMap();
-      saveSurveyData(map: map, table: 'contacts');
+      getPrivateRepository().saveSurveyData(map: map, table: 'contacts');
     }
   }
   // _seen = 0;

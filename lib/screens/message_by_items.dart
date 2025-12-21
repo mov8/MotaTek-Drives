@@ -77,7 +77,7 @@ class _MessageItemsState extends State<MessageItems> {
   }
 
   Future<bool> dataFromDatabase() async {
-    mailItems = await loadMailItems();
+    mailItems = await getPrivateRepository().loadMailItems();
     if (mailItems.isEmpty) {
       mailItems.add(MailItem(id: '', name: '', isGroup: false));
       itemIndex = 0;

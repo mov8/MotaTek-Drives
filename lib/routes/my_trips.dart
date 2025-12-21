@@ -32,7 +32,8 @@ class _MyTripsScreenState extends State<MyTrips> {
   }
 
   Future<bool> getMyTripItems() async {
-    _myTripItems = await tripItemFromDb(showMethods: true);
+    _myTripItems =
+        await getPrivateRepository().tripItemFromDb(showMethods: true);
     return true;
   }
 
@@ -83,7 +84,7 @@ class _MyTripsScreenState extends State<MyTrips> {
     // debugPrint('Returned value: ${value.toString()}');
     if (value > -1) {
       int driveId = _myTripItems[value].driveId;
-      deleteDriveLocal(driveId: driveId);
+      getPrivateRepository().deleteDriveLocal(driveId: driveId);
       setState(() => _myTripItems.removeAt(value));
     }
   }

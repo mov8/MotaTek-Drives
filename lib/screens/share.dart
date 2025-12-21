@@ -69,7 +69,7 @@ class _ShareFormState extends State<ShareForm> {
         leading: BackButton(
           onPressed: () {
             try {
-              insertSetup(Setup());
+              getPrivateRepository().insertSetup(Setup());
               Navigator.pop(context);
             } catch (e) {
               debugPrint('Setup error: ${e.toString()}');

@@ -539,7 +539,7 @@ class _SignupFormState extends State<SignupForm> {
             Setup().user.password = Setup().user.newPassword;
             Setup().user.newPassword = '';
           }
-          saveUser(Setup().user);
+          getPrivateRepository().saveUser(Setup().user);
           Setup().setupToDb();
           response = 'Ok';
           break;

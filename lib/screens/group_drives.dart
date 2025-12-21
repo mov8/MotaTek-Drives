@@ -52,7 +52,7 @@ class _GroupDriveFormState extends State<GroupDriveForm>
 
   Future<bool> loadData() async {
     DateTime today = DateTime.now();
-    _myTripItems = await tripItemFromDb();
+    _myTripItems = await getPrivateRepository().tripItemFromDb();
     _trips = await getMembersByDrive(
         startDate: DateTime(today.year, today.month, today.day - 2));
     _groups = await getMembersByGroup();
@@ -317,7 +317,7 @@ class _GroupDriveFormState extends State<GroupDriveForm>
   }
 
   Future<bool> loadMyTrips() async {
-    _myTripItems = await tripItemFromDb();
+    _myTripItems = await getPrivateRepository().tripItemFromDb();
     return true;
   }
 

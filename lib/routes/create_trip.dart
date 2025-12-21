@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:core';
 import 'dart:ui' as ui;
+import 'package:flutter/foundation.dart';
 import 'package:universal_io/universal_io.dart';
 import 'dart:developer' as developer;
 import 'package:intl/intl.dart';
@@ -658,7 +659,7 @@ class CreateCurrentTripItem().tripValues {
       _currentPosition = await Geolocator.getCurrentPosition();
 
       if (Setup().hasLoggedIn) {
-        var setupRecords = await recordCount('setup');
+        var setupRecords = await getPrivateRepository().recordCount('setup');
         //  _myTripItems = await tripItemFromDb();
         _preferences.avoidMotorways = Setup().avoidMotorways;
         _preferences.avoidFerries = Setup().avoidFerries;
@@ -1212,15 +1213,21 @@ class CreateCurrentTripItem().tripValues {
                       InteractiveFlag.pinchMove),
             ),
             children: [
-              VectorTileLayer(
-                  theme: _style.theme, //_style.theme,
-                  maximumZoom: 13,
-                  //sprites: _style.sprites,
-                  tileProviders: _cachedProviders, // _style.providers,
-                  // showTileDebugInfo: true,
-                  layerMode: VectorTileLayerMode.vector,
-                  //  cacheFolder: getCacheFolder,
-                  tileOffset: TileOffset.DEFAULT),
+              if (kIsWeb)
+                TileLayer(
+                  urlTemplate:
+                      'https://tile.openstreetmap.org/{z}/{x}/{y}.png', //  drives.motatek.com/static/tiles/{z}/{x}/{y}.pbf',
+                ),
+              if (!kIsWeb)
+                VectorTileLayer(
+                    theme: _style.theme, //_style.theme,
+                    maximumZoom: 13,
+                    //sprites: _style.sprites,
+                    tileProviders: _cachedProviders, // _style.providers,
+                    // showTileDebugInfo: true,
+                    layerMode: VectorTileLayerMode.vector,
+                    //  cacheFolder: getCacheFolder,
+                    tileOffset: TileOffset.DEFAULT),
               if (!_debugging) ...[
                 CurrentLocationLayer(
                   focalPoint: const FocalPoint(
@@ -2152,7 +2159,7 @@ class CreateCurrentTripItem().tripValues {
     if (value > -1) {
       // int driveId = _myTripItems[value].driveId;
       int driveId = CurrentTripItem().driveId;
-      deleteDriveLocal(driveId: driveId);
+      getPrivateRepository().deleteDriveLocal(driveId: driveId);
       CurrentTripItem().clearAll();
       // setState(() => _myTripItems.removeAt(value));
     }
@@ -2290,8 +2297,8 @@ class CreateCurrentTripItem().tripValues {
           if (_debuggingRoute.isEmpty) {
             _debugRoute.follow(routes: CurrentTripItem().routes);
           } else {
-            List<mt.Route> debugRoute =
-                await getRoutesByName(name: _debuggingRoute);
+            List<mt.Route> debugRoute = await getPrivateRepository()
+                .getRoutesByName(name: _debuggingRoute);
             _debugRoute.follow(routes: debugRoute);
           }
           // if (_debugPositionController.stream.)

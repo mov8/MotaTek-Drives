@@ -24,19 +24,13 @@ class VectorMapStyle {
   Future<dynamic> mapStyle() async {
     try {
       if (style == null) {
-        Directory cache = await getCache();
-        String localStyleFile = '${cache.path}/style.txt';
-        if (!File(localStyleFile).existsSync()) {
-          style = await getStyle(url: urlTiler);
-          File(localStyleFile).writeAsString(style);
-        }
         DrivesStyleReader styleReader =
             DrivesStyleReader(uri: urlTiler, apiKey: '', logger: null);
         style = await styleReader.read();
       }
       return style;
     } catch (e) {
-      debugPrint('Error initiating st4yle: ${e.toString()}');
+      debugPrint('Error initiating style: ${e.toString()}');
     }
   }
 }
@@ -50,9 +44,10 @@ class DrivesStyleReader {
       : logger = logger ?? const Logger.noop();
 
   Future<Style> read() async {
+    String styleText = '';
     Directory cache = await getCache();
     String localStyleFile = '${cache.path}/style.txt';
-    String styleText = '';
+    // String styleText = '';
     if (File(localStyleFile).existsSync()) {
       styleText = await File(localStyleFile).readAsString();
       debugPrint('got style locally');
@@ -60,7 +55,13 @@ class DrivesStyleReader {
       styleText = await getStyle(url: uri);
       File(localStyleFile).writeAsString(styleText);
     }
-    final style = await compute(jsonDecode, styleText);
+
+    dynamic style;
+    try {
+      style = await compute(jsonDecode, styleText);
+    } catch (e) {
+      debugPrint('error getting style: ${e.toString()}');
+    }
     if (style is! Map<String, dynamic>) {
       throw 'invalid uri $uri';
     }
@@ -68,6 +69,7 @@ class DrivesStyleReader {
     if (sources is! Map) {
       throw 'Style is not a Map';
     }
+
     final providerByName = await _readProviderByName(sources);
 
     final name = style['name'] as String?;
@@ -78,6 +80,7 @@ class DrivesStyleReader {
       centerPoint =
           LatLng((center[1] as num).toDouble(), (center[0] as num).toDouble());
     }
+    centerPoint = LatLng(51.507, 0.13);
     double? zoom = (style['zoom'] as num?)?.toDouble();
     if (zoom != null && zoom < 2) {
       zoom = null;

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 // import 'package:flutter/services.dart';
 import '/models/other_models.dart';
-import '/services/db_helper.dart';
+import '/services/services.dart';
 import '/screens/dialogs.dart';
 import 'dart:convert';
 
@@ -297,7 +297,7 @@ class _GroupMemberFormState extends State<GroupMemberForm> {
   void onConfirmDeleteMember(int value) {
     // debugPrint('Returned value: ${value.toString()}');
     if (value > -1) {
-      deleteGroupMemberById(value);
+      // deleteGroupMemberById(value);
       widget.groupMember?.index = -1;
       Navigator.pop(context);
     }

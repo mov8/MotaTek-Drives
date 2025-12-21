@@ -39,7 +39,8 @@ class TripItemRepository {
       zoom = 30}) async {
     if (!_tripItemCache.containsKey(key)) {
       if (id >= 0) {
-        _tripItemCache[key] = await loadTripItemLocal(id: id);
+        _tripItemCache[key] =
+            await getPrivateRepository().loadTripItemLocal(id: id);
       } else if (uri.isNotEmpty) {
         _tripItemCache[key] = await getTrip(tripId: uri);
       } else {
@@ -66,7 +67,8 @@ class PointOfInterestRepository {
     // PointOfInterest pointOfIntest = PointOfInterest(markerPoint: MarkerPoint(), marker: marker)
     if (!_pointOfInterestCache.containsKey(key)) {
       if (id >= 0) {
-        _pointOfInterestCache[key] = await loadPointOfInterestLocal(id: id);
+        _pointOfInterestCache[key] =
+            await getPrivateRepository().loadPointOfInterestLocal(id: id);
       } else if (uri.isNotEmpty) {
         _pointOfInterestCache[key] = await getPointOfInterest(uri: uri);
       } else {
@@ -95,7 +97,8 @@ class OsmDataRepository {
     if (!_osmAmenityCache.containsKey(key)) {
       //  try {
       if (id >= 0) {
-        _osmAmenityCache[key] = await loadOsmAmenityLocal(id: id);
+        _osmAmenityCache[key] =
+            await getPrivateRepository().loadOsmAmenityLocal(id: id);
       } else if (osmId >= 0) {
         _osmAmenityCache[key] = await getOsmAmenity(osmId: osmId);
       } else {
@@ -129,7 +132,8 @@ class RouteRepository {
   }) async {
     if (!_routeCache.containsKey(key)) {
       if (id >= 0) {
-        _routeCache[key] = await loadRoutesLocal(id, type: 0, driveKey: key);
+        _routeCache[key] = await getPrivateRepository()
+            .loadRoutesLocal(id, type: 0, driveKey: key);
       } else if (uri.isNotEmpty) {
         _routeCache[key] = await getDriveRoutes(driveUri: uri);
       } else {
@@ -159,7 +163,8 @@ class GoodRoadRepository {
   }) async {
     if (!_goodRoadCache.containsKey(key)) {
       if (id >= 0) {
-        _goodRoadCache[key] = await loadPolyLineLocal(id, type: 1);
+        _goodRoadCache[key] =
+            await getPrivateRepository().loadPolyLineLocal(id, type: 1);
       } else if (uri.isNotEmpty) {
         _goodRoadCache[key] = await getRoute(uriString: uri, goodRoad: true);
       } else {
@@ -262,6 +267,7 @@ Future<Image> webImageFromBytes({required String url}) async {
 }
 
 Future<Image> localImageFromBytes({required int id}) async {
-  Uint8List? imageBytes = await loadImageByIdLocal(id: id);
+  Uint8List? imageBytes =
+      await getPrivateRepository().loadImageByIdLocal(id: id);
   return Image.memory(imageBytes!);
 }

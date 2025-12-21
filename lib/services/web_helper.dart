@@ -10,7 +10,7 @@ import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 import '/models/models.dart';
 import '/classes/utilities.dart' as utils;
-import '/services/db_helper.dart';
+import '/services/services.dart';
 import '/helpers/helpers.dart';
 import '/classes/route.dart' as mt;
 
@@ -351,8 +351,8 @@ Future<Map<String, dynamic>> tryLogin({required User user}) async {
         Setup().user.surname = map['surname'];
         Setup().user.phone = map['phone'];
         Setup().jwt = map['token'];
-        await saveUser(Setup().user);
-        await updateSetup();
+        await getPrivateRepository().saveUser(Setup().user);
+        await getPrivateRepository().updateSetup();
         return {'msg': 'OK'};
       } else if (map.isNotEmpty) {
         return {'msg': map['msg'] ?? 'error', 'response_status_code': code};
@@ -602,7 +602,7 @@ Future<String> postPolylines(
   for (mt.Route polyline in polylines) {
     maps.add({
       'drive_id': driveUid,
-      'points': pointsToString(polyline.points),
+      'points': getPrivateRepository().pointsToString(polyline.points),
       'stroke': polyline.strokeWidth,
       'colour':
           uiColours.keys.toList().indexWhere((col) => col == polyline.color),
@@ -693,7 +693,8 @@ mt.Route polylineFromMap(
   return mt.Route(
     id: -1,
     driveKey: driveKey,
-    points: stringToPoints(map['points']), // routePoints,
+    points:
+        getPrivateRepository().stringToPoints(map['points']), // routePoints,
     color: routeColor,
     borderColor: routeColor,
     strokeWidth: (map['stroke']).toDouble(),
@@ -1347,8 +1348,8 @@ Future<MyTripItem> getMyTrip(String tripUuid) async {
     for (int i = 0; i < trip['polylines'].length; i++) {
       gotRoutes.add(mt.Route(
           id: -1,
-          points:
-              stringToPoints(trip['polylines'][i]['points']), // routePoints,
+          points: getPrivateRepository()
+              .stringToPoints(trip['polylines'][i]['points']), // routePoints,
           color: uiColours.keys.toList()[trip['polylines'][i]['colour']],
           borderColor: uiColours.keys.toList()[trip['polylines'][i]['colour']],
           strokeWidth: (trip['polylines'][i]['stroke']).toDouble()));

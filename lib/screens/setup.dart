@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/get.dart';
 import '/models/other_models.dart';
-import '/services/db_helper.dart';
+import '/services/services.dart';
 import '/classes/classes.dart';
 import '/helpers/edit_helpers.dart';
 
@@ -39,7 +39,7 @@ class _SetupFormState extends State<SetupForm> {
 
   void _update({bool update = false}) {
     if (update) {
-      insertSetup(Setup());
+      // insertSetup(Setup());
     }
     setState(() => _hasChanged = false);
     return;
