@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 // import 'package:universal_io/universal_io.dart';
 import 'package:universal_io/universal_io.dart';
 import 'dart:developer' as developer;
@@ -38,7 +39,7 @@ class TripItemRepository {
       required String uri,
       zoom = 30}) async {
     if (!_tripItemCache.containsKey(key)) {
-      if (id >= 0) {
+      if (!kIsWeb && id >= 0) {
         _tripItemCache[key] =
             await getPrivateRepository().loadTripItemLocal(id: id);
       } else if (uri.isNotEmpty) {
@@ -131,7 +132,7 @@ class RouteRepository {
     required String uri,
   }) async {
     if (!_routeCache.containsKey(key)) {
-      if (id >= 0) {
+      if (id >= 0 && !kIsWeb) {
         _routeCache[key] = await getPrivateRepository()
             .loadRoutesLocal(id, type: 0, driveKey: key);
       } else if (uri.isNotEmpty) {
@@ -240,7 +241,7 @@ class ImageRepository {
     if (!_imageCache.containsKey(key)) {
       key = _imageCache.length;
       //   isEmpty ? 0 : _imageCache.keys.last + 1;
-      if (id >= 0) {
+      if (id >= 0 && !kIsWeb) {
         _imageCache[key] = await localImageFromBytes(id: id);
         //   debugPrint('Image returned from local database');
       } else if (uri.isNotEmpty && uri.contains('assets')) {

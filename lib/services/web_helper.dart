@@ -640,6 +640,7 @@ Future<List<mt.Route>> getDriveRoutes(
     {required String driveUri, driveKey = -1}) async {
   final http.Response response =
       await getWebData(uri: Uri.parse('$urlPolyline/drive/$driveUri'));
+  debugPrint('getDriveRoutes response code: ${response.statusCode}');
   if ([200, 201].contains(response.statusCode)) {
     try {
       List<dynamic> maps = jsonDecode(response.body);
@@ -1696,6 +1697,21 @@ Future<bool> serverListening() async {
     final http.Response response = await http
         .get(
           Uri.parse('$urlUser/test'),
+        )
+        .timeout(const Duration(seconds: 5));
+    return (response.statusCode == 200);
+  } catch (e) {
+    debugPrint('Error checking for server: ${e.toString()}');
+    return false;
+  }
+}
+
+Future<bool> apiListening() async {
+  try {
+    final http.Response response = await http
+        .get(
+          Uri.parse("https://drives.motatek.com/v1/user/test"),
+          // Uri.parse('$urlUser/test'),
         )
         .timeout(const Duration(seconds: 5));
     return (response.statusCode == 200);

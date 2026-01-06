@@ -76,6 +76,13 @@ Advice from Gemini:
     macOS Version: Ensure it can run macOS Ventura or newer. This is crucial for recent Xcode versions.
 
 
+Update to Web Version - Ditching of Flutter maps
+-------------------------------------------------
+Implement Route markers in the style.json
+Allow B roads to be visible at lower zoom levels if user requests avoid motorways
+Implement Sprites for all points of interest
+Allow changing of road type colours in style.json
+
 
 
 

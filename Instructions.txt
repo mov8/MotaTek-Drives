@@ -3,13 +3,13 @@ deleting temp files C:\Users\james\AppData\Local\Temp
 
 Problems with version updates on devices:
 Experienced a problem for a little while where after a build
-have to do a restart befor the latest build is put on the 
+have to do a restart before the latest build is put on the 
 device. Then when running without PC reverts back to previous 
 version. The problem started when swapping between debug and
 release versions. 
 Cure follow 4 steps:
-1 flutter clean - removes build and the dependentcies
-2 flutter pub get - reinstalls dependentcies
+1 flutter clean - removes build and the dependencies
+2 flutter pub get - reinstalls dependencies
 3 remove the version from the device 
 4 rebuild on the device
 
@@ -18,7 +18,7 @@ flutter upgrade
 Error with wrongParent
 The ParentDataWidget Expanded(flex: 1) wants to apply ParentData of type FlexParentData to a RenderObject
 This is caused by an Expanded being used for a parent widget other than a Column or Row that it intended for. 
-It works in debug mode, but causes a blank screen in r elease mode.
+It works in debug mode, but causes a blank screen in release mode.
 
 Lesson from this any problems in release mode may well be 
 due to problems shown but ignored in debug mode. Sorting all

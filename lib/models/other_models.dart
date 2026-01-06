@@ -1,31 +1,22 @@
 import 'dart:convert';
 import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
+import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:universal_io/universal_io.dart';
-// import 'package:drives/helpers/edit_helpers.dart';
 import 'package:uuid/uuid.dart';
-import '/services/services.dart'; // hide getPosition;
+import '/services/services.dart';
 import '/classes/classes.dart';
 import 'package:intl/intl.dart';
-// import '/services/services.dart';
-//import 'package:image_picker/image_picker.dart';
-// import '/helpers/edit_helpers.dart';
 import 'package:path_provider/path_provider.dart';
 import '/constants.dart';
-// import '/classes/utilities.dart' as utils;
 import '/screens/screens.dart';
 import '/classes/route.dart' as mt;
-// import '/tiles/tiles.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
+import 'package:latlong2/latlong.dart' as fm;
 import 'package:flutter/material.dart';
-// import 'package:flutter/foundation.dart'; // for kIsWeb
 import 'package:universal_io/io.dart';
-// import 'package:path_provider/path_provider.dart';
-// import 'package:flutter_phone_direct_caller/flutter_phone_direct_caller.dart';
 import 'package:socket_io_client/socket_io_client.dart' as sio;
 import 'package:geolocator/geolocator.dart';
-// import 'package:uuid/v6.dart';
 
 /// https://api.flutter.dev/flutter/material/Icons-class.html  get the icon codepoint from here
 /// https://api.flutter.dev/flutter/material/Icons/add_road-constant.html
@@ -225,6 +216,7 @@ Map<Color, String> uiColours = {
 };
 
 List<Color> colourList = uiColours.keys.toList();
+// List<String> colourListHex = uiColours.keys.toHexStringRGB().toList();
 List<String> colorNameList = uiColours.values.toList();
 
 const List<Color> pinColours = [
@@ -234,10 +226,14 @@ const List<Color> pinColours = [
   Colors.orange
 ];
 
+String? colourToHex({Color? color}) {
+  return color!.toHexStringRGB();
+}
+
 void myFunc() {}
 
 Future<String> distanceFromMe(
-    {required LatLng position, decimalPlaces = 1, metric = false}) async {
+    {required fm.LatLng position, decimalPlaces = 1, metric = false}) async {
   Position pos = await Geolocator.getCurrentPosition();
   double meters = Geolocator.distanceBetween(
       pos.latitude, pos.longitude, position.latitude, position.longitude);
@@ -248,12 +244,12 @@ Future<String> distanceFromMe(
 
 class CutRoute {
   int routeIndex = 0; // holds the polyLine Index in Routes
-  int pointIndex = 0; // holds the index of LatLng on the above polyLine
+  int pointIndex = 0; // holds the index of fm.LatLng on the above polyLine
   int precedingPointIndex =
       0; // holds the index of the previous POI in _routes[routeIndex].points[]
   int precedingPoiIndex; // holds the index in _pointsOfInterest of the preceding POI
-  LatLng poiPosition =
-      const LatLng(0, 0); // The LatLng of the POI to be inserted
+  fm.LatLng poiPosition =
+      const fm.LatLng(0, 0); // The fm.LatLng of the POI to be inserted
 
   CutRoute(
       {required this.routeIndex,
@@ -333,6 +329,15 @@ class Setup {
   }
 
   Future<bool> get loaded async {
+    if (kIsWeb) {
+      user.forename = 'James';
+      user.surname = 'Seddon';
+      user.email = 'james@staintonconsultancy.com';
+      user.password = 'rubberduck';
+      user.phone = '07761632236';
+      return true;
+    }
+
     appDocumentDirectory = (await getApplicationDocumentsDirectory()).path;
     cacheDirectory = Directory('$appDocumentDirectory/cache');
     if (!await cacheDirectory.exists()) {
@@ -392,18 +397,6 @@ class Setup {
   Future<void> setupToDb() async {
     await getPrivateRepository().insertSetup(this);
   }
-/*
-  Future<List<Map<String, dynamic>>> getSetupById(int id) async {
-    final db = await DbHelper().db;
-    List<Map<String, dynamic>> maps = await db.query(
-      'setup',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
-    return maps;
-  }
-
-  */
 
   Map<String, dynamic> toMap() {
     return {
@@ -437,16 +430,42 @@ class Setup {
       'app_state': appState,
     };
   }
-/*
-  Future<void> deleteSetupById(int id) async {
-    final db = await DbHelper().db;
-    await db.delete(
-      'setup',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+
+  String routeColourHex() {
+    return colourList[routeColour].toHexStringRGB();
   }
-*/
+
+  String goodRouteColourHex() {
+    return colourList[goodRouteColour].toHexStringRGB();
+  }
+
+  String waypointColourHex() {
+    return colourList[waypointColour].toHexStringRGB();
+  }
+
+  String pointOfInterestColourHex() {
+    return colourList[pointOfInterestColour].toHexStringRGB();
+  }
+
+  String waypointColour2Hex() {
+    return colourList[waypointColour2].toHexStringRGB();
+  }
+
+  String pointOfInterestColour2Hex() {
+    return colourList[pointOfInterestColour2].toHexStringRGB();
+  }
+
+  String selectedColourHex() {
+    return colourList[selectedColour].toHexStringRGB();
+  }
+
+  String highlightedColourHex() {
+    return colourList[highlightedColour].toHexStringRGB();
+  }
+
+  String publishedTripColourHex() {
+    return colourList[publishedTripColour].toHexStringRGB();
+  }
 }
 
 class PointOfInterest extends Marker {
@@ -484,7 +503,7 @@ class PointOfInterest extends Marker {
     String images = '',
     this.imageUrls,
     this.markerType = 0,
-    super.point = const LatLng(0, 0),
+    super.point = const fm.LatLng(0, 0),
     this.url = '',
     this.driveUri = '',
     this.score = 1,
@@ -527,7 +546,7 @@ class PointOfInterest extends Marker {
       width: map['type'] == 12 ? 10 : 30,
       height: map['type'] == 12 ? 10 : 30,
       images: map['images'],
-      point: LatLng(map['latitude'], map['longitude']),
+      point: fm.LatLng(map['latitude'], map['longitude']),
     );
   }
 
@@ -536,9 +555,9 @@ class PointOfInterest extends Marker {
     int colourIndex = -1,
     int type = -1,
     bool changeType = false,
-    LatLng position = const LatLng(0, 0),
+    fm.LatLng position = const fm.LatLng(0, 0),
   }) {
-    position = position == LatLng(0, 0) ? pointOfInterest.point : position;
+    position = position == fm.LatLng(0, 0) ? pointOfInterest.point : position;
     return PointOfInterest(
         id: pointOfInterest.id,
         url: pointOfInterest.url,
@@ -546,7 +565,7 @@ class PointOfInterest extends Marker {
         height: pointOfInterest.height,
         width: pointOfInterest.width,
         driveId: pointOfInterest.driveId,
-        point: position == LatLng(0, 0) ? pointOfInterest.point : position,
+        point: position == fm.LatLng(0, 0) ? pointOfInterest.point : position,
         imageUrls: pointOfInterest.imageUrls,
         images: pointOfInterest.images,
         type: type == -1 ? pointOfInterest.type : type,
@@ -1479,13 +1498,13 @@ class GoodRoadCacheItem {
   int index;
   int localId;
   String url;
-  LatLng northEast;
-  LatLng southWest;
+  fm.LatLng northEast;
+  fm.LatLng southWest;
   GoodRoadCacheItem(
       {this.localId = -1,
       this.url = '',
-      this.northEast = const LatLng(50, 0),
-      this.southWest = const LatLng(50, 0),
+      this.northEast = const fm.LatLng(50, 0),
+      this.southWest = const fm.LatLng(50, 0),
       this.index = -1});
 
   factory GoodRoadCacheItem.fromMap(
@@ -1494,8 +1513,8 @@ class GoodRoadCacheItem {
       index: row,
       localId: map['id'] ?? -1,
       url: map['uri'] ?? '',
-      northEast: LatLng(map['max_lat'] ?? 50.0, map['max_lng'] ?? 0),
-      southWest: LatLng(map['min_lat'] ?? 50.0, map['min_lng'] ?? 0),
+      northEast: fm.LatLng(map['max_lat'] ?? 50.0, map['max_lng'] ?? 0),
+      southWest: fm.LatLng(map['min_lat'] ?? 50.0, map['min_lng'] ?? 0),
     );
   }
 }
@@ -1580,7 +1599,7 @@ class Maneuver {
   int exit = 0;
   int bearingBefore = 0;
   int bearingAfter = 0;
-  LatLng location = const LatLng(0, 0);
+  fm.LatLng location = const fm.LatLng(0, 0);
   String modifier = '';
   String type = '';
   double distance = 0.0;
@@ -1647,7 +1666,7 @@ class OsmAmenity extends Marker {
       this.markerWidth = 20,
       this.markerHeight = 20,
       this.iconColour = 0,
-      required LatLng position,
+      required fm.LatLng position,
       required Widget marker})
       : super(
           width: markerWidth,
@@ -1664,7 +1683,7 @@ class OsmAmenity extends Marker {
       name: map['name'] ?? '',
       amenity: map['amenity'] ?? '',
       postcode: map['postcode'] ?? '',
-      position: LatLng(map['lat'], map['lng']),
+      position: fm.LatLng(map['lat'], map['lng']),
       marker: MarkerWidget(
         type: 1,
         list: -1,
@@ -1742,7 +1761,7 @@ class Follower extends Marker {
   int routeIndex;
   int accepted;
   bool track;
-  LatLng position; // = const LatLng(0, 0);
+  fm.LatLng position; // = const fm.LatLng(0, 0);
   Widget marker;
   DateTime reported = DateTime.now();
   int index = -1;
@@ -1783,7 +1802,7 @@ class Follower extends Marker {
   factory Follower.moveFollower(
       {required Follower follower,
       required Widget marker,
-      required LatLng position}) {
+      required fm.LatLng position}) {
     return Follower(
         uri: follower.uri,
         userId: follower.userId,
@@ -1811,7 +1830,7 @@ class Follower extends Marker {
     double lat = map['lat'] ?? 0;
     double lng = map['lng'] ?? 0;
     return Follower(
-        position: LatLng(lat, lng),
+        position: fm.LatLng(lat, lng),
         marker: Text(''),
         uri: map['invitation_id'] ?? '',
         userId: map['user_id'] ?? '',
@@ -2016,7 +2035,7 @@ class TripSummary extends Marker {
   int scored;
 
   // late final Widget marker;
-  // late LatLng markerPoint = const LatLng(52.05884, -1.345583);
+  // late fm.LatLng markerPoint = const fm.LatLng(52.05884, -1.345583);
   TripSummary(
       {this.cacheKey = -1,
       this.uri = '',
@@ -2029,7 +2048,7 @@ class TripSummary extends Marker {
       this.score = 5.0,
       this.scored = 1,
       super.child = const Icon(Icons.location_pin),
-      super.point = const LatLng(-50.0, -0.2),
+      super.point = const fm.LatLng(-50.0, -0.2),
       super.width = 20,
       super.height = 20});
 
@@ -2044,7 +2063,7 @@ class TripSummary extends Marker {
       maxLong: map['max_long'],
       score: map['score'],
       scored: map['scored'],
-      point: LatLng(map['min_lat'], map['min_long']),
+      point: fm.LatLng(map['min_lat'], map['min_long']),
     );
   }
 }
@@ -2166,10 +2185,10 @@ class TripItem {
 Future<List<MyTripItem>> tripItemFromDb(
     {int driveId = -1, bool showMethods = false}) async {
   final db = await DbHelper().db;
-  LatLng pos = const LatLng(0, 0);
+  fm.LatLng pos = const fm.LatLng(0, 0);
 
   await utils.getPosition().then((currentPosition) {
-    pos = LatLng(currentPosition.latitude, currentPosition.longitude);
+    pos = fm.LatLng(currentPosition.latitude, currentPosition.longitude);
   });
 
   String drivesQuery =

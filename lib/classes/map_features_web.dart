@@ -27,7 +27,7 @@ enum PinTypes {
   tripStart,
   tripEnd,
 }
-
+/*
 class Feature extends Marker {
   final int row;
   final String uri;
@@ -116,6 +116,8 @@ class Feature extends Marker {
   }
 }
 
+*/
+
 /// PublishedFeatures - maintains the lists of features and cards based on the
 /// camara bounds - the lists it maintains are:
 ///
@@ -158,10 +160,10 @@ Future<PublishedFeatures> getPublishedFeatures(
     showRoutes = false,
     ExpandNotifier? expandNotifier,
     Map<String, int>? pointOfInterestLookup}) async {
-  List<Feature> features = [];
+  // List<Feature> features = [];
   Map<String, int> pointOfInterestLookup = {};
 
-  features.addAll(await getFeatures(
+  List<Feature> features = (await getFeatures(
       zoom: 10, onTap: pinTap, pointOfInterestLookup: pointOfInterestLookup));
   return PublishedFeatures(
     features: features,
@@ -291,8 +293,6 @@ class PublishedFeatures {
         try {
           switch (feature.type) {
             case 0:
-
-              /// Routes
               if (showRoutes &&
                   cacheFence.overlapped(bounds: feature.getBounds())) {
                 List<mt.Route>? toAdd = await routeRepository.loadRoute(
@@ -347,8 +347,6 @@ class PublishedFeatures {
 
               break;
             case 1:
-
-              /// PointsOfInterest
               if ((!exclude.contains(feature.poiType) &&
                       cacheFence.contains(
                         bounds: feature.getBounds(),
@@ -403,8 +401,6 @@ class PublishedFeatures {
               }
               break;
             case 2:
-
-              /// GoodRoads
               if (cacheFence.overlapped(bounds: feature.getBounds())) {
                 mt.Route? goodRoad = await goodRoadRepository.loadGoodRoad(
                     key: feature.row, id: feature.id, uri: feature.uri);

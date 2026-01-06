@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 // import 'package:flutter/services.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'dart:ui' as ui;
+import 'dart:math';
 import 'package:universal_io/universal_io.dart';
 import '/constants.dart';
 import '/classes/classes.dart';
@@ -10,16 +11,17 @@ import '/models/models.dart';
 import '/screens/main_drawer.dart';
 import '/screens/dialogs.dart';
 import '/services/services.dart';
-// import 'package:latlong2/latlong.dart';
-import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart' as fmll;
+// import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import '/classes/route.dart' as mt;
 import '/helpers/edit_helpers.dart';
-import 'package:vector_map_tiles/vector_map_tiles.dart';
+// import 'package:vector_map_tiles/vector_map_tiles.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:flutter_map_animations/flutter_map_animations.dart';
-import 'package:flutter_map_maplibre/flutter_map_maplibre.dart';
+//import 'package:flutter_map_maplibre/flutter_map_maplibre.dart';
 import 'package:maplibre_gl/maplibre_gl.dart'; // hide LatLng;
+import 'package:flutter_map/src/geo/latlng_bounds.dart' as fm;
+import 'dart:developer' as developer;
 
 /// Improving performance -
 /// Use classes not functions
@@ -52,23 +54,24 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
   late final LeadingWidgetController _leadingWidgetController;
   late final RoutesBottomNavController _bottomNavController;
   late final ExpandNotifier _expandNotifier;
-  final mapController = MapController();
+  // final mapController = MapController();
   late Position _currentPosition;
-  late final AnimatedMapController _animatedMapController;
   final ItemScrollController _itemScrollController = ItemScrollController();
   final ScrollOffsetController scrollOffsetController =
       ScrollOffsetController();
   final ItemPositionsListener itemPositionsListener =
       ItemPositionsListener.create();
+  final DraggableScrollableController _bdScrollController =
+      DraggableScrollableController();
+  MapLibreMapController? _mapController;
   final GlobalKey _scaffoldKey = GlobalKey();
   late final Future<bool> _dataLoaded;
-  late Style _style;
+  // late Style _style;
   bool _showPreferences = false;
   bool _publishedFeaturesUpdated = true;
   final TripsPreferences _preferences = TripsPreferences();
   final ScrollController _preferencesScrollController = ScrollController();
-  final _dividerHeight = 35.0;
-  int _resizeDelay = 0;
+  //final _dividerHeight = 35.0;
   bool refreshTrips = true;
   List<double> mapHeights = [0, 0, 0, 0];
   double mapHeight = -1; //250;
@@ -78,7 +81,12 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
   final GlobalKey _appBarKey = GlobalKey();
   final GlobalKey _bottomNavKey = GlobalKey();
 
-  MapLibreMapController? _controller;
+  Map<String, dynamic> linesMap = {};
+
+  Map<String, dynamic> _routeFeatures = {
+    "type": "FeatureCollection",
+    "features": []
+  };
 
   @override
   void initState() {
@@ -86,8 +94,8 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
     _leadingWidgetController = LeadingWidgetController();
     _bottomNavController = RoutesBottomNavController();
     _expandNotifier = ExpandNotifier(-1);
-    _animatedMapController = AnimatedMapController(vsync: this);
     _dataLoaded = dataFromDatabase();
+
     _preferencesScrollController.addListener(
       () {
         if (_preferencesScrollController.position.atEdge) {
@@ -121,19 +129,12 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
           showRoutes: true,
           expandNotifier: _expandNotifier);
     } catch (e) {
-      debugPrint('Error getting data from the Internet');
+      debugPrint('Error getting data from the Internet error ${e.toString()}');
     }
     try {
       _currentPosition = await Geolocator.getCurrentPosition();
     } catch (e) {
       debugPrint('Error getting data: ${e.toString()}');
-    }
-    if (!kIsWeb) {
-      try {
-        _style = await VectorMapStyle().mapStyle();
-      } catch (e) {
-        debugPrint('Error getting data: ${e.toString()}');
-      }
     }
     return true;
   }
@@ -431,46 +432,17 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
   }
 
   Widget _getPortraitBody() {
-    if (mapHeight == -1) {
-      adjustMapHeight(MapHeights.full);
-    }
-    return SingleChildScrollView(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          AnimatedContainer(
-            duration: Duration(milliseconds: _resizeDelay),
-            curve: Curves.easeInOut, // fastOutSlowIn,
-            height: mapHeight,
-            width: mounted ? MediaQuery.of(context).size.width : 100,
-            child: _handleMap(),
-          ),
-
-          _handleBottomSheetDivider(), // grab rail - GesureDetector()
-          const SizedBox(
-            height: 5,
-          ),
-          SizedBox(
-            height: listHeight,
-            child: cardsList(cards: _publishedFeatures.routeCards),
-          ),
-        ],
-      ),
-    );
+    return _handleMap();
   }
 
   Widget? cardsList({required List<Card> cards}) {
     Widget? scrollList;
     try {
       if (cards.isNotEmpty) {
-        scrollList = ScrollablePositionedList.builder(
+        scrollList = ListView.builder(
           itemCount: cards.length,
           itemBuilder: (context, index) =>
               cards[index < cards.length ? index : cards.length - 1],
-          itemScrollController: _itemScrollController,
-          scrollOffsetController: scrollOffsetController,
-          itemPositionsListener: itemPositionsListener,
         );
       }
     } catch (e) {
@@ -478,24 +450,241 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
     }
     return scrollList;
   }
+  /*
+  OnFeatureInteractionCallback = void Function(
+  Point<double> point,
+  LatLng coordinates,
+  String id,
+  String layerId,
+  Annotation? annotation,
+);
+  */
+
+  _onMapUpdate(LatLng pos, MapLibreMapController mapController) async {
+    _mapController ??= mapController;
+    developer.log("_onMapUpdate called", name: "_shieldTap");
+    if (!_mapController!.onFeatureTapped.contains(_onShieldTapped)) {
+      developer.log("_onMapUpdate callback added", name: "_shieldTap");
+      _mapController!.onFeatureTapped.add(_onShieldTapped);
+    }
+
+    LatLngBounds fenceRegion = await mapController.getVisibleRegion();
+    Fence newFence = Fence.fromDoubles(
+        fenceRegion.northeast.latitude,
+        fenceRegion.northeast.longitude,
+        fenceRegion.southwest.latitude,
+        fenceRegion.southwest.longitude);
+    if (_publishedFeaturesUpdated) {
+      _publishedFeaturesUpdated = false;
+      _publishedFeatures.update(screenFence: newFence).then(
+        (update) {
+          _publishedFeaturesUpdated = true;
+          debugPrint('Routes ${_publishedFeatures.routes.length}');
+          if (_publishedFeatures.routes.isNotEmpty) {
+            addPolyLines(routes: _publishedFeatures.routes);
+          }
+          if (update) {
+            setState(() => {});
+          }
+        },
+      );
+    }
+  }
+
+  _onFeatureTapped(
+      dynamic featureId, Point<double> point, LatLng coords) async {
+    var features = await _mapController?.queryRenderedFeatures(
+        point, ["published-data"], null);
+    if (features?.isNotEmpty ?? false) {
+      debugPrint('Featured: ${features.toString()}');
+    }
+  }
+
+  void _onShieldTapped(point, latlng, id, layerId, annotation) async {
+    developer.log("_onShieldTapped called", name: "_shieldTap");
+    var features = await _mapController!
+        .queryRenderedFeatures(point, ["route-shield-layer"], null);
+    if (features.isNotEmpty) {
+      var tappedFeature = features.first;
+      var name = tappedFeature['properties']['name'];
+      developer.log("_onShieldTapped feature $name found", name: "_shieldTap");
+    } else {
+      developer.log("_onShieldTapped features are empty", name: "_shieldTap");
+    }
+  }
+
+  _onTap(var tap, LatLng pos) async {
+    LatLngBounds bounds = await _mapController!.getVisibleRegion();
+    var foundFeatures;
+    try {
+      // var point = Point(tap.x.toDouble(), tap.y.toDouble());
+      foundFeatures = await _mapController!
+          .queryRenderedFeatures(tap, ["route-shield-layer"], null);
+      if (foundFeatures.isNotEmpty) {
+        var tappedFeature = foundFeatures.first;
+        var name = tappedFeature['properties']['name'];
+        developer.log("_onShieldTapped feature $name found",
+            name: "_shieldTap");
+      } else {
+        developer.log("_onShieldTapped features are empty", name: "_shieldTap");
+      }
+    } catch (e) {
+      developer.log(
+          '_onTap Error ${e.toString} - features: ${foundFeatures.toString()}');
+    }
+    /*  
+    var lineToChange =
+        _routeFeatures["features"].firstWhere((f) => f["id"] == "route-1");
+    lineToChange['properties']['color'] = Setup().goodRouteColourHex();
+    await _mapController!.setGeoJsonSource("route-features", _routeFeatures);
+  */
+  }
+
+  Future<Rect> getScreenRect({required LatLngBounds bounds}) async {
+    Point topRight = await _mapController!.toScreenLocation(bounds.northeast);
+    Point botLeft = await _mapController!.toScreenLocation(bounds.southwest);
+    return Rect.fromPoints(
+        Offset(topRight.x.toDouble(), 0), Offset(0, botLeft.y.toDouble()));
+  }
+
+  Future<String?> getFirstLabelLayer() async {
+    String? firstLabelId;
+    List<dynamic> layerIds = await _mapController!.getLayerIds();
+    for (var id in layerIds) {
+      if (id.toString().contains('label') ||
+          id.toString().contains('place') ||
+          id.toString().contains('poi')) {
+        firstLabelId = id;
+        break;
+      }
+    }
+    return firstLabelId;
+  }
+
+  Future<bool> layerExists({required String layerId}) async {
+    List<dynamic> layerIds = await _mapController!.getLayerIds();
+    bool result = false;
+    for (var id in layerIds) {
+      if (id.toString().contains(layerId)) {
+        result = true;
+        break;
+      }
+    }
+    return result;
+  }
+
+  void addPolyLines({required List<mt.Route> routes}) async {
+    //  String? firstLabelLayer = await getFirstLabelLayer();
+    linesMap.clear();
+    List<Map<String, dynamic>> features = [];
+    for (int i = 0; i < routes.length; i++) {
+      List<fmll.LatLng> points = routes[i].points;
+      var geometry = {
+        "coordinates":
+            points.map((point) => [point.longitude, point.latitude]).toList(),
+        "type": "LineString"
+      };
+      features.add(
+        {
+          "type": "Feature",
+          "id": "route-$i",
+          "properties": {
+            "color": Setup().routeColourHex(), // '#007AFF', //"#FF0000",
+            "width": 3.0,
+            "name": "published route $i",
+          }, //<String, dynamic>{},
+          "geometry": geometry,
+        },
+      );
+      linesMap["route-${i + 1}"] = features.last;
+    }
+    _routeFeatures['features'] = features;
+    await _mapController!.setGeoJsonSource("published-data", _routeFeatures);
+
+    /* await _mapController!.addLineLayer(
+      belowLayerId: firstLabelLayer,
+      "route_features", // Source - Data
+      "published_routes", // Layer-id
+      const LineLayerProperties(
+        lineColor: ["get", "color"],
+        lineCap: "round",
+        lineJoin: "round",
+        lineWidth: [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          10,
+          ["get", "width"],
+          13,
+          [
+            "*",
+            ["get", "width"],
+            2
+          ]
+        ],
+      ),
+    );
+    */
+    /*
+     await _mapController!.addSymbolLayer(
+      "route_features", // The source containing your lines
+      "route_shield_layer",
+      SymbolLayerProperties(
+        // Option A: Use the shorthand
+        textField: "{name}",
+        textFont: ["Noto Sans Regular"],
+        iconSize: 0.5,
+        iconColor: colourToHex(color: Colors.amber),
+        iconImage: "shield",
+        iconKeepUpright: true,
+        iconAnchor: "bottom",
+        iconRotationAlignment: "viewport",
+
+        // Option B: Use the formal expression (Recommended)
+        // textField: ["get", "ref"],
+
+        textSize: 12.0,
+        textColor: "#FFFFFF",
+        symbolPlacement: "line", // This makes the labels follow the line path
+        symbolSpacing: 250, // Pixels between repeated labels
+      ),
+    );
+    */
+  }
 
   Widget _handleMap() {
-    if (listHeight == -1) {
-      adjustMapHeight(MapHeights.full);
-    }
-    return Stack(
+    return Stack(children: [
+      MLMap(
+        onUpdate: _onMapUpdate,
+        onTap: _onTap,
+      ),
+      BottomDrawer(
+        maxHeight: 200,
+        content: cardsList(cards: _publishedFeatures.routeCards),
+      ),
+    ]);
+
+    /*Stack(
       children: [
-        const MapLibreLayer(
-          initStyle: _style,
-        ),
-        /*       MapLibreMap(
+        IgnorePointer(child: MLMap()),
+        // MediaQuery.of(context).size.height - 200
+        //  const MapLibreLayer(
+        //    initStyle: _style,
+        //  ),
+        /*
+        MapLibreMap(
           // ignore: avoid_redundant_argument_values --- EXAMPLE ---
-          styleString: 'https://demotiles.maplibre.org/style.json',
+          styleString:
+              _testStyle, // 'https://demotiles.maplibre.org/style.json',
+          //    'http://10.101.1.216:5001/v1/tile/style.json', // 'https://demotiles.maplibre.org/style.json',
+          //    _testStyle, // urlTiler, // 'https://demotiles.maplibre.org/style.json',
+          myLocationEnabled: true,
           onMapCreated: (c) => _controller = c,
           initialCameraPosition: const CameraPosition(
-            target: LatLng(0, 0),
-            zoom: 1.0,
+            target: LatLng(0, 0), // LatLng(51.5, 0.126),
+            zoom: 2,
           ),
+          trackCameraPosition: true,
         ),
 */
 /*
@@ -605,6 +794,7 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
         ),
       ],
     );
+    */
   }
 
   double getInitialZoom() {
@@ -658,7 +848,6 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
     }
     mapHeight = mapHeights[MapHeights.values.indexOf(newHeight)];
     listHeight = (mapHeights[0] - mapHeight);
-    _resizeDelay = 400;
   }
 
   expandChange(var details) {
@@ -674,42 +863,6 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
         },
       );
     }
-  }
-
-  _handleBottomSheetDivider() {
-    _resizeDelay = 0;
-    if (listHeight == -1) {
-      adjustMapHeight(MapHeights.full);
-    }
-    return GestureDetector(
-      behavior: HitTestBehavior.translucent,
-      child: AbsorbPointer(
-        child: Container(
-          color: const Color.fromARGB(255, 158, 158, 158),
-          height: _dividerHeight,
-          width: MediaQuery.of(context).size.width,
-          child: Icon(
-            Icons.drag_handle,
-            size: _dividerHeight,
-            color: Colors.blue,
-          ),
-        ),
-      ),
-      onTap: () => setState(() => adjustMapHeight(mapHeight > mapHeights[0] - 50
-          ? MapHeights.pointOfInterest
-          : MapHeights.full)),
-      onVerticalDragUpdate: (DragUpdateDetails details) {
-        setState(() {
-          if (mapHeights[0] == 0) {
-            mapHeights[0] = MediaQuery.of(context).size.height - 190;
-          }
-          mapHeight += details.delta.dy;
-          mapHeight = mapHeight > mapHeights[0] ? mapHeights[0] : mapHeight;
-          mapHeight = mapHeight < 1 ? 1 : mapHeight;
-          listHeight = mapHeights[0] - mapHeight;
-        });
-      },
-    );
   }
 
   double getMapHeight(MapHeight height) {
@@ -783,9 +936,9 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
           throw ('Error - FutureBuilder line 752 in trips.dart');
         },
       ),
-
-      floatingActionButton: HandleFabs(
-          animatedMapController: _animatedMapController), // _handleFabs(),
+      floatingActionButton: _mapController != null
+          ? HandleFabs(controller: _mapController!)
+          : null,
       bottomNavigationBar: RoutesBottomNav(
         key: _bottomNavKey,
         controller: _bottomNavController,
@@ -795,18 +948,13 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
       drawerEnableOpenDragGesture: false,
     );
   }
-
-  onPlaceSelect(LatLng position) async {
-    CurrentTripItem().tripValues.autoCentre = false;
-    //----   _animatedMapController.animateTo(dest: position);
-  }
 }
 
 class HandleFabs extends StatelessWidget {
-  final AnimatedMapController animatedMapController;
-  double _width = 56.0;
+  final double _width = 50;
   final double _height = 56.0;
-  HandleFabs({super.key, required this.animatedMapController});
+  final MapLibreMapController controller;
+  const HandleFabs({super.key, required this.controller});
 
   @override
   Widget build(BuildContext context) {
@@ -820,8 +968,11 @@ class HandleFabs extends StatelessWidget {
         PlaceFinder(
           height: _height,
           width: _width,
-          onSelect: (position) =>
-              animatedMapController.animateTo(dest: position),
+          onSelect: (position) => controller.animateCamera(
+            CameraUpdate.newLatLng(
+              LatLng(position.latitude, position.longitude),
+            ),
+          ),
         ),
         const SizedBox(
           height: 15,
@@ -830,9 +981,8 @@ class HandleFabs extends StatelessWidget {
           heroTag: 'location',
           onPressed: () async {
             Position currentPosition = await Geolocator.getCurrentPosition();
-            //--  animatedMapController.animateTo(
-            //--    dest: LatLng(currentPosition.latitude, currentPosition.longitude),
-            //--  );
+            controller.animateCamera(CameraUpdate.newLatLng(
+                LatLng(currentPosition.latitude, currentPosition.longitude)));
           },
           backgroundColor: Colors.blue,
           shape: const CircleBorder(),

@@ -330,6 +330,8 @@ const String uploadHttps = '${urlBase}api/static/images';
 /// const String urlRouter = '${urlBase}router/route/v1/driving/';
 const String urlRouter = 'https://drives.motatek.com/router/route/v1/driving/';
 const String urlTiler = '${urlBase}v1/tile/style';
+const String urlTilerMapLibre = '${urlBase}v1/tile/style/map_libre';
+// const String urlTestTiler = '${urlBase}v1/tile/test_style';
 const String urlUser = '${urlBase}v1/user';
 
 const Map<String, int> iconMap = {

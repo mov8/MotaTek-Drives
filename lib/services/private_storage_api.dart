@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -376,7 +377,16 @@ class PrivateStorageLocal implements PrivateDataRepository {
 
   @override
   List<LatLng> stringToPoints(String pointsString) {
-    return [];
+    List<LatLng> points = [];
+    try {
+      var pointsJson = jsonDecode(pointsString);
+      for (int i = 0; i < pointsJson.length; i++) {
+        points.add(LatLng(pointsJson[i]['lat'], pointsJson[i]['lon']));
+      }
+    } catch (e) {
+      debugPrint('Points convertion error: ${e.toString()}');
+    }
+    return points;
   }
 
   @override

@@ -654,6 +654,7 @@ class CreateCurrentTripItem().tripValues {
     );
   }
 
+// https://drives.motatek.com/static/tiles/{z}/{x}/{y}.pbf
   Future<bool> dataFromDatabase() async {
     try {
       _currentPosition = await Geolocator.getCurrentPosition();
@@ -1536,7 +1537,7 @@ class CreateCurrentTripItem().tripValues {
     return true;
   }
 
-  /// _handleTripInfo() determins what is shon in the bottom drawer
+  /// _handleTripInfo() determines what is shown in the bottom drawer
   /// enum TripActions {
   ///  none,            Returns an empty SizedBox
   ///  readOnly,        Returns everything, but in readonly for when driving

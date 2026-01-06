@@ -45,10 +45,11 @@ class DrivesStyleReader {
 
   Future<Style> read() async {
     String styleText = '';
+    bool debug = true;
     Directory cache = await getCache();
     String localStyleFile = '${cache.path}/style.txt';
     // String styleText = '';
-    if (File(localStyleFile).existsSync()) {
+    if (!debug && File(localStyleFile).existsSync()) {
       styleText = await File(localStyleFile).readAsString();
       debugPrint('got style locally');
     } else {

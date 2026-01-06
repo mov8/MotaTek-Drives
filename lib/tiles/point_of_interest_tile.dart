@@ -434,7 +434,7 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
         children: [
           Align(
             alignment: AlignmentDirectional.topStart,
-            child: Text(CurrentTripItem().pointsOfInterest[widget.index].name,
+            child: Text(widget.pointOfInterest.name,
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -447,8 +447,7 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                 flex: 1,
                 child: StarRating(
                     onRatingChanged: changeRating,
-                    rating:
-                        CurrentTripItem().pointsOfInterest[widget.index].score),
+                    rating: widget.pointOfInterest.score),
               ),
             ],
           ),
@@ -458,7 +457,7 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
               child: Align(
                 alignment: Alignment.bottomLeft,
                 child: Text(
-                    'published ${DateFormat("dd MMM yyyy").format(CurrentTripItem().pointsOfInterest[widget.index].published)}',
+                    'published ${DateFormat("dd MMM yyyy").format(widget.pointOfInterest.published)}',
                     style: const TextStyle(fontSize: 12)),
               ),
             ),
@@ -498,9 +497,7 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                               readOnly: !canEdit,
                               maxLines: null,
                               textInputAction: TextInputAction.done,
-                              initialValue: CurrentTripItem()
-                                  .pointsOfInterest[widget.index]
-                                  .description,
+                              initialValue: widget.pointOfInterest.description,
                               textAlign: TextAlign.start,
                               keyboardType: TextInputType.streetAddress,
                               textCapitalization: TextCapitalization.sentences,
@@ -515,17 +512,13 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                               style: Theme.of(context).textTheme.bodyLarge,
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
-                              onFieldSubmitted: (text) => CurrentTripItem()
-                                  .pointsOfInterest[widget.index]
-                                  .description = text),
+                              onFieldSubmitted: (text) =>
+                                  widget.pointOfInterest.description = text),
                         ),
                       ),
                     ],
                   ),
-                  if (CurrentTripItem()
-                      .pointsOfInterest[widget.index]
-                      .images
-                      .isNotEmpty) // &&
+                  if (widget.pointOfInterest.images.isNotEmpty) // &&
                     Row(
                       children: <Widget>[
                         Expanded(
@@ -536,9 +529,7 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                               fit: BoxFit.contain,
                               child: PhotoCarousel(
                                 imageRepository: widget.imageRepository,
-                                photos: CurrentTripItem()
-                                    .pointsOfInterest[widget.index]
-                                    .photos,
+                                photos: widget.pointOfInterest.photos,
                                 height: 300,
                                 width: 300,
                               ),

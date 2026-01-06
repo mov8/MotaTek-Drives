@@ -64,6 +64,8 @@ class _HomeState extends State<Home> {
   /// are up to date and will synchronise the cache with the API data.
 
   Future<bool> _getHomeData() async {
+    bool apiUp = await apiListening();
+    debugPrint('Api listeninig: ${apiUp.toString()}');
     if (!Setup().hasLoggedIn) {
       //Setup().hasLoggedIn = true;
       Setup().loggingIn = true;
@@ -123,9 +125,9 @@ class _HomeState extends State<Home> {
       ///   Sign_up form appears to allow completion of registration
       //   int code = 0;
 
-      if (Setup().isWeb) {
-        return true;
-      }
+      //   if (Setup().isWeb) {
+      //     return true;
+      //   }
 
       if (Setup().user.password.isEmpty) {
         await getPrivateRepository().getUser();
