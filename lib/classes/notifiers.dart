@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:developer' as developer;
 
 /// Expand notifier is used to expand a ExpansionTile in a list based on a value
 /// The expandNotier has one method targetValue(int)
@@ -17,6 +18,16 @@ import 'package:flutter/material.dart';
 class ExpandNotifier extends ValueNotifier<int> {
   ExpandNotifier(super.value);
   void targetValue({int target = -1}) {
+    developer.log('Notifier.targetValue called value: $target',
+        name: '_notifier');
+    //   debugPrint('~~~~~ ExpandNotifier.targetValue notifying target: $target');
+    value = target;
+  }
+}
+
+class ExpandNotifierId extends ValueNotifier<String> {
+  ExpandNotifierId(super.value);
+  void targetValue({String target = ""}) {
     //   debugPrint('~~~~~ ExpandNotifier.targetValue notifying target: $target');
     value = target;
   }

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '/constants.dart';
 import '/models/other_models.dart';
@@ -70,6 +71,11 @@ class _HomeState extends State<Home> {
       //Setup().hasLoggedIn = true;
       Setup().loggingIn = true;
       await tryLoggingIn().then((_) async {
+        try {
+          Setup().serverUp = true; // debug
+        } catch (e) {
+          debugPrint('error: ${e.toString()}');
+        }
         if (Setup().serverUp) {
           homeItems = await getHomeItems(1);
         } // get API data
@@ -129,15 +135,14 @@ class _HomeState extends State<Home> {
       //     return true;
       //   }
 
-      if (Setup().user.password.isEmpty) {
+      if (Setup().user.password.isEmpty || kIsWeb) {
         await getPrivateRepository().getUser();
       }
 
       LoginState loginState = LoginState.notLoggedin;
-      bool serverUp = await serverListening();
-      if (serverUp) {
+      Setup().serverUp = await serverListening();
+      if (Setup().serverUp) {
         /// Try silent login first
-        Setup().serverUp = true;
         if (Setup().jwt.isNotEmpty &&
             Setup().user.email.isNotEmpty &&
             Setup().user.password.length > 8) {

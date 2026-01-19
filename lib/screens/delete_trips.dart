@@ -1,5 +1,6 @@
 import '/classes/classes.dart';
 import 'package:flutter/material.dart';
+import '/helpers/edit_helpers.dart';
 // import 'package:flutter/services.dart';
 import '/models/other_models.dart';
 import '/services/services.dart';
@@ -47,43 +48,16 @@ class _DeleteTripsFormState extends State<DeleteTripsForm> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.blue,
-      appBar: AppBar(
-        backgroundColor: Colors.blue,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
-
-        /// Removes Shadow
-        toolbarHeight: 40,
-        title: const Text(
-          'Delete trips ',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        bottom: const PreferredSize(
-          preferredSize: Size.fromHeight(60),
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(5, 10, 5, 10),
-            child: Text(
-              'Delete trips from the server',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ),
-
-        /// Shrink height a bit
-        leading: BackButton(
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
+      appBar: ScreensAppBar(
+        heading: 'Drives Admin',
+        prompt: 'Remove trips permanently from server', //_prompt,
+        updateHeading: 'You have marked trips for deletion.',
+        updateSubHeading: 'Delete trips or Ignore changes',
+        update: selected > 0,
+        showAction: selected > 0,
+        updateMethod: (_) => deleteTrips(trips: _drives),
       ),
+
       body: FutureBuilder<List<TripSummary>>(
         future: _loadTrips(tripSummaries: _drives),
         builder: (BuildContext context, snapshot) {
@@ -193,7 +167,7 @@ class _DeleteTripsFormState extends State<DeleteTripsForm> {
     for (TripSummary trip in trips) {
       if (trip.id == 1) {
         uris = "$uris, '${trip.uri}'";
-        if (uris.length > 300) {
+        if (uris.length > 30) {
           items.add({'delete': uris.substring(2)});
           uris = '';
         }
@@ -205,7 +179,10 @@ class _DeleteTripsFormState extends State<DeleteTripsForm> {
     if (items.isNotEmpty) {
       await deleteWebTrip(uriMap: items);
     }
-    setState(() => trips.removeWhere((trip) => trip.id == 1));
+    setState(() {
+      selected = 0;
+      trips.removeWhere((trip) => trip.id == 1);
+    });
   }
 
   void onConfirmDeleteMember(int value) {

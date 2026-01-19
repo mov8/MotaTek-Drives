@@ -319,7 +319,9 @@ class PublishedFeatures {
                       if (poiFeature.type != 0 &&
                           poiFeature.drive == feature.drive) {
                         Card? poiCard = await getCard(
-                            feature: poiFeature, index: poiCards.length);
+                            feature: poiFeature,
+                            children: [],
+                            index: poiCards.length);
                         if (poiCard != null) {
                           poiCards.add(poiCard);
                         }
@@ -334,7 +336,6 @@ class PublishedFeatures {
                     feature: feature,
                     index: routeCards.length,
                     children: poiCards,
-                    expandNotifier: expandNotifier,
                   );
                   if (card != null) {
                     if (routeCards.length > 3) {
@@ -393,9 +394,10 @@ class PublishedFeatures {
                   screenFence.contains(bounds: feature.getBounds())) {
                 markers.add(feature);
                 Card? card = await getCard(
-                    feature: feature,
-                    index: cards.length,
-                    expandNotifier: expandNotifier);
+                  feature: feature,
+                  children: [],
+                  index: cards.length,
+                );
                 if (card != null) {
                   cards.add(card);
                 }
@@ -421,9 +423,10 @@ class PublishedFeatures {
                         pinTap: pinTap,
                         zoom: zoom);
                     Card? card = await getCard(
-                        feature: feature,
-                        index: cards.length,
-                        expandNotifier: expandNotifier);
+                      feature: feature,
+                      children: [],
+                      index: cards.length,
+                    );
                     if (card != null) {
                       cards.add(card);
                     }
@@ -512,7 +515,8 @@ class PublishedFeatures {
         features[index] = moved;
         if (add) {
           markers.add(moved);
-          Card? card = await getCard(feature: moved, index: cards.length);
+          Card? card =
+              await getCard(feature: moved, children: [], index: cards.length);
           if (card != null) {
             cards.add(card);
           }
@@ -549,8 +553,7 @@ class PublishedFeatures {
   Future<Card?> getCard({
     required Feature feature,
     required int index,
-    List<Card>? children,
-    ExpandNotifier? expandNotifier,
+    required List<Card> children,
   }) async {
     if (feature.type == 0) {
       TripItem tripItem = await tripItemRepository.loadTripItem(
@@ -568,10 +571,8 @@ class PublishedFeatures {
             : const Color.fromARGB(255, 174, 211, 241),
         child: TripTile(
           tripItem: tripItem,
-          expandNotifier: expandNotifier,
           imageRepository: imageRepository,
           index: index,
-          childCards: children,
           onGetTrip: onGetTrip,
         ),
       );

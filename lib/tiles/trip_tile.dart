@@ -1,30 +1,32 @@
 import 'package:flutter/material.dart';
 import '/classes/classes.dart';
+import 'package:latlong2/latlong.dart';
 import '/constants.dart';
 import '/models/other_models.dart';
 import '/helpers/edit_helpers.dart';
-//import '/tiles/tiles.dart';
+import '/tiles/tiles.dart';
 import '/services/services.dart';
+import 'dart:developer' as developer;
 
 class TripTile extends StatefulWidget {
   final TripItem tripItem;
   final ImageRepository imageRepository;
   final Function(int, String)? onGetTrip;
   final Function(int, int)? onRatingChanged;
-  final ExpandNotifier? expandNotifier;
-  final List<Card>? childCards;
+  final Function(int)? onExpand;
+  bool expanded;
 
   final int index;
 
-  const TripTile({
+  TripTile({
     super.key,
     required this.tripItem,
     required this.imageRepository,
     required this.index,
     this.onGetTrip,
     this.onRatingChanged,
-    this.expandNotifier,
-    this.childCards,
+    this.onExpand,
+    this.expanded = false,
   });
 
   @override
@@ -35,43 +37,67 @@ class _TripTileState extends State<TripTile> {
   List<Photo> photos = [];
   // String _photoString = '';
   bool isExpanded = false;
-  late ExpandNotifier _expandNotifier;
-  // late final ExpansionTileController _expansionTileController; // =
-  //ExpansionTileController();
-
+  bool expanded = true;
+  late List<Card> _childCards;
   @override
   void initState() {
     super.initState();
+    _childCards = [];
+    expanded = widget.expanded;
+    developer.log('TripTile ${widget.index} initState() expanded: $expanded',
+        name: '_expand');
+
     photos = photosFromJson(
         photoString: widget.tripItem.imageUrls,
         endPoint: '${widget.tripItem.uri}/');
-
-    // _expansionTileController = ExpansionTileController();
-    _expandNotifier = widget.expandNotifier ?? ExpandNotifier(-1);
-    _expandNotifier.addListener(() {
-      _setExpanded(index: widget.index, target: _expandNotifier.value);
-    });
   }
 
-  _setExpanded({required int index, required int target}) {
-    if (mounted) {
-      expandChange(expanded: index == target);
-    } else {
-      debugPrint('_setExpanded not mounted index: $index  target: $target');
-    }
-  }
-
-  expandChange({required bool expanded}) {
+  expandChange({required bool expanded}) async {
     try {
       if (expanded) {
-        //   _expansionTileController.expand();
+        await getDetails();
+        widget.expanded = true;
+        if (mounted) {
+          setState(() => ());
+        }
+        if (widget.onExpand != null) {
+          widget.onExpand!(widget.index);
+        }
       } else {
         //  _expansionTileController.collapse();
       }
-      setState(() => isExpanded = expanded);
+      //  setState(() => isExpanded = expanded);
     } catch (e) {
       debugPrint('Error tripTile expandChange: ${e.toString()} ');
     }
+  }
+
+  getDetails() async {
+    if (_childCards.isEmpty) {
+      var details = await getTripDetails(uuid: widget.tripItem.driveUri);
+      widget.tripItem.body = details["body"];
+      widget.tripItem.subHeading = details["sub_title"];
+      for (int i = 0; i < details["points_of_interest"].length; i++) {
+        Map<String, dynamic> poi = details["points_of_interest"][i];
+        PointOfInterest pointOfInterest = PointOfInterest(
+          type: poi["type"],
+          point: LatLng(poi["lat"], poi["lng"]),
+          name: poi["name"],
+          description: poi["description"],
+          // imageUrls: poi["images"],
+        );
+        _childCards.add(
+          Card(
+            child: PointOfInterestTile(
+                index: i,
+                canEdit: false,
+                pointOfInterest: pointOfInterest,
+                imageRepository: widget.imageRepository),
+          ),
+        );
+      }
+    }
+    return;
   }
 
   @override
@@ -83,8 +109,8 @@ class _TripTileState extends State<TripTile> {
       _photoString = widget.tripItem.imageUrls;
     }
     */
+
     return ExpansionTile(
-      // controller: _expansionTileController,
       title: Column(
         children: [
           Align(
@@ -134,7 +160,8 @@ class _TripTileState extends State<TripTile> {
           ),
         ],
       ),
-      onExpansionChanged: (expanded) => expandChange(expanded: expanded),
+      initiallyExpanded: expanded,
+      onExpansionChanged: (value) => expandChange(expanded: value),
       leading: Icon(Icons.route,
           size: 25, color: colourList[Setup().publishedTripColour]),
       children: [
@@ -146,34 +173,6 @@ class _TripTileState extends State<TripTile> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.start,
                 children: [
-                  /* Row(
-                    children: [
-                      Expanded(
-                        flex: 3,
-                        child: Align(
-                          alignment: Alignment.bottomLeft,
-                          child: Padding(
-                            padding: EdgeInsets.fromLTRB(12, 0, 0, 0),
-                            child: ActionChip(
-                              visualDensity: const VisualDensity(
-                                  horizontal: 0.0, vertical: 0.5),
-                              backgroundColor: Colors.blueAccent,
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(20)),
-                              label: Text('Download',
-                                  style: const TextStyle(
-                                      fontSize: 16, color: Colors.white)),
-                              elevation: 5,
-                              shadowColor: Colors.black,
-                              onPressed: () => getTrip(widget.index),
-                              avatar: Icon(Icons.cloud_download,
-                                  size: 20, color: Colors.white),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ), */
                   if (widget.tripItem.imageUrls.isNotEmpty)
                     Row(
                       children: <Widget>[
@@ -304,11 +303,9 @@ class _TripTileState extends State<TripTile> {
                             const SizedBox(width: 10),
                             Expanded(
                               flex: 7,
-                              child: Text(
-                                widget.tripItem.author,
-                                style: const TextStyle(
-                                    color: Colors.black, fontSize: 20),
-                              ),
+                              child: Text(widget.tripItem.author,
+                                  style: textStyle(
+                                      context: context, color: Colors.black)),
                             ),
                             Expanded(
                               flex: 2,
@@ -326,20 +323,18 @@ class _TripTileState extends State<TripTile> {
                         ),
                       ),
                     ),
-                  if (widget.childCards != null)
+                  if (_childCards.isNotEmpty)
                     Row(
                       children: [
                         Padding(
                           padding: EdgeInsets.fromLTRB(10, 0, 0, 0),
-                          child: Text(
-                            'Points of interest...',
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 20),
-                          ),
+                          child: Text('Points of interest...',
+                              style: titleStyle(
+                                  context: context, color: Colors.black)),
                         ),
                       ],
                     ),
-                  if (widget.childCards != null) ...widget.childCards!,
+                  ..._childCards,
                 ],
               ),
             ),

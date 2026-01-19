@@ -1022,7 +1022,7 @@ Future<List<TripSummary>> getTripSummaries(
         summaries.add(TripSummary.fromMap(map: trip));
       }
     } catch (e) {
-      // debugPrint('Error processing summaries: ${e.toString()}');
+      debugPrint('Error processing summaries: ${e.toString()}');
     }
   }
   // debugPrint('Summaries returned from API: ${summaries.length}');
@@ -1936,8 +1936,8 @@ Future<String> putGroup(Map<String, dynamic> groupData) async {
 
 Future<List<HomeItem>> getHomeItems(int scope) async {
   try {
-    final http.Response response =
-        await getWebData(uri: Uri.parse('$urlHomePageItem/get/$scope'));
+    String url = '$urlHomePageItem/get/$scope';
+    final http.Response response = await getWebData(uri: Uri.parse(url));
     if ([200, 201].contains(response.statusCode)) {
       List<dynamic> items = jsonDecode(response.body);
       if (items.isNotEmpty) {
@@ -1956,10 +1956,55 @@ Future<List<HomeItem>> getHomeItems(int scope) async {
   return [];
 }
 
-Future<bool> deleteHomeItem(HomeItem homeItem) async {
-  var request =
-      http.MultipartRequest('POST', Uri.parse('$urlHomePageItem/delete'));
+dynamic getGeoJson2(
+    {String boundingBox = '', String exclude = '', int zoom = 14}) async {
+/*
+    Map<String, String> data = {"uri": shopUri};
+    http.Response response =
+        await postWebData(uri: uri, body: jsonEncode(data));
+*/
 
+  var uri = Uri.parse('$urlDrive/great_drives');
+  http.Response response = await getWebData(uri: uri);
+  var geoJson;
+  if ([200, 201].contains(response.statusCode)) {
+    geoJson = jsonDecode(response.body);
+  }
+  return geoJson;
+}
+
+dynamic getGeoJson(
+    {Map<String, dynamic> boundingBox = const {},
+    List exclude = const [],
+    double zoom = 14}) async {
+  Map<String, dynamic> data = {
+    "exclude": exclude,
+    "zoom": zoom,
+    "b_box": boundingBox
+  };
+
+  Uri uri = Uri.parse('$urlDrive/great_drives');
+  http.Response response = await postWebData(uri: uri, body: jsonEncode(data));
+  if ([200, 201].contains(response.statusCode)) {
+    return response.body;
+  }
+  return {};
+}
+
+dynamic getTripDetails({required String uuid}) async {
+  Uri uri = Uri.parse('$urlDrive/details/$uuid');
+  http.Response response = await getWebData(uri: uri);
+
+  var detail = {};
+  if ([200, 201].contains(response.statusCode)) {
+    detail = jsonDecode(response.body);
+  }
+  return detail;
+}
+
+Future<bool> deleteHomeItem(HomeItem homeItem) async {
+  var request;
+  http.MultipartRequest('POST', Uri.parse('$urlHomePageItem/delete'));
   try {
     request.fields['uri'] =
         homeItem.uri.substring((homeItem.uri.lastIndexOf('/') + 1));

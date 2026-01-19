@@ -1215,10 +1215,10 @@ class MyTripItem {
       'images': images,
       'score': score,
       'distance': distance,
-      'max_lat': maxLat,
-      'min_lat': minLat,
-      'max_long': maxLong,
-      'min_long': minLong,
+      'ne_lat': maxLat,
+      'sw_lat': minLat,
+      'ne_lng': maxLong,
+      'sw_lng': minLong,
       'added': DateTime.now().toString()
     };
 

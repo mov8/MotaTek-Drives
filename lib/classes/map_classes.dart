@@ -1322,7 +1322,6 @@ class _FeatureDetailsState extends State<FeatureDetails> {
             : const Color.fromARGB(255, 174, 211, 241),
         child: TripTile(
           tripItem: tripItem,
-          expandNotifier: _expandNotifier,
           imageRepository: widget.imageRepository,
           index: index,
           onGetTrip: onGetTrip,

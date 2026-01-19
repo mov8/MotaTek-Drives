@@ -25,8 +25,10 @@ class MLMap extends StatefulWidget {
   final Function(LatLng, MapLibreMapController)? onUpdate;
   MapLibreMapController? mapController;
   final Function(Point, LatLng)? onTap;
+  final Function()? onIdle;
 
-  MLMap({super.key, this.onTap, this.onUpdate, this.mapController});
+  MLMap(
+      {super.key, this.onIdle, this.onTap, this.onUpdate, this.mapController});
 
   @override
   State createState() => MLMapState();
@@ -61,6 +63,10 @@ class MLMapState extends State<MLMap> {
     widget.onTap!(point, coordinates);
   }
 
+  void _onCameraIdle() async {
+    widget.onIdle!();
+  }
+
   String _mapStyleUrl() {
     const styleUrl =
         "https://tiles.stadiamaps.com/styles/alidade_smooth_dark.json";
@@ -81,15 +87,17 @@ class MLMapState extends State<MLMap> {
               key: Key('LM001'),
               styleString: _mapStyle, // _mapStyleUrl()
               myLocationEnabled: true,
+
               compassViewPosition: CompassViewPosition.topLeft,
               onMapCreated: _onMapCreated,
               initialCameraPosition:
                   CameraPosition(target: _currentPosition, zoom: 11),
-              trackCameraPosition: false, //true,
-              onCameraMove: (position) {
-                widget.onUpdate!(position.target, mapController!);
-              },
+              trackCameraPosition: true, // ensures that zoom is updated
+              //     onCameraMove: (position) {
+              //       widget.onUpdate!(position.target, mapController!);
+              //     },
               onMapClick: _onTap,
+              onCameraIdle: _onCameraIdle,
               scrollGesturesEnabled: true,
               zoomGesturesEnabled: true,
               gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
@@ -137,7 +145,6 @@ enum OfflineDataState { unknown, downloaded, downloading, notDownloaded }
 
 class DemoMap extends StatefulWidget {
   const DemoMap({super.key});
-
   @override
   State createState() => DemoMapState();
 }

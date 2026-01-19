@@ -564,10 +564,8 @@ class PublishedFeatures {
             : const Color.fromARGB(255, 174, 211, 241),
         child: TripTile(
           tripItem: tripItem,
-          expandNotifier: expandNotifier,
           imageRepository: imageRepository,
           index: index,
-          childCards: children,
           onGetTrip: onGetTrip,
         ),
       );

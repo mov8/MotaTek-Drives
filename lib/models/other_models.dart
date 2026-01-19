@@ -2055,15 +2055,15 @@ class TripSummary extends Marker {
   factory TripSummary.fromMap({required Map<String, dynamic> map}) {
     return TripSummary(
       uri: map['uri'],
-      title: map['title'],
-      subTitle: map['sub_title'],
-      minLat: map['min_lat'],
-      maxLat: map['max_lat'],
-      minLong: map['min_long'],
-      maxLong: map['max_long'],
-      score: map['score'],
-      scored: map['scored'],
-      point: fm.LatLng(map['min_lat'], map['min_long']),
+      title: map['title'] ?? ' ',
+      subTitle: map['sub_title'] ?? ' ',
+      minLat: map['sw_lat'] ?? 0,
+      maxLat: map['ne_lat'] ?? 0,
+      minLong: map['sw_lng'] ?? 0,
+      maxLong: map['ne_lng'] ?? 0,
+      score: map['score'] ?? 0,
+      scored: map['scored'] ?? 0,
+      point: fm.LatLng(map['sw_lat'] ?? 0, map['sw_log'] ?? 0),
     );
   }
 }
@@ -2176,6 +2176,29 @@ class TripItem {
       scored: map['ratings_count'] ?? 1,
       downloads: map['downloads'] ?? 0,
       uri: '$endpoint${map['uri'] ?? ''}',
+    );
+  }
+
+  factory TripItem.from3DCache(
+      {required Map<String, dynamic> map,
+      String endpoint = '',
+      String imageUrls = ''}) {
+    return TripItem(
+      id: -1,
+      driveUri: '',
+      heading: map['name'],
+      subHeading: '',
+      body: '',
+      author: map['publisher'],
+      published:
+          (map['published'].toString()), // ?? DateTime.now().toIso8601String(),
+      score: map['score'],
+      distance: map['distance'],
+      pointsOfInterest: map['poi_count'],
+      closest: 0, // has to be calculated
+      scored: map['scored'],
+      downloads: map['downloads'] ?? 0,
+      uri: '',
     );
   }
 }
