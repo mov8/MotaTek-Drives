@@ -7,9 +7,9 @@ import 'dart:developer' as developer;
 import '/models/other_models.dart';
 import '/services/services.dart';
 import '/classes/classes.dart';
-import 'package:flutter/material.dart';
-import 'package:latlong2/latlong.dart';
-import '/classes/route.dart' as mt;
+import 'package:flutter/material.dart' hide Route;
+// import 'package:latlong2/latlong.dart';
+import '/classes/route.dart';
 import 'package:vector_map_tiles/vector_map_tiles.dart';
 // import 'package:path_provider/path_provider.dart';
 
@@ -24,10 +24,11 @@ import 'package:vector_map_tiles/vector_map_tiles.dart';
 /// from the cache if cached, from SQLite if saved or the API.
 ///
 
-LatLng centerPoint({required LatLng maxPoint, required LatLng minPoint}) {
-  return LatLng(
-      minPoint.latitude + ((maxPoint.latitude - minPoint.latitude) / 2),
-      minPoint.longitude + ((maxPoint.longitude - minPoint.longitude) / 2));
+List<double> centerPoint({required List maxPoint, required List minPoint}) {
+  return [
+    minPoint[1] + ((maxPoint[1] - minPoint[1]) / 2),
+    minPoint[0] + ((maxPoint[0] - minPoint[0]) / 2)
+  ];
 }
 
 class TripItemRepository {
@@ -74,8 +75,8 @@ class PointOfInterestRepository {
         _pointOfInterestCache[key] = await getPointOfInterest(uri: uri);
       } else {
         _pointOfInterestCache[key] = PointOfInterest(
-            point: const LatLng(0, 0),
-            markerType: 1); //child1: const FeatureMarker());
+            //    point: const [0, 0],
+            ); //child1: const FeatureMarker());
       }
     }
     return _pointOfInterestCache[key]!;
@@ -85,6 +86,8 @@ class PointOfInterestRepository {
     _pointOfInterestCache.clear();
   }
 }
+
+/*
 
 class OsmDataRepository {
   final Map<int, OsmAmenity> _osmAmenityCache = {};
@@ -121,12 +124,13 @@ class OsmDataRepository {
     _osmAmenityCache.clear();
   }
 }
+*/
 
 class RouteRepository {
-  final Map<int, List<mt.Route>?> _routeCache = {};
+  final Map<int, List<Route>?> _routeCache = {};
   RouteRepository();
 
-  FutureOr<List<mt.Route>?> loadRoute({
+  FutureOr<List<Route>?> loadRoute({
     required int key,
     required int id,
     required String uri,
@@ -139,7 +143,7 @@ class RouteRepository {
         _routeCache[key] = await getDriveRoutes(driveUri: uri);
       } else {
         _routeCache[key] = [
-          mt.Route(points: [const LatLng(0, 0)], driveKey: key)
+          //       Route(points: [const []])
         ];
       }
     } else {
@@ -154,10 +158,10 @@ class RouteRepository {
 }
 
 class GoodRoadRepository {
-  final Map<int, mt.Route?> _goodRoadCache = {};
+  final Map<int, Route?> _goodRoadCache = {};
   GoodRoadRepository();
 
-  FutureOr<mt.Route?> loadGoodRoad({
+  FutureOr<Route?> loadGoodRoad({
     required int key,
     required int id,
     required String uri,
@@ -169,7 +173,9 @@ class GoodRoadRepository {
       } else if (uri.isNotEmpty) {
         _goodRoadCache[key] = await getRoute(uriString: uri, goodRoad: true);
       } else {
-        _goodRoadCache[key] = mt.Route(points: [const LatLng(0, 0)]);
+        //     _goodRoadCache[key] = Route(points: [
+        //       const [0, 0]
+        //     ]);
       }
     } else {
       //    debugPrint('GoodRoad returned from cache');

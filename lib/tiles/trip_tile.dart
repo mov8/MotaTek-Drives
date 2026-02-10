@@ -81,7 +81,7 @@ class _TripTileState extends State<TripTile> {
         Map<String, dynamic> poi = details["points_of_interest"][i];
         PointOfInterest pointOfInterest = PointOfInterest(
           type: poi["type"],
-          point: LatLng(poi["lat"], poi["lng"]),
+          //  point: LatLng(poi["lat"], poi["lng"]),
           name: poi["name"],
           description: poi["description"],
           // imageUrls: poi["images"],

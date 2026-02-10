@@ -35,10 +35,10 @@ Future<Position> getPosition() async {
   return Setup().lastPosition;
 }
 
-double distanceBetween(LatLng point1, LatLng point2,
+double distanceBetween(List<double> point1, List<double> point2,
     {bool miles = true, bool meters = false}) {
-  double distance = Geolocator.distanceBetween(
-      point1.latitude, point1.longitude, point2.latitude, point2.longitude);
+  double distance =
+      Geolocator.distanceBetween(point1[1], point1[0], point2[1], point2[0]);
   if (meters) {
     return distance;
   }
@@ -68,6 +68,7 @@ double distanceBetween(LatLng point1, LatLng point2,
 ///
 ///   O-----------------O----X-----------------O
 
+/*
 int insertWayointAt(
     {required List<PointOfInterest> pointsOfInterest,
     required LatLng pointToFind}) {
@@ -94,6 +95,7 @@ int insertWayointAt(
       j++;
     }
   }
+  
 
   ///   O--------------X--O---------------------O    cut nearest next waypoint      index = j - 1
   ///   O-----------------O--X------------------O    cut nearest previous waypoint  index = j + 1
@@ -110,6 +112,7 @@ int insertWayointAt(
 
   return index - 1;
 }
+*/
 
 String unList(String listString) {
   if (listString.length > 2) {
@@ -144,6 +147,8 @@ bool samePosition({required LatLng pos1, required LatLng pos2, places = 6}) {
           roundDouble(value: pos2.longitude, places: places));
 }
 
+/*
+
 double closestWaypoint(
     {required List<PointOfInterest> pointsOfInterest,
     required LatLng location}) {
@@ -155,6 +160,8 @@ double closestWaypoint(
   return distance;
 }
 
+*/
+/*
 double distanceAlongRoute({required List<mt_rt.Route> routes}) {
   double distance = 0;
   for (mt_rt.Route root in routes) {
@@ -164,3 +171,4 @@ double distanceAlongRoute({required List<mt_rt.Route> routes}) {
   }
   return distance;
 }
+*/

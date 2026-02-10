@@ -8,6 +8,7 @@ export '/classes/cached_vector_tile_provider.dart';
 export '/classes/cached_vector_tile_layer.dart';
 export '/classes/caches.dart';
 export '/classes/create_trip_chips.dart';
+export '/classes/create_trip_cache.dart';
 export '/classes/directions.dart';
 export '/classes/drive_invitations.dart';
 // export '/classes/expansiontile_list.dart';

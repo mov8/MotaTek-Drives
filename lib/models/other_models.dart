@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
@@ -468,131 +469,87 @@ class Setup {
   }
 }
 
-class PointOfInterest extends Marker {
+class PointOfInterest {
   // GlobalKey? handle;
   int id;
+  String uri;
+  Point point;
   String images;
-  final int driveId;
-  int type;
-  double angle;
-  int colourIndex;
-  List<String>? imageUrls;
   String name;
   String description;
-  String url;
-  String driveUri;
+  String sounds;
   double score;
   int scored;
-  int waypoint;
-  int markerType;
-  DateTime published = DateTime.now();
-  late final Widget marker;
-  List<Photo> photos;
-  String sounds;
+  int type;
 
   PointOfInterest({
     this.id = -1,
-    this.driveId = -1,
+    this.uri = '',
+    this.point = const Point(0, 0),
     this.type = -1,
-    this.angle = 0,
-    this.colourIndex = 10,
     this.name = '',
     this.description = '',
-    super.width = 30,
-    super.height = 30,
-    String images = '',
-    this.imageUrls,
-    this.markerType = 0,
-    super.point = const fm.LatLng(0, 0),
-    this.url = '',
-    this.driveUri = '',
-    this.score = 1,
-    this.waypoint = -1,
+    this.images = '',
+    this.score = 0,
     this.scored = 0,
     this.sounds = '',
-  })  : images = handleWebImages(
-          images,
-        ),
-        photos = photosFromJson(
-            photoString: handleWebImages(
-              images,
-            ),
-            endPoint: url.contains(Setup().appDocumentDirectory) || url == ''
-                ? url
-                : '$urlDriveImages/$driveUri/$url/'),
-        super(
-            child: markerType == 0
-                ? MarkerWidget(
-                    type: type,
-                    name: name,
-                    description: description,
-                    listIndex: waypoint,
-                    images: images,
-                    imageUrls: [],
-                    colourIdx: colourIndex,
-                    angle: angle,
-                    scored: scored,
-                    score: score)
-                : FeatureMarker());
+  });
 
-  factory PointOfInterest.fromMap(
-      {required var map, int driveId = -1, int listIndex = 0}) {
+  factory PointOfInterest.fromMap({required Map<String, dynamic> map}) {
     return PointOfInterest(
-      id: map['id'],
-      driveId: driveId,
-      type: map['type'],
+      id: map['id'] ?? -1,
+      uri: map['uri'] ?? '',
+      point: map['point'] ?? Point(0, 0),
+      type: map['type'] ?? 0,
       name: map['name'],
       description: map['description'],
-      width: map['type'] == 12 ? 10 : 30,
-      height: map['type'] == 12 ? 10 : 30,
       images: map['images'],
-      point: fm.LatLng(map['latitude'], map['longitude']),
+      score: map['score'] ?? 0,
+      scored: map["scored"] ?? 0,
+      sounds: '',
     );
   }
-
+/*
   factory PointOfInterest.clone({
     required PointOfInterest pointOfInterest,
     int colourIndex = -1,
     int type = -1,
     bool changeType = false,
-    fm.LatLng position = const fm.LatLng(0, 0),
+    List<double> position = const [0, 0],
   }) {
-    position = position == fm.LatLng(0, 0) ? pointOfInterest.point : position;
+    position = position == [0, 0] ? pointOfInterest.point : position;
     return PointOfInterest(
         id: pointOfInterest.id,
         url: pointOfInterest.url,
         driveUri: pointOfInterest.driveUri,
-        height: pointOfInterest.height,
-        width: pointOfInterest.width,
         driveId: pointOfInterest.driveId,
         point: position == fm.LatLng(0, 0) ? pointOfInterest.point : position,
         imageUrls: pointOfInterest.imageUrls,
         images: pointOfInterest.images,
         type: type == -1 ? pointOfInterest.type : type,
-        markerType:
-            type == pointOfInterest.type ? pointOfInterest.markerType : 0,
         name: pointOfInterest.name,
-        waypoint: pointOfInterest.waypoint,
         score: pointOfInterest.score,
-        scored: pointOfInterest.scored,
-        angle: pointOfInterest.angle,
-        colourIndex:
-            colourIndex == -1 ? pointOfInterest.colourIndex : colourIndex,
-        description: pointOfInterest.description);
+        scored: pointOfInterest.scored);
   }
+  */
   Map<String, dynamic> toMap() {
     return {
       'id': id,
-      'url': url,
-      'driveId': driveId,
+      'uri': uri,
       'type': type,
       'name': name,
       'description': description,
-      'latitude': point.latitude, //markerPoint.latitude,
-      'longitude': point.longitude, //markerPoint.longitude,
+      'images': images,
+      'score': score,
+      'scored': scored,
+      'point': point,
     };
   }
 
+  get photos => [];
+
+  get published => '';
+/*
   Map<String, dynamic> toApiMap() {
     List<Map<String, dynamic>> photosMap = [];
 
@@ -610,359 +567,31 @@ class PointOfInterest extends Marker {
       'url': url,
       'type': type,
       'name': name,
-      'waypoint': waypoint,
       'score': score,
       'scored': scored,
       'images': photosMap,
       'description': description,
-      'latitude': point.latitude,
-      'longitude': point.longitude,
+      'latitude': point[1],
+      'longitude': point[0],
     };
   }
+  */
 }
 
-class MarkerData {
-  final int type; // default type 12 => waypoint
-  final String name;
-  final String description;
-  final String info;
-  final String images;
-  final String url;
-  final List<String>? imageUrls;
-  final double angle;
-  final double score;
-  final int scored;
-  final int colourIdx;
-  final int list;
-  final int listIndex;
-  const MarkerData(
-      {this.type = 12,
-      this.name = '',
-      this.description = '',
-      this.info = '',
-      this.images = '',
-      this.url = '',
-      this.imageUrls,
-      this.angle = 0,
-      this.score = 0,
-      this.scored = 0,
-      this.colourIdx = 10,
-      this.list = 0,
-      this.listIndex = 0});
+List<PointOfInterest> pointsOfInterestFromJson(
+    {required List<Map<String, dynamic>> jsonList}) {
+  return [
+    for (Map<String, dynamic> json in jsonList)
+      PointOfInterest.fromMap(map: json)
+  ];
 }
 
-class MarkerWidget extends StatelessWidget {
-  final int type; // default type 12 => waypoint
-  final String name;
-  final String description;
-  final String info;
-  final String images;
-  final String url;
-  final List<String> imageUrls;
-  final double angle;
-  final double score;
-  final int scored;
-  final int colourIdx;
-  final int list;
-  final int listIndex;
-
-  const MarkerWidget(
-      {super.key,
-      this.type = 12,
-      this.name = '',
-      this.description = '',
-      this.info = '',
-      this.images = '',
-      this.url = ' ',
-      this.imageUrls = const [],
-      this.angle = 0,
-      this.score = 0,
-      this.scored = 0,
-      this.colourIdx = 3,
-      this.list = -1,
-      this.listIndex = -1});
-
-  //void setListIndex(int idx) {
-  //  listIndex = idx;
-  // }
-
-  @override
-  Widget build(BuildContext context) {
-    int width = 40;
-    double iconWidth = width * 0.75;
-    Color buttonFillColor = colourList[Setup().pointOfInterestColour];
-    Color iconColor = Colors.blueAccent;
-    switch (type) {
-      case 12:
-        buttonFillColor = colourList[Setup()
-            .waypointColour]; //uiColours.keys.toList()[Setup().waypointColour];
-        iconWidth = 25;
-        break;
-      case 16:
-        buttonFillColor = Colors.transparent;
-        iconColor = colourList[colourIdx];
-        iconWidth = 22;
-        break;
-      case 17:
-        buttonFillColor = Colors.transparent;
-        iconWidth = 25;
-        break;
-      case 18:
-        buttonFillColor = Colors.transparent;
-        iconWidth = 25;
-        break;
-      case 19:
-        buttonFillColor = Colors.transparent;
-        iconWidth = 25;
-        break;
-      default:
-        buttonFillColor =
-            colourList[Setup().pointOfInterestColour]; //Colors.transparent;
-        iconWidth = 25;
-        iconColor = Colors.white;
-
-        break;
-    }
-
-    // Want to counter rotate the icons so that they are vertical when the map rotates
-    // -_mapRotation * pi / 180 to convert from _mapRotation in degrees to radians
-    return Transform.rotate(
-      angle: angle,
-      child: RawMaterialButton(
-        onPressed: () {
-          try {
-            pointOfInterestDialog(context, name, description, images, url,
-                imageUrls, score, scored, type);
-          } catch (e) {
-            debugPrint('error: ${e.toString()}');
-          }
-        },
-        elevation: 2.0,
-        fillColor: buttonFillColor,
-        shape: const CircleBorder(),
-        child: Padding(
-          //padding: const EdgeInsets.fromLTRB(2, 2, 3, 4),
-          padding: const EdgeInsets.fromLTRB(0, 0, 1, 2),
-
-          /// 12 waypoint 17 start  18 end  19 revist / start - end
-          child: [12, 17, 18, 19].contains(type)
-              ? CircleAvatar(
-                  backgroundColor: type == 19
-                      ? Colors.transparent
-                      : colourList[
-                          colourIdx == -1 ? 3 : colourIdx], // Colors.red,
-                  radius: 50, //iconWidth,
-                  child: Text(
-                    '${listIndex + 1}',
-                    style: TextStyle(
-                        fontSize: 10,
-                        color: type == 19 ? Colors.transparent : Colors.white),
-                  ),
-                )
-              : Icon(
-                  markerIcon(type),
-                  size: iconWidth,
-                  color: iconColor,
-                ),
-        ),
-      ),
-    );
-  }
-}
-
-class OSMMarkerWidget extends StatelessWidget {
-  final String osmId;
-  final String name;
-  final String amenity;
-  final String postcode;
-  final double angle;
-  final double iconSize;
-  final ImageRepository imageRepository;
-  final int index;
-
-  const OSMMarkerWidget(
-      {super.key,
-      required this.osmId,
-      required this.name,
-      required this.amenity,
-      required this.postcode,
-      required this.index,
-      required this.imageRepository,
-      this.angle = 0,
-      this.iconSize = 30});
-
-  @override
-  Widget build(BuildContext context) {
-    // int width = 30;
-    double iconWidth = iconSize;
-    Color buttonFillColor =
-        uiColours.keys.toList()[Setup().pointOfInterestColour];
-    Color iconColor = Colors.white;
-    int iconCodePoint = iconMap[amenity] ?? 12;
-    // Want to counter rotate the icons so that they are vertical when the map rotates
-    // -_mapRotation * pi / 180 to convert from _mapRotation in degrees to radians
-    return Transform.rotate(
-      angle: angle,
-      child: RawMaterialButton(
-        onPressed: () async {
-          debugPrint('Marker pressed: $osmId');
-          var reviews = await getOsmReviews(osmId: osmId);
-          debugPrint('Marker pressed: ${reviews.toString()}');
-          if (context.mounted) {
-            osmDataDialog(context, name, amenity, postcode, iconCodePoint,
-                osmId, imageRepository, reviews);
-          }
-        },
-        elevation: 2.0,
-        fillColor: buttonFillColor,
-        shape: const CircleBorder(),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(0, 0, 1, 2),
-          child: Icon(
-            IconData(iconCodePoint, fontFamily: 'MaterialIcons'),
-            size: iconWidth,
-            color: iconColor,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class FollowerMarkerWidget extends StatelessWidget {
-  final int index;
-  final int colourIndex;
-  final String forename;
-  final String surname;
-  final String phoneNumber;
-  final String manufacturer;
-  final String model;
-  final String colour;
-  final String registration;
-  final double angle;
-  final double iconSize;
-  final sio.Socket socket;
-
-  const FollowerMarkerWidget(
-      {super.key,
-      required this.socket,
-      this.index = -1,
-      this.colourIndex = -1,
-      this.forename = '',
-      this.surname = '',
-      this.phoneNumber = '',
-      this.manufacturer = '',
-      this.model = '',
-      this.colour = '',
-      this.registration = '',
-      this.angle = 0,
-      this.iconSize = 30});
-
-  @override
-  Widget build(BuildContext context) {
-    // int width = 30;
-    double iconWidth = iconSize;
-    Color buttonFillColor = Colors.transparent;
-    //  uiColours.keys.toList()[Setup().pointOfInterestColour];
-    Color iconColor = colourList[colourIndex];
-
-    // Want to counter rotate the icons so that they are vertical when the map rotates
-    // -_mapRotation * pi / 180 to convert from _mapRotation in degrees to radians
-    return Transform.rotate(
-      angle: angle,
-      child: RawMaterialButton(
-        onPressed: () async {
-          bool? call = await showDialog<bool>(
-              context: context,
-              builder: (context) => followerDialog(
-                  context: context,
-                  socket: socket,
-                  phoneNumber: phoneNumber,
-                  forename: forename,
-                  surname: surname,
-                  manufacturer: manufacturer,
-                  model: model,
-                  colour: colour,
-                  registration: registration));
-          if (context.mounted && call == true) {
-            showDialog(
-              context: context,
-              builder: (context) => contactDiolog(
-                context: context,
-                socket: socket,
-                follower: {
-                  'forename': forename,
-                  'surname': surname,
-                  'phoneNumber': phoneNumber
-                },
-              ),
-            );
-          }
-        },
-        elevation: 2.0,
-        fillColor: buttonFillColor,
-        constraints: BoxConstraints.tight(Size(56, 56)),
-        // materialTapTargetSize: MaterialTapTargetSize.,
-        shape: const CircleBorder(),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(0, 0, 1, 2),
-          child: Icon(
-            markerIcon(16),
-            size: iconWidth,
-            color: iconColor,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class FeatureMarker extends StatelessWidget {
-  final int index;
-  final double width;
-  final double angle;
-  final Icon icon;
-  final Icon overlay;
-  final Function(int)? onPress;
-  const FeatureMarker({
-    super.key,
-    this.index = -1,
-    this.width = 50,
-    this.angle = 0,
-    this.icon = const Icon(Icons.location_on, color: Colors.red),
-    this.overlay = const Icon(Icons.location_on, color: Colors.red),
-    this.onPress,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    //double width = zoom * 4;
-
-    return Transform.rotate(
-      angle: angle,
-      child: SizedBox(
-        width: width,
-        child: FittedBox(
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              CustomPaint(
-                painter: LocationPinPainter(size: 50),
-              ),
-              IconButton(
-                iconSize: width,
-                icon: const Icon(Icons.home),
-                onPressed: () {
-                  //   debugPrint('FeatureMarker.onPress($index)');
-                  onPress!(index);
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+List<Map<String, dynamic>> jsonFromPointsOfInterest(
+    {required List<PointOfInterest> pointsOfInterestList}) {
+  return [
+    for (PointOfInterest pointOfInterest in pointsOfInterestList)
+      pointOfInterest.toMap()
+  ];
 }
 
 class Group {
@@ -1599,7 +1228,7 @@ class Maneuver {
   int exit = 0;
   int bearingBefore = 0;
   int bearingAfter = 0;
-  fm.LatLng location = const fm.LatLng(0, 0);
+  List<double> point = const [0, 0];
   String modifier = '';
   String type = '';
   double distance = 0.0;
@@ -1611,11 +1240,27 @@ class Maneuver {
     required this.exit,
     required this.bearingBefore,
     required this.bearingAfter,
-    required this.location,
+    required this.point,
     required this.modifier,
     required this.type,
     required this.distance,
   });
+
+  factory Maneuver.fromMap({required Map<String, dynamic> map}) {
+    return Maneuver(
+      id: map["id"] ?? -1,
+      roadFrom: map["road_from"] ?? " ",
+      roadTo: map["road_to"] ?? " ",
+      exit: map["exit"] ?? 1,
+      bearingBefore: map["bearing_before"] ?? 0,
+      bearingAfter: map["bearing_after"] ?? 0,
+      point: map["location"] ?? [0, 0],
+      modifier: map["modifier"] ?? " ",
+      type: map["type"] ?? " ",
+      distance: map["distance"] ?? 0,
+    );
+  }
+
   Map<String, dynamic> toMap({String driveUid = ''}) {
     return {
       'id': id,
@@ -1625,12 +1270,24 @@ class Maneuver {
       'exit': exit,
       'bearing_before': bearingBefore,
       'bearing_after': bearingAfter,
-      'location': '{"lat":${location.latitude},"long":${location.longitude}}',
+      'location': '{"lat":${point[1]},"long":${point[0]}}',
       'modifier': modifier,
       'type': type,
       'distance': distance,
     };
   }
+}
+
+List<Maneuver> maneuversFromJson(
+    {required List<Map<String, dynamic>> jsonList}) {
+  return [
+    for (Map<String, dynamic> json in jsonList) Maneuver.fromMap(map: json)
+  ];
+}
+
+List<Map<String, dynamic>> jsonFromManeuvers(
+    {required List<Maneuver> maneuvers}) {
+  return [for (Maneuver maneuver in maneuvers) maneuver.toMap()];
 }
 
 class IntIm {
@@ -1645,106 +1302,7 @@ class IntIm {
 /// class OsmAmenity
 ///
 
-class OsmAmenity extends Marker {
-  final IntIm? id; // = MutableInt(value: -1);
-  final String osmId;
-  final String name;
-  final String amenity;
-  final int iconColour;
-  final String postcode;
-  final double markerWidth;
-  final double markerHeight;
-  final int index;
-
-  const OsmAmenity(
-      {this.id,
-      this.osmId = '',
-      this.index = -1,
-      this.name = '',
-      this.amenity = '',
-      this.postcode = '',
-      this.markerWidth = 20,
-      this.markerHeight = 20,
-      this.iconColour = 0,
-      required fm.LatLng position,
-      required Widget marker})
-      : super(
-          width: markerWidth,
-          height: markerHeight,
-          child: marker,
-          point: position, // markerPoint,
-        );
-
-  factory OsmAmenity.fromMap({required Map<String, dynamic> map}) {
-    return OsmAmenity(
-      id: IntIm(value: map['osm_id'] ?? -1),
-      osmId: map['osm_id'],
-      index: map['index'],
-      name: map['name'] ?? '',
-      amenity: map['amenity'] ?? '',
-      postcode: map['postcode'] ?? '',
-      position: fm.LatLng(map['lat'], map['lng']),
-      marker: MarkerWidget(
-        type: 1,
-        list: -1,
-        listIndex: -1,
-        name: map['name'],
-        description: map['amenity'],
-        images: '',
-      ),
-    );
-  }
-
-  factory OsmAmenity.morph(
-      {required OsmAmenity osmAmenity, required double size}) {
-    OSMMarkerWidget currentMarker = osmAmenity.child as OSMMarkerWidget;
-    return OsmAmenity(
-      id: osmAmenity.id,
-      osmId: osmAmenity.osmId,
-      index: osmAmenity.index,
-      name: osmAmenity.name,
-      amenity: osmAmenity.amenity,
-      postcode: osmAmenity.postcode,
-      position: osmAmenity.point,
-      markerWidth: size,
-      markerHeight: size,
-      marker: OSMMarkerWidget(
-        osmId: currentMarker.osmId,
-        name: currentMarker.name,
-        amenity: currentMarker.amenity,
-        postcode: currentMarker.postcode,
-        index: currentMarker.index,
-        iconSize: size * 0.75,
-        imageRepository: currentMarker.imageRepository,
-      ),
-    );
-  }
-
-  /*
-  marker: MarkerWidget(
-    type: 16,
-    description: '',
-    angle: -_mapRotation * pi / 180,
-    colourIdx: cIndex,
-  ),
-   */
-
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'osm_id': osmId,
-      'name': name,
-      'amenity': amenity,
-      'postcode': postcode,
-      'icon_colour': iconColour,
-      'position': '{"lat": ${point.latitude}, "lng": ${point.longitude}}',
-    };
-  }
-}
-
-/// class Follower
-
-class Follower extends Marker {
+class Follower {
   String uri;
   String userId;
   String driveId;
@@ -1761,109 +1319,70 @@ class Follower extends Marker {
   int routeIndex;
   int accepted;
   bool track;
-  fm.LatLng position; // = const fm.LatLng(0, 0);
-  Widget marker;
+  List<double> position; // = const fm.LatLng(0, 0);
   DateTime reported = DateTime.now();
   int index = -1;
-  @override
-  double width;
-  @override
-  double height;
-  Follower(
-      {this.uri = '',
-      this.userId = '',
-      this.driveId = '',
-      this.driveName = '',
-      this.forename = '',
-      this.surname = '',
-      this.email = '',
-      this.phoneNumber = '',
-      this.manufacturer = '',
-      this.model = '',
-      this.registration = '',
-      this.carColour = '',
-      this.width = 20,
-      this.height = 20,
-      this.iconColour = 0,
-      this.routeIndex = -1,
-      this.accepted = 0,
-      this.track = true,
-      required this.position,
-      required this.marker})
-      : super(
-          child: marker,
-          point: position, // markerPoint,
-          width: width,
-          height: height, /*key: key*/
-        ) {
-    reported = DateTime.now();
-  }
-
-  factory Follower.moveFollower(
-      {required Follower follower,
-      required Widget marker,
-      required fm.LatLng position}) {
-    return Follower(
-        uri: follower.uri,
-        userId: follower.userId,
-        driveId: follower.driveId,
-        driveName: follower.driveName,
-        forename: follower.forename,
-        surname: follower.surname,
-        email: follower.email,
-        phoneNumber: follower.phoneNumber,
-        manufacturer: follower.manufacturer,
-        model: follower.model,
-        registration: follower.registration,
-        carColour: follower.carColour,
-        width: follower.width,
-        height: follower.height,
-        iconColour: follower.iconColour,
-        accepted: follower.accepted,
-        routeIndex: follower.routeIndex,
-        position: position,
-        track: follower.track,
-        marker: marker);
-  }
+  Follower({
+    this.uri = '',
+    this.userId = '',
+    this.driveId = '',
+    this.driveName = '',
+    this.forename = '',
+    this.surname = '',
+    this.email = '',
+    this.phoneNumber = '',
+    this.manufacturer = '',
+    this.model = '',
+    this.registration = '',
+    this.carColour = '',
+    this.iconColour = 0,
+    this.routeIndex = -1,
+    this.accepted = 0,
+    this.track = true,
+    required this.position,
+  });
 
   factory Follower.fromMap({required Map<String, dynamic> map}) {
-    double lat = map['lat'] ?? 0;
-    double lng = map['lng'] ?? 0;
     return Follower(
-        position: fm.LatLng(lat, lng),
-        marker: Text(''),
-        uri: map['invitation_id'] ?? '',
-        userId: map['user_id'] ?? '',
-        driveId: map['group_drive_id'] ?? '',
-        driveName: map['drive_name'] ?? '',
-        forename: map['user_forename'] ?? '',
-        surname: map['user_surname'] ?? '',
-        phoneNumber: map['user_phone'] ?? '',
-        email: map['user_email'] ?? '',
-        carColour: map['colour'] ?? '',
-        accepted: int.parse(map['accepted'] ?? '0'),
-        manufacturer: map['manufacturer'] ?? '',
-        model: map['model'] ?? '',
-        registration: map['registration'] ?? '');
+      uri: map["uri"] ?? "",
+      userId: map["users_id"] ?? "",
+      driveId: map["drive_id"] ?? "",
+      driveName: map["drive_name"] ?? "",
+      forename: map["forename"] ?? "",
+      surname: map["surname"] ?? "",
+      email: map["email"] ?? "",
+      phoneNumber: map["phone_number"] ?? "",
+      manufacturer: map["manufacturer"] ?? "",
+      model: map["model"] ?? "",
+      registration: map["registration"] ?? "",
+      carColour: map["car_colour"] ?? "",
+      iconColour: map["icon_colour"] ?? 0,
+      routeIndex: map["route_index"] ?? -1,
+      accepted: map["accepted"] ?? 0,
+      track: map["track"] ?? true,
+      position: map["position"] ?? [0, 0],
+    );
   }
 
   Map<String, dynamic> toMap() {
     return {
-      'invitation_id': uri,
-      'user_id': userId,
-      'drive_id': driveId,
-      'forename': forename,
-      'surname': surname,
-      'phone_number': phoneNumber,
-      'manufacturer': manufacturer,
-      'model': model,
-      'car_colour': carColour,
-      'registration': registration,
-      'icon_colour': iconColour,
-      'accepted': accepted,
-      'position':
-          '{"lat": ${position.latitude}, "long": ${position.longitude}}',
-      'reported': reported.toString()
+      "uri": uri,
+      "users_id": userId,
+      "drive_id": driveId,
+      "drive_name": driveName,
+      "forename": forename,
+      "surname": surname,
+      "email": email,
+      "phone_number": phoneNumber,
+      "manufacturer": manufacturer,
+      "model": model,
+      "registration": registration,
+      "car_colour": carColour,
+      "icon_colour": iconColour,
+      "route_index": routeIndex,
+      "accepted": accepted,
+      "track": track,
+      "position": position,
     };
   }
 }
@@ -2186,17 +1705,16 @@ class TripItem {
     return TripItem(
       id: -1,
       driveUri: '',
-      heading: map['name'],
-      subHeading: '',
-      body: '',
-      author: map['publisher'],
-      published:
-          (map['published'].toString()), // ?? DateTime.now().toIso8601String(),
-      score: map['score'],
+      heading: map['title'] ?? ' ',
+      subHeading: 'sub_title',
+      body: 'body',
+      author: map['author'],
+      published: map['published'], // ?? DateTime.now().toIso8601String(),
+      score: map['rating'].toDouble(),
       distance: map['distance'],
-      pointsOfInterest: map['poi_count'],
+      pointsOfInterest: map['points_of_interest'],
       closest: 0, // has to be calculated
-      scored: map['scored'],
+      scored: map['rated'],
       downloads: map['downloads'] ?? 0,
       uri: '',
     );
@@ -2536,25 +2054,51 @@ class SearchHelper {
 }
 
 class GoodRoad {
-  bool _isGood = false;
-  int routeIdx1 = -1;
-  int routeIdx2 = -1;
-  int pointIdx1 = -1;
-  int pointIdx2 = -1;
-  int markerIdx = -1;
-  int pointOfInterestId = -1;
-  mt.Route? route;
-  GoodRoad();
-  bool get isGood => _isGood;
-  set isGood(bool value) {
-    _isGood = value;
-    routeIdx1 = -1;
-    routeIdx2 = -1;
-    pointIdx1 = -1;
-    pointIdx2 = -1;
-    markerIdx = -1;
-    pointOfInterestId = -1;
+  final int id; // SqLite id
+  final String uri; // api uri
+  List<List<double>>
+      lines; // Points formatted for MapLibre [[lng, lat], [lng, lat], ...]
+  List<List<double>> shields;
+  String pointOfInterestUri;
+  GoodRoad({
+    this.id = -1,
+    this.uri = '',
+    this.lines = const [],
+    this.shields = const [],
+    this.pointOfInterestUri = '',
+  });
+
+  factory GoodRoad.fromMap({required Map<String, dynamic> map}) {
+    return GoodRoad(
+      id: map["id"] ?? -1,
+      uri: map["uri"] ?? "",
+      lines: map["lines"] ?? [],
+      shields: map["shields"] ?? [],
+      pointOfInterestUri: map["point_of_interest_uri"] ?? "",
+    );
   }
+
+  Map<String, dynamic> toMap() {
+    return {
+      "id": id,
+      "uri": uri,
+      "lines": lines,
+      "shields": shields,
+      "point_of_interest_uri": pointOfInterestUri,
+    };
+  }
+}
+
+List<GoodRoad> goodRoadsFromJson(
+    {required List<Map<String, dynamic>> jsonList}) {
+  return [
+    for (Map<String, dynamic> json in jsonList) GoodRoad.fromMap(map: json)
+  ];
+}
+
+List<Map<String, dynamic>> jsonFromGoodRoads(
+    {required List<GoodRoad> goodRoadList}) {
+  return [for (GoodRoad goodRoad in goodRoadList) goodRoad.toMap()];
 }
 
 class Drive1 {

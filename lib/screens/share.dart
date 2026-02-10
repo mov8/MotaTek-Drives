@@ -55,7 +55,7 @@ class _ShareFormState extends State<ShareForm> {
           child: Padding(
             padding: const EdgeInsets.fromLTRB(5, 10, 5, 10),
             child: Text(
-              widget.tripItem.heading,
+              widget.tripItem.title,
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 28,

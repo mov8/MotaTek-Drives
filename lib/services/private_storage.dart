@@ -1,7 +1,6 @@
 import 'dart:typed_data';
-import 'package:latlong2/latlong.dart';
 import 'package:flutter_map/flutter_map.dart';
-import '/classes/route.dart' as mt;
+import '/classes/route.dart';
 import '/classes/my_trip_item.dart';
 import '/classes/other_classes.dart';
 import '/models/other_models.dart';
@@ -80,15 +79,15 @@ abstract class PrivateDataRepository {
   Future<int> saveDrive({required Drive drive});
 
   Future<int> saveMyTripItem(MyTripItem myTripItem);
-
+/*
   Future<OsmAmenity> loadOsmAmenityLocal({required int id, index = 0});
 
   Future<int> saveOsmAmenityLocal({required OsmAmenity amenity});
 
   Future<bool> saveOsmDataLocal(
       {required int driveId, required List<OsmAmenity> osmData});
-
-  String pointsToString(List<LatLng> points);
+*/
+  String pointsToString(List<List<double>> points);
 
   Future<List<PointOfInterest>> loadPointsOfInterestLocal(int driveId);
 
@@ -116,7 +115,7 @@ abstract class PrivateDataRepository {
 
   Future<bool> savePolylinesLocal(
       {required int driveId,
-      required List<mt.Route> polylines,
+      required List<Map<String, dynamic>> polylines,
       List<PointOfInterest> pointsOfInterest = const [],
       type = 0});
 
@@ -133,21 +132,21 @@ abstract class PrivateDataRepository {
 
   Future<void> deleteFollowerByDriveId(int driveId);
 
-  Future<List<mt.Route>> getRoutesByName({required String name});
+  Future<List<Route>> getRoutesByName({required String name});
 
-  Future<List<mt.Route>> loadPolyLinesLocal(int driveId, {type = 0});
+  Future<List<Route>> loadPolyLinesLocal(int driveId, {type = 0});
 
-  Future<mt.Route> loadPolyLineLocal(int id, {type = 0});
+  Future<Route> loadPolyLineLocal(int id, {type = 0});
 
   Future<Uint8List> loadTileLocal({required String key});
 
-  Future<List<mt.Route>> loadRoutesLocal(int id, {type = 0, driveKey = -1});
+  Future<List<Route>> loadRoutesLocal(int id, {type = 0, driveKey = -1});
 
   Future<Uint8List> loadImageBytesLocal({required int id});
 
-  List<LatLng> stringToPoints(String pointsString);
+  // List<List<double>> stringToPoints(String pointsString);
 
-  String polyLineToString(List<Polyline> polyLines);
+//  String polyLineToString(List<Polyline> polyLines);
 
   Future<List<MyTripItem>> tripItemFromDb(
       {int driveId = -1, bool showMethods = false});

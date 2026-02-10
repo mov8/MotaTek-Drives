@@ -5,9 +5,10 @@ import 'package:intl/intl.dart';
 const appVersion = {'major': 0, 'minor': 0, 'patch': 9, 'suffix': 'beta db'};
 
 const apiAddress = 'https://drives.motatek.com/';
-const wifiIpAddress = 'http://10.101.1.216:5001/'; // <- Home
+// const wifiIpAddress = 'http://10.101.1.216:5001/'; // <- Home
 // const wifiIpAddress = 'http://10.222.211.105:5001/'; // < Redmi
 // const wifiIpAddress = 'http://192.168.1.109:5001/'; // <- Boston
+const wifiIpAddress = 'http://192.168.68.110:5001/'; // <- Dias
 
 const urlBase = wifiIpAddress;
 // const urlBase = apiAddress;
@@ -52,6 +53,24 @@ enum LoginError {
   wrongData,
   allOk,
   none,
+}
+
+enum MyTripActions {
+  none,
+  startManual,
+  startTracking,
+  track,
+  addWaypoint,
+  deleteWaypoint,
+  extendEnd,
+  addPointOfInterest,
+  saveTrip,
+  follow,
+  stopFollowing,
+  clearTrip,
+  reverseTrip,
+  showSteps,
+  message,
 }
 
 enum MarkerTypes {

@@ -1000,6 +1000,8 @@ Future<int> saveDrive({required Drive drive}) async {
 Future<int> saveMyTripItem(MyTripItem myTripItem) async {
   final db = await DbHelper().db;
   int id = myTripItem.id;
+/*
+
   Map<String, dynamic> map = myTripItem.toDrivesMap();
   try {
     List<Map<String, dynamic>> maps =
@@ -1034,7 +1036,7 @@ Future<int> saveMyTripItem(MyTripItem myTripItem) async {
           String jsonImages = '';
           for (Map<String, dynamic> pic in pics) {
             String url = Uri.parse(
-                    '$urlDrive/images/${pointOfInterest.url}/${pic['url']}')
+                    '$urlDrive/images/${pointOfInterest.uri}/${pic['url']}')
                 .toString();
             bool dirExists = await Directory('$directory/drive$id').exists();
             if (!dirExists) {
@@ -1055,11 +1057,10 @@ Future<int> saveMyTripItem(MyTripItem myTripItem) async {
     await savePointsOfInterestLocal(
         driveId: id, pointsOfInterest: myTripItem.pointsOfInterest);
     await deletePolyLinesByDriveId(id);
-    await savePolylinesLocal(
-        driveId: id, polylines: myTripItem.routes, type: 0);
+    await savePolylinesLocal(driveId: id, routes: myTripItem.routes, type: 0);
     await savePolylinesLocal(
         driveId: id,
-        polylines: myTripItem.goodRoads,
+        routes: [], // myTripItem.goodRoads,
         pointsOfInterest: myTripItem.pointsOfInterest,
         type: 1);
     await saveManeuversLocal(driveId: id, maneuvers: myTripItem.maneuvers);
@@ -1067,9 +1068,11 @@ Future<int> saveMyTripItem(MyTripItem myTripItem) async {
     String err = e.toString();
     debugPrint('Error: $err');
   }
+  */
   return id;
 }
 
+/*
 Future<OsmAmenity> loadOsmAmenityLocal({required int id, index = 0}) async {
   final db = await DbHelper().db;
   OsmAmenity? osmAmenity;
@@ -1136,7 +1139,7 @@ Future<bool> saveOsmDataLocal(
   }
   return true;
 }
-
+*/
 String pointsToString(List<LatLng> points) {
   String pointsMap = '';
   try {
@@ -1169,19 +1172,7 @@ Future<List<PointOfInterest>> loadPointsOfInterestLocal(int driveId) async {
   );
   for (int i = 0; i < maps.length; i++) {
     pointsOfInterest.add(
-      PointOfInterest(
-        id: maps[i]['id'],
-        driveId: driveId,
-        colourIndex: -1,
-        type: maps[i]['type'],
-        name: maps[i]['name'],
-        description: maps[i]['description'],
-        width: maps[i]['type'] == 12 ? 25 : 30,
-        height: maps[i]['type'] == 12 ? 25 : 30,
-        images: maps[i]['images'],
-        waypoint: maps[i]['waypoint'] ?? i,
-        point: LatLng(maps[i]['latitude'], maps[i]['longitude']),
-      ),
+      PointOfInterest.fromMap(map: maps.first),
     );
   }
   return pointsOfInterest;
@@ -1191,24 +1182,13 @@ Future<PointOfInterest> loadPointOfInterestLocal(
     {required int id, index = 0}) async {
   final db = await DbHelper().db;
   PointOfInterest? pointOfInterest;
-  List<Map<String, dynamic>> maps = await db.query(
+  List<Map<String, dynamic>> map = await db.query(
     'points_of_interest',
     where: 'id = ?',
     whereArgs: [id],
   );
 
-  pointOfInterest = PointOfInterest(
-    id: maps.first['id'],
-    driveId: maps.first['drive_id'],
-    type: maps.first['type'],
-    name: maps.first['name'],
-    description: maps.first['description'],
-    width: maps.first['type'] == 12 ? 10 : 30,
-    height: maps.first['type'] == 12 ? 10 : 30,
-    images: maps.first['images'],
-    waypoint: maps.first['waypoint'],
-    point: LatLng(maps.first['latitude'], maps.first['longitude']),
-  );
+  pointOfInterest = PointOfInterest.fromMap(map: map.first);
 
   return pointOfInterest;
 }
@@ -1228,17 +1208,7 @@ Future<int> savePointOfInterestLocal(
     {required int driveId, required PointOfInterest pointOfInterest}) async {
   final db = await DbHelper().db;
   int id = -1;
-  Map<String, dynamic> poiMap = {
-    'drive_id': driveId,
-    'type': pointOfInterest.type,
-    'name': pointOfInterest.name,
-    'description': pointOfInterest.description,
-    'images': pointOfInterest.images,
-    'waypoint': pointOfInterest.waypoint,
-    'latitude': pointOfInterest.point.latitude,
-    'longitude': pointOfInterest.point.longitude,
-    'sounds': pointOfInterest.sounds,
-  };
+  Map<String, dynamic> poiMap = pointOfInterest.toMap();
   try {
     id = await db.insert(
       'points_of_interest',
@@ -1336,22 +1306,7 @@ Future<List<Maneuver>> loadManeuversLocal(int driveId) async {
 
   for (int i = 0; i < maps.length; i++) {
     try {
-      jsonPos = jsonDecode(maps[i]['location']);
-      pos = LatLng(jsonPos['lat'], jsonPos['long']);
-
-      maneuvers.add(Maneuver(
-        id: maps[i]['id'],
-        driveId: driveId,
-        roadFrom: maps[i]['road_from'],
-        roadTo: maps[i]['road_to'],
-        bearingBefore: maps[i]['bearing_before'],
-        bearingAfter: maps[i]['bearing_after'],
-        exit: maps[i]['exit'],
-        location: pos,
-        modifier: maps[i]['modifier'],
-        type: maps[i]['type'],
-        distance: maps[i]['distance'],
-      ));
+      maneuvers.add(Maneuver.fromMap(map: maps[i]));
     } catch (e) {
       String err = e.toString();
       debugPrint(err);
@@ -1371,28 +1326,17 @@ Future<void> deleteManeuversByDriveId(int driveId) async {
 
 Future<bool> savePolylinesLocal(
     {required int driveId,
-    required List<mt.Route> polylines,
+    required List<mt.Route> routes,
     List<PointOfInterest> pointsOfInterest = const [],
     type = 0}) async {
   final db = await DbHelper().db;
-  for (int i = 0; i < polylines.length; i++) {
-    Map<String, dynamic> plMap = {
-      'drive_id': driveId,
-      'type': type,
-      'points': pointsToString(polylines[i].points),
-      'stroke': polylines[i].strokeWidth,
-      'colour': uiColours.keys
-          .toList()
-          .indexWhere((col) => col == polylines[i].color),
-      'point_of_interest_id': polylines[i].pointOfInterestIndex >= 0
-          ? pointsOfInterest[polylines[i].pointOfInterestIndex].id
-          : -1,
-    };
+  for (int i = 0; i < routes.length; i++) {
+    Map<String, dynamic> map = routes[i].toMap();
     // Check if its a good road, and if so save the associated point of interest
     try {
       await db.insert(
         'polylines',
-        plMap,
+        map,
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
     } catch (e) {
@@ -1432,26 +1376,7 @@ Future<List<Follower>> loadFollowers(int driveId) async {
   dynamic jsonPos;
   LatLng pos;
   for (int i = 0; i < maps.length; i++) {
-    jsonPos = jsonDecode(maps[i]['position']);
-    pos = LatLng(jsonPos['lat'], jsonPos['long']);
-    followers.add(
-      Follower(
-        uri: maps[i]['id'],
-        driveId: driveId.toString(),
-        forename: maps[i]['forename'],
-        surname: maps[i]['surname'],
-        phoneNumber: maps[i]['phone_number'],
-        model: maps[i]['car'],
-        registration: maps[i]['registration'],
-        iconColour: maps[i]['icon_color'],
-        position: pos,
-        marker: MarkerWidget(
-          type: 16,
-          description: '',
-          angle: 0,
-        ),
-      ),
-    );
+    followers.add(Follower.fromMap(map: maps[i]));
   }
   return followers;
 }
@@ -1532,34 +1457,21 @@ Future<List<mt.Route>> loadPolyLinesLocal(int driveId, {type = 0}) async {
     where: 'drive_id = ? and type = ?',
     whereArgs: [driveId, type],
   );
-
   for (int i = 0; i < maps.length; i++) {
-    polylines.add(
-      mt.Route(
-          points: stringToPoints(maps[i]['points']), // routePoints,
-          color: uiColours.keys.toList()[maps[i]['colour']],
-          borderColor: uiColours.keys.toList()[maps[i]['colour']],
-          strokeWidth: (maps[i]['stroke']).toDouble(),
-          pointOfInterestIndex: maps[i]['point_of_interest_id'] ?? -1),
-    );
+    polylines.add(mt.Route.fromMap(map: maps[i]));
   }
   return polylines;
 }
 
 Future<mt.Route> loadPolyLineLocal(int id, {type = 0}) async {
+  List<Map<String, dynamic>> maps = [{}];
   final db = await DbHelper().db;
-  List<Map<String, dynamic>> map = await db.query(
+  maps = await db.query(
     'polylines',
     where: 'id = ? and type = ?',
     whereArgs: [id, type],
   );
-  return mt.Route(
-    points: stringToPoints(map[0]['points']), // routePoints,
-    color: uiColours.keys.toList()[map[0]['colour']],
-    borderColor: uiColours.keys.toList()[map[0]['colour']],
-    strokeWidth: (map[0]['stroke']).toDouble(),
-    pointOfInterestIndex: map[0]['point_of_interest_id'] ?? -1,
-  );
+  return mt.Route.fromMap(map: maps.first);
 }
 
 Future<Uint8List> loadTileLocal({required String key}) async {
@@ -1580,15 +1492,7 @@ Future<List<mt.Route>> loadRoutesLocal(int id,
     where: 'drive_id = ? and type = ?',
     whereArgs: [id, type],
   );
-  return [
-    for (Map<String, dynamic> map in maps)
-      mt.Route(
-          driveKey: driveKey,
-          points: stringToPoints(map['points']), // routePoints,
-          color: uiColours.keys.toList()[map['colour']],
-          borderColor: uiColours.keys.toList()[map['colour']],
-          strokeWidth: (map['stroke']).toDouble())
-  ];
+  return [for (Map<String, dynamic> map in maps) mt.Route.fromMap(map: map)];
 }
 
 Future<Uint8List> loadImageBytesLocal({required int id}) async {

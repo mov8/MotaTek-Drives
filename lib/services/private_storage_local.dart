@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Route;
 import 'package:universal_io/universal_io.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
+// import 'package:flutter_map/flutter_map.dart';
+// import 'package:latlong2/latlong.dart';
 import 'package:sqflite/sqflite.dart'; // Mobile only plugin
 import '/classes/utilities.dart' as utils;
 import 'package:geolocator/geolocator.dart';
@@ -16,7 +16,7 @@ import '../constants.dart';
 import '/models/other_models.dart';
 import '/classes/other_classes.dart';
 import '/classes/my_trip_item.dart';
-import '/classes/route.dart' as mt;
+import '/classes/route.dart';
 
 class PrivateStorageLocal implements PrivateDataRepository {
   Database? _db;
@@ -1133,7 +1133,7 @@ class PrivateStorageLocal implements PrivateDataRepository {
           onCreate: createDb,
         );
     int id = myTripItem.id;
-    Map<String, dynamic> map = myTripItem.toDrivesMap();
+    //  Map<String, dynamic> map = myTripItem.toDrivesMap();
     try {
       List<Map<String, dynamic>> maps =
           await db.rawQuery("SELECT id, title FROM drives");
@@ -1142,7 +1142,9 @@ class PrivateStorageLocal implements PrivateDataRepository {
       debugPrint('Error accessing drives: ${e.toString()}');
     }
     try {
+/*      
       if (id < 0) {
+
         map.remove("id");
         id = await db.insert('drives', map);
       } else {
@@ -1158,7 +1160,10 @@ class PrivateStorageLocal implements PrivateDataRepository {
           debugPrint('Error accessing drives: ${e.toString()}');
         }
       }
+*/
       // Now process Trip images that have been downloaded and are to be save locally
+
+/*  
       if (myTripItem.driveUri.isNotEmpty) {
         final directory = Setup().appDocumentDirectory;
         for (PointOfInterest pointOfInterest in myTripItem.pointsOfInterest) {
@@ -1182,7 +1187,7 @@ class PrivateStorageLocal implements PrivateDataRepository {
           }
         }
       }
-
+*/
       /// Points of interest must be saved first as goodRoads have a reference
       /// to the pointOfInterest automatically generated
       await savePointsOfInterestLocal(
@@ -1192,7 +1197,7 @@ class PrivateStorageLocal implements PrivateDataRepository {
           driveId: id, polylines: myTripItem.routes, type: 0);
       await savePolylinesLocal(
           driveId: id,
-          polylines: myTripItem.goodRoads,
+          polylines: [], // myTripItem.goodRoads,
           pointsOfInterest: myTripItem.pointsOfInterest,
           type: 1);
       await saveManeuversLocal(driveId: id, maneuvers: myTripItem.maneuvers);
@@ -1203,6 +1208,7 @@ class PrivateStorageLocal implements PrivateDataRepository {
     return id;
   }
 
+/*
   @override
   Future<OsmAmenity> loadOsmAmenityLocal({required int id, index = 0}) async {
     Database db = _db ??
@@ -1282,18 +1288,17 @@ class PrivateStorageLocal implements PrivateDataRepository {
     }
     return true;
   }
-
+*/
   @override
-  String pointsToString(List<LatLng> points) {
+  String pointsToString(List<List<double>> points) {
     String pointsMap = '';
     try {
-      for (int i = 0; i < points.length; i++) {
-        pointsMap =
-            '$pointsMap{"lat":${points[i].latitude},"lon":${points[i].longitude}},';
-      }
-      if (pointsMap.isNotEmpty) {
-        pointsMap = '[${pointsMap.substring(0, pointsMap.length - 1)}]';
-      }
+      pointsMap = json.encode(points);
+      //     for (int i = 0; i < points.length; i++) {
+      //     }
+      //     if (pointsMap.isNotEmpty) {
+      //       pointsMap = '[${pointsMap.substring(0, pointsMap.length - 1)}]';
+      //     }
     } catch (e) {
       debugPrint('Serialisation error: ${e.toString()}');
     }
@@ -1322,19 +1327,18 @@ class PrivateStorageLocal implements PrivateDataRepository {
     );
     for (int i = 0; i < maps.length; i++) {
       pointsOfInterest.add(
+/*        
         PointOfInterest(
           id: maps[i]['id'],
           driveId: driveId,
-          colourIndex: -1,
           type: maps[i]['type'],
           name: maps[i]['name'],
           description: maps[i]['description'],
-          width: maps[i]['type'] == 12 ? 25 : 30,
-          height: maps[i]['type'] == 12 ? 25 : 30,
           images: maps[i]['images'],
-          waypoint: maps[i]['waypoint'] ?? i,
-          point: LatLng(maps[i]['latitude'], maps[i]['longitude']),
+          point: [maps[i]['longitude'], maps[i]['latitude']],
         ),
+*/
+        PointOfInterest(),
       );
     }
     return pointsOfInterest;
@@ -1358,15 +1362,12 @@ class PrivateStorageLocal implements PrivateDataRepository {
 
     pointOfInterest = PointOfInterest(
       id: maps.first['id'],
-      driveId: maps.first['drive_id'],
+      //  driveId: maps.first['drive_id'],
       type: maps.first['type'],
       name: maps.first['name'],
       description: maps.first['description'],
-      width: maps.first['type'] == 12 ? 10 : 30,
-      height: maps.first['type'] == 12 ? 10 : 30,
       images: maps.first['images'],
-      waypoint: maps.first['waypoint'],
-      point: LatLng(maps.first['latitude'], maps.first['longitude']),
+      //    point: [maps.first['longitude'], maps.first['latitude']],
     );
 
     return pointOfInterest;
@@ -1400,9 +1401,8 @@ class PrivateStorageLocal implements PrivateDataRepository {
       'name': pointOfInterest.name,
       'description': pointOfInterest.description,
       'images': pointOfInterest.images,
-      'waypoint': pointOfInterest.waypoint,
-      'latitude': pointOfInterest.point.latitude,
-      'longitude': pointOfInterest.point.longitude,
+      //   'latitude': pointOfInterest.point[1],
+      //   'longitude': pointOfInterest.point[0],
       'sounds': pointOfInterest.sounds,
     };
     try {
@@ -1520,14 +1520,17 @@ class PrivateStorageLocal implements PrivateDataRepository {
     } catch (e) {
       debugPrint('Error getting maneuvers');
     }
-    LatLng pos = const LatLng(0, 0);
+    List pos = const [0, 0];
     dynamic jsonPos;
 
     for (int i = 0; i < maps.length; i++) {
       try {
         jsonPos = jsonDecode(maps[i]['location']);
-        pos = LatLng(jsonPos['lat'], jsonPos['long']);
+        pos = [jsonPos['long'], jsonPos['lat']];
+        maneuvers.add(Maneuver.fromMap(map: maps.first));
+        /*
 
+        
         maneuvers.add(Maneuver(
           id: maps[i]['id'],
           driveId: driveId,
@@ -1536,11 +1539,12 @@ class PrivateStorageLocal implements PrivateDataRepository {
           bearingBefore: maps[i]['bearing_before'],
           bearingAfter: maps[i]['bearing_after'],
           exit: maps[i]['exit'],
-          location: pos,
+         // location: [jsonPos['long'], jsonPos['lat']],
           modifier: maps[i]['modifier'],
           type: maps[i]['type'],
           distance: maps[i]['distance'],
         ));
+        */
       } catch (e) {
         String err = e.toString();
         debugPrint(err);
@@ -1567,7 +1571,7 @@ class PrivateStorageLocal implements PrivateDataRepository {
   @override
   Future<bool> savePolylinesLocal(
       {required int driveId,
-      required List<mt.Route> polylines,
+      required List<Map<String, dynamic>> polylines,
       List<PointOfInterest> pointsOfInterest = const [],
       type = 0}) async {
     Database db = _db ??
@@ -1580,14 +1584,10 @@ class PrivateStorageLocal implements PrivateDataRepository {
       Map<String, dynamic> plMap = {
         'drive_id': driveId,
         'type': type,
-        'points': pointsToString(polylines[i].points),
-        'stroke': polylines[i].strokeWidth,
-        'colour': uiColours.keys
-            .toList()
-            .indexWhere((col) => col == polylines[i].color),
-        'point_of_interest_id': polylines[i].pointOfInterestIndex >= 0
-            ? pointsOfInterest[polylines[i].pointOfInterestIndex].id
-            : -1,
+        'points': polylines[i]['geometry']
+            ['coordinates'], //polylines[i].stringFromPoints,
+        'point_of_interest_id':
+            pointsOfInterest.isNotEmpty ? pointsOfInterest[i].id : -1,
       };
       // Check if its a good road, and if so save the associated point of interest
       try {
@@ -1649,10 +1649,10 @@ class PrivateStorageLocal implements PrivateDataRepository {
       whereArgs: [driveId],
     );
     dynamic jsonPos;
-    LatLng pos;
+    List<double> pos;
     for (int i = 0; i < maps.length; i++) {
       jsonPos = jsonDecode(maps[i]['position']);
-      pos = LatLng(jsonPos['lat'], jsonPos['long']);
+      pos = [jsonPos['long'], jsonPos['lat']];
       followers.add(
         Follower(
           uri: maps[i]['id'],
@@ -1664,11 +1664,6 @@ class PrivateStorageLocal implements PrivateDataRepository {
           registration: maps[i]['registration'],
           iconColour: maps[i]['icon_color'],
           position: pos,
-          marker: MarkerWidget(
-            type: 16,
-            description: '',
-            angle: 0,
-          ),
         ),
       );
     }
@@ -1685,7 +1680,8 @@ class PrivateStorageLocal implements PrivateDataRepository {
           onCreate: createDb,
         );
     for (int i = 0; i < followers.length; i++) {
-      Map<String, dynamic> fMap = followers[i].toMap();
+      Map<String, dynamic> fMap = {};
+      // followers[i].toMap(); MAPLIBRE TODO:
 
       if (followers[i].uri.isNotEmpty) {
         try {
@@ -1749,7 +1745,7 @@ class PrivateStorageLocal implements PrivateDataRepository {
   ///
 
   @override
-  Future<List<mt.Route>> getRoutesByName({required String name}) async {
+  Future<List<Route>> getRoutesByName({required String name}) async {
     Database db = _db ??
         await openDatabase(
           _path = join(await getDatabasesPath(), 'drives.db'),
@@ -1761,21 +1757,21 @@ class PrivateStorageLocal implements PrivateDataRepository {
       where: 'LOWER(RTRIM(title)) = ?',
       whereArgs: [name.toLowerCase()],
     );
-    List<mt.Route> polylines = [];
+    List<Route> polylines = [];
     int driveId = maps[0]['id'];
     polylines = await loadPolyLinesLocal(driveId);
     return polylines;
   }
 
   @override
-  Future<List<mt.Route>> loadPolyLinesLocal(int driveId, {type = 0}) async {
+  Future<List<Route>> loadPolyLinesLocal(int driveId, {type = 0}) async {
     Database db = _db ??
         await openDatabase(
           _path = join(await getDatabasesPath(), 'drives.db'),
           version: dbVersion, // in constants.dart,
           onCreate: createDb,
         );
-    List<mt.Route> polylines = [];
+    List<Route> polylines = [];
     List<Map<String, dynamic>> maps = await db.query(
       'polylines',
       where: 'drive_id = ? and type = ?',
@@ -1783,20 +1779,13 @@ class PrivateStorageLocal implements PrivateDataRepository {
     );
 
     for (int i = 0; i < maps.length; i++) {
-      polylines.add(
-        mt.Route(
-            points: stringToPoints(maps[i]['points']), // routePoints,
-            color: uiColours.keys.toList()[maps[i]['colour']],
-            borderColor: uiColours.keys.toList()[maps[i]['colour']],
-            strokeWidth: (maps[i]['stroke']).toDouble(),
-            pointOfInterestIndex: maps[i]['point_of_interest_id'] ?? -1),
-      );
+      polylines.add(json.decode(maps[i]['points']));
     }
     return polylines;
   }
 
   @override
-  Future<mt.Route> loadPolyLineLocal(int id, {type = 0}) async {
+  Future<Route> loadPolyLineLocal(int id, {type = 0}) async {
     Database db = _db ??
         await openDatabase(
           _path = join(await getDatabasesPath(), 'drives.db'),
@@ -1808,13 +1797,7 @@ class PrivateStorageLocal implements PrivateDataRepository {
       where: 'id = ? and type = ?',
       whereArgs: [id, type],
     );
-    return mt.Route(
-      points: stringToPoints(map[0]['points']), // routePoints,
-      color: uiColours.keys.toList()[map[0]['colour']],
-      borderColor: uiColours.keys.toList()[map[0]['colour']],
-      strokeWidth: (map[0]['stroke']).toDouble(),
-      pointOfInterestIndex: map[0]['point_of_interest_id'] ?? -1,
-    );
+    return json.decode(map.first['points']);
   }
 
   @override
@@ -1834,8 +1817,7 @@ class PrivateStorageLocal implements PrivateDataRepository {
   }
 
   @override
-  Future<List<mt.Route>> loadRoutesLocal(int id,
-      {type = 0, driveKey = -1}) async {
+  Future<List<Route>> loadRoutesLocal(int id, {type = 0, driveKey = -1}) async {
     Database db = _db ??
         await openDatabase(
           _path = join(await getDatabasesPath(), 'drives.db'),
@@ -1847,15 +1829,11 @@ class PrivateStorageLocal implements PrivateDataRepository {
       where: 'drive_id = ? and type = ?',
       whereArgs: [id, type],
     );
-    return [
-      for (Map<String, dynamic> map in maps)
-        mt.Route(
-            driveKey: driveKey,
-            points: stringToPoints(map['points']), // routePoints,
-            color: uiColours.keys.toList()[map['colour']],
-            borderColor: uiColours.keys.toList()[map['colour']],
-            strokeWidth: (map['stroke']).toDouble())
-    ];
+    List<Route> routes = [];
+    for (Map<String, dynamic> map in maps) {
+      routes.add(Route.fromMap(map: map));
+    }
+    return routes;
   }
 
   @override
@@ -1873,6 +1851,7 @@ class PrivateStorageLocal implements PrivateDataRepository {
     return map[0]['image'];
   }
 
+/*
   @override
   List<LatLng> stringToPoints(String pointsString) {
     List<LatLng> points = [];
@@ -1886,7 +1865,8 @@ class PrivateStorageLocal implements PrivateDataRepository {
     }
     return points;
   }
-
+*/
+/*
   @override
   String polyLineToString(List<Polyline> polyLines) {
     Map<String, dynamic> json;
@@ -1915,7 +1895,7 @@ class PrivateStorageLocal implements PrivateDataRepository {
     }
     return polyLineString;
   }
-
+*/
   @override
   Future<List<MyTripItem>> tripItemFromDb(
       {int driveId = -1, bool showMethods = false}) async {
@@ -1925,10 +1905,10 @@ class PrivateStorageLocal implements PrivateDataRepository {
           version: dbVersion, // in constants.dart,
           onCreate: createDb,
         );
-    LatLng pos = const LatLng(0, 0);
+    List pos = const [0, 0];
 
     await utils.getPosition().then((currentPosition) {
-      pos = LatLng(currentPosition.latitude, currentPosition.longitude);
+      pos = [currentPosition.longitude, currentPosition.latitude];
     });
 
     String drivesQuery =
@@ -1951,11 +1931,12 @@ class PrivateStorageLocal implements PrivateDataRepository {
       double distance = 0;
       for (int i = 0; i < maps.length; i++) {
         if (maps[i]['drive_id'] != driveId) {
-          distance = Geolocator.distanceBetween(maps[i]['latitude'],
-              maps[i]['longitude'], pos.latitude, pos.longitude);
+          distance = Geolocator.distanceBetween(
+              maps[i]['latitude'], maps[i]['longitude'], pos[1], pos[0]);
           driveId = maps[i]['drive_id'];
           tripImages = '{"url": "$directory/drive$driveId.png", "caption": ""}';
           highlights = 0;
+          /*
           trips.add(MyTripItem(
               id: driveId,
               driveId: driveId,
@@ -1975,13 +1956,12 @@ class PrivateStorageLocal implements PrivateDataRepository {
                     map: maps[i], driveId: driveId, listIndex: i)
               ],
               closest: 15));
+            */
           if (maps[i]['type'] != 12) highlights++;
         } else {
+          /*
           double poiDistance = distance = Geolocator.distanceBetween(
-              maps[i]['latitude'],
-              maps[i]['longitude'],
-              pos.latitude,
-              pos.longitude);
+              maps[i]['latitude'], maps[i]['longitude'], pos[1], pos[0]);
           if (poiDistance < trips[trips.length - 1].distance) {
             trips[trips.length - 1].distance = poiDistance;
           }
@@ -1991,6 +1971,7 @@ class PrivateStorageLocal implements PrivateDataRepository {
             highlights++;
             trips[trips.length - 1].highlights = highlights;
           }
+        */
         }
         if (maps[i]['images'].isNotEmpty) {
           tripImages =
@@ -1998,9 +1979,11 @@ class PrivateStorageLocal implements PrivateDataRepository {
         }
       } //
       if (trips.isNotEmpty) {
+        /*  
         if (tripImages.isNotEmpty) {
           trips[trips.length - 1].images = '[$tripImages]';
         }
+        */
       }
     } catch (e) {
       String err = e.toString();

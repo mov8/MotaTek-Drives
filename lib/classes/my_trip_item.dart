@@ -7,23 +7,36 @@ import 'dart:typed_data';
 import 'dart:convert';
 import 'dart:math';
 // import '/routes/create_trip.dart';
-import 'package:vector_map_tiles/vector_map_tiles.dart' as vmt;
 import 'package:geolocator/geolocator.dart';
 import '/constants.dart' hide routes;
 import '/classes/utilities.dart' as ut;
 import '/helpers/create_trip_helpers.dart';
 import 'package:image_picker/image_picker.dart';
 import '/services/services.dart';
-import '/classes/route.dart' as mt;
 import '/models/other_models.dart';
 import '/classes/classes.dart';
 import '/services/web_helper.dart' as wh;
-import 'package:latlong2/latlong.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Route;
 // import '/tiles/tiles.dart';
 import 'dart:developer' as developer;
+import 'package:maplibre_gl/maplibre_gl.dart' as ml;
 
 //import 'package:path/path.dart';
+
+String colorToHex(Color color) {
+  final r = (color.r * 255.0).round().clamp(0, 255);
+  final g = (color.g * 255.0).round().clamp(0, 255);
+  final b = (color.b * 255.0).round().clamp(0, 255);
+  return '#$r$g$b';
+}
+
+class Waypoint {
+  List<double> latLng; // For MapLibre its [long, lat] - x y
+  Color colour = Colors.blueGrey; //['#4287f5', '#fc0303'];
+  Waypoint({required this.latLng, this.colour = Colors.blueGrey});
+  String get hexColor => colorToHex(colour);
+  List<double> get point => latLng;
+}
 
 class CreateTripValues {
   bool showMask = false;
@@ -42,9 +55,9 @@ class CreateTripValues {
   String title = 'Drives';
   MapHeights mapHeight = MapHeights.full;
   GoodRoad goodRoad = GoodRoad();
-  LatLng lastLatLng = LatLng(0, 0);
-  LatLng startLatLng = LatLng(0, 0);
-  LatLng position = LatLng(0, 0);
+  List<double> lastLatLng = [0, 0];
+  List<double> startLatLng = [0, 0];
+  List<double> position = [0, 0];
   int pointOfInterestIndex = 0;
   bool setState = true;
   CreateTripValues();
@@ -135,7 +148,7 @@ class CreateTripValues {
 }
 
 class Progress {
-  LatLng currentPosition = LatLng(0, 0);
+  List currentPosition = const [0, 0];
   int nextManeuver = 0;
   int lastManeuver = 0;
   Progress({currentPosition, nextManeuver, lastManeuver});
@@ -163,7 +176,11 @@ class CurrentTripItem extends MyTripItem {
   bool isChanged = false;
   int nearestRoute = 0;
   XFile? imageFile;
+  List<Waypoint> waypoints = [];
+  List<Photo> photos = [];
+  ml.MapLibreMapController? mapController;
   //late Directions _directions;
+
   List<Map> titleData = [
     {
       'label': 'Create a new drive',
@@ -220,7 +237,7 @@ class CurrentTripItem extends MyTripItem {
     Icon(Icons.group_outlined)
   ];
 
-  List<List<LatLng>> backBuffer = [[]];
+  List<List<Waypoint>> backBuffer = [[]];
   int backBufferIndex = -1;
 
   static final _instance = CurrentTripItem._privateConstructor();
@@ -229,28 +246,46 @@ class CurrentTripItem extends MyTripItem {
     return _instance;
   }
 
+/*
+  int id;
+  String uri;
+  String title;
+  String subTitle;
+  String body;
+  String added;
+  double score;
+  int scored;
+  int downloads;
+  String authorUri;
+  String author;
+  List<Route> routes;
+  List<Maneuver> maneuvers;
+  List<GoodRoad> goodRoads;
+  List<PointOfInterest> pointsOfInterest;
+*/
+
   fromMyTripItem({required MyTripItem myTripItem}) {
-    id = myTripItem.id;
-    driveId = myTripItem.driveId;
-    index = myTripItem.index;
-    groupDriveId = myTripItem.groupDriveId;
-    driveUri = myTripItem.driveUri;
-    heading = myTripItem.heading;
-    subHeading = myTripItem.subHeading;
+    //id = myTripItem.id;
+    //driveId = myTripItem.driveId;
+    //index = myTripItem.index;
+    //groupDriveId = myTripItem.groupDriveId;
+    //driveUri = myTripItem.driveUri;
+    //heading = myTripItem.title;
+    // subHeading = myTripItem.subTitle;
     body = myTripItem.body;
-    published = myTripItem.published;
-    publisher = myTripItem.publisher;
+    //published = myTripItem.added;
+    //publisher = myTripItem.publisher;
     pointsOfInterest = myTripItem.pointsOfInterest;
     maneuvers = myTripItem.maneuvers;
     routes = myTripItem.routes;
     goodRoads = myTripItem.goodRoads;
-    images = myTripItem.images;
+    //images = myTripItem.images;
     score = myTripItem.score;
-    distance = myTripItem.distance;
-    closest = myTripItem.closest;
-    highlights = myTripItem.highlights;
-    showMethods = myTripItem.showMethods;
-    mapImage = myTripItem.mapImage;
+    //distance = myTripItem.distance;
+    //closest = myTripItem.closest;
+    //highlights = myTripItem.highlights;
+    //showMethods = myTripItem.showMethods;
+    //mapImage = myTripItem.mapImage;
     tripState = TripState.loaded;
     tripType = TripType.none;
   }
@@ -258,36 +293,37 @@ class CurrentTripItem extends MyTripItem {
   MyTripItem clone() {
     MyTripItem myTripItem = MyTripItem(
       id: id,
-      driveId: driveId,
-      index: index,
-      groupDriveId: groupDriveId,
-      driveUri: driveUri,
-      heading: heading,
-      subHeading: subHeading,
+      // driveId: driveId,
+      // index: index,
+      // groupDriveId: groupDriveId,
+      // driveUri: driveUri,
+      // heading: heading,
+      // subHeading: subHeading,
       body: body,
-      published: published,
-      publisher: publisher,
+      // published: published,
+      // publisher: publisher,
       pointsOfInterest: pointsOfInterest,
       maneuvers: maneuvers,
       routes: routes,
       goodRoads: goodRoads,
-      images: images,
+
+      /// images: images,
       score: score,
-      distance: distance,
-      closest: closest,
-      highlights: highlights,
-      showMethods: showMethods,
+      // distance: distance,
+      // closest: closest,
+      // highlights: highlights,
+      // showMethods: showMethods,
     );
-    myTripItem.mapImage = mapImage;
+    // myTripItem.mapImage = mapImage;
     return myTripItem;
   }
 
   @override
   clearAll() {
     isSaved = false;
-    driveUri = '';
-    images = '';
-    groupDriveId = '';
+    // driveUri = '';
+    // images = '';
+    // groupDriveId = '';
     isTracking = false;
     tripType = TripType.none;
     tripState = TripState.none;
@@ -296,7 +332,7 @@ class CurrentTripItem extends MyTripItem {
     nearestWaypoints = Point(0, 0);
     backBuffer.clear();
     backBufferIndex = 0;
-    return super.clearAll();
+    //  return super.clearAll();
   }
 
   RouteDelta goodRoadStart = RouteDelta();
@@ -304,36 +340,39 @@ class CurrentTripItem extends MyTripItem {
 
   void load({required TripArguments arguments}) {
     fromMyTripItem(myTripItem: arguments.trip);
-    groupDriveId = arguments.groupDriveId;
+    // groupDriveId = arguments.groupDriveId;
     tripState = TripState.loaded;
     tripActions = TripActions.none;
     highliteActions = HighliteActions.none;
-    tripType = groupDriveId.isNotEmpty ? TripType.group : TripType.saved;
+    // tripType = groupDriveId.isNotEmpty ? TripType.group : TripType.saved;
     tripValues.showTarget = false;
   }
 
+/*
   Future<void> downloadTiles(
       {required BuildContext context, vmt.Style? style}) async {
     style ??= await VectorMapStyle().mapStyle();
     if (context.mounted) {
-      OfflineTiles offlineTiles = OfflineTiles(
+      /*   OfflineTiles offlineTiles = OfflineTiles(
           context: context,
           apiProvider: style!.providers.get('openmaptiles'),
           routes: routes);
       await offlineTiles.downloadMaps();
+  */
     }
     return;
   }
-
+*/
   String getTripTitle() {
     String title = 'Create a new drive';
     // IconData titleIcon = Icons.add_location_alt_outlined;
-    if (tripValues.title.isNotEmpty && heading.isEmpty) {
+    if (tripValues.title.isNotEmpty) {
+      // && heading.isEmpty) {
       title = tripValues.title;
     } else {
       for (int i = 1; i < titleData.length; i++) {
         if (titleData[i]['states'].contains(tripState)) {
-          title = '${titleData[i]['label']} $heading';
+          //  title = '${titleData[i]['label']} $heading';
           // titleIcon = titleData[i]['icon'];
           break;
         }
@@ -341,6 +380,19 @@ class CurrentTripItem extends MyTripItem {
     }
 
     return title;
+  }
+
+  List<List<double>> latLngsFromWaypoints({required List<Waypoint> waypoints}) {
+    List<List<double>> points = [];
+    for (int i = 0; i < waypoints.length; i++) {
+      points.add(waypoints[i].latLng);
+    }
+    /*
+    for (int i = 0; i < backBuffer[backBufferIndex].length; i++) {
+      points.add(backBuffer[backBufferIndex][i].point);
+    }
+    */
+    return points;
   }
 
   List<Widget> getActions(
@@ -365,7 +417,9 @@ class CurrentTripItem extends MyTripItem {
                   }
                 } else {
                   await replaceRoutes(
-                      points: backBuffer[backBufferIndex], updateBuffer: false);
+                      points: latLngsFromWaypoints(
+                          waypoints: backBuffer[backBufferIndex]),
+                      updateBuffer: false);
                 }
                 onUpdate!(true);
               }
@@ -384,15 +438,11 @@ class CurrentTripItem extends MyTripItem {
               onPressed: () async {
                 if (--backBufferIndex >= 0) {
                   if (backBuffer[backBufferIndex].length == 1) {
-                    pointsOfInterest.add(
-                      PointOfInterest(
-                          point: backBuffer[backBufferIndex][0],
-                          type: 17,
-                          waypoint: 1),
-                    );
+                    waypoints.add(backBuffer[backBufferIndex][0]);
                   } else {
                     await replaceRoutes(
-                        points: backBuffer[backBufferIndex],
+                        points: latLngsFromWaypoints(
+                            waypoints: backBuffer[backBufferIndex]),
                         updateBuffer: false);
                     onUpdate!(true);
                   }
@@ -410,7 +460,7 @@ class CurrentTripItem extends MyTripItem {
       actions.add(
         IconButton(
           onPressed: () async {
-            await downloadTiles(context: context);
+            //  await downloadTiles(context: context);
           },
           icon: Icon(
             Icons.map_outlined,
@@ -430,9 +480,9 @@ class CurrentTripItem extends MyTripItem {
 
   Future<bool> saveState() async {
     try {
-      await saveLocal();
-      Setup().appState =
-          '{"route": 2, "id": $driveId, "saved": ${isSaved ? 1 : 0}, "isTracking": ${isTracking ? 1 : 0}, "tripState": ${tripState.index}, "tripActions": ${tripActions.index}}';
+      //     await saveLocal();
+      //     Setup().appState =
+      //         '{"route": 2, "id": $driveId, "saved": ${isSaved ? 1 : 0}, "isTracking": ${isTracking ? 1 : 0}, "tripState": ${tripState.index}, "tripActions": ${tripActions.index}}';
       Setup().setupToDb();
     } catch (e) {
       debugPrint("Can't save CurrentTrip state: ${e.toString}");
@@ -445,7 +495,7 @@ class CurrentTripItem extends MyTripItem {
     Map<String, dynamic> stateMap = jsonDecode(Setup().appState);
     if ((stateMap['route'] ?? -1) == 2) {
       try {
-        await loadLocal(stateMap['id']);
+        //  await loadLocal(stateMap['id']);
         isSaved = (stateMap['isSaved'] ?? 0) == 1;
         isTracking = (stateMap['isTracking'] ?? 0) == 1;
         tripState = TripState.values[(stateMap['tripState'] ?? 0)];
@@ -470,7 +520,7 @@ class CurrentTripItem extends MyTripItem {
   onBackPressed() {
     if (tripState == TripState.editing) {
       tripState = TripState.notFollowing;
-      tripValues.title = heading;
+      tripValues.title = ' '; //heading;
     } else {
       tripValues.title = 'Create a new trip';
       clearAll();
@@ -483,7 +533,7 @@ class CurrentTripItem extends MyTripItem {
   Future<int> save() async {
     int status = -1;
     if (maneuvers.isEmpty) {
-      List<LatLng> points = [];
+      List<List<double>> points = [];
 
       /// Have changed the way a tracked route is processed. Instead of trying to process
       /// the polylines to calculate the waypoints the new method drops a PointOfInterest every
@@ -498,30 +548,29 @@ class CurrentTripItem extends MyTripItem {
 */
       for (int i = 0; i < pointsOfInterest.length; i++) {
         if ([12, 17, 18].contains(pointsOfInterest[i].type)) {
-          points.add(pointsOfInterest[i].point);
+          //         points.add(pointsOfInterest[i].point);
         }
       }
-      await replaceRoutes(points: points);
+      await replaceRoutes(points: latLngsFromWaypoints(waypoints: waypoints));
       backBuffer.clear();
       backBufferIndex = -1;
     }
     isSaved = true;
-    status = await saveLocal();
+    //  status = await saveLocal();
     return status;
   }
 
-  void newPointOfInterest({required LatLng position, int type = 15}) {
+  void newPointOfInterest({required List<double> position, int type = 15}) {
     pointsOfInterest.add(PointOfInterest(
-      point: position,
+      //   point: position,
       type: type,
-      waypoint: pointsOfInterest.length - 1,
     ));
     isSaved = false;
   }
 
   loadBackBuffer() {
     backBuffer.clear();
-    backBuffer.add(extractWaypoints(pointsOfInterest: pointsOfInterest));
+    backBuffer.add(waypoints);
   }
 
   /// Waypoint handling routines
@@ -532,6 +581,7 @@ class CurrentTripItem extends MyTripItem {
   ///   The two highlighted waypoints act as anchors when editing
   ///   If the route is highlighted then the waypoint will be added as an anchor
   /// index = -1: extend start  0: insert in middle  1: extend end
+/*
   addWaypoint(
       {int index = 1, required LatLng point, bool revisit = false}) async {
     List<LatLng> points = extractWaypoints(pointsOfInterest: pointsOfInterest);
@@ -567,27 +617,114 @@ class CurrentTripItem extends MyTripItem {
     }
     isSaved = false;
   }
+*/
+  addWaypoint(
+      {int index = 1,
+      required List<double> point,
+      bool revisit = false}) async {
+    int insertAt = waypoints.length;
+    ml.LatLng target = mapController!.cameraPosition!.target;
+    List<double> point = [target.longitude, target.latitude];
+    List<Map<String, dynamic>> features = [];
+    Waypoint waypoint = Waypoint(latLng: point);
+    if (waypoints.isEmpty) {
+      waypoints.add(Waypoint(latLng: point));
+      backBuffer.add([waypoints.last]);
+      backBufferIndex = 0;
+    } else {
+      if (revisit) {
+        insertAt = 0;
+      } else {
+        if (tripState == TripState.editing) {
+          insertAt = index == 1 ? waypoints.length : 0;
+          if ((nearestWaypoints.y > 0 || nearestWaypoints.x > 0) &&
+              index == 0) {
+            if (nearestWaypoints.y > nearestWaypoints.x) {
+              insertAt = nearestWaypoints.x.toInt() + 1;
+            } else {
+              insertAt = nearestWaypoints.y.toInt() + 1;
+            }
+          }
+        }
+      }
+      waypoints.insert(insertAt, Waypoint(latLng: point));
+      features = await replaceRoutes(
+          points: latLngsFromWaypoints(waypoints: waypoints));
+    }
+    //
 
-  deleteWaypoint({required LatLng position}) async {
+    /*
+    TODO: Investigate using addSymbol - should be quicker
+
+    Symbol? myWaypoint;
+
+        void placeWaypoint(LatLng position) async {
+          if (myWaypoint == null) {
+            // Create it the first time
+            myWaypoint = await mapController.addSymbol(
+              SymbolOptions(
+                geometry: position,
+                iconImage: "marker-15", // Ensure this icon exists in your style
+                iconSize: 1.5,
+              ),
+            );
+          } else {
+            // 2. Efficiently update its position
+            mapController.updateSymbol(
+              myWaypoint!,
+              SymbolOptions(geometry: position),
+            );
+          }
+        }
+    
+     */
+
+    List lastPoint = [];
+    if (features.isNotEmpty) {
+      lastPoint = features.last['geometry']['coordinates'].last;
+    }
+
+    for (int i = 0; i < waypoints.length; i++) {
+      features.add({
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": i == waypoints.length - 1 && lastPoint.isNotEmpty
+              ? lastPoint
+              : waypoints[i].point
+        },
+        "id": 'wp${i + 1}',
+        "group": "shield",
+        "properties": {"item": "waypoint", "number": i + 1, "group": 'shield'}
+      });
+    }
+
+    await mapController!.setGeoJsonSource(
+        "route-data", {"type": "FeatureCollection", "features": features});
+
+    isSaved = false;
+  }
+
+//           await _mapController!.setGeoJsonSource("route-data", geoJson);
+
+  deleteWaypoint({required List<double> position}) async {
     int index = -1;
     for (int i = 0; i < pointsOfInterest.length; i++) {
       if ([12, 17, 18, 19].contains(pointsOfInterest[i].type) &&
           Geolocator.distanceBetween(
-                  pointsOfInterest[i].point.latitude,
-                  pointsOfInterest[i].point.longitude,
-                  position.latitude,
-                  position.longitude) <
+                  pointsOfInterest[i].point.y.toDouble(),
+                  pointsOfInterest[i].point.x.toDouble(),
+                  position[1],
+                  position[0]) <
               200) {
         index = i;
         break;
       }
     }
     if (index >= 0) {
-      pointsOfInterest.removeAt(index);
-      List<LatLng> points =
-          extractWaypoints(pointsOfInterest: pointsOfInterest);
+      waypoints.removeAt(index);
 
-      await replaceRoutes(points: points);
+      await replaceRoutes(points: latLngsFromWaypoints(waypoints: waypoints));
 
       isSaved = false;
     }
@@ -596,8 +733,8 @@ class CurrentTripItem extends MyTripItem {
   /// reorderWaypoints() generates the list of PointsOfInterest that
   /// include the waypoints in the correct order.
 
-  void reorderWaypoints(
-      {List<LatLng> highlight = const [], bool revisit = false}) {
+  List<PointOfInterest> reorderWaypoints(
+      {List<List<double>> highlight = const [], bool revisit = false}) {
     List<PointOfInterest> reorderedPointsOfInterest = [];
     for (int i = 0; i < pointsOfInterest.length; i++) {
       if (![12, 17, 18, 19].contains(pointsOfInterest[i].type)) {
@@ -614,32 +751,33 @@ class CurrentTripItem extends MyTripItem {
         wpType = wpIndex == maneuvers.length - 1 ? 18 : wpType;
         wpType = wpIndex == 0 ? 17 : wpType;
         wpType = revisit ? 19 : wpType;
-        int colourIndex = highlight.contains(maneuvers[i].location)
+        int colourIndex = highlight.contains(maneuvers[i].point)
             ? Setup().highlightedColour
             : 3;
         reorderedPointsOfInterest.add(
           PointOfInterest(
             type: wpType,
-            waypoint: wpIndex++,
-            point: maneuvers[i].location,
-            colourIndex: colourIndex,
+            //point: maneuvers[i].point,
           ),
         );
       }
     }
 
-    pointsOfInterest.clear();
+    pointsOfInterest = [];
     pointsOfInterest.addAll(reorderedPointsOfInterest);
+    return pointsOfInterest;
   }
-
+/*
   int waypointType({required List<LatLng> waypoints, required int index}) {
     if (index == 0) return 17;
     if (index == waypoints.length - 1) return 18;
     return 12;
   }
 
-  void checkWaypoints({required List<PointOfInterest> pointsOfInterest}) {}
+*/
 
+  void checkWaypoints({required List<PointOfInterest> pointsOfInterest}) {}
+/*
   List<LatLng> extractWaypoints(
       {required List<PointOfInterest> pointsOfInterest}) {
     List<LatLng> points = [];
@@ -655,11 +793,70 @@ class CurrentTripItem extends MyTripItem {
     }
     return points;
   }
-
+*/
   /// replaceRoutes() gets the maneuvers from a list of points.
   /// It ensures that everything is in the same order as the router
   /// has supplied.
-  Future<void> replaceRoutes(
+  Future<List<Map<String, dynamic>>> replaceRoutes(
+      {required List<List<double>> points,
+      bool updateBuffer = true,
+      bool revisit = false}) async {
+    List<Map<String, dynamic>> features = [];
+    if (waypoints.length > 1) {
+      try {
+        if (updateBuffer) {
+          backBuffer.insert(0, waypoints);
+          if (backBuffer.length > 10) {
+            backBuffer.removeAt(10);
+          }
+          backBufferIndex = 0;
+        }
+        Map<String, dynamic> routeData =
+            await getRoutePoints(points: points, addPoints: true);
+        if ((routeData["msg"] ?? " ") != "Error") {
+          maneuvers = [];
+          int wps = 0;
+          features = routeData['routes'];
+
+          /// Ensure that waypoints don't have both "arrive" and "depart"
+          for (int i = 0; i < routeData['maneuvers'].length; i++) {
+            wps = ['arrive', 'depart'].contains(routeData['maneuvers'][i].type)
+                ? wps + 1
+                : wps;
+            bool add = i == 0;
+            if (!add) {
+              add = !(['arrive', 'depart']
+                      .contains(routeData['maneuvers'][i].type) &&
+                  ['arrive', 'depart']
+                      .contains(routeData['maneuvers'][i - 1].type));
+            }
+            if (add) {
+              maneuvers.add(routeData['maneuvers'][i]);
+            }
+          }
+
+          routes = [];
+
+          // Update the map with the new route.
+
+          //  addRoute(routeData['points']);
+
+          /// Add next 2 lines to ensure the waypoint can be extracted from the maneuvers
+          maneuvers[maneuvers.length - 1].type = 'arrive';
+          maneuvers[maneuvers.length - 1].point = waypoints.last.latLng;
+          List<PointOfInterest> pointsOfInterest =
+              reorderWaypoints(revisit: revisit);
+        } else {
+          routes = [];
+        }
+      } catch (e) {
+        developer.log('Error replaceRoutes() ${e.toString()}');
+      }
+    }
+    return features;
+  }
+/*
+    Future<void> replaceRoutes(
       {required List<LatLng> points,
       bool updateBuffer = true,
       bool revisit = false}) async {
@@ -695,7 +892,7 @@ class CurrentTripItem extends MyTripItem {
         }
 
         routes.clear();
-        addRoute(mt.Route(
+        addRoute(List<List<double>>(
             points: routeData['points'],
             color: colourList[Setup().routeColour],
             borderColor: colourList[Setup().routeColour],
@@ -710,11 +907,12 @@ class CurrentTripItem extends MyTripItem {
       }
     }
   }
+*/
 
   Future<void> reverseRoute() async {
-    List<LatLng> points = backBuffer[0];
+    List<Waypoint> points = backBuffer[0];
     backBuffer.insert(0, points.reversed.toList());
-    await replaceRoutes(points: backBuffer[0]);
+    await replaceRoutes(points: latLngsFromWaypoints(waypoints: backBuffer[0]));
   }
 
   /// Recalculate route
@@ -723,35 +921,34 @@ class CurrentTripItem extends MyTripItem {
   ///   3 rejoin the route at the nearest sensible waypoint - type arrive
   ///
   Future<bool> changeRoute(
-      {required LatLng position,
+      {required List<double> position,
       int lastManeuverIndex = 0,
       int routeIndex = 0,
       int pointIndex = 0}) async {
-    List<LatLng> points = [];
+    List<List<double>> points = [];
 
     for (int i = 0; i <= lastManeuverIndex; i++) {
       if (['depart', 'arrive'].contains(CurrentTripItem().maneuvers[i].type)) {
-        points.add(LatLng(CurrentTripItem().maneuvers[i].location.latitude,
-            CurrentTripItem().maneuvers[i].location.longitude));
+        points.add([
+          CurrentTripItem().maneuvers[i].point[1],
+          CurrentTripItem().maneuvers[i].point[0]
+        ]);
       }
     }
 
     /// now add current position as a waypoint
-    points.add(LatLng(
-      position.latitude,
-      position.longitude,
-    ));
+    points.add([
+      position[0],
+      position[1],
+    ]);
 
     /// Now look for closest waypoint to rejoin the route
     double distance = 999999999999;
     int nextManeuver = 0;
     for (int i = lastManeuverIndex + 1; i < maneuvers.length; i++) {
       if (maneuvers[i].type == 'arrive' || i == maneuvers.length - 1) {
-        double delta = Geolocator.distanceBetween(
-            position.latitude,
-            position.longitude,
-            maneuvers[i].location.latitude,
-            maneuvers[i].location.longitude);
+        double delta = Geolocator.distanceBetween(position[1], position[0],
+            maneuvers[i].point[1], maneuvers[i].point[0]);
         if (delta < distance) {
           delta = distance;
           nextManeuver = i;
@@ -762,20 +959,14 @@ class CurrentTripItem extends MyTripItem {
     /// Complete list of waypoints to feed the router
     for (int i = nextManeuver; i < maneuvers.length; i++) {
       if (maneuvers[i].type == 'arrive' || i == maneuvers.length - 1) {
-        points.add(maneuvers[i].location);
+        points.add(maneuvers[i].point);
       }
     }
 
     if (points.length > 2) {
       Map<String, dynamic> tripData = await getRoutePoints(points: points);
-      clearRoutes();
-      addRoute(mt.Route(
-          id: -1,
-          strokeWidth: 5,
-          borderColor: colourList[Setup().routeColour],
-          points: tripData['points'],
-          color: colourList[Setup().routeColour]));
-      // CurrentTripItem().maneuvers = tripData['maneuvers'];
+      //  clearRoutes();
+      //  addRoute(tripData['points']);
       maneuvers = tripData['maneuvers'];
     }
     return points.length > 2;
@@ -784,17 +975,9 @@ class CurrentTripItem extends MyTripItem {
   void startGoodRoad() {
     goodRoadStart.pointIndex = routeDelta.pointIndex;
 
-    goodRoads.add(mt.Route(
-            id: -1,
-            points: [],
-            color: colourList[Setup().goodRouteColour],
-            borderColor: colourList[Setup().goodRouteColour],
-            strokeWidth: 5)
-
-        //  pointOfInterestIndex: polyLines[i].pointOfInterestIndex), // id
-        );
+//    goodRoads.add(Route(points: []));
     goodRoadStart.routeIndex = goodRoads.length - 1;
-    tripValues.goodRoad.isGood = true;
+//    tripValues.goodRoad.isGood = true;
     highliteActions = HighliteActions.greatRoadStarted;
   }
 
@@ -802,9 +985,10 @@ class CurrentTripItem extends MyTripItem {
     isSaved = false;
     highliteActions = HighliteActions.none;
     goodRoadStart.pointIndex = -1;
-    tripValues.goodRoad.isGood = false;
+    //   tripValues.goodRoad.isGood = false;
   }
 
+/*
   void changePosition(
       {required LatLng position, required Function(bool) onChange}) {
     isChanged = false;
@@ -844,7 +1028,8 @@ class CurrentTripItem extends MyTripItem {
     onChange(highliteActions != currentHighlite ||
         currentNearestWaypPoints != nearestWaypoints);
   }
-
+*/
+/*
   Map<String, dynamic> findNearestWaypoints({required LatLng position}) {
     double nearest = 9999999;
     double nextNearest = 9999999;
@@ -881,9 +1066,10 @@ class CurrentTripItem extends MyTripItem {
       'nextNearestIndex': nextNearestIndex
     };
   }
-
+*/
+/*
   void highlightNearestWaypoints(
-      {required LatLng position,
+      {required List position,
       required int nearestIndex,
       required int nextNearestIndex}) {
     developer.log(
@@ -904,29 +1090,29 @@ class CurrentTripItem extends MyTripItem {
   }
 
   RouteDelta findNearestRoute(
-      {required List<mt.Route> routes,
-      required LatLng position,
+      {required List<List<List<double>>> routes,
+      required List position,
       RouteDelta? routeDelta,
       int trigger = 100}) {
     int distance = 200000;
     routeDelta ??= RouteDelta();
-    routeDelta.point = position;
+    routeDelta.point = [position[1], position[0]];
     routeDelta.routeIndex = -1;
     routeDelta.distance = 200000;
     routeDelta.pointIndex = -1;
     for (int i = 0; i < routes.length; i++) {
-      mt.Route route = routes[i];
-      for (int j = 0; j < route.points.length; j++) {
+      List<List<double>> route = routes[i];
+      for (int j = 0; j < route.length; j++) {
         distance = Geolocator.distanceBetween(
-                position.latitude,
-                position.longitude,
-                route.points[j].latitude,
-                route.points[j].longitude)
+                position[1],
+                position[0],
+                route[j][1], // Lat
+                route[j][0]) // Lng
             .toInt();
         if (distance < routeDelta.distance) {
           routeDelta.distance = distance;
           routeDelta.pointIndex = j;
-          routeDelta.point = route.points[j];
+          routeDelta.point = route[j];
         } else if (distance <= trigger) {
           routeDelta.routeIndex = i;
           routeDelta.pointIndex = j;
@@ -944,19 +1130,106 @@ class CurrentTripItem extends MyTripItem {
           : highliteActions;
       for (int i = 0; i < routes.length; i++) {
         if (routeData.routeIndex == i) {
-          routes[i].borderColor = colourList[Setup().selectedColour];
-          routes[i].color = colourList[Setup().selectedColour];
+          // routes[i].borderColor = colourList[Setup().selectedColour];
+          // routes[i].color = colourList[Setup().selectedColour];
           highliteActions = HighliteActions.routeHighlited;
         } else {
-          routes[i].borderColor = colourList[Setup().routeColour];
-          routes[i].color = colourList[Setup().routeColour];
+          // routes[i].borderColor = colourList[Setup().routeColour];
+          // routes[i].color = colourList[Setup().routeColour];
         }
       }
     }
   }
+  */
 }
 
 class MyTripItem {
+  int id;
+  String uri;
+  String driveUri;
+  String title;
+  String subTitle;
+  String body;
+  String added;
+  double score;
+  int scored;
+  int downloads;
+  String authorUri;
+  String author;
+  List<Map<String, dynamic>> routes;
+  // List<Route> routes;
+  List<Maneuver> maneuvers = [];
+  List<GoodRoad> goodRoads = [];
+  List<PointOfInterest> pointsOfInterest = [];
+  String images;
+  MyTripItem({
+    this.id = -1,
+    this.uri = '',
+    this.driveUri = '',
+    this.title = '',
+    this.subTitle = '',
+    this.body = '',
+    this.added = '',
+    this.score = 0,
+    this.scored = 0,
+    this.downloads = 0,
+    this.authorUri = '',
+    this.author = '',
+    this.routes = const [],
+    this.maneuvers = const [],
+    this.goodRoads = const [],
+    this.pointsOfInterest = const [],
+    this.images = '',
+  });
+
+  factory MyTripItem.fromJson({required Map<String, dynamic> jsonObject}) {
+    List<Map<String, dynamic>> routes = jsonObject["routes"];
+    // routesFromJson(jsonList: jsonObject["routes"]);
+    List<Maneuver> maneuvers =
+        maneuversFromJson(jsonList: jsonObject["maneuvers"]);
+    List<GoodRoad> goodRoads =
+        goodRoadsFromJson(jsonList: jsonObject["good_roads"]);
+    List<PointOfInterest> pointsOfInterest =
+        pointsOfInterestFromJson(jsonList: jsonObject["points_of_interest"]);
+    return MyTripItem(
+      id: -1,
+      uri: jsonObject["uri"] ?? "",
+      title: jsonObject["title"] ?? "",
+      subTitle: jsonObject["sub_title"] ?? "",
+      body: jsonObject["body"] ?? "",
+      added: jsonObject["added"] ?? "",
+      score: jsonObject["score"] ?? 0,
+      scored: jsonObject["scored"] ?? 0,
+      downloads: jsonObject["downloads"] ?? 0,
+      authorUri: jsonObject["author_uri"] ?? "",
+      author: jsonObject["author"] ?? "",
+      routes: routes,
+      maneuvers: maneuvers,
+      goodRoads: goodRoads,
+      pointsOfInterest: pointsOfInterest,
+    );
+  }
+
+  saveLocal() {
+    return;
+  }
+
+  publish() {
+    return;
+  }
+
+  String getPublishedDate({String noPrompt = ''}) {
+    return added == '' ? noPrompt : added;
+  }
+
+  get distanceAway => 1;
+
+  get distance => 10;
+
+  get showMethods => false;
+}
+
+class MyTripItemOld {
   int id;
   int driveId;
   int index;
@@ -969,8 +1242,8 @@ class MyTripItem {
   String publisher;
   List<PointOfInterest> pointsOfInterest = [];
   List<Maneuver> maneuvers = [];
-  List<mt.Route> routes = [];
-  List<mt.Route> goodRoads = [];
+  List<Route> routes = [];
+  List<Route> goodRoads = [];
   List<Follower> following = [];
   String images;
   double score;
@@ -982,7 +1255,7 @@ class MyTripItem {
   bool selected;
   ui.Image? mapImage;
 
-  MyTripItem({
+  MyTripItemOld({
     this.id = -1,
     this.driveId = -1,
     this.index = -1,
@@ -1090,7 +1363,7 @@ class MyTripItem {
     maneuvers.clear();
   }
 
-  void addRoute(mt.Route route) {
+  void addRoute(Route route) {
     routes.add(route);
   }
 
@@ -1098,11 +1371,11 @@ class MyTripItem {
     routes.clear();
   }
 
-  void insertRoute(mt.Route route, int index) {
+  void insertRoute(Route route, int index) {
     routes.insert(index, route);
   }
 
-  void addGoodRoad(mt.Route route) {
+  void addGoodRoad(Route route) {
     goodRoads.add(route);
   }
 
@@ -1110,7 +1383,7 @@ class MyTripItem {
     goodRoads.clear();
   }
 
-  void insertGoodRoad(mt.Route route, int index) {
+  void insertGoodRoad(Route route, int index) {
     goodRoads.insert(index, route);
   }
 
@@ -1174,30 +1447,22 @@ class MyTripItem {
       driveUri = getUuid();
     }
     for (PointOfInterest pointOfInterest in pointsOfInterest) {
-      pointOfInterest.url = getUuid();
-      pointsOfInterestMap.add(pointOfInterest.toApiMap());
+      //  pointOfInterest.url = getUuid();
+      //  pointsOfInterestMap.add(pointOfInterest.toApiMap());
     }
     for (Maneuver maneuver in maneuvers) {
       //    Map<String, dynamic> maneuverMap = maneuver.toMap();
       //    maneuverMap['drive_uri'] = driveUri;
       maneuversMap.add(maneuver.toMap());
-      maxLat = maneuver.location.latitude > maxLat
-          ? maneuver.location.latitude
-          : maxLat;
-      minLat = maneuver.location.latitude < minLat
-          ? maneuver.location.latitude
-          : minLat;
-      maxLong = maneuver.location.longitude > maxLong
-          ? maneuver.location.longitude
-          : maxLong;
-      minLong = maneuver.location.longitude < minLong
-          ? maneuver.location.longitude
-          : minLong;
+      maxLat = maneuver.point[1] > maxLat ? maneuver.point[1] : maxLat;
+      minLat = maneuver.point[1] < minLat ? maneuver.point[1] : minLat;
+      maxLong = maneuver.point[0] > maxLong ? maneuver.point[0] : maxLong;
+      minLong = maneuver.point[0] < minLong ? maneuver.point[0] : minLong;
     }
-    for (mt.Route route in routes) {
+    for (Route route in routes) {
       routesMap.add(routeToMap(route: route));
     }
-    for (mt.Route goodRoad in goodRoads) {
+    for (Route goodRoad in goodRoads) {
       routesMap.add(routeToMap(route: goodRoad));
     }
 
@@ -1225,18 +1490,18 @@ class MyTripItem {
     return tripMap;
   }
 
-  Map<String, dynamic> routeToMap({required mt.Route route}) {
+  Map<String, dynamic> routeToMap({required Route route}) {
     return {
-      'points': getPrivateRepository().pointsToString(route.points),
-      'colour': colourList.indexOf(route.color),
-      'stroke': route.strokeWidth,
+      //   'points': getPrivateRepository().pointsToString(route),
+      //   'colour': colourList.indexOf(route.color),
+      //   'stroke': route.strokeWidth,
     };
   }
 
   Future<int> saveLocal() async {
     int result = -1;
     updateDistance();
-    id = await getPrivateRepository().saveMyTripItem(this);
+    //  id = await getPrivateRepository().saveMyTripItem(this);
     try {
       Uint8List? pngBytes = Uint8List.fromList([]);
       if (driveUri.isEmpty) {
@@ -1271,13 +1536,13 @@ class MyTripItem {
   Future<void> loadLocal(int driveId) async {
     clearAll();
     Map<String, dynamic> map = await getPrivateRepository().getDrive(driveId);
-    LatLng pos = const LatLng(0, 0);
+    List pos = const [0, 0];
     // double distance = 99999;
     try {
       await ut.getPosition().then((currentPosition) {
-        pos = LatLng(currentPosition.latitude, currentPosition.longitude);
+        pos = [currentPosition.longitude, currentPosition.latitude];
       });
-
+/*
       final directory = Setup().appDocumentDirectory;
       id = driveId;
       driveId = driveId;
@@ -1301,11 +1566,11 @@ class MyTripItem {
         distanceAway = Geolocator.distanceBetween(pos.latitude, pos.longitude,
             maneuvers[0].location.latitude, maneuvers[0].location.longitude);
       }
-      List<mt.Route> polyLines =
+      List<List<List<double>>> polyLines =
           await getPrivateRepository().loadPolyLinesLocal(driveId, type: 0);
       for (int i = 0; i < polyLines.length; i++) {
         routes.add(
-          mt.Route(
+          List<List<double>>(
               id: -1,
               points: polyLines[i].points,
               color: colourList[Setup().routeColour], //  polyLines[i].color,
@@ -1320,7 +1585,7 @@ class MyTripItem {
         // pointsOfInterest[polylines[i].pointOfInterestIndex].id
         // polyLines.pointOfInterestIndex is its pointOfInterest.id
         goodRoads.add(
-          mt.Route(
+          List<List<double>>(
               id: -1,
               points: polyLines[i].points,
               color: polyLines[i].color,
@@ -1329,6 +1594,7 @@ class MyTripItem {
               pointOfInterestIndex: polyLines[i].pointOfInterestIndex), // id
         );
       }
+      */
     } catch (e) {
       debugPrint('Error: ${e.toString()}');
     }
@@ -1339,7 +1605,7 @@ class MyTripItem {
       await loadLocal(id);
     }
     // var uuid = const Uuid();
-    await postTrip(this);
+    //  await postTrip(this);
     return true;
   }
 /*
@@ -1364,7 +1630,7 @@ class MyTripItem {
 
       // pointsOfInterest[polylines[i].pointOfInterestIndex].id
       // polyLines.pointOfInterestIndex is its pointOfInterest.id
-      for (mt.Route route in goodRoads) {
+      for (List<List<double>> route in goodRoads) {
         for (PointOfInterest pointOfInterest in pointsOfInterest) {
           if (pointOfInterest.id == route.pointOfInterestIndex) {
             // pick up the point of interest uuid

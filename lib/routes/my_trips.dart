@@ -47,7 +47,7 @@ class _MyTripsScreenState extends State<MyTrips> {
     int driveId = _myTripItems[index].id;
 
     MyTripItem dbTrip = _myTripItems[index];
-    await dbTrip.loadLocal(driveId);
+    // await dbTrip.loadLocal(driveId);
     if (mounted) {
       Navigator.pushNamed(context, 'createTrip',
           arguments: TripArguments(dbTrip, 'db'));
@@ -56,6 +56,7 @@ class _MyTripsScreenState extends State<MyTrips> {
 
   Future<void> shareTrip(int index) async {
     MyTripItem currentTrip = _myTripItems[index];
+    /*
     currentTrip.showMethods = false;
     Navigator.push(
       context,
@@ -68,6 +69,7 @@ class _MyTripsScreenState extends State<MyTrips> {
         currentTrip.showMethods = true;
       });
     });
+    */
     return;
   }
 
@@ -75,7 +77,7 @@ class _MyTripsScreenState extends State<MyTrips> {
     Utility().showOkCancelDialog(
         context: context,
         alertTitle: 'Permanently delete trip?',
-        alertMessage: _myTripItems[index].heading,
+        alertMessage: ' ', // _myTripItems[index].heading,
         okValue: index, // _myTripItems[index].getDriveId(),
         callback: onConfirmDeleteTrip);
   }
@@ -83,9 +85,9 @@ class _MyTripsScreenState extends State<MyTrips> {
   void onConfirmDeleteTrip(int value) {
     // debugPrint('Returned value: ${value.toString()}');
     if (value > -1) {
-      int driveId = _myTripItems[value].driveId;
-      getPrivateRepository().deleteDriveLocal(driveId: driveId);
-      setState(() => _myTripItems.removeAt(value));
+      //   int driveId = 1, // _myTripItems[value].driveId;
+      //   getPrivateRepository().deleteDriveLocal(driveId: driveId);
+      //  setState(() => _myTripItems.removeAt(value));
     }
   }
 
@@ -97,12 +99,13 @@ import 'package:uuid/rng.dart';
  */
 
   Future<void> publishTrip(int index) async {
-    await _myTripItems[index].publish();
+    //   await _myTripItems[index].publish();
     return;
   }
 
   Widget _getPortraitBody() {
     if (_myTripItems.isEmpty) {
+      /*
       _myTripItems.add(
         MyTripItem(
             heading: 'Save your trips for later, or to share',
@@ -112,7 +115,7 @@ import 'package:uuid/rng.dart';
                 'Describe the trip and why you liked it. You can share the trip with members of a group. You can also publish a trip for other people to enjoy',
             pointsOfInterest: [
               PointOfInterest(
-                point: const LatLng(-52, 0),
+                point: [0, 0],
                 //    child1: const Icon(Icons.ac_unit),
               ),
             ],
@@ -125,6 +128,8 @@ import 'package:uuid/rng.dart';
             //  DateTime.now().subtract(const Duration(days: 10)).toString(),
             publisher: ''),
       );
+
+      */
     }
     return ListView(
       children: [

@@ -176,12 +176,14 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                                     ))
                                 .toList(),
                             onChanged: (item) {
+                              /*
                               CurrentTripItem().pointsOfInterest[widget.index] =
                                   PointOfInterest.clone(
                                 pointOfInterest: CurrentTripItem()
                                     .pointsOfInterest[widget.index],
                                 type: item == null ? -1 : int.parse(item),
                               );
+                              */
                             },
                           ),
                         ),
@@ -632,7 +634,7 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
     var pics = jsonDecode(pointOfInterest.images);
     return [
       for (var pic in pics)
-        Uri.parse('$urlDrive/images${pointOfInterest.url}${pic['url']}')
+        Uri.parse('$urlDrive/images${pointOfInterest.uri}${pic['url']}')
             .toString()
     ];
   }
@@ -649,9 +651,9 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
   }
 
   changeRating(value) {
-    if (CurrentTripItem().pointsOfInterest[widget.index].url.isNotEmpty) {
+    if (CurrentTripItem().pointsOfInterest[widget.index].uri.isNotEmpty) {
       putPointOfInterestRating(
-          CurrentTripItem().pointsOfInterest[widget.index].url, value);
+          CurrentTripItem().pointsOfInterest[widget.index].uri, value);
       if (widget.onRated != null) {
         widget.onRated!(value, widget.index);
       }

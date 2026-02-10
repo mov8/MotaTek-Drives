@@ -158,8 +158,8 @@ class _FollowerTileState extends State<FollowerTile> {
       double distance = Geolocator.distanceBetween(
           widget.currentPosition.latitude,
           widget.currentPosition.longitude,
-          widget.follower.position.latitude,
-          widget.follower.position.longitude);
+          widget.follower.position[1],
+          widget.follower.position[0]);
       if (distance > 1000) {
         _status =
             '(${(distance * metersToMiles).toStringAsFixed(1)} miles away)';
@@ -177,8 +177,8 @@ class _FollowerTileState extends State<FollowerTile> {
         double distance = Geolocator.distanceBetween(
             widget.currentPosition.latitude,
             widget.currentPosition.longitude,
-            widget.follower.position.latitude,
-            widget.follower.position.longitude);
+            widget.follower.position[1],
+            widget.follower.position[0]);
         if (distance > 1000) {
           _status =
               '(${(distance * metersToMiles).toStringAsFixed(1)} miles away)';

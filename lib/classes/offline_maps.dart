@@ -19,7 +19,10 @@ class OfflineTiles {
   //  Fence _bounds = Fence(northEast: LatLng(0, 0), southWest: LatLng(0, 0));
   double _zoom = 0.5;
   double _cover = 0.5;
-  mt.Route _route = mt.Route(points: [LatLng(0, 0)]);
+  // mt.Route _route = mt.Route(points: [
+  //   [0, 0]
+  //]);
+  mt.Route _route = mt.Route(lines: []);
   Function(double downloaded)? _updateDownloaded;
   bool _cancel = false;
   Set<TileIdentity> _tilesToDownload = {};
@@ -55,10 +58,12 @@ class OfflineTiles {
   }
 
   mt.Route routesFlatten({required List<mt.Route> routes}) {
-    mt.Route route = mt.Route(points: []);
+    mt.Route route = mt.Route(lines: []);
+    /*
     for (int i = 0; i < routes.length; i++) {
       route.points.addAll(routes[i].points);
     }
+    */
     return route;
   }
 /*
@@ -141,7 +146,8 @@ class OfflineTiles {
   }
 
   Future<bool> downloadMaps() async {
-    _route = routesFlatten(routes: routes);
+    mt.Route _route = mt.Route(lines: []);
+    //  routesFlatten(routes: routes);
     _tilesToDownload = tilesToDownload(margin: 0.5);
     await showDialog<bool>(
       context: context,

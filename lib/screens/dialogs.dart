@@ -1039,7 +1039,7 @@ class DriverDetails {
             TextButton(
               child: const Text('Ok', style: TextStyle(fontSize: 22)),
               onPressed: () async {
-                driver.position = position;
+                driver.position = [0, 0]; //  position;
                 await sendDriverDetails(driver);
                 if (!socket.connected) {
                   socket.connect();

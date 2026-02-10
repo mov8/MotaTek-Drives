@@ -50,6 +50,8 @@ class MLMapState extends State<MLMap> {
     _mapStyle = await mapStyle(map: 'maplibre');
     Position position = await Geolocator.getCurrentPosition();
     _currentPosition = LatLng(position.latitude, position.longitude);
+
+    _currentPosition = LatLng(51.433, -0.513); // DEBUG
     return true;
   }
 
@@ -86,7 +88,7 @@ class MLMapState extends State<MLMap> {
             return MapLibreMap(
               key: Key('LM001'),
               styleString: _mapStyle, // _mapStyleUrl()
-              myLocationEnabled: true,
+              myLocationEnabled: false, // true,
 
               compassViewPosition: CompassViewPosition.topLeft,
               onMapCreated: _onMapCreated,

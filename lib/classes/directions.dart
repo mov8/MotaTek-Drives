@@ -31,14 +31,14 @@ class Directions {
   double distance = 999999999;
   int nextIndex = -1;
 
-  LatLng _position = const LatLng(0, 0);
+  List<double> _position = const [0, 0];
   Function(int, int)? onDiverge;
   Directions();
   int nextManeuverIndex() {
     return currentIndex;
   }
 
-  update({required LatLng position}) {
+  update({required List<double> position}) {
     _position = position;
     if (currentIndex == -1) {
       findNextManeuver(position: position);
@@ -72,7 +72,7 @@ class Directions {
     distance = distance > delta ? delta : distance;
   }
 
-  void findNextManeuver({required LatLng position}) {
+  void findNextManeuver({required List<double> position}) {
     int oldIndex = currentIndex;
     for (int i = 0; i < maneuvers.length; i++) {
       double delta = getDistance(i);
@@ -89,8 +89,8 @@ class Directions {
 
   double getDistance(int i) {
     if (i < maneuvers.length && i > -1) {
-      return Geolocator.distanceBetween(_position.latitude, _position.longitude,
-          maneuvers[i].location.latitude, maneuvers[i].location.longitude);
+      return Geolocator.distanceBetween(_position[1], _position[0],
+          maneuvers[i].point[1], maneuvers[i].point[0]);
     }
     return 0;
   }
@@ -109,7 +109,7 @@ class PositionData {
 class DirectionDescriptors {
   List<Maneuver> maneuvers = [];
   String driveId;
-  List<mt.Route> routes;
+  List<Map<String, dynamic>> routes;
   DirectionDescriptors(
       {required this.driveId, required this.maneuvers, required this.routes});
   List<String> promptFiles = [];
@@ -164,7 +164,7 @@ class DirectionDescriptors {
   Map<String, dynamic> getDirections(
       {int maneuverIndex = 0,
       double metersToManeuver = 9999999999,
-      LatLng position = const LatLng(0, 0),
+      List<double> position = const [0, 0],
       int error = 0}) {
     Map<String, dynamic> directions = {};
 
@@ -293,10 +293,10 @@ class DirectionDescriptors {
   double metersToNextManeuver({required index}) {
     if (index > 0 && index < maneuvers.length) {
       return Geolocator.distanceBetween(
-        maneuvers[index].location.latitude,
-        maneuvers[index].location.longitude,
-        maneuvers[index + 1].location.latitude,
-        maneuvers[index + 1].location.longitude,
+        maneuvers[index].point[0],
+        maneuvers[index].point[0],
+        maneuvers[index + 1].point[1],
+        maneuvers[index + 1].point[0],
       );
     } else {
       return 0;

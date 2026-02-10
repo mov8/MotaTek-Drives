@@ -4,7 +4,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 // import 'package:flutter/material.dart';
 // import 'package:maplibre_gl/maplibre_gl.dart';
-import '/classes/route.dart' as mt;
+import '/classes/route.dart';
 
 /// The issue of slow data loading is to be addressed by only retrieving the data
 /// needed. A geofence will be calculated that will contain a customisable
@@ -282,17 +282,19 @@ class PointSearchItem {
   }
 }
 
-Fence fenceFromPolylines({required mt.Route polyline, margin = 0}) {
+Fence fenceFromPolylines({required Route polyline, margin = 0}) {
   double maxLat = -90;
   double minLat = 90;
   double maxLong = -180;
   double minLong = 180;
-  for (LatLng point in polyline.points) {
-    maxLat = point.latitude > maxLat ? point.latitude : maxLat;
-    minLat = point.latitude < minLat ? point.latitude : minLat;
-    maxLong = point.longitude > maxLong ? point.longitude : maxLong;
-    minLong = point.longitude < minLong ? point.longitude : minLong;
+/*
+  for (List point in polyline.points) {
+    maxLat = point[1] > maxLat ? point[1] : maxLat;
+    minLat = point[1] < minLat ? point[1] : minLat;
+    maxLong = point[0] > maxLong ? point[0] : maxLong;
+    minLong = point[0] < minLong ? point[0] : minLong;
   }
+  */
   return Fence(
       northEast: LatLng(maxLat - margin, maxLong + margin),
       southWest: LatLng(minLat + margin, minLong - margin));

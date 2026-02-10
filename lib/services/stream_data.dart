@@ -45,9 +45,10 @@ class FollowRoute<T> {
 
   FollowRoute({required this.controller});
 
-  void follow({required List<mt.Route> routes, index = 0, delay = 1}) {
+  void follow(
+      {required List<Map<String, dynamic>> routes, index = 0, delay = 1}) {
     run = true;
-    _routes = routes;
+    _routes = routes[0]['geometry']['coordinates']; //routes;
     _index = index;
     _delay = delay;
     move();
@@ -56,19 +57,19 @@ class FollowRoute<T> {
   Position? get getPosition => position;
 
   int get getIndex => _currentIndex;
-  LatLng getPositionAt(int index) => _routes[_route].points[index];
+  List<double> getPositionAt(int index) => _routes[_route].lines[index];
 
   void move() async {
     if (run) {
       for (int r = 0; r < _routes.length; r++) {
-        List<LatLng> points = _routes[r].points;
+        mt.Route route = _routes[r];
         _route = r;
-        for (int i = _index; i < points.length; i++) {
+        for (int i = _index; i < route.lines.length; i++) {
           _currentIndex = i;
           await Future.delayed(Duration(seconds: _delay), () {
             position = Position(
-                longitude: points[i].longitude,
-                latitude: points[i].latitude,
+                longitude: route.lines[i][0],
+                latitude: route.lines[i][1],
                 timestamp: DateTime.now(),
                 accuracy: 1,
                 altitude: 0,

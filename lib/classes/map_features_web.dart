@@ -175,6 +175,7 @@ Future<PublishedFeatures> getPublishedFeatures(
   );
 }
 
+/*
 class OsmFeatures {
   Function(int)? pinTap;
   List<OsmAmenity> amenities = [];
@@ -202,7 +203,7 @@ class OsmFeatures {
     amenities.clear();
   }
 }
-
+*/
 class PublishedFeatures {
   Function(bool)? onUpdate;
   Function(int) pinTap;
@@ -247,7 +248,7 @@ class PublishedFeatures {
     features.addAll(await getFeatures(zoom: zoom, onTap: onTap));
     return;
   }
-
+/*
   Future<bool> update({
     required Fence screenFence,
     double zoom = 12,
@@ -443,6 +444,9 @@ class PublishedFeatures {
     return updated;
   }
 
+  */
+
+  /*
   Future<bool> addRouteMarker(
       {required List<mt.Route> routes,
       required Feature feature,
@@ -541,7 +545,7 @@ class PublishedFeatures {
     }
     return pos;
   }
-
+*/
   Future<Card?> getCard({
     required Feature feature,
     required int index,
@@ -552,8 +556,7 @@ class PublishedFeatures {
       TripItem tripItem = await tripItemRepository.loadTripItem(
           key: feature.row, id: feature.id, uri: feature.uri);
       tripItem.closest = distanceBetween(
-              LatLng(Setup().lastPosition.latitude,
-                  Setup().lastPosition.longitude),
+              [Setup().lastPosition.longitude, Setup().lastPosition.longitude],
               feature.point)
           .truncate();
       return Card(

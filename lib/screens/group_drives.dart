@@ -330,7 +330,7 @@ class _GroupDriveFormState extends State<GroupDriveForm>
         }
       }
       try {
-        if (tripItem.heading.isNotEmpty) {
+        if (tripItem.title.isNotEmpty) {
           _showingDialog = true;
           bool sent = await updateDialog(
               context: context, eventDetails: _changes[i], tripItem: tripItem);
@@ -359,7 +359,7 @@ class _GroupDriveFormState extends State<GroupDriveForm>
           context: context,
           builder: (context) => StatefulBuilder(
             builder: (context, setState) => AlertDialog(
-              title: Text(tripItem.heading,
+              title: Text(tripItem.title,
                   style: headlineStyle(
                       context: context, color: Colors.black, size: 2)),
               content: SizedBox(
@@ -502,7 +502,7 @@ class _GroupDriveFormState extends State<GroupDriveForm>
       Map<String, dynamic> toEmail = {
         'drive_id': myTripItem.driveUri,
         'drive_date': dateFormatSQL.format(driveDate),
-        'title': myTripItem.heading,
+        'title': myTripItem.title,
         'message': instructions
       };
       List<Map<String, dynamic>> invited = [];

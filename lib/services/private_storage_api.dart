@@ -1,13 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Route;
 import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
+// import 'package:latlong2/latlong.dart';
 import 'private_storage.dart';
 import '/models/other_models.dart';
-import '/classes/other_classes.dart';
-import '/classes/my_trip_item.dart';
+import '/classes/classes.dart';
+//import '/classes/my_trip_item.dart';
 import '/classes/route.dart' as mt;
 
 class PrivateStorageLocal implements PrivateDataRepository {
@@ -220,7 +220,7 @@ class PrivateStorageLocal implements PrivateDataRepository {
   Future<int> saveMyTripItem(MyTripItem myTripItem) async {
     return 0;
   }
-
+/*
   @override
   Future<OsmAmenity> loadOsmAmenityLocal({required int id, index = 0}) async {
     return OsmAmenity(
@@ -239,8 +239,10 @@ class PrivateStorageLocal implements PrivateDataRepository {
     return true;
   }
 
+  */
+
   @override
-  String pointsToString(List<LatLng> points) {
+  String pointsToString(List<List<double>> points) {
     return '';
   }
 
@@ -302,7 +304,7 @@ class PrivateStorageLocal implements PrivateDataRepository {
   @override
   Future<bool> savePolylinesLocal(
       {required int driveId,
-      required List<mt.Route> polylines,
+      required List<Map<String, dynamic>> polylines,
       List<PointOfInterest> pointsOfInterest = const [],
       type = 0}) async {
     return true;
@@ -356,7 +358,7 @@ class PrivateStorageLocal implements PrivateDataRepository {
 
   @override
   Future<mt.Route> loadPolyLineLocal(int id, {type = 0}) async {
-    return mt.Route(points: []);
+    return mt.Route(lines: []);
   }
 
   @override
@@ -376,12 +378,12 @@ class PrivateStorageLocal implements PrivateDataRepository {
   }
 
   @override
-  List<LatLng> stringToPoints(String pointsString) {
-    List<LatLng> points = [];
+  List<List<double>> stringToPoints(String pointsString) {
+    List<List<double>> points = [];
     try {
       var pointsJson = jsonDecode(pointsString);
       for (int i = 0; i < pointsJson.length; i++) {
-        points.add(LatLng(pointsJson[i]['lat'], pointsJson[i]['lon']));
+        points.add([pointsJson[i]['lon'], pointsJson[i]['lat']]);
       }
     } catch (e) {
       debugPrint('Points convertion error: ${e.toString()}');

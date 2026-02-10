@@ -17,6 +17,7 @@ import '/services/services.dart' hide getPosition;
 import '/models/models.dart';
 import '/helpers/edit_helpers.dart';
 import '/tiles/tiles.dart';
+import 'create_trip.dart';
 import 'package:flutter/material.dart';
 // import 'package:flutter/services.dart';
 import 'package:flutter/rendering.dart';
@@ -32,12 +33,6 @@ import 'package:flutter_phone_direct_caller/flutter_phone_direct_caller.dart';
 //import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:socket_io_client/socket_io_client.dart' as sio;
-
-import 'package:maplibre_gl/maplibre_gl.dart' as ml; // hide LatLng;
-
-ml.MapLibreMapController? _mapController;
-
-BottomDrawerController _bottomDrawerController = BottomDrawerController();
 
 /*
 "line-color": "#da2dc28f",  # "#ec5656",
@@ -118,11 +113,14 @@ Look at Tilemaker that creates vector tiles from
 
 */
 
+
+/*
+
 int testInt = 0;
 
 enum MessageActions { none, read, write, writing, reply, send, delete }
 
-class CreateTripController {
+class CreateTripFMController {
   _CreateTripState? _createTripState;
   void _addState(_CreateTripState createTripState) {
     _createTripState = createTripState;
@@ -132,7 +130,7 @@ class CreateTripController {
 
   Future<ui.Image?> getMapImage() async {
     try {
-      // return _createTripState?.getMapImage();
+      return _createTripState?.getMapImage();
     } catch (e) {
       debugPrint("Can't get the map image");
     }
@@ -150,7 +148,7 @@ class CreateTripController {
 */
   void updateValues({required CreateTripValues values}) {
     try {
-      //    _createTripState?.updateValues(values: values);
+      _createTripState?.updateValues(values: values);
     } catch (e) {
       debugPrint("Can't update CreateTrip state values");
     }
@@ -167,7 +165,7 @@ class CreateTripController {
 
   void drive({bool follow = false}) {
     try {
-      //     _createTripState?.getLocationUpdates();
+      _createTripState?.getLocationUpdates();
     } catch (e) {
       debugPrint('Controller error: ${e.toString()}');
     }
@@ -192,14 +190,15 @@ class CreateTripController {
   */
 }
 
-class CreateTrip extends StatefulWidget {
-  final CreateTripController? controller;
-  const CreateTrip({super.key, this.controller});
+class CreateTripFM extends StatefulWidget {
+  final CreateTripFMController? controller;
+  const CreateTripFM({super.key, this.controller});
   @override
-  State<CreateTrip> createState() => _CreateTripState();
+  State<CreateTripFM> createState() => _CreateTripState();
 }
 
-class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
+class _CreateTripState extends State<CreateTripFM>
+    with TickerProviderStateMixin {
   final GlobalKey mapKey = GlobalKey();
   final GlobalKey _scaffoldKey = GlobalKey();
   final GlobalKey _appBarKey = GlobalKey();
@@ -278,7 +277,7 @@ class CreateCurrentTripItem().tripValues {
   final ScrollController _scrollController = ScrollController();
   // final mt.RouteAtCenter _routeAtCenter = mt.RouteAtCenter();
   bool _tripStarted = false;
-
+  late AnimatedMapController _animatedMapController;
   late final StreamController<double?> _allignPositionStreamController;
   late final StreamController<void> _allignDirectionStreamController;
   late final LeadingWidgetController _leadingWidgetController;
@@ -295,17 +294,19 @@ class CreateCurrentTripItem().tripValues {
   // Map<String, dynamic> _waypointPositions = {};
 
   double _zoom = 13;
-//  final _dividerHeight = 35.0;
+  final _dividerHeight = 35.0;
   List<LatLng> routePoints = const [LatLng(51.478815, -0.611477)];
 
   String images = '';
   //  String stadiaMapsApiKey = 'ea533710-31bd-4144-b31b-5cc0578c74d7';
   late Style _style;
+  PublishedFeatures _publishedFeatures = PublishedFeatures(
+      features: [], pinTap: (_) => (), pointOfInterestLookup: {});
 
-  // final OsmFeatures _osmFeatures = OsmFeatures(amenities: []);
+  final OsmFeatures _osmFeatures = OsmFeatures(amenities: []);
   // List<PointOfInterest> _pointsOfInterest = [];
   final List<Marker> _debugMarkers = [];
-  final bool _debugging = false; //true;
+  final bool _debugging = true;
   final String _debuggingRoute = 'Debug';
   final Directions _directions = Directions();
 
@@ -323,39 +324,26 @@ class CreateCurrentTripItem().tripValues {
 
   final List<TripMessage> _tripMessages = [];
 
-  final GlobalKey _scrollToKey = GlobalKey();
-  final GlobalKey _mapKey = GlobalKey();
-  TripRequest? _tripRequest;
-  List<Card> _tripCards = [];
-  Point _mapMiddle = Point(0, 0);
-
-  bool _opened = true;
-
-  Map<String, dynamic> linesMap = {};
-
-  Widget? _cardList;
-
-  ImageRepository _imageRepository = ImageRepository();
-
   /// Routine to add point of interest
   /// Identified as a point
 
   _addPointOfInterest(int id, int userId, int iconIdx, String desc, String hint,
-      double size, List<double> lngLat, String audio) {
+      double size, LatLng latLng, String audio) {
     try {
-      /*   CurrentTripItem().addPointOfInterest(
+      CurrentTripItem().addPointOfInterest(
         PointOfInterest(
           id: id,
           driveId: CurrentTripItem().driveId,
           type: iconIdx,
           name: desc,
           description: hint,
+          width: size,
+          height: size,
           images: images,
-          point: lngLat,
+          point: latLng,
           sounds: audio,
         ),
       );
-      */
       setState(() {
         _showMask = false;
       });
@@ -399,7 +387,7 @@ class CreateCurrentTripItem().tripValues {
     /// Have to have a controller instance for each Widget
     /// being controlled, as the controller shares the widgets state
     /// A single controller would then share the state of
-    /// all the widgets it controls - not good.
+    /// all the widgets it controlls - not good.
 
     _floatingTextEditController1 = FloatingTextEditController();
     _floatingTextEditController2 = FloatingTextEditController();
@@ -414,6 +402,8 @@ class CreateCurrentTripItem().tripValues {
       _debugPositionController = StreamController<Position>();
       _debugRoute = FollowRoute(controller: _debugPositionController);
 /*
+
+
       _debugMarkers.add(
         Marker(
           child: Icon(
@@ -431,6 +421,7 @@ class CreateCurrentTripItem().tripValues {
       _loadedOK = dataFromDatabase();
       CurrentTripItem().tripValues.title = 'Create a new trip';
       _allignPositionStreamController = StreamController<double?>.broadcast();
+      _animatedMapController = AnimatedMapController(vsync: this);
       _allignDirectionStreamController = StreamController<void>.broadcast();
       //   _alignPositionOnUpdate = AlignOnUpdate.never;
       CurrentTripItem().tripValues.autoCentre = false;
@@ -461,37 +452,41 @@ class CreateCurrentTripItem().tripValues {
 
                   if (_following[i].email == tripMessage.email &&
                       _following[i].email != Setup().user.email) {
-                    /*   _following[i] = Follower.moveFollower(
+                    _following[i] = Follower.moveFollower(
                         follower: _following[i],
                         marker: _following[i].marker,
                         position: LatLng(tripMessage.lat, tripMessage.lng));
-                */
                     if (tripMessage.type == 's') {
                       _following[i].manufacturer = tripMessage.manufacturer;
                       _following[i].model = tripMessage.model;
                       _following[i].carColour = tripMessage.carColour;
                       _following[i].registration = tripMessage.registration;
                       _following[i].phoneNumber = tripMessage.phoneNumber;
-                      _following[i].position = [
-                        tripMessage.lng,
-                        tripMessage.lat
-                      ];
+                      _following[i].position =
+                          LatLng(tripMessage.lat, tripMessage.lng);
                       _following[i].accepted = tripMessage.accepted;
                     }
                     if (_following[i].track) {
-                      /*    if (_following[i].routeIndex == -1) {
+                      if (_following[i].routeIndex == -1) {
                         _following[i].routeIndex =
                             CurrentTripItem().routes.length;
-                        CurrentTripItem()
-                            .routes
-                            .last
-                            .add([tripMessage.lng, tripMessage.lat]);
+                        CurrentTripItem().routes.add(
+                              mt.Route(
+                                color: colourList[_following[i].iconColour],
+                                borderColor:
+                                    colourList[_following[i].iconColour],
+                                strokeWidth: 5,
+                                points: [
+                                  LatLng(tripMessage.lat, tripMessage.lng)
+                                ],
+                              ),
+                            );
                       } else {
                         CurrentTripItem()
                             .routes[_following[i].routeIndex]
-                            .add([tripMessage.lng, tripMessage.lat]);
+                            .points
+                            .add(LatLng(tripMessage.lat, tripMessage.lng));
                       }
-                    */
                     }
                   }
                 }
@@ -507,9 +502,8 @@ class CreateCurrentTripItem().tripValues {
                 }
 
                 _tripMessages.add(tripMessage);
-                //   showMessages(message: tripMessage);
+                showMessages(message: tripMessage);
               }
-
               //      developer.log('setState() 496', name: '_setState');
               setState(() {});
             } catch (e) {
@@ -538,10 +532,10 @@ class CreateCurrentTripItem().tripValues {
     _positionStream.cancel();
     _allignPositionStreamController.close();
     _allignDirectionStreamController.close();
+    _animatedMapController.dispose();
     fn1.dispose();
 
     // Clean up the focus node when the Form is disposed.
-    /* 
     if (CurrentTripItem().groupDriveId.isNotEmpty && socket.connected) {
       socket.emit('trip_leave', {'trip': CurrentTripItem().groupDriveId});
       try {
@@ -550,7 +544,6 @@ class CreateCurrentTripItem().tripValues {
         debugPrint('error disposing of group_messages: ${e.toString()}');
       }
     }
-    */
     if (socket.connected) {
       socket.close;
     }
@@ -603,9 +596,10 @@ class CreateCurrentTripItem().tripValues {
     }
     return Scaffold(
       backgroundColor: Colors.blue,
-      // resizeToAvoidBottomInset: false,
       key: _scaffoldKey,
+
       drawer: const MainDrawer(),
+      resizeToAvoidBottomInset: false, // Stops keyboard moving FABS
       appBar: AppBar(
           key: _appBarKey,
           automaticallyImplyLeading: false,
@@ -621,7 +615,7 @@ class CreateCurrentTripItem().tripValues {
               } else {
                 CurrentTripItem().onBackPressed();
                 _leadingWidgetController.changeWidget(0);
-                //     adjustMapHeight(CurrentTripItem().tripValues.mapHeight);
+                adjustMapHeight(CurrentTripItem().tripValues.mapHeight);
                 setState(() => ());
               }
             },
@@ -633,11 +627,13 @@ class CreateCurrentTripItem().tripValues {
           actions: CurrentTripItem().getActions(
               context: context,
               onUpdate: (val) => val ? setState(() => ()) : () => ())),
+
       bottomNavigationBar: RoutesBottomNav(
           key: _bottomNavKey,
           controller: _bottomNavController,
           initialValue: initialNavBarValue,
           onMenuTap: (_) => {}),
+      floatingActionButton: _handleFabs(),
       body: FutureBuilder<bool>(
         future: _loadedOK,
         builder: (BuildContext context, snapshot) {
@@ -674,6 +670,8 @@ class CreateCurrentTripItem().tripValues {
         _preferences.avoidMotorways = Setup().avoidMotorways;
         _preferences.avoidFerries = Setup().avoidFerries;
         _preferences.avoidTollRoads = Setup().avoidTollRoads;
+        _publishedFeatures = await getPublishedFeatures(
+            pinTap: pinTap, expandNotifier: _expandNotifier);
         if (setupRecords > 0) {
           try {
             Setup().loaded;
@@ -694,6 +692,50 @@ class CreateCurrentTripItem().tripValues {
     return true;
   }
 
+  pinTap(int index) async {
+    Map<String, dynamic> infoMap = await getDialogData(
+        features: _publishedFeatures.features,
+        index: index); //.then((infoMap){}
+    if (mounted) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) {
+          bool canPop = false;
+          return StatefulBuilder(
+            builder: (context, setStae) {
+              return PopScope(
+                canPop: canPop,
+                child: AlertDialog(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(
+                    infoMap['title'],
+                    style: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  elevation: 5,
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SingleChildScrollView(
+                        child: infoMap['content'],
+                      ),
+                    ],
+                  ),
+                  actions: actionButtons(
+                    context,
+                    [],
+                    ['Close'],
+                  ),
+                ),
+              );
+            },
+          );
+        },
+      );
+    }
+  }
+
   double appBarHeight() {
     double abHeight = 200;
     final abKeyContext = _appBarKey.currentContext;
@@ -705,7 +747,72 @@ class CreateCurrentTripItem().tripValues {
     return abHeight;
   }
 
-  /*
+  Future<Map<String, dynamic>> getDialogData(
+      {required List<Feature> features, required int index}) async {
+    Feature feature = features[index];
+    Key cardKey = Key('pin_${feature.row}');
+    Map<String, dynamic> mapInfo = {
+      'key': feature.row,
+      'title': 'N/A',
+      'content': Text('N/A'),
+      'images': '',
+      'details': false
+    };
+
+    for (int i = 0; i < _publishedFeatures.cards.length; i++) {
+      if (_publishedFeatures.cards[i].key == cardKey) {
+        mapInfo['content'] = _publishedFeatures.cards[i];
+        break;
+      }
+    }
+    mapInfo['key'] = feature.row;
+    switch (feature.type) {
+      case 0:
+        TripItem tripItem = await _publishedFeatures.tripItemRepository
+            .loadTripItem(key: feature.row, id: feature.id, uri: feature.uri);
+        mapInfo = {
+          'title': tripItem.heading,
+          'content': tripItem.subHeading,
+        };
+        break;
+      case 1:
+        PointOfInterest? pointOfInterest = await _publishedFeatures
+            .pointOfInterestRepository
+            .loadPointOfInterest(
+                key: feature.row, id: feature.id, uri: feature.uri);
+        if (pointOfInterest != null) {
+          mapInfo['title'] = poiTypes[feature.poiType]['name'];
+        }
+
+        break;
+
+      case 2:
+        mt.Route? goodRoad = await _publishedFeatures.goodRoadRepository
+            .loadGoodRoad(key: feature.row, id: feature.id, uri: feature.uri);
+        if (goodRoad != null) {
+          for (Feature feature in features) {
+            if (feature.type == 1 &&
+                feature.uri == goodRoad.pointOfInterestUri) {
+              PointOfInterest? pointOfInterest = await _publishedFeatures
+                  .pointOfInterestRepository
+                  .loadPointOfInterest(
+                      key: feature.row, id: feature.id, uri: feature.uri);
+              if (pointOfInterest != null) {
+                mapInfo['title'] =
+                    poiTypes[feature.poiType]; //pointOfInterest.getName();
+                mapInfo['content'] = pointOfInterest.description;
+                return mapInfo;
+              }
+            }
+          }
+        }
+        break;
+      default:
+        break;
+    }
+    return mapInfo;
+  }
+
   Widget _getPortraitBody() {
     if (!_hasRepainted) {
       if (Setup().appState.isNotEmpty) {
@@ -767,7 +874,7 @@ class CreateCurrentTripItem().tripValues {
           ),
 
           //         _handleMap(),
-          // _handleBottomSheetDivider(), // grab rail - GesureDetector()
+          _handleBottomSheetDivider(), // grab rail - GesureDetector()
           const SizedBox(
             height: 5,
           ),
@@ -776,12 +883,6 @@ class CreateCurrentTripItem().tripValues {
         ],
       ),
     );
-  }
-*/
-
-  Widget _getPortraitBody() {
-    return _handleMap();
-    // return Text("hi");
   }
 
   detailClose() {
@@ -885,6 +986,11 @@ class CreateCurrentTripItem().tripValues {
             },
             onClose: (_) async {
               if (_osmIncludingChange) {
+                Fence newFence = Fence.fromBounds(
+                    _animatedMapController.mapController.camera.visibleBounds);
+                mapController.mapEventStream.listen((event) {});
+                _cacheFence.setBounds(bounds: newFence, deltaDegrees: 0.5);
+                await _osmFeatures.update(fence: _cacheFence, size: 20);
                 setState(() => ());
                 _osmIncludingChange = false;
               }
@@ -893,7 +999,6 @@ class CreateCurrentTripItem().tripValues {
           const SizedBox(
             height: 10,
           ),
-/*
           if (CurrentTripItem().groupDriveId.isNotEmpty) ...[
             FloatingActionButton(
               heroTag: 'broadcast',
@@ -910,11 +1015,9 @@ class CreateCurrentTripItem().tripValues {
             ),
             SizedBox(height: 10),
           ],
-*/
           if ([TripState.recording, TripState.following]
               .contains(CurrentTripItem().tripState)) ...[
             // const SizedBox(height: 10),
-/*
             if (CurrentTripItem().tripValues.goodRoad.isGood) ...[
               FloatingActionButton(
                 heroTag: 'goodRoad',
@@ -940,7 +1043,6 @@ class CreateCurrentTripItem().tripValues {
                 onOpen: (_) => CurrentTripItem().saveState(),
                 onClose: (description, audio) => setState(
                   () {
-                    /*
                     addGoodRoad(
                         position: LatLng(_currentPosition.latitude,
                             _currentPosition.longitude),
@@ -949,7 +1051,6 @@ class CreateCurrentTripItem().tripValues {
                     CurrentTripItem().tripValues.goodRoad.isGood = true;
                     CurrentTripItem().tripValues.pointOfInterestIndex =
                         CurrentTripItem().pointsOfInterest.length - 1;
-                  */
                   },
                 ),
                 fillColor: Colors.white,
@@ -959,7 +1060,6 @@ class CreateCurrentTripItem().tripValues {
                     IconButton(onPressed: (() => ()), icon: Icon(Icons.mic)),
               ),
             ],
-*/
             const SizedBox(height: 10),
             FloatingTextEdit(
               key: Key('ftegr'),
@@ -977,7 +1077,7 @@ class CreateCurrentTripItem().tripValues {
                   description,
                   '',
                   30,
-                  [_currentPosition.longitude, _currentPosition.latitude],
+                  LatLng(_currentPosition.latitude, _currentPosition.longitude),
                   audio,
                 );
                 CurrentTripItem().tripValues.pointOfInterestIndex =
@@ -1000,6 +1100,14 @@ class CreateCurrentTripItem().tripValues {
                 if (CurrentTripItem().tripState != TripState.following) {
                   _currentPosition = await Geolocator.getCurrentPosition();
                 }
+
+                _animatedMapController
+                    .animateTo(
+                        dest: LatLng(_currentPosition.latitude,
+                            _currentPosition.longitude))
+                    .then((_) => updateOverlays(
+                        zoom:
+                            _animatedMapController.mapController.camera.zoom));
               }
             },
             heroTag: 'mapCentre',
@@ -1021,242 +1129,16 @@ class CreateCurrentTripItem().tripValues {
     CurrentTripItem().tripValues.autoCentre = false;
     //   _alignPositionOnUpdate = AlignOnUpdate.never;
     _alignDirectionOnUpdate = AlignOnUpdate.never;
-
-    getDropdownItems(String query) async {
-      _places.clear();
-      _places.addAll(await getPlaces(value: query));
-      //  developer.log('setState() 1233', name: '_setState');
-      setState(() {});
-    }
+    _animatedMapController
+        .animateTo(dest: position)
+        .then((_) => updateOverlays());
   }
 
-  /// MapLibre port changes
-  ///
-
-  double getMapHeight() {
-    double height = 0;
-    final bnKeyContext = _mapKey.currentContext;
-    if (bnKeyContext != null) {
-      RenderBox box = bnKeyContext.findRenderObject() as RenderBox;
-      height = box.size.height;
-    }
-    return height;
-  }
-
-  Point mapMiddle() {
-    Point middle = Point(0, 0);
-    final bnKeyContext = _mapKey.currentContext;
-    if (bnKeyContext != null) {
-      RenderBox box = bnKeyContext.findRenderObject() as RenderBox;
-      // double top = box.localToGlobal(Offset.zero).dy.toDouble();
-      // top = 0;
-      middle = Point(box.size.width / 2, box.size.height / 2);
-    }
-    return middle;
-  }
-
-  Widget _handleMap() {
-    return Stack(children: [
-      MLMap(
-        key: _mapKey,
-        onUpdate: _onMapUpdate,
-        onTap: _onTap,
-        onIdle: _onIdle,
-      ),
-      if (_mapController != null)
-        Positioned(
-          right: 20,
-          top: 22,
-          child: HandleCTFabs(controller: _mapController!),
-        ),
-      Align(
-        alignment: Alignment.bottomLeft,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(5, 0, 5, 35),
-          child: CurrentTripItem().tripValues.showProgress
-              ? LinearProgressIndicator(
-                  minHeight: 10,
-                )
-              : CreateTripChips(
-                  tripItem: CurrentTripItem(),
-                  createTripController: widget.controller!,
-                  leadingWidgetController: _leadingWidgetController,
-                  position:
-                      chipPosition(), // gets either stream or mapController position
-                  onUpdate: (value) => chipActions(
-                      action: value), //CurrentTripItem().tripValues = values),
-                ),
-        ),
-      ),
-      BottomDrawer(
-        maxHeight: 200,
-        content: cardsList(cards: _tripCards, controller: _scrollController),
-        controller: _bottomDrawerController,
-        onOpened: onOpened,
-      ),
-      if (CurrentTripItem().tripValues.showTarget) ...[
-        CustomPaint(
-          painter: TargetPainter(
-              top: _mapMiddle.y.toDouble(),
-              left: _mapMiddle.x.toDouble(),
-              color: insertAfter == -1 ? Colors.black : Colors.red),
-        )
-      ],
-    ]);
-  }
-
-  chipActions({MyTripActions action = MyTripActions.none}) {
-    switch (action) {
-      case MyTripActions.none:
-        break;
-      case MyTripActions.startManual:
-        _leadingWidgetController.changeWidget(1);
-        CurrentTripItem().tripState = TripState.manual;
-        _handleBottomDrawer();
-        _opened = false;
-        // _bottomDrawerController.dockOpenTile(key: _scrollToKey);
-        break;
-      case MyTripActions.startTracking:
-        break;
-      case MyTripActions.track:
-        break;
-      case MyTripActions.addWaypoint:
-        break;
-      case MyTripActions.deleteWaypoint:
-        break;
-      case MyTripActions.extendEnd:
-        break;
-      case MyTripActions.addPointOfInterest:
-        break;
-      case MyTripActions.saveTrip:
-        break;
-      case MyTripActions.follow:
-        break;
-      case MyTripActions.stopFollowing:
-        break;
-      case MyTripActions.clearTrip:
-        break;
-      case MyTripActions.reverseTrip:
-        break;
-      case MyTripActions.showSteps:
-        break;
-      case MyTripActions.message:
-        break;
-    }
-  }
-
-  onOpened(open) {
-    //  _scrollController.jumpTo(12);
-    developer.log("calling onOpened _opened = $open", name: "_expand");
-    if (!_opened) {
-      _bottomDrawerController.dockOpenTile(key: _scrollToKey);
-      _opened = true;
-    } else if (!open) {
-      _mapMiddle = mapMiddle();
-      setState(() => ());
-    }
-  }
-
-  _onMapUpdate(ml.LatLng pos, ml.MapLibreMapController mapController) async {
-    _mapController ??= mapController;
-    _tripRequest ??= TripRequest(
-        onUpdated: onUpdated,
-        onGetDetails: onGetDetails,
-        imageRepository: _imageRepository);
-    CurrentTripItem().mapController = _mapController;
-    _mapMiddle = mapMiddle();
-    developer.log("_onMapUpdate called", name: "_shieldTap");
-  }
-
-  onGetDetails(index) {}
-
-  _onTap(var tap, ml.LatLng pos) async {
-    var foundFeatures;
-    try {
-      // var point = Point(tap.x.toDouble(), tap.y.toDouble());
-      foundFeatures = await _mapController!
-          .queryRenderedFeatures(tap, ["route-marker-layer"], null);
-      if (foundFeatures.isNotEmpty) {
-        var tappedFeature = foundFeatures.first;
-        var name = tappedFeature['properties']['name'];
-        developer.log("_onShieldTapped feature $name found",
-            name: "_shieldTap");
-        String uri = tappedFeature['id'].substring(0, 32);
-        //  _handleBottomDrawer(uri: uri);
-      } else {
-        developer.log("_onShieldTapped features are empty", name: "_shieldTap");
-      }
-    } catch (e) {
-      developer.log(
-          '_onTap Error ${e.toString} - features: ${foundFeatures.toString()}');
-    }
-    /*  
-    var lineToChange =
-        _routeFeatures["features"].firstWhere((f) => f["id"] == "route-1");
-    lineToChange['properties']['color'] = Setup().goodRouteColourHex();
-    await _mapController!.setGeoJsonSource("route-features", _routeFeatures);
-    */
-  }
-
-  _handleBottomDrawer({String uri = ''}) {
-    _tripRequest ??= TripRequest(
-        onUpdated: onUpdated,
-        onGetDetails: onGetDetails,
-        imageRepository: _imageRepository);
-    _tripCards = _tripRequest!.getTripTiles(openUri: uri, key: _scrollToKey);
-    _bottomDrawerController.setContent(
-        content: cardsList(cards: _tripCards, controller: _scrollController));
-    developer.log(
-        "_handleBottomDrawer() _tripCards.length = ${_tripCards.length} ",
-        name: "_expand");
-    _bottomDrawerController.open(height: 300); // height of opened ExpandTile
-    _opened = false;
-  }
-
-  _onIdle() async {
-    developer.log('_onIdle called', name: '_zoom');
-    if (_mapController != null) {
-      try {
-        ml.LatLngBounds bounds = await _mapController!.getVisibleRegion();
-        double zoom = _mapController!.cameraPosition!.zoom;
-        Map<String, dynamic> geoJson =
-            await _tripRequest!.update(bounds: bounds, zoom: zoom);
-        if (geoJson.isNotEmpty) {
-          developer.log('Updating datasource from api', name: '_zoom');
-          await _mapController!.setGeoJsonSource("published-data", geoJson);
-        }
-        _handleBottomDrawer();
-      } catch (e) {
-        developer.log('error: ${e.toString()}', name: '_ezoom');
-      }
-    }
-  }
-
-  Widget cardsList(
-      {required List<Card> cards, required ScrollController controller}) {
-    Widget scrollList = Text('');
-    try {
-      if (cards.isNotEmpty) {
-        scrollList = ListView.builder(
-          controller: controller,
-          itemCount: cards.length,
-          itemBuilder: (context, index) =>
-              cards[index < cards.length ? index : cards.length - 1],
-        );
-      }
-    } catch (e) {
-      debugPrint('Error building scrollList ${e.toString()}');
-    }
-    return scrollList;
-  }
-
-  onUpdated(zoom) {
-    setState(
-      () => _tripCards = _tripRequest!.getTripTiles(),
-    );
-    developer.log(
-        'createTrip.onUpdated called items fetched = ${_tripCards.length}',
-        name: '_expanded');
+  getDropdownItems(String query) async {
+    _places.clear();
+    _places.addAll(await getPlaces(value: query));
+    //  developer.log('setState() 1233', name: '_setState');
+    setState(() {});
   }
 
   ///
@@ -1264,7 +1146,7 @@ class CreateCurrentTripItem().tripValues {
   /// does all the map UI
   /// Wrapped in a RepaintBoundary so that a screenshot of the map can be saved for the Route description
   ///
-/*
+
   Widget _handleMap() {
     if (listHeight == -1) {
       adjustMapHeight(MapHeights.full);
@@ -1423,7 +1305,7 @@ class CreateCurrentTripItem().tripValues {
                     )
                   : CreateTripChips(
                       tripItem: CurrentTripItem(),
-                      createTripController: widget.controller!,
+                      createTripController: CreateTripController(),
                       leadingWidgetController: _leadingWidgetController,
                       position:
                           chipPosition(), // gets either stream or mapController position
@@ -1448,16 +1330,14 @@ class CreateCurrentTripItem().tripValues {
       ),
     );
   }
-*/
-  List<Map<String, dynamic>> getPolyLines() {
+
+  List<mt.Route> getPolyLines() {
     return CurrentTripItem().routes;
   }
 
   LatLng chipPosition() {
     try {
-      return LatLng(_mapController!.cameraPosition!.target.latitude,
-          _mapController!.cameraPosition!.target.longitude);
-      // _animatedMapController.mapController.camera.center;
+      return _animatedMapController.mapController.camera.center;
     } catch (e) {
       return LatLng(0, 0);
     }
@@ -1482,7 +1362,7 @@ class CreateCurrentTripItem().tripValues {
               routeIndex: routeIndex,
               pointIndex: pointIndex),
           currentPosition: CurrentTripItem().tripValues.position,
-          driveId: '', // CurrentTripItem().driveUri,
+          driveId: CurrentTripItem().driveUri,
         ),
       );
     } else {
@@ -1497,7 +1377,7 @@ class CreateCurrentTripItem().tripValues {
       int routeIndex = 0,
       int pointIndex = 0}) async {
     bool update = await CurrentTripItem().changeRoute(
-        position: [_currentPosition.longitude, _currentPosition.latitude],
+        position: LatLng(_currentPosition.latitude, _currentPosition.longitude),
         routeIndex: routeIndex,
         pointIndex: pointIndex);
     if (update) {
@@ -1509,7 +1389,6 @@ class CreateCurrentTripItem().tripValues {
     FocusManager.instance.primaryFocus?.unfocus();
   }
 
-/*
   void updateOverlays({double zoom = 12}) async {
     Fence newFence = Fence.fromBounds(
         _animatedMapController.mapController.camera.visibleBounds);
@@ -1547,7 +1426,7 @@ class CreateCurrentTripItem().tripValues {
       }
     }
   }
-  */
+
   Future<Directory> getCacheFolder() async {
     String appDocumentDirectory =
         (await getApplicationDocumentsDirectory()).path;
@@ -1619,6 +1498,21 @@ class CreateCurrentTripItem().tripValues {
             registration: follower.registration,
             email: follower.email,
             position: follower.position,
+            marker: FollowerMarkerWidget(
+              index: i,
+              socket: socket,
+              forename: follower.forename,
+              surname: follower.surname,
+              phoneNumber: follower.phoneNumber,
+              manufacturer: follower.manufacturer,
+              model: follower.model,
+              colour: follower.carColour,
+              registration: follower.registration,
+              angle: -_mapRotation * pi / 180,
+              colourIndex: follower.email == Setup().user.email
+                  ? 17
+                  : cIndex, // 17 = transparent
+            ),
           ),
         );
         // }
@@ -1633,9 +1527,13 @@ class CreateCurrentTripItem().tripValues {
         surname: Setup().user.surname,
         email: Setup().user.email,
         phoneNumber: Setup().user.phone,
-        driveName: ' ', // CurrentTripItem().heading,
+        driveName: CurrentTripItem().heading,
         iconColour: cIndex,
-        position: [_currentPosition.longitude, _currentPosition.latitude],
+        position: LatLng(_currentPosition.latitude, _currentPosition.longitude),
+        marker: FollowerMarkerWidget(
+          colourIndex: 17,
+          socket: socket,
+        ),
       );
       _following.add(myCarInfo);
     }
@@ -1711,7 +1609,7 @@ class CreateCurrentTripItem().tripValues {
 
   /// _handleBottomSheetDivider()
   /// Handles the grab icion to separate the map from the bottom sheet
-/*
+
   _handleBottomSheetDivider() {
     _resizeDelay = 0;
     // debugPrint('_handleBottomSheetDivider() _dividerHeight: $_dividerHeight');
@@ -1754,7 +1652,7 @@ class CreateCurrentTripItem().tripValues {
       },
     );
   }
-*/
+
   SizedBox _showGroup() {
     return SizedBox(
       height: listHeight,
@@ -1786,7 +1684,7 @@ class CreateCurrentTripItem().tripValues {
           child: ManeuverTile(
             index: index,
             maneuvers: CurrentTripItem().maneuvers,
-            routes: [], // CurrentTripItem().routes,
+            routes: CurrentTripItem().routes,
             onLongPress: maneuverLongPress,
           ),
         ),
@@ -1814,15 +1712,9 @@ class CreateCurrentTripItem().tripValues {
 
   void maneuverLongPress(int index) async {
     CurrentTripItem().tripValues.showTarget = true;
-/*
-    _mapController!.animateCamera(
-      ml.CameraUpdate.newLatLng(ml.LatLng(
-              CurrentTripItem().maneuvers[index].location[1],
-              CurrentTripItem().maneuvers[index].location[
-                  0]) //          position.latitude, position.longitude),
-          ),
-    );
-*/
+    _animatedMapController.animateTo(
+        dest: CurrentTripItem().maneuvers[index].location);
+    // CurrentTripItem().tripState = TripState.following;
     debugPrint('index: $index');
     final String fileName = await getSpeech(
         text:
@@ -1842,7 +1734,7 @@ class CreateCurrentTripItem().tripValues {
         }
       }
     }
-//    _directions.update(position: CurrentTripItem().maneuvers[index].location);
+    _directions.update(position: CurrentTripItem().maneuvers[index].location);
     setState(() => _directions.currentIndex = index);
     return;
   }
@@ -2041,10 +1933,8 @@ class CreateCurrentTripItem().tripValues {
               child: const Text('Ok', style: TextStyle(fontSize: 22)),
               onPressed: () async {
                 _currentPosition = await Geolocator.getCurrentPosition();
-                driver.position = [
-                  _currentPosition.longitude,
-                  _currentPosition.latitude
-                ];
+                driver.position = LatLng(
+                    _currentPosition.latitude, _currentPosition.longitude);
                 await sendDriverDetails(driver);
                 if (!socket.connected) {
                   socket.connect();
@@ -2052,7 +1942,7 @@ class CreateCurrentTripItem().tripValues {
                 if (socket.connected) {
                   socket.emit('trip_join', {
                     'token': Setup().jwt,
-                    'trip': ' ', // CurrentTripItem().groupDriveId,
+                    'trip': CurrentTripItem().groupDriveId,
                     'message': '',
                     'make': driver.manufacturer,
                     'model': driver.model,
@@ -2086,13 +1976,7 @@ class CreateCurrentTripItem().tripValues {
 
   void followerLongPress(int index) {
     CurrentTripItem().tripValues.showTarget = true;
-    _mapController!.animateCamera(
-      ml.CameraUpdate.newLatLng(ml.LatLng(
-              _currentPosition.latitude,
-              _currentPosition
-                  .longitude) //          position.latitude, position.longitude),
-          ),
-    );
+    _animatedMapController.animateTo(dest: _following[index].point);
     return;
   }
 
@@ -2107,7 +1991,7 @@ class CreateCurrentTripItem().tripValues {
               key: ValueKey(CurrentTripItem().tripValues.pointOfInterestIndex),
               index: CurrentTripItem().tripValues.pointOfInterestIndex,
               pointOfInterest: CurrentTripItem().pointsOfInterest[index],
-              imageRepository: _imageRepository,
+              imageRepository: _publishedFeatures.imageRepository,
               onExpandChange: (expanded) => expandChange,
               onIconTap: iconButtonTapped,
               onDelete: removePointOfInterest,
@@ -2166,7 +2050,7 @@ class CreateCurrentTripItem().tripValues {
                       index: index,
                       pointOfInterest:
                           CurrentTripItem().pointsOfInterest[index],
-                      imageRepository: _imageRepository,
+                      imageRepository: _publishedFeatures.imageRepository,
                       onExpandChange: (expanded) => expandChange,
                       onIconTap: iconButtonTapped,
                       onDelete: removePointOfInterest,
@@ -2188,7 +2072,7 @@ class CreateCurrentTripItem().tripValues {
                       if (oldIndex < newIndex) {
                         newIndex = -1;
                       }
-                      //    CurrentTripItem().movePointOfInterest(oldIndex, newIndex);
+                      CurrentTripItem().movePointOfInterest(oldIndex, newIndex);
                     },
                   );
                 },
@@ -2208,7 +2092,7 @@ class CreateCurrentTripItem().tripValues {
                   index: CurrentTripItem().tripValues.pointOfInterestIndex,
                   pointOfInterest: CurrentTripItem().pointsOfInterest[
                       CurrentTripItem().tripValues.pointOfInterestIndex],
-                  imageRepository: _imageRepository,
+                  imageRepository: _publishedFeatures.imageRepository,
                   onExpandChange: (expanded) => expandChange,
                   onIconTap: iconButtonTapped,
                   onDelete: removePointOfInterest,
@@ -2235,8 +2119,7 @@ class CreateCurrentTripItem().tripValues {
     Utility().showOkCancelDialog(
         context: context,
         alertTitle: 'Permanently delete trip?',
-        alertMessage:
-            ' ', // CurrentTripItem().heading, // _myTripItems[index].heading,
+        alertMessage: CurrentTripItem().heading, // _myTripItems[index].heading,
         okValue: index,
         callback: onConfirmDeleteTrip);
   }
@@ -2263,16 +2146,16 @@ class CreateCurrentTripItem().tripValues {
   }
 */
   onPointOfInterestRatingChanged(int value, int index) async {
-    // putPointOfInterestRating(
-    //     CurrentTripItem().pointsOfInterest[index].url, value.toDouble());
+    putPointOfInterestRating(
+        CurrentTripItem().pointsOfInterest[index].url, value.toDouble());
   }
 
   void onPointOfInterestSaved({index = -1}) {
     if (index > -1) {
-      //  PointOfInterest updated = PointOfInterest.clone(
-      //       pointOfInterest: CurrentTripItem().pointsOfInterest[index]);
+      PointOfInterest updated = PointOfInterest.clone(
+          pointOfInterest: CurrentTripItem().pointsOfInterest[index]);
 
-      //   setState(() => CurrentTripItem().pointsOfInterest[index] = updated);
+      setState(() => CurrentTripItem().pointsOfInterest[index] = updated);
       debugPrint('done');
     }
   }
@@ -2281,8 +2164,8 @@ class CreateCurrentTripItem().tripValues {
     debugPrint('Returned value: ${value.toString()}');
     if (value > -1) {
       // int driveId = _myTripItems[value].driveId;
-      //   int driveId = CurrentTripItem().driveId;
-      //   getPrivateRepository().deleteDriveLocal(driveId: driveId);
+      int driveId = CurrentTripItem().driveId;
+      getPrivateRepository().deleteDriveLocal(driveId: driveId);
       CurrentTripItem().clearAll();
       // setState(() => _myTripItems.removeAt(value));
     }
@@ -2319,9 +2202,9 @@ class CreateCurrentTripItem().tripValues {
                     labelText: 'Trip name',
                     labelStyle: labelStyle(context: context)),
                 style: textStyle(context: context),
-                initialValue: ' ', // CurrentTripItem().heading,
+                initialValue: CurrentTripItem().heading,
                 // autovalidateMode: AutovalidateMode.onUserInteraction,
-                onChanged: (text) => (), //CurrentTripItem().heading = text,
+                onChanged: (text) => CurrentTripItem().heading = text,
                 onFieldSubmitted: (text) => (debugPrint('submitted : $text')),
               ),
             ),
@@ -2342,10 +2225,10 @@ class CreateCurrentTripItem().tripValues {
                     labelText: 'Trip summary',
                     labelStyle: labelStyle(context: context)),
                 style: textStyle(context: context),
-                initialValue: ' ', // CurrentTripItem()
-                //   .subHeading, //widget.port.warning.toString(),
+                initialValue: CurrentTripItem()
+                    .subHeading, //widget.port.warning.toString(),
                 autovalidateMode: AutovalidateMode.onUserInteraction,
-                onChanged: (text) => (), // CurrentTripItem().subHeading = text,
+                onChanged: (text) => CurrentTripItem().subHeading = text,
               ),
             ),
             Padding(
@@ -2410,8 +2293,8 @@ class CreateCurrentTripItem().tripValues {
       } else if (CurrentTripItem().tripValues.resumeStream) {
         _positionStream.resume();
       } else if (CurrentTripItem().tripValues.stopStream) {
-        //   CurrentTripItem().pointsOfInterest.add(PointOfInterest(
-        //       type: 18, point: CurrentTripItem().tripValues.lastLatLng));
+        CurrentTripItem().pointsOfInterest.add(PointOfInterest(
+            type: 18, point: CurrentTripItem().tripValues.lastLatLng));
       } else {
         if (CurrentTripItem().tripValues.streamFinished) {
           _positionStream.cancel();
@@ -2420,9 +2303,9 @@ class CreateCurrentTripItem().tripValues {
           if (_debuggingRoute.isEmpty) {
             _debugRoute.follow(routes: CurrentTripItem().routes);
           } else {
-            //    List<Map<String, dynamic>> debugRoute = await getPrivateRepository()
-            //        .getRoutesByName(name: _debuggingRoute);
-            //    _debugRoute.follow(routes: debugRoute);
+            List<mt.Route> debugRoute = await getPrivateRepository()
+                .getRoutesByName(name: _debuggingRoute);
+            _debugRoute.follow(routes: debugRoute);
           }
           // if (_debugPositionController.stream.)
           _positionStream = _debugPositionController.stream.listen(
@@ -2437,9 +2320,9 @@ class CreateCurrentTripItem().tripValues {
         }
         CurrentTripItem().tripValues.streamStarted = true;
         CurrentTripItem().tripValues.streamFinished = false;
-        CurrentTripItem().tripValues.lastLatLng = [0, 0];
-        CurrentTripItem().tripValues.startLatLng = [0, 0];
-        CurrentTripItem().tripValues.position = [0, 0];
+        CurrentTripItem().tripValues.lastLatLng = LatLng(0, 0);
+        CurrentTripItem().tripValues.startLatLng = LatLng(0, 0);
+        CurrentTripItem().tripValues.position = LatLng(0, 0);
         _positionStream
             .onDone(() => CurrentTripItem().tripValues.streamFinished = true);
       }
@@ -2470,21 +2353,19 @@ class CreateCurrentTripItem().tripValues {
             child: Icon(Icons.navigation, size: 40, color: Colors.blue));
       }
       // child: Icon(Icons.bug_report, size: 30, color: Colors.teal));
-//      _animatedMapController.animateTo(
-      //         dest: LatLng(position.latitude, position.longitude));
+      _animatedMapController.animateTo(
+          dest: LatLng(position.latitude, position.longitude));
       if (_following.isNotEmpty) {
         try {
           int index = _debugRoute.getIndex;
           int jump = 12;
           for (int i = 0; i < _following.length; i++) {
             if (index > jump * (i + 1)) {
-/*              
               _following[i] = Follower.moveFollower(
                 follower: _following[i],
                 marker: _following[i].marker,
                 position: _debugRoute.getPositionAt(index - (jump * (i + 1))),
               );
-*/
             } else {
               break;
             }
@@ -2494,7 +2375,7 @@ class CreateCurrentTripItem().tripValues {
         }
       }
     }
-/*
+
     if (CurrentTripItem().groupDriveId.isNotEmpty) {
       if (!socket.connected) {
         socket.connect();
@@ -2515,8 +2396,6 @@ class CreateCurrentTripItem().tripValues {
           }
         }
       }
-
-
 
       if (socket.connected) {
         socket.emit('trip_message', {
@@ -2573,14 +2452,13 @@ class CreateCurrentTripItem().tripValues {
       }
       CurrentTripItem().tripValues.lastLatLng = pos;
     }
-*/
+
     if (CurrentTripItem().tripState == TripState.following) {
       setState(() => _directionsIndex = getDirectionsIndex());
     }
   }
 
   void addGoodRoad({required LatLng position, name = 'Good road', audio = ''}) {
-/*    
     CurrentTripItem().addPointOfInterest(
       PointOfInterest(
         driveId: CurrentTripItem().driveId,
@@ -2600,7 +2478,6 @@ class CreateCurrentTripItem().tripValues {
           strokeWidth: 5,
           pointOfInterestIndex: CurrentTripItem().pointsOfInterest.length - 1),
     );
-*/
   }
 
   int getDirectionsIndex() {
@@ -2608,7 +2485,6 @@ class CreateCurrentTripItem().tripValues {
     double distance = 99999;
     double temp;
     if (CurrentTripItem().tripState == TripState.following) {
-      /*
       for (int i = 0; i < CurrentTripItem().maneuvers.length; i++) {
         temp = Geolocator.distanceBetween(
             CurrentTripItem().tripValues.position.latitude,
@@ -2620,7 +2496,6 @@ class CreateCurrentTripItem().tripValues {
           idx = i;
         }
       }
-      */
     }
     return idx;
   }
@@ -2669,7 +2544,7 @@ class CreateCurrentTripItem().tripValues {
     //  developer.log('setState() 2574', name: '_setState');
     setState(() {
       //   _showSearch = false;
-      //   _animatedMapController.animateTo(dest: pos);
+      _animatedMapController.animateTo(dest: pos);
     });
   }
 
@@ -2707,7 +2582,6 @@ class CreateCurrentTripItem().tripValues {
   }
 
   iconButtonTapped(var details) {
-    /*
     if (CurrentTripItem().tripValues.pointOfInterestIndex > -1) {
       _animatedMapController.animateTo(
           dest: CurrentTripItem()
@@ -2715,16 +2589,13 @@ class CreateCurrentTripItem().tripValues {
                   CurrentTripItem().tripValues.pointOfInterestIndex]
               .point);
     }
-    */
   }
 
   removePointOfInterest(var details) {
-    /*
     if (CurrentTripItem().tripValues.pointOfInterestIndex > -1) {
       CurrentTripItem().removePointOfInterestAt(
           CurrentTripItem().tripValues.pointOfInterestIndex);
     }
-  */
   }
 
   routeMissed(var details) {
@@ -2753,9 +2624,7 @@ class CreateCurrentTripItem().tripValues {
     }
   }
 
-/*
   Future<ui.Image> getMapImage({int delay = 1}) async {
-    
     if (CurrentTripItem().mapImage == null) {
       //     developer.log('setState() 2697', name: '_setState');
       setState(() {
@@ -2773,28 +2642,24 @@ class CreateCurrentTripItem().tripValues {
       CurrentTripItem().mapImage = await mapBoundary.toImage();
       await Future.delayed(Duration(seconds: 1));
     }
-    
     return CurrentTripItem().mapImage!;
   }
-*/
+
   bool getTripDetails({bool prompt = false}) {
-    if (CurrentTripItem().title.isEmpty) {
+    if (CurrentTripItem().heading.isEmpty) {
       if (prompt) {
         Utility().showConfirmDialog(context, "Can't save - more info needed",
             "Please enter what you'd like to call this trip.");
       }
       //  developer.log('setState() 2658', name: '_setState');
-      //  setState(() {
-      // adjustMapHeight(MapHeights.headers);
-      _bottomDrawerController.open(height: 300); // height of opened ExpandTile
-      _opened = false;
-      CurrentTripItem().tripActions = TripActions.headingDetail;
-      fn1.requestFocus();
-      //  });
+      setState(() {
+        adjustMapHeight(MapHeights.headers);
+        CurrentTripItem().tripActions = TripActions.headingDetail;
+        fn1.requestFocus();
+      });
+      return false;
     }
-    return false;
-  }
-/*
+
     if (CurrentTripItem().subHeading.isEmpty) {
       if (prompt) {
         Utility().showConfirmDialog(context, "Can't save - more info needed",
@@ -2807,9 +2672,7 @@ class CreateCurrentTripItem().tripValues {
       });
       return false;
     }
-*/
 
-/*
     if (CurrentTripItem().body.isEmpty) {
       if (prompt) {
         Utility().showConfirmDialog(context, "Can't save - more info needed",
@@ -2822,10 +2685,9 @@ class CreateCurrentTripItem().tripValues {
       });
       return false;
     }
-
     return true;
   }
-*/
+
   Widget _getOverlay2() {
     return ClipPath(
       clipper: InvertedClipper(),
@@ -2869,48 +2731,4 @@ _leadingWidget(context) {
   return context?.openDrawer();
 }
 
-class HandleCTFabs extends StatelessWidget {
-  final double _width = 50;
-  final double _height = 56.0;
-  final ml.MapLibreMapController controller;
-  const HandleCTFabs({super.key, required this.controller});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.start,
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        PlaceFinder(
-          height: _height,
-          width: _width,
-          onSelect: (position) => controller.animateCamera(
-            ml.CameraUpdate.newLatLng(
-              ml.LatLng(position.latitude, position.longitude),
-            ),
-          ),
-        ),
-        const SizedBox(
-          height: 15,
-        ),
-        FloatingActionButton(
-          heroTag: 'location',
-          onPressed: () async {
-            Position currentPosition = await Geolocator.getCurrentPosition();
-            controller.animateCamera(ml.CameraUpdate.newLatLng(ml.LatLng(
-                currentPosition.latitude, currentPosition.longitude)));
-          },
-          backgroundColor: Colors.blue,
-          shape: const CircleBorder(),
-          child: const Icon(
-            Icons.my_location,
-            color: Colors.white,
-          ),
-        ),
-        const SizedBox(
-          height: 15,
-        ),
-      ],
-    );
-  }
-}
+*/

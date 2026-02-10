@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer' as developer;
+import 'package:drives/constants.dart';
 import 'package:flutter/material.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import '/models/other_models.dart';
@@ -49,10 +50,10 @@ import '/services/services.dart';
 ///   from the higher density layers.
 ///
 
-const zoomLower = 7.0;
-const zoomUpper = 10.0;
+// const zoomCTLower = 7.0;
+// const zoomCTUpper = 10.0;
 
-class DrivesRequest {
+class TripRequest {
   double _lastZoom = 0;
   double _thisZoom = 0;
 
@@ -61,7 +62,7 @@ class DrivesRequest {
   Function(int)? onGetDetails;
   ImageRepository? imageRepository;
 
-  DrivesRequest({
+  TripRequest({
     required this.onUpdated,
     this.onGetDetails,
     this.onGetDownload,
@@ -71,7 +72,8 @@ class DrivesRequest {
   Map<String, dynamic> request = {"zoom": 14, "b_box": [], "exclude": []};
   Map<String, dynamic> exclude = {};
   List<TripItem> trips = [];
-  List excluded = [];
+  List<PointOfInterest> pointsOfInterest = [];
+
   String requestId = '';
 
   final Map<String, dynamic> _3DCache = {
@@ -82,7 +84,13 @@ class DrivesRequest {
           "sw": {"lng": 0.0, "lat": 0.0},
           "ne": {"lng": 0.0, "lat": 0.0}
         },
-        "data": {"lines": [], "shields": []},
+        "data": {
+          "route": [],
+          "good_roads_lines": [],
+          "good_road_shields": [],
+          "pois": [],
+          "reviews": [],
+        },
         "exclude": []
       },
       "middle": {
@@ -90,17 +98,29 @@ class DrivesRequest {
           "sw": {"lng": 0.0, "lat": 0.0},
           "ne": {"lng": 0.0, "lat": 0.0}
         },
-        "data": {"lines": [], "shields": []},
+        "data": {
+          "route": [],
+          "good_roads_lines": [],
+          "good_road_shields": [],
+          "pois": [],
+          "reviews": [],
+        },
         "exclude": []
       },
-      "upper": {
-        "fence": {
-          "sw": {"lng": 0.0, "lat": 0.0},
-          "ne": {"lng": 0.0, "lat": 0.0}
-        },
-        "data": {"lines": [], "shields": []},
-        "exclude": []
-      }
+    },
+    "upper": {
+      "fence": {
+        "sw": {"lng": 0.0, "lat": 0.0},
+        "ne": {"lng": 0.0, "lat": 0.0}
+      },
+      "data": {
+        "route": [],
+        "good_roads_lines": [],
+        "good_road_shields": [],
+        "pois": [],
+        "reviews": [],
+      },
+      "exclude": []
     }
   };
   dynamic apiGeoJson;
@@ -119,7 +139,7 @@ class DrivesRequest {
     if (zoomChanged || fenceBreached) {
       try {
         String zLevel = level(zoom: zoom);
-        excluded = [];
+        List excluded = [];
         String useData = "";
         if (fenceBreached) {
           _3DCache["cache"][zLevel]["data"]["lines"] = [];
@@ -134,30 +154,46 @@ class DrivesRequest {
           }
         }
         setBounds(bounds: bounds, zoom: zoom);
-        dynamic geoJson = await getGeoJson(
+        dynamic geoJson = await getGoodRoadsGeoJson(
             boundingBox: _3DCache["cache"][level(zoom: zoom)]["fence"],
             exclude: excluded,
             zoom: zoom);
         var jsonData = jsonDecode(geoJson);
+        // return jsonData;  // Debug
+        // Extract returned ids to exclude
         for (int i = 0; i < jsonData["features"].length; i++) {
-          if (jsonData['features'][i]['group'] == 'shield') {
-            trips.add(TripItem.from3DCache(
-                map: jsonData['features'][i]['properties']));
-            if (!_3DCache["cache"][zLevel]["exclude"]
-                .contains(jsonData['features'][i]['id'])) {
-              _3DCache["cache"][zLevel]["exclude"]
-                  .add(jsonData['features'][i]['id']);
-            }
+          if (jsonData['features'][i]['properties'].length == 4) {
+            _3DCache["cache"][zLevel]["data"]["lines"]
+                .add(jsonData["features"][i]);
+            _3DCache["cache"][zLevel]["exclude"]
+                .add(jsonData['features'][i]["id"]);
+            developer.log(
+                'Excluded  $zLevel : ${_3DCache["cache"][zLevel]["exclude"].toString()}',
+                name: '_zoom');
+          } else {
+            _3DCache["cache"][zLevel]["data"]["shields"]
+                .add(jsonData["features"][i]);
           }
         }
 
-        _3DCache["cache"][zLevel]["data"]["lines"].addAll(jsonData['features']);
+        geoJson = await getPointsOfInterestGeoJson(
+            boundingBox: _3DCache["cache"][level(zoom: zoom)]["fence"],
+            exclude: excluded,
+            zoom: zoom);
+        jsonData = jsonDecode(geoJson);
+        // return jsonData;  // Debug
+        // Extract returned ids to exclude
+        for (int i = 0; i < jsonData["features"].length; i++) {
+          _3DCache["cache"][zLevel]["data"]["pois"]
+              .add(jsonData["features"][i]);
+        }
 
         _lastZoom = zoom;
         onUpdated(zoom.toInt());
         return {
           "type": "FeatureCollection",
-          "features": _3DCache["cache"][zLevel]["data"]["lines"]
+          "features": _3DCache["cache"][zLevel]["data"]["lines"] +
+              _3DCache["cache"][zLevel]["data"]["shields"]
         };
       } catch (e) {
         developer.log('Error using 3-DCache: ${e.toString()}');
@@ -231,21 +267,52 @@ class DrivesRequest {
     return;
   }
 
+  List<TripItem> getSummaries() {
+    List<TripItem> trips = [];
+    String zLevel = level(zoom: _thisZoom);
+    List<String> ids = [];
+    for (int i = 0;
+        i < _3DCache["cache"][zLevel]["data"]["shields"].length;
+        i++) {
+      String id = _3DCache["cache"][zLevel]["data"]["shields"][i]["id"]
+          .substring(0, 32);
+      if (!ids.contains(id)) {
+        trips.add(TripItem.from3DCache(
+            map: _3DCache["cache"][zLevel]["data"]["shields"][i]
+                ["properties"]));
+        trips.last.driveUri = id;
+        ids.add(id);
+      }
+    }
+    return trips;
+  }
+
   List<Card> getTripTiles({String openUri = '', GlobalKey? key}) {
-    List<Card> cards = [];
+    developer.log('TripRequest.getTripTiles() called', name: '_index');
+    List<Card> cards = [
+      Card(
+        child: TripHeaderTile(
+          key: openUri.isEmpty ? key : Key('tt-1'),
+          index: 0,
+          tripItem: CurrentTripItem(),
+          appState: AppState.createTrip,
+          onUpdate: (_) => (),
+        ),
+      )
+    ];
     // List<TripItem> trips = getSummaries();
-    if (trips.isNotEmpty) {
-      for (int i = 0; i < trips.length; i++) {
+    if (pointsOfInterest.isNotEmpty) {
+      for (int i = 0; i < pointsOfInterest.length; i++) {
         cards.add(
           Card(
-            child: TripTile(
-              key: trips[i].driveUri == openUri ? key : Key('tt$i'),
-              tripItem: trips[i],
+            child: PointOfInterestTile(
+              key: pointsOfInterest[i].uri == openUri ? key : Key('tt$i'),
+              pointOfInterest: pointsOfInterest[i],
               imageRepository: imageRepository!,
               index: i,
-              expanded: trips[i].driveUri == openUri,
-              onGetTrip: onGetDownload,
-              onExpand: onGetDetails,
+              expanded: pointsOfInterest[i].uri == openUri,
+              // onGetTrip: onGetDownload,
+              // onExpand: onGetDetails,
             ),
           ),
         );

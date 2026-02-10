@@ -46,7 +46,8 @@ class _DriveInvitationsState extends State<DriveInvitations>
 
   @override
   Widget build(BuildContext context) {
-    photos = photosFromJson(photoString: widget.myTripItem.images);
+    photos = [];
+    // photosFromJson(photoString: widget.myTripItem.images);
     return SingleChildScrollView(
       child: Column(
         children: [
@@ -183,7 +184,7 @@ class _DriveInvitationsState extends State<DriveInvitations>
         value: value,
         onChanged: (value) => setState(() {
           widget.groupDrivers[groupIndex].selected = true;
-          widget.myTripItem.selected = true;
+          //  widget.myTripItem.selected = true;
           widget.groupDrivers[groupIndex].invitees[driverIndex]['invite'] =
               value;
           int tripIndex = -1;
@@ -262,7 +263,8 @@ class _DriveInvitationsState extends State<DriveInvitations>
                     child: Column(children: [
                       const Icon(Icons.route),
                       Text(
-                        '${widget.myTripItem.distance.toStringAsFixed(1)} miles long',
+                        '',
+                        //   '${widget.myTripItem.distance.toStringAsFixed(1)} miles long',
                         style: labelStyle(
                           context: context,
                           size: 3,
@@ -290,7 +292,8 @@ class _DriveInvitationsState extends State<DriveInvitations>
                     child: Column(children: [
                       const Icon(Icons.social_distance),
                       Text(
-                        '${(widget.myTripItem.distanceAway * metersToMiles).toStringAsFixed(1)} miles away',
+                        ' ',
+                        // '${(widget.myTripItem.distanceAway * metersToMiles).toStringAsFixed(1)} miles away',
                         style: labelStyle(
                           context: context,
                           size: 3,
@@ -307,7 +310,8 @@ class _DriveInvitationsState extends State<DriveInvitations>
                   child: Align(
                     alignment: Alignment.topLeft,
                     child: Text(
-                      widget.myTripItem.subHeading,
+                      ' ',
+                      // widget.myTripItem.subHeading,
                       style: const TextStyle(
                           color: Colors.black,
                           fontSize: 18,
@@ -379,7 +383,7 @@ class _DriveInvitationsState extends State<DriveInvitations>
     Map<String, dynamic> toEmail = {
       'drive_id': widget.myTripItem.driveUri,
       'drive_date': dateFormatSQL.format(_date!),
-      'title': widget.myTripItem.heading,
+      'title': widget.myTripItem.title,
       'message': _instructions
     };
     List<Map<String, dynamic>> invited = [];

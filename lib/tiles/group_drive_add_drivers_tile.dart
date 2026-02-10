@@ -50,7 +50,7 @@ class _GroupDriveAddDriversTileState extends State<GroupDriveAddDriversTile> {
               Expanded(
                 flex: 10,
                 child: Text(
-                  widget.myTripItem.heading,
+                  widget.myTripItem.title,
                   style: TextStyle(
                       color: Colors.black,
                       fontSize: 25,

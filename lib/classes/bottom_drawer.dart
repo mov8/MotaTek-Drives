@@ -35,7 +35,7 @@ class BottomDrawerController {
     try {
       _bottomDrawerState?.open(height);
     } catch (e) {
-      debugPrint("Can't close bottom drawer: ${e.toString()}");
+      debugPrint("Can't open bottom drawer: ${e.toString()}");
     }
   }
 
@@ -43,7 +43,7 @@ class BottomDrawerController {
     try {
       _bottomDrawerState?.setContent(content);
     } catch (e) {
-      debugPrint("Can't close bottom drawer: ${e.toString()}");
+      debugPrint("Can't set bottom drawer content: ${e.toString()}");
     }
   }
 
@@ -124,6 +124,8 @@ class _BottomDrawerState extends State<BottomDrawer>
               : newHeight.toDouble()
           : 0;
       contentHeight = MediaQuery.of(context).size.height;
+      developer.log('Controller.open called - height set to $height',
+          name: '_expand');
     });
   }
 
@@ -133,8 +135,8 @@ class _BottomDrawerState extends State<BottomDrawer>
 
   void dockOpenTile({required GlobalKey<State<StatefulWidget>> key}) {
     var box = key.currentContext!.findRenderObject() as RenderBox;
-    height = box.size.height < 400 ? box.size.height : 400;
-
+    height = box.size.height < 400 ? box.size.height + 4 : 400;
+    developer.log('dockOpenTile() - height set to $height', name: '_expand');
     Scrollable.ensureVisible(
       key.currentContext!,
       duration: const Duration(milliseconds: 300),
@@ -144,15 +146,20 @@ class _BottomDrawerState extends State<BottomDrawer>
 
     double yPos = widgetPosition(key: _key).y.toDouble();
     double yPosT = widgetPosition(key: key).y.toDouble();
+
     //  var box = key.currentContext!.findRenderObject() as RenderBox;
     //  height = box.size.height;
     // height = MediaQuery.of(context).size.height - height;
-
-    (_content as ListView).controller!.animateTo(yPosT - yPos,
-        duration: Duration(milliseconds: 500), curve: Curves.ease);
+    double delta = 32 + yPosT - yPos;
+    developer.log('yPos: $yPos  yPosT: $yPosT  delta: $delta', name: '_expand');
+    if (delta > 0) {
+      (_content as ListView).controller!.animateTo(delta,
+          duration: Duration(milliseconds: 500), curve: Curves.ease);
+    }
 
     Point point = widgetPosition(key: key);
-    debugPrint('Position is ${point.toString()} box = ${box.toString()}');
+    developer.log('Position is ${point.toString()} box = ${box.toString()}',
+        name: '_expanded');
   }
 
   Point widgetPosition({required GlobalKey<State<StatefulWidget>> key}) {
@@ -170,6 +177,10 @@ class _BottomDrawerState extends State<BottomDrawer>
     contentBottom = contentBottom == 0 && widgetPosition(key: _key).y > 300
         ? widgetPosition(key: _key).y + offset
         : contentBottom;
+    // if (contentBottom > 600) {
+    FocusManager.instance.primaryFocus?.unfocus(); // dismiss keyboard
+    // }
+    developer.log('contentBottom set to $contentBottom', name: '_expand');
     return;
   }
 
@@ -186,12 +197,20 @@ class _BottomDrawerState extends State<BottomDrawer>
         height: height + dividerHeight,
         width: mounted ? MediaQuery.of(context).size.width : 100,
         onEnd: () {
+          developer.log('Animation end - height set to $height',
+              name: '_expand');
           setState(() {
             contentHeight = contentBottom - widgetPosition(key: _key).y;
             contentHeight = contentHeight < 0 ? 0 : contentHeight;
           });
           if (widget.onOpened != null) {
-            widget.onOpened!(true);
+            developer.log(
+                'onOpened callback called height: $height contentHeight: $contentHeight',
+                name: '_expand');
+            widget.onOpened!(height > 10);
+          }
+          if (widget.onChangeHeight != null) {
+            widget.onChangeHeight!(height);
           }
         },
         child: SingleChildScrollView(
@@ -235,6 +254,9 @@ class _BottomDrawerState extends State<BottomDrawer>
                         if (widget.onChangeHeight != null) {
                           widget.onChangeHeight!(height);
                         }
+                        developer.log(
+                            'onVerticalDragUpdate - height set to $height contentHeight to $contentHeight',
+                            name: '_expand');
                       });
                     },
                   ),

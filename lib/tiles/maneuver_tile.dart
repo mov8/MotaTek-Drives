@@ -10,7 +10,7 @@ import '/classes/route.dart' as mt;
 class ManeuverTile extends StatefulWidget {
   final List<Maneuver> maneuvers;
   final Function(int) onLongPress;
-  final List<mt.Route> routes;
+  final List<Map<String, dynamic>> routes;
   final int index;
 
   const ManeuverTile({

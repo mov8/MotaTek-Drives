@@ -29,7 +29,7 @@ class _MyTripSelectTileState extends State<MyTripSelectTile> {
         child: SingleChildScrollView(
           child: ExpansionTile(
             title: Text(
-              widget.myTripItem.heading,
+              widget.myTripItem.title,
               style: const TextStyle(
                   color: Colors.black,
                   fontSize: 20,

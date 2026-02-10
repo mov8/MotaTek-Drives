@@ -366,6 +366,7 @@ Future<Map<String, dynamic>> tryLogin({required User user}) async {
 }
 
 Future<dynamic> postTrip(MyTripItem tripItem) async {
+/*
   Map<String, dynamic> apiData = tripItem.myTripToMap();
   List<Photo> photos = photosFromJson(photoString: tripItem.images);
   dynamic response;
@@ -393,8 +394,11 @@ Future<dynamic> postTrip(MyTripItem tripItem) async {
   } catch (e) {
     debugPrint('error: ${e.toString()} ${response.statusCode}');
   }
+  */
+  return ' ';
 }
 
+/*
 Future<dynamic> postTrip2(MyTripItem tripItem) async {
   Map<String, dynamic> map = tripItem.toDrivesMap();
   List<Photo> photos = photosFromJson(photoString: tripItem.images);
@@ -463,6 +467,7 @@ Future<dynamic> postTrip2(MyTripItem tripItem) async {
     return jsonEncode({'token': '', 'code': response.statusCode});
   }
 }
+*/
 
 /*
     Map<String, dynamic> response = await postDriveHeader();
@@ -598,6 +603,7 @@ Future<String> postPolylines(
     {required List<mt.Route> polylines,
     required String driveUid,
     int type = 0}) async {
+  /*     
   List<Map<String, dynamic>> maps = [];
   for (mt.Route polyline in polylines) {
     maps.add({
@@ -634,6 +640,8 @@ Future<String> postPolylines(
     // debugPrint('Failed to post user');
     return jsonEncode({'token': '', 'code': response.statusCode});
   }
+  */
+  return '';
 }
 
 Future<List<mt.Route>> getDriveRoutes(
@@ -692,7 +700,9 @@ mt.Route polylineFromMap(
   // map['colour'];
   Color routeColor = uiColours.keys.toList()[colour];
   return mt.Route(
+    lines: [],
     id: -1,
+    /*
     driveKey: driveKey,
     points:
         getPrivateRepository().stringToPoints(map['points']), // routePoints,
@@ -702,6 +712,7 @@ mt.Route polylineFromMap(
     pointOfInterestIndex: -1,
     pointOfInterestUri: map['point_of_interest_id'] ?? '',
     rating: map['average_rating'] ?? 1,
+    */
   );
 }
 
@@ -718,37 +729,14 @@ Future<List<PointOfInterest>> getPointsOfInterest(ne, sw) async {
   if ([200, 201].contains(response.statusCode) && response.body.length > 10) {
     List pois = jsonDecode(response.body);
     for (int i = 0; i < pois.length; i++) {
-      pointsOfInterest.add(
-        PointOfInterest(
-          type: pois[i]['_type'],
-          waypoint: pois[i]['waypoint'],
-          name: pois[i]['name'],
-          description: pois[i]['description'],
-          width: 30,
-          height: 30,
-          images: pois[i]['images'],
-          point: LatLng(pois[i]['latitude'], pois[i]['longitude']),
-          driveUri: pois[i]['drives'] ?? '',
-          //  child1: MarkerWidget(
-          //    type: pois[i]['_type'],
-          //    name: pois[i]['name'],
-          //    description: pois[i]['description'],
-          //    url: pois[i]['id'],
-          //    images: pois[i]['images'],
-          //    imageUrls:
-          //       webUrls(pois[i]['drive_id'], pois[i]['id'], pois[i]['images']),
-
-          //    angle: 0, // degrees to radians
-          //    list: 1,
-          //    listIndex: i,
-          //  ),
-        ),
-      );
+      pointsOfInterest.add(PointOfInterest.fromMap(map: pois[i]));
     }
   }
 
   return pointsOfInterest;
 }
+
+/*
 
 Future<OsmAmenity> getOsmAmenity({required int osmId}) async {
   OsmAmenity amenity =
@@ -844,6 +832,7 @@ Future<List<OsmAmenity>> getOsmAmenities(
     return [];
   }
 }
+*/
 
 Future<bool> postOsmReview({required Map<String, dynamic> reviewMap}) async {
   http.Response response = await postWebData(
@@ -881,22 +870,10 @@ Future<PointOfInterest> getPointOfInterest(
       .timeout(const Duration(seconds: 10));
   if ([200, 201].contains(response.statusCode) && response.body.length > 10) {
     dynamic map = jsonDecode(response.body);
-    PointOfInterest pointOfInterest = PointOfInterest(
-      type: map['_type'],
-      waypoint: map['waypoint'],
-      name: map['name'],
-      description: map['description'],
-      images: map['images'],
-      point: LatLng(map['latitude'], map['longitude']),
-      score: map["average_rating"],
-      scored: map["ratings_count"],
-      driveUri: map['drives'],
-      url: map['id'],
-    );
-
+    PointOfInterest pointOfInterest = PointOfInterest.fromMap(map: map);
     return pointOfInterest;
   } else {
-    return PointOfInterest(name: '', type: 1, point: const LatLng(0, 0));
+    return PointOfInterest(name: '');
   }
 }
 
@@ -1032,6 +1009,7 @@ Future<List<TripSummary>> getTripSummaries(
 Future<List<TripItem>> getTrips() async {
   List<TripItem> trips = [];
   LatLng pos = const LatLng(-52, 0);
+  /*
   try {
     var currentPosition = Setup().lastPosition; //await utils.getPosition();
     pos = LatLng(currentPosition.latitude, currentPosition.longitude);
@@ -1071,6 +1049,7 @@ Future<List<TripItem>> getTrips() async {
       }
     }
   }
+  */
   return trips;
 }
 
@@ -1272,6 +1251,7 @@ Future<Map<String, dynamic>> getPointOfInterestRating(String uri) async {
   return rating;
 }
 
+/*
 Future<MyTripItem> getTripSummary(String tripUuid) async {
   MyTripItem myTrip = MyTripItem(heading: '', subHeading: '');
 
@@ -1286,13 +1266,11 @@ Future<MyTripItem> getTripSummary(String tripUuid) async {
     try {
       for (int i = 0; i < trip['points_of_interest'].length; i++) {
         try {
+
+          gotPointsOfInterest.add(PointOfInterest.fromMap(map: map)
+
           LatLng posn = LatLng(trip['points_of_interest'][i]['latitude'],
               trip['points_of_interest'][i]['longitude']);
-          //   Widget marker = MarkerWidget(
-          //     type: trip['points_of_interest'][i]['_type'],
-          //     list: 0,
-          //     listIndex: i,
-          //   );
           gotPointsOfInterest.add(PointOfInterest(
             type: trip['points_of_interest'][i]['_type'],
             waypoint: trip['points_of_interest'][i]['waypoint'],
@@ -1334,15 +1312,24 @@ Future<MyTripItem> getTripSummary(String tripUuid) async {
   }
   return myTrip;
 }
+*/
 
+/// Gets all the information about a trip in one json object from the api
+/// Drive - {id, title, sub_title, body, added, images, score, scored, distance, [routes], [maneuvers], [pointsOfInterest]}
+/// [routes] uri drive_uri point_of_interest_uri points
+/// [maneuvers] uri road_from road_to exit bearing_before bearing_after location modifier type distance
+/// [pointsOfInterest] uri drive_id type name description images point
+///
+///
 Future<MyTripItem> getMyTrip(String tripUuid) async {
-  MyTripItem myTrip = MyTripItem(heading: '', subHeading: '');
+  MyTripItem myTrip = MyTripItem(title: '', subTitle: '');
 
   final http.Response response = await http.get(
     Uri.parse('$urlDrive/$tripUuid'),
-    headers: webHeader(secure: true),
+    headers: webHeader(secure: false),
   );
   if (response.statusCode == 200) {
+    /*
     Map<String, dynamic> trip = jsonDecode(response.body);
     List<mt.Route> gotRoutes = [];
 
@@ -1434,6 +1421,7 @@ Future<MyTripItem> getMyTrip(String tripUuid) async {
     } catch (e) {
       debugPrint('Error: ${e.toString()}');
     }
+    */
   }
   return myTrip;
 }
@@ -1710,10 +1698,9 @@ Future<bool> apiListening() async {
   try {
     final http.Response response = await http
         .get(
-          Uri.parse("https://drives.motatek.com/v1/user/test"),
-          // Uri.parse('$urlUser/test'),
+          Uri.parse('$urlUser/test'),
         )
-        .timeout(const Duration(seconds: 5));
+        .timeout(const Duration(seconds: 10));
     return (response.statusCode == 200);
   } catch (e) {
     debugPrint('Error checking for server: ${e.toString()}');
@@ -1956,23 +1943,6 @@ Future<List<HomeItem>> getHomeItems(int scope) async {
   return [];
 }
 
-dynamic getGeoJson2(
-    {String boundingBox = '', String exclude = '', int zoom = 14}) async {
-/*
-    Map<String, String> data = {"uri": shopUri};
-    http.Response response =
-        await postWebData(uri: uri, body: jsonEncode(data));
-*/
-
-  var uri = Uri.parse('$urlDrive/great_drives');
-  http.Response response = await getWebData(uri: uri);
-  var geoJson;
-  if ([200, 201].contains(response.statusCode)) {
-    geoJson = jsonDecode(response.body);
-  }
-  return geoJson;
-}
-
 dynamic getGeoJson(
     {Map<String, dynamic> boundingBox = const {},
     List exclude = const [],
@@ -1984,6 +1954,42 @@ dynamic getGeoJson(
   };
 
   Uri uri = Uri.parse('$urlDrive/great_drives');
+  http.Response response = await postWebData(uri: uri, body: jsonEncode(data));
+  if ([200, 201].contains(response.statusCode)) {
+    return response.body;
+  }
+  return {};
+}
+
+dynamic getGoodRoadsGeoJson(
+    {Map<String, dynamic> boundingBox = const {},
+    List exclude = const [],
+    double zoom = 14}) async {
+  Map<String, dynamic> data = {
+    "exclude": exclude,
+    "zoom": zoom,
+    "b_box": boundingBox
+  };
+
+  Uri uri = Uri.parse('$urlDrive/my_trip/good_roads');
+  http.Response response = await postWebData(uri: uri, body: jsonEncode(data));
+  if ([200, 201].contains(response.statusCode)) {
+    return response.body;
+  }
+  return {};
+}
+
+dynamic getPointsOfInterestGeoJson(
+    {Map<String, dynamic> boundingBox = const {},
+    List exclude = const [],
+    double zoom = 14}) async {
+  Map<String, dynamic> data = {
+    "exclude": exclude,
+    "zoom": zoom,
+    "b_box": boundingBox
+  };
+
+  Uri uri = Uri.parse('$urlDrive/my_trip/points_of_interest');
   http.Response response = await postWebData(uri: uri, body: jsonEncode(data));
   if ([200, 201].contains(response.statusCode)) {
     return response.body;

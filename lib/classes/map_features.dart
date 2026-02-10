@@ -28,14 +28,15 @@ enum PinTypes {
   tripEnd,
 }
 
-class Feature extends Marker {
+class Feature {
   final int row;
   final String uri;
   final int id;
   final int drive;
   final int type;
   final int poiType;
-  final LatLng maxPoint;
+  final List<double> point;
+  final List<double> maxPoint;
   final String pointOfInterestUri;
 
   const Feature(
@@ -46,11 +47,8 @@ class Feature extends Marker {
       this.type = 0,
       this.poiType = 0,
       double iconSize = 30,
-      super.width = 30,
-      super.height = 30,
-      super.child = const Icon(Icons.pin),
-      super.point = const LatLng(0, 0),
-      this.maxPoint = const LatLng(0, 0),
+      this.point = const [0, 0],
+      this.maxPoint = const [0, 0],
       this.pointOfInterestUri = ''});
 
   factory Feature.fromMap({
@@ -66,38 +64,35 @@ class Feature extends Marker {
       drive: map['drive'] ?? -1,
       type: map['type'] ?? 0,
       poiType: map['feature_id'] ?? 1,
-      point: LatLng(map['min_lat'] ?? 50.0, map['min_lng'] ?? 0.0),
-      maxPoint: LatLng(map['max_lat'] ?? 50.0, map['max_lng'] ?? 0.0),
+      point: [map['max_lng'] ?? 0.0, map['max_lat'] ?? 50.0],
+      maxPoint: [map['max_lng'] ?? 0.0, map['max_lat'] ?? 50.0],
       pointOfInterestUri: map['point_of_interest_uri'] ?? '',
-      width: size,
-      height: size,
     );
   }
 
   factory Feature.fromFeature(
       {required Feature feature,
-      LatLng? point,
+      List<double>? point,
       int? row,
       double? size,
       Widget? child}) {
     return Feature(
-        row: row ?? feature.row,
-        uri: feature.uri,
-        id: feature.id,
-        drive: feature.drive,
-        type: feature.type,
-        poiType: feature.poiType,
-        point: point ?? feature.point,
-        maxPoint: point ?? feature.maxPoint,
-        pointOfInterestUri: feature.pointOfInterestUri,
-        width: size ?? feature.width,
-        height: size ?? feature.height,
-        child: child ?? feature.child);
+      row: row ?? feature.row,
+      uri: feature.uri,
+      id: feature.id,
+      drive: feature.drive,
+      type: feature.type,
+      poiType: feature.poiType,
+      point: point ?? feature.point,
+      maxPoint: point ?? feature.maxPoint,
+      pointOfInterestUri: feature.pointOfInterestUri,
+    );
   }
-
+/*
   Fence getBounds() {
     return Fence(northEast: maxPoint, southWest: point);
   }
+  */
 
   toMap() {
     return {
@@ -107,10 +102,10 @@ class Feature extends Marker {
       'feature_id': id,
       'drive': drive,
       'type': type,
-      'max_lat': maxPoint.latitude,
-      'max_lng': maxPoint.longitude,
-      'min_lat': point.latitude,
-      'min_lng': point.longitude,
+      'max_lat': maxPoint[1],
+      'max_lng': maxPoint[0],
+      'min_lat': point[1],
+      'min_lng': point[0],
       'point_of_interest_uri': pointOfInterestUri,
     };
   }
@@ -150,7 +145,7 @@ class Feature extends Marker {
 ///     The pinTap parameter passes the onPinTap callback for the
 ///     MarkerWidgets that are generated.
 ///
-
+/*
 Future<PublishedFeatures> getPublishedFeatures(
     {double zoom = 10,
     pinTap,
@@ -172,7 +167,8 @@ Future<PublishedFeatures> getPublishedFeatures(
     expandNotifier: expandNotifier,
   );
 }
-
+*/
+/*
 class OsmFeatures {
   Function(int)? pinTap;
   List<OsmAmenity> amenities = [];
@@ -200,7 +196,9 @@ class OsmFeatures {
     amenities.clear();
   }
 }
+*/
 
+/*
 class PublishedFeatures {
   Function(bool)? onUpdate;
   Function(int) pinTap;
@@ -559,8 +557,7 @@ class PublishedFeatures {
       TripItem tripItem = await tripItemRepository.loadTripItem(
           key: feature.row, id: feature.id, uri: feature.uri);
       tripItem.closest = distanceBetween(
-              LatLng(Setup().lastPosition.latitude,
-                  Setup().lastPosition.longitude),
+              [Setup().lastPosition.longitude, Setup().lastPosition.latitude],
               feature.point)
           .truncate();
       return Card(
@@ -596,3 +593,4 @@ class PublishedFeatures {
     return null;
   }
 }
+*/

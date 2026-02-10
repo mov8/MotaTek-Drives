@@ -50,12 +50,12 @@ class RouteDelta {
   int distance;
   int routeIndex;
   int pointIndex;
-  LatLng point;
+  List<double> point;
   RouteDelta(
       {this.distance = 0,
       this.routeIndex = -1,
       this.pointIndex = -1,
-      this.point = const LatLng(0, 0)});
+      this.point = const [0, 0]});
 }
 
 class MutableDouble {

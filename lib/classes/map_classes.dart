@@ -47,6 +47,7 @@ enum MapHeightChangeType { heights, toggle, fromDrag }
 
 List<double> mapHeights = [0, 0, 0, 0];
 
+/*
 class Trips extends StatefulWidget {
   const Trips({
     super.key,
@@ -145,6 +146,7 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
       ),
     );
   }
+*/
 /*
   Future<List<TripItem>> getTripsToShow() async {
     try {
@@ -160,7 +162,7 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
     }
     return [];
   }
-*/
+
 
   /// filterFeatures
   ///   Objective is to keep two lists of features correctly populated
@@ -192,7 +194,7 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
   /// search finds a valid point first it changes the firstPoint to the
   /// found point and the lastPoint to the points.length
 }
-
+*/
 class Fabs extends StatelessWidget {
   final AnimatedMapController animatedMapController;
   const Fabs({super.key, required this.animatedMapController});
@@ -388,6 +390,7 @@ class _SetPreferencesState extends State<SetPreferences> {
 /// Divider
 /// Details
 ///
+/*
 
 class PortraitBody extends StatefulWidget {
   const PortraitBody({
@@ -617,7 +620,8 @@ class _PortraitBody extends State<PortraitBody> with TickerProviderStateMixin {
       );
     }
   }
-
+*/
+/*
   Future<bool> filterFeatures(
       {required List<Feature> source,
       required List<Feature> cache,
@@ -777,6 +781,8 @@ class _PortraitBody extends State<PortraitBody> with TickerProviderStateMixin {
     return updateDetails && markers.isNotEmpty;
   }
 
+  */
+/*
   Future<bool> addRouteMarker(
       {required List<mt.Route> routes,
       required Feature feature,
@@ -807,7 +813,8 @@ class _PortraitBody extends State<PortraitBody> with TickerProviderStateMixin {
     }
     return false;
   }
-
+  */
+/*
   Future<bool> moveRouteMarker(
       {required mt.Route route,
       required Feature feature,
@@ -855,6 +862,9 @@ class _PortraitBody extends State<PortraitBody> with TickerProviderStateMixin {
     return false;
   }
 
+*/
+
+/*
   Future<LatLng?> routeMarkerPosition(
       {required List<Polyline> polylines, required Fence fence}) async {
     int first = -1;
@@ -878,6 +888,7 @@ class _PortraitBody extends State<PortraitBody> with TickerProviderStateMixin {
     }
     return null;
   }
+
 
   Future<Map<String, dynamic>> getDialogData(
       {required List<Feature> features, required int index}) async {
@@ -949,7 +960,7 @@ class _PortraitBody extends State<PortraitBody> with TickerProviderStateMixin {
     return mapInfo;
   }
 }
-
+*/
 class MapInfo {
   final bool ready;
   final Fence fence;
@@ -987,7 +998,7 @@ class LeadingWidgetController {
   }
 }
 */
-
+/*
 class TripMapController {
   _TripsMapState? _tripMapState;
   void _addState(_TripsMapState tripMapState) {
@@ -1005,7 +1016,8 @@ class TripMapController {
     }
   }
 }
-
+*/
+/*
 class TripsMap extends StatefulWidget {
   final TripMapController controller;
   final Function(MapInfo) onChange;
@@ -1153,6 +1165,8 @@ class _TripsMapState extends State<TripsMap> with TickerProviderStateMixin {
     );
   }
 }
+
+*/
 
 class MapLegend extends StatelessWidget {
   final double bottom;

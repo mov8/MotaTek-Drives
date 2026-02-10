@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'dart:math';
@@ -45,6 +47,7 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
   final GlobalKey _appBarKey = GlobalKey();
   final GlobalKey _bottomNavKey = GlobalKey();
   final GlobalKey _scrollToKey = GlobalKey();
+
   DrivesRequest? _drivesRequest;
   List<Card> _tripCards = [];
 
@@ -117,13 +120,18 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
   _onIdle() async {
     developer.log('_onIdle called', name: '_zoom');
     if (_mapController != null) {
+      Map<String, dynamic> geoJson = {};
       try {
         LatLngBounds bounds = await _mapController!.getVisibleRegion();
         double zoom = _mapController!.cameraPosition!.zoom;
-        Map<String, dynamic> geoJson =
-            await _drivesRequest!.update(bounds: bounds, zoom: zoom);
+        geoJson = await _drivesRequest!.update(bounds: bounds, zoom: zoom);
         if (geoJson.isNotEmpty) {
           developer.log('Updating datasource from api', name: '_zoom');
+          //   Map<String, dynamic> geoJson2 = {
+          //     'type': 'FeatureCollection',
+          //     'features': jsonDecode(geoJson['features'][0])
+          //   };
+
           await _mapController!.setGeoJsonSource("published-data", geoJson);
           _tripCards = _drivesRequest!.getTripTiles(openUri: "");
           _bottomDrawerController.setContent(
@@ -131,7 +139,8 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
                   cardsList(cards: _tripCards, controller: _scrollController));
         }
       } catch (e) {
-        developer.log('error: ${e.toString()}', name: '_ezoom');
+        developer.log('error: ${e.toString()} ${geoJson.toString()}',
+            name: '_ezoom');
       }
     }
   }
@@ -233,6 +242,12 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
         onTap: _onTap,
         onIdle: _onIdle,
       ),
+      if (_mapController != null)
+        Positioned(
+          right: 20,
+          top: 22,
+          child: HandleFabs(controller: _mapController!),
+        ),
       BottomDrawer(
         maxHeight: 200,
         content: cardsList(cards: _tripCards, controller: _scrollController),
@@ -253,7 +268,8 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      resizeToAvoidBottomInset: false,
+      // resizeToAvoidBottomInset: false,
+      // extendBodyBehindAppBar: true,
       backgroundColor: Colors.blue,
       key: _scaffoldKey,
       drawer: const MainDrawer(),
@@ -295,9 +311,6 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
           throw ('Error - FutureBuilder line 752 in trips.dart');
         },
       ),
-      floatingActionButton: _mapController != null
-          ? HandleFabs(controller: _mapController!)
-          : null,
       bottomNavigationBar: RoutesBottomNav(
         key: _bottomNavKey,
         controller: _bottomNavController,
@@ -317,14 +330,13 @@ class HandleFabs extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final GlobalKey _topFabKey = GlobalKey();
     return Column(
       mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        const SizedBox(
-          height: 220,
-        ),
         PlaceFinder(
+          key: _topFabKey,
           height: _height,
           width: _width,
           onSelect: (position) => controller.animateCamera(
@@ -340,8 +352,11 @@ class HandleFabs extends StatelessWidget {
           heroTag: 'location',
           onPressed: () async {
             Position currentPosition = await Geolocator.getCurrentPosition();
-            controller.animateCamera(CameraUpdate.newLatLng(
-                LatLng(currentPosition.latitude, currentPosition.longitude)));
+            controller.animateCamera(
+              CameraUpdate.newLatLng(
+                LatLng(currentPosition.latitude, currentPosition.longitude),
+              ),
+            );
           },
           backgroundColor: Colors.blue,
           shape: const CircleBorder(),
@@ -353,8 +368,51 @@ class HandleFabs extends StatelessWidget {
         const SizedBox(
           height: 15,
         ),
+        FloatingActionButton(
+          heroTag: 'location',
+          onPressed: () async {
+            try {
+              await controller.setGeoJsonSource("route-data", {
+                "type": "FeatureCollection",
+                "features": [
+                  {
+                    "type": "Feature",
+                    "geometry": {
+                      "type": "Point",
+                      "coordinates": [-0.520467, 51.453987]
+                    },
+                    "id": '0001',
+                    "properties": {"item": "waypoint", "number": 1}
+                  },
+                  {
+                    "type": "Feature",
+                    "geometry": {
+                      "type": "Point",
+                      "coordinates": [-0.514, 51.46]
+                    },
+                    "id": '0002',
+                    "properties": {"item": "waypoint", "number": 2}
+                  }
+                ]
+              });
+            } catch (e) {
+              debugPrint("error ${e.toString()}");
+            }
+          },
+          backgroundColor: Colors.blue,
+          shape: const CircleBorder(),
+          child: const Icon(
+            Icons.my_location,
+            color: Colors.white,
+          ),
+        ),
       ],
     );
+  }
+
+  double getPadding({required GlobalKey<State<StatefulWidget>> key}) {
+    var box = key.currentContext!.findRenderObject() as RenderBox;
+    return box.localToGlobal(Offset.zero).dy;
   }
 }
 

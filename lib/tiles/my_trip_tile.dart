@@ -42,7 +42,7 @@ class _MyTripTileState extends State<MyTripTile> {
               Row(children: [
                 Expanded(
                   flex: 8,
-                  child: Text(widget.myTripItem.heading,
+                  child: Text(widget.myTripItem.title,
                       style: headlineStyle(
                           context: context, color: Colors.black, size: 2)),
                 ),
@@ -139,7 +139,7 @@ class _MyTripTileState extends State<MyTripTile> {
                           child: Align(
                             alignment: Alignment.topLeft,
                             child: Text(
-                              widget.myTripItem.subHeading,
+                              widget.myTripItem.subTitle,
                               style: titleStyle(
                                   context: context, color: Colors.black),
                               textAlign: TextAlign.left,

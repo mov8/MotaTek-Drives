@@ -45,11 +45,11 @@ class DirectionTileController {
 }
 
 class DirectionTile extends StatefulWidget {
-  final List<mt.Route> routes;
+  final List<Map<String, dynamic>> routes;
   final List<Maneuver> maneuvers;
   final Function(int) currentIndex;
   final Function(int, int, int)? onTap;
-  final LatLng currentPosition;
+  final List<double> currentPosition;
   final DirectionTileController controller;
   final String driveId;
 
@@ -77,7 +77,7 @@ class _DirectionTileState extends State<DirectionTile> {
   int _routeIndex = 0;
   int _pointIndex = 0;
   double _metersToRoute = 99999999;
-  LatLng _lastLatLng = LatLng(0, 0);
+  List<double> _lastLatLng = [0, 0];
   int _lastManeuver = 0;
   int _errorCount = 0;
   int _error = 0;
@@ -257,10 +257,10 @@ class _DirectionTileState extends State<DirectionTile> {
         /// Check distance away from next maneuver
 
         distance = Geolocator.distanceBetween(
-            widget.currentPosition.latitude,
-            widget.currentPosition.longitude,
-            widget.maneuvers[_nextManeuverIndex].location.latitude,
-            widget.maneuvers[_nextManeuverIndex].location.longitude);
+            widget.currentPosition[1],
+            widget.currentPosition[0],
+            widget.maneuvers[_nextManeuverIndex].point[1],
+            widget.maneuvers[_nextManeuverIndex].point[0]);
 
         /// Ensure that the target maneuver only gets incremented once we have passed the current target
         /// Allows a margin of error of 3 meters
@@ -273,10 +273,10 @@ class _DirectionTileState extends State<DirectionTile> {
             _lastManeuver = _nextManeuverIndex;
             _nextManeuverIndex = _nextManeuverIndex + 1;
             distance = Geolocator.distanceBetween(
-                widget.currentPosition.latitude,
-                widget.currentPosition.longitude,
-                widget.maneuvers[_nextManeuverIndex].location.latitude,
-                widget.maneuvers[_nextManeuverIndex].location.longitude);
+                widget.currentPosition[1],
+                widget.currentPosition[0],
+                widget.maneuvers[_nextManeuverIndex].point[1],
+                widget.maneuvers[_nextManeuverIndex].point[0]);
           }
         }
         getClosestPoint(route: _routeIndex, point: _pointIndex, full: false);
@@ -322,12 +322,13 @@ class _DirectionTileState extends State<DirectionTile> {
     _metersToRoute = 999999999;
     int further = 0;
     for (int i = route; i < widget.routes.length; i++) {
-      for (int j = point; j < widget.routes[i].points.length; j++) {
+      /*
+      for (int j = point; j < widget.routes[i].length; j++) {
         double distance = Geolocator.distanceBetween(
-            widget.currentPosition.latitude,
-            widget.currentPosition.longitude,
-            widget.routes[i].points[j].latitude,
-            widget.routes[i].points[j].longitude);
+            widget.currentPosition[1],
+            widget.currentPosition[0],
+            widget.routes[i][j][1],
+            widget.routes[i][j][0]);
         if (distance < _metersToRoute) {
           _routeIndex = i;
           _pointIndex = j;
@@ -340,6 +341,7 @@ class _DirectionTileState extends State<DirectionTile> {
           }
         }
       }
+      */
     }
     _metersToRoute = _metersToRoute == 999999999 ? 0 : _metersToRoute;
   }
@@ -348,10 +350,10 @@ class _DirectionTileState extends State<DirectionTile> {
     double distance = 999999999;
     for (int i = 0; i < widget.maneuvers.length; i++) {
       distance = Geolocator.distanceBetween(
-          widget.currentPosition.latitude,
-          widget.currentPosition.longitude,
-          widget.maneuvers[i].location.latitude,
-          widget.maneuvers[i].location.longitude);
+          widget.currentPosition[1],
+          widget.currentPosition[0],
+          widget.maneuvers[i].point[1],
+          widget.maneuvers[i].point[0]);
       if (distance < _metersToManeuver) {
         _nextManeuverIndex = i;
         _metersToManeuver = distance;

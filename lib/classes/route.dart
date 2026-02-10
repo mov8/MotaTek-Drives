@@ -1,53 +1,64 @@
-import 'dart:math';
+// import 'dart:math';
+import 'dart:convert';
 // import 'dart:ui';
 
-import 'package:flutter/widgets.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
-import '/screens/painters.dart';
+// import 'package:flutter/widgets.dart';
+// import 'package:flutter_map/flutter_map.dart';
+// import 'package:latlong2/latlong.dart';
+// import '/screens/painters.dart';
 
 /// A polyline with an id
-class Route extends Polyline {
-  final int id;
-  final int key;
-  final int driveKey;
-  final LatLng markerPosition;
-  final int pointOfInterestIndex;
-  String pointOfInterestUri;
-  double rating;
-  List<Offset> offsets = [];
-
-  // Color colour;
-  // Color borderColour;
-  @override
-  Color color;
-  @override
-  Color borderColor;
-
+class Route {
+  final int id; // SqLite id
+  final String uri; // api uri
+  List<List<double>>
+      lines; // Points formatted for MapLibre [[lng, lat], [lng, lat], ...]
+  List<List<double>> shields;
   Route({
-    required super.points,
-    super.strokeWidth = 1.0,
-    // this.colour = const Color(0xFF00FF00),
-    // this.color = const Color(0xFF00FF00),
-    super.borderStrokeWidth = 0.0,
-    // this.borderColour = const Color(0xFFFFFF00),
-    this.borderColor = const Color(0xFFFFFF00),
-    super.gradientColors,
-    this.color = const Color(0xFFFFFF00),
-    super.colorsStop,
-    // super.isDotted = false,
     this.id = -1,
-    this.key = -1,
-    this.driveKey = -1,
-    this.markerPosition = const LatLng(0, 0),
-    this.pointOfInterestIndex = -1,
-    this.rating = 1,
-    this.pointOfInterestUri = '',
-  }); // : super(borderColor: borderColour, color: colour);
+    this.uri = '',
+    required this.lines,
+    this.shields = const [],
+  });
 
-  void setColour({required Color colour}) {
-    color = colour;
+  factory Route.fromMap({required Map<String, dynamic> map}) {
+    return Route(
+        id: map["id"] ?? -1,
+        uri: map["uri"] ?? "",
+        lines: map['points'] ?? [],
+        shields: map['shields'] ?? []);
   }
+
+  /// Method to set the points from a string
+  set pointsFromString(string) => lines = json.decode(string);
+
+  /// Method to get points as String
+  String get stringFromPoints => json.encode(lines);
+
+  Map<String, dynamic> toMap() {
+    return {
+      "id": id,
+      "uri": uri,
+      "lines": json.encode(lines),
+      "shields": jsonEncode(shields)
+    };
+  }
+}
+
+List<Route> routesFromJson({required List<Map<String, dynamic>> jsonList}) {
+  return [for (Map<String, dynamic> json in jsonList) Route.fromMap(map: json)];
+}
+
+List<Map<String, dynamic>> jsonFromRoutes({required List<Route> routes}) {
+  return [for (Route route in routes) route.toMap()];
+}
+
+/// Makes MapLibre easier to use as it uses the x - y notation (Longitude - Latitude)
+/// This means that a List<LngLat> can be used directly in MapLibre GeoJson
+class LngLat {
+  double lng;
+  double lat;
+  LngLat({required this.lng, required this.lat});
 }
 
 /// Class RouteAtCenter
@@ -57,12 +68,12 @@ class Route extends Polyline {
 /// screen positions etc, and that can only be used within a Map object or descendant
 /// ie PolyLineLayer. Being stateless PolyLineLayer can't use a controller as there is no state to
 /// extend. The solution was to create an object - RouteAtCenter that is passed to the
-/// extended PolyLineLayer - RouteLayer through its constructor. RouteAtCenter is instatiated
+/// extended PolyLineLayer - RouteLayer through its constructor. RouteAtCenter is instantiated
 /// outside the RouteLayer. RouteLayer sets both RouteAtCenter's context and the PolyLines that
 /// have been modified by adding the offsets from the camera origin. RouteAtCenter's
 /// getPolyLineNearestCenter() method can then be called externally to calculate the polyline's
 /// positions.
-
+/*
 class RouteAtCenter {
   // BuildContext? _context;
   List<Route> _routes = [];
@@ -182,6 +193,8 @@ class RouteAtCenter {
     return distance;
   }
 }
+
+
 
 final class RouteLayer extends PolylineLayer {
   /// The list of [Route] which could be tapped
@@ -402,3 +415,4 @@ final class RouteLayer extends PolylineLayer {
     return mapCamera.unproject(point);
   }
 }
+*/
