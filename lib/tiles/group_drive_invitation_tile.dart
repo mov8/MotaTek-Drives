@@ -219,7 +219,7 @@ class _GroupDriveInvitationTileState extends State<GroupDriveInvitationTile> {
                                 context: context,
                                 size: 3,
                                 color: Colors.black)),
-                        Text(widget.tripItem!.published,
+                        Text(widget.tripItem!.added,
                             style: labelStyle(
                                 context: context,
                                 size: 3,
@@ -255,7 +255,7 @@ class _GroupDriveInvitationTileState extends State<GroupDriveInvitationTile> {
                           children: [
                             const Icon(Icons.landscape),
                             Text(
-                              widget.tripItem!.pointsOfInterest.toString(),
+                              widget.tripItem!.pointsOfInterestCount.toString(),
                               style: labelStyle(
                                   context: context,
                                   size: 3,
@@ -299,7 +299,7 @@ class _GroupDriveInvitationTileState extends State<GroupDriveInvitationTile> {
                   child: Align(
                     alignment: Alignment.topLeft,
                     child: Text(
-                      widget.tripItem!.subHeading,
+                      widget.tripItem!.subTitle,
                       style: const TextStyle(
                           color: Colors.black,
                           fontSize: 18,

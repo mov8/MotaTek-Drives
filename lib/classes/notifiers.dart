@@ -18,9 +18,6 @@ import 'dart:developer' as developer;
 class ExpandNotifier extends ValueNotifier<int> {
   ExpandNotifier(super.value);
   void targetValue({int target = -1}) {
-    developer.log('Notifier.targetValue called value: $target',
-        name: '_notifier');
-    //   debugPrint('~~~~~ ExpandNotifier.targetValue notifying target: $target');
     value = target;
   }
 }

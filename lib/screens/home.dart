@@ -216,10 +216,8 @@ class _HomeFormState extends State<HomeForm> {
       List<Photo> testPhotos =
           photosFromJson(photoString: _items[_index!].imageUrls);
       testPhotos.add(image);
-      //  developer.log('before: ${_items[_index!].imageUrls}', name: 'photos_1');
       String testUri = photosToString(photos: testPhotos);
       _items[_index!].imageUrls = testUri;
-      //  developer.log('after: ${_items[_index!].imageUrls}', name: 'photos_1');
     }
 
     debugPrint(_items[_index!].imageUrls.toString());

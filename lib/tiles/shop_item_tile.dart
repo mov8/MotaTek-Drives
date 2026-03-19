@@ -100,7 +100,6 @@ class _ShopItemTileState extends State<ShopItemTile> {
   void initState() {
     super.initState();
     widget.controller._addState(this);
-    developer.log('ShopItemTile initState called', name: '_groupTile');
     expanded = widget.expanded;
     canEdit = widget.canEdit;
     index = widget.index;
@@ -118,7 +117,6 @@ class _ShopItemTileState extends State<ShopItemTile> {
   void dispose() {
     linkNodes[0].dispose();
     linkNodes[1].dispose();
-    developer.log('ShopItemTile dispose called', name: '_groupTile');
     super.dispose();
   }
 

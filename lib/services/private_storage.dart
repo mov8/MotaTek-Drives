@@ -1,5 +1,6 @@
 import 'dart:typed_data';
-import 'package:flutter_map/flutter_map.dart';
+import 'dart:ui' as ui;
+// import 'package:flutter_map/flutter_map.dart';
 import '/classes/route.dart';
 import '/classes/my_trip_item.dart';
 import '/classes/other_classes.dart';
@@ -36,11 +37,11 @@ abstract class PrivateDataRepository {
 
   Future<Uint8List?> loadImageByIdLocal({required int id});
 
-  Future<int> saveImageLocal(
-      {required String imageUrl,
-      driveId = -1,
-      pointOfInterestId = -1,
-      caption = ''});
+  Future<String> saveImageLocal(
+      {required ui.Image image,
+      driveUri = '',
+      pointOfInterestUri = '',
+      imageId = 1});
 
   Future<List<MailItem>> loadMailItems();
 
@@ -64,6 +65,10 @@ abstract class PrivateDataRepository {
 
   Future<TripItem?> loadTripItemLocal({int id = -1});
 
+  Future<List<TripItem>> loadMyTripItems();
+
+  Future<dynamic> publish(MyTripItem tripItem);
+
   Future<List<ShopItem>> saveShopItemsLocal(List<ShopItem> shopItems);
 
   Future<List<TripItem>> saveTripItemsLocal(List<TripItem> tripItems);
@@ -72,13 +77,14 @@ abstract class PrivateDataRepository {
 
   Future<Map<String, dynamic>> getDrive(int driveId);
 
-  Future<void> deleteDriveById(int id);
+  Future<void> deleteDriveById(String driveUri);
 
-  Future<void> deleteDriveLocal({required int driveId});
+  Future<void> deleteDriveLocal({required String driveUri});
 
   Future<int> saveDrive({required Drive drive});
 
-  Future<int> saveMyTripItem(MyTripItem myTripItem);
+  Future<int> saveMyTrip(CurrentTripItem tripItem);
+
 /*
   Future<OsmAmenity> loadOsmAmenityLocal({required int id, index = 0});
 

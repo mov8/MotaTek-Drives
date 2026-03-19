@@ -128,9 +128,6 @@ class DrivesRequest {
           if (zoom < _lastZoom) {
             useData = level(zoom: _lastZoom);
             excluded = _3DCache["cache"][useData]["exclude"];
-            developer.log(
-                'Zooming out from $useData to $zLevel - exclude ${excluded.toString()}',
-                name: '_zoom');
           }
         }
         setBounds(bounds: bounds, zoom: zoom);
@@ -182,12 +179,8 @@ class DrivesRequest {
         bounds.southwest.latitude < fence["sw"]["lat"] ||
         bounds.northeast.longitude > fence["ne"]["lng"] ||
         bounds.northeast.latitude > fence["ne"]["lat"]) {
-      // developer.log('Outside $zLevel fence  - zoom ${zoom.toStringAsFixed(1)}',
-      //     name: '_zoom');
       return true;
     }
-    // developer.log('Inside $zLevel fence - zoom ${zoom.toStringAsFixed(1)}',
-    //     name: '_zoom');
     return false;
   }
 
@@ -197,11 +190,6 @@ class DrivesRequest {
             (zoom - zoomUpper) *
             (_lastZoom - zoomUpper) <
         0;
-    //  if (update) {
-    //    developer.log(
-    //        'zoom: ${zoom.toStringAsFixed(2)} lastZoom: ${_lastZoom.toStringAsFixed(2)} -> ${update.toString()}',
-    //        name: '_zoom');
-    //  }
     return update;
   }
 
@@ -225,9 +213,6 @@ class DrivesRequest {
         "lat": bounds.northeast.latitude + latSpan
       }
     };
-    developer.log(
-        'setBounds() @ Zoom: $zLevel -> fence: ${_3DCache["cache"][zLevel]["fence"]}',
-        name: '_zoomfence');
     return;
   }
 

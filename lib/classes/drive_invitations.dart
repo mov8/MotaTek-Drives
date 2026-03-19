@@ -375,13 +375,14 @@ class _DriveInvitationsState extends State<DriveInvitations>
   }
 
   sendInvitations() async {
-    if (widget.myTripItem.driveUri.isEmpty) {
-      await widget.myTripItem.publish();
-      widget.myTripItem.saveLocal();
+    if (widget.myTripItem.published) {
+      // await widget.myTripItem.publish();
+      publish(widget.myTripItem);
+      widget.myTripItem.savePrivate();
     }
 
     Map<String, dynamic> toEmail = {
-      'drive_id': widget.myTripItem.driveUri,
+      'drive_id': widget.myTripItem.uri,
       'drive_date': dateFormatSQL.format(_date!),
       'title': widget.myTripItem.title,
       'message': _instructions

@@ -1,5 +1,6 @@
 //import '/classes/classes.dart';
 // import '/classes/other_classes.dart';
+import 'dart:math';
 import '/helpers/create_trip_helpers.dart';
 
 import '/models/models.dart';
@@ -90,7 +91,7 @@ class Directions {
   double getDistance(int i) {
     if (i < maneuvers.length && i > -1) {
       return Geolocator.distanceBetween(_position[1], _position[0],
-          maneuvers[i].point[1], maneuvers[i].point[0]);
+          maneuvers[i].point.y.toDouble(), maneuvers[i].point.x.toDouble());
     }
     return 0;
   }
@@ -164,7 +165,8 @@ class DirectionDescriptors {
   Map<String, dynamic> getDirections(
       {int maneuverIndex = 0,
       double metersToManeuver = 9999999999,
-      List<double> position = const [0, 0],
+      // List<double> position = const [0, 0],
+      Point position = const Point(0, 0),
       int error = 0}) {
     Map<String, dynamic> directions = {};
 
@@ -293,10 +295,10 @@ class DirectionDescriptors {
   double metersToNextManeuver({required index}) {
     if (index > 0 && index < maneuvers.length) {
       return Geolocator.distanceBetween(
-        maneuvers[index].point[0],
-        maneuvers[index].point[0],
-        maneuvers[index + 1].point[1],
-        maneuvers[index + 1].point[0],
+        maneuvers[index].point.y.toDouble(),
+        maneuvers[index].point.x.toDouble(),
+        maneuvers[index + 1].point.y.toDouble(),
+        maneuvers[index + 1].point.x.toDouble(),
       );
     } else {
       return 0;

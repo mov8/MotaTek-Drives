@@ -46,7 +46,7 @@ class TripItemRepository {
       } else if (uri.isNotEmpty) {
         _tripItemCache[key] = await getTrip(tripId: uri);
       } else {
-        _tripItemCache[key] = TripItem(heading: '');
+        _tripItemCache[key] = TripItem(title: '');
       }
     } else {}
     //   debugPrint(fetched);
@@ -204,7 +204,6 @@ class TileRepository {
     cacheDirectory ??= await getCache();
     Uint8List? data = Uint8List.fromList([]);
     String key = '${tile.z}.${tile.x}.${tile.y}';
-    developer.log('getting tile $key', name: '__map');
     File mapFile =
         File('${cacheDirectory.path}/_${tile.z}_${tile.x}_${tile.y}.pbf');
     bool tileExists = await mapFile.exists();
@@ -214,13 +213,6 @@ class TileRepository {
     } else {
       data = await deligate.provide(tile);
       await mapFile.writeAsBytes(data);
-      if (mapFile.existsSync()) {
-        developer.log('map ${mapFile.toString()} fle written ok',
-            name: '__map');
-      } else {
-        developer.log('map $key fle not written ok', name: '__map');
-      }
-      developer.log('map $key got from api', name: '__map');
     }
     return data;
   }

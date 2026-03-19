@@ -105,14 +105,12 @@ class _GroupTileState extends State<GroupTile> {
   void initState() {
     super.initState();
     widget.controller._addState(this);
-    developer.log('initState _addState called', name: '_groupTile');
     _index = widget.index;
     _isNewGroup = widget.group.name.isEmpty;
   }
 
   @override
   void dispose() {
-    developer.log('dispose called', name: '_groupTile');
     super.dispose();
   }
 

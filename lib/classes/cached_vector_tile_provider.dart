@@ -17,8 +17,6 @@ class CachedVectorTileProvider extends VectorTileProvider {
 
   @override
   Future<Uint8List> provide(TileIdentity tile) async {
-    developer.log('CachedVectorTileProvider requesting ${tile.toString()}',
-        name: '__tile');
     return await _cache.loadTile(tile: tile, id: 0, uri: '');
   }
 }

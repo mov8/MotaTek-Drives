@@ -5,9 +5,11 @@ import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:geolocator/geolocator.dart';
 import '/services/services.dart';
 import '/constants.dart';
+import '/classes/classes.dart';
 import 'dart:collection';
 import 'dart:async';
 import 'dart:math';
+import 'dart:developer' as developer;
 
 const apiKey = "VEmtdNyruRLF2YvVedde";
 const styleUrl = "https://api.maptiler.com/maps/streets-v2/style.json";
@@ -44,6 +46,14 @@ class MLMapState extends State<MLMap> {
   initState() {
     super.initState();
     _gotStyle = loadStyle();
+    developer.log('MapLibre initState() called', name: "_x_map");
+  }
+
+  @override
+  dispose() {
+    mapController!.dispose();
+    developer.log('MapLibre dispose() called', name: "_x_map");
+    super.dispose();
   }
 
   Future<bool> loadStyle() async {
@@ -86,7 +96,7 @@ class MLMapState extends State<MLMap> {
             debugPrint('Error getting style ${snapshot.error}');
           } else if (snapshot.hasData) {
             return MapLibreMap(
-              key: Key('LM001'),
+              key: CurrentTripItem().mapLibreKey, // //Key('LM001'),
               styleString: _mapStyle, // _mapStyleUrl()
               myLocationEnabled: false, // true,
 

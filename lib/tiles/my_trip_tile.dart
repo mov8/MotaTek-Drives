@@ -11,8 +11,9 @@ class MyTripTile extends StatefulWidget {
   final Future<void> Function(int) onShareTrip;
   final Future<void> Function(int) onDeleteTrip;
   final Future<void> Function(int)? onPublishTrip;
-  final void Function(bool)? onExpandChange;
+  final void Function(int, bool)? onExpandChange;
   final int index;
+  final bool showMethods;
   const MyTripTile({
     super.key,
     required this.index,
@@ -22,6 +23,7 @@ class MyTripTile extends StatefulWidget {
     required this.onDeleteTrip,
     this.onPublishTrip,
     this.onExpandChange,
+    this.showMethods = false,
   });
 
   @override
@@ -111,13 +113,21 @@ class _MyTripTileState extends State<MyTripTile> {
                     ),
                   ],
                 ),
-              )
+              ),
+              Row(children: [
+                Expanded(
+                  flex: 8,
+                  child: Text('Saved on ${widget.myTripItem.added}',
+                      style: textStyle(
+                          context: context, color: Colors.blueGrey, size: 3)),
+                ),
+              ]),
             ],
           ),
           // backgroundColor: Colors.white,
           onExpansionChanged: (expanded) {
             if (widget.onExpandChange != null) {
-              widget.onExpandChange!(expanded);
+              widget.onExpandChange!(widget.index, expanded);
             }
           },
           children: [
@@ -159,7 +169,7 @@ class _MyTripTileState extends State<MyTripTile> {
                               child: ImageArranger(
                                 urlChange: (_) => {},
                                 photos: photos,
-                                endPoint: widget.myTripItem.driveUri,
+                                endPoint: widget.myTripItem.uri,
                               ),
                             ),
                           ),
@@ -205,7 +215,8 @@ class _MyTripTileState extends State<MyTripTile> {
                           ),
                         ),
                       ),
-                      if (widget.myTripItem.showMethods) ...[
+                      if (widget.myTripItem.showMethods ||
+                          widget.showMethods) ...[
                         SizedBox(
                           child: Padding(
                             padding: const EdgeInsets.fromLTRB(5, 0, 5, 10),
@@ -284,6 +295,8 @@ class _MyTripTileState extends State<MyTripTile> {
       ),
     );
   }
+
+  expandChange() async {}
 
   changeRating(value) {
     //  setState(() {

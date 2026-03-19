@@ -1326,7 +1326,7 @@ class _FeatureDetailsState extends State<FeatureDetails> {
     if (feature.type == 0) {
       TripItem tripItem = await widget.tripItemsRepository
           .loadTripItem(key: feature.row, id: feature.id, uri: feature.uri);
-      debugPrint('getting trip data ${feature.uri} name ${tripItem.heading}');
+      debugPrint('getting trip data ${feature.uri} name ${tripItem.title}');
       return Card(
         key: Key('pin_${feature.row}'),
         elevation: 10,

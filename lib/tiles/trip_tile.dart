@@ -44,9 +44,6 @@ class _TripTileState extends State<TripTile> {
     super.initState();
     _childCards = [];
     expanded = widget.expanded;
-    developer.log('TripTile ${widget.index} initState() expanded: $expanded',
-        name: '_expand');
-
     photos = photosFromJson(
         photoString: widget.tripItem.imageUrls,
         endPoint: '${widget.tripItem.uri}/');
@@ -76,7 +73,7 @@ class _TripTileState extends State<TripTile> {
     if (_childCards.isEmpty) {
       var details = await getTripDetails(uuid: widget.tripItem.driveUri);
       widget.tripItem.body = details["body"];
-      widget.tripItem.subHeading = details["sub_title"];
+      widget.tripItem.subTitle = details["sub_title"];
       for (int i = 0; i < details["points_of_interest"].length; i++) {
         Map<String, dynamic> poi = details["points_of_interest"][i];
         PointOfInterest pointOfInterest = PointOfInterest(
@@ -116,7 +113,7 @@ class _TripTileState extends State<TripTile> {
           Align(
             alignment: AlignmentDirectional.topStart,
             child: Text(
-              widget.tripItem.heading,
+              widget.tripItem.title,
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -201,7 +198,7 @@ class _TripTileState extends State<TripTile> {
                         child: Column(children: [
                           const Icon(Icons.publish),
                           Text(
-                            widget.tripItem.published,
+                            widget.tripItem.added,
                             style: textStyle(
                                 context: context, color: Colors.black, size: 3),
                           )
@@ -228,7 +225,7 @@ class _TripTileState extends State<TripTile> {
                         child: Column(children: [
                           const Icon(Icons.landscape),
                           Text(
-                            widget.tripItem.pointsOfInterest.toString(),
+                            widget.tripItem.pointsOfInterestCount.toString(),
                             style: textStyle(
                                 context: context, color: Colors.black, size: 3),
                           ),
@@ -264,7 +261,7 @@ class _TripTileState extends State<TripTile> {
                       child: Align(
                         alignment: Alignment.topLeft,
                         child: Text(
-                          widget.tripItem.subHeading,
+                          widget.tripItem.subTitle,
                           style: const TextStyle(
                               color: Colors.black,
                               fontSize: 18,

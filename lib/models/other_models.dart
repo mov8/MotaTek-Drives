@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:math';
 import 'dart:developer' as developer;
+import 'package:drives/helpers/create_trip_helpers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:universal_io/universal_io.dart';
@@ -137,9 +138,9 @@ const List<Map> poiTypes = [
   },
   {
     'id': 14,
-    'name': 'Great road end',
-    'icon': 'Icons.remove_road',
-    'iconMaterial': 0xf07bb,
+    'name': 'Great road', // Great road end
+    'icon': 'Icons.add_road',
+    'iconMaterial': 0xe059, // 0xf07bb,
     'colour': 'Colors.red',
     'colourMaterial': 0xff4CAF50
   },
@@ -229,6 +230,10 @@ const List<Color> pinColours = [
 
 String? colourToHex({Color? color}) {
   return color!.toHexStringRGB();
+}
+
+String? colourIntToHex({int index = 0}) {
+  return uiColours.keys.toList()[index].toHexStringRGB();
 }
 
 void myFunc() {}
@@ -472,7 +477,7 @@ class Setup {
 class PointOfInterest {
   // GlobalKey? handle;
   int id;
-  String uri;
+  String? uuid;
   Point point;
   String images;
   String name;
@@ -484,7 +489,7 @@ class PointOfInterest {
 
   PointOfInterest({
     this.id = -1,
-    this.uri = '',
+    uuid,
     this.point = const Point(0, 0),
     this.type = -1,
     this.name = '',
@@ -493,13 +498,13 @@ class PointOfInterest {
     this.score = 0,
     this.scored = 0,
     this.sounds = '',
-  });
+  }) : uuid = uuid ?? getUuid();
 
   factory PointOfInterest.fromMap({required Map<String, dynamic> map}) {
     return PointOfInterest(
       id: map['id'] ?? -1,
-      uri: map['uri'] ?? '',
-      point: map['point'] ?? Point(0, 0),
+      uuid: map['uuid'],
+      point: Point(map['point']['long'], map['point']['lat']),
       type: map['type'] ?? 0,
       name: map['name'],
       description: map['description'],
@@ -509,40 +514,21 @@ class PointOfInterest {
       sounds: '',
     );
   }
-/*
-  factory PointOfInterest.clone({
-    required PointOfInterest pointOfInterest,
-    int colourIndex = -1,
-    int type = -1,
-    bool changeType = false,
-    List<double> position = const [0, 0],
-  }) {
-    position = position == [0, 0] ? pointOfInterest.point : position;
-    return PointOfInterest(
-        id: pointOfInterest.id,
-        url: pointOfInterest.url,
-        driveUri: pointOfInterest.driveUri,
-        driveId: pointOfInterest.driveId,
-        point: position == fm.LatLng(0, 0) ? pointOfInterest.point : position,
-        imageUrls: pointOfInterest.imageUrls,
-        images: pointOfInterest.images,
-        type: type == -1 ? pointOfInterest.type : type,
-        name: pointOfInterest.name,
-        score: pointOfInterest.score,
-        scored: pointOfInterest.scored);
-  }
-  */
-  Map<String, dynamic> toMap() {
+  Map<String, dynamic> toMap({String driveUid = ''}) {
     return {
-      'id': id,
-      'uri': uri,
-      'type': type,
-      'name': name,
-      'description': description,
-      'images': images,
-      'score': score,
-      'scored': scored,
-      'point': point,
+      "id": id,
+      "uuid": uuid,
+      "drive_id": driveUid,
+      "type": type,
+      "name": name,
+      "description": description,
+      "images": images,
+      "score": score,
+      "scored": scored,
+      "point": {
+        "lat": point.y,
+        "long": point.x
+      }, // Standardise for local storage as a map
     };
   }
 
@@ -579,9 +565,10 @@ class PointOfInterest {
 }
 
 List<PointOfInterest> pointsOfInterestFromJson(
-    {required List<Map<String, dynamic>> jsonList}) {
+    {required List<dynamic> jsonList}) {
   return [
     for (Map<String, dynamic> json in jsonList)
+      //  if (![12, 17, 18].contains(json['type'] ?? 0))
       PointOfInterest.fromMap(map: json)
   ];
 }
@@ -1222,19 +1209,21 @@ class UiColour {
 
 class Maneuver {
   int id = 0;
+  String? uuid;
   int driveId = 0;
   String roadFrom = '';
   String roadTo = '';
   int exit = 0;
   int bearingBefore = 0;
   int bearingAfter = 0;
-  List<double> point = const [0, 0];
+  Point point = const Point(0, 0);
   String modifier = '';
   String type = '';
   double distance = 0.0;
   Maneuver({
     this.id = 0,
     this.driveId = 0,
+    uuid,
     required this.roadFrom,
     required this.roadTo,
     required this.exit,
@@ -1244,9 +1233,11 @@ class Maneuver {
     required this.modifier,
     required this.type,
     required this.distance,
-  });
+  }) : uuid = uuid ??= getUuid();
 
   factory Maneuver.fromMap({required Map<String, dynamic> map}) {
+    Map<String, dynamic> pos =
+        jsonDecode(map["location"]) ?? {'lat': 0, 'long': 0};
     return Maneuver(
       id: map["id"] ?? -1,
       roadFrom: map["road_from"] ?? " ",
@@ -1254,7 +1245,7 @@ class Maneuver {
       exit: map["exit"] ?? 1,
       bearingBefore: map["bearing_before"] ?? 0,
       bearingAfter: map["bearing_after"] ?? 0,
-      point: map["location"] ?? [0, 0],
+      point: Point((pos["long"] ?? 0), (pos["lat"] ?? 0)),
       modifier: map["modifier"] ?? " ",
       type: map["type"] ?? " ",
       distance: map["distance"] ?? 0,
@@ -1263,23 +1254,23 @@ class Maneuver {
 
   Map<String, dynamic> toMap({String driveUid = ''}) {
     return {
-      'id': id,
-      //  'drive_uid': driveUid,
-      'road_from': roadFrom,
-      'road_to': roadTo,
-      'exit': exit,
-      'bearing_before': bearingBefore,
-      'bearing_after': bearingAfter,
-      'location': '{"lat":${point[1]},"long":${point[0]}}',
-      'modifier': modifier,
-      'type': type,
-      'distance': distance,
+      "id": id,
+      "uuid": uuid,
+      'drive_uid': driveUid,
+      "road_from": roadFrom,
+      "road_to": roadTo,
+      "exit": exit,
+      "bearing_before": bearingBefore,
+      "bearing_after": bearingAfter,
+      "location": '{"lat":${point.y},"long":${point.x}}',
+      "modifier": modifier,
+      "type": type,
+      "distance": distance,
     };
   }
 }
 
-List<Maneuver> maneuversFromJson(
-    {required List<Map<String, dynamic>> jsonList}) {
+List<Maneuver> maneuversFromJson({required List<dynamic> jsonList}) {
   return [
     for (Map<String, dynamic> json in jsonList) Maneuver.fromMap(map: json)
   ];
@@ -1439,7 +1430,6 @@ class HomeItem {
 
   factory HomeItem.fromMap(
       {required Map<String, dynamic> map, String url = ''}) {
-    developer.log("HomeItem.fromMap(): ${map['image_urls']}", name: 'photos');
     return HomeItem(
       id: map['id'] ?? -1,
       uri: '$url${map['uri']}',
@@ -1498,7 +1488,6 @@ class ShopItem {
 
   factory ShopItem.fromMap(
       {required Map<String, dynamic> map, String url = ''}) {
-    developer.log("ShopItem.fromMap(): ${map['image_urls']}", name: 'photos');
     return ShopItem(
         id: map['id'] ?? -1,
         uri: '$url${map['uri']}',
@@ -1591,42 +1580,44 @@ class TripItem {
   GlobalKey? handle;
   int key = 0;
   int id = 0;
-  String heading = '';
+  String title = '';
   String uri = '';
   String driveUri = '';
-  String subHeading = '';
+  String subTitle = '';
   String body = '';
   String author = '';
   String authorUrl = '';
-  String published = '';
+  bool published = false;
   String imageUrls = '';
   List<Photo> photos;
   double score = 5;
   double distance = 0;
   double distanceAway = 0;
-  int pointsOfInterest = 0;
+  int pointsOfInterestCount = 0;
   int closest = 12;
   int scored = 10;
   int downloads = 18;
+  String added = '';
   List<Polyline> polylines;
   TripItem(
       {this.handle,
       this.id = 0,
       this.driveUri = '',
-      required this.heading,
-      this.subHeading = '',
+      this.title = '',
+      this.subTitle = '',
       this.body = '',
       this.author = '',
       this.authorUrl = '',
-      this.published = '',
+      this.published = false,
       this.imageUrls = '',
       this.score = 5,
       this.distance = 0,
       this.distanceAway = 0,
-      this.pointsOfInterest = 0,
+      this.pointsOfInterestCount = 0,
       this.closest = 12,
       this.scored = 10,
       this.downloads = 18,
+      this.added = '',
       this.photos = const [],
       this.uri = '',
       this.polylines = const []});
@@ -1634,8 +1625,8 @@ class TripItem {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
-      'heading': heading,
-      'sub_heading': subHeading,
+      'title': title,
+      'sub_title': subTitle,
       'body': body,
       'author': author,
       'author_url': authorUrl,
@@ -1643,7 +1634,7 @@ class TripItem {
       'image_urls': imageUrls,
       'score': score,
       'distance': distance,
-      'points_of_interest': pointsOfInterest,
+      'points_of_interest': pointsOfInterestCount,
       'closest': closest,
       'scored': scored,
       'downloads': downloads,
@@ -1653,8 +1644,8 @@ class TripItem {
   Map<String, dynamic> toMapLocal() {
     return {
       'id': id,
-      'heading': heading,
-      'sub_heading': subHeading,
+      'title': title,
+      'sub_heading': subTitle,
       'body': body,
       'author': author,
       'author_url': authorUrl,
@@ -1662,7 +1653,7 @@ class TripItem {
       'image_urls': imageUrls,
       'score': score,
       'distance': distance,
-      'points_of_interest': pointsOfInterest,
+      'points_of_interest': pointsOfInterestCount,
       'closest': closest,
       'scored': scored,
       'downloads': downloads,
@@ -1673,7 +1664,31 @@ class TripItem {
       {required Map<String, dynamic> map,
       String endpoint = '',
       String imageUrls = ''}) {
+    Map<String, dynamic> tripMap = jsonDecode(map['trip']);
     return TripItem(
+      id: tripMap['id'] ?? -1,
+      uri: '$endpoint${tripMap['uri'] ?? ''}',
+      driveUri: tripMap['uri'] ?? '',
+      title: tripMap['title'] ?? '',
+      subTitle: tripMap['sub_title'] ?? '',
+      body: tripMap['body'] ?? '',
+      pointsOfInterestCount: tripMap['pois'] ?? 0,
+      distance: tripMap['distance'].toDouble() ?? 0.0,
+      added: tripMap['added'] ?? '',
+      closest: 0, // has to be calculated
+      imageUrls: tripMap['images'] ?? '',
+      //    imageUrls: imageUrls.isEmpty
+      //        ? tripMap['image_urls'] ?? ''
+      //        : imageUrls, // has to be calculated
+      score: tripMap['average_rating'] ??
+          5.0, // tripMap['average_rating'].toDouble() ?? 5.0,
+      scored: tripMap['ratings_count'] ?? 1,
+      downloads: tripMap['downloads'] ?? 0,
+    );
+  }
+
+/*
+
       id: map['id'] is int ? map['id'] : -1,
       driveUri: map['id'] is String
           ? map['id']
@@ -1681,7 +1696,7 @@ class TripItem {
       heading: map['title'] ?? map['heading'],
       subHeading: map['sub_title'] ?? map['sub_heading'],
       body: map['body'],
-      author: map['author'],
+      author: map['author'] ?? '',
       published: map['added'] ?? DateTime.now().toIso8601String(),
       imageUrls: imageUrls.isEmpty
           ? map['image_urls'] ?? ''
@@ -1695,9 +1710,10 @@ class TripItem {
       scored: map['ratings_count'] ?? 1,
       downloads: map['downloads'] ?? 0,
       uri: '$endpoint${map['uri'] ?? ''}',
+
     );
   }
-
+*/
   factory TripItem.from3DCache(
       {required Map<String, dynamic> map,
       String endpoint = '',
@@ -1705,14 +1721,14 @@ class TripItem {
     return TripItem(
       id: -1,
       driveUri: '',
-      heading: map['title'] ?? ' ',
-      subHeading: 'sub_title',
+      title: map['title'] ?? ' ',
+      subTitle: 'sub_title',
       body: 'body',
       author: map['author'],
       published: map['published'], // ?? DateTime.now().toIso8601String(),
       score: map['rating'].toDouble(),
       distance: map['distance'],
-      pointsOfInterest: map['points_of_interest'],
+      pointsOfInterestCount: map['points_of_interest'],
       closest: 0, // has to be calculated
       scored: map['rated'],
       downloads: map['downloads'] ?? 0,
@@ -1721,95 +1737,6 @@ class TripItem {
   }
 }
 
-/*
-
-Future<List<MyTripItem>> tripItemFromDb(
-    {int driveId = -1, bool showMethods = false}) async {
-  final db = await DbHelper().db;
-  fm.LatLng pos = const fm.LatLng(0, 0);
-
-  await utils.getPosition().then((currentPosition) {
-    pos = fm.LatLng(currentPosition.latitude, currentPosition.longitude);
-  });
-
-  String drivesQuery =
-      '''SELECT drives.id, drives.uri, drives.title, drives.sub_title, drives.body, drives.distance, drives.points_of_interest, drives.added,
-    points_of_interest.*  
-    FROM drives
-    JOIN points_of_interest 
-    ON drives.id = points_of_interest.drive_id''';
-  if (driveId > -1) {
-    drivesQuery = '$drivesQuery WHERE drives.id = $driveId';
-  }
-
-  List<MyTripItem> trips = [];
-  try {
-    List<Map<String, dynamic>> maps = await db.rawQuery(drivesQuery);
-    final directory = (await getApplicationDocumentsDirectory()).path;
-    int driveId = -1;
-    int highlights = 0;
-    String tripImages = '';
-    double distance = 0;
-    for (int i = 0; i < maps.length; i++) {
-      if (maps[i]['drive_id'] != driveId) {
-        distance = Geolocator.distanceBetween(maps[i]['latitude'],
-            maps[i]['longitude'], pos.latitude, pos.longitude);
-        driveId = maps[i]['drive_id'];
-        tripImages = '{"url": "$directory/drive$driveId.png", "caption": ""}';
-        highlights = 0;
-        trips.add(MyTripItem(
-            id: driveId,
-            driveId: driveId,
-            showMethods: showMethods,
-            driveUri: maps[i]['uri'],
-            heading: maps[i]['title'],
-            subHeading: maps[i]['sub_title'],
-            body: maps[i]['body'],
-            published: maps[i]['added'],
-            images:
-                '[{"url": "$directory/drive$driveId.png", "caption": ""}]', //maps[i]['map_image'],
-            distance: maps[i]['distance'],
-            distanceAway: distance,
-            highlights: 0,
-            pointsOfInterest: [
-              PointOfInterest.fromMap(
-                  map: maps[i], driveId: driveId, listIndex: i)
-            ],
-            closest: 15));
-        if (maps[i]['type'] != 12) highlights++;
-      } else {
-        double poiDistance = distance = Geolocator.distanceBetween(
-            maps[i]['latitude'],
-            maps[i]['longitude'],
-            pos.latitude,
-            pos.longitude);
-        if (poiDistance < trips[trips.length - 1].distance) {
-          trips[trips.length - 1].distance = poiDistance;
-        }
-        trips[trips.length - 1].addPointOfInterest(PointOfInterest.fromMap(
-            map: maps[i], driveId: driveId, listIndex: i));
-        if (![12, 17, 18].contains(maps[i]['type'])) {
-          highlights++;
-          trips[trips.length - 1].highlights = highlights;
-        }
-      }
-      if (maps[i]['images'].isNotEmpty) {
-        tripImages =
-            '${tripImages.isNotEmpty ? '$tripImages,' : ''}${unList(maps[i]['images'])}';
-      }
-    } //
-    if (trips.isNotEmpty) {
-      if (tripImages.isNotEmpty) {
-        trips[trips.length - 1].images = '[$tripImages]';
-      }
-    }
-  } catch (e) {
-    String err = e.toString();
-    debugPrint('Error loading Drive $err');
-  }
-  return trips;
-}
-*/
 class Drive {
   int id = 0;
   int userId = 0;
@@ -1819,10 +1746,8 @@ class Drive {
   DateTime added = DateTime.now();
   double distance = 0;
   int pois = 0;
-  String images = ''; // To s
+  String images = '';
   List<PointOfInterest> pointsOfInterest = [];
-  List<Polyline> polyLines = [];
-
   Drive({
     this.id = 0,
     required this.userId,
@@ -2004,44 +1929,6 @@ class MessageLocal {
   }
 }
 
-/*
-Future<List<MessageLocal>> messagesFromDb({int driveId = -1}) async {
-  final db = await DbHelper().db;
-  String messagesQuery =
-      '''SELECT group_members.forename, group_members.surname, group_members.group_ids, group_members.id, 
-      group_members.phone, group_members.email,  messages.*  
-    FROM group_members
-    JOIN messages 
-    ON group_members.id = messages.user_id''';
-
-  List<MessageLocal> messages = [];
-  try {
-    List<Map<String, dynamic>> maps = await db.rawQuery(messagesQuery);
-    for (int i = 0; i < maps.length; i++) {
-      try {
-        messages.add(MessageLocal(
-          id: maps[i]['id'],
-          groupMember: GroupMember(
-              forename: maps[i]['forename'],
-              surname: maps[i]['surname'],
-              email: maps[i]['email'],
-              phone: maps[i]['phone']),
-          message: maps[i]['message'],
-          read: maps[i]['read'] == 1,
-        ));
-
-        // for maps;
-      } catch (e) {
-        String err = e.toString();
-        debugPrint('Error loading User $err');
-      }
-    }
-  } catch (e) {
-    debugPrint('Error: loading Message ${e.toString()}');
-  }
-  return messages;
-}
-*/
 class PopupValue {
   int dropdownIdx = -1;
   String text1 = '';
@@ -2049,24 +1936,28 @@ class PopupValue {
   PopupValue(this.dropdownIdx, this.text1, this.text2);
 }
 
-class SearchHelper {
-  int poiIndex = -1;
-}
-
+/// lines and shields geometry format for MapLibre [[lng, lat], [lng, lat], ...]
+/// have to be defined in Flutter a List<dynamic> rather than List<List<double>>
 class GoodRoad {
   final int id; // SqLite id
   final String uri; // api uri
-  List<List<double>>
-      lines; // Points formatted for MapLibre [[lng, lat], [lng, lat], ...]
-  List<List<double>> shields;
+  List<dynamic> lines;
+  List<dynamic> shields;
+  List<Point> waypoints;
   String pointOfInterestUri;
   GoodRoad({
     this.id = -1,
     this.uri = '',
-    this.lines = const [],
-    this.shields = const [],
+    List<dynamic>? lines,
+    List<dynamic>? shields,
+    List<Point>? waypoints,
     this.pointOfInterestUri = '',
-  });
+  })  : lines = lines ?? [],
+        shields = shields ?? [],
+        waypoints = waypoints ?? [];
+
+  /// Bundling everything up int a single class simplified the
+  /// separating of the Route and GoodRoad geoJSON data - good-road-data
 
   factory GoodRoad.fromMap({required Map<String, dynamic> map}) {
     return GoodRoad(
@@ -2074,6 +1965,7 @@ class GoodRoad {
       uri: map["uri"] ?? "",
       lines: map["lines"] ?? [],
       shields: map["shields"] ?? [],
+      waypoints: map["waypoints"] ?? [],
       pointOfInterestUri: map["point_of_interest_uri"] ?? "",
     );
   }
@@ -2084,42 +1976,46 @@ class GoodRoad {
       "uri": uri,
       "lines": lines,
       "shields": shields,
+      "waypoints": waypoints,
       "point_of_interest_uri": pointOfInterestUri,
     };
   }
-}
 
-List<GoodRoad> goodRoadsFromJson(
-    {required List<Map<String, dynamic>> jsonList}) {
-  return [
-    for (Map<String, dynamic> json in jsonList) GoodRoad.fromMap(map: json)
-  ];
+  Map<String, dynamic> toJSON({PointOfInterest? pointOfInterest}) {
+    pointOfInterest = pointOfInterest ?? PointOfInterest();
+    pointOfInterest.uuid = pointOfInterest.uuid ?? getUuid();
+    pointOfInterestUri = pointOfInterest.uuid!;
+    List<Map<String, dynamic>> waypointsJSON = [
+      for (int i = 0; i < waypoints.length; i++)
+        {
+          'point': {'lat': waypoints[i].y, 'long': waypoints[i].x}
+        }
+    ];
+    return {
+      "id": id,
+      "uri": uri.isNotEmpty ? uri : getUuid(),
+      "line_h": lines,
+      "shields": shields,
+      "waypoints": waypointsJSON,
+      "point_of_interest_uri": pointOfInterestUri,
+      "point_of_interest": pointOfInterest.toMap()
+    };
+  }
 }
 
 List<Map<String, dynamic>> jsonFromGoodRoads(
     {required List<GoodRoad> goodRoadList}) {
-  return [for (GoodRoad goodRoad in goodRoadList) goodRoad.toMap()];
+  List<Map<String, dynamic>> json = [];
+  for (int i = 0; i < goodRoadList.length; i++) {
+    json.add(goodRoadList[i].toMap());
+  }
+  return json;
 }
 
-class Drive1 {
-  int id;
-  int userId;
-  String name;
-  String description;
-  DateTime published;
-  double startLong;
-  double startLat;
-  Drive1(this.id, this.userId, this.name, this.description, this.published,
-      this.startLong, this.startLat);
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'userId': userId,
-      'name': name,
-      'description': description,
-      'published': published,
-      'startLong': startLong,
-      'startLat': startLat,
-    };
+List<GoodRoad> goodRoadsFromJson({required jsonList}) {
+  List<GoodRoad> goodRoads = [];
+  for (int i = 0; i < jsonList.length; i++) {
+    goodRoads.add(GoodRoad.fromMap(map: jsonList[i]));
   }
+  return goodRoads;
 }

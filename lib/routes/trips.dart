@@ -114,11 +114,9 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
         onUpdated: onUpdated,
         onGetDetails: onGetDetails,
         imageRepository: _imageRepository);
-    developer.log("_onMapUpdate called", name: "_shieldTap");
   }
 
   _onIdle() async {
-    developer.log('_onIdle called', name: '_zoom');
     if (_mapController != null) {
       Map<String, dynamic> geoJson = {};
       try {
@@ -126,17 +124,10 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
         double zoom = _mapController!.cameraPosition!.zoom;
         geoJson = await _drivesRequest!.update(bounds: bounds, zoom: zoom);
         if (geoJson.isNotEmpty) {
-          developer.log('Updating datasource from api', name: '_zoom');
-          //   Map<String, dynamic> geoJson2 = {
-          //     'type': 'FeatureCollection',
-          //     'features': jsonDecode(geoJson['features'][0])
-          //   };
-
           await _mapController!.setGeoJsonSource("published-data", geoJson);
           _tripCards = _drivesRequest!.getTripTiles(openUri: "");
-          _bottomDrawerController.setContent(
-              content:
-                  cardsList(cards: _tripCards, controller: _scrollController));
+          _bottomDrawerController.setContent(content: _tripCards);
+          //  cardsList(cards: _tripCards, controller: _scrollController));
         }
       } catch (e) {
         developer.log('error: ${e.toString()} ${geoJson.toString()}',
@@ -148,7 +139,6 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
   onOpened(open) {
     //  _scrollController.jumpTo(12);
     if (!_opened) {
-      developer.log("calling onOpened", name: "_expand");
       _bottomDrawerController.dockOpenTile(key: _scrollToKey);
     }
     _opened = true;
@@ -164,20 +154,15 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
       if (foundFeatures.isNotEmpty) {
         var tappedFeature = foundFeatures.first;
         var name = tappedFeature['properties']['name'];
-        developer.log("_onShieldTapped feature $name found",
-            name: "_shieldTap");
         String uri = tappedFeature['id'].substring(0, 32);
 
         _tripCards =
             _drivesRequest!.getTripTiles(openUri: uri, key: _scrollToKey);
-        _bottomDrawerController.setContent(
-            content:
-                cardsList(cards: _tripCards, controller: _scrollController));
+        _bottomDrawerController.setContent(content: _tripCards);
+        //  cardsList(cards: _tripCards, controller: _scrollController));
         _bottomDrawerController.open(
             height: 300); // height of opened ExpandTile
         _opened = false;
-      } else {
-        developer.log("_onShieldTapped features are empty", name: "_shieldTap");
       }
     } catch (e) {
       developer.log(
@@ -249,9 +234,12 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
           child: HandleFabs(controller: _mapController!),
         ),
       BottomDrawer(
+        context: context,
         maxHeight: 200,
-        content: cardsList(cards: _tripCards, controller: _scrollController),
+        content:
+            _tripCards, //cardsList(cards: _tripCards, controller: _scrollController),
         controller: _bottomDrawerController,
+        scrollController: _scrollController,
         onOpened: onOpened,
       ),
     ]);

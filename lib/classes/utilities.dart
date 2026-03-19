@@ -1,4 +1,6 @@
 import 'dart:math';
+import 'package:drives/classes/classes.dart';
+
 import '/models/models.dart';
 import '/classes/route.dart' as mt_rt;
 import 'package:geolocator/geolocator.dart';
@@ -35,10 +37,10 @@ Future<Position> getPosition() async {
   return Setup().lastPosition;
 }
 
-double distanceBetween(List<double> point1, List<double> point2,
+double distanceBetween(Point point1, Point point2,
     {bool miles = true, bool meters = false}) {
-  double distance =
-      Geolocator.distanceBetween(point1[1], point1[0], point2[1], point2[0]);
+  double distance = Geolocator.distanceBetween(point1.y.toDouble(),
+      point1.x.toDouble(), point2.y.toDouble(), point2.x.toDouble());
   if (meters) {
     return distance;
   }
@@ -148,7 +150,39 @@ bool samePosition({required LatLng pos1, required LatLng pos2, places = 6}) {
 }
 
 /*
+int closestWWaypoint({required List<Waypooint> waypoints, required Point point}) {
+  int idx = -1;
+  double distance = 999999999;
+  for (int i = 0; i < waypoints.length; i++) {
+    double gap = distanceBetween(waypoints[i].point, point);
+    if (gap < distance) {
+      idx = i;
+      distance = gap;
+    }
+  }
+  return idx;
+}
+*/
+List<int> closestWaypoints(
+    {required List<Point> waypoints, required Point point}) {
+  List<int> idx = [-1, -1];
+  List<double> distance = [999999999, 999999999];
+  for (int i = 0; i < waypoints.length; i++) {
+    double gap = distanceBetween(waypoints[i], point);
+    if (gap < distance[0]) {
+      idx[1] = idx[0];
+      idx[0] = i;
+      distance[1] = distance[0];
+      distance[0] = gap;
+    } else if (gap < distance[1]) {
+      idx[1] = i;
+      distance[1] = gap;
+    }
+  }
+  return idx;
+}
 
+/*
 double closestWaypoint(
     {required List<PointOfInterest> pointsOfInterest,
     required LatLng location}) {

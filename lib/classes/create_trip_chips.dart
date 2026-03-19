@@ -16,7 +16,7 @@ class CreateTripChips extends StatelessWidget {
   final Function(MyTripActions) onUpdate;
   final CurrentTripItem tripItem; // tripItem contains the trip state
   final CreateTripController createTripController;
-  // final CreateTriptripItem.values tripItem.tripValues = CreateTriptripItem.values();
+  // final CreateTripCurrentTripItem().values CurrentTripItem().tripValues = CreateTripCurrentTripItem().values();
   final LatLng position;
   final LeadingWidgetController? leadingWidgetController;
 
@@ -31,18 +31,25 @@ class CreateTripChips extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    developer.log('Instantiating CreateChips object', name: '_chips');
     return Wrap(spacing: 5, children: getChips());
   }
 
   List<ActionChip> getChips() {
     //   List<String> chipNames = [];
-    // CreateTriptripItem.values tripItem.tripValues = CreateTriptripItem.values();
+    // CreateTripCurrentTripItem().values CurrentTripItem().tripValues = CreateTripCurrentTripItem().values();
     List<ActionChip> chips = [];
 
-    if (tripItem.tripState == TripState.startFollowing) {
-      () => createTripController.updateValues(values: tripItem.tripValues);
+    if (CurrentTripItem().tripState == TripState.startFollowing) {
+      () => createTripController.updateValues(
+          values: CurrentTripItem().tripValues);
     }
-
+    if (CurrentTripItem().tripState == TripState.none) {
+      CurrentTripItem().tripActions = TripActions.none;
+      CurrentTripItem().isSaved = false;
+      CurrentTripItem().isTracking = false;
+      CurrentTripItem().highliteActions = HighliteActions.none;
+    }
     final List<Map> chipDetails = [
       {
         'label': 'Extend start',
@@ -61,7 +68,10 @@ class CreateTripChips extends StatelessWidget {
         'icon': Icons.pin_drop,
         'states': [TripState.manual],
         'actions': [],
-        'highlight': [HighliteActions.none],
+        'highlight': [HighliteActions.none, HighliteActions.greatRoadStarted],
+        'colour': CurrentTripItem().goodRoad
+            ? colourList[Setup().goodRouteColour]
+            : colourList[Setup().routeColour],
         'loaded': null,
         'saved': null,
         'group': false
@@ -72,7 +82,10 @@ class CreateTripChips extends StatelessWidget {
         'icon': Icons.pin_drop,
         'states': [TripState.editing],
         'actions': [],
-        'highlight': [HighliteActions.none],
+        'highlight': [HighliteActions.none, HighliteActions.greatRoadStarted],
+        'colour': CurrentTripItem().goodRoad
+            ? colourList[Setup().goodRouteColour]
+            : colourList[Setup().routeColour],
         'loaded': null,
         'saved': null,
         'group': false
@@ -95,7 +108,10 @@ class CreateTripChips extends StatelessWidget {
         'states': [TripState.manual, TripState.editing],
         'actions': [],
         'highlight': [HighliteActions.waypointHighlited],
-        'loaded': true,
+        'colour': CurrentTripItem().goodRoad
+            ? colourList[Setup().goodRouteColour]
+            : colourList[Setup().routeColour],
+        'loaded': null,
         'saved': null,
         'group': false
       },
@@ -106,6 +122,9 @@ class CreateTripChips extends StatelessWidget {
         'states': [TripState.manual, TripState.editing],
         'actions': [],
         'highlight': [HighliteActions.waypointHighlited],
+        'colour': CurrentTripItem().goodRoad
+            ? colourList[Setup().goodRouteColour]
+            : colourList[Setup().routeColour],
         'loaded': true,
         'saved': null,
         'group': false
@@ -120,6 +139,7 @@ class CreateTripChips extends StatelessWidget {
         'loaded': true,
         'saved': null,
         'group': false,
+        'goodRoad': false,
       },
       {
         'label': 'Point of interest',
@@ -130,7 +150,8 @@ class CreateTripChips extends StatelessWidget {
         'highlight': [HighliteActions.none, HighliteActions.routeHighlited],
         'loaded': true,
         'saved': null,
-        'group': false
+        'group': false,
+        'goodRoad': false,
       },
       {
         'label': 'Create manually',
@@ -178,7 +199,8 @@ class CreateTripChips extends StatelessWidget {
         'highlight': [HighliteActions.none],
         'loaded': true,
         'saved': false,
-        'group': false
+        'group': false,
+        'goodRoad': false,
       },
       {
         'label': 'Clear route',
@@ -197,30 +219,52 @@ class CreateTripChips extends StatelessWidget {
         'highlight': [HighliteActions.none],
         'loaded': true,
         'saved': null,
-        'group': false
-      },
-      {
-        'label': 'Great road start',
-        'method': greatRoad,
-        'icon': Icons.add_road,
-        'states': [TripState.editing],
-        'actions': [],
-        'highlight': [HighliteActions.routeHighlited],
-        'loaded': null,
-        'saved': null,
         'group': false,
         'goodRoad': false,
       },
       {
-        'label': 'Great road end',
+        'label': 'Add great road',
+        'method': greatRoad,
+        'icon': Icons.add_road,
+        'states': [TripState.automatic, TripState.manual, TripState.editing],
+        'actions': [],
+        'highlight': [HighliteActions.none],
+        'loaded': null,
+        'saved': null,
+        'colour': CurrentTripItem().goodRoad
+            ? colourList[Setup().routeColour]
+            : colourList[Setup().goodRouteColour],
+        'group': false,
+        'goodRoad': false,
+      },
+      {
+        'label': 'Edit great road',
+        'method': editGreatRoad,
+        'icon': Icons.edit,
+        'states': [TripState.automatic, TripState.manual, TripState.editing],
+        'actions': [],
+        'highlight': [HighliteActions.greatRoadHighlighted],
+        'loaded': null,
+        'saved': null,
+        'colour': CurrentTripItem().goodRoad
+            ? colourList[Setup().routeColour]
+            : colourList[Setup().goodRouteColour],
+        'group': false,
+        'goodRoad': false,
+      },
+      {
+        'label': 'Plan drive',
         'method': greatRoadEnd,
-        'icon': Icons.remove_road,
-        'states': [TripState.editing],
+        'icon': Icons.add_road,
+        'states': [],
         'actions': [],
         'highlight': [],
-        'loaded': true,
+        'loaded': null,
         'saved': false,
         'group': false,
+        'colour': CurrentTripItem().goodRoad
+            ? colourList[Setup().routeColour]
+            : colourList[Setup().goodRouteColour],
         'goodRoad': true
       },
       {
@@ -298,11 +342,12 @@ class CreateTripChips extends StatelessWidget {
           TripState.manual,
           TripState.editing
         ],
-        'actions': [TripActions.none],
+        'actions': [], // [TripActions.none],
         'highlight': [],
         'loaded': true,
         'saved': null,
-        'group': null
+        'group': null,
+        'goodRoad': false,
       },
       {
         'label': 'Group',
@@ -320,6 +365,7 @@ class CreateTripChips extends StatelessWidget {
         'saved': null,
         'group': true
       },
+      /*
       {
         'label': 'Drive info',
         'method': tripData,
@@ -335,6 +381,7 @@ class CreateTripChips extends StatelessWidget {
         'saved': null,
         'group': false
       },
+    */
       {
         'label': 'Messages',
         'method': messages,
@@ -353,60 +400,97 @@ class CreateTripChips extends StatelessWidget {
       },
     ];
 
+    developer.log(' ', name: '_chips');
+    developer.log(' +++++++ State Tests create_trip_chips.dart ++++++++',
+        name: '_chips');
+    String failure = '';
+    // developer.log('States: ${CurrentTripItem().tripState}');
+
+    bool actionsOk(int i) {
+      bool ok = chipDetails[i]['actions'].isEmpty ||
+          chipDetails[i]['actions'].contains(CurrentTripItem().tripActions);
+      failure = ok ? failure : '$failure, ACTIONS';
+      return ok;
+    }
+
+    bool statesOk(int i) {
+      bool ok = (chipDetails[i]['states'].isEmpty ||
+          chipDetails[i]['states'].contains(CurrentTripItem().tripState));
+      failure = ok ? failure : '$failure, STATES';
+      return ok;
+    }
+
+    bool highlightsOk(int i) {
+      bool ok = ((chipDetails[i]['highlight'].isEmpty ||
+              chipDetails[i]['highlight']
+                  .contains(CurrentTripItem().highliteActions)) &&
+          chipDetails[i]['highlight'] != HighliteActions.none);
+      failure = ok ? failure : '$failure, HIGHLIGHTS';
+      return ok;
+    }
+
+    bool loadedOk(int i) {
+      bool ok = chipDetails[i]['loaded'] == null ||
+          (chipDetails[i]['loaded'] &&
+              CurrentTripItem().waypoints.isNotEmpty) ||
+          (!chipDetails[i]['loaded'] && CurrentTripItem().waypoints.isEmpty);
+      failure = ok ? failure : '$failure, LOADED';
+      return ok;
+    }
+
+    bool savedOk(int i) {
+      bool ok = chipDetails[i]['saved'] == null ||
+          CurrentTripItem().isSaved == chipDetails[i]['saved'];
+      failure = ok ? failure : '$failure, SAVED';
+      return ok;
+    }
+
+    bool groupOk(int i) {
+      bool ok = chipDetails[i]['group'] == null ||
+          (chipDetails[i]['group'] ==
+              CurrentTripItem().groupDriveId.isNotEmpty);
+      failure = ok ? failure : '$failure, GROUP';
+      return ok;
+    }
+
+    bool goodRoadOk(int i) {
+      if (chipDetails[i]['label'].contains('Great')) {
+        developer.log(
+            "goodRoadOk() label ${chipDetails[i]['label']} chipDetails[i]['goodRoad'] ${chipDetails[i]['goodRoad']} CurrentTripItem().goodRoad: ${CurrentTripItem().goodRoad}",
+            name: '_chips');
+      }
+
+      bool ok = chipDetails[i]['goodRoad'] == null ||
+          CurrentTripItem().goodRoad == chipDetails[i]['goodRoad'];
+      failure = ok ? failure : '$failure, GOODROAD';
+      return ok;
+    }
+
+    bool isValid(int i) {
+      return actionsOk(i) &&
+          statesOk(i) &&
+          highlightsOk(i) &&
+          loadedOk(i) &&
+          savedOk(i) &&
+          groupOk(i) &&
+          goodRoadOk(i);
+    }
+
+//      developer.log(
+//          '${chipDetails[i]['label']} actions: ${actionsOk(i)} states: ${statesOk(i)} highlights: ${highlightsOk(i)} loaded: ${loadedOk(i)} saved: ${savedOk(i)} group: ${groupOk(i)} goodRoad: ${goodRoadOk(i)}}',
+//          name: '_chips');
+
     for (int i = 0; i < chipDetails.length; i++) {
-      bool actionsOk(int i) {
-        return chipDetails[i]['actions'].isEmpty ||
-            chipDetails[i]['actions'].contains(tripItem.tripActions);
-      }
-
-      bool statesOk(int i) {
-        return (chipDetails[i]['states'].isEmpty ||
-            chipDetails[i]['states'].contains(tripItem.tripState));
-      }
-
-      bool highlightsOk(int i) {
-        return ((chipDetails[i]['highlight'].isEmpty ||
-                chipDetails[i]['highlight']
-                    .contains(tripItem.highliteActions)) &&
-            chipDetails[i]['highlight'] != HighliteActions.none);
-      }
-
-      bool loadedOk(int i) {
-        return chipDetails[i]['loaded'] == null ||
-            (chipDetails[i]['loaded'] && tripItem.routes.isNotEmpty) ||
-            (!chipDetails[i]['loaded'] && tripItem.routes.isEmpty);
-      }
-
-      bool savedOk(int i) {
-        return chipDetails[i]['saved'] == null ||
-            tripItem.isSaved == chipDetails[i]['saved'];
-      }
-
-      bool groupOk(int i) {
-        //       return chipDetails[i]['group'] == null ||
-        //           (chipDetails[i]['group'] == tripItem.groupDriveId.isNotEmpty);
-        return true;
-      }
-
-      bool goodRoadOk(int i) {
-        //    return chipDetails[i]['goodRoad'] == null ||
-        //        tripItem.tripValues.goodRoad.isGood == chipDetails[i]['goodRoad'];
-        return true;
-      }
-
-      bool isValid(int i) {
-        return actionsOk(i) &&
-            statesOk(i) &&
-            highlightsOk(i) &&
-            loadedOk(i) &&
-            savedOk(i) &&
-            groupOk(i) &&
-            goodRoadOk(i);
-      }
-
-      developer.log(
-          '${chipDetails[i]['label']} actions: ${actionsOk(i)} states: ${statesOk(i)} highlights: ${highlightsOk(i)} loaded: ${loadedOk(i)} saved: ${savedOk(i)} group: ${groupOk(i)} goodRoad: ${goodRoadOk(i)}}',
-          name: '_chips');
+      failure = '';
+      Color colour = CurrentTripItem().goodRoad &&
+              ['Waypoint'].contains(chipDetails[i]['label'])
+          ? colourList[Setup().goodRouteColour]
+          : Colors.white;
+      Color wpColour = CurrentTripItem().goodRoad &&
+              ['Waypoint', 'Plan drive', 'Add great road']
+                  .contains(chipDetails[i]['label'])
+          ? colourList[Setup().goodRouteColour]
+          : Colors.white;
       if (isValid(i)) {
         chips.add(ActionChip(
             visualDensity: const VisualDensity(horizontal: 0.0, vertical: 0.5),
@@ -414,281 +498,150 @@ class CreateTripChips extends StatelessWidget {
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             label: Text(chipDetails[i]['label'],
-                style: const TextStyle(fontSize: 16, color: Colors.white)),
+                style: TextStyle(fontSize: 16, color: Colors.white)),
             elevation: 10,
             shadowColor: Colors.black,
             onPressed: () => chipDetails[i]['method'](),
-            avatar:
-                Icon(chipDetails[i]['icon'], size: 20, color: Colors.white)));
+            avatar: Icon(chipDetails[i]['icon'],
+                size: 20, color: chipDetails[i]['colour'] ?? Colors.white)));
+      } else {
+        if (chipDetails[i]['label'].contains('Great')) {
+          developer.log(
+              '$failure - For ${chipDetails[i]['label']} CurrentTripItem().tripValues.isGoodRoad: ${CurrentTripItem().tripValues.goodRoad}',
+              name: '_chips');
+        }
       }
     }
+    developer.log(' ', name: '_chips');
     return chips;
   }
 
   void addAutomatically() {
-    tripItem.clearAll();
-    tripItem.tripActions = TripActions.headingDetail;
-    tripItem.tripState = TripState.automatic;
-    //  onUpdate();
-
+    CurrentTripItem().requestAddManually();
     leadingWidgetController?.changeWidget(1);
-    tripItem.tripValues.mapHeight = MapHeights.headers;
-    // createTripController.getTripInfo(prompt: false);
     onUpdate(MyTripActions.startTracking);
   }
 
   void addManually() {
-    tripItem.clearAll();
-    tripItem.tripState = TripState.manual;
-    tripItem.tripActions = TripActions.headingDetail;
-    tripItem.tripValues.showTarget = true;
-    tripItem.tripValues.setState = true;
-    tripItem.tripValues.title = 'Create trip manually';
-    //  tripItem.tripValues.leadingWidget = 1;
-    //  tripItem.tripValues.mapHeight = MapHeights.headers;
-    //  leadingWidgetController?.changeWidget(1);
-    //  tripItem.tripValues.mapHeight = MapHeights.headers;
-    //  createTripController.getTripInfo(prompt: false);
+    leadingWidgetController?.changeWidget(1);
+    CurrentTripItem().requestAddManually();
     onUpdate(MyTripActions.startManual);
   }
 
   void clear() {
-    tripItem.tripState = TripState.none;
-    tripItem.tripActions = TripActions.none;
-    tripItem.highliteActions = HighliteActions.none;
-    tripItem.tripValues.mapHeight = MapHeights.full;
-    tripItem.tripValues.setState = true;
-    tripItem.clearAll();
+    CurrentTripItem().requestClear();
     leadingWidgetController?.changeWidget(0);
-    createTripController.updateValues(values: tripItem.tripValues);
+    onUpdate(MyTripActions.clearTrip);
   }
 
   void editing() {
-    tripItem.tripState = TripState.editing;
-    tripItem.tripActions = TripActions.none;
-    tripItem.tripValues.editing();
-    tripItem.loadBackBuffer();
-
-    tripItem.tripValues.mapHeight = MapHeights.full;
+    CurrentTripItem().requestEditing();
     leadingWidgetController?.changeWidget(1);
-    createTripController.updateValues(values: tripItem.tripValues);
+    onUpdate(MyTripActions.editTrip);
   }
 
   void extendStart() async {
-    tripItem.tripActions = TripActions.none;
-    tripItem.tripValues.beforeWaypoint();
-    onUpdate(MyTripActions.none);
-    await tripItem.addWaypoint(index: -1, point: tripItem.tripValues.position);
-    tripItem.tripValues.afterWaypoint();
-    tripItem.isSaved = false;
+    CurrentTripItem().requestExtendStart();
     onUpdate(MyTripActions.none);
   }
 
   void waypoint() async {
-    tripItem.tripActions = TripActions.none;
-    tripItem.tripValues.beforeWaypoint();
+    CurrentTripItem().requestWaypoint();
     onUpdate(MyTripActions.addWaypoint);
-    await tripItem.addWaypoint(index: 0, point: tripItem.tripValues.position);
-    tripItem.tripValues.afterWaypoint();
-    tripItem.isSaved = false;
-    onUpdate(MyTripActions.addWaypoint);
-    //  createTripController.updateValues(values: tripItem.tripValues);
   }
 
   void revisitWaypoint() async {
-    tripItem.tripActions = TripActions.none;
-    tripItem.tripValues.beforeWaypoint();
-    onUpdate(MyTripActions.none);
-    await tripItem.addWaypoint(
-        index: 0, point: tripItem.tripValues.position, revisit: true);
-    tripItem.tripValues.afterWaypoint();
-    tripItem.isSaved = false;
-    onUpdate(MyTripActions.none);
-    //  createTripController.updateValues(values: tripItem.tripValues);
+    CurrentTripItem().requestRevisitWaypoint();
+    onUpdate(MyTripActions.revisitWaypoint);
   }
 
   void extendEnd() async {
-    tripItem.tripActions = TripActions.none;
-    tripItem.tripValues.beforeWaypoint();
-    onUpdate(MyTripActions.extendEnd);
-    await tripItem.addWaypoint(index: 1, point: tripItem.tripValues.position);
-    tripItem.tripValues.afterWaypoint();
-    tripItem.isSaved = false;
+    CurrentTripItem().requestExtendEnd();
     onUpdate(MyTripActions.none);
   }
 
   saveTrip() async {
-    /*
-    if (tripItem.heading.isEmpty ||
-        tripItem.subHeading.isEmpty ||
-        tripItem.body.isEmpty) {
-      createTripController.getTripInfo();
-      onUpdate();
-      tripItem.isSaved = false;
-      return;
-    }
-    tripItem.title = tripItem.heading;
-    tripItem.tripValues.showProgress = true;
-    tripItem.tripValues.setState = true;
-    // createTripController. updatetripItem(values: tripItem.tripValues);
-    onUpdate();
-    tripItem.mapImage ?? await createTripController.getMapImage();
-    await tripItem.save();
-    tripItem.tripState = TripState.loaded;
-    tripItem.tripActions = TripActions.readOnly;
-    tripItem.tripValues.leadingWidget = 0;
-    tripItem.tripValues.showProgress = false;
-    tripItem.tripValues.showTarget = false;
-    tripItem.tripValues.setState = true;
-
-    leadingWidgetController?.changeWidget(1);
-    // createTripController.updateValues(values: tripItem.tripValues);
-    // createTripController.updatetripItem(values: tripItem.tripValues);
-    onUpdate();
-    */
+    onUpdate(MyTripActions.saveTrip);
     return;
   }
 
   void removeWaypoint() async {
-    await tripItem.deleteWaypoint(position: tripItem.tripValues.position);
-    tripItem.tripValues.setState = true;
-    tripItem.tripValues.showTarget = true;
-    tripItem.tripValues.mapHeight = MapHeights.full;
-    createTripController.updateValues(values: tripItem.tripValues);
+    CurrentTripItem().requestRemoveWaypoint();
+    onUpdate(MyTripActions.deleteWaypoint);
   }
 
   void pauseRecording() {
-    tripItem.tripState = TripState.paused;
-    tripItem.tripValues.pauseFollowing();
-    createTripController.updateValues(values: tripItem.tripValues);
+    CurrentTripItem().requestPauseRecording();
+    onUpdate(MyTripActions.none);
+    // createTripController.updateValues(values: CurrentTripItem().tripValues);
   }
 
   void endTracking() {
-    tripItem.tripState = TripState.stoppedRecording;
-    tripItem.tripValues.stopTracking;
-    tripItem.pointsOfInterest.add(PointOfInterest(
-        //   point: tripItem.tripValues.position,
-        //   type: 18,
-        ));
-    createTripController.updateValues(values: tripItem.tripValues);
+    CurrentTripItem().requestEndTracking();
+    onUpdate(MyTripActions.none);
   }
 
   void greatRoad() {
-    tripItem.isSaved = false;
-    //  tripItem.startGoodRoad(position: position);
-    tripItem.startGoodRoad();
-    // tripItem.highliteActions = HighliteActions.greatRoadStarted;
-//    tripItem.tripValues.goodRoad.isGood = true;
-    createTripController.updateValues(values: tripItem.tripValues);
+    CurrentTripItem().requestGreatRoad();
+    onUpdate(MyTripActions.none);
+  }
+
+  void editGreatRoad() {
+    CurrentTripItem().requestEditGreatRoad();
+    onUpdate(MyTripActions.none);
   }
 
   void greatRoadEnd() {
-    //tripItem.endGoodRoad(position: position);
-    // tripItem.highliteActions = HighliteActions.greatRoadEnded;
-
-    // MAPLIBRA TODO: have tod ensure the poit of interest is added for the Good Road
-
-    /*
-    tripItem.goodRoadEnd();
-    tripItem.tripValues.goodRoad.isGood = false;
-    tripItem.tripValues.showMask = false;
-    tripItem.tripActions = TripActions.goodRoad;
-    tripItem.tripValues.showMask = false;
-    tripItem.tripValues.setState = true;
-    tripItem.tripValues.mapHeight = MapHeights.pointOfInterest;
-    List<double> position =
-        tripItem.goodRoads.last[tripItem.goodRoads.last.length ~/ 2];
-    tripItem.newPointOfInterest(position: position, type: 13);
-    createTripController.updateValues(values: tripItem.tripValues);
-  */
-    //  onUpdate();
+    CurrentTripItem().requestGreatRoadEnd();
+    onUpdate(MyTripActions.addPointOfInterest);
   }
 
   void reverseTrip() async {
-    await tripItem.reverseRoute();
+    await CurrentTripItem().reverseRoute();
     onUpdate(MyTripActions.reverseTrip);
     return;
   }
 
   void pointOfInterest() {
-    tripItem.tripActions = TripActions.pointOfInterest;
-    tripItem.tripValues.showMask = false;
-    tripItem.tripValues.setState = true;
-    tripItem.tripValues.mapHeight = MapHeights.pointOfInterest;
-    tripItem.newPointOfInterest(position: tripItem.tripValues.position);
-    tripItem.tripValues.pointOfInterestIndex =
-        tripItem.pointsOfInterest.length - 1;
-    createTripController.updateValues(values: tripItem.tripValues);
-    // onUpdate();
+    CurrentTripItem().requestPointOfInterest();
+    onUpdate(MyTripActions.addPointOfInterest);
     return;
   }
 
   void steps() {
-    tripItem.tripActions = TripActions.showSteps;
-    tripItem.tripValues.showTarget =
-        [TripState.manual, TripState.editing].contains(tripItem.tripState);
-    tripItem.tripValues.mapHeight = MapHeights.headers;
-    tripItem.tripValues.setState = true;
     onUpdate(MyTripActions.showSteps);
-    createTripController.updateValues(values: tripItem.tripValues);
   }
 
   void group() {
-    tripItem.tripActions = TripActions.showGroup;
-    tripItem.tripValues.showTarget = false;
-    tripItem.tripValues.mapHeight = MapHeights.headers;
-    tripItem.tripValues.setState = true;
-    // onUpdate();
-    createTripController.updateValues(values: tripItem.tripValues);
+    CurrentTripItem().requestGroup();
+    onUpdate(MyTripActions.none);
   }
 
   void messages() {
-    tripItem.tripActions = TripActions.showMessages;
-    tripItem.tripValues.showTarget = false;
-    tripItem.tripValues.mapHeight = MapHeights.headers;
-    tripItem.tripValues.setState = true;
+    CurrentTripItem().requestMessages();
     onUpdate(MyTripActions.message);
-    createTripController.updateValues(values: tripItem.tripValues);
   }
 
   void tripData() {
-    tripItem.tripActions = TripActions.none;
-    tripItem.tripValues.mapHeight = MapHeights.full;
-    tripItem.tripValues.setState = true;
-    // onUpdate();
-    createTripController.updateValues(values: tripItem.tripValues);
+    CurrentTripItem().tripActions = TripActions.none;
+    CurrentTripItem().tripValues.setState = true;
+    createTripController.updateValues(values: CurrentTripItem().tripValues);
   }
 
   void trackRoute() {
-    tripItem.tripState = TripState.recording;
-    if (tripItem.tripValues.pauseStream) {
-      tripItem.tripValues.resumeFollowing();
-    } else {
-      tripItem.tripValues.startFollowing();
-    }
+    CurrentTripItem().requestTrackRoute();
     onUpdate(MyTripActions.track);
-    createTripController.drive();
     return;
   }
 
   void followRoute() {
-    tripItem.tripState = TripState.following;
-    if (tripItem.tripValues.pauseStream) {
-      tripItem.tripValues.resumeFollowing();
-    } else {
-      tripItem.tripValues.startFollowing();
-    }
+    CurrentTripItem().requestFollowRoute();
     onUpdate(MyTripActions.follow);
-    createTripController.drive();
     return;
   }
 
   void stopFollowing() {
-    tripItem.tripState = TripState.stoppedFollowing;
-
-    tripItem.tripValues.pauseFollowing();
-    createTripController.drive();
-    //  createTripController.updateValues(values: tripItem.tripValues);
+    CurrentTripItem().requestStopFollowing;
     onUpdate(MyTripActions.stopFollowing);
   }
 }

@@ -55,6 +55,7 @@ class PointOfInterestTile extends StatefulWidget {
   final Function? onDelete;
   final Function? onRated;
   final Function? onSave;
+  final Function(bool)? onUpdate;
   final bool expanded;
   final bool canEdit;
 
@@ -70,6 +71,7 @@ class PointOfInterestTile extends StatefulWidget {
     this.onDelete,
     this.onRated,
     this.onSave,
+    this.onUpdate,
     this.expanded = false,
     this.canEdit = true,
   });
@@ -84,14 +86,32 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
   bool canEdit = true;
   bool isExpanded = false;
   bool _memoPlaying = false;
+  late FocusNode fn1;
+  late FocusNode fn2;
   final player = AudioPlayer()..setReleaseMode(ReleaseMode.stop);
+  Map<String, dynamic> prompts = {
+    "save": ["Publish", "Save"],
+    "title": ['Describe new great road', 'Details of new point of interest'],
+    "name_hint": [
+      "What is this road called?",
+      "What is the point of interest's name?"
+    ],
+    "name_label": ["Road name", "Point of interest name"],
+    "description_hint": ["Describe the road", "Describe point of interest"],
+    "description_label": ["Road description", "Point of interest description"],
+  };
+
+  int promptIndex = 1;
 
   @override
   void initState() {
     super.initState();
     widget.controller?._addState(this);
     expanded = widget.expanded;
+    fn1 = FocusNode();
+    fn2 = FocusNode();
     canEdit = widget.canEdit;
+    fn1.requestFocus();
     index = widget.index;
     if (widget.expandNotifier == null) {
       debugPrint('widget.expandNotifier is null');
@@ -101,6 +121,8 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
   @override
   void dispose() {
     debugPrint('Disposing of PointOfInterestTile #$index');
+    fn1.dispose();
+    fn2.dispose();
     super.dispose();
   }
 
@@ -110,12 +132,14 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
   }
 
   Widget editableTile() {
+    promptIndex =
+        CurrentTripItem().pointsOfInterest[widget.index].type == 14 ? 0 : 1;
     return SingleChildScrollView(
       child: Card(
         child: ExpansionTile(
           title: Text(
               CurrentTripItem().pointsOfInterest[widget.index].name.isEmpty
-                  ? 'Point of interest to record'
+                  ? prompts["title"][promptIndex]
                   : CurrentTripItem().pointsOfInterest[widget.index].name,
               style: const TextStyle(
                 fontSize: 18,
@@ -141,42 +165,44 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                   if (canEdit) ...[
                     Row(
                       children: [
-                        Expanded(
-                          flex: 10,
-                          child: DropdownButtonFormField<String>(
-                            style: textStyle(
-                                context: context, color: Colors.black),
-                            decoration: InputDecoration(
-                              border: OutlineInputBorder(),
-                              labelText: 'Type',
-                              labelStyle: labelStyle(context: context),
-                            ),
-                            initialValue: getIconIndex(
-                                    iconIndex: CurrentTripItem()
-                                        .pointsOfInterest[widget.index]
-                                        .type)
-                                .toString(),
-                            items: poiTypes
-                                .map((item) => DropdownMenuItem<String>(
-                                      value: item['id'].toString(),
-                                      child: Row(children: [
-                                        Icon(
-                                          IconData(item['iconMaterial'],
-                                              fontFamily: 'MaterialIcons'),
-                                          color: Color(item['colourMaterial']),
-                                        ),
-                                        Text(
-                                          '    ${item['name']}',
-                                          style: labelStyle(
-                                              context: context,
-                                              color: Colors.black,
-                                              size: 3),
-                                        )
-                                      ]),
-                                    ))
-                                .toList(),
-                            onChanged: (item) {
-                              /*
+                        if (promptIndex == 1)
+                          Expanded(
+                            flex: 10,
+                            child: DropdownButtonFormField<String>(
+                              style: textStyle(
+                                  context: context, color: Colors.black),
+                              decoration: InputDecoration(
+                                border: OutlineInputBorder(),
+                                labelText: 'Type',
+                                labelStyle: labelStyle(context: context),
+                              ),
+                              initialValue: getIconIndex(
+                                      iconIndex: CurrentTripItem()
+                                          .pointsOfInterest[widget.index]
+                                          .type)
+                                  .toString(),
+                              items: poiTypes
+                                  .map((item) => DropdownMenuItem<String>(
+                                        value: item['id'].toString(),
+                                        child: Row(children: [
+                                          Icon(
+                                            IconData(item['iconMaterial'],
+                                                fontFamily: 'MaterialIcons'),
+                                            color:
+                                                Color(item['colourMaterial']),
+                                          ),
+                                          Text(
+                                            '    ${item['name']}',
+                                            style: labelStyle(
+                                                context: context,
+                                                color: Colors.black,
+                                                size: 3),
+                                          )
+                                        ]),
+                                      ))
+                                  .toList(),
+                              onChanged: (item) {
+                                /*
                               CurrentTripItem().pointsOfInterest[widget.index] =
                                   PointOfInterest.clone(
                                 pointOfInterest: CurrentTripItem()
@@ -184,33 +210,23 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                                 type: item == null ? -1 : int.parse(item),
                               );
                               */
-                            },
+                              },
+                            ),
                           ),
-                        ),
-                        Expanded(
-                          flex: 4,
-                          child: SizedBox(
-                            child: Padding(
-                              padding: const EdgeInsets.fromLTRB(8, 10, 0, 10),
-                              child: Align(
-                                alignment: Alignment.bottomCenter,
-                                child: ActionChip(
-                                  label: Text(
-                                    'Image',
-                                    style: labelStyle(
-                                        context: context,
-                                        color: Colors.white,
-                                        size: 3),
-                                  ),
-                                  avatar: const Icon(Icons.perm_media_outlined,
-                                      size: 20, color: Colors.white),
-                                  onPressed: () => loadImage(index),
-                                  backgroundColor: Colors.blueAccent,
+                        if (promptIndex == 1)
+                          Expanded(
+                            flex: 4,
+                            child: SizedBox(
+                              child: Padding(
+                                padding:
+                                    const EdgeInsets.fromLTRB(8, 10, 0, 10),
+                                child: Align(
+                                  alignment: Alignment.bottomCenter,
+                                  child: imageChip(),
                                 ),
                               ),
                             ),
                           ),
-                        ),
                       ],
                     ),
                     Row(
@@ -220,38 +236,41 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                           child: Padding(
                             padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
                             child: TextFormField(
-                                readOnly: false,
-                                initialValue: CurrentTripItem()
-                                    .pointsOfInterest[widget.index]
-                                    .name,
-                                autofocus: canEdit,
-                                textInputAction: TextInputAction.next,
-                                textAlign: TextAlign.start,
-                                keyboardType: TextInputType.streetAddress,
-                                textCapitalization:
-                                    TextCapitalization.sentences,
-                                decoration: InputDecoration(
-                                  border: OutlineInputBorder(),
-                                  hintText:
-                                      "What is the point of interest's name...",
-                                  hintStyle: hintStyle(context: context),
-                                  labelText: 'Point of interest name',
-                                  labelStyle: labelStyle(
-                                    context: context,
-                                  ),
+                              readOnly: false,
+                              initialValue: CurrentTripItem()
+                                  .pointsOfInterest[widget.index]
+                                  .name,
+                              autofocus: canEdit,
+                              focusNode: fn1,
+                              textInputAction: TextInputAction.next,
+                              textAlign: TextAlign.start,
+                              keyboardType: TextInputType.streetAddress,
+                              textCapitalization: TextCapitalization.sentences,
+                              decoration: InputDecoration(
+                                border: OutlineInputBorder(),
+                                hintText: prompts["name_hint"][promptIndex],
+                                hintStyle: hintStyle(context: context),
+                                labelText: prompts["name_label"][promptIndex],
+                                labelStyle: labelStyle(
+                                  context: context,
                                 ),
-                                style: textStyle(
-                                    context: context,
-                                    color: Colors.black,
-                                    size: 3),
-                                autovalidateMode:
-                                    AutovalidateMode.onUserInteraction,
-                                onChanged: (value) => CurrentTripItem()
+                              ),
+                              style: textStyle(
+                                  context: context,
+                                  color: Colors.black,
+                                  size: 3),
+                              autovalidateMode:
+                                  AutovalidateMode.onUserInteraction,
+                              onChanged: (value) => CurrentTripItem()
+                                  .pointsOfInterest[widget.index]
+                                  .name = value,
+                              onFieldSubmitted: (text) {
+                                CurrentTripItem()
                                     .pointsOfInterest[widget.index]
-                                    .name = value,
-                                onFieldSubmitted: (text) => CurrentTripItem()
-                                    .pointsOfInterest[widget.index]
-                                    .name = text),
+                                    .name = text;
+                                fn2.requestFocus();
+                              },
+                            ),
                           ),
                         ),
                         Expanded(
@@ -307,6 +326,7 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                             padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
                             child: TextFormField(
                               readOnly: false,
+                              focusNode: fn2,
                               maxLines: null,
                               textInputAction: TextInputAction.done,
                               initialValue: CurrentTripItem()
@@ -318,10 +338,11 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                               decoration: canEdit
                                   ? InputDecoration(
                                       border: OutlineInputBorder(),
-                                      hintText: 'Describe Point of Interest...',
+                                      hintText: prompts["description_hint"]
+                                          [promptIndex],
                                       hintStyle: hintStyle(context: context),
-                                      labelText:
-                                          'Point of interest description',
+                                      labelText: prompts["description_label"]
+                                          [promptIndex],
                                       labelStyle: labelStyle(context: context),
                                     )
                                   : null,
@@ -334,9 +355,14 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                               onChanged: (text) => CurrentTripItem()
                                   .pointsOfInterest[widget.index]
                                   .description = text,
-                              onFieldSubmitted: (text) => CurrentTripItem()
-                                  .pointsOfInterest[widget.index]
-                                  .description = text,
+                              onFieldSubmitted: (text) {
+                                CurrentTripItem()
+                                    .pointsOfInterest[widget.index]
+                                    .description = text;
+                                if (widget.onUpdate != null) {
+                                  widget.onUpdate!(true);
+                                }
+                              },
                             ),
                           ),
                         ),
@@ -367,29 +393,34 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                       alignment: Alignment.bottomLeft,
                       child: Row(
                         children: [
+                          if (promptIndex == 1)
+                            ActionChip(
+                              label: const Text(
+                                'Delete',
+                                style: TextStyle(
+                                    fontSize: 18, color: Colors.white),
+                              ),
+                              avatar: const Icon(Icons.delete,
+                                  size: 20, color: Colors.white),
+                              onPressed: () => widget.onDelete,
+                              backgroundColor: Colors.blueAccent,
+                            ),
+                          SizedBox(width: 10),
                           ActionChip(
-                            label: const Text(
-                              'Delete',
+                            label: Text(
+                              prompts['save'][promptIndex],
                               style:
                                   TextStyle(fontSize: 18, color: Colors.white),
                             ),
-                            avatar: const Icon(Icons.delete,
-                                size: 20, color: Colors.white),
-                            onPressed: () => widget.onDelete,
+                            avatar: Icon(
+                                promptIndex == 0 ? Icons.publish : Icons.save,
+                                size: 20,
+                                color: Colors.white),
+                            onPressed: () => widget.onSave!(widget.index),
                             backgroundColor: Colors.blueAccent,
                           ),
                           SizedBox(width: 10),
-                          ActionChip(
-                            label: const Text(
-                              'Save',
-                              style:
-                                  TextStyle(fontSize: 18, color: Colors.white),
-                            ),
-                            avatar: const Icon(Icons.save,
-                                size: 20, color: Colors.white),
-                            onPressed: () => widget.onSave!(widget.index),
-                            backgroundColor: Colors.blueAccent,
-                          )
+                          if (promptIndex == 0) imageChip()
                         ],
                       ),
                     ),
@@ -630,11 +661,55 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
     setState(() => expanded = state);
   }
 
+  ActionChip imageChip() {
+    return ActionChip(
+      label: Text(
+        'Image',
+        style: labelStyle(context: context, color: Colors.white, size: 3),
+      ),
+      avatar:
+          const Icon(Icons.perm_media_outlined, size: 20, color: Colors.white),
+      onPressed: () => loadImage(index),
+      backgroundColor: Colors.blueAccent,
+    );
+  }
+
+  ActionChip memoChip() {
+    return ActionChip(
+      label: Text(
+        'Memo',
+        style: labelStyle(
+            context: context,
+            size: 3,
+            color: CurrentTripItem()
+                    .pointsOfInterest[widget.index]
+                    .sounds
+                    .isNotEmpty
+                ? Colors.white
+                : Colors.grey),
+      ),
+      avatar: Icon(
+          _memoPlaying ? Icons.volume_off_outlined : Icons.volume_up_outlined,
+          size: 20,
+          color:
+              CurrentTripItem().pointsOfInterest[widget.index].sounds.isNotEmpty
+                  ? Colors.white
+                  : Colors.grey),
+      onPressed: () {
+        if (!_memoPlaying) {
+          _play();
+        }
+        setState(() => _memoPlaying = !_memoPlaying);
+      },
+      backgroundColor: Colors.blueAccent,
+    );
+  }
+
   List<String> getImageUrls(PointOfInterest pointOfInterest) {
     var pics = jsonDecode(pointOfInterest.images);
     return [
       for (var pic in pics)
-        Uri.parse('$urlDrive/images${pointOfInterest.uri}${pic['url']}')
+        Uri.parse('$urlDrive/images${pointOfInterest.uuid}${pic['url']}')
             .toString()
     ];
   }
@@ -651,9 +726,9 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
   }
 
   changeRating(value) {
-    if (CurrentTripItem().pointsOfInterest[widget.index].uri.isNotEmpty) {
+    if (CurrentTripItem().pointsOfInterest[widget.index].uuid!.isNotEmpty) {
       putPointOfInterestRating(
-          CurrentTripItem().pointsOfInterest[widget.index].uri, value);
+          CurrentTripItem().pointsOfInterest[widget.index].uuid!, value);
       if (widget.onRated != null) {
         widget.onRated!(value, widget.index);
       }

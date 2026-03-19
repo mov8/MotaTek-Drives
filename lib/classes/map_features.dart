@@ -1,3 +1,4 @@
+import 'dart:math';
 import '/services/services.dart'; // hide getPosition;
 import '/classes/classes.dart';
 import '/tiles/tiles.dart';
@@ -35,8 +36,8 @@ class Feature {
   final int drive;
   final int type;
   final int poiType;
-  final List<double> point;
-  final List<double> maxPoint;
+  final Point point;
+  final Point maxPoint;
   final String pointOfInterestUri;
 
   const Feature(
@@ -47,8 +48,8 @@ class Feature {
       this.type = 0,
       this.poiType = 0,
       double iconSize = 30,
-      this.point = const [0, 0],
-      this.maxPoint = const [0, 0],
+      this.point = const Point(0, 0),
+      this.maxPoint = const Point(0, 0),
       this.pointOfInterestUri = ''});
 
   factory Feature.fromMap({
@@ -64,15 +65,15 @@ class Feature {
       drive: map['drive'] ?? -1,
       type: map['type'] ?? 0,
       poiType: map['feature_id'] ?? 1,
-      point: [map['max_lng'] ?? 0.0, map['max_lat'] ?? 50.0],
-      maxPoint: [map['max_lng'] ?? 0.0, map['max_lat'] ?? 50.0],
+      point: Point(map['max_lng'] ?? 0.0, map['max_lat'] ?? 50.0),
+      maxPoint: Point(map['max_lng'] ?? 0.0, map['max_lat'] ?? 50.0),
       pointOfInterestUri: map['point_of_interest_uri'] ?? '',
     );
   }
 
   factory Feature.fromFeature(
       {required Feature feature,
-      List<double>? point,
+      Point? point,
       int? row,
       double? size,
       Widget? child}) {
@@ -102,10 +103,10 @@ class Feature {
       'feature_id': id,
       'drive': drive,
       'type': type,
-      'max_lat': maxPoint[1],
-      'max_lng': maxPoint[0],
-      'min_lat': point[1],
-      'min_lng': point[0],
+      'max_lat': maxPoint.y.toDouble(),
+      'max_lng': maxPoint.x.toDouble(),
+      'min_lat': point.y.toDouble(),
+      'min_lng': point.x.toDouble(),
       'point_of_interest_uri': pointOfInterestUri,
     };
   }

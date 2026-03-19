@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import '/constants.dart';
 import 'package:flutter/material.dart';
 import '/models/other_models.dart';
@@ -124,7 +125,7 @@ class _MessageDetailsFormState extends State<MessageDetailsForm> {
         _messages[_messages.length - 1].dated =
             dateFormatDoc.format(DateTime.now());
       } catch (e) {
-        // developer.log('user_message error: ${e.toString()}', name: '_messages');
+        developer.log('user_message error: ${e.toString()}', name: '_messages');
       }
       //  setState(() => appendEmptyMessage());
     }

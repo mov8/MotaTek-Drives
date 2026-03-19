@@ -1,12 +1,14 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart' hide Route;
 import 'package:universal_io/universal_io.dart';
 // import 'package:flutter_map/flutter_map.dart';
 // import 'package:latlong2/latlong.dart';
 import 'package:sqflite/sqflite.dart'; // Mobile only plugin
 import '/classes/utilities.dart' as utils;
+
 import 'package:geolocator/geolocator.dart';
 import 'package:path_provider/path_provider.dart'; // Mobile only plugin
 import 'package:path/path.dart';
@@ -17,6 +19,8 @@ import '/models/other_models.dart';
 import '/classes/other_classes.dart';
 import '/classes/my_trip_item.dart';
 import '/classes/route.dart';
+import '/helpers/helpers.dart';
+import 'package:http/http.dart' as http;
 
 class PrivateStorageLocal implements PrivateDataRepository {
   Database? _db;
@@ -378,38 +382,48 @@ class PrivateStorageLocal implements PrivateDataRepository {
     return null;
   }
 
+  /// Simplified saveImageLocal will save the image in an appropriate folder on the device rather
+  /// than in a SQLite table. The folder will be created for each drive.id /images_n where n is the drive.id
+  /// -   The map file will be image_0_0.jpg
+  /// -   Images for the points of interest will be image_p_n.jpg where p is the pointOfInterest.id and n the image number.
+  ///
   @override
-  Future<int> saveImageLocal(
-      {required String imageUrl,
-      driveId = -1,
-      pointOfInterestId = -1,
-      caption = ''}) async {
-    Database db = _db ??
-        await openDatabase(
-          _path = join(await getDatabasesPath(), 'drives.db'),
-          version: dbVersion, // in constants.dart,
-          onCreate: createDb,
-        );
-
+  Future<String> saveImageLocal(
+      {required ui.Image image,
+      driveUri = '',
+      pointOfInterestUri = '',
+      imageId = 1}) async {
+    String url = '';
     try {
-      Uint8List imageBytes = await File(imageUrl).readAsBytes();
-      int id = await db.insert(
-        'images',
-        {
-          'image': imageBytes,
-          'drive_id': driveId,
-          'point_of_interest_id': pointOfInterestId,
-          'caption': caption,
-          'added': DateTime.now().toString()
-        },
-        conflictAlgorithm: ConflictAlgorithm.replace,
-      );
-      return id;
-    } catch (err) {
-      String tError = err.toString();
-      debugPrint('Error saving groups: $tError');
+      String imageDirectory = pointOfInterestUri.isNotEmpty
+          ? "${Setup().appDocumentDirectory}/$driveUri/$pointOfInterestUri"
+          : '${Setup().appDocumentDirectory}/$driveUri';
+      if (!Directory(imageDirectory).existsSync()) {
+        Directory(imageDirectory).createSync();
+      }
+
+      Uint8List? pngBytes = Uint8List.fromList([]);
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      pngBytes = byteData?.buffer.asUint8List();
+      url = '$imageDirectory/map.png';
+      if (pointOfInterestUri.isNotEmpty) {
+        url =
+            '$imageDirectory/$driveUri/$pointOfInterestUri/image_$imageId.png';
+      }
+      if (pngBytes != null) {
+        final imgFile = File(url);
+        await imgFile.writeAsBytes(pngBytes);
+        if (!imgFile.existsSync()) {
+          url = '';
+        }
+      } else {
+        url = '';
+      }
+    } catch (e) {
+      debugPrint(
+          'Error writing image file in saveImageLocal() private_storage_local.dart: ${e.toString()}');
     }
-    return -1;
+    return url;
   }
 
   @override
@@ -738,9 +752,8 @@ class PrivateStorageLocal implements PrivateDataRepository {
         );
     List<TripItem> tripItems = [];
     try {
-      List<Map<String, dynamic>> maps = await db.query(
-        'trip_items',
-      );
+      String query = "SELECT * FROM drives";
+      List<Map<String, dynamic>> maps = await db.rawQuery(query);
       for (Map<String, dynamic> map in maps) {
         tripItems.add(TripItem.fromMap(
           map: map,
@@ -755,6 +768,33 @@ class PrivateStorageLocal implements PrivateDataRepository {
   }
 
   @override
+  Future<List<MyTripItem>> loadMyTripItems() async {
+    Database db = _db ??
+        await openDatabase(
+          _path = join(await getDatabasesPath(), 'drives.db'),
+          version: dbVersion, // in constants.dart,
+          onCreate: createDb,
+        );
+    List<MyTripItem> myTripItems = [];
+    try {
+      String query = "SELECT * FROM drives";
+      List<Map<String, dynamic>> maps = await db.rawQuery(query);
+
+      for (Map<String, dynamic> map in maps) {
+        Map<String, dynamic> tripMap = jsonDecode(map['trip']);
+        myTripItems.add(MyTripItem.fromJson(
+          jsonObject: tripMap,
+        ));
+        // endpoint: '${Setup().appDocumentDirectory}/trip_item_images/'));
+      }
+    } catch (e) {
+      debugPrint(e.toString());
+    }
+
+    return myTripItems;
+  }
+
+  @override
   Future<TripItem?> loadTripItemLocal({int id = -1}) async {
     if (id > -1) {
       List<Map<String, Object?>> maps;
@@ -765,7 +805,7 @@ class PrivateStorageLocal implements PrivateDataRepository {
             onCreate: createDb,
           );
       try {
-        String query = "SELECT * FROM trip_items WHERE id = $id";
+        String query = "SELECT * FROM drives WHERE id = $id";
         maps = await db.rawQuery(query);
         return TripItem.fromMap(map: maps[0]);
       } catch (e) {
@@ -877,7 +917,7 @@ class PrivateStorageLocal implements PrivateDataRepository {
     String appDocDir = Setup().appDocumentDirectory;
 
     try {
-      await db.execute("delete from trip_items");
+      //  await db.execute("delete from drives");
 
       ///data/user/0/com.example.drives/app_flutter/trip_item_images
       final localImageDir = Directory('$appDocDir/trip_item_images');
@@ -938,7 +978,7 @@ class PrivateStorageLocal implements PrivateDataRepository {
               tiMap['image_urls'] = '[$images]';
             }
             tripItem.id = await db.insert(
-              'trip_items',
+              'drives',
               tiMap,
               conflictAlgorithm: ConflictAlgorithm.replace,
             );
@@ -951,13 +991,13 @@ class PrivateStorageLocal implements PrivateDataRepository {
           }
         } else {
           try {
-            await db.update('trip_items', tiMap,
+            await db.update('drives', tiMap,
                 where: 'id = ?',
                 whereArgs: [tripItem.id],
                 conflictAlgorithm: ConflictAlgorithm.replace);
           } catch (e) {
             String err = e.toString();
-            debugPrint('Error updating TripItems: $err');
+            debugPrint('Error updating drives table: $err');
             return tripItems;
           }
         }
@@ -1054,7 +1094,7 @@ class PrivateStorageLocal implements PrivateDataRepository {
   }
 
   @override
-  Future<void> deleteDriveById(int id) async {
+  Future<void> deleteDriveById(String driveUri) async {
     Database db = _db ??
         await openDatabase(
           _path = join(await getDatabasesPath(), 'drives.db'),
@@ -1064,18 +1104,15 @@ class PrivateStorageLocal implements PrivateDataRepository {
     await db.delete(
       'drives',
       where: 'id = ?',
-      whereArgs: [id],
+      whereArgs: [int.parse(driveUri)],
     );
   }
 
 //
 
   @override
-  Future<void> deleteDriveLocal({required int driveId}) async {
-    await deletePolyLinesByDriveId(driveId);
-    await deletePointOfInterestByDriveId(driveId);
-    await deleteManeuversByDriveId(driveId);
-    await deleteDriveById(driveId);
+  Future<void> deleteDriveLocal({required String driveUri}) async {
+    await deleteDriveById(driveUri);
   }
 
 // "type 'int' is not a subtype of type 'Map<String, dynamic>'"
@@ -1124,16 +1161,136 @@ class PrivateStorageLocal implements PrivateDataRepository {
     return id;
   }
 
+  /// saveMyTrip saves a complete trip locally
+  /// All lists should be stored in SQLite as strings using jsonEncode()
+  ///
+  /// {'uri': '0203023..', 'title': 'Drive name', 'sub_title': 'Drive sub_title',
+  /// 'body': 'Drive description', 'added': '01/01/2006', 'score': 5,
+  /// 'scored': 0, 'distance': 125, 'downloads': 0, 'author_uri': '',
+  /// 'author': 'James Seddon',
+  /// 'ne': [-0.765, 51.9879], 'sw':[-0.765, 51.9879],
+  /// 'routes':[
+  ///   {'uri': '98018...',
+  ///     'lines': {'type': 'LineString', 'coordinates':[[-0.765, 51.9879], [-0.7654, 519978], ...]},
+  ///     'shields': {'type': 'MultiPoint', 'coordinates': [[-0.765, 51.9879], [-0.7654, 519978], ...]}},
+  ///   ],
+  /// 'good_roads':[
+  ///   {'uri': '98018...', 'point_of_interest_id': '98018...', 'ne': [-0.765, 51.9879], 'sw':[-0.765, 51.9879],
+  ///     'lines': {'type': 'LineString', 'coordinates':[[-0.765, 51.9879], [-0.7654, 519978], ...]},
+  ///     'shields': {'type': 'MultiPoint', 'coordinates': [[-0.765, 51.9879], [-0.7654, 519978], ...]}},
+  ///   ],
+  /// 'maneuvers':[
+  ///   {'uri': '98018...',
+  ///     'road_from': 'jkhk', 'road_to': 'hkkkjh', 'bearing_before': 45,
+  ///     'bearing_after': 67, 'point': {'type': 'Point', 'coordinates': [-0.5454, 54.3]},
+  ///     'modifier': 'left', 'type': 'roundabout',
+  ///     'distance': 12.6,
+  ///     'point': }, {...}
+  ///  ],
+  /// 'points_of_interest':[
+  ///   {'uri': '98018...', 'type': 12, 'name': 'start', 'description': 'hgjghj',
+  ///   'images': [], 'point': {'type': 'Point', 'coordinates': [-0.65, 51.23]},
+  ///   'score': 5, 'scored': 0, 'comment': ' '}, {...}
+  ///   ]
+  /// }
+  ///
+
+  void testLib() {
+    debugPrint('tested');
+  }
+
   @override
-  Future<int> saveMyTripItem(MyTripItem myTripItem) async {
+  Future<dynamic> publish(MyTripItem tripItem) async {
+    Map<String, dynamic> apiData = tripItem.toJson();
+    List<Photo> photos = photosFromJson(photoString: tripItem.images);
+    dynamic response;
+    try {
+      var request =
+          http.MultipartRequest('POST', Uri.parse('$urlDrive/publish'));
+      request.headers['Authorization'] = 'Bearer ${Setup().jwt}';
+      request.fields['data'] = jsonEncode(apiData);
+
+      /// Start the images list with the Drive map
+      request.files
+          .add(await http.MultipartFile.fromPath('map', photos[0].url));
+      for (int i = 0; i < apiData['points_of_interest'].length; i++) {
+        if (apiData['points_of_interest'][i].isNotEmpty) {
+          for (int j = 0;
+              j < apiData['points_of_interest'][i]['images'].length;
+              j++) {
+            if (apiData['points_of_interest'][i]['images'][j].isNotEmpty) {
+              request.files.add(await http.MultipartFile.fromPath(
+                  apiData['points_of_interest'][i]['images'][j]['url'],
+                  apiData['points_of_interest'][i]['images'][j]['file']));
+            }
+          }
+        }
+      }
+      response = await request.send().timeout(const Duration(seconds: 30));
+    } catch (e) {
+      debugPrint('error: ${e.toString()} ${response.statusCode}');
+    }
+
+    return ' ';
+  }
+
+  @override
+  Future<int> saveMyTrip(CurrentTripItem tripItem) async {
     Database db = _db ??
         await openDatabase(
           _path = join(await getDatabasesPath(), 'drives.db'),
           version: dbVersion, // in constants.dart,
           onCreate: createDb,
         );
-    int id = myTripItem.id;
-    //  Map<String, dynamic> map = myTripItem.toDrivesMap();
+    int id = tripItem.id;
+    try {
+      Map<String, dynamic> map = {};
+      /* await db.execute('DROP TABLE IF EXISTS trip_item');
+      await db.execute(
+          '''CREATE TABLE IF NOT EXISTS trip_item(id INTEGER PRIMARY KEY AUTOINCREMENT,
+          added TEXT, title TEXT, sub_title TEXT,
+          distance INTEGER, points_of_interest INTEGER,
+          map_image TEXT, trip TEXT)''');
+      */
+      Map<String, dynamic> tripJSON = tripItem.toJson();
+      String tripString = jsonEncode(tripJSON);
+
+      map = {
+        'title': tripItem.title,
+        'sub_title': tripItem.subTitle,
+        'added': tripItem.added,
+        'distance': tripItem.distance.toInt(),
+        'points_of_interest': tripItem.pointsOfInterest.length - 2,
+        'trip': tripString
+      };
+
+      if (id >= 0) {
+        map['id'] = tripItem.id;
+        await db.update('drives', map,
+            where: 'id = ?',
+            whereArgs: [id],
+            conflictAlgorithm: ConflictAlgorithm.replace);
+      } else {
+        id = await db.insert('drives', map);
+      }
+/*
+      List<Map<String, dynamic>> maps =
+          await db.rawQuery("SELECT * FROM trip_item");
+
+      String stringJSON = maps.first['trip'];
+
+      Map<String, dynamic> resultJSON = jsonDecode(stringJSON);
+
+      debugPrint('Data is ${maps.toString} -> $resultJSON');
+*/
+    } catch (e) {
+      debugPrint('Error adding trip to trip_item: ${e.toString()}');
+    }
+
+    return id;
+  }
+  //  Map<String, dynamic> map = myTripItem.toDrivesMap();
+  /*
     try {
       List<Map<String, dynamic>> maps =
           await db.rawQuery("SELECT id, title FROM drives");
@@ -1141,7 +1298,8 @@ class PrivateStorageLocal implements PrivateDataRepository {
     } catch (e) {
       debugPrint('Error accessing drives: ${e.toString()}');
     }
-    try {
+  */
+  //  try {
 /*      
       if (id < 0) {
 
@@ -1161,7 +1319,7 @@ class PrivateStorageLocal implements PrivateDataRepository {
         }
       }
 */
-      // Now process Trip images that have been downloaded and are to be save locally
+  // Now process Trip images that have been downloaded and are to be save locally
 
 /*  
       if (myTripItem.driveUri.isNotEmpty) {
@@ -1188,8 +1346,9 @@ class PrivateStorageLocal implements PrivateDataRepository {
         }
       }
 */
-      /// Points of interest must be saved first as goodRoads have a reference
-      /// to the pointOfInterest automatically generated
+  /// Points of interest must be saved first as goodRoads have a reference
+  /// to the pointOfInterest automatically generated
+/*
       await savePointsOfInterestLocal(
           driveId: id, pointsOfInterest: myTripItem.pointsOfInterest);
       await deletePolyLinesByDriveId(id);
@@ -1206,7 +1365,8 @@ class PrivateStorageLocal implements PrivateDataRepository {
       debugPrint('Error: $err');
     }
     return id;
-  }
+    }
+*/
 
 /*
   @override
@@ -1388,13 +1548,15 @@ class PrivateStorageLocal implements PrivateDataRepository {
   @override
   Future<int> savePointOfInterestLocal(
       {required int driveId, required PointOfInterest pointOfInterest}) async {
+    int id = -1;
+/*
     Database db = _db ??
         await openDatabase(
           _path = join(await getDatabasesPath(), 'drives.db'),
           version: dbVersion, // in constants.dart,
           onCreate: createDb,
         );
-    int id = -1;
+    
     Map<String, dynamic> poiMap = {
       'drive_id': driveId,
       'type': pointOfInterest.type,
@@ -1427,6 +1589,7 @@ class PrivateStorageLocal implements PrivateDataRepository {
         }
       }
     }
+    */
     return id;
   }
 
@@ -1851,6 +2014,65 @@ class PrivateStorageLocal implements PrivateDataRepository {
     return map[0]['image'];
   }
 
+  @override
+  Future<List<MyTripItem>> tripItemFromDb(
+      {int driveId = -1, bool showMethods = false}) async {
+    List<MyTripItem> trips = [];
+    Database db = _db ??
+        await openDatabase(
+          _path = join(await getDatabasesPath(), 'drives.db'),
+          version: dbVersion, // in constants.dart,
+          onCreate: createDb,
+        );
+    List pos = const [0, 0];
+
+    await utils.getPosition().then((currentPosition) {
+      pos = [currentPosition.longitude, currentPosition.latitude];
+    });
+
+    String drivesQuery = '''SELECT id, uri, title, sub_title, distance, 
+                          points_of_interest, added, trip FROM drives''';
+
+    try {
+      List<Map<String, dynamic>> maps = await db.rawQuery(drivesQuery);
+      final directory = Setup().appDocumentDirectory;
+
+      int driveId = -1;
+      for (int i = 0; i < maps.length; i++) {
+        if (maps[i]['id'] != driveId) {
+          driveId = maps[i]['id'];
+          String stringJSON = maps[i]['trip'];
+          Map<String, dynamic> resultJSON = jsonDecode(stringJSON);
+          MyTripItem tripItem = MyTripItem.fromJson(jsonObject: resultJSON);
+          trips.add(tripItem);
+/*
+      debugPrint('Data is ${maps.toString} -> $resultJSON');
+
+          Map<String, dynamic> = 
+          MyTripItem tripItem = 
+
+          trips.add(MyTripItem(
+              id: driveId,
+              driveUri: maps[i]['uri'] ?? '',
+              title: maps[i]['title'] ?? '',
+              subTitle: maps[i]['sub_title'] ?? '',
+              //   body: maps[i]['body'],
+              added: maps[i]['added'] ?? DateTime.now().toIso8601String(),
+              images:
+                  '[{"url": "$directory/drive$driveId.png", "caption": ""}]',
+              distance: maps[i]['distance'] ?? 0,
+              highlights: maps[i]['points_of_interest'] ?? 0,
+              closest: 0));
+*/
+        }
+      }
+    } catch (e) {
+      debugPrint('Error getting drives in tripsFromDd(): ${e.toString()}');
+    }
+
+    return trips;
+  }
+
 /*
   @override
   List<LatLng> stringToPoints(String pointsString) {
@@ -1896,6 +2118,8 @@ class PrivateStorageLocal implements PrivateDataRepository {
     return polyLineString;
   }
 */
+
+/*
   @override
   Future<List<MyTripItem>> tripItemFromDb(
       {int driveId = -1, bool showMethods = false}) async {
@@ -1991,7 +2215,7 @@ class PrivateStorageLocal implements PrivateDataRepository {
     }
     return trips;
   }
-
+*/
 /*
   Future<List<MyTripItem>> tripItemFromDb(
       {int driveId = -1, bool showMethods = false}) async {

@@ -495,12 +495,13 @@ class _GroupDriveFormState extends State<GroupDriveForm>
       required DateTime driveDate,
       required MyTripItem myTripItem,
       instructions = ''}) async {
-    if (myTripItem.driveUri.isEmpty) {
-      await myTripItem.publish();
+    if (!myTripItem.published) {
+      await publish(myTripItem);
+      // await myTripItem.publish();
     }
     try {
       Map<String, dynamic> toEmail = {
-        'drive_id': myTripItem.driveUri,
+        'drive_id': myTripItem.uri,
         'drive_date': dateFormatSQL.format(driveDate),
         'title': myTripItem.title,
         'message': instructions

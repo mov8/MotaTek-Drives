@@ -4,6 +4,9 @@
 // had to implement an interface and swap in and out the code
 // for the two different versions if dart.library.htm is used
 // the api version of the code must be used.
+// have to use getPrivateRepository().switchedLocalStorageMethod()
+// to run the appropriate storage method.
+
 export '/services/private_storage_local.dart'
     if (dart.library.html) '/services/private_storage_api.dart';
 export '/services/private_storage.dart';

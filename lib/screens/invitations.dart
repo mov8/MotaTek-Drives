@@ -35,7 +35,7 @@ class _InvitationsScreenState extends State<InvitationsScreen> {
   bool _edited = false;
   int introduceIndex = 0;
   String testString = '';
-  TripItem? _tripItem = TripItem(heading: '');
+  TripItem? _tripItem = TripItem(title: '');
   List<Photo>? _photos = [];
   GroupDriveInvitationTileController? _activeController;
   @override
@@ -326,7 +326,7 @@ class _InvitationsScreenState extends State<InvitationsScreen> {
 
   saveDrive(int index) async {
     MyTripItem gotTrip = await getMyTrip(invitations[index].driveId);
-    await gotTrip.saveLocal();
+    await gotTrip.savePrivate();
   }
 
   _update({bool update = false}) async {

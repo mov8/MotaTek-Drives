@@ -1,3 +1,4 @@
+import 'dart:math';
 import '/classes/classes.dart';
 import '/helpers/create_trip_helpers.dart';
 import 'package:flutter/material.dart';
@@ -49,7 +50,8 @@ class DirectionTile extends StatefulWidget {
   final List<Maneuver> maneuvers;
   final Function(int) currentIndex;
   final Function(int, int, int)? onTap;
-  final List<double> currentPosition;
+  // final List<double> currentPosition;
+  final Point currentPosition;
   final DirectionTileController controller;
   final String driveId;
 
@@ -77,7 +79,8 @@ class _DirectionTileState extends State<DirectionTile> {
   int _routeIndex = 0;
   int _pointIndex = 0;
   double _metersToRoute = 99999999;
-  List<double> _lastLatLng = [0, 0];
+  // List<double> _lastLatLng = [0, 0];
+  Point _lastLatLng = Point(0, 0);
   int _lastManeuver = 0;
   int _errorCount = 0;
   int _error = 0;
@@ -193,7 +196,6 @@ class _DirectionTileState extends State<DirectionTile> {
       if (_nextManeuverIndex > 1) {
         if (_metersToRoute > 20) {
           if (++_errorCount > 3) {
-            developer.log('errorCount > 3 left route ', name: '_maneuver');
             _error = 1;
           }
         } else {
@@ -209,10 +211,6 @@ class _DirectionTileState extends State<DirectionTile> {
       ///   If rejoined find the next possible waypoint - want to try and avoid router - internet availability
       ///     Prompt to next waypoint
       ///
-
-      developer.log(
-          'DirectionTile.updatePosition().nextManeuverIndex: $_nextManeuverIndex',
-          name: '_maneuver');
 
       prompts = _descriptors.getDirections(
           maneuverIndex: _nextManeuverIndex,
@@ -239,9 +237,6 @@ class _DirectionTileState extends State<DirectionTile> {
           getClosestManeuver();
           _nextManeuverIndex = CurrentTripItem().nextManeuverIndex;
         }
-        developer.log(
-            'DirectionTile _metersToRoute - distance from route: $_metersToRoute',
-            name: '_maneuver');
         return prompts;
       }
 
@@ -257,26 +252,23 @@ class _DirectionTileState extends State<DirectionTile> {
         /// Check distance away from next maneuver
 
         distance = Geolocator.distanceBetween(
-            widget.currentPosition[1],
-            widget.currentPosition[0],
-            widget.maneuvers[_nextManeuverIndex].point[1],
-            widget.maneuvers[_nextManeuverIndex].point[0]);
+            widget.currentPosition.x.toDouble(),
+            widget.currentPosition.y.toDouble(),
+            widget.maneuvers[_nextManeuverIndex].point.y.toDouble(),
+            widget.maneuvers[_nextManeuverIndex].point.x.toDouble());
 
         /// Ensure that the target maneuver only gets incremented once we have passed the current target
         /// Allows a margin of error of 3 meters
 
         if (distance - _metersToManeuver > 3) {
           if (_nextManeuverIndex < widget.maneuvers.length - 1) {
-            //  developer.log(
-            //      '${_descriptors.getDirections(maneuverIndex: _nextManeuverIndex + 1, metersToManeuver: _metersToManeuver)[0]} - maneuverIndex: $_nextManeuverIndex',
-            //      name: '_prompt');
             _lastManeuver = _nextManeuverIndex;
             _nextManeuverIndex = _nextManeuverIndex + 1;
             distance = Geolocator.distanceBetween(
-                widget.currentPosition[1],
-                widget.currentPosition[0],
-                widget.maneuvers[_nextManeuverIndex].point[1],
-                widget.maneuvers[_nextManeuverIndex].point[0]);
+                widget.currentPosition.x.toDouble(),
+                widget.currentPosition.y.toDouble(),
+                widget.maneuvers[_nextManeuverIndex].point.y.toDouble(),
+                widget.maneuvers[_nextManeuverIndex].point.x.toDouble());
           }
         }
         getClosestPoint(route: _routeIndex, point: _pointIndex, full: false);
@@ -300,9 +292,6 @@ class _DirectionTileState extends State<DirectionTile> {
     if (fileName.isNotEmpty) {
       if (!File(filePath).existsSync()) {
         filePath = await getSpeech(text: text, fileName: fileName);
-        developer.log('speech file $filePath not found', name: '_sound');
-      } else {
-        developer.log('speech file $filePath found', name: '_sound');
       }
       DeviceFileSource source = DeviceFileSource(filePath);
       try {
@@ -350,10 +339,10 @@ class _DirectionTileState extends State<DirectionTile> {
     double distance = 999999999;
     for (int i = 0; i < widget.maneuvers.length; i++) {
       distance = Geolocator.distanceBetween(
-          widget.currentPosition[1],
-          widget.currentPosition[0],
-          widget.maneuvers[i].point[1],
-          widget.maneuvers[i].point[0]);
+          widget.currentPosition.x.toDouble(),
+          widget.currentPosition.y.toDouble(),
+          widget.maneuvers[i].point.y.toDouble(),
+          widget.maneuvers[i].point.x.toDouble());
       if (distance < _metersToManeuver) {
         _nextManeuverIndex = i;
         _metersToManeuver = distance;

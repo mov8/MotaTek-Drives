@@ -5,10 +5,14 @@ import 'package:intl/intl.dart';
 const appVersion = {'major': 0, 'minor': 0, 'patch': 9, 'suffix': 'beta db'};
 
 const apiAddress = 'https://drives.motatek.com/';
-// const wifiIpAddress = 'http://10.101.1.216:5001/'; // <- Home
-// const wifiIpAddress = 'http://10.222.211.105:5001/'; // < Redmi
+const wifiIpAddress = 'http://10.101.1.216:5001/'; // <- Home
+// const wifiIpAddress = 'http://10.164.124.105:5001/'; // < Redmi
 // const wifiIpAddress = 'http://192.168.1.109:5001/'; // <- Boston
-const wifiIpAddress = 'http://192.168.68.110:5001/'; // <- Dias
+// const wifiIpAddress = 'http://192.168.68.120:5001/'; // <- Barnet
+// const wifiIpAddress = 'http://192.168.1.212:5001/'; // <- Irby Street
+// const wifiIpAddress = 'http://192.168.68.112:5001/'; // <- Dias
+// const wifiIpAddress = 'http://10.249.4.160:5001/'; // <- airport joburg
+// const wifiIpAddress ='http://10.2.222.57:5001/'; // <- Staines library 10.2.222.57:5001
 
 const urlBase = wifiIpAddress;
 // const urlBase = apiAddress;
@@ -62,7 +66,9 @@ enum MyTripActions {
   track,
   addWaypoint,
   deleteWaypoint,
+  revisitWaypoint,
   extendEnd,
+  editTrip,
   addPointOfInterest,
   saveTrip,
   follow,
@@ -71,6 +77,7 @@ enum MyTripActions {
   reverseTrip,
   showSteps,
   message,
+  getMap,
 }
 
 enum MarkerTypes {
@@ -132,6 +139,7 @@ enum HighliteActions {
   greatRoadStarted,
   greatRoadNamed,
   greatRoadEnded,
+  greatRoadHighlighted,
   routeHighlited,
   waypointHighlited,
 }
@@ -141,6 +149,54 @@ enum GroupActions {
   editName,
   addGroup,
   addMember,
+}
+
+/*
+enum ChangedFeatures {
+  route(1),
+  goodRoad(2),
+  features(3),
+  viewPort(4),
+  all(7),
+  none(0);
+
+  const ChangedFeatures(this.value);
+  final num value;
+  bool routeChanged() => [1, 3, 7].contains(value);
+  bool goodRoadsChanged() => [2, 3, 7].contains(value);
+  bool viewPortChanged() => [4, 5, 6].contains(value);
+}
+
+*/
+
+enum ChangedFeatures {
+  none(0),
+  route(1),
+  goodRoad(2),
+  features(3), // Represents route + goodRoad
+  viewPort(4),
+  all(7); // Represents 1 + 2 + 4
+
+  const ChangedFeatures(this.value);
+  final int value;
+
+  /// Returns the enum instance that matches a specific raw integer value
+  static ChangedFeatures _fromValue(int val) {
+    // Returns the first match, or 'all' if the result is out of range
+    return ChangedFeatures.values
+        .firstWhere((e) => e.value == val, orElse: () => ChangedFeatures.all);
+  }
+
+  /// The "add" method: combines current bitmask with another
+  ChangedFeatures add(ChangedFeatures other) {
+    int combined = this.value | other.value;
+    return ChangedFeatures._fromValue(combined);
+  }
+
+  // Convenience checks
+  bool get hasRoute => (value & route.value) != 0;
+  bool get hasGoodRoad => (value & goodRoad.value) != 0;
+  bool get hasViewPort => (value & viewPort.value) != 0;
 }
 
 enum GroupMemberState { none, isNew, registered, incomplete, complete, added }
@@ -209,9 +265,9 @@ const List<String> tableDefs = [
   /// '''CREATE TABLE caches(id INTEGER PRIMARY KEY AUTOINCREMENT, uri TEXT,
   /// feature_id INTEGER, type INTEGER, added DATETIME)''',
 
-  /// DRIVES
-  '''CREATE TABLE drives(id INTEGER PRIMARY KEY AUTOINCREMENT, uri TEXT, title TEXT, sub_title TEXT, body TEXT, 
-  distance REAL, points_of_interest INTEGER, added DATETIME)''',
+  /// DRIVES - 19/02/26 modified to hold drives as a JSON string in column 'trip' rather than shredding it
+  '''CREATE TABLE drives(id INTEGER PRIMARY KEY AUTOINCREMENT, uri TEXT, title TEXT, sub_title TEXT, trip TEXT, 
+  distance INTEGER, points_of_interest INTEGER, added TEXT)''',
 
   /// FEATURES
   '''CREATE TABLE features(id INTEGER PRIMARY KEY AUTOINCREMENT, uri TEXT, feature_id INTEGER, 

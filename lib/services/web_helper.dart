@@ -365,18 +365,44 @@ Future<Map<String, dynamic>> tryLogin({required User user}) async {
   return {'msg': map['msg'] ?? 'error', 'response_status_code': code};
 }
 
-Future<dynamic> postTrip(MyTripItem tripItem) async {
-/*
-  Map<String, dynamic> apiData = tripItem.myTripToMap();
+Future<int> testApi() async {
+  Map<String, dynamic> apiData = {
+    'uri': '',
+    'good_roads': [
+      for (int i = 0; i < CurrentTripItem().goodRoads.length; i++)
+        CurrentTripItem().goodRoads[i].toJSON()
+    ]
+  };
+  // List<Photo> photos = photosFromJson(photoString: tripItem.images);
+  dynamic response;
+  try {
+    var request =
+        http.MultipartRequest('POST', Uri.parse('$urlDrive/test_api'));
+    //    http.MultipartRequest('POST', Uri.parse('$urlDrive/good_roads'));
+    // debug -> var request = http.MultipartRequest('POST', Uri.parse('$urlDrive/save'));
+    request.headers['Authorization'] = 'Bearer ${Setup().jwt}';
+    request.fields['data'] = jsonEncode(apiData);
+    // request.fields['data'] = jsonEncode({'b_box': '', 'zoom': 12});
+    response = await request.send().timeout(const Duration(seconds: 30));
+  } catch (e) {
+    debugPrint('Error was: ${e.toString()}');
+  }
+  return response.statusCode;
+}
+
+Future<dynamic> publish(MyTripItem tripItem) async {
+  Map<String, dynamic> apiData = tripItem.toJson();
   List<Photo> photos = photosFromJson(photoString: tripItem.images);
   dynamic response;
   try {
     var request = http.MultipartRequest('POST', Uri.parse('$urlDrive/publish'));
+    // debug -> var request = http.MultipartRequest('POST', Uri.parse('$urlDrive/save'));
     request.headers['Authorization'] = 'Bearer ${Setup().jwt}';
     request.fields['data'] = jsonEncode(apiData);
 
     /// Start the images list with the Drive map
     request.files.add(await http.MultipartFile.fromPath('map', photos[0].url));
+
     for (int i = 0; i < apiData['points_of_interest'].length; i++) {
       if (apiData['points_of_interest'][i].isNotEmpty) {
         for (int j = 0;
@@ -394,7 +420,7 @@ Future<dynamic> postTrip(MyTripItem tripItem) async {
   } catch (e) {
     debugPrint('error: ${e.toString()} ${response.statusCode}');
   }
-  */
+
   return ' ';
 }
 
@@ -1130,8 +1156,8 @@ Future<TripItem?> getTrip(
         }
         try {
           TripItem tripItem = TripItem(
-              heading: trip['title'],
-              subHeading: trip['sub_title'],
+              title: trip['title'],
+              subTitle: trip['sub_title'],
               body: (trip['body'] ?? '').replaceAll("\n", " "),
               author: trip['author'],
               published: trip['added'],
@@ -1139,7 +1165,7 @@ Future<TripItem?> getTrip(
               imageUrls: imageListToString(imageList: images),
               score: trip['average_rating'].toDouble() ?? 5.0,
               distance: trip['distance'],
-              pointsOfInterest: trip['points_of_interest'].length,
+              pointsOfInterestCount: trip['points_of_interest'].length,
               closest: distance,
               scored: trip['ratings_count'] ?? 1,
               downloads: trip['download_count'] ?? trip['downloads'] ?? 0,
@@ -1155,6 +1181,34 @@ Future<TripItem?> getTrip(
     }
   }
   return null;
+}
+
+/// Downloads a trip from the api that hasn't been published
+/// for users using the Web version
+Future<MyTripItem?> loadPrivateTrip({required String uri}) async {
+  http.Response response = await getWebData(
+      uri: Uri.parse('$urlDrive/load_private/$uri/'), secure: true);
+  if (response.statusCode == 200) {
+    var trip = jsonDecode(response.body);
+    return (MyTripItem.fromJson(jsonObject: trip));
+  }
+  return null;
+}
+
+/// Downloads a list of trips that the user has uploaded to the api
+/// as private - for Web users.
+Future<List<TripItem>> getPrivateTrips() async {
+  http.Response response =
+      await getWebData(uri: Uri.parse('$urlDrive/get_private'), secure: true);
+  if (response.statusCode == 200) {
+    List<TripItem> privateTrips = [];
+    List trips = jsonDecode(response.body);
+    for (int i = 0; i < trips.length; i++) {
+      privateTrips.add(TripItem.fromMap(map: trips[i]));
+    }
+    return privateTrips;
+  }
+  return [];
 }
 
 String imageListToString({required imageList}) {
@@ -1968,10 +2022,11 @@ dynamic getGoodRoadsGeoJson(
   Map<String, dynamic> data = {
     "exclude": exclude,
     "zoom": zoom,
-    "b_box": boundingBox
+    "b_box": boundingBox,
+    "color": Setup().goodRouteColourHex()
   };
 
-  Uri uri = Uri.parse('$urlDrive/my_trip/good_roads');
+  Uri uri = Uri.parse('$urlDrive/good_roads');
   http.Response response = await postWebData(uri: uri, body: jsonEncode(data));
   if ([200, 201].contains(response.statusCode)) {
     return response.body;
@@ -1982,14 +2037,18 @@ dynamic getGoodRoadsGeoJson(
 dynamic getPointsOfInterestGeoJson(
     {Map<String, dynamic> boundingBox = const {},
     List exclude = const [],
-    double zoom = 14}) async {
+    double zoom = 14,
+    String driveId = '',
+    List types = const []}) async {
   Map<String, dynamic> data = {
     "exclude": exclude,
     "zoom": zoom,
-    "b_box": boundingBox
+    "b_box": boundingBox,
+    "types": types,
+    "drive_id": driveId
   };
 
-  Uri uri = Uri.parse('$urlDrive/my_trip/points_of_interest');
+  Uri uri = Uri.parse('$urlDrive/points_of_interest');
   http.Response response = await postWebData(uri: uri, body: jsonEncode(data));
   if ([200, 201].contains(response.statusCode)) {
     return response.body;

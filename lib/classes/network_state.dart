@@ -58,11 +58,6 @@ class NetworkState extends StatelessWidget {
   }
 
   Future<void> _updateConnectionStatus(List<ConnectivityResult> result) async {
-    //  setState(() {
-    //    _connectionStatus = result;
-    //  });
-    // ignore: avoid_print
-    developer.log('Updating the network status', name: '_network');
     iconIndexes[0] = Setup().loggingIn ? 0 : 1;
     iconIndexes[1] = _status.contains(ConnectivityResult.wifi) ? 2 : 3;
     iconIndexes[2] = _status.contains(ConnectivityResult.mobile) ? 4 : 5;

@@ -1,14 +1,19 @@
 import 'dart:async';
+import 'dart:ui' as ui;
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart' hide Route;
 import 'package:flutter_map/flutter_map.dart';
 // import 'package:latlong2/latlong.dart';
-import 'private_storage.dart';
+// import '/services/private_storage.dart';
+import '/services/services.dart';
 import '/models/other_models.dart';
 import '/classes/classes.dart';
 //import '/classes/my_trip_item.dart';
 import '/classes/route.dart' as mt;
+import '/helpers/helpers.dart';
+import 'package:http/http.dart' as http;
+import '../constants.dart';
 
 class PrivateStorageLocal implements PrivateDataRepository {
   @override
@@ -102,12 +107,13 @@ class PrivateStorageLocal implements PrivateDataRepository {
   }
 
   @override
-  Future<int> saveImageLocal(
-      {required String imageUrl,
-      driveId = -1,
-      pointOfInterestId = -1,
-      caption = ''}) async {
-    return -1;
+  Future<String> saveImageLocal({
+    required ui.Image image,
+    driveUri = '',
+    pointOfInterestUri = '',
+    imageId = 1,
+  }) async {
+    return '';
   }
 
   @override
@@ -189,6 +195,11 @@ class PrivateStorageLocal implements PrivateDataRepository {
   }
 
   @override
+  Future<List<MyTripItem>> loadMyTripItems() async {
+    return [];
+  }
+
+  @override
   Future<int> saveMessage(MessageLocal message) async {
     return 0;
   }
@@ -199,14 +210,14 @@ class PrivateStorageLocal implements PrivateDataRepository {
   }
 
   @override
-  Future<void> deleteDriveById(int id) async {
+  Future<void> deleteDriveById(String driveUri) async {
     return;
   }
 
 //
 
   @override
-  Future<void> deleteDriveLocal({required int driveId}) async {
+  Future<void> deleteDriveLocal({required String driveUri}) async {
     return;
   }
 
@@ -217,7 +228,7 @@ class PrivateStorageLocal implements PrivateDataRepository {
   }
 
   @override
-  Future<int> saveMyTripItem(MyTripItem myTripItem) async {
+  Future<int> saveMyTrip(CurrentTripItem tripItem) async {
     return 0;
   }
 /*
@@ -401,6 +412,21 @@ class PrivateStorageLocal implements PrivateDataRepository {
       {int driveId = -1, bool showMethods = false}) async {
     return [];
   }
-}
 
-PrivateStorageLocal getPrivateRepository() => PrivateStorageLocal();
+  @override
+  Future<dynamic> publish(MyTripItem tripItem) async {
+    dynamic response;
+    try {
+      var request = http.MultipartRequest(
+          'POST', Uri.parse('$urlDrive/publish/${tripItem.uri}'));
+      request.headers['Authorization'] = 'Bearer ${Setup().jwt}';
+      response = await request.send().timeout(const Duration(seconds: 30));
+    } catch (e) {
+      debugPrint('error: ${e.toString()} ${response.statusCode}');
+    }
+
+    return ' ';
+  }
+
+  PrivateStorageLocal getPrivateRepository() => PrivateStorageLocal();
+}

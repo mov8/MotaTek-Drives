@@ -23,6 +23,14 @@ class BottomDrawerController {
     }
   }
 
+  void refresh() {
+    try {
+      _bottomDrawerState?.refresh();
+    } catch (e) {
+      debugPrint("Can't refresh bottom drawer: ${e.toString()}");
+    }
+  }
+
   void dockOpenTile({required GlobalKey<State<StatefulWidget>> key}) {
     try {
       _bottomDrawerState?.dockOpenTile(key: key);
@@ -39,12 +47,16 @@ class BottomDrawerController {
     }
   }
 
-  void setContent({required Widget content}) {
+  void setContent({required List<Card> content}) {
     try {
       _bottomDrawerState?.setContent(content);
     } catch (e) {
       debugPrint("Can't set bottom drawer content: ${e.toString()}");
     }
+  }
+
+  double getHeight() {
+    return _bottomDrawerState?.height ?? 0;
   }
 
   void setHeight(height) {
@@ -59,16 +71,20 @@ class BottomDrawerController {
 class BottomDrawer extends StatefulWidget {
   final Function(double)? onChangeHeight;
   final Function(bool)? onOpened;
+  final BuildContext context;
   final double maxHeight;
   final double height;
   final double closedTop;
   final double dividerHeight;
-  final Widget? content;
+  final List<Card>? content;
   final BottomDrawerController? controller;
+  final ScrollController? scrollController;
 
   const BottomDrawer(
       {super.key,
+      required this.context,
       this.controller,
+      this.scrollController,
       this.maxHeight = 0,
       this.height = 0,
       this.closedTop = 0,
@@ -86,16 +102,19 @@ class _BottomDrawerState extends State<BottomDrawer>
   double contentBottom = 0;
   double contentHeight = 0;
   int delay = 500;
-  final ScrollController _controller = ScrollController();
+
   final GlobalKey _key = GlobalKey();
-  late Widget _content;
+  //  List<Card> _content = [Card(child: Text('Nothing to show'))];
+
+  ListView _content = ListView(
+    controller: ScrollController(),
+    children: [Card(child: Text('Nothing to show'))],
+  );
 
   void initState() {
     super.initState;
     if (widget.controller != null) {
       widget.controller!._addState(this);
-      developer.log('BottomDrawer initState() called', name: '_expand');
-      _content = widget.content ?? Text('Nothing to show');
     }
   }
 
@@ -105,18 +124,37 @@ class _BottomDrawerState extends State<BottomDrawer>
   }
 
   void close() {
-    setState(() => height = 0);
+    if (mounted) {
+      setState(() => height = 0);
+    }
   }
 
-  void setContent(content) {
-    developer.log('BottomDrawer content updated', name: '_expand');
-    _content = content;
+  void refresh() {
+    if (mounted) {
+      setState(() => ()); // setContentBottom());
+    }
+  }
+
+  void setContent(List<Card> content) {
+    try {
+      // setState(() => _content = content);
+      developer.log(
+          'setContent() called in bottom_drawer.dart content.length: ${content.length}',
+          name: '_focus');
+      _content = ListView(
+        controller: widget.scrollController,
+        children: content,
+      );
+      // _content = content;
+    } catch (e) {
+      developer.log('Error setting BottomDrawer setContent(): ${e.toString()}',
+          name: '_focus');
+    }
   }
 
   void open(newHeight) {
-    setState(() {
+    try {
       setContentBottom();
-
       delay = 500;
       height = height == 0
           ? newHeight == 0
@@ -124,9 +162,21 @@ class _BottomDrawerState extends State<BottomDrawer>
               : newHeight.toDouble()
           : 0;
       contentHeight = MediaQuery.of(context).size.height;
-      developer.log('Controller.open called - height set to $height',
-          name: '_expand');
-    });
+      developer.log(
+          'bottom_drawer.dart height: $height  contentHeight: $contentHeight',
+          name: '_focus');
+    } catch (e) {
+      developer.log('Error bottom_drawer.open(): ${e.toString()}',
+          name: '_focus');
+    }
+    try {
+      if (mounted) {
+        setState(() {});
+      }
+    } catch (e) {
+      developer.log('Error bottom_drawer.open(): ${e.toString()}',
+          name: '_focus');
+    }
   }
 
   void setHeight({double height = 0}) {
@@ -134,32 +184,30 @@ class _BottomDrawerState extends State<BottomDrawer>
   }
 
   void dockOpenTile({required GlobalKey<State<StatefulWidget>> key}) {
-    var box = key.currentContext!.findRenderObject() as RenderBox;
-    height = box.size.height < 400 ? box.size.height + 4 : 400;
-    developer.log('dockOpenTile() - height set to $height', name: '_expand');
-    Scrollable.ensureVisible(
-      key.currentContext!,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-      alignment: 0.0, // 0.0 = top of screen, 0.5 = middle, 1.0 = bottom
-    );
+    try {
+      var box = key.currentContext!.findRenderObject() as RenderBox;
+      height = box.size.height < 400 ? box.size.height + 4 : 400;
+      Scrollable.ensureVisible(
+        key.currentContext!,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+        alignment: 0.0, // 0.0 = top of screen, 0.5 = middle, 1.0 = bottom
+      );
 
-    double yPos = widgetPosition(key: _key).y.toDouble();
-    double yPosT = widgetPosition(key: key).y.toDouble();
+      double yPos = widgetPosition(key: _key).y.toDouble();
+      double yPosT = widgetPosition(key: key).y.toDouble();
+      double delta = 32 + yPosT - yPos;
+      if (delta > 0) {
+        _content.controller!.animateTo(delta,
+            duration: Duration(milliseconds: 500), curve: Curves.ease);
+      }
 
-    //  var box = key.currentContext!.findRenderObject() as RenderBox;
-    //  height = box.size.height;
-    // height = MediaQuery.of(context).size.height - height;
-    double delta = 32 + yPosT - yPos;
-    developer.log('yPos: $yPos  yPosT: $yPosT  delta: $delta', name: '_expand');
-    if (delta > 0) {
-      (_content as ListView).controller!.animateTo(delta,
-          duration: Duration(milliseconds: 500), curve: Curves.ease);
+      // Point point = widgetPosition(key: key);
+    } catch (e) {
+      developer.log('Error dockOpenTile(): ${e.toString()}', name: '_focus');
+      // height = 400;
+      // contentHeight = 380;
     }
-
-    Point point = widgetPosition(key: key);
-    developer.log('Position is ${point.toString()} box = ${box.toString()}',
-        name: '_expanded');
   }
 
   Point widgetPosition({required GlobalKey<State<StatefulWidget>> key}) {
@@ -169,18 +217,26 @@ class _BottomDrawerState extends State<BottomDrawer>
       final box = bnKeyContext.findRenderObject() as RenderBox;
       pos = Point(
           box.localToGlobal(Offset.zero).dx, box.localToGlobal(Offset.zero).dy);
+      developer.log('widgetPosition():  $pos', name: '_focus');
+    } else {
+      developer.log('widgetPosition():  GlobalKey is null', name: '_focus');
     }
     return pos;
   }
 
   void setContentBottom({double offset = 0}) {
-    contentBottom = contentBottom == 0 && widgetPosition(key: _key).y > 300
-        ? widgetPosition(key: _key).y + offset
-        : contentBottom;
-    // if (contentBottom > 600) {
-    FocusManager.instance.primaryFocus?.unfocus(); // dismiss keyboard
-    // }
-    developer.log('contentBottom set to $contentBottom', name: '_expand');
+    try {
+      contentBottom = contentBottom == 0 && widgetPosition(key: _key).y > 300
+          ? widgetPosition(key: _key).y + offset
+          : contentBottom;
+      developer.log('setContentBottom() about to dismiss keyboard',
+          name: '_focus');
+      FocusManager.instance.primaryFocus?.unfocus(); // dismiss keyboard
+      // setState(() => height++);
+    } catch (e) {
+      developer.log('Error bottom_drawer.setContentBottom(): ${e.toString()}',
+          name: '_focus');
+    }
     return;
   }
 
@@ -197,20 +253,24 @@ class _BottomDrawerState extends State<BottomDrawer>
         height: height + dividerHeight,
         width: mounted ? MediaQuery.of(context).size.width : 100,
         onEnd: () {
-          developer.log('Animation end - height set to $height',
-              name: '_expand');
-          setState(() {
-            contentHeight = contentBottom - widgetPosition(key: _key).y;
-            contentHeight = contentHeight < 0 ? 0 : contentHeight;
-          });
+          //   setState(() {
+          Point pos = widgetPosition(key: _key);
+          contentHeight = contentBottom - pos.y;
+          contentHeight = contentHeight < 0 ? 0 : contentHeight;
+          contentHeight =
+              height > 10 ? MediaQuery.of(context).size.height : 0; // DEBUG
+          //   });
           if (widget.onOpened != null) {
-            developer.log(
-                'onOpened callback called height: $height contentHeight: $contentHeight',
-                name: '_expand');
             widget.onOpened!(height > 10);
           }
           if (widget.onChangeHeight != null) {
             widget.onChangeHeight!(height);
+          }
+          developer.log(
+              'AnimatedContainer.onEnd _key: $_key  pos: $pos  contentBottom: $contentBottom  contentHeight: $contentHeight',
+              name: '_focus');
+          if (mounted) {
+            setState(() => ());
           }
         },
         child: SingleChildScrollView(
@@ -254,9 +314,6 @@ class _BottomDrawerState extends State<BottomDrawer>
                         if (widget.onChangeHeight != null) {
                           widget.onChangeHeight!(height);
                         }
-                        developer.log(
-                            'onVerticalDragUpdate - height set to $height contentHeight to $contentHeight',
-                            name: '_expand');
                       });
                     },
                   ),
@@ -276,49 +333,3 @@ class _BottomDrawerState extends State<BottomDrawer>
     );
   }
 }
-/*
-static Future<void> ensureVisible(
-  BuildContext context, {
-  double alignment = 0.0,
-  Duration duration = Duration.zero,
-  Curve curve = Curves.ease,
-  ScrollPositionAlignmentPolicy alignmentPolicy = ScrollPositionAlignmentPolicy.explicit,
-}) {
-  final List<Future<void>> futures = <Future<void>>[];
-
-  // The targetRenderObject is used to record the first target renderObject.
-  // If there are multiple scrollable widgets nested, the targetRenderObject
-  // is made to be as visible as possible to improve the user experience. If
-  // the targetRenderObject is already visible, then let the outer
-  // renderObject be as visible as possible.
-  //
-  // Also see https://github.com/flutter/flutter/issues/65100
-  
-  RenderObject? targetRenderObject;
-  ScrollableState? scrollable = Scrollable.maybeOf(context);
-  while (scrollable != null) {
-    final List<Future<void>> newFutures;
-    (newFutures, scrollable) = scrollable._performEnsureVisible(
-      context.findRenderObject()!,
-      alignment: alignment,
-      duration: duration,
-      curve: curve,
-      alignmentPolicy: alignmentPolicy,
-      targetRenderObject: targetRenderObject,
-    );
-    futures.addAll(newFutures);
-
-    targetRenderObject ??= context.findRenderObject();
-    context = scrollable.context;
-    scrollable = Scrollable.maybeOf(context);
-  }
-
-  if (futures.isEmpty || duration == Duration.zero) {
-    return Future<void>.value();
-  }
-  if (futures.length == 1) {
-    return futures.single;
-  }
-  return Future.wait<void>(futures).then<void>((List<void> _) => null);
-}
-*/

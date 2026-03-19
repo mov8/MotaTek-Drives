@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
+import 'package:uuid/uuid.dart';
 import 'dart:math';
 import 'dart:developer' as developer;
 import 'package:geolocator/geolocator.dart';
@@ -16,6 +17,48 @@ Map<String, dynamic> chipRequests = {
   'ledingWidget': -1,
   'getTripDetails': false
 };
+
+String getUuid() {
+  String uuidString = Uuid().v7();
+  return uuidString.replaceAll(RegExp(r'-'), '');
+}
+
+int pointsOfInterestCount(List<PointOfInterest> pointsOfInterest) {
+  int count = 0;
+  for (int i = 0; i < pointsOfInterest.length; i++) {
+    if (![12, 17, 18].contains(pointsOfInterest[i].type)) {
+      count++;
+    }
+  }
+  return count;
+}
+
+/// Inserts a new image description into a JSONString containing an array of
+/// Image descriptions - url, caption, and rotation
+///
+String addImageToJSONString(
+    {String currentJSONString = '',
+    required String newUrl,
+    String newCaption = '',
+    int newRotation = 0}) {
+  String newString = '';
+  List<Map<String, dynamic>> images;
+  Map<String, dynamic> newImage = {
+    'url': newUrl,
+    'caption': newCaption,
+    'rotation': newRotation
+  };
+  if (currentJSONString.isEmpty) {
+    images = [newImage];
+  } else {
+    images = jsonDecode(CurrentTripItem().images);
+    images.add(newImage);
+  }
+  newString = jsonEncode(images);
+
+  return newString;
+}
+
 /*
 List<LatLng> waypointsFromPointsOfInterest(
     {bool reversed = false,
@@ -195,14 +238,16 @@ String setAvoiding() {
 /// The user can then add any waypoints that are needed to control the route.
 
 Future<Map<String, dynamic>> getRoutePoints(
-    {required List<List<double>> points, bool addPoints = true}) async {
+    {required List points,
+    bool addPoints = true,
+    bool goodRoad = false}) async {
   dynamic jsonResponse;
   int jump = points.length > 50 ? (points.length ~/ 50) : 1;
   jump = jump > 1 && jump * 50 > points.length ? jump - 1 : jump;
   String delim = '';
   String waypoints = '';
   for (int i = 0; i < points.length; i += jump) {
-    waypoints = '$waypoints$delim${points[i][0]},${points[i][1]}';
+    waypoints = '$waypoints$delim${points[i].x},${points[i].y}';
     delim = ';';
   }
 
@@ -231,18 +276,6 @@ Future<Map<String, dynamic>> getRoutePoints(
 
   double distance = 0;
   double duration = 0;
-
-  /// ToDo: handling turn by turn:
-  /// ...['steps'][n]['name'] => the current road name
-  /// ...['steps'][n]['maneuver'][bearing_before'] => approach bearing
-  /// ...['steps'][n]['maneuver'][bearing_after] => exit bearing
-  /// ...['steps'][n]['maneuver']['location'] => latLng of intersection
-  /// ...['steps'][n]['maneuver']['modifier'] => 'right', 'left' etc
-  /// ...['steps'][n]['maneuver']['type'] => 'turn' etc
-  /// ...['steps'][n]['maneuver']['name'] => 'Alexandra Road'
-  ///
-
-//  String type = '';
   String name = '';
   String summary = '';
   if (addPoints) {
@@ -250,12 +283,14 @@ Future<Map<String, dynamic>> getRoutePoints(
       routes.add(
         {
           'type': 'Feature',
-          'id': 'r${i + 1}',
+          'id': goodRoad ? 'gr${i + 1}' : 'r${i + 1}',
           'geometry': jsonResponse['routes'][i]['geometry'],
           'properties': {
             'group': 'line',
-            'name': 'Route ${i + 1}',
-            'color': Setup().routeColourHex(), //  '#fcba03',
+            'name': goodRoad ? 'Good road ${i + 1}' : 'Route ${i + 1}',
+            'color': goodRoad
+                ? Setup().goodRouteColourHex()
+                : Setup().routeColourHex(), //  '#fcba03',
             'width': 3.0
           }
         },
@@ -270,107 +305,7 @@ Future<Map<String, dynamic>> getRoutePoints(
     distance = distance / 1000 * 5 / 8;
     String summary =
         '${distance.toStringAsFixed(1)} miles - (${(duration / 60).floor()} minutes)';
-    // var router = jsonResponse['routes'][0]['geometry']['coordinates'];
-    // routes.addAll(router);
   }
-  // for (int i = 0; i < router.length; i++) {
-  //   routePoints.add(LatLng(router[i][1], router[i][0]));
-  // }
-//  }
-/*
-  try {
-    
-    List<dynamic> legs = jsonResponse['routes'][0]['legs'];
-    String lastRoad = legs[0]['steps'][0]['name'];
-    String name =
-        '$lastRoad - ${legs[0]['steps'][legs[0]['steps'].length - 1]['name']}';
-    for (int j = 0; j < legs.length; j++) {
-      List<dynamic> steps = legs[j]["steps"];
-      double distance = 0;
-
-      int bearingBefore = 0;
-      int bearingAfter = 0;
-      for (int k = 0; k < steps.length; k++) {
-        lastRoad = steps[k]['name'] ?? '';
-        Map<String, dynamic> maneuver = steps[k]['maneuver'];
-        try {
-          type = maneuver['type'] ?? '';
-          String modifier = maneuver['modifier'] ?? '';
-          if ((modifier.isNotEmpty || type == 'depart')) {
-            if (modifier.isEmpty) {
-              debugPrint('empty');
-            }
-
-            if (type.contains('roundabout') || type.contains('rotary')) {
-              try {
-                if (type.contains('exit')) {
-                  bearingAfter = maneuver['bearing_after'] ?? 0;
-                  modifier = bearingAfter > bearingBefore ? 'right' : 'left';
-                  if ((bearingAfter - bearingBefore).abs() < 60) {
-                    modifier = 'slightly $modifier';
-                  }
-                  //    modifier = '$modifier (${bearingAfter - bearingBefore})';
-                  maneuvers[maneuvers.length - 1].modifier = modifier;
-                  maneuvers[maneuvers.length - 1].bearingAfter = bearingAfter;
-                } else {
-                  bearingBefore = maneuver['bearing_before'] ?? 0;
-                }
-              } catch (e) {
-                developer.log('bearing error: ${e.toString()}',
-                    name: '_roundabout');
-              }
-            } else {
-              bearingBefore = maneuver['bearing_before'] ?? 0;
-              bearingAfter = maneuver['bearing_after'] ?? 0;
-            }
-
-            List<double> lngLat = maneuver['location'];
-            distance += steps[k]['distance'].toDouble();
-            maneuvers.add(
-              Maneuver(
-                roadFrom: steps[k]['name'],
-                roadTo: lastRoad,
-                bearingBefore: bearingBefore,
-                bearingAfter: bearingAfter,
-                exit: maneuver['exit'] ?? 0,
-                point: lngLat,
-                modifier: modifier,
-                type: type,
-                distance: distance,
-              ),
-            );
-            distance = 0;
-          }
-        } catch (e) {
-          String err = e.toString();
-          debugPrint(err);
-        }
-        if (maneuvers.length > 1) {
-          maneuvers[maneuvers.length - 2].roadTo =
-              maneuvers[maneuvers.length - 1].roadFrom;
-        }
-        if (maneuvers.isNotEmpty) {
-          lastRoad = maneuvers[maneuvers.length - 1].roadTo;
-          developer.log('lastRoad $lastRoad', name: '_roundabout');
-          maneuvers[maneuvers.length - 1].type = maneuvers[maneuvers.length - 1]
-              .type
-              .replaceAll('rotary', 'roundabout');
-        }
-      }
-    }
-
-
-    result = {
-      'name': name,
-      'distance': distance.toStringAsFixed(1),
-      'duration': jsonResponse['routes'][0]['duration'],
-      'summary': summary,
-      'maneuvers': maneuvers,
-      'routes': routes,
-    };
-  } catch (e) {
-    debugPrint('Error processing router data: ${e.toString()}');
-  } */
 
   maneuvers = getManeuversFromJson(routes: jsonResponse['routes']);
   result = {
@@ -439,10 +374,9 @@ List<Maneuver> getManeuversFromJson({required List routes, name = ''}) {
                 bearingAfter = maneuver['bearing_after'] ?? 0;
               }
 
-              List<double> lngLat = [
-                maneuver['location'][0],
-                maneuver['location'][1]
-              ];
+              Point lngLat =
+                  Point(maneuver['location'][0], maneuver['location'][1]);
+
               distance += steps[k]['distance'].toDouble();
               maneuvers.add(
                 Maneuver(
@@ -469,7 +403,6 @@ List<Maneuver> getManeuversFromJson({required List routes, name = ''}) {
           }
           if (maneuvers.isNotEmpty) {
             lastRoad = maneuvers[maneuvers.length - 1].roadTo;
-            developer.log('lastRoad $lastRoad', name: '_roundabout');
             maneuvers[maneuvers.length - 1].type =
                 maneuvers[maneuvers.length - 1]
                     .type
@@ -521,89 +454,94 @@ int getRoundaboutAngle(
 
   /// Next bit of code is to try and compensate for tangential lead-ins and run-offs that distort
   /// the radially aligned direction change that a roundabout sign displays.
-  /// It does it by getting the angle of approch and leave angle at the distance of 25 - 100 m from
+  /// It does it by getting the angle of approach and leave angle at the distance of 25 - 100 m from
   /// the roundabout. Should help in most cases, though very large roundabouts could still be an issue.
   /// The bearingBefore and bearingAfter is at the point of joining or leaving the actual roundabout.
+  try {
+    if (maneuvers[index].type.contains('roundabout')) {
+      if (maneuvers[index].type == 'roundabout') {
+        int distance = 0;
+        PositionData positionData =
+            getClosestPoint(routes: routes, position: maneuvers[index].point);
 
-  if (maneuvers[index].type.contains('roundabout')) {
-    if (maneuvers[index].type == 'roundabout') {
-      int distance = 0;
-      PositionData positionData =
-          getClosestPoint(routes: routes, position: maneuvers[index].point);
+        List<double> point1 = [0, 0];
+        List<double> point2 = [0, 0];
+        List<double> point3 = [0, 0];
+        List<double> point4 = [0, 0];
 
-      List<double> point1 = [0, 0];
-      List<double> point2 = [0, 0];
-      List<double> point3 = [0, 0];
-      List<double> point4 = [0, 0];
-
-      for (int i = positionData.pointIndex; i > 0; i--) {
-        distance = distanceBetween(maneuvers[index].point,
-                routes[positionData.routeIndex]['geometry']['coordinates'][i],
-                meters: true)
-            .toInt();
-        if (point2 == LatLng(0, 0) && distance > 25) {
-          point2 =
-              routes[positionData.routeIndex]['geometry']['coordinates'][i];
-        } else if ((point1 == LatLng(0, 0) && distance > 100) || i == 0) {
-          point1 =
-              routes[positionData.routeIndex]['geometry']['coordinates'][i];
-          break;
+        for (int i = positionData.pointIndex; i > 0; i--) {
+          distance = distanceBetween(maneuvers[index].point,
+                  routes[positionData.routeIndex]['geometry']['coordinates'][i],
+                  meters: true)
+              .toInt();
+          if (point2 == LatLng(0, 0) && distance > 25) {
+            point2 =
+                routes[positionData.routeIndex]['geometry']['coordinates'][i];
+          } else if ((point1 == LatLng(0, 0) && distance > 100) || i == 0) {
+            point1 =
+                routes[positionData.routeIndex]['geometry']['coordinates'][i];
+            break;
+          }
         }
+
+        positionData = getClosestPoint(
+            routes: routes, position: maneuvers[index + 1].point);
+
+        for (int i = positionData.pointIndex;
+            i <
+                routes[positionData.routeIndex]['geometry']['coordinates']
+                    .length;
+            i++) {
+          distance = distanceBetween(maneuvers[index + 1].point,
+                  routes[positionData.routeIndex]['geometry']['coordinates'][i],
+                  meters: true)
+              .toInt();
+          if (point3 == LatLng(0, 0) && distance > 25) {
+            point3 =
+                routes[positionData.routeIndex]['geometry']['coordinates'][i];
+          } else if ((point4 == LatLng(0, 0) && distance > 100) || i == 0) {
+            point4 =
+                routes[positionData.routeIndex]['geometry']['coordinates'][i];
+            break;
+          }
+        }
+
+        int approachAngle = angleFromPoints(point1: point1, point2: point2);
+        int leaveAngle = angleFromPoints(point1: point3, point2: point4);
+
+        maneuvers[index].bearingBefore = approachAngle;
+        maneuvers[index].bearingAfter = leaveAngle;
+
+        /// Give the exit roundabout maneuver the same angles
+        maneuvers[index + 1].bearingBefore = approachAngle;
+        maneuvers[index + 1].bearingAfter = leaveAngle;
+
+        // int deltaAngle = approachAngle - leaveAngle;
+        // int summaryAngle = angleFromPoints(point1: point1, point2: point4);
+        // leaveAngle = leaveAngle - approachAngle;
+
+        ///   when the roundaboutPainter draws an arc it always starts at 3 O'Clock and paints clockwise
+        ///   the painter describes all angles in radians but its angle parameter is degrees
+        ///   the painter does the adjustment of the start from 3 O'Clock to 6 O'Clock
+        ///   the painter adds the 180 degrees to represent straight on
+        ///   the painter makes the adjustment from degrees to radians
+        ///   approach angles will always be adjusted to N 0 degress
+        ///   leave angles will adjusted to fit approach angles
+        ///   the painter will be fed the arc in degrees to be transcribed from 6 O'Clock position
+        ///
+        ///   approach    exit     delta      painted arc (180 + delta)
+        ///     |           |         0       180 degrees
+        ///
+        ///     |           /        45       225 degrees
+        ///
+        ///     |           \       -45       135 degrees
+        ///
       }
 
-      positionData =
-          getClosestPoint(routes: routes, position: maneuvers[index + 1].point);
-
-      for (int i = positionData.pointIndex;
-          i < routes[positionData.routeIndex]['geometry']['coordinates'].length;
-          i++) {
-        distance = distanceBetween(maneuvers[index + 1].point,
-                routes[positionData.routeIndex]['geometry']['coordinates'][i],
-                meters: true)
-            .toInt();
-        if (point3 == LatLng(0, 0) && distance > 25) {
-          point3 =
-              routes[positionData.routeIndex]['geometry']['coordinates'][i];
-        } else if ((point4 == LatLng(0, 0) && distance > 100) || i == 0) {
-          point4 =
-              routes[positionData.routeIndex]['geometry']['coordinates'][i];
-          break;
-        }
-      }
-
-      int approachAngle = angleFromPoints(point1: point1, point2: point2);
-      int leaveAngle = angleFromPoints(point1: point3, point2: point4);
-
-      maneuvers[index].bearingBefore = approachAngle;
-      maneuvers[index].bearingAfter = leaveAngle;
-
-      /// Give the exit roundabout maneuver the same angles
-      maneuvers[index + 1].bearingBefore = approachAngle;
-      maneuvers[index + 1].bearingAfter = leaveAngle;
-
-      // int deltaAngle = approachAngle - leaveAngle;
-      // int summaryAngle = angleFromPoints(point1: point1, point2: point4);
-      // leaveAngle = leaveAngle - approachAngle;
-
-      ///   when the roundaboutPainter draws an arc it always starts at 3 O'Clock and paints clockwise
-      ///   the painter describes all angles in radians but its angle parameter is degrees
-      ///   the painter does the adjustment of the start from 3 O'Clock to 6 O'Clock
-      ///   the painter adds the 180 degrees to represent straight on
-      ///   the painter makes the adjustment from degrees to radians
-      ///   approach angles will always be adjusted to N 0 degress
-      ///   leave angles will adjusted to fit approach angles
-      ///   the painter will be fed the arc in degrees to be transcribed from 6 O'Clock position
-      ///
-      ///   approach    exit     delta      painted arc (180 + delta)
-      ///     |           |         0       180 degrees
-      ///
-      ///     |           /        45       225 degrees
-      ///
-      ///     |           \       -45       135 degrees
-      ///
+      angle = maneuvers[index].bearingAfter - maneuvers[index].bearingBefore;
     }
-
-    angle = maneuvers[index].bearingAfter - maneuvers[index].bearingBefore;
+  } catch (e) {
+    debugPrint('Error calculating roundabout angle: ${e.toString()}');
   }
   return angle;
 }
@@ -611,7 +549,7 @@ int getRoundaboutAngle(
 // getClosestPoint({int route = 0, int point = 0, bool full = true}) {
 PositionData getClosestPoint(
     {List<Map<String, dynamic>> routes = const [],
-    List<double> position = const [0, 0],
+    Point position = const Point(0, 0),
     int route = 0,
     int point = 0,
     bool full = true}) {
@@ -619,13 +557,12 @@ PositionData getClosestPoint(
       PositionData(point, route, 9999999, 9999999, 99999999);
   int further = 0;
   for (int i = route; i < routes.length; i++) {
-    /*
-    for (int j = point; j < routes[i].points.length; j++) {
+    for (int j = point; j < routes[i]['route'].length; j++) {
       double distance = Geolocator.distanceBetween(
-          position[1],
-          position[0],
-          routes[i].points[j][1], //Lat
-          routes[i].points[j][0]); //Lng
+          position.y.toDouble(),
+          position.x.toDouble(),
+          routes[i]['route'][j][1], //Lat
+          routes[i]['route'][j][0]); //Lng
       if (distance < positionData.metersToRoute) {
         positionData.routeIndex = i;
         positionData.pointIndex = j;
@@ -638,7 +575,6 @@ PositionData getClosestPoint(
         }
       }
     }
-    */
   }
   positionData.metersToRoute =
       positionData.metersToRoute == 999999999 ? 0 : positionData.metersToRoute;
@@ -662,7 +598,7 @@ int angleFromPoints(
 ///
 int findManeuver(
     {required List<Maneuver> maneuvers,
-    required List<double> position,
+    required Point position,
     currentIndex = 0,
     increment = 0}) {
   double distance = 0;
@@ -684,11 +620,14 @@ int findManeuver(
 
 double getDistance(
     {required List<Maneuver> maneuvers,
-    required List<double> position,
+    required Point position,
     int index = 0}) {
   if (index < maneuvers.length && index > -1) {
-    return Geolocator.distanceBetween(position[1], position[0],
-        maneuvers[index].point[1], maneuvers[index].point[0]);
+    return Geolocator.distanceBetween(
+        position.y.toDouble(),
+        position.x.toDouble(),
+        maneuvers[index].point.y.toDouble(),
+        maneuvers[index].point.x.toDouble());
   }
   return 0;
 }

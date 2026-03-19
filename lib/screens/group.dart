@@ -252,7 +252,6 @@ class _GroupFormState extends State<GroupForm> {
   }
 
   editGroupName() {
-    developer.log('editGroupName setState() 276', name: '_groupTile');
     setState(() => _groupActions = GroupActions.editName);
   }
 }

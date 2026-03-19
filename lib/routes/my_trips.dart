@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import '/models/models.dart';
 import '/classes/classes.dart';
@@ -5,7 +6,8 @@ import '/tiles/my_trip_tile.dart';
 import '/screens/screens.dart';
 import '/services/services.dart';
 import '/helpers/edit_helpers.dart';
-import 'package:latlong2/latlong.dart';
+import '../constants.dart';
+// import 'package:latlong2/latlong.dart';
 
 class MyTrips extends StatefulWidget {
   const MyTrips({
@@ -21,6 +23,7 @@ class _MyTripsScreenState extends State<MyTrips> {
   late final RoutesBottomNavController _bottomNavController;
   final GlobalKey _scaffoldKey = GlobalKey();
   late Future<bool> _dataLoaded;
+  List<TripItem> _tripItems = [];
   List<MyTripItem> _myTripItems = [];
 
   @override
@@ -32,8 +35,8 @@ class _MyTripsScreenState extends State<MyTrips> {
   }
 
   Future<bool> getMyTripItems() async {
-    _myTripItems =
-        await getPrivateRepository().tripItemFromDb(showMethods: true);
+    // _tripItems = await getPrivateTrips(); <-- gets saved trips from api
+    _myTripItems = await getPrivateRepository().loadMyTripItems();
     return true;
   }
 
@@ -43,19 +46,19 @@ class _MyTripsScreenState extends State<MyTrips> {
 
   Future<void> onGetTrip(int index) async {}
 
+  /// Loads CurrentTripItem() with the chosen trip and navigates to My Trip page - create_trip.dart
   Future<void> loadTrip(int index) async {
-    int driveId = _myTripItems[index].id;
-
-    MyTripItem dbTrip = _myTripItems[index];
-    // await dbTrip.loadLocal(driveId);
+    CurrentTripItem().clearAll();
+    CurrentTripItem().updateMap = true;
+    CurrentTripItem().load(arguments: TripArguments(_myTripItems[index], 'db'));
     if (mounted) {
-      Navigator.pushNamed(context, 'createTrip',
-          arguments: TripArguments(dbTrip, 'db'));
+      Navigator.pushNamed(context, 'createTrip'); //,
+      //  arguments: TripArguments(_myTripItems[index], 'db'));
     }
   }
 
   Future<void> shareTrip(int index) async {
-    MyTripItem currentTrip = _myTripItems[index];
+    TripItem currentTrip = _tripItems[index];
     /*
     currentTrip.showMethods = false;
     Navigator.push(
@@ -82,12 +85,14 @@ class _MyTripsScreenState extends State<MyTrips> {
         callback: onConfirmDeleteTrip);
   }
 
-  void onConfirmDeleteTrip(int value) {
-    // debugPrint('Returned value: ${value.toString()}');
+  void onConfirmDeleteTrip(int value) async {
     if (value > -1) {
-      //   int driveId = 1, // _myTripItems[value].driveId;
-      //   getPrivateRepository().deleteDriveLocal(driveId: driveId);
-      //  setState(() => _myTripItems.removeAt(value));
+      String id = _tripItems[value].id >= 0
+          ? _tripItems[value].id.toString()
+          : _tripItems[value].uri;
+      getPrivateRepository()
+          .deleteDriveLocal(driveUri: id)
+          .then((_) => setState(() => _myTripItems.removeAt(value)));
     }
   }
 
@@ -96,65 +101,67 @@ import 'package:uuid/data.dart';
 import 'package:uuid/uuid.dart';
 import 'package:uuid/rng.dart';
 
- */
+*/
+
+  /// May have a problem having a single method for publishing a drive on
+  /// both the Web and Android version. The issue is likely to be how to
+  /// handle images - Android is simple but the Web may be problematic.
 
   Future<void> publishTrip(int index) async {
-    //   await _myTripItems[index].publish();
+    await publish(_myTripItems[index]);
+    // await getPrivateRepository().publish(_myTripItems[index]);
     return;
   }
 
+  /// Loading only basic trip information into the My Drives list.
+  /// Will add remaining information if the user requests it by
+  /// expanding the expansion tile.
+  Future<void> onExpandChange(int index, bool expanded) async {
+    /*
+    if (_myTripItems[index].pointsOfInterest.isEmpty) {
+      try {
+        _myTripItems[index] =
+            await loadPrivateTrip(uri: _myTripItems[index].uri) ??
+                _myTripItems[index];
+      } catch (e) {
+        debugPrint('Error getting the trip details');
+      }
+      setState(() => ());
+    }
+    */
+  }
+
+  /*
+  Future<void> refreshTrip(int index) async {
+    Map<String, dynamic> tripJSON = _myTripItems[index].
+    _myTripItems[index] = MyTripItem.fromJson()
+  }
+  */
+
   Widget _getPortraitBody() {
     if (_myTripItems.isEmpty) {
-      /*
       _myTripItems.add(
         MyTripItem(
-            heading: 'Save your trips for later, or to share',
-            subHeading:
-                'Add points of interest, nice roads, pubs restaurants etc.',
-            body:
-                'Describe the trip and why you liked it. You can share the trip with members of a group. You can also publish a trip for other people to enjoy',
-            pointsOfInterest: [
-              PointOfInterest(
-                point: [0, 0],
-                //    child1: const Icon(Icons.ac_unit),
-              ),
-            ],
-            distance: 35,
-            closest: 10,
-            images:
-                '[{"url": "assets/images/map.png", "caption": ""},{"url": "assets/images/meeting.png", "caption": ""}]',
-            published: '',
-
-            //  DateTime.now().subtract(const Duration(days: 10)).toString(),
-            publisher: ''),
+          title: 'Save your trips for later, or to share',
+          subTitle: 'Add points of interest, nice roads, pubs restaurants etc.',
+          body:
+              'Describe the trip and why you liked it. You can share the trip with members of a group. You can also publish a trip for other people to enjoy',
+          pointsOfInterest: [
+            PointOfInterest(
+              point: Point(0, 0),
+            ),
+          ],
+          distance: 35,
+          closest: 10,
+          images:
+              '[{"url": "assets/images/map.png", "caption": ""},{"url": "assets/images/meeting.png", "caption": ""}]',
+          added: dateFormat.format((DateTime.now())),
+          author: Setup().user.forename,
+        ),
       );
-
-      */
     }
     return ListView(
       children: [
-        /* Card(
-          child: Column(
-            children: [
-              SizedBox(
-                child: Padding(
-                    padding: EdgeInsets.fromLTRB(5, 15, 5, 15),
-                    child: Align(
-                      alignment: Alignment.center,
-                      child: Text(
-                        _myTripItems[0].images.contains('assets')
-                            ? 'Save your trips to enjoy again...'
-                            : "Trips I've already explored...",
-                        style: headlineStyle(
-                            context: context, color: Colors.blue, size: 1),
-                        textAlign: TextAlign.left,
-                      ),
-                    )),
-              ),
-            ],
-          ),
-        ),
-        */
         for (int i = 0; i < _myTripItems.length; i++) ...[
           Padding(
             padding: const EdgeInsets.fromLTRB(5, 5, 5, 5),
@@ -165,6 +172,9 @@ import 'package:uuid/rng.dart';
               onShareTrip: shareTrip,
               onDeleteTrip: deleteTrip,
               onPublishTrip: publishTrip,
+              onExpandChange: onExpandChange,
+              showMethods:
+                  !_myTripItems[i].title.contains('Save your trips for'),
             ),
           )
         ],
