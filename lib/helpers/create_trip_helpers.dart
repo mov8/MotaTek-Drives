@@ -1,15 +1,16 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Route;
 import 'dart:convert';
 import 'package:uuid/uuid.dart';
 import 'dart:math';
 import 'dart:developer' as developer;
-import 'package:geolocator/geolocator.dart';
+// import 'package:geolocator/geolocator.dart' as gl;
 import 'package:http/http.dart' as http;
-import 'package:latlong2/latlong.dart';
-import '/classes/classes.dart';
+// import 'package:latlong2/latlong.dart';
+// import '/classes/route.dart' as mt;
+import 'geojson_helpers.dart';
 import '/models/models.dart';
 import '/constants.dart';
-import '/classes/route.dart' as mt;
+import '/classes/classes.dart';
 
 enum ChipRequest { none, arrow, burger, details }
 
@@ -57,6 +58,14 @@ String addImageToJSONString(
   newString = jsonEncode(images);
 
   return newString;
+}
+
+Map<String, dynamic> getBlTr({required Size screenSize, double factor = 1}) {
+  double right = screenSize.width - (screenSize.width * factor) * 0.5;
+  double bottom = screenSize.height - (screenSize.height * factor) * 0.5;
+  double top = screenSize.height - bottom;
+  double left = screenSize.width - right;
+  return {"bl": Point(bottom, left), "tr": Point(top, right)};
 }
 
 /*
@@ -236,21 +245,38 @@ String setAvoiding() {
 /// 1 mile apart is unnecessary. As the points are calculated they should be removed from the maneuvers,
 /// as they would constrain the drive in a way not defined by the user.
 /// The user can then add any waypoints that are needed to control the route.
+///
+/// As of March 2026 for creation of a route
+///   1 New Route object added to routes [Route]
+///   2 All waypoints are added to the routes.waypoints[] list so even for a new route the waypoints already
+///     belong to that route.
 
-Future<Map<String, dynamic>> getRoutePoints(
-    {required List points,
+Future<RouterData> getRouterData(
+    {required Route route,
     bool addPoints = true,
     bool goodRoad = false}) async {
   dynamic jsonResponse;
-  int jump = points.length > 50 ? (points.length ~/ 50) : 1;
-  jump = jump > 1 && jump * 50 > points.length ? jump - 1 : jump;
+  int jump = 1;
+  int points = route.waypoints.length;
+  if (points == 0) {
+    points = route.lines.length;
+    jump = route.lines.length > 50 ? (points ~/ 50) : 1;
+    jump = jump > 1 && jump * 50 > points ? jump - 1 : jump;
+  }
   String delim = '';
   String waypoints = '';
-  for (int i = 0; i < points.length; i += jump) {
-    waypoints = '$waypoints$delim${points[i].x},${points[i].y}';
+  List<Waypoint> routeWaypoints = route.waypoints;
+  for (int i = 0; i < points; i += jump) {
+    if (route.waypoints.isEmpty) {
+      waypoints = '$waypoints$delim${route.lines[i][0]},${route.lines[i][1]}';
+      routeWaypoints
+          .add(Waypoint(point: Point(route.lines[i][0], route.lines[i][1])));
+    } else {
+      waypoints =
+          '$waypoints$delim${route.waypoints[i].point.x},${route.waypoints[i].point.y}';
+    }
     delim = ';';
   }
-
   String avoid = setAvoiding();
   var url = Uri.parse(
       '$urlRouter$waypoints?steps=true&annotations=true&geometries=geojson&overview=full$avoid');
@@ -259,66 +285,20 @@ Future<Map<String, dynamic>> getRoutePoints(
     if ([200, 201].contains(response.statusCode)) {
       jsonResponse = jsonDecode(response.body);
       if (jsonResponse == null) {
-        return {'msg': 'Error'};
+        return RouterData(message: 'Error');
       }
     } else {
-      return {'msg': 'Error'};
+      return RouterData(message: 'Error');
     }
   } catch (e) {
     debugPrint('Http error: ${e.toString()}');
-    return {'msg': 'Error'};
+    return RouterData(message: 'Error');
   }
-  // List<List<double>> routePoints = [];
-  List<Map<String, dynamic>> routes = [];
-
-  List<Maneuver> maneuvers = [];
-  Map<String, dynamic> result = {};
-
-  double distance = 0;
-  double duration = 0;
-  String name = '';
-  String summary = '';
-  if (addPoints) {
-    for (int i = 0; i < jsonResponse['routes'].length; i++) {
-      routes.add(
-        {
-          'type': 'Feature',
-          'id': goodRoad ? 'gr${i + 1}' : 'r${i + 1}',
-          'geometry': jsonResponse['routes'][i]['geometry'],
-          'properties': {
-            'group': 'line',
-            'name': goodRoad ? 'Good road ${i + 1}' : 'Route ${i + 1}',
-            'color': goodRoad
-                ? Setup().goodRouteColourHex()
-                : Setup().routeColourHex(), //  '#fcba03',
-            'width': 3.0
-          }
-        },
-      );
-      try {
-        distance += jsonResponse['routes'][0]['distance'].toDouble();
-        duration += jsonResponse['routes'][0]['duration'].toDouble();
-      } catch (e) {
-        debugPrint('Error in getRoutePoints()  ${e.toString()}');
-      }
-    }
-    distance = distance / 1000 * 5 / 8;
-    String summary =
-        '${distance.toStringAsFixed(1)} miles - (${(duration / 60).floor()} minutes)';
-  }
-
-  maneuvers = getManeuversFromJson(routes: jsonResponse['routes']);
-  result = {
-    'name': name,
-    'distance': distance.toStringAsFixed(1),
-    'duration': jsonResponse['routes'][0]['duration'],
-    'summary': summary,
-    'maneuvers': maneuvers,
-    'routes': routes,
-  };
-
-  return result;
+  return RouterData.fromGeoJson(
+      geoJson: jsonResponse, waypoints: routeWaypoints);
 }
+
+/// Processes the geoJson from the router to extract the maneuvers
 
 List<Maneuver> getManeuversFromJson({required List routes, name = ''}) {
   List<Maneuver> maneuvers = [];
@@ -417,27 +397,50 @@ List<Maneuver> getManeuversFromJson({required List routes, name = ''}) {
   return maneuvers;
 }
 
+/// Extracts the route length from the router geoJson
+
+double getRouteLengthFromGeoJson(
+    {required Map<String, dynamic> geoJson, String unit = 'mile'}) {
+  double distance = 0;
+  for (int i = 0; i < geoJson['routes'].length; i++) {
+    try {
+      distance += geoJson['routes'][i]['distance'].toDouble();
+    } catch (e) {
+      debugPrint('Error in getRoutePoints()  ${e.toString()}');
+    }
+  }
+  distance = distance / 1000 * (unit == 'mile' ? 5 / 8 : 1);
+  return double.parse(distance.toStringAsFixed(1));
+}
+
+double getRouteDurationFromGeoJson({required Map<String, dynamic> geoJson}) {
+  double duration = 0;
+  for (int i = 0; i < geoJson['routes'].length; i++) {
+    duration += geoJson['routes'][i]['duration'].toDouble();
+  }
+  return duration;
+}
+
 RouteDelta distanceFromRoute(
-    {required List<List<List<double>>> routes,
-    required LatLng position,
+    {required List<Route> routes,
+    required Point position,
     RouteDelta? routeDelta,
     int trigger = 100}) {
-  int distance = 200000;
+  double distance = 200000;
   routeDelta ??= RouteDelta();
-  routeDelta.point = [position.longitude, position.latitude];
+  routeDelta.point = position;
   routeDelta.distance = 200000;
   routeDelta.pointIndex = -1;
   for (int i = 0; i < routes.length; i++) {
-    List<List<double>> route = routes[i];
-    for (int j = 0; j < route.length; j++) {
-      distance = Geolocator.distanceBetween(
-              position.latitude, position.longitude, route[j][1], route[j][0])
-          .toInt();
+    Route route = routes[i];
+    for (int j = 0; j < route.lines.length; j++) {
+      distance = distanceBetween(
+          startXY: position, endList: route.lines[j]); //.toInt();
       if (distance < routeDelta.distance) {
         routeDelta.distance = distance;
         routeDelta.pointIndex = j;
         routeDelta.routeIndex = i;
-        routeDelta.point = route[j];
+        routeDelta.point = Point(route.lines[j][0], route.lines[j][0]);
       } else if (distance <= trigger) {
         break;
       }
@@ -449,7 +452,7 @@ RouteDelta distanceFromRoute(
 int getRoundaboutAngle(
     {required List<Maneuver> maneuvers,
     required int index,
-    required List<Map<String, dynamic>> routes}) {
+    required List<Route> routes}) {
   int angle = 0;
 
   /// Next bit of code is to try and compensate for tangential lead-ins and run-offs that distort
@@ -468,18 +471,22 @@ int getRoundaboutAngle(
         List<double> point2 = [0, 0];
         List<double> point3 = [0, 0];
         List<double> point4 = [0, 0];
+/*
+        Point point1 = Point(0, 0);
+        Point point2 = Point(0, 0);
+        Point point3 = Point(0, 0);
+        Point point4 = Point(0, 0);
+*/
 
         for (int i = positionData.pointIndex; i > 0; i--) {
-          distance = distanceBetween(maneuvers[index].point,
-                  routes[positionData.routeIndex]['geometry']['coordinates'][i],
-                  meters: true)
+          distance = distanceBetween(
+                  startXY: maneuvers[index].point,
+                  endList: routes[positionData.routeIndex].lines[i])
               .toInt();
-          if (point2 == LatLng(0, 0) && distance > 25) {
-            point2 =
-                routes[positionData.routeIndex]['geometry']['coordinates'][i];
-          } else if ((point1 == LatLng(0, 0) && distance > 100) || i == 0) {
-            point1 =
-                routes[positionData.routeIndex]['geometry']['coordinates'][i];
+          if (point2 == [0, 0] && distance > 25) {
+            point2 = routes[positionData.routeIndex].lines[i];
+          } else if ((point1 == [0, 0] && distance > 100) || i == 0) {
+            point1 = routes[positionData.routeIndex].lines[i];
             break;
           }
         }
@@ -488,20 +495,16 @@ int getRoundaboutAngle(
             routes: routes, position: maneuvers[index + 1].point);
 
         for (int i = positionData.pointIndex;
-            i <
-                routes[positionData.routeIndex]['geometry']['coordinates']
-                    .length;
+            i < routes[positionData.routeIndex].lines.length;
             i++) {
-          distance = distanceBetween(maneuvers[index + 1].point,
-                  routes[positionData.routeIndex]['geometry']['coordinates'][i],
-                  meters: true)
+          distance = distanceBetween(
+                  startXY: maneuvers[index + 1].point,
+                  endList: routes[positionData.routeIndex].lines[i])
               .toInt();
-          if (point3 == LatLng(0, 0) && distance > 25) {
-            point3 =
-                routes[positionData.routeIndex]['geometry']['coordinates'][i];
-          } else if ((point4 == LatLng(0, 0) && distance > 100) || i == 0) {
-            point4 =
-                routes[positionData.routeIndex]['geometry']['coordinates'][i];
+          if (point3 == [0, 0] && distance > 25) {
+            point3 = routes[positionData.routeIndex].lines[i];
+          } else if ((point4 == [0, 0] && distance > 100) || i == 0) {
+            point4 = routes[positionData.routeIndex].lines[i];
             break;
           }
         }
@@ -548,7 +551,7 @@ int getRoundaboutAngle(
 
 // getClosestPoint({int route = 0, int point = 0, bool full = true}) {
 PositionData getClosestPoint(
-    {List<Map<String, dynamic>> routes = const [],
+    {List<Route> routes = const [],
     Point position = const Point(0, 0),
     int route = 0,
     int point = 0,
@@ -557,12 +560,9 @@ PositionData getClosestPoint(
       PositionData(point, route, 9999999, 9999999, 99999999);
   int further = 0;
   for (int i = route; i < routes.length; i++) {
-    for (int j = point; j < routes[i]['route'].length; j++) {
-      double distance = Geolocator.distanceBetween(
-          position.y.toDouble(),
-          position.x.toDouble(),
-          routes[i]['route'][j][1], //Lat
-          routes[i]['route'][j][0]); //Lng
+    for (int j = point; j < routes[i].lines.length; j++) {
+      double distance =
+          distanceBetween(startXY: position, endList: routes[i].lines[j]);
       if (distance < positionData.metersToRoute) {
         positionData.routeIndex = i;
         positionData.pointIndex = j;
@@ -623,11 +623,46 @@ double getDistance(
     required Point position,
     int index = 0}) {
   if (index < maneuvers.length && index > -1) {
-    return Geolocator.distanceBetween(
-        position.y.toDouble(),
-        position.x.toDouble(),
-        maneuvers[index].point.y.toDouble(),
-        maneuvers[index].point.x.toDouble());
+    return distanceBetween(startXY: position, endXY: maneuvers[index].point);
   }
   return 0;
+}
+
+/// Haversine calculation for the distance between two points on the globe
+/// allows the locations to be specified as Point(x, y) or as [x, y]
+
+double distanceBetween(
+    {Point? startXY, Point? endXY, List? startList, List? endList}) {
+  if ((startXY == null && startList == null) ||
+      (endXY == null && endList == null)) {
+    return 0;
+  }
+  double c = 0;
+  var earthRadius = 6378137.0; // <-- in m   3958.8 in miles
+  try {
+    startXY ??= Point(startList![0], startList[1]);
+    endXY ??= Point(endList![0], endList[1]);
+    double startLatitude = startXY.y.toDouble();
+    double startLongitude = startXY.x.toDouble();
+    double endLatitude = endXY.y.toDouble();
+    double endLongitude = endXY.x.toDouble();
+
+    var dLat = _toRadians(endLatitude - startLatitude);
+    var dLon = _toRadians(endLongitude - startLongitude);
+
+    var a = pow(sin(dLat / 2), 2) +
+        pow(sin(dLon / 2), 2) *
+            cos(_toRadians(startLatitude)) *
+            cos(_toRadians(endLatitude));
+    c = 2 * asin(sqrt(a));
+  } catch (e) {
+    developer.log('Error calculating distance: ${e.toString()}',
+        name: '_repaint_');
+  }
+
+  return earthRadius * c;
+}
+
+_toRadians(double degree) {
+  return degree * pi / 180;
 }

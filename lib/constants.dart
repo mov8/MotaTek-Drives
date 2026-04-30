@@ -1,5 +1,6 @@
 import 'package:latlong2/latlong.dart';
 import 'package:flutter/material.dart';
+import 'dart:developer' as developer;
 import 'package:intl/intl.dart';
 
 const appVersion = {'major': 0, 'minor': 0, 'patch': 9, 'suffix': 'beta db'};
@@ -70,14 +71,32 @@ enum MyTripActions {
   extendEnd,
   editTrip,
   addPointOfInterest,
+  addGoodRoadDetails,
+  addGoodRoad,
+  saveGoodRoad,
   saveTrip,
   follow,
   stopFollowing,
   clearTrip,
   reverseTrip,
   showSteps,
+  showMessages,
+  showGroup,
   message,
   getMap,
+}
+
+enum BottomDrawerItems {
+  none,
+  goodRoad,
+  group,
+  headingDetail,
+  maneuvers,
+  messages,
+  pointOfInterest,
+  showGroup,
+  steps,
+  trip, // <-- trip = heading, good road and points of interest
 }
 
 enum MarkerTypes {
@@ -119,7 +138,12 @@ enum TripState {
   notFollowing,
   stoppedFollowing,
   startFollowing,
+  manualStart,
+  goodRoadStart,
+  clearing,
 }
+
+enum WaypointState { none, extendStart, extendEnd, insert, revisit, remove }
 
 enum TripActions {
   none,
@@ -151,7 +175,6 @@ enum GroupActions {
   addMember,
 }
 
-/*
 enum ChangedFeatures {
   route(1),
   goodRoad(2),
@@ -167,36 +190,219 @@ enum ChangedFeatures {
   bool viewPortChanged() => [4, 5, 6].contains(value);
 }
 
+/* 
+  11111111 & 10011001 -> 10011001   returns 1 where both are 1 
+  11111111 | 10011001 -> 11111111   returns 1 where either are 1
+  11111111 ^ 10011001 -> 01100110   returns 1 where only one is 1 
+  value    name               purpose                 action
+  00000000 none
+  00000001 route
+  00000010 goodRoad
+  00000100 pointOfInterest
+  00001000 steps
+  00010000 messages
+  00100000 requested         add BottomDrawer data  clear complete    return requested version of enum
+  01000000 complete          add geoJSON to map     set complete bit 
 */
 
-enum ChangedFeatures {
-  none(0),
-  route(1),
-  goodRoad(2),
-  features(3), // Represents route + goodRoad
-  viewPort(4),
-  all(7); // Represents 1 + 2 + 4
+/// Objectives:
+///   1 Set the enum type when the ActionChip is tapped
+///   2 Set the enums state during processing requested / completed
+///     before and after the data has been added in the bottom drawer
+///   ie. _controlEnum = driveData
+///       _controlEnum = controlEnum.requested
+///       if (_controlEnum == ControlEnum.driveData && _controlEnum.completed)
+///
+/// Nifty extension of enums which are immutable to allow
+/// then to have two states
+///   1 requested the user has tapped the ActionChip to open drawer
+///   2 completed the user has added the data now update the map
+///
 
-  const ChangedFeatures(this.value);
+/*
+enum DataSources {none, goodRoads, pointsOfInterest, headers, steps, messages}
+enum DataSourceStates {none, requested, completed}
+
+class BottomDrawerData {
+  bool none
+}
+*/
+
+enum BottomDrawerData {
+  none(0),
+  heading(1 << 0),
+  pointOfInterest(1 << 1),
+  steps(1 << 2),
+  messages(1 << 3),
+  group(1 << 4),
+  maneuvers(1 << 5),
+  headingRequested((1 << 0) | (1 << 6)),
+  headingCompleted((1 << 0) | (1 << 7)),
+  pointOfInterestRequested((1 << 1) | (1 << 6)),
+  pointOfInterestCompleted((1 << 1) | (1 << 7));
+
+  final int value;
+  const BottomDrawerData(this.value);
+  bool get isPointOfInterest => value & pointOfInterest.value != 0;
+  bool get isHeading => value & heading.value != 0;
+  bool get isRequested => value & (1 << 6) != 0;
+  bool get isCompleted => value & (1 << 7) != 0;
+
+  BottomDrawerData requested() {
+    // have to clear the completed bit before setting with 01111111 (127)
+    // requested bit else returns BottomDrawerData.none
+    return _fromValue((value & 127) | (1 << 6));
+  }
+
+  BottomDrawerData completed() {
+    // have to clear the requested bit before setting with 10111111 (191)
+    // completed bit else returns BottomDrawerData.none
+    return _fromValue((value & 191) | (1 << 7));
+  }
+
+  BottomDrawerData clear() => _fromValue((value | 128));
+
+  static BottomDrawerData _fromValue(int value) {
+    developer.log('Setting BottomDrawerData value to: $value', name: '_d_open');
+    return BottomDrawerData.values.firstWhere((e) => e.value == value,
+        orElse: () => BottomDrawerData.none);
+  }
+}
+
+/// BitMask combination enabled enum allows the easy tracking
+/// of combined requests
+
+List<String> mapSources = [
+  'route-data',
+  'good-road-data',
+  'waypoint-data',
+  'good-road-waypoint-data',
+  'point-of-interest-data',
+  'followers'
+];
+
+/// MapUpdates combination enum to action user requests on the map
+/// can be either a single action or a combination
+/// Each separate action has an Object providing the data and a
+/// method to convert the data to geoJson for the
+/// Flags:
+///   decimal binary      App data
+///         1 [00000001]  List<Route>
+///         2 [00000010]  List<GoodRoad>
+///         3 [00000011]  route + goodRoad
+///         4 [00000100]  List<Waypoint>
+///         5 [00000101]
+///         6 [00000110]
+///         7 [00000111]
+///         8 [00001000]  GoodRoad.List<Waypoint>
+///         9 [00001001]
+///        10 [00001010]
+///        16 [00010000]  List<PointOfInterest>
+///        32 [00100000]  List<Follower>
+///        33 [00100001]
+///        64 [01000000]
+///        65 [01000001]
+///        66 [01000011]
+///        68 [01000100]
+///        69 [01000101]
+///        73 [01001010]
+///        80 [01010000]
+///        96 [01100000]
+///        97 [01100001]
+
+///   It's not sensible to provide for all combinations, but it's important
+///   that a value exists for any enum the user uses. Best strategy is to check
+///   when it unexpectedly returns none, then add an enum for that combination.
+///   This should be checked when a new call to .remove() is added.
+enum MapUpdates {
+  none(0), //                                               00000000
+  routes(1), // 1 << 1                                      00000001
+  goodRoads(2), // 1 << 2                                   00000010
+  waypoints(4), // 1 << 3                                   00000100
+  routesAndWaypoints(5), //                                 00000101
+  goodRoadWaypoints(8), // 1 << 4                           00001000
+  goodRoadsAndGoodRoadWaypoints(10), //                     00001010
+  pointsOfInterest(16), // 1 << 5                           00010000
+  routesAndWaypointsAndPointsOfInterest(21), //             00010101
+  goodRoadsAndWaypointsAndPointsOfInterest(26), //          00011010
+  followers(32), // 1 << 6                                  00100000
+  routesAndFollowers(33), //                                00100001
+  allWithoutAllWaypoints(51), //                            00111011
+  allWithoutWaypoints(59), //                               00110011
+  updatingRoutes(65),
+  updatingGoodRoads(130),
+  updatingWaypoints(132),
+  updatingRoutesAndWaypoints(133),
+  updatingGoodRoadsAndGoodRoadWaypoints(138),
+  updatingPointsOfInterest(144),
+  updatingGoodRoadsAndWaypointsAndPointsOfInterest(154), //
+  updatingFollowers(160),
+  updatingRoutesAndFollowers(161),
+  updateAll(127), //   01111111
+  updating(128), //   10000000
+  updatingAll(255);
+
+// 1 + 4 : 2 + 8
+  const MapUpdates(this.value);
   final int value;
 
-  /// Returns the enum instance that matches a specific raw integer value
-  static ChangedFeatures _fromValue(int val) {
-    // Returns the first match, or 'all' if the result is out of range
-    return ChangedFeatures.values
-        .firstWhere((e) => e.value == val, orElse: () => ChangedFeatures.all);
+  MapUpdates add(MapUpdates added) {
+    developer.log(
+        'MapUpdates.add value: $value  added value: ${added.value} newValue: ${added.value | value}',
+        name: '_mapUpdates_');
+    return _fromValue(added.value | value);
   }
 
-  /// The "add" method: combines current bitmask with another
-  ChangedFeatures add(ChangedFeatures other) {
-    int combined = this.value | other.value;
-    return ChangedFeatures._fromValue(combined);
+  MapUpdates remove(MapUpdates removed) {
+    // To flip the bits add 1 to the mask decimal value and * -1 this overcomes the 2's compliment
+    // Have to ensure the all flag bit 6 is cleared first 64 -> -65
+    // 00111111 - clear all higher combination values
+    int newValue = value & 63;
+    int newValue2 = newValue & ((removed.value + 1) * -1);
+    return _fromValue(newValue2);
   }
 
-  // Convenience checks
-  bool get hasRoute => (value & route.value) != 0;
-  bool get hasGoodRoad => (value & goodRoad.value) != 0;
-  bool get hasViewPort => (value & viewPort.value) != 0;
+  MapUpdates notUpdating() {
+    // The & 63 removes the updating bit 64 if set (63 = [00111111], 64 = [01000000])
+    return _fromValue(value & 127);
+  }
+
+  bool get includesRoutes => value & routes.value != 0;
+  bool get includesGoodRoads => value & goodRoads.value != 0;
+  bool get includesWaypoints => value & waypoints.value != 0;
+  bool get includesGoodRoadWaypoints => value & goodRoadWaypoints.value != 0;
+  bool get includesPointsOfInterest => value & pointsOfInterest.value != 0;
+  bool get includesFollowers => value & followers.value != 0;
+  bool get isUpdating => value & updating.value != 0;
+  String get routesSource => value & routes.value != 0 ? 'route-data' : '';
+  String get goodRoadsSource =>
+      value & goodRoads.value != 0 ? 'good-road-data' : '';
+  String get waypointsSource =>
+      value & waypoints.value != 0 ? 'waypoint-data' : '';
+  String get goodRoadWaypointsSource =>
+      value & goodRoadWaypoints.value != 0 ? 'waypoint-data' : '';
+  String get pointsOfInterestSource =>
+      value & followers.value != 0 ? 'point-of-interest-data' : '';
+
+  List<String> get sourcesToUpdate {
+    List<String> sources = [];
+    for (int i = 0; i < mapSources.length; i++) {
+      if (value & (1 << i) != 0) {
+        sources.add(mapSources[i]);
+      }
+    }
+    developer.log(
+        'MapUpdates.sourcesToUpdate value: $value  sources: ${sources.join(', ')} ',
+        name: '_mapUpdates_');
+    return sources;
+  }
+
+  // route-data, waypoint-data, user-data, good-road-data, point-of-interest-data
+
+  static MapUpdates _fromValue(int value) {
+    return MapUpdates.values
+        .firstWhere((e) => e.value == (value), orElse: () => MapUpdates.none);
+  }
 }
 
 enum GroupMemberState { none, isNew, registered, incomplete, complete, added }

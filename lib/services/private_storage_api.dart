@@ -427,6 +427,6 @@ class PrivateStorageLocal implements PrivateDataRepository {
 
     return ' ';
   }
-
-  PrivateStorageLocal getPrivateRepository() => PrivateStorageLocal();
 }
+
+PrivateStorageLocal getPrivateRepository() => PrivateStorageLocal();

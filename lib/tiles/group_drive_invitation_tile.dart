@@ -336,9 +336,11 @@ class _GroupDriveInvitationTileState extends State<GroupDriveInvitationTile> {
                         ),
                         Expanded(
                           flex: 7,
-                          child: StarRating(
-                              onRatingChanged: changeRating,
-                              rating: widget.tripItem!.score),
+                          child: // Text(widget.tripItem!.score),
+
+                              StarRating(
+                                  onRatingChanged: changeRating,
+                                  rating: widget.tripItem!.rating),
                         ),
                       ],
                     ),

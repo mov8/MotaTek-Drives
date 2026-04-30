@@ -368,10 +368,6 @@ Future<Map<String, dynamic>> tryLogin({required User user}) async {
 Future<int> testApi() async {
   Map<String, dynamic> apiData = {
     'uri': '',
-    'good_roads': [
-      for (int i = 0; i < CurrentTripItem().goodRoads.length; i++)
-        CurrentTripItem().goodRoads[i].toJSON()
-    ]
   };
   // List<Photo> photos = photosFromJson(photoString: tripItem.images);
   dynamic response;
@@ -392,29 +388,24 @@ Future<int> testApi() async {
 
 Future<dynamic> publish(MyTripItem tripItem) async {
   Map<String, dynamic> apiData = tripItem.toJson();
-  List<Photo> photos = photosFromJson(photoString: tripItem.images);
   dynamic response;
   try {
     var request = http.MultipartRequest('POST', Uri.parse('$urlDrive/publish'));
-    // debug -> var request = http.MultipartRequest('POST', Uri.parse('$urlDrive/save'));
     request.headers['Authorization'] = 'Bearer ${Setup().jwt}';
     request.fields['data'] = jsonEncode(apiData);
 
     /// Start the images list with the Drive map
-    request.files.add(await http.MultipartFile.fromPath('map', photos[0].url));
+    /// request.files.add(await http.MultipartFile.fromPath('map', photos[0].url));
 
-    for (int i = 0; i < apiData['points_of_interest'].length; i++) {
-      if (apiData['points_of_interest'][i].isNotEmpty) {
-        for (int j = 0;
-            j < apiData['points_of_interest'][i]['images'].length;
-            j++) {
-          if (apiData['points_of_interest'][i]['images'][j].isNotEmpty) {
-            request.files.add(await http.MultipartFile.fromPath(
-                apiData['points_of_interest'][i]['images'][j]['url'],
-                apiData['points_of_interest'][i]['images'][j]['file']));
-          }
-        }
-      }
+    List<dynamic> images = jsonDecode(tripItem.images);
+
+    for (int i = 0; i < images.length; i++) {
+      String fileName = images[i]['url'].substring(
+          images[i]['url'].lastIndexOf('/') + 1,
+          images[i]['url'].lastIndexOf('.'));
+
+      request.files
+          .add(await http.MultipartFile.fromPath(fileName, images[i]["url"]));
     }
     response = await request.send().timeout(const Duration(seconds: 30));
   } catch (e) {
@@ -423,134 +414,6 @@ Future<dynamic> publish(MyTripItem tripItem) async {
 
   return ' ';
 }
-
-/*
-Future<dynamic> postTrip2(MyTripItem tripItem) async {
-  Map<String, dynamic> map = tripItem.toDrivesMap();
-  List<Photo> photos = photosFromJson(photoString: tripItem.images);
-  double maxLat = -90;
-  double minLat = 90;
-  double maxLong = -180;
-  double minLong = 180;
-
-  for (mt.Route polyline in tripItem.routes) {
-    for (LatLng point in polyline.points) {
-      maxLat = point.latitude > maxLat ? point.latitude : maxLat;
-      minLat = point.latitude < minLat ? point.latitude : minLat;
-      maxLong = point.longitude > maxLong ? point.longitude : maxLong;
-      minLong = point.longitude < minLong ? point.longitude : minLong;
-    }
-  }
-
-  map['score'] = 5;
-  map['max_lat'] = maxLat;
-  map['min_lat'] = minLat;
-  map['max_long'] = maxLong;
-  map['min_long'] = minLong;
-  map['added'] = DateTime.now().toString();
-  dynamic response;
-  var request = http.MultipartRequest('POST', Uri.parse('$urlDrive/add'));
-
-//    for (Photo photo in photos) {
-//    request.files.add(await http.MultipartFile.fromPath('files', photo.url));
-//  }
-
-  // final http.Response response = await postWebData(
-  //         uri: Uri.parse('$urlDrive/add'), body: jsonEncode(map), secure: true)
-  //     .timeout(const Duration(seconds: 20));
-  try {
-    request.headers['Authorization'] = 'Bearer ${Setup().jwt}';
-    request.files.add(await http.MultipartFile.fromPath('file', photos[0].url));
-    request.fields['title'] = map['title'] ?? '';
-    request.fields['sub_title'] = map['sub_title'] ?? '';
-    request.fields['body'] = (map['body'] ?? '').replaceAll("\n", " ");
-    request.fields['distance'] = map['distance'].toString();
-    request.fields['points_of_interest'] = map['points_of_interest'].toString();
-    request.fields['score'] = '5';
-    request.fields['max_lat'] = maxLat.toString();
-    request.fields['min_lat'] = minLat.toString();
-    request.fields['max_long'] = maxLong.toString();
-    request.fields['min_long'] = minLong.toString();
-    request.fields['added'] = DateTime.now().toString();
-
-    response = await request.send().timeout(const Duration(seconds: 30));
-  } catch (e) {
-    if (e is TimeoutException) {
-      debugPrint('Request timed out');
-    } else {
-      debugPrint('Error posting trip: ${e.toString()}');
-    }
-    return jsonEncode({'msg': 501});
-  }
-
-  if ([200, 201].contains(response.statusCode)) {
-    // 201 = Created
-    //  dynamic responseData = await response.stream.bytesToString();
-    // debugPrint('Server response: $responseData');
-    return jsonEncode({'msg': response.statusCode});
-  } else {
-    // debugPrint('Failed to post trip: ${response.statusCode}');
-    return jsonEncode({'token': '', 'code': response.statusCode});
-  }
-}
-*/
-
-/*
-    Map<String, dynamic> response = await postDriveHeader();
-    if (response['status'] == 'OK') {
-      driveUri = response['uri'];
-
-      for (PointOfInterest pointOfInterest in pointsOfInterest) {
-        pointOfInterest.driveUri = driveUri;
-        // need to link the point of interest to the good road
-        // so will put the uuid in here rather than API
-        // uuid.v7() returns a uuid with -s 019523a6-a2ed-7a9a-8635-f003daee7f5e
-        // so have to remove them with a replaceAll
-        if (pointOfInterest.getType() == 13) {
-          String uuidString = uuid.v7();
-          pointOfInterest.url = uuidString.replaceAll(RegExp(r'-'), '');
-          //  debugPrint('Point of interest url set to ${pointOfInterest.url}');
-        }
-
-        await postPointOfInterest(pointOfInterest, driveUri);
-      }
-
-      // pointsOfInterest[polylines[i].pointOfInterestIndex].id
-      // polyLines.pointOfInterestIndex is its pointOfInterest.id
-      for (mt.Route route in goodRoads) {
-        for (PointOfInterest pointOfInterest in pointsOfInterest) {
-          if (pointOfInterest.id == route.pointOfInterestIndex) {
-            // pick up the point of interest uuid
-            route.pointOfInterestUri = pointOfInterest.url;
-            //     debugPrint('route.interestUri set to ${pointOfInterest.url}');
-            break;
-          }
-        }
-      }
-
-      for (int i = 0; i < 2; i++) {
-        await postPolylines(
-            polylines: i == 0 ? routes : goodRoads,
-            driveUid: driveUri,
-            type: i);
-      }
-
-      postManeuvers(maneuvers, driveUri);
-
-      return true;
-    } else {
-      return false;
-    }
-  }
-
-  int tripDistanceMeters(List<Maneuver> maneuvers) {
-    double meters = 0;
-    for (int i = 0; i < maneuvers.length; i++) {
-      meters += maneuvers[i].distance;
-    }
-    return meters.toInt();
-  }
-*/
 
 Future<String> postWithPhotos(
     {required String url,
@@ -583,6 +446,7 @@ Future<String> postWithPhotos(
   return '';
 }
 
+/*
 Future<String> postPointOfInterest(
     PointOfInterest pointOfInterest, String tripUri) async {
   Map<String, dynamic> map = pointOfInterest.toMap();
@@ -624,52 +488,7 @@ Future<String> postPointOfInterest(
   }
   return jsonEncode({'code': '${response.statusCode}'});
 }
-
-Future<String> postPolylines(
-    {required List<mt.Route> polylines,
-    required String driveUid,
-    int type = 0}) async {
-  /*     
-  List<Map<String, dynamic>> maps = [];
-  for (mt.Route polyline in polylines) {
-    maps.add({
-      'drive_id': driveUid,
-      'points': getPrivateRepository().pointsToString(polyline.points),
-      'stroke': polyline.strokeWidth,
-      'colour':
-          uiColours.keys.toList().indexWhere((col) => col == polyline.color),
-    });
-    if (type == 1) {
-      Fence fence = fenceFromPolylines(polyline: polyline);
-      maps[maps.length - 1]['max_lat'] = fence.northEast.latitude.toString();
-      maps[maps.length - 1]['min_lat'] = fence.southWest.latitude.toString();
-      maps[maps.length - 1]['max_long'] = fence.northEast.longitude.toString();
-      maps[maps.length - 1]['min_long'] = fence.southWest.longitude.toString();
-      maps[maps.length - 1]['point_of_interest_id'] =
-          polyline.pointOfInterestUri;
-    }
-  }
-  if (polylines.isEmpty) {
-    return jsonEncode({'message': 'no polylines to post'});
-  }
-  final http.Response response =
-      await http.post(Uri.parse('${type == 0 ? urlPolyline : urlGoodRoad}/add'),
-          headers: <String, String>{
-            "Content-Type": "application/json; charset=UTF-8",
-          },
-          body: jsonEncode(maps));
-  if (response.statusCode == 201) {
-    // 201 = Created
-    // debugPrint('Polyline posted OK');
-    return jsonEncode({'code': response.statusCode});
-  } else {
-    // debugPrint('Failed to post user');
-    return jsonEncode({'token': '', 'code': response.statusCode});
-  }
-  */
-  return '';
-}
-
+*/
 Future<List<mt.Route>> getDriveRoutes(
     {required String driveUri, driveKey = -1}) async {
   final http.Response response =

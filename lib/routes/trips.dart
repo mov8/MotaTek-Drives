@@ -3,11 +3,14 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'dart:math';
-import '/classes/classes.dart';
+import '/classes/classes.dart' hide Position;
 import '/screens/main_drawer.dart';
+import '/screens/painters.dart';
 import '/services/services.dart';
 import 'package:geolocator/geolocator.dart';
+import '/helpers/geojson_helpers.dart';
 import 'package:maplibre_gl/maplibre_gl.dart'; // hide LatLng;
+import '../constants.dart';
 import 'dart:developer' as developer;
 
 enum MapHeight {
@@ -30,7 +33,7 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
   late final LeadingWidgetController _leadingWidgetController;
   late final RoutesBottomNavController _bottomNavController;
   // late Position _currentPosition;
-  final ScrollController _scrollController = ScrollController();
+  // final ScrollController _scrollController = ScrollController();
   final ItemPositionsListener itemPositionsListener =
       ItemPositionsListener.create();
   MapLibreMapController? _mapController;
@@ -47,8 +50,9 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
   final GlobalKey _appBarKey = GlobalKey();
   final GlobalKey _bottomNavKey = GlobalKey();
   final GlobalKey _scrollToKey = GlobalKey();
-
+  final GlobalKey _mapKey = GlobalKey();
   DrivesRequest? _drivesRequest;
+  TripRequest? _tripRequest;
   List<Card> _tripCards = [];
 
   bool _opened = true;
@@ -108,12 +112,24 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
 
   onGetDetails(index) {}
 
+  onGetDownloads({int index = -1, String name = ''}) {
+    debugPrint('Requesting download index: $index, name: $name');
+  }
+
   _onMapUpdate(LatLng pos, MapLibreMapController mapController) async {
-    _mapController ??= mapController;
+    _mapController = mapController;
     _drivesRequest ??= DrivesRequest(
         onUpdated: onUpdated,
         onGetDetails: onGetDetails,
+        onGetDownload: (index, name) => onGetDownloads,
         imageRepository: _imageRepository);
+    _mapController = mapController;
+
+    _tripRequest ??= TripRequest(
+        onUpdated: onUpdated,
+        onGetDetails: onGetDetails,
+        imageRepository: _imageRepository);
+    CurrentTripItem().mapController = _mapController;
   }
 
   _onIdle() async {
@@ -122,13 +138,35 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
       try {
         LatLngBounds bounds = await _mapController!.getVisibleRegion();
         double zoom = _mapController!.cameraPosition!.zoom;
+        Map<String, dynamic> geoJson;
         geoJson = await _drivesRequest!.update(bounds: bounds, zoom: zoom);
+        debugPrint('geoJson: $geoJson');
         if (geoJson.isNotEmpty) {
           await _mapController!.setGeoJsonSource("published-data", geoJson);
           _tripCards = _drivesRequest!.getTripTiles(openUri: "");
-          _bottomDrawerController.setContent(content: _tripCards);
-          //  cardsList(cards: _tripCards, controller: _scrollController));
+          _bottomDrawerController.setContent(content: BottomDrawerItems.trip);
+          for (int i = 0; i < geoJson['features'].length; i++) {
+            developer.log("Routes $i ${geoJson['features'][i]['properties']}",
+                name: '_x_x_');
+          }
+          // cardsList(cards: _tripCards, controller: _scrollController));
         }
+        geoJson = await _tripRequest!.update(bounds: bounds, zoom: zoom);
+        if (geoJson['features'].isNotEmpty) {
+          await _mapController!.setGeoJsonSource(
+              "good-road-data", geoJson); //"published-data", geoJson);
+          for (int i = 0; i < geoJson['features'].length; i++) {
+            developer.log(
+                "Good roads $i ${geoJson['features'][i]['properties']}",
+                name: '_x_x_');
+          }
+        }
+        var filter = fenceFilter(bounds: bounds, proportion: 0.6);
+        _mapController!.setFilter("route-marker-layer", filter);
+        _mapController!.setFilter("good_roads_highlighted", filter);
+        _mapController!.setFilter("good-road-marker-layer", filter);
+        _mapController!.setFilter("roads_highlighted", filter);
+        await _mapController!.animateCamera(CameraUpdate.zoomBy(0.000001));
       } catch (e) {
         developer.log('error: ${e.toString()} ${geoJson.toString()}',
             name: '_ezoom');
@@ -139,7 +177,7 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
   onOpened(open) {
     //  _scrollController.jumpTo(12);
     if (!_opened) {
-      _bottomDrawerController.dockOpenTile(key: _scrollToKey);
+      _bottomDrawerController.dockOpenTile();
     }
     _opened = true;
     //  setState(() => ());
@@ -158,7 +196,7 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
 
         _tripCards =
             _drivesRequest!.getTripTiles(openUri: uri, key: _scrollToKey);
-        _bottomDrawerController.setContent(content: _tripCards);
+        _bottomDrawerController.setContent(content: BottomDrawerItems.trip);
         //  cardsList(cards: _tripCards, controller: _scrollController));
         _bottomDrawerController.open(
             height: 300); // height of opened ExpandTile
@@ -210,6 +248,7 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
     return result;
   }
 
+/*
   addGeoJson() async {
     var geoJson = await getGeoJson(zoom: 14);
     try {
@@ -219,10 +258,11 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
       debugPrint('error: $err');
     }
   }
-
+*/
   Widget _handleMap() {
     return Stack(children: [
       MLMap(
+        key: _mapKey,
         onUpdate: _onMapUpdate,
         onTap: _onTap,
         onIdle: _onIdle,
@@ -233,16 +273,33 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
           top: 22,
           child: HandleFabs(controller: _mapController!),
         ),
+      CustomPaint(
+        painter: HighlightPainter(
+          boundary: mapSize(),
+          proportion: 0.8,
+          color: Colors.blueGrey,
+        ),
+      ),
       BottomDrawer(
         context: context,
         maxHeight: 200,
         content:
             _tripCards, //cardsList(cards: _tripCards, controller: _scrollController),
         controller: _bottomDrawerController,
-        scrollController: _scrollController,
+        // scrollController: _scrollController,
         onOpened: onOpened,
       ),
     ]);
+  }
+
+  Size mapSize() {
+    Size mapSize = Size(0, 0);
+    final bnKeyContext = _mapKey.currentContext;
+    if (bnKeyContext != null) {
+      RenderBox box = bnKeyContext.findRenderObject() as RenderBox;
+      mapSize = Size(box.size.width, box.size.height);
+    }
+    return mapSize;
   }
 
   double getInitialZoom() {

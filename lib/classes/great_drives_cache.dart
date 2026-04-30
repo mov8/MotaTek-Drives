@@ -137,14 +137,23 @@ class DrivesRequest {
             zoom: zoom);
         var jsonData = jsonDecode(geoJson);
         for (int i = 0; i < jsonData["features"].length; i++) {
+          // 'shield' layer contains properties to create TripItem
           if (jsonData['features'][i]['group'] == 'shield') {
             trips.add(TripItem.from3DCache(
-                map: jsonData['features'][i]['properties']));
+                map: jsonData['features'][i]['properties'],
+                uri: jsonData['features'][i]['id']));
+            jsonData['features'][i]['properties']['color'] =
+                Setup().routeColourHex();
             if (!_3DCache["cache"][zLevel]["exclude"]
                 .contains(jsonData['features'][i]['id'])) {
               _3DCache["cache"][zLevel]["exclude"]
                   .add(jsonData['features'][i]['id']);
             }
+            _3DCache["cache"][zLevel]["data"]["shields"]
+                .add(jsonData['features'][i]);
+          } else {
+            _3DCache["cache"][zLevel]["data"]["lines"]
+                .add(jsonData['features'][i]);
           }
         }
 
@@ -154,7 +163,10 @@ class DrivesRequest {
         onUpdated(zoom.toInt());
         return {
           "type": "FeatureCollection",
-          "features": _3DCache["cache"][zLevel]["data"]["lines"]
+          //  "features": _3DCache["cache"][zLevel]["data"]["lines"]
+
+          "features": _3DCache["cache"][zLevel]["data"]["lines"] +
+              _3DCache["cache"][zLevel]["data"]["shields"]
         };
       } catch (e) {
         developer.log('Error using 3-DCache: ${e.toString()}');
@@ -229,7 +241,14 @@ class DrivesRequest {
               imageRepository: imageRepository!,
               index: i,
               expanded: trips[i].driveUri == openUri,
-              onGetTrip: onGetDownload,
+              onGetTrip: (index, uri) {
+                download(index, uri);
+                /*
+                if (onGetDownload != null) {
+                  onGetDownload!(index, uri);
+                }
+                */
+              },
               onExpand: onGetDetails,
             ),
           ),
@@ -237,5 +256,9 @@ class DrivesRequest {
       }
     }
     return cards;
+  }
+
+  download(index, uri) {
+    debugPrint('index: $index  uri: $uri');
   }
 }

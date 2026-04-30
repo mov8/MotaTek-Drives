@@ -2,7 +2,8 @@ import '/constants.dart';
 import 'package:flutter/material.dart';
 import '/models/other_models.dart';
 import '/screens/screens.dart';
-import '/classes/classes.dart';
+// import '/classes/classes.dart';
+import '/classes/classes.dart' as mt;
 import '/helpers/create_trip_helpers.dart';
 import '/helpers/edit_helpers.dart';
 // import '/classes/route.dart' as mt;
@@ -11,7 +12,7 @@ import '/helpers/edit_helpers.dart';
 class ManeuverTile extends StatefulWidget {
   final Maneuver maneuver;
   final Function(int) onLongPress;
-  final List<Map<String, dynamic>> routes;
+  final List<mt.Route> routes;
   final int index;
 
   const ManeuverTile({
@@ -33,7 +34,7 @@ class _ManeuverTileState extends State<ManeuverTile> {
     super.initState();
     if (widget.maneuver.type.contains('roundabout')) {
       _sweepAngle = getRoundaboutAngle(
-          maneuvers: CurrentTripItem().maneuvers,
+          maneuvers: mt.CurrentTripItem().maneuvers,
           index: widget.index,
           routes: widget.routes);
     }
@@ -49,12 +50,12 @@ class _ManeuverTileState extends State<ManeuverTile> {
             ),
             contentPadding: const EdgeInsets.fromLTRB(5, 5, 5, 5),
             leading: getNavIcon(
-              maneuvers: CurrentTripItem().maneuvers,
+              maneuvers: mt.CurrentTripItem().maneuvers,
               index: widget.index,
               angle: _sweepAngle,
             ),
             title: Text(
-              '${modifyModifier(CurrentTripItem().maneuvers, widget.index)}', //${widget.maneuver.roadFrom}',
+              '${modifyModifier(mt.CurrentTripItem().maneuvers, widget.index)}', //${widget.maneuver.roadFrom}',
               style: textStyle(context: context, size: 2, color: Colors.black),
             ),
             // before: ${widget.maneuver.bearingBefore}  after: ${widget.maneuver.bearingAfter} - ($_sweepAngle})',

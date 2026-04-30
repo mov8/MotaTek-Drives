@@ -782,6 +782,7 @@ class PrivateStorageLocal implements PrivateDataRepository {
 
       for (Map<String, dynamic> map in maps) {
         Map<String, dynamic> tripMap = jsonDecode(map['trip']);
+        tripMap["id"] = map["id"];
         myTripItems.add(MyTripItem.fromJson(
           jsonObject: tripMap,
         ));
@@ -1276,17 +1277,13 @@ class PrivateStorageLocal implements PrivateDataRepository {
 /*
       List<Map<String, dynamic>> maps =
           await db.rawQuery("SELECT * FROM trip_item");
-
       String stringJSON = maps.first['trip'];
-
       Map<String, dynamic> resultJSON = jsonDecode(stringJSON);
-
       debugPrint('Data is ${maps.toString} -> $resultJSON');
 */
     } catch (e) {
       debugPrint('Error adding trip to trip_item: ${e.toString()}');
     }
-
     return id;
   }
   //  Map<String, dynamic> map = myTripItem.toDrivesMap();
@@ -1302,7 +1299,6 @@ class PrivateStorageLocal implements PrivateDataRepository {
   //  try {
 /*      
       if (id < 0) {
-
         map.remove("id");
         id = await db.insert('drives', map);
       } else {

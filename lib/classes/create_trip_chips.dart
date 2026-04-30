@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import '/classes/classes.dart';
 import '/constants.dart';
@@ -11,13 +12,14 @@ import 'dart:developer' as developer;
 /// defining the trip
 /// The aim was to abstract away the code from CreateTrip to a new
 /// class that updates CreateTrip and the CurrentTripItem it's manipulating
+///
 
 class CreateTripChips extends StatelessWidget {
   final Function(MyTripActions) onUpdate;
   final CurrentTripItem tripItem; // tripItem contains the trip state
   final CreateTripController createTripController;
   // final CreateTripCurrentTripItem().values CurrentTripItem().tripValues = CreateTripCurrentTripItem().values();
-  final LatLng position;
+  final Point position;
   final LeadingWidgetController? leadingWidgetController;
 
   const CreateTripChips({
@@ -31,7 +33,9 @@ class CreateTripChips extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    developer.log('Instantiating CreateChips object', name: '_chips');
+    developer.log(
+        'Building CreateChips object CurrentTripItem().tripState: ${CurrentTripItem().tripState}',
+        name: '_keyboard_');
     return Wrap(spacing: 5, children: getChips());
   }
 
@@ -57,23 +61,32 @@ class CreateTripChips extends StatelessWidget {
         'icon': Icons.pin_drop,
         'states': [TripState.editing],
         'actions': [],
+        'waypointState': WaypointState.extendStart,
         'highlight': [HighliteActions.none],
         'loaded': true,
         'saved': null,
         'group': false,
+        'goodRoad': false,
       },
       {
         'label': 'Waypoint',
         'method': waypoint,
         'icon': Icons.pin_drop,
-        'states': [TripState.manual],
         'actions': [],
+        'states': [
+          TripState.manual,
+          TripState.goodRoadStart,
+          TripState.editing
+        ],
+        // 'waypointState': [WaypointState.none],
         'highlight': [HighliteActions.none, HighliteActions.greatRoadStarted],
-        'colour': CurrentTripItem().goodRoad
+        'waypointState': WaypointState.none,
+        'colour': CurrentTripItem().isGoodRoad
             ? colourList[Setup().goodRouteColour]
             : colourList[Setup().routeColour],
         'loaded': null,
         'saved': null,
+        'goodRoad': null,
         'group': false
       },
       {
@@ -82,24 +95,28 @@ class CreateTripChips extends StatelessWidget {
         'icon': Icons.pin_drop,
         'states': [TripState.editing],
         'actions': [],
+        'waypointState': WaypointState.insert,
         'highlight': [HighliteActions.none, HighliteActions.greatRoadStarted],
-        'colour': CurrentTripItem().goodRoad
+        'colour': CurrentTripItem().isGoodRoad
             ? colourList[Setup().goodRouteColour]
             : colourList[Setup().routeColour],
         'loaded': null,
         'saved': null,
-        'group': false
+        'group': false,
+        'goodRoad': false,
       },
       {
         'label': 'Extend end',
         'method': extendEnd, // extendEnd,
         'icon': Icons.pin_drop,
         'states': [TripState.editing],
+        'waypointState': WaypointState.extendEnd,
         'actions': [],
         'highlight': [HighliteActions.none],
         'loaded': true,
         'saved': null,
-        'group': false
+        'group': false,
+        'goodRoad': false,
       },
       {
         'label': 'Remove waypoint',
@@ -107,8 +124,9 @@ class CreateTripChips extends StatelessWidget {
         'icon': Icons.wrong_location,
         'states': [TripState.manual, TripState.editing],
         'actions': [],
-        'highlight': [HighliteActions.waypointHighlited],
-        'colour': CurrentTripItem().goodRoad
+        'waypointState': WaypointState.remove,
+        'highlight': [],
+        'colour': CurrentTripItem().isGoodRoad
             ? colourList[Setup().goodRouteColour]
             : colourList[Setup().routeColour],
         'loaded': null,
@@ -121,11 +139,12 @@ class CreateTripChips extends StatelessWidget {
         'icon': Icons.wrong_location,
         'states': [TripState.manual, TripState.editing],
         'actions': [],
-        'highlight': [HighliteActions.waypointHighlited],
-        'colour': CurrentTripItem().goodRoad
+        'waypointState': WaypointState.revisit,
+        'highlight': [],
+        'colour': CurrentTripItem().isGoodRoad
             ? colourList[Setup().goodRouteColour]
             : colourList[Setup().routeColour],
-        'loaded': true,
+        'loaded': null, //true,
         'saved': null,
         'group': false
       },
@@ -148,7 +167,7 @@ class CreateTripChips extends StatelessWidget {
         'states': [TripState.manual, TripState.editing],
         'actions': [],
         'highlight': [HighliteActions.none, HighliteActions.routeHighlited],
-        'loaded': true,
+        'loaded': null, //true,
         'saved': null,
         'group': false,
         'goodRoad': false,
@@ -231,7 +250,7 @@ class CreateTripChips extends StatelessWidget {
         'highlight': [HighliteActions.none],
         'loaded': null,
         'saved': null,
-        'colour': CurrentTripItem().goodRoad
+        'colour': CurrentTripItem().isGoodRoad
             ? colourList[Setup().routeColour]
             : colourList[Setup().goodRouteColour],
         'group': false,
@@ -246,7 +265,7 @@ class CreateTripChips extends StatelessWidget {
         'highlight': [HighliteActions.greatRoadHighlighted],
         'loaded': null,
         'saved': null,
-        'colour': CurrentTripItem().goodRoad
+        'colour': CurrentTripItem().isGoodRoad
             ? colourList[Setup().routeColour]
             : colourList[Setup().goodRouteColour],
         'group': false,
@@ -262,7 +281,7 @@ class CreateTripChips extends StatelessWidget {
         'loaded': null,
         'saved': false,
         'group': false,
-        'colour': CurrentTripItem().goodRoad
+        'colour': CurrentTripItem().isGoodRoad
             ? colourList[Setup().routeColour]
             : colourList[Setup().goodRouteColour],
         'goodRoad': true
@@ -401,7 +420,8 @@ class CreateTripChips extends StatelessWidget {
     ];
 
     developer.log(' ', name: '_chips');
-    developer.log(' +++++++ State Tests create_trip_chips.dart ++++++++',
+    developer.log(
+        ' +++++++ State Tests create_trip_chips.dart  CurrentTripItem().waypointState: ${CurrentTripItem().waypointState} ++++++++',
         name: '_chips');
     String failure = '';
     // developer.log('States: ${CurrentTripItem().tripState}');
@@ -420,6 +440,15 @@ class CreateTripChips extends StatelessWidget {
       return ok;
     }
 
+    bool waypointOk2(int i) {
+      return false;
+    }
+
+    bool waypointOk(int i) {
+      return chipDetails[i]['waypointState'] == null ||
+          chipDetails[i]['waypointState'] == CurrentTripItem().waypointState;
+    }
+
     bool highlightsOk(int i) {
       bool ok = ((chipDetails[i]['highlight'].isEmpty ||
               chipDetails[i]['highlight']
@@ -429,12 +458,14 @@ class CreateTripChips extends StatelessWidget {
       return ok;
     }
 
+    /// loaded is a tri-value flag true, false either (null)
+    /// Have to include the null test twice as Dart evaluates both sides of the || and
+    /// errors if the RHS does a non null save evaluation even though the LHS satisfies the test.
     bool loadedOk(int i) {
       bool ok = chipDetails[i]['loaded'] == null ||
-          (chipDetails[i]['loaded'] &&
-              CurrentTripItem().waypoints.isNotEmpty) ||
-          (!chipDetails[i]['loaded'] && CurrentTripItem().waypoints.isEmpty);
-      failure = ok ? failure : '$failure, LOADED';
+          (chipDetails[i]['loaded'] != null && chipDetails[i]['loaded']
+              ? CurrentTripItem().routes.isNotEmpty
+              : CurrentTripItem().routes.isEmpty);
       return ok;
     }
 
@@ -454,14 +485,8 @@ class CreateTripChips extends StatelessWidget {
     }
 
     bool goodRoadOk(int i) {
-      if (chipDetails[i]['label'].contains('Great')) {
-        developer.log(
-            "goodRoadOk() label ${chipDetails[i]['label']} chipDetails[i]['goodRoad'] ${chipDetails[i]['goodRoad']} CurrentTripItem().goodRoad: ${CurrentTripItem().goodRoad}",
-            name: '_chips');
-      }
-
       bool ok = chipDetails[i]['goodRoad'] == null ||
-          CurrentTripItem().goodRoad == chipDetails[i]['goodRoad'];
+          CurrentTripItem().isGoodRoad == chipDetails[i]['goodRoad'];
       failure = ok ? failure : '$failure, GOODROAD';
       return ok;
     }
@@ -470,49 +495,52 @@ class CreateTripChips extends StatelessWidget {
       return actionsOk(i) &&
           statesOk(i) &&
           highlightsOk(i) &&
+          waypointOk(i) &&
           loadedOk(i) &&
           savedOk(i) &&
           groupOk(i) &&
           goodRoadOk(i);
     }
 
-//      developer.log(
-//          '${chipDetails[i]['label']} actions: ${actionsOk(i)} states: ${statesOk(i)} highlights: ${highlightsOk(i)} loaded: ${loadedOk(i)} saved: ${savedOk(i)} group: ${groupOk(i)} goodRoad: ${goodRoadOk(i)}}',
-//          name: '_chips');
+    try {
+      for (int i = 0; i < chipDetails.length; i++) {
+        failure = '';
 
-    for (int i = 0; i < chipDetails.length; i++) {
-      failure = '';
-      Color colour = CurrentTripItem().goodRoad &&
-              ['Waypoint'].contains(chipDetails[i]['label'])
-          ? colourList[Setup().goodRouteColour]
-          : Colors.white;
-      Color wpColour = CurrentTripItem().goodRoad &&
-              ['Waypoint', 'Plan drive', 'Add great road']
-                  .contains(chipDetails[i]['label'])
-          ? colourList[Setup().goodRouteColour]
-          : Colors.white;
-      if (isValid(i)) {
-        chips.add(ActionChip(
-            visualDensity: const VisualDensity(horizontal: 0.0, vertical: 0.5),
-            backgroundColor: Colors.blueAccent,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            label: Text(chipDetails[i]['label'],
-                style: TextStyle(fontSize: 16, color: Colors.white)),
-            elevation: 10,
-            shadowColor: Colors.black,
-            onPressed: () => chipDetails[i]['method'](),
-            avatar: Icon(chipDetails[i]['icon'],
-                size: 20, color: chipDetails[i]['colour'] ?? Colors.white)));
-      } else {
-        if (chipDetails[i]['label'].contains('Great')) {
+        Color colour = CurrentTripItem().isGoodRoad &&
+                ['Waypoint'].contains(chipDetails[i]['label'])
+            ? colourList[Setup().goodRouteColour]
+            : Colors.white;
+        Color wpColour = CurrentTripItem().isGoodRoad &&
+                ['Waypoint', 'Plan drive', 'Add great road']
+                    .contains(chipDetails[i]['label'])
+            ? colourList[Setup().goodRouteColour]
+            : Colors.white;
+
+        if (isValid(i)) {
+          chips.add(ActionChip(
+              visualDensity:
+                  const VisualDensity(horizontal: 0.0, vertical: 0.5),
+              backgroundColor: Colors.blueAccent,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20)),
+              label: Text(chipDetails[i]['label'],
+                  style: TextStyle(fontSize: 16, color: Colors.white)),
+              elevation: 10,
+              shadowColor: Colors.black,
+              onPressed: () => chipDetails[i]['method'](),
+              avatar: Icon(chipDetails[i]['icon'],
+                  size: 20, color: chipDetails[i]['colour'] ?? Colors.white)));
+        } else {
+          //   Code below very useful - don't remove
           developer.log(
-              '$failure - For ${chipDetails[i]['label']} CurrentTripItem().tripValues.isGoodRoad: ${CurrentTripItem().tripValues.goodRoad}',
-              name: '_chips');
+              '$i - [${chipDetails[i]['label']}] failed => ${actionsOk(i) ? '' : 'actions '}${statesOk(i) ? '' : 'states '}${highlightsOk(i) ? '' : 'highlights '}${waypointOk(i) ? '' : 'waypoints '}${loadedOk(i) ? '' : 'loaded '}${savedOk(i) ? '' : 'saved '}${groupOk(i) ? '' : 'group '}${goodRoadOk(i) ? '' : 'goodRoad'}',
+              name: '_actionChips_');
         }
       }
+      developer.log(' ', name: '_chips');
+    } catch (e) {
+      debugPrint('error: &{e.toString()}');
     }
-    developer.log(' ', name: '_chips');
     return chips;
   }
 
@@ -529,6 +557,7 @@ class CreateTripChips extends StatelessWidget {
   }
 
   void clear() {
+    // CurrentTripItem().requestClear();
     CurrentTripItem().requestClear();
     leadingWidgetController?.changeWidget(0);
     onUpdate(MyTripActions.clearTrip);
@@ -542,12 +571,16 @@ class CreateTripChips extends StatelessWidget {
 
   void extendStart() async {
     CurrentTripItem().requestExtendStart();
-    onUpdate(MyTripActions.none);
+    onUpdate(MyTripActions.addWaypoint);
   }
 
   void waypoint() async {
     CurrentTripItem().requestWaypoint();
-    onUpdate(MyTripActions.addWaypoint);
+    if (CurrentTripItem().tripValues.addGoodRoadDetail) {
+      onUpdate(MyTripActions.addGoodRoadDetails);
+    } else {
+      onUpdate(MyTripActions.addWaypoint);
+    }
   }
 
   void revisitWaypoint() async {
@@ -557,7 +590,7 @@ class CreateTripChips extends StatelessWidget {
 
   void extendEnd() async {
     CurrentTripItem().requestExtendEnd();
-    onUpdate(MyTripActions.none);
+    onUpdate(MyTripActions.addWaypoint);
   }
 
   saveTrip() async {
@@ -583,17 +616,18 @@ class CreateTripChips extends StatelessWidget {
 
   void greatRoad() {
     CurrentTripItem().requestGreatRoad();
-    onUpdate(MyTripActions.none);
+    onUpdate(MyTripActions.addGoodRoad);
   }
 
   void editGreatRoad() {
     CurrentTripItem().requestEditGreatRoad();
-    onUpdate(MyTripActions.none);
+    onUpdate(MyTripActions.saveGoodRoad);
   }
 
   void greatRoadEnd() {
     CurrentTripItem().requestGreatRoadEnd();
-    onUpdate(MyTripActions.addPointOfInterest);
+    onUpdate(MyTripActions.addGoodRoadDetails);
+    //  onUpdate(MyTripActions.addGoodRoad);
   }
 
   void reverseTrip() async {

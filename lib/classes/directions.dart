@@ -110,7 +110,7 @@ class PositionData {
 class DirectionDescriptors {
   List<Maneuver> maneuvers = [];
   String driveId;
-  List<Map<String, dynamic>> routes;
+  List<mt.Route> routes;
   DirectionDescriptors(
       {required this.driveId, required this.maneuvers, required this.routes});
   List<String> promptFiles = [];

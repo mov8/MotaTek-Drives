@@ -4,8 +4,9 @@ import 'package:flutter/foundation.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:geolocator/geolocator.dart';
 import '/services/services.dart';
+import '/classes/classes.dart' hide Position;
 import '/constants.dart';
-import '/classes/classes.dart';
+// import '/classes/classes.dart' hide Position;
 import 'dart:collection';
 import 'dart:async';
 import 'dart:math';
@@ -28,9 +29,8 @@ class MLMap extends StatefulWidget {
   MapLibreMapController? mapController;
   final Function(Point, LatLng)? onTap;
   final Function()? onIdle;
-
-  MLMap(
-      {super.key, this.onIdle, this.onTap, this.onUpdate, this.mapController});
+  Key? key;
+  MLMap({this.key, this.onIdle, this.onTap, this.onUpdate, this.mapController});
 
   @override
   State createState() => MLMapState();
@@ -62,6 +62,8 @@ class MLMapState extends State<MLMap> {
     _currentPosition = LatLng(position.latitude, position.longitude);
 
     _currentPosition = LatLng(51.433, -0.513); // DEBUG
+
+    developer.log('maplibre.dart loadStyle() called', name: '_x_map');
     return true;
   }
 
@@ -69,7 +71,15 @@ class MLMapState extends State<MLMap> {
     mapController = controller;
     widget.mapController = controller;
     widget.onUpdate!(_currentPosition, controller);
+    developer.log('maplibre.dart _onMapCreated() called - controller created',
+        name: '_x_map');
   }
+
+  MapLibreMapController? getController() {
+    return mapController!;
+  }
+
+  MapLibreMapController? get controller => mapController;
 
   void _onTap(Point<double> point, LatLng coordinates) async {
     widget.onTap!(point, coordinates);
@@ -96,9 +106,11 @@ class MLMapState extends State<MLMap> {
             debugPrint('Error getting style ${snapshot.error}');
           } else if (snapshot.hasData) {
             return MapLibreMap(
-              key: CurrentTripItem().mapLibreKey, // //Key('LM001'),
+              key: widget.key ?? UniqueKey(), // Key(
+              // 'LM001'), // CurrentTripItem().mapLibreKey, // //Key('LM001'),
               styleString: _mapStyle, // _mapStyleUrl()
-              myLocationEnabled: false, // true,
+              myLocationEnabled: [TripState.following, TripState.automatic]
+                  .contains(CurrentTripItem().tripState), // true,
 
               compassViewPosition: CompassViewPosition.topLeft,
               onMapCreated: _onMapCreated,
@@ -229,6 +241,14 @@ class DemoMapState extends State<DemoMap> {
     //      "https://maplibre.org/maplibre-gl-js/docs/assets/earthquakes.geojson");
     //  await addClusteredPointLayers(sourceId);
   }
+/*
+MyLocationTrackingMode.None: The map stays where it is; the dot moves. (Best for "Explore" mode).
+
+MyLocationTrackingMode.Follow: The map centers on the user as they move.
+
+MyLocationTrackingMode.Follow_and_Bearing: The map centers on the user and rotates so the direction they are facing is always "up." (Best for active driving/navigation).
+
+*/
 
 /*   Point<double> point,
   LatLng coordinates,

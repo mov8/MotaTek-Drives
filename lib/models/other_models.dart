@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:math';
 import 'dart:developer' as developer;
-import 'package:drives/helpers/create_trip_helpers.dart';
+import '/helpers/helpers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:universal_io/universal_io.dart';
@@ -12,13 +12,13 @@ import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import '/constants.dart';
 import '/screens/screens.dart';
-import '/classes/route.dart' as mt;
-import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart' as fm;
-import 'package:flutter/material.dart';
+import '/classes/route.dart';
+// import 'package:flutter_map/flutter_map.dart';
+// import 'package:latlong2/latlong.dart' as fm;
+import 'package:flutter/material.dart' hide Route;
 import 'package:universal_io/io.dart';
 import 'package:socket_io_client/socket_io_client.dart' as sio;
-import 'package:geolocator/geolocator.dart';
+// import 'package:geolocator/geolocator.dart';
 
 /// https://api.flutter.dev/flutter/material/Icons-class.html  get the icon codepoint from here
 /// https://api.flutter.dev/flutter/material/Icons/add_road-constant.html
@@ -238,6 +238,7 @@ String? colourIntToHex({int index = 0}) {
 
 void myFunc() {}
 
+/*
 Future<String> distanceFromMe(
     {required fm.LatLng position, decimalPlaces = 1, metric = false}) async {
   Position pos = await Geolocator.getCurrentPosition();
@@ -247,7 +248,8 @@ Future<String> distanceFromMe(
   double factor = metric ? .001 : metersToMiles;
   return '${(meters * factor).toStringAsFixed(decimalPlaces)} $unit';
 }
-
+*/
+/*
 class CutRoute {
   int routeIndex = 0; // holds the polyLine Index in Routes
   int pointIndex = 0; // holds the index of fm.LatLng on the above polyLine
@@ -264,7 +266,7 @@ class CutRoute {
       this.precedingPoiIndex = 0,
       this.precedingPointIndex = 0});
 }
-
+*/
 class Setup {
   int id = 0;
   int routeColour = 12;
@@ -304,20 +306,7 @@ class Setup {
   bool isIOS = Platform.isIOS;
   bool maleVoice = false;
   MyTripItem? currentTrip;
-  Position lastPosition = Position(
-    longitude: 0.0,
-    latitude: 0.0,
-    timestamp: DateTime.timestamp(),
-    accuracy: 0.0,
-    altitude: 0.0,
-    altitudeAccuracy: 0.0,
-    heading: 0.0,
-    headingAccuracy: 0.0,
-    speed: 0.0,
-    speedAccuracy: 0.0,
-    floor: 0,
-    isMocked: false,
-  );
+  Position lastPosition = Position();
 
   String jwt = '';
   User user = User(
@@ -477,7 +466,7 @@ class Setup {
 class PointOfInterest {
   // GlobalKey? handle;
   int id;
-  String? uuid;
+  String uuid;
   Point point;
   String images;
   String name;
@@ -486,10 +475,11 @@ class PointOfInterest {
   double score;
   int scored;
   int type;
+  List<Photo> photos;
 
   PointOfInterest({
     this.id = -1,
-    uuid,
+    String? uuid,
     this.point = const Point(0, 0),
     this.type = -1,
     this.name = '',
@@ -498,7 +488,9 @@ class PointOfInterest {
     this.score = 0,
     this.scored = 0,
     this.sounds = '',
-  }) : uuid = uuid ?? getUuid();
+    List<Photo>? photos,
+  })  : uuid = uuid ?? getUuid(),
+        photos = photos ?? <Photo>[];
 
   factory PointOfInterest.fromMap({required Map<String, dynamic> map}) {
     return PointOfInterest(
@@ -514,6 +506,20 @@ class PointOfInterest {
       sounds: '',
     );
   }
+
+  /// complete returns the data state of the PointOfInterest:
+  /// 0 is nothing added
+  /// 1 is      name complete
+  /// 1 << 1    description complete
+  /// -> 0 nothing 1 name complete 2 description complete 3 all complete
+
+  int complete({bool goodRoad = false}) {
+    if (goodRoad && type != 13) {
+      return 3;
+    }
+    return (name.isEmpty ? 0 : 1) | (description.isEmpty ? 0 : 1 << 1);
+  }
+
   Map<String, dynamic> toMap({String driveUid = ''}) {
     return {
       "id": id,
@@ -532,36 +538,66 @@ class PointOfInterest {
     };
   }
 
-  get photos => [];
-
-  get published => '';
 /*
-  Map<String, dynamic> toApiMap() {
-    List<Map<String, dynamic>> photosMap = [];
-
-    for (Photo photo in photos) {
-      String uuidString = Uuid().v7();
-      uuidString = uuidString.replaceAll(RegExp(r'-'), '');
-      photosMap.add({
-        'url': uuidString,
-        'caption': photo.caption,
-        'rotation': photo.rotation,
-        'file': photo.url
-      });
-    }
+  Map<String, dynamic> toGeoJson() {
     return {
-      'url': url,
-      'type': type,
-      'name': name,
-      'score': score,
-      'scored': scored,
-      'images': photosMap,
-      'description': description,
-      'latitude': point[1],
-      'longitude': point[0],
+      'type': 'Feature',
+      'geometry': {
+        'type': 'point',
+        'coordinates': [point.x, point.y]
+      },
+      'properties': {
+        'uri': uuid,
+        'name': name,
+        'description': description,
+        'type': type,
+        "color": Setup().pointOfInterestColourHex(),
+        'images': images,
+        'rated': 0,
+        'rating': score,
+        'author': ''
+      }
     };
   }
-  */
+*/
+//  get photos => [];
+
+  get published => '';
+
+  Map<String, dynamic> toGeoJson(
+      {int index = 0, String? colour, String author = '', int rated = 0}) {
+    colour ??= Setup().pointOfInterestColourHex();
+    Map<String, dynamic> geoJson = {};
+    try {
+      geoJson = {
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [point.x, point.y]
+        },
+        "id": 'poi$index',
+        'properties': {
+          "group": "point_of_interest", // <- For filtering
+          "icon": "shield",
+          "color": type == 13
+              ? Setup().goodRouteColourHex()
+              : Setup().pointOfInterestColourHex(),
+          'drive_id': id,
+          'uri': uuid,
+          'name': name,
+          'description': description,
+          'type': type,
+          'images': images,
+          'rated': rated,
+          'rating': '${'★' * score.toInt()}${'☆' * (5 - score.toInt())}',
+          'author': author
+        }
+      };
+    } catch (e) {
+      developer.log('Error calling PointOfInterest.toGeoJson()', name: '_g_j_');
+    }
+    return geoJson;
+  }
 }
 
 List<PointOfInterest> pointsOfInterestFromJson(
@@ -1110,6 +1146,7 @@ class ImageCacheItem {
   }
 }
 
+/*
 class GoodRoadCacheItem {
   int index;
   int localId;
@@ -1134,6 +1171,7 @@ class GoodRoadCacheItem {
     );
   }
 }
+*/
 
 class User {
   int id = 0;
@@ -1529,7 +1567,8 @@ class ShopItem {
 /// class TripItem
 ///
 
-class TripSummary extends Marker {
+class TripSummary {
+  //extends Marker {
   int cacheKey;
   int id = -1;
   final String uri;
@@ -1554,11 +1593,11 @@ class TripSummary extends Marker {
       this.minLong = -180,
       this.maxLong = 180,
       this.score = 5.0,
-      this.scored = 1,
-      super.child = const Icon(Icons.location_pin),
-      super.point = const fm.LatLng(-50.0, -0.2),
-      super.width = 20,
-      super.height = 20});
+      this.scored = 1});
+  //   super.child = const Icon(Icons.location_pin),
+  //    super.point = const fm.LatLng(-50.0, -0.2),
+  //    super.width = 20,
+  //    super.height = 20});
 
   factory TripSummary.fromMap({required Map<String, dynamic> map}) {
     return TripSummary(
@@ -1571,7 +1610,7 @@ class TripSummary extends Marker {
       maxLong: map['ne_lng'] ?? 0,
       score: map['score'] ?? 0,
       scored: map['scored'] ?? 0,
-      point: fm.LatLng(map['sw_lat'] ?? 0, map['sw_log'] ?? 0),
+      //  point: fm.LatLng(map['sw_lat'] ?? 0, map['sw_log'] ?? 0),
     );
   }
 }
@@ -1590,7 +1629,8 @@ class TripItem {
   bool published = false;
   String imageUrls = '';
   List<Photo> photos;
-  double score = 5;
+  String score = '';
+  double rating = 5;
   double distance = 0;
   double distanceAway = 0;
   int pointsOfInterestCount = 0;
@@ -1598,7 +1638,7 @@ class TripItem {
   int scored = 10;
   int downloads = 18;
   String added = '';
-  List<Polyline> polylines;
+  List polylines;
   TripItem(
       {this.handle,
       this.id = 0,
@@ -1610,7 +1650,8 @@ class TripItem {
       this.authorUrl = '',
       this.published = false,
       this.imageUrls = '',
-      this.score = 5,
+      this.score = '',
+      this.rating = 5,
       this.distance = 0,
       this.distanceAway = 0,
       this.pointsOfInterestCount = 0,
@@ -1633,6 +1674,7 @@ class TripItem {
       'published': published,
       'image_urls': imageUrls,
       'score': score,
+      'rating': rating,
       'distance': distance,
       'points_of_interest': pointsOfInterestCount,
       'closest': closest,
@@ -1652,6 +1694,7 @@ class TripItem {
       'published': published,
       'image_urls': imageUrls,
       'score': score,
+      'rating': rating,
       'distance': distance,
       'points_of_interest': pointsOfInterestCount,
       'closest': closest,
@@ -1680,11 +1723,18 @@ class TripItem {
       //    imageUrls: imageUrls.isEmpty
       //        ? tripMap['image_urls'] ?? ''
       //        : imageUrls, // has to be calculated
-      score: tripMap['average_rating'] ??
+      rating: tripMap['average_rating'] ??
           5.0, // tripMap['average_rating'].toDouble() ?? 5.0,
+      score:
+          "${'★' * (tripMap['average_rating'] ?? 5).toInt()}${'☆' * (5 - (tripMap['average_rating'] ?? 5)).toInt()}",
       scored: tripMap['ratings_count'] ?? 1,
       downloads: tripMap['downloads'] ?? 0,
     );
+  }
+
+  String toStars({var value}) {
+    int starValue = value.toInt();
+    return ("${'★' * starValue}${'☆' * (5 - starValue)}");
   }
 
 /*
@@ -1716,24 +1766,32 @@ class TripItem {
 */
   factory TripItem.from3DCache(
       {required Map<String, dynamic> map,
+      String uri = '',
       String endpoint = '',
       String imageUrls = ''}) {
-    return TripItem(
-      id: -1,
-      driveUri: '',
-      title: map['title'] ?? ' ',
-      subTitle: 'sub_title',
-      body: 'body',
-      author: map['author'],
-      published: map['published'], // ?? DateTime.now().toIso8601String(),
-      score: map['rating'].toDouble(),
-      distance: map['distance'],
-      pointsOfInterestCount: map['points_of_interest'],
-      closest: 0, // has to be calculated
-      scored: map['rated'],
-      downloads: map['downloads'] ?? 0,
-      uri: '',
-    );
+    TripItem tripItem = TripItem();
+    try {
+      tripItem = TripItem(
+        id: -1,
+        uri: uri,
+        driveUri: '',
+        title: map['title'] ?? ' ',
+        subTitle: map['sub_title'], //'sub_title',
+        body: map['body'], //'body',
+        author: map['author'] ?? '',
+        published: true, //
+        added: map['published'], // ?? DateTime.now().toIso8601String(),
+        score: map['rating'], //.toDouble(),
+        distance: map['distance'],
+        pointsOfInterestCount: map['points_of_interest'],
+        closest: 0, // has to be calculated
+        scored: map['rated'],
+        downloads: map['downloads'] ?? 0,
+      );
+    } catch (e) {
+      debugPrint('Error creating TripItem from map');
+    }
+    return tripItem;
   }
 }
 
@@ -1936,30 +1994,49 @@ class PopupValue {
   PopupValue(this.dropdownIdx, this.text1, this.text2);
 }
 
+/*
 /// lines and shields geometry format for MapLibre [[lng, lat], [lng, lat], ...]
 /// have to be defined in Flutter a List<dynamic> rather than List<List<double>>
-class GoodRoad {
-  final int id; // SqLite id
-  final String uri; // api uri
-  List<dynamic> lines;
-  List<dynamic> shields;
-  List<Point> waypoints;
+class GoodRoad extends Route {
+  // final int id; // SqLite id
+  // final String uri; // api uri
+  // List<List<double>> lines;
+  // List<List<double>> shields;
+  // List<Waypoint> waypoints;
   String pointOfInterestUri;
+  // String colour;
   GoodRoad({
-    this.id = -1,
-    this.uri = '',
-    List<dynamic>? lines,
-    List<dynamic>? shields,
-    List<Point>? waypoints,
-    this.pointOfInterestUri = '',
-  })  : lines = lines ?? [],
-        shields = shields ?? [],
-        waypoints = waypoints ?? [];
+    super.id = -1,
+    super.uri = '',
+    List<List<double>>? lines,
+    List<List<double>>? shields,
+    List<Waypoint>? waypoints,
+    String? colour,
+    String? pointOfInterestUri,
+  })  : pointOfInterestUri = pointOfInterestUri ?? '',
+        super(
+            lines: lines ?? [],
+            shields: shields ?? [],
+            waypoints: waypoints ?? [],
+            colour: colour ?? Setup().goodRouteColourHex());
 
   /// Bundling everything up int a single class simplified the
   /// separating of the Route and GoodRoad geoJSON data - good-road-data
 
   factory GoodRoad.fromMap({required Map<String, dynamic> map}) {
+    List<Waypoint> waypoints = [];
+    for (int i = 0; i < (map["waypoints"] ?? []).length; i++) {
+      waypoints.add(Waypoint.fromMap(map: map["waypoints"][i]));
+    }
+    return GoodRoad(
+        id: map["id"] ?? -1,
+        uri: map["uri"] ?? "",
+        lines: dynamicToDouble(dynamicList: jsonDecode(map['lines'] ?? [[]])),
+        shields:
+            dynamicToDouble(dynamicList: jsonDecode(map['shields'] ?? [[]])),
+        waypoints: waypoints);
+
+/*    
     return GoodRoad(
       id: map["id"] ?? -1,
       uri: map["uri"] ?? "",
@@ -1968,6 +2045,7 @@ class GoodRoad {
       waypoints: map["waypoints"] ?? [],
       pointOfInterestUri: map["point_of_interest_uri"] ?? "",
     );
+*/
   }
 
   Map<String, dynamic> toMap() {
@@ -1988,7 +2066,7 @@ class GoodRoad {
     List<Map<String, dynamic>> waypointsJSON = [
       for (int i = 0; i < waypoints.length; i++)
         {
-          'point': {'lat': waypoints[i].y, 'long': waypoints[i].x}
+          'point': {'lat': waypoints[i].point.y, 'long': waypoints[i].point.x}
         }
     ];
     return {
@@ -2002,9 +2080,28 @@ class GoodRoad {
     };
   }
 }
+*/
+
+Map<String, dynamic> toGeoJson(
+    {int index = 0, required List<int> point, bool highlighted = false}) {
+  String colour =
+      highlighted ? Setup().highlightedColourHex() : Setup().routeColourHex();
+  return {
+    "id": 'wp$index',
+    "type": "Feature",
+    "group": "waypoint",
+    "geometry": {"type": "Point", "coordinates": point},
+    "properties": {
+      "item": "waypoint",
+      "number": index + 1,
+      "group": 'shield',
+      "color": colour,
+    }
+  };
+}
 
 List<Map<String, dynamic>> jsonFromGoodRoads(
-    {required List<GoodRoad> goodRoadList}) {
+    {required List<Route> goodRoadList}) {
   List<Map<String, dynamic>> json = [];
   for (int i = 0; i < goodRoadList.length; i++) {
     json.add(goodRoadList[i].toMap());
@@ -2012,10 +2109,10 @@ List<Map<String, dynamic>> jsonFromGoodRoads(
   return json;
 }
 
-List<GoodRoad> goodRoadsFromJson({required jsonList}) {
-  List<GoodRoad> goodRoads = [];
+List<Route> goodRoadsFromJson({required jsonList}) {
+  List<Route> goodRoads = [];
   for (int i = 0; i < jsonList.length; i++) {
-    goodRoads.add(GoodRoad.fromMap(map: jsonList[i]));
+    goodRoads.add(Route.fromMap(map: jsonList[i]));
   }
   return goodRoads;
 }

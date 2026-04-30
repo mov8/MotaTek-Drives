@@ -13,6 +13,13 @@ Cure follow 4 steps:
 3 remove the version from the device 
 4 rebuild on the device
 
+Flutter Intellisense very SLOW
+1   Open Command Pallet Ctrl+Shift+P
+2   Restart Analysis Server + Enter
+3   Once spinner in BRHS stops spinning should be a lot faster
+Look at the end of the Gemini thread "Porting Flutter App to the Web" for other speed issue possibilities & solutions
+
+
 flutter upgrade
 
 Error with wrongParent

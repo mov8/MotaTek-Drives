@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+// import 'package:latlng/latlng.dart';
 import 'dart:math';
 import '/constants.dart';
-// import 'dart:developer' as developer;
+import 'dart:developer' as developer;
 
 // import 'package:latlong2/latlong.dart' hide Path;
 
@@ -12,7 +13,7 @@ class TargetPainter extends CustomPainter {
   final double radius = 20;
   final double inset = 5;
 
-  @override
+  // @override
   TargetPainter({required this.top, required this.left, required this.color});
   // final Color _color = color;
   var outLineBrush = Paint()
@@ -37,6 +38,74 @@ class TargetPainter extends CustomPainter {
   bool shouldRepaint(CustomPainter oldDelegate) {
     return true;
   }
+}
+
+class HighlightPainter extends CustomPainter {
+  final Size boundary;
+  final double proportion;
+  final Color color;
+  final int dashes;
+  Map<String, dynamic> mbr = {};
+  Point? sw;
+  Point? ne;
+  HighlightPainter(
+      {required this.boundary,
+      required this.proportion,
+      required this.color,
+      this.dashes = 4});
+  var outLineBrush = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 2.5;
+  @override
+
+  ///   +--    ----    ----    --+
+  ///   To have 4 segments (n) the line has to divided into 6  (n+2)
+  ///   space = n/6
+  ///   line 1/2 segment, n-2 full segments, 1/2 segment
+  ///
+  paint(Canvas canvas, Size size) {
+    double deltaX = boundary.width - (boundary.width * proportion) * 0.5;
+    double deltaY = boundary.height - (boundary.height * proportion) * 0.5;
+    double bottom = deltaY;
+    double right = deltaX;
+    double top = boundary.height - deltaY;
+    double left = boundary.width - deltaX;
+    double segLength = (right - left) / (dashes + 2);
+
+    mbr = {'top': top, 'left': left, 'bottom': bottom, 'right': right};
+    sw = Point(bottom, left);
+    ne = Point(top, right);
+    developer.log("HighlightPainter painters.dart 78 setting ne: $ne  sw: $sw ",
+        name: '_nesw_');
+
+    outLineBrush.color = color;
+    double newX = left;
+
+    for (int i = 0; i < dashes; i++) {
+      double dash = i > 0 && i < dashes - 1 ? segLength : segLength * .5;
+      canvas.drawLine(
+          Offset(newX, top), Offset(newX + dash, top), outLineBrush);
+      canvas.drawLine(
+          Offset(newX, bottom), Offset(newX + dash, bottom), outLineBrush);
+      newX = newX + segLength + dash;
+    }
+    double newY = top;
+
+    segLength = (bottom - top) / (dashes + 2);
+    for (int i = 0; i < dashes; i++) {
+      double dash = i > 0 && i < dashes - 1 ? segLength : segLength * .5;
+      canvas.drawLine(
+          Offset(right, newY), Offset(right, newY + dash), outLineBrush);
+      canvas.drawLine(
+          Offset(left, newY), Offset(left, newY + dash), outLineBrush);
+      newY = newY + segLength + dash;
+    }
+  }
+
+  Map<String, dynamic> get swNe => {'sw': sw, 'ne': ne};
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 /// Draws a map location pin of the correct colour

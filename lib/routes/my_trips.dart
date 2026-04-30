@@ -48,9 +48,27 @@ class _MyTripsScreenState extends State<MyTrips> {
 
   /// Loads CurrentTripItem() with the chosen trip and navigates to My Trip page - create_trip.dart
   Future<void> loadTrip(int index) async {
-    CurrentTripItem().clearAll();
+    // CurrentTripItem.reset();
+    // CurrentTripItem().clearAll(newTripState: TripState.loaded);
+    CurrentTripItem().id = _myTripItems[index].id;
+    CurrentTripItem().uri = _myTripItems[index].uri;
+    CurrentTripItem().title = _myTripItems[index].title;
+    CurrentTripItem().subTitle = _myTripItems[index].subTitle;
+    CurrentTripItem().author = _myTripItems[index].author;
+    CurrentTripItem().authorUri = _myTripItems[index].authorUri;
+    CurrentTripItem().images = _myTripItems[index].images;
+    CurrentTripItem().imageUrls = _myTripItems[index].imageUrls;
+    CurrentTripItem().body = _myTripItems[index].body;
+    CurrentTripItem().pointsOfInterest = _myTripItems[index].pointsOfInterest;
+    CurrentTripItem().maneuvers = _myTripItems[index].maneuvers;
+    CurrentTripItem().routes = _myTripItems[index].routes;
+    CurrentTripItem().goodRoads = _myTripItems[index].goodRoads;
+    CurrentTripItem().score = _myTripItems[index].score;
+    CurrentTripItem().tripState = TripState.loaded;
+    CurrentTripItem().tripType = TripType.none;
     CurrentTripItem().updateMap = true;
-    CurrentTripItem().load(arguments: TripArguments(_myTripItems[index], 'db'));
+    CurrentTripItem().mapUpdates = MapUpdates.updateAll;
+
     if (mounted) {
       Navigator.pushNamed(context, 'createTrip'); //,
       //  arguments: TripArguments(_myTripItems[index], 'db'));
@@ -87,9 +105,9 @@ class _MyTripsScreenState extends State<MyTrips> {
 
   void onConfirmDeleteTrip(int value) async {
     if (value > -1) {
-      String id = _tripItems[value].id >= 0
-          ? _tripItems[value].id.toString()
-          : _tripItems[value].uri;
+      String id = _myTripItems[value].id >= 0
+          ? _myTripItems[value].id.toString()
+          : _myTripItems[value].uri;
       getPrivateRepository()
           .deleteDriveLocal(driveUri: id)
           .then((_) => setState(() => _myTripItems.removeAt(value)));

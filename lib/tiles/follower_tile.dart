@@ -1,3 +1,4 @@
+import 'dart:math';
 import '/classes/initials_button.dart';
 import 'package:flutter/material.dart';
 import '/models/other_models.dart';
@@ -15,7 +16,7 @@ class FollowerTile extends StatefulWidget {
   final Function(int) onLongPress;
   final int index;
   final double distance;
-  final LatLng currentPosition;
+  final Point currentPosition;
   const FollowerTile({
     super.key,
     required this.index,
@@ -156,8 +157,8 @@ class _FollowerTileState extends State<FollowerTile> {
   changePosition({LatLng position = const LatLng(0, 0)}) {
     if (widget.follower.position != LatLng(0.0, 0.0)) {
       double distance = Geolocator.distanceBetween(
-          widget.currentPosition.latitude,
-          widget.currentPosition.longitude,
+          widget.currentPosition.y.toDouble(),
+          widget.currentPosition.x.toDouble(),
           widget.follower.position[1],
           widget.follower.position[0]);
       if (distance > 1000) {
@@ -175,8 +176,8 @@ class _FollowerTileState extends State<FollowerTile> {
       _status = _statuses[widget.follower.accepted];
       if (widget.follower.position != LatLng(0.0, 0.0)) {
         double distance = Geolocator.distanceBetween(
-            widget.currentPosition.latitude,
-            widget.currentPosition.longitude,
+            widget.currentPosition.y.toDouble(),
+            widget.currentPosition.x.toDouble(),
             widget.follower.position[1],
             widget.follower.position[0]);
         if (distance > 1000) {

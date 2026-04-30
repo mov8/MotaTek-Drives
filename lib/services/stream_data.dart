@@ -45,10 +45,9 @@ class FollowRoute<T> {
 
   FollowRoute({required this.controller});
 
-  void follow(
-      {required List<Map<String, dynamic>> routes, index = 0, delay = 1}) {
+  void follow({required List<mt.Route> routes, index = 0, delay = 1}) {
     run = true;
-    _routes = routes[0]['geometry']['coordinates']; //routes;
+    _routes = routes; //routes;
     _index = index;
     _delay = delay;
     move();

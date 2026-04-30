@@ -1,5 +1,8 @@
 //import '/models/models.dart'; //my_trip_item.dart';
+import 'dart:math';
 import '/classes/classes.dart';
+import '/helpers/helpers.dart';
+import '../models/other_models.dart';
 // import 'package:flutter/widgets.dart';
 import '/constants.dart';
 import 'package:latlong2/latlong.dart';
@@ -46,16 +49,143 @@ class MutableInt {
   MutableInt({this.value = -1});
 }
 
+class Position {
+  double _longitude;
+  double _latitude;
+  Point _pointXY;
+  List<double> _pointXYList;
+  Position(
+      {double? longitude,
+      double? latitude,
+      Point? pointXY,
+      List<double>? pointXYList})
+      : _longitude = longitude ?? 0,
+        _latitude = latitude ?? 0,
+        _pointXY = pointXY ?? Point(0, 0),
+        _pointXYList = pointXYList ?? [0, 0];
+
+  double get longitude => _longitude + _pointXY.x + _pointXYList[0];
+  double get latitude => _latitude + _pointXY.y + _pointXYList[1];
+  Point get pointXY => Point(_longitude + _pointXY.x + _pointXYList[0],
+      _latitude + _pointXY.y + _pointXYList[1]);
+  List<double> get pointXYList => [
+        _longitude + _pointXY.x + _pointXYList[0],
+        _latitude + _pointXY.y + _pointXYList[1]
+      ];
+  set latitude(double value) {
+    _latitude = value;
+    _pointXY = Point(_pointXY.x, 0);
+    _pointXYList[1] = 0;
+  }
+
+  set longitude(double value) {
+    _longitude = value;
+    _pointXY = Point(0, _pointXY.y);
+    _pointXYList[0] = 0;
+  }
+
+  set pointXY(Point value) {
+    _latitude = 0;
+    _longitude = 0;
+    _pointXY = value;
+    _pointXYList = [0, 0];
+  }
+
+  set pointXYList(List<double> value) {
+    _latitude = 0;
+    _longitude = 0;
+    _pointXY = Point(0, 0);
+    _pointXYList = value;
+  }
+}
+
+class Waypoint {
+  final int value;
+  final Point point;
+  bool? selected;
+  final bool isGoodRoad;
+  String colour;
+  Waypoint(
+      {this.value = 0,
+      Point? point,
+      bool? selected,
+      this.isGoodRoad = false,
+      String? colour})
+      : point = point ?? Point(0, 0),
+        colour = colour ?? Setup().routeColourHex(),
+        selected = selected ?? false;
+
+  Map<String, dynamic> toMap() {
+    return {
+      "point": [point.x, point.y],
+      "selected": false,
+      "colour":
+          isGoodRoad ? Setup().goodRouteColourHex : Setup().routeColourHex(),
+      "is_good_road": isGoodRoad,
+    };
+  }
+
+  factory Waypoint.fromMap({required Map<String, dynamic> map}) {
+    return Waypoint(
+        colour: map["colour"],
+        point: Point((map["point"] ?? [0, 0])[0], (map["point"] ?? [0, 0])[1]),
+        selected: false,
+        isGoodRoad: map["is_good_road"] ?? false);
+  }
+}
+
 class RouteDelta {
-  int distance;
+  double distance;
   int routeIndex;
   int pointIndex;
-  List<double> point;
+  Point point;
   RouteDelta(
       {this.distance = 0,
       this.routeIndex = -1,
       this.pointIndex = -1,
-      this.point = const [0, 0]});
+      this.point = const Point(0, 0)});
+}
+
+class RouterData {
+  final String message;
+  final String name;
+  final String summary;
+  final double distance;
+  final double duration;
+  final List<Maneuver> maneuvers;
+  final List<Route> routes;
+  RouterData(
+      {this.message = 'OK',
+      this.name = '',
+      this.summary = '',
+      this.distance = 0,
+      this.duration = 0,
+      List<Maneuver>? maneuvers,
+      List<Route>? routes})
+      : maneuvers = maneuvers ?? [],
+        routes = routes ?? [];
+
+  factory RouterData.fromGeoJson(
+      {required Map<String, dynamic> geoJson, List<Waypoint>? waypoints}) {
+    waypoints ??= [];
+    List<Maneuver> maneuvers = getManeuversFromJson(routes: geoJson['routes']);
+    double distance = getRouteLengthFromGeoJson(geoJson: geoJson);
+    double duration = getRouteDurationFromGeoJson(geoJson: geoJson);
+    List<Route> routes = [];
+    for (int i = 0; i < geoJson['routes'].length; i++) {
+      routes.add(Route.fromGeoJson(
+          geoJsonMap: geoJson['routes'][i], waypoints: waypoints));
+    }
+    String summary =
+        '${distance.toStringAsFixed(1)} miles - (${(duration / 60).floor()} minutes)';
+    return RouterData(
+      summary: summary,
+      distance: distance,
+      duration: duration,
+      maneuvers: maneuvers,
+      routes: routes,
+    );
+  }
 }
 
 class MutableDouble {

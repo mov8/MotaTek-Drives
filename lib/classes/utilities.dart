@@ -3,33 +3,37 @@ import 'package:drives/classes/classes.dart';
 
 import '/models/models.dart';
 import '/classes/route.dart' as mt_rt;
-import 'package:geolocator/geolocator.dart';
+import 'package:geolocator/geolocator.dart' as gl;
 import 'package:latlong2/latlong.dart';
 import 'package:flutter/widgets.dart';
 
 Future<Position> getPosition() async {
   // debugPrint('Starting getPosition...');
   bool serviceEnabled;
-  LocationPermission permission;
+  gl.LocationPermission permission;
 
-  serviceEnabled = await Geolocator.isLocationServiceEnabled();
+  serviceEnabled = await gl.Geolocator.isLocationServiceEnabled();
   if (!serviceEnabled) {
     return Future.error('Location services not enabled.');
   }
 
-  permission = await Geolocator.checkPermission();
-  if (permission == LocationPermission.denied) {
-    permission = await Geolocator.requestPermission();
-    if (permission == LocationPermission.denied) {
+  permission = await gl.Geolocator.checkPermission();
+  if (permission == gl.LocationPermission.denied) {
+    permission = await gl.Geolocator.requestPermission();
+    if (permission == gl.LocationPermission.denied) {
       return Future.error('Location permissions denied.');
     }
-    if (permission == LocationPermission.deniedForever) {
+    if (permission == gl.LocationPermission.deniedForever) {
       return Future.error(
           'Location permissions are permanently denied. Check your settings');
     }
   }
   try {
-    Setup().lastPosition = await Geolocator.getCurrentPosition();
+    gl.Position glPosition = await gl.Geolocator.getCurrentPosition();
+    Setup().lastPosition.pointXYList = [
+      glPosition.longitude,
+      glPosition.latitude
+    ];
     //  debugPrint('utilities.getPosition() retuning position');
   } catch (e) {
     debugPrint('utilities.getPosition() error: ${e.toString()}');
@@ -39,7 +43,7 @@ Future<Position> getPosition() async {
 
 double distanceBetween(Point point1, Point point2,
     {bool miles = true, bool meters = false}) {
-  double distance = Geolocator.distanceBetween(point1.y.toDouble(),
+  double distance = gl.Geolocator.distanceBetween(point1.y.toDouble(),
       point1.x.toDouble(), point2.y.toDouble(), point2.x.toDouble());
   if (meters) {
     return distance;
@@ -164,11 +168,11 @@ int closestWWaypoint({required List<Waypooint> waypoints, required Point point})
 }
 */
 List<int> closestWaypoints(
-    {required List<Point> waypoints, required Point point}) {
+    {required List<Waypoint> waypoints, required Point point}) {
   List<int> idx = [-1, -1];
   List<double> distance = [999999999, 999999999];
   for (int i = 0; i < waypoints.length; i++) {
-    double gap = distanceBetween(waypoints[i], point);
+    double gap = distanceBetween(waypoints[i].point, point);
     if (gap < distance[0]) {
       idx[1] = idx[0];
       idx[0] = i;

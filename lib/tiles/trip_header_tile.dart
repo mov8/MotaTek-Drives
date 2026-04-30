@@ -21,22 +21,42 @@ class TripHeaderController {
           name: 'h_eading');
     }
   }
+
+  void refresh() {
+    try {
+      _tripHeaderTileState?.refresh();
+    } catch (e) {
+      developer.log('tripHeaderController.edit() error: ${e.toString()}',
+          name: 'h_eading');
+    }
+  }
+
+  void collapse() {
+    try {
+      _tripHeaderTileState?.collapse();
+    } catch (e) {
+      developer.log('tripHeaderController.edit() error: ${e.toString()}',
+          name: 'h_eading');
+    }
+  }
 }
 
 class TripHeaderTile extends StatefulWidget {
   final CurrentTripItem tripItem;
   final TripHeaderController? controller;
-  final Function(int) onUpdate;
+  final Function(bool) onUpdate;
   final int index;
   final AppState appState;
+  bool expanded;
 
-  const TripHeaderTile({
+  TripHeaderTile({
     super.key,
     this.controller,
     required this.index,
     required this.tripItem,
     required this.appState,
     required this.onUpdate,
+    this.expanded = false,
   });
 
   @override
@@ -48,16 +68,19 @@ class _TripHeaderTileState extends State<TripHeaderTile> {
   late final FocusNode fn2;
   late final FocusNode fn3;
   bool setFocus = false;
+  // ExpansibleController expandController = ExpansibleController();
 
   void initState() {
     super.initState();
     if (widget.controller != null) {
       widget.controller!._addState(this);
     }
+    developer.log('trip_header_tile.dart initState() CALLED',
+        name: '_keyboard_');
     fn1 = FocusNode();
     fn2 = FocusNode();
     fn3 = FocusNode();
-    fn1.requestFocus();
+    // fn1.requestFocus();
   }
 
   @override
@@ -73,8 +96,53 @@ class _TripHeaderTileState extends State<TripHeaderTile> {
   /// rebuild calls fn1.requestFocus();
   void f_edit() async {
     /// developer.log('f_edit() => fn1.requestFocus()', name: '_focus');
+    developer.log('trip_header_tile.dart f_edit() CALLED', name: '_keyboard_');
+    /*
     if (mounted) {
-      setState(() => setFocus = true);
+      //  setState(() => setFocus = true);
+      developer.log('f_edit() => fn1.requestFocus() mounted OK',
+          name: '_dock_');
+      setState(() => fn1.requestFocus());
+    } else {
+      developer.log('f_edit() => fn1.requestFocus() NOT MOUNTED OK',
+          name: '_dock_');
+    }
+    */
+  }
+
+  void refresh() {
+    developer.log('trip_header_tile.dart refresh() CALLED', name: '_keyboard_');
+    setState(() => ());
+  }
+
+  void collapse() {
+    //  expandController.collapse();
+    developer.log('trip_header_tile.dart collapse() CALLED',
+        name: '_keyboard_');
+    setState(() => widget.expanded = false);
+  }
+
+  void dismissKeyboard() {
+    if (mounted) {
+      try {
+        collapse();
+        fn1.unfocus();
+        fn2.unfocus();
+        fn3.unfocus();
+        FocusScope.of(context).unfocus();
+      } catch (e) {
+        developer.log(
+            'Error trip_header_tile.dart dismissKeyboard(): ${e.toString}',
+            name: '_keyboard_');
+      }
+    }
+  }
+
+  void checkComplete() {
+    if (widget.tripItem.headerComplete() == 7) {
+      setState(() => dismissKeyboard());
+      widget.onUpdate(true);
+      //   expandController.collapse();
     }
   }
 
@@ -86,15 +154,21 @@ class _TripHeaderTileState extends State<TripHeaderTile> {
 
   @override
   Widget build(BuildContext context) {
-    developer.log('build TripHeaderTile setFocus: $setFocus', name: '_focus');
-    if (setFocus) {
-      fn1.requestFocus();
-      setFocus = false;
-    }
+    fn1.requestFocus();
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(10.0), // round the corners
 
-    return Container(
-      color: Colors.blue,
-      child: Column(
+      child: ExpansionTile(
+        key: UniqueKey(), // PageStorageKey(widget.index),
+        shape: Border(),
+        collapsedBackgroundColor: Colors.white,
+        backgroundColor: Colors.white,
+        title: Text(
+            widget.tripItem.title.isEmpty
+                ? "Enter your trip details"
+                : 'Route: ${widget.tripItem.title} details',
+            style: titleStyle(context: context, color: Colors.black, size: 2)),
+        initiallyExpanded: widget.expanded,
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
@@ -102,7 +176,6 @@ class _TripHeaderTileState extends State<TripHeaderTile> {
               key: Key('tff1'),
               readOnly: widget.appState == AppState.driveTrip,
               focusNode: fn1,
-              autofocus: true,
               textAlign: TextAlign.start,
               keyboardType: TextInputType.streetAddress,
               textCapitalization: TextCapitalization.words,
@@ -112,15 +185,15 @@ class _TripHeaderTileState extends State<TripHeaderTile> {
                 hintText: 'Give your trip a name...',
                 labelText: 'Trip name',
                 hintStyle:
-                    textStyle(context: context, color: Colors.white, size: 2),
+                    textStyle(context: context, color: Colors.black, size: 2),
                 labelStyle:
-                    textStyle(context: context, color: Colors.white, size: 2),
+                    textStyle(context: context, color: Colors.black, size: 2),
               ),
-              style: textStyle(context: context, color: Colors.white, size: 2),
+              style: textStyle(context: context, color: Colors.black, size: 2),
               initialValue: widget.tripItem.title,
               onFieldSubmitted: (text) {
                 widget.tripItem.title = text;
-                widget.onUpdate(widget.tripItem.headerComplete());
+                checkComplete();
                 FocusScope.of(context).requestFocus(fn2);
               },
             ),
@@ -142,16 +215,16 @@ class _TripHeaderTileState extends State<TripHeaderTile> {
                 hintText: 'Enter a short summary of your trip...',
                 labelText: 'Trip summary',
                 hintStyle:
-                    textStyle(context: context, color: Colors.white, size: 2),
+                    textStyle(context: context, color: Colors.black, size: 2),
                 labelStyle:
-                    textStyle(context: context, color: Colors.white, size: 2),
+                    textStyle(context: context, color: Colors.black, size: 2),
               ),
-              style: textStyle(context: context, color: Colors.white, size: 2),
+              style: textStyle(context: context, color: Colors.black, size: 2),
               initialValue: widget.tripItem.subTitle,
               autovalidateMode: AutovalidateMode.onUserInteraction,
               onFieldSubmitted: (text) {
                 widget.tripItem.subTitle = text;
-                widget.onUpdate(widget.tripItem.headerComplete());
+                checkComplete();
                 FocusScope.of(context).requestFocus(fn3);
               },
             ),
@@ -172,16 +245,16 @@ class _TripHeaderTileState extends State<TripHeaderTile> {
                 hintText: 'Describe details of your trip...',
                 labelText: 'Trip details',
                 hintStyle:
-                    textStyle(context: context, color: Colors.white, size: 2),
+                    textStyle(context: context, color: Colors.black, size: 2),
                 labelStyle:
-                    textStyle(context: context, color: Colors.white, size: 2),
+                    textStyle(context: context, color: Colors.black, size: 2),
               ),
-              style: textStyle(context: context, color: Colors.white, size: 2),
+              style: textStyle(context: context, color: Colors.black, size: 2),
               initialValue: widget.tripItem.body,
               autovalidateMode: AutovalidateMode.onUserInteraction,
               onFieldSubmitted: (text) {
                 widget.tripItem.body = text;
-                widget.onUpdate(widget.tripItem.headerComplete());
+                checkComplete();
               },
             ),
           ),

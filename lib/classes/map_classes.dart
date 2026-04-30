@@ -15,7 +15,7 @@ import '/screens/dialogs.dart';
 import '/services/services.dart'; // hide getPosition;
 import 'package:latlong2/latlong.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:geolocator/geolocator.dart';
+import 'package:geolocator/geolocator.dart' as gl;
 import '/classes/route.dart' as mt;
 // import '/constants.dart';
 import 'package:vector_map_tiles/vector_map_tiles.dart';
@@ -195,6 +195,7 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
   /// found point and the lastPoint to the points.length
 }
 */
+/*
 class Fabs extends StatelessWidget {
   final AnimatedMapController animatedMapController;
   const Fabs({super.key, required this.animatedMapController});
@@ -211,7 +212,8 @@ class Fabs extends StatelessWidget {
         FloatingActionButton(
           heroTag: 'location',
           onPressed: () async {
-            Position currentPosition = await Geolocator.getCurrentPosition();
+            gl.Position glPosition = await Geolocator.getCurrentPosition();
+            Position currentPosition.pointXYList = [glPosition.longitude, glPosition.latitude];
             //      debugPrint('Position: ${currentPosition.toString()}');
             animatedMapController.animateTo(
               dest: LatLng(currentPosition.latitude, currentPosition.longitude),
@@ -249,7 +251,7 @@ class Fabs extends StatelessWidget {
     );
   }
 }
-
+*/
 class SetPreferences extends StatefulWidget {
   final TripsPreferences preferences;
 

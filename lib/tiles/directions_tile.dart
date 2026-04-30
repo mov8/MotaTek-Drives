@@ -3,10 +3,11 @@ import '/classes/classes.dart';
 import '/helpers/create_trip_helpers.dart';
 import 'package:flutter/material.dart';
 import '/models/other_models.dart';
+import '/classes/other_classes.dart';
 import '/tiles/maneuver_tile.dart';
 import '/services/web_helper.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:latlong2/latlong.dart';
+// import 'package:latlong2/latlong.dart';
 import '/classes/route.dart' as mt;
 import 'package:audioplayers/audioplayers.dart';
 import '/helpers/edit_helpers.dart';
@@ -46,7 +47,7 @@ class DirectionTileController {
 }
 
 class DirectionTile extends StatefulWidget {
-  final List<Map<String, dynamic>> routes;
+  final List<mt.Route> routes;
   final List<Maneuver> maneuvers;
   final Function(int) currentIndex;
   final Function(int, int, int)? onTap;
@@ -244,7 +245,7 @@ class _DirectionTileState extends State<DirectionTile> {
 
       /// Look for very first maneuver - the closest to the current position
 
-      if (_lastLatLng == LatLng(0, 0)) {
+      if (_lastLatLng == Point(0, 0)) {
         getClosestManeuver();
         _nextManeuverIndex = CurrentTripItem().nextManeuverIndex;
         getClosestPoint();

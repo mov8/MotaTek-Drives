@@ -128,16 +128,18 @@ class TripRequest {
   dynamic apiGeoJson;
 
   Future<Map<String, dynamic>> update(
-      {required LatLngBounds bounds, required double zoom}) async {
+      {required LatLngBounds bounds,
+      required double zoom,
+      List<String>? highlighted}) async {
     /// If changing zoom level or breaching bounds
     ///   1 zoom higher -> lower all higher polylines can be used but shields can't - excludes should be included in lower level
     ///   2 zoom lower -> higher all lower level data should be left intact
     ///   3 outside fence complete refresh of that level data with excludes from higher levels
 
+    highlighted ??= [];
     _thisZoom = zoom;
     bool zoomChanged = zoomUpdate(zoom: zoom);
     bool fenceBreached = outsideFence(bounds: bounds, zoom: zoom);
-    fenceBreached = true; // debug
     if (zoomChanged || fenceBreached) {
       try {
         String zLevel = level(zoom: zoom);
@@ -167,7 +169,7 @@ class TripRequest {
           // return jsonData;  // Debug
           // Extract returned ids to exclude
           for (int i = 0; i < jsonData["features"].length; i++) {
-            if (jsonData['features'][i]['properties'].length == 4) {
+            if (jsonData['features'][i]['properties'].length == 5) {
               _3DCache["cache"][zLevel]["data"]["lines"]
                   .add(jsonData["features"][i]);
               _3DCache["cache"][zLevel]["exclude"]
@@ -194,6 +196,21 @@ class TripRequest {
         }
         _lastZoom = zoom;
         onUpdated(zoom.toInt());
+        for (int i = 0;
+            i < _3DCache["cache"][zLevel]["data"]["lines"].length;
+            i++) {
+          _3DCache["cache"][zLevel]["data"]["lines"][i]["properties"]
+              ["highlighted"] = highlighted;
+        }
+        for (int i = 0;
+            i < _3DCache["cache"][zLevel]["data"]["shields"].length;
+            i++) {
+          _3DCache["cache"][zLevel]["data"]["shields"][i]["properties"]
+              ["highlighted"] = highlighted;
+        }
+        developer.log(
+            'TripRequest.update() returning ${_3DCache["cache"][zLevel]["data"]["lines"].length} lines + ${_3DCache["cache"][zLevel]["data"]["shields"]} shields',
+            name: '_geoJson*_');
         return {
           "type": "FeatureCollection",
           "features": _3DCache["cache"][zLevel]["data"]["lines"] +
@@ -203,6 +220,8 @@ class TripRequest {
         developer.log('Error using 3-DCache: ${e.toString()}');
       }
     }
+    developer.log('TripRequest.update() returning no lines or shields',
+        name: '_geoJson*_');
     return {"type": "FeatureCollection", "features": []};
   }
 
@@ -219,10 +238,33 @@ class TripRequest {
     String zLevel = level(zoom: zoom);
     try {
       Map<String, dynamic> fence = _3DCache["cache"][zLevel]["fence"];
+      if (bounds.southwest.longitude < fence["sw"]["lng"]) {
+        developer.log(
+            'zLevel: $zLevel  sw longitude breach fence : ${fence["sw"]["lng"]}  bounds: ${bounds.southwest.longitude} ',
+            name: '_x_map_');
+      }
+      if (bounds.southwest.latitude < fence["sw"]["lat"]) {
+        developer.log(
+            'zLevel: $zLevel  sw longitude breach fence : ${fence["sw"]["lat"]}  bounds: ${bounds.southwest.latitude} ',
+            name: '_x_map_');
+      }
+      if (bounds.northeast.longitude > fence["ne"]["lng"]) {
+        developer.log(
+            'zLevel: $zLevel  ne longitude breach fence : ${fence["ne"]["lng"]}  bounds: ${bounds.northeast.longitude} ',
+            name: '_x_map_');
+      }
+
+      if (bounds.northeast.latitude > fence["ne"]["lat"]) {
+        developer.log(
+            'zLevel: $zLevel  ne latitude breach fence : ${fence["ne"]["lat"]}  bounds: ${bounds.northeast.latitude} ',
+            name: '_x_map_');
+      }
+
       if (bounds.southwest.longitude < fence["sw"]["lng"] ||
           bounds.southwest.latitude < fence["sw"]["lat"] ||
           bounds.northeast.longitude > fence["ne"]["lng"] ||
           bounds.northeast.latitude > fence["ne"]["lat"]) {
+        developer.log('bounds breached', name: '_x_map_');
         return true;
       }
     } catch (e) {
@@ -251,6 +293,9 @@ class TripRequest {
         (bounds.northeast.latitude - bounds.southwest.latitude).abs();
     // Add a 100% buffer in all directions (1 screen width padding)
     String zLevel = level(zoom: zoom);
+    //  developer.log(
+    //      'zLevel: $zLevel , sw: ${_3DCache["cache"][zLevel]["fence"]["sw"]}, ne: ${_3DCache["cache"][zLevel]["fence"]["ne"]} bounds: sw: ${bounds.southwest} ne: ${bounds.northeast}',
+    //      name: '_x_map_');
     _3DCache["cache"][zLevel]["fence"] = {
       "sw": {
         "lng": bounds.southwest.longitude - lngSpan,
@@ -261,6 +306,7 @@ class TripRequest {
         "lat": bounds.northeast.latitude + latSpan
       }
     };
+    developer.log('bounds set', name: '_x_map_');
     return;
   }
 
@@ -288,16 +334,22 @@ class TripRequest {
       {String openUri = '',
       GlobalKey? key,
       Function(bool)? callback,
-      TripHeaderController? tripHeaderController}) {
+      Function(int)? onSave,
+      BottomDrawerData dataRequired = BottomDrawerData.none,
+      TripHeaderController? tripHeaderController,
+      PointOfInterest? newPointOfInterest}) {
     List<Card> cards = [
       Card(
-        key: openUri.isEmpty ? key : Key('tc-1'),
+        key: (openUri.isEmpty && dataRequired == BottomDrawerData.heading)
+            ? key
+            : Key('tc-1'),
         child: TripHeaderTile(
           key: Key('th_0'),
           controller: tripHeaderController,
           index: 0,
           tripItem: CurrentTripItem(),
           appState: AppState.createTrip,
+          expanded: dataRequired.isHeading,
           onUpdate: (value) {
             if (value == 7 && callback != null) {
               callback(true);
@@ -307,24 +359,45 @@ class TripRequest {
         ),
       )
     ];
-    if (pointsOfInterest.isNotEmpty) {
-      for (int i = 0; i < pointsOfInterest.length; i++) {
-        cards.add(
-          Card(
-            child: PointOfInterestTile(
-              key: pointsOfInterest[i].uuid == openUri ? key : Key('tt$i'),
-              pointOfInterest: pointsOfInterest[i],
-              imageRepository: imageRepository!,
-              index: i,
-              expanded: pointsOfInterest[i].uuid == openUri,
-              onUpdate: (value) {
-                if (callback != null) {
-                  callback(value);
-                }
-              },
-            ),
-          ),
-        );
+    //  if (newPointOfInterest != null) {
+    //    pointsOfInterest.add(newPointOfInterest);
+    //  }
+    if (CurrentTripItem().pointsOfInterest.isNotEmpty) {
+      for (int i = 0; i < CurrentTripItem().pointsOfInterest.length; i++) {
+        if (![12, 14, 17, 18, 19]
+            .contains(CurrentTripItem().pointsOfInterest[i].type)) {
+          bool toEdit = dataRequired.isPointOfInterest &&
+                  CurrentTripItem().pointsOfInterest[i].name.isEmpty ||
+              CurrentTripItem().pointsOfInterest[i].uuid == openUri;
+          developer.log(
+              'CurrentTripItem().pointsOfInterest[$i] toEdit: $toEdit',
+              name: '_keyboard_');
+          try {
+            cards.add(Card(
+              child: PointOfInterestTile(
+                key: toEdit ? key : Key('tt$i'),
+                pointOfInterest: CurrentTripItem().pointsOfInterest[i],
+                controller: PointOfInterestController(),
+                imageRepository: imageRepository!,
+                index: i,
+                expanded: toEdit,
+                onUpdate: (value) => //callback!(value),
+
+                    {
+                  if (callback != null) {callback(value)}
+                },
+                onSave: (value) => //onSave!(value),
+
+                    {
+                  if (onSave != null) {onSave(value)}
+                },
+              ),
+            ));
+          } catch (e) {
+            developer.log('Error adding Card: ${e.toString()}',
+                name: '_keyboard_');
+          }
+        }
       }
     }
     return cards;

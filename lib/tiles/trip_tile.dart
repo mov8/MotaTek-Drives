@@ -146,9 +146,11 @@ class _TripTileState extends State<TripTile> {
                     ),
                     Expanded(
                       flex: 6,
-                      child: StarRating(
-                          onRatingChanged: changeRating,
-                          rating: widget.tripItem.score),
+                      child: // Text(widget.tripItem.score),
+
+                          StarRating(
+                              onRatingChanged: changeRating,
+                              rating: widget.tripItem.rating),
                     ),
                   ],
                 ),
@@ -347,7 +349,7 @@ class _TripTileState extends State<TripTile> {
       if (widget.onRatingChanged != null) {
         widget.onRatingChanged!(value, widget.index);
       }
-      setState(() => widget.tripItem.score = value.toDouble());
+      setState(() => widget.tripItem.rating = value.toDouble());
     }
   }
 
