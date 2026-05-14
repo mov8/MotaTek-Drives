@@ -7,7 +7,7 @@ import 'dart:developer' as developer;
 import 'package:http/http.dart' as http;
 // import 'package:latlong2/latlong.dart';
 // import '/classes/route.dart' as mt;
-import 'geojson_helpers.dart';
+// import 'geojson_helpers.dart';
 import '/models/models.dart';
 import '/constants.dart';
 import '/classes/classes.dart';
@@ -460,92 +460,99 @@ int getRoundaboutAngle(
   /// It does it by getting the angle of approach and leave angle at the distance of 25 - 100 m from
   /// the roundabout. Should help in most cases, though very large roundabouts could still be an issue.
   /// The bearingBefore and bearingAfter is at the point of joining or leaving the actual roundabout.
+  /// There are two distances from the roundabout that can be used to calculate the angles 25m & 100m
+
   try {
-    if (maneuvers[index].type.contains('roundabout')) {
-      if (maneuvers[index].type == 'roundabout') {
-        int distance = 0;
-        PositionData positionData =
-            getClosestPoint(routes: routes, position: maneuvers[index].point);
+    if (maneuvers[index].type == 'roundabout' &&
+        !(maneuvers[index].calculated ?? false)) {
+      PositionData roundaboutPosition =
+          getClosestPoint(routes: routes, position: maneuvers[index].point);
 
-        List<double> point1 = [0, 0];
-        List<double> point2 = [0, 0];
-        List<double> point3 = [0, 0];
-        List<double> point4 = [0, 0];
-/*
-        Point point1 = Point(0, 0);
-        Point point2 = Point(0, 0);
-        Point point3 = Point(0, 0);
-        Point point4 = Point(0, 0);
-*/
-
-        for (int i = positionData.pointIndex; i > 0; i--) {
-          distance = distanceBetween(
-                  startXY: maneuvers[index].point,
-                  endList: routes[positionData.routeIndex].lines[i])
+      List points = [[], [], [], []];
+      int pointIndex = roundaboutPosition.pointIndex;
+      List<List<double>> lines = routes[roundaboutPosition.routeIndex].lines;
+      List<double> roundaboutPoint = lines[pointIndex];
+      while (points[0].isEmpty ||
+          points[1].isEmpty ||
+          points[2].isEmpty ||
+          points[3].isEmpty) {
+        pointIndex += 1;
+        int beforeIndex = roundaboutPosition.pointIndex - pointIndex;
+        int afterIndex = roundaboutPosition.pointIndex + pointIndex;
+        if (beforeIndex >= 0 && (points[0].isEmpty || points[1].isEmpty)) {
+          int metersBefore = distanceBetween(
+                  startXY: maneuvers[index].point, endList: lines[beforeIndex])
               .toInt();
-          if (point2 == [0, 0] && distance > 25) {
-            point2 = routes[positionData.routeIndex].lines[i];
-          } else if ((point1 == [0, 0] && distance > 100) || i == 0) {
-            point1 = routes[positionData.routeIndex].lines[i];
-            break;
+          if (metersBefore > 100 && points[1].isEmpty) {
+            points[1] = lines[beforeIndex];
+          } else if (metersBefore > 25 && points[0].isEmpty) {
+            points[0] = lines[beforeIndex];
+          }
+        } else if (beforeIndex < 0) {
+          if (points[0].isEmpty) {
+            points[0] = lines.first;
+          }
+          if (points[1].isEmpty) {
+            points[1] = lines.first;
           }
         }
-
-        positionData = getClosestPoint(
-            routes: routes, position: maneuvers[index + 1].point);
-
-        for (int i = positionData.pointIndex;
-            i < routes[positionData.routeIndex].lines.length;
-            i++) {
-          distance = distanceBetween(
-                  startXY: maneuvers[index + 1].point,
-                  endList: routes[positionData.routeIndex].lines[i])
+        if (afterIndex < lines.length &&
+            (points[2].isEmpty || points[3].isEmpty)) {
+          int metersBefore = distanceBetween(
+                  startXY: maneuvers[index].point, endList: lines[afterIndex])
               .toInt();
-          if (point3 == [0, 0] && distance > 25) {
-            point3 = routes[positionData.routeIndex].lines[i];
-          } else if ((point4 == [0, 0] && distance > 100) || i == 0) {
-            point4 = routes[positionData.routeIndex].lines[i];
-            break;
+          if (metersBefore > 100 && points[3].isEmpty) {
+            points[3] = lines[afterIndex];
+          } else if (metersBefore > 25 && points[2].isEmpty) {
+            points[2] = lines[afterIndex];
+          }
+        } else if (afterIndex >= lines.length) {
+          if (points[2].isEmpty) {
+            points[2] = lines.last;
+          }
+          if (points[3].isEmpty) {
+            points[3] = lines.last;
           }
         }
-
-        int approachAngle = angleFromPoints(point1: point1, point2: point2);
-        int leaveAngle = angleFromPoints(point1: point3, point2: point4);
-
-        maneuvers[index].bearingBefore = approachAngle;
-        maneuvers[index].bearingAfter = leaveAngle;
-
-        /// Give the exit roundabout maneuver the same angles
-        maneuvers[index + 1].bearingBefore = approachAngle;
-        maneuvers[index + 1].bearingAfter = leaveAngle;
-
-        // int deltaAngle = approachAngle - leaveAngle;
-        // int summaryAngle = angleFromPoints(point1: point1, point2: point4);
-        // leaveAngle = leaveAngle - approachAngle;
-
-        ///   when the roundaboutPainter draws an arc it always starts at 3 O'Clock and paints clockwise
-        ///   the painter describes all angles in radians but its angle parameter is degrees
-        ///   the painter does the adjustment of the start from 3 O'Clock to 6 O'Clock
-        ///   the painter adds the 180 degrees to represent straight on
-        ///   the painter makes the adjustment from degrees to radians
-        ///   approach angles will always be adjusted to N 0 degress
-        ///   leave angles will adjusted to fit approach angles
-        ///   the painter will be fed the arc in degrees to be transcribed from 6 O'Clock position
-        ///
-        ///   approach    exit     delta      painted arc (180 + delta)
-        ///     |           |         0       180 degrees
-        ///
-        ///     |           /        45       225 degrees
-        ///
-        ///     |           \       -45       135 degrees
-        ///
       }
+      int approachAngle =
+          angleFromPoints(point1: points[1], point2: roundaboutPoint);
+      int leaveAngle =
+          angleFromPoints(point1: roundaboutPoint, point2: points[3]);
 
-      angle = maneuvers[index].bearingAfter - maneuvers[index].bearingBefore;
+      maneuvers[index].bearingBefore = approachAngle;
+      maneuvers[index].bearingAfter = leaveAngle;
+
+      /// Give the exit roundabout maneuver the same angles
+      maneuvers[index + 1].bearingBefore = approachAngle;
+      maneuvers[index + 1].bearingAfter = leaveAngle;
+
+      maneuvers[index].calculated = true;
+
+      developer.log(
+          'create_trip_helpers.dart getRoundaboutAngle() 533 roadFrom: ${maneuvers[index].roadFrom} roadTo: ${maneuvers[index].roadTo} approachAngle: $approachAngle  leaveAngle: $leaveAngle  sweep angle: ${maneuvers[index].bearingAfter - maneuvers[index].bearingBefore}',
+          name: '_roundabout_');
+
+      ///   when the roundaboutPainter draws an arc it always starts at 3 O'Clock and paints clockwise
+      ///   the painter describes all angles in radians but its angle parameter is degrees
+      ///   the painter does the adjustment of the start from 3 O'Clock to 6 O'Clock
+      ///   the painter adds the 180 degrees to represent straight on
+      ///   the painter makes the adjustment from degrees to radians
+      ///   approach angles will always be adjusted to N 0 degrees
+      ///   leave angles will adjusted to fit approach angles
+      ///   the painter will be fed the arc in degrees to be transcribed from 6 O'Clock position
+      ///
+      ///   approach    exit     delta      painted arc (180 + delta)
+      ///     |           |         0       180 degrees
+      ///
+      ///     |           /        45       225 degrees
+      ///
+      ///     |           \       -45       135 degrees
     }
   } catch (e) {
     debugPrint('Error calculating roundabout angle: ${e.toString()}');
   }
+  angle = maneuvers[index].bearingAfter - maneuvers[index].bearingBefore;
   return angle;
 }
 
@@ -576,6 +583,9 @@ PositionData getClosestPoint(
       }
     }
   }
+  // developer.log(
+  //     'create_trip_helpers.dart getClosestPoint() metersToRoute: ${positionData.metersToRoute}',
+  //     name: '_roundabout_');
   positionData.metersToRoute =
       positionData.metersToRoute == 999999999 ? 0 : positionData.metersToRoute;
   return positionData;
@@ -655,9 +665,12 @@ double distanceBetween(
             cos(_toRadians(startLatitude)) *
             cos(_toRadians(endLatitude));
     c = 2 * asin(sqrt(a));
+    //   developer.log(
+    //       'distanceBetween() startXY: $startXY  endXY: $endXY a: $a  c: $c,  distance M: ${earthRadius * c}',
+    //       name: '_roundabout_');
   } catch (e) {
     developer.log('Error calculating distance: ${e.toString()}',
-        name: '_repaint_');
+        name: '_roundabout_');
   }
 
   return earthRadius * c;

@@ -77,6 +77,7 @@ enum MyTripActions {
   saveTrip,
   follow,
   stopFollowing,
+  stopTracking,
   clearTrip,
   reverseTrip,
   showSteps,
@@ -97,6 +98,7 @@ enum BottomDrawerItems {
   showGroup,
   steps,
   trip, // <-- trip = heading, good road and points of interest
+  drives,
 }
 
 enum MarkerTypes {
@@ -130,10 +132,9 @@ enum TripState {
   editing,
   loaded,
   manual,
-  automatic,
-  recording,
-  stoppedRecording,
-  paused,
+  tracking,
+  stoppedTracking,
+  pausedTracking,
   following,
   notFollowing,
   stoppedFollowing,
@@ -325,7 +326,7 @@ enum MapUpdates {
   pointsOfInterest(16), // 1 << 5                           00010000
   routesAndWaypointsAndPointsOfInterest(21), //             00010101
   goodRoadsAndWaypointsAndPointsOfInterest(26), //          00011010
-  followers(32), // 1 << 6                                  00100000
+  followers(32), // 1 << 6                             00100000
   routesAndFollowers(33), //                                00100001
   allWithoutAllWaypoints(51), //                            00111011
   allWithoutWaypoints(59), //                               00110011
@@ -372,7 +373,7 @@ enum MapUpdates {
   bool get includesWaypoints => value & waypoints.value != 0;
   bool get includesGoodRoadWaypoints => value & goodRoadWaypoints.value != 0;
   bool get includesPointsOfInterest => value & pointsOfInterest.value != 0;
-  bool get includesFollowers => value & followers.value != 0;
+  bool get includesLocationStream => value & followers.value != 0;
   bool get isUpdating => value & updating.value != 0;
   String get routesSource => value & routes.value != 0 ? 'route-data' : '';
   String get goodRoadsSource =>

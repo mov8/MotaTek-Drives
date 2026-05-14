@@ -198,46 +198,54 @@ class _FloatingChecklistState extends State<FloatingChecklist> {
       duration: const Duration(seconds: 1),
       width: _width,
       height: _height,
-      decoration: BoxDecoration(boxShadow: [
-        BoxShadow(
+      decoration: BoxDecoration(
+        boxShadow: [
+          BoxShadow(
             color: Colors.black54,
             offset: const Offset(1, 3),
             blurRadius: 5,
-            spreadRadius: 0)
-      ], color: Colors.blue, borderRadius: BorderRadius.circular(30)),
+            spreadRadius: 0,
+          )
+        ],
+        color: Colors.blue,
+        borderRadius: BorderRadius.circular(30),
+      ),
       curve: Curves.fastOutSlowIn,
-      onEnd: () => setState(() {
-        _expanded = _width > widget.width && _height > widget.height;
-
-        _height = _width == widget.width ? widget.height : _maxHeight;
-      }),
+      onEnd: () => setState(
+        () {
+          _expanded = _width > widget.width && _height > widget.height;
+          _height = _width == widget.width ? widget.height : _maxHeight;
+        },
+      ),
       child: _expanded
-          ? Row(children: [
-              SizedBox(
-                width: _width - widget.height,
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(20, 5, 2, 5),
-                  child: Card(
-                    color: Colors.white,
-                    child: SingleChildScrollView(
-                      child: Column(
-                        children: List.generate(
-                          widget.choices.length,
-                          (index) => Card(
-                            child: CheckboxListTile(
-                              value: _choices[index].values.toList()[0],
-                              onChanged: (value) {
-                                setState(() {
-                                  _choices[index]
-                                          [_choices[index].keys.toList()[0]] =
-                                      value;
-                                  if (widget.onCheck != null) {
-                                    widget.onCheck!(index, value!);
-                                  }
-                                });
-                              },
-                              title: Text(_choices[index].keys.toList()[0],
-                                  style: TextStyle(fontSize: 20)),
+          ? Row(
+              children: [
+                SizedBox(
+                  width: _width - widget.height,
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(20, 5, 2, 5),
+                    child: Card(
+                      color: Colors.white,
+                      child: SingleChildScrollView(
+                        child: Column(
+                          children: List.generate(
+                            widget.choices.length,
+                            (index) => Card(
+                              child: CheckboxListTile(
+                                value: _choices[index].values.toList()[0],
+                                onChanged: (value) {
+                                  setState(() {
+                                    _choices[index]
+                                            [_choices[index].keys.toList()[0]] =
+                                        value;
+                                    if (widget.onCheck != null) {
+                                      widget.onCheck!(index, value!);
+                                    }
+                                  });
+                                },
+                                title: Text(_choices[index].keys.toList()[0],
+                                    style: TextStyle(fontSize: 20)),
+                              ),
                             ),
                           ),
                         ),
@@ -245,50 +253,55 @@ class _FloatingChecklistState extends State<FloatingChecklist> {
                     ),
                   ),
                 ),
-              ),
-              Align(
-                alignment: Alignment.topRight,
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(4, 4, 0, 0),
-                  child: IconButton(
-                    onPressed: () {
-                      setState(() {
-                        _width = widget.height;
-                        _height = widget.height;
-                        if (widget.onClose != null) {
-                          widget.onClose!(true);
-                        }
-                      });
-                      _expanded = false;
-                    },
-                    icon: Icon(
+                Align(
+                  alignment: Alignment.topRight,
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(4, 4, 0, 0),
+                    child: IconButton(
+                      onPressed: () {
+                        setState(
+                          () {
+                            _width = widget.height;
+                            _height = widget.height;
+                            if (widget.onClose != null) {
+                              widget.onClose!(true);
+                            }
+                          },
+                        );
+                        _expanded = false;
+                      },
+                      icon: Icon(
                         _width > widget.width
                             ? widget.closedIcon // Icons.settings_outlined
                             : widget.openIcon, //Icons.settings,
                         size: widget.openIconSize, //_height / 2,
-                        color: widget.openIconColor // Colors.white),
-                        ),
+                        color: widget.openIconColor, // Colors.white),
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ])
+              ],
+            )
           : Align(
               alignment: Alignment.topRight,
               child: Padding(
                 padding: EdgeInsets.fromLTRB(0, 4, 4, 0),
                 child: IconButton(
                   onPressed: () {
-                    setState(() {
-                      _expanded = false;
-                      _width = _maxWidth;
-                    });
+                    setState(
+                      () {
+                        _expanded = false;
+                        _width = _maxWidth;
+                      },
+                    );
                   },
                   icon: Icon(
-                      _height == widget.height
-                          ? widget.openIcon
-                          : widget.closedIcon,
-                      size: widget.closedIconSize,
-                      color: widget.closedIconColor),
+                    _height == widget.height
+                        ? widget.openIcon
+                        : widget.closedIcon,
+                    size: widget.closedIconSize,
+                    color: widget.closedIconColor,
+                  ),
                 ),
               ),
             ),

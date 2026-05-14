@@ -155,7 +155,7 @@ class _FollowerTileState extends State<FollowerTile> {
   }
 
   changePosition({LatLng position = const LatLng(0, 0)}) {
-    if (widget.follower.position != LatLng(0.0, 0.0)) {
+    if (widget.follower.position != [0.0, 0.0]) {
       double distance = Geolocator.distanceBetween(
           widget.currentPosition.y.toDouble(),
           widget.currentPosition.x.toDouble(),

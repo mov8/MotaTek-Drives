@@ -8,7 +8,7 @@ import '/constants.dart';
 import '/classes/route.dart' as mt;
 // import '/helpers/create_trip_helpers.dart';
 // import '/classes/classes.dart';
-import 'package:latlong2/latlong.dart';
+// import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import 'dart:developer' as developer;
 //import 'dart:math';
@@ -105,6 +105,10 @@ class PositionData {
   int metersToRoute = 0;
   PositionData(this.pointIndex, this.routeIndex, this.metersToRoute,
       this.metersToNextManeuver, this.metersToLastManeuver);
+
+  String asString() {
+    return 'metersToLastManeuver: $metersToLastManeuver, metersToNextManeuver: $metersToNextManeuver, metersToRoute: $metersToRoute, pointIndex: $pointIndex, routeIndex: $routeIndex';
+  }
 }
 
 class DirectionDescriptors {
@@ -153,7 +157,7 @@ class DirectionDescriptors {
   }
 
   /// When the next maneuver is a roundabout have to calculate the correct
-  /// approach and leave angles. The problem is cased by tangential lead-ins
+  /// approach and leave angles. The problem is caused by tangential lead-ins
   /// and lead-outs which OSM Maps uses for the angleBefore and angleAfter
   /// this gives misleading sweepAngles that won't correspond to the signs
   /// that the driver sees.
@@ -219,6 +223,9 @@ class DirectionDescriptors {
           nextManeuverIndex != _roundabout) {
         _sweepAngle = getRoundaboutAngle(
             maneuvers: maneuvers, index: nextManeuverIndex, routes: routes);
+        developer.log(
+            "directions.dart getDirections() _sweepAngle: $_sweepAngle",
+            name: '_roundabout_');
         _roundabout = nextManeuverIndex;
       }
       Maneuver? maneuver;
@@ -349,51 +356,74 @@ class DirectionDescriptors {
     if (maneuver.type == 'depart') {
       metersToManeuver = maneuver.distance;
     }
+
+    Map<String, String> prompts = {
+      'heading': 'missing',
+      'subheading': 'missing'
+    };
     String distance =
         distancePrompt(meters: metersToManeuver, forSound: forSound);
     String towards = maneuver.roadFrom != maneuver.roadTo
         ? 'towards ${maneuver.roadTo}'
         : '';
-    Map<String, dynamic> headingTypes = {
-      'depart':
-          "depart ${maneuver.roadFrom.isNotEmpty ? 'from ${maneuver.roadFrom}' : ''}'",
-      'continue':
-          "continue ${maneuver.modifier} for ${distancePrompt(meters: distanceToTurn(index: maneuverIndex), forSound: forSound)}",
-      'turn': "in $distance turn ${maneuver.modifier}",
-      'roundabout':
-          "at the roundabout in $distance take the ${exitName(maneuver.exit)}",
-      'exit roundabout': "exit the roundabout", // along $towards",
-      'end of road': "at end of road in $distance turn ${maneuver.modifier}",
-      'new name': "continue ${maneuver.modifier}",
-      'fork':
-          "fork ${maneuver.modifier.replaceAll('slight ', 'slightly ')} in $distance ",
-      'arrive': "arrive at your destination ${maneuver.roadTo}"
-    };
-    Map<String, dynamic> subheadingTypes = {
-      'depart':
-          "depart from ${maneuver.roadFrom} turn ${maneuver.modifier} in $distance; $towards",
-      'continue':
-          "continue ${maneuver.modifier} for ${distancePrompt(meters: distanceToTurn(index: maneuverIndex), forSound: forSound)}",
-      'turn':
-          "in $distance turn ${maneuver.modifier} into ${maneuver.roadFrom}  $towards",
-      'roundabout':
-          "at the roundabout in $distance take the ${exitName(maneuver.exit)}",
-      'exit roundabout':
-          "exit the roundabout take ${maneuver.roadFrom} $towards",
-      'end of road':
-          "at end of road in $distance turn ${maneuver.modifier} along ${maneuver.roadFrom} $towards",
-      'new name': "continue ${maneuver.modifier} $towards",
-      'fork':
-          "fork ${maneuver.modifier} in $distance into ${maneuver.roadFrom} $towards",
-      'arrive': "arrive at your destination ${maneuver.roadTo}"
-    };
-    return {
-      "heading": headingTypes[maneuver.type],
-      "subheading": subheadingTypes[maneuver.type]
-    };
+    Map<String, dynamic> headingTypes = {};
+    try {
+      headingTypes = {
+        'depart':
+            "depart ${maneuver.roadFrom.isNotEmpty ? 'from ${maneuver.roadFrom}' : ''}'",
+        'continue':
+            "continue ${maneuver.modifier} for ${distancePrompt(meters: distanceToTurn(index: maneuverIndex), forSound: forSound)}",
+        'turn': "in $distance turn ${maneuver.modifier}",
+        'roundabout':
+            "at the roundabout in $distance take the ${exitName(maneuver.exit)}",
+        'exit roundabout': "exit the roundabout", // along $towards",
+        'end of road': "at end of road in $distance turn ${maneuver.modifier}",
+        'new name': "continue ${maneuver.modifier}",
+        'fork':
+            "fork ${maneuver.modifier.replaceAll('slight ', 'slightly ')} in $distance ",
+        'arrive': "arrive at your destination ${maneuver.roadTo}"
+      };
+    } catch (e) {
+      developer.log('Error getting headings: ${e.toString()}', name: '_error_');
+    }
+    Map<String, dynamic> subheadingTypes = {};
+    try {
+      subheadingTypes = {
+        'depart':
+            "depart from ${maneuver.roadFrom} turn ${maneuver.modifier} in $distance; $towards",
+        'continue':
+            "continue ${maneuver.modifier} for ${distancePrompt(meters: distanceToTurn(index: maneuverIndex), forSound: forSound)}",
+        'turn':
+            "in $distance turn ${maneuver.modifier} into ${maneuver.roadFrom} $towards",
+        'roundabout':
+            "at the roundabout in $distance take the ${exitName(maneuver.exit)}",
+        'exit roundabout':
+            "exit the roundabout take ${maneuver.roadFrom} $towards",
+        'end of road':
+            "at end of road in $distance turn ${maneuver.modifier} along ${maneuver.roadFrom} $towards",
+        'new name': "continue ${maneuver.modifier} $towards",
+        'fork':
+            "fork ${maneuver.modifier} in $distance into ${maneuver.roadFrom} $towards",
+        'arrive': "arrive at your destination ${maneuver.roadTo}"
+      };
+    } catch (e) {
+      developer.log('Error getting subheadings: ${e.toString()}',
+          name: '_error_');
+    }
+    try {
+      prompts = {
+        "heading": headingTypes[maneuver.type],
+        "subheading": subheadingTypes[maneuver.type]
+      };
+    } catch (e) {
+      developer.log('Error : ${e.toString()}', name: '_error_');
+      prompts = {'heading': 'error', 'subheading': 'error'};
+    }
+
+    return prompts;
   }
 
-  /// The aim is to get a good compramise between information and cacheability. The mp3 filename will be based on:
+  /// The aim is to get a good compromise between information and cacheability. The mp3 filename will be based on:
   ///   The maneuver.type
 
 /*

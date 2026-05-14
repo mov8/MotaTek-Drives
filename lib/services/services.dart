@@ -7,10 +7,11 @@
 // have to use getPrivateRepository().switchedLocalStorageMethod()
 // to run the appropriate storage method.
 
-export '/services/private_storage_local.dart'
-    if (dart.library.html) '/services/private_storage_api.dart';
-export '/services/private_storage.dart';
-export '/services/geolocator_helper.dart';
+export 'private_storage_local.dart'
+    if (dart.library.html) 'private_storage_api.dart';
+export 'private_storage.dart';
+export 'geolocator_helper.dart';
 export '../helpers/image_helpers.dart';
-export '/services/stream_data.dart';
-export '/services/web_helper.dart';
+export 'stream_data.dart';
+export 'web_helper.dart';
+export 'maplibre_service.dart';

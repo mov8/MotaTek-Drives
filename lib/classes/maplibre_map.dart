@@ -2,7 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
-import 'package:geolocator/geolocator.dart';
+// import 'package:geolocator/geolocator.dart';
 import '/services/services.dart';
 import '/classes/classes.dart' hide Position;
 import '/constants.dart';
@@ -29,57 +29,33 @@ class MLMap extends StatefulWidget {
   MapLibreMapController? mapController;
   final Function(Point, LatLng)? onTap;
   final Function()? onIdle;
-  Key? key;
-  MLMap({this.key, this.onIdle, this.onTap, this.onUpdate, this.mapController});
+  final Function(CameraPosition)? onMove;
+  bool? debug;
+
+  // Key? key; this.key,
+  MLMap({
+    bool? debug,
+    this.onIdle,
+    this.onTap,
+    this.onUpdate,
+    this.onMove,
+    this.mapController,
+  }) : debug = debug ?? false;
 
   @override
   State createState() => MLMapState();
 }
 
 class MLMapState extends State<MLMap> {
-  late String _mapStyle;
-  late Future<bool> _gotStyle;
-  LatLng _currentPosition = LatLng(0, 0);
-  MapLibreMapController? mapController;
-
-  @override
-  initState() {
-    super.initState();
-    _gotStyle = loadStyle();
-    developer.log('MapLibre initState() called', name: "_x_map");
-  }
-
-  @override
-  dispose() {
-    mapController!.dispose();
-    developer.log('MapLibre dispose() called', name: "_x_map");
-    super.dispose();
-  }
-
-  Future<bool> loadStyle() async {
-    _mapStyle = await mapStyle(map: 'maplibre');
-    Position position = await Geolocator.getCurrentPosition();
-    _currentPosition = LatLng(position.latitude, position.longitude);
-
-    _currentPosition = LatLng(51.433, -0.513); // DEBUG
-
-    developer.log('maplibre.dart loadStyle() called', name: '_x_map');
-    return true;
-  }
-
   void _onMapCreated(MapLibreMapController controller) async {
-    mapController = controller;
+    MapService().controller = controller;
     widget.mapController = controller;
-    widget.onUpdate!(_currentPosition, controller);
+    widget.onUpdate!(MapService().currentPosition, controller);
     developer.log('maplibre.dart _onMapCreated() called - controller created',
         name: '_x_map');
   }
 
-  MapLibreMapController? getController() {
-    return mapController!;
-  }
-
-  MapLibreMapController? get controller => mapController;
+  MapLibreMapController? get controller => MapService().controller;
 
   void _onTap(Point<double> point, LatLng coordinates) async {
     widget.onTap!(point, coordinates);
@@ -89,37 +65,50 @@ class MLMapState extends State<MLMap> {
     widget.onIdle!();
   }
 
-  String _mapStyleUrl() {
-    const styleUrl =
-        "https://tiles.stadiamaps.com/styles/alidade_smooth_dark.json";
-    return "$styleUrl?api_key=$apiKey";
+  void _onMove(CameraPosition position) async {
+    if (widget.debug ?? false) {
+      widget.onMove!(position);
+    }
   }
 
-// url https://tiles.stadiamaps.com/styles/alidade_smooth_dark.json?api_key=VEmtdNyruRLF2YvVedde
+//https://pub.dev/documentation/maplibre_gl/latest/maplibre_gl/
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: FutureBuilder<bool>(
-        future: _gotStyle,
+      body: FutureBuilder<String>(
+        future: MapService().style,
+        // body: FutureBuilder<bool>(
+        //   future: _gotStyle,
         builder: (BuildContext context, snapshot) {
           if (snapshot.hasError) {
             debugPrint('Error getting style ${snapshot.error}');
           } else if (snapshot.hasData) {
             return MapLibreMap(
-              key: widget.key ?? UniqueKey(), // Key(
-              // 'LM001'), // CurrentTripItem().mapLibreKey, // //Key('LM001'),
-              styleString: _mapStyle, // _mapStyleUrl()
-              myLocationEnabled: [TripState.following, TripState.automatic]
-                  .contains(CurrentTripItem().tripState), // true,
+              key: MapService().mapKey, // <-- Stops the map being reinitialised
+              styleString: snapshot.data!,
 
+              myLocationEnabled: !(widget.debug ??
+                  false), // Should only have this is debugging mode
+              //[TripState.following, TripState.automatic]
+              //   .contains(CurrentTripItem().tripState), false// true,
+              //  /*
+              // myLocationTrackingMode:
+              //     MyLocationTrackingMode.trackingCompass, //tracking,
+              // myLocationRenderMode: MyLocationRenderMode.compass, //normal,
+              // */
               compassViewPosition: CompassViewPosition.topLeft,
               onMapCreated: _onMapCreated,
-              initialCameraPosition:
-                  CameraPosition(target: _currentPosition, zoom: 11),
+              initialCameraPosition: CameraPosition(
+                  target: MapService().currentPosition, zoom: 11),
               trackCameraPosition: true, // ensures that zoom is updated
+              onCameraMove: _onMove,
+
+              //(position) => developer
+              //    .log('onCameraMove position: $position', name: '_camera_'),
               //     onCameraMove: (position) {
               //       widget.onUpdate!(position.target, mapController!);
               //     },
+
               onMapClick: _onTap,
               onCameraIdle: _onCameraIdle,
               scrollGesturesEnabled: true,

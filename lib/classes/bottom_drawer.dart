@@ -1,6 +1,6 @@
 import 'dart:math';
 import '../classes/classes.dart';
-// import '../models/models.dart';
+import '../models/models.dart';
 import '../tiles/tiles.dart';
 import '../services/services.dart';
 import 'package:flutter/material.dart';
@@ -55,22 +55,19 @@ class BottomDrawerController {
     }
   }
 
-  /*
+  /// setContent() the controller method for inserting the data into the BottomDrawer
+  /// May have been also achieved through calling setState() in the parent Screen with
+  /// the data to be displayed in the BottomDrawer but using a Controller is more flexible:
+  /// 1 The list list of published drives for Great Drives
+  /// 2 The CurrentTripItem() for My Trip
 
-  void setContent({required List content, BottomDrawerData? drawerData}) {
-    try {
-      _bottomDrawerState?.setContent(content, drawerData);
-    } catch (e) {
-      debugPrint("Can't set bottom drawer content: ${e.toString()}");
-    }
-  }
-*/
-
-  void setContent({BottomDrawerItems content = BottomDrawerItems.trip}) {
+  void setContent(
+      {BottomDrawerItems content = BottomDrawerItems.trip, List? drawerItems}) {
     developer.log('~~~~ setContent(${content.name}) called ~~~~',
         name: '_keyboard_');
+    drawerItems ??= [];
     if (content != BottomDrawerItems.none) {
-      _bottomDrawerState?.setContent(content);
+      _bottomDrawerState?.setContent(content, drawerItems);
     } else {
       _bottomDrawerState?.close();
     }
@@ -92,14 +89,14 @@ class BottomDrawerController {
 class BottomDrawer extends StatefulWidget {
   final Function(double)? onChangeHeight;
   final Function(bool)? onOpened;
-  final Function(bool)? requestClose;
+  // final Function(bool)? requestClose;
   final GlobalKey? globalKey;
   final BuildContext context;
   final double maxHeight;
   final double height;
   final double closedTop;
   final double dividerHeight;
-  final List<Card>? content;
+  //final CurrentTripItem? content;
   final BottomDrawerController? controller;
   final ImageRepository? imageRepository;
 
@@ -113,9 +110,9 @@ class BottomDrawer extends StatefulWidget {
       this.closedTop = 0,
       this.onChangeHeight,
       this.onOpened,
-      this.requestClose,
+      //  this.requestClose,
       this.dividerHeight = 30,
-      this.content,
+      //this.content,
       this.imageRepository});
   @override
   State<BottomDrawer> createState() => _BottomDrawerState();
@@ -141,19 +138,24 @@ class _BottomDrawerState extends State<BottomDrawer>
   BottomDrawerItems _content = BottomDrawerItems.none;
   final Directions _directions = Directions();
 
+  List? _drawerItems;
+
+  @override
   void initState() {
     super.initState;
     if (widget.controller != null) {
       widget.controller!._addState(this);
     }
+
     developer.log('_BottomDrawerState initState() called', name: '_dock_');
   }
 
+/*
   @override
   void dispose() {
     super.dispose();
   }
-
+*/
   void close() {
     if (mounted) {
       //    FocusManager.instance.primaryFocus?.unfocus(); // dismiss keyboard
@@ -180,15 +182,16 @@ class _BottomDrawerState extends State<BottomDrawer>
 
   List<Widget> _tiles = [];
 
-  void setContent(BottomDrawerItems content) {
+  void setContent(BottomDrawerItems content, List? drawerItems) {
     try {
       _content = content;
+      _drawerItems = drawerItems ?? [];
       switch (content) {
         case BottomDrawerItems.trip:
-          _tiles = shredCurrentTripItemData();
-          break;
+           _tiles = shredCurrentTripItemData();
+           break;
         case BottomDrawerItems.group:
-          _tiles = shredGroup();
+          _tiles = shredGroup(followers: _drawerItems as List<Follower>);
           break;
         case BottomDrawerItems.maneuvers:
           _tiles = shredManeuvers();
@@ -196,6 +199,11 @@ class _BottomDrawerState extends State<BottomDrawer>
         case BottomDrawerItems.messages:
           _tiles = shredMessages();
           break;
+        case BottomDrawerItems.goodRoad:
+          _tiles = shredPointsOfInterest(type: 13);
+          break;
+        case BottomDrawerItems.drives:
+          _tiles = shredTrips();
         default:
           _tiles = shredCurrentTripItemData();
           break;
@@ -207,15 +215,32 @@ class _BottomDrawerState extends State<BottomDrawer>
     }
   }
 
-  List<Widget> shredGroup() {
+  List<Widget> shredTrips() {
+    List<Widget> tiles = [];
+    if (_drawerItems!.isNotEmpty) {
+      for (int i = 0; i < _drawerItems!.length; i++) {
+        tiles.add(
+          TripTile(
+            index: i,
+            tripItem: _drawerItems![i],
+            imageRepository: ImageRepository(),
+          ),
+        );
+      }
+    }
+    return tiles;
+  }
+
+  List<Widget> shredGroup({List<Follower>? followers}) {
+    followers ??= [];
     List<Widget> tiles = [];
     bool expanded = false;
-    for (int i = 0; i < CurrentTripItem().followers.length; i++) {
+    for (int i = 0; i < followers.length; i++) {
       tiles.add(Padding(
         key: expanded ? _scrollKey : Key('th1'),
         padding: EdgeInsetsGeometry.fromLTRB(5, 5, 5, 5),
         child: FollowerTile(
-          follower: CurrentTripItem().followers[i],
+          follower: followers[i],
           index: i,
           onIconClick: followerIconClick,
           onLongPress: followerLongPress,
@@ -351,10 +376,7 @@ class _BottomDrawerState extends State<BottomDrawer>
       for (int i = 0; i < CurrentTripItem().pointsOfInterest.length; i++) {
         if (![12, 14, 17, 18]
             .contains(CurrentTripItem().pointsOfInterest[i].type)) {
-          bool complete = CurrentTripItem().pointsOfInterest[i].complete(
-                  goodRoad:
-                      CurrentTripItem().tripState == TripState.goodRoadStart) ==
-              3;
+          bool complete = CurrentTripItem().pointsOfInterest[i].complete() == 3;
           Key tileKey = complete || expanded
               ? Key('poi$i')
               : complete
@@ -382,11 +404,42 @@ class _BottomDrawerState extends State<BottomDrawer>
     return tiles;
   }
 
-  void headingComplete(bool complete) {
-    // CurrentTripItem().tripState = TripState.manual;
-    if (widget.requestClose != null) {
-      widget.requestClose!(complete);
+  List<Widget> shredPointsOfInterest({int type = -1}) {
+    bool expanded = false;
+    List<Widget> tiles = [];
+    for (int i = 0; i < CurrentTripItem().pointsOfInterest.length; i++) {
+      if ((![12, 14, 17, 18]
+                  .contains(CurrentTripItem().pointsOfInterest[i].type) &&
+              type == -1) ||
+          CurrentTripItem().pointsOfInterest[i].type == type) {
+        bool complete = CurrentTripItem().pointsOfInterest[i].complete() == 3;
+        Key tileKey = complete || expanded
+            ? Key('poi$i')
+            : complete
+                ? Key('poi$i')
+                : _scrollKey;
+        expanded = expanded ? expanded : tileKey == _scrollKey;
+        tiles.add(
+          Padding(
+            padding: EdgeInsetsGeometry.fromLTRB(5, 5, 5, 5),
+            key: tileKey,
+            child: PointOfInterestTile(
+              key: Key('poit_$i'), // UniqueKey(),
+              index: i + 1,
+              expanded: expanded,
+              controller: expanded ? _pointOfInterestController : null,
+              pointOfInterest: CurrentTripItem().pointsOfInterest[i],
+              imageRepository: widget.imageRepository ?? ImageRepository(),
+              onUpdate: pointOfInterestComplete,
+            ),
+          ),
+        );
+      }
     }
+    return tiles;
+  }
+
+  void headingComplete(bool complete) {
     close();
   }
 

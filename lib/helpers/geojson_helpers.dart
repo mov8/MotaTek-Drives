@@ -281,23 +281,88 @@ List<Map<String, dynamic>> pointsOfInterestToGeoJson(
   return geoJson;
 }
 
-List<Map<String, dynamic>> followersToGeoJson({List<Follower>? followers}) {
+List<Map<String, dynamic>> locationMarkerToGeoJson({Point? location}) {
+  location ??= CurrentTripItem().tripValues.position;
+  List<Map<String, dynamic>> features = [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [location.x, location.y],
+        "group": "location"
+      },
+      "id": 1,
+      "properties": {
+        "group": 'location',
+        "bearing": 0,
+        "item_type": "location_icon",
+        "color": "#1e88e5"
+      }
+    },
+  ];
+
+  return features;
+}
+
+List<Map<String, dynamic>> followersToGeoJson(
+    {List<Follower>? followers, Point? location, bool debugging = false}) {
   followers ??= CurrentTripItem().followers;
-  List<Map<String, dynamic>> geoJson = [];
+  location ??= CurrentTripItem().tripValues.position;
+  List<Map<String, dynamic>> features = [];
+
+  if (debugging) {
+    features.add({
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [location.x, location.y],
+        "group": "location"
+      },
+      "id": 1,
+      "properties": {
+        "group": 'location',
+        "icon": "circle",
+        "bearing": 0,
+        "item_type": "location_icon",
+        "colour": "#1e88e5" //  "#1e88e5"
+      }
+    });
+  }
+
   if (followers.isNotEmpty) {
     try {
       developer.log(
           'pointsOfInterestToGeoJson() pointsOfInterest.length.length: ${followers.length}',
           name: '_repaint_');
       for (int i = 0; i < followers.length; i++) {
-        // geoJson.add(followers[i].toGeoJson(index: i));
+        features.add(
+          {
+            "type": "Feature",
+            "geometry": {"type": "Point", "coordinates": followers[i].position},
+            "group": "follower",
+            "id": i,
+            "properties": {
+              "group": 'follower',
+              "icon": "follower",
+              "bearing": 0,
+              "item_type": "location_icon",
+              "name":
+                  ('${followers[i].forename} {followers[i].surname}').trim(),
+              "registration": followers[i].registration,
+              "manufacturer": followers[i].manufacturer,
+              "model": followers[i].model,
+              "phone": followers[i].phoneNumber,
+              "colour": colourIntToHex(index: followers[i].iconColour),
+            }
+          },
+        );
       }
     } catch (e) {
       developer.log('Error pointsOfInterestToGeoJson(): ${e.toString()}',
           name: '_g_j_');
     }
   }
-  return geoJson;
+  return features;
 }
 
 String toStars({double rating = 5}) {

@@ -232,7 +232,7 @@ String? colourToHex({Color? color}) {
   return color!.toHexStringRGB();
 }
 
-String? colourIntToHex({int index = 0}) {
+String colourIntToHex({int index = 0}) {
   return uiColours.keys.toList()[index].toHexStringRGB();
 }
 
@@ -513,10 +513,7 @@ class PointOfInterest {
   /// 1 << 1    description complete
   /// -> 0 nothing 1 name complete 2 description complete 3 all complete
 
-  int complete({bool goodRoad = false}) {
-    if (goodRoad && type != 13) {
-      return 3;
-    }
+  int complete() {
     return (name.isEmpty ? 0 : 1) | (description.isEmpty ? 0 : 1 << 1);
   }
 
@@ -1254,6 +1251,7 @@ class Maneuver {
   int exit = 0;
   int bearingBefore = 0;
   int bearingAfter = 0;
+  bool? calculated;
   Point point = const Point(0, 0);
   String modifier = '';
   String type = '';
@@ -1267,6 +1265,7 @@ class Maneuver {
     required this.exit,
     required this.bearingBefore,
     required this.bearingAfter,
+    this.calculated,
     required this.point,
     required this.modifier,
     required this.type,
@@ -1413,6 +1412,34 @@ class Follower {
       "track": track,
       "position": position,
     };
+  }
+
+  Follower moveFollower({List<double>? newPosition}) {
+    return Follower(
+      uri: uri,
+      userId: userId,
+      driveId: driveId,
+      driveName: driveName,
+      forename: forename,
+      surname: surname,
+      email: email,
+      phoneNumber: phoneNumber,
+      manufacturer: manufacturer,
+      model: model,
+      registration: registration,
+      carColour: carColour,
+      iconColour: iconColour,
+      routeIndex: routeIndex,
+      accepted: accepted,
+      track: track,
+      position: newPosition ?? position,
+    );
+  }
+
+  void moveFollower2({List<double>? position}) {
+    if (position != null) {
+      position = position;
+    }
   }
 }
 

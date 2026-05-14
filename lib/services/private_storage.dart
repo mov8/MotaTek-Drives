@@ -67,6 +67,8 @@ abstract class PrivateDataRepository {
 
   Future<List<TripItem>> loadMyTripItems();
 
+  Future<MyTripItem> loadMyTripItem({String name = '', int id = -1});
+
   Future<dynamic> publish(MyTripItem tripItem);
 
   Future<List<ShopItem>> saveShopItemsLocal(List<ShopItem> shopItems);

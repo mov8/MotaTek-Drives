@@ -191,8 +191,9 @@ class _TripHeaderTileState extends State<TripHeaderTile> {
               ),
               style: textStyle(context: context, color: Colors.black, size: 2),
               initialValue: widget.tripItem.title,
+              onChanged: (text) => widget.tripItem.title = text,
               onFieldSubmitted: (text) {
-                widget.tripItem.title = text;
+                // widget.tripItem.title = text;
                 checkComplete();
                 FocusScope.of(context).requestFocus(fn2);
               },
@@ -222,8 +223,9 @@ class _TripHeaderTileState extends State<TripHeaderTile> {
               style: textStyle(context: context, color: Colors.black, size: 2),
               initialValue: widget.tripItem.subTitle,
               autovalidateMode: AutovalidateMode.onUserInteraction,
+              onChanged: (text) => widget.tripItem.subTitle = text,
               onFieldSubmitted: (text) {
-                widget.tripItem.subTitle = text;
+                // widget.tripItem.subTitle = text;
                 checkComplete();
                 FocusScope.of(context).requestFocus(fn3);
               },
@@ -252,8 +254,9 @@ class _TripHeaderTileState extends State<TripHeaderTile> {
               style: textStyle(context: context, color: Colors.black, size: 2),
               initialValue: widget.tripItem.body,
               autovalidateMode: AutovalidateMode.onUserInteraction,
+              onChanged: (text) => widget.tripItem.body = text,
               onFieldSubmitted: (text) {
-                widget.tripItem.body = text;
+                // widget.tripItem.body = text;
                 checkComplete();
               },
             ),

@@ -50,7 +50,6 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
   final GlobalKey _appBarKey = GlobalKey();
   final GlobalKey _bottomNavKey = GlobalKey();
   final GlobalKey _scrollToKey = GlobalKey();
-  final GlobalKey _mapKey = GlobalKey();
   DrivesRequest? _drivesRequest;
   TripRequest? _tripRequest;
   List<Card> _tripCards = [];
@@ -262,7 +261,6 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
   Widget _handleMap() {
     return Stack(children: [
       MLMap(
-        key: _mapKey,
         onUpdate: _onMapUpdate,
         onTap: _onTap,
         onIdle: _onIdle,
@@ -283,8 +281,8 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
       BottomDrawer(
         context: context,
         maxHeight: 200,
-        content:
-            _tripCards, //cardsList(cards: _tripCards, controller: _scrollController),
+        //  content:
+        //      _tripCards, //cardsList(cards: _tripCards, controller: _scrollController),
         controller: _bottomDrawerController,
         // scrollController: _scrollController,
         onOpened: onOpened,
@@ -294,7 +292,7 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
 
   Size mapSize() {
     Size mapSize = Size(0, 0);
-    final bnKeyContext = _mapKey.currentContext;
+    final bnKeyContext = MapService().mapKey.currentContext;
     if (bnKeyContext != null) {
       RenderBox box = bnKeyContext.findRenderObject() as RenderBox;
       mapSize = Size(box.size.width, box.size.height);

@@ -1,7 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import '/models/models.dart';
-import '/classes/classes.dart';
+import '/classes/classes.dart' hide Route;
 import '/tiles/my_trip_tile.dart';
 import '/screens/screens.dart';
 import '/services/services.dart';
@@ -70,7 +70,8 @@ class _MyTripsScreenState extends State<MyTrips> {
     CurrentTripItem().mapUpdates = MapUpdates.updateAll;
 
     if (mounted) {
-      Navigator.pushNamed(context, 'createTrip'); //,
+      Navigator.pushNamedAndRemoveUntil(
+          context, 'createTrip', (Route<dynamic> route) => false); //,
       //  arguments: TripArguments(_myTripItems[index], 'db'));
     }
   }

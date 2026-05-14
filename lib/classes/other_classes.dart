@@ -132,6 +132,15 @@ class Waypoint {
         selected: false,
         isGoodRoad: map["is_good_road"] ?? false);
   }
+
+  factory Waypoint.clone({required Waypoint waypoint}) {
+    return Waypoint(
+      colour: waypoint.colour,
+      point: waypoint.point,
+      selected: false,
+      isGoodRoad: waypoint.isGoodRoad,
+    );
+  }
 }
 
 class RouteDelta {

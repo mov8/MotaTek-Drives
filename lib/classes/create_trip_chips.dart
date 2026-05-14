@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '/classes/classes.dart';
 import '/constants.dart';
 import '/routes/routes.dart';
-import 'package:latlong2/latlong.dart';
 import '/models/models.dart';
 import 'dart:developer' as developer;
 
@@ -76,7 +75,6 @@ class CreateTripChips extends StatelessWidget {
         'states': [
           TripState.manual,
           TripState.goodRoadStart,
-          TripState.editing
         ],
         // 'waypointState': [WaypointState.none],
         'highlight': [HighliteActions.none, HighliteActions.greatRoadStarted],
@@ -164,7 +162,13 @@ class CreateTripChips extends StatelessWidget {
         'label': 'Point of interest',
         'method': pointOfInterest,
         'icon': Icons.add_photo_alternate,
-        'states': [TripState.manual, TripState.editing],
+        'states': [
+          TripState.manual,
+          TripState.editing,
+          //   TripState.tracking,
+          //   TripState.pausedTracking,
+          //   TripState.stoppedTracking
+        ],
         'actions': [],
         'highlight': [HighliteActions.none, HighliteActions.routeHighlited],
         'loaded': null, //true,
@@ -176,17 +180,6 @@ class CreateTripChips extends StatelessWidget {
         'label': 'Create manually',
         'method': addManually,
         'icon': Icons.touch_app,
-        'states': [TripState.none],
-        'actions': [],
-        'highlight': [],
-        'loaded': false,
-        'saved': null,
-        'group': false
-      },
-      {
-        'label': 'Track drive',
-        'method': addAutomatically,
-        'icon': Icons.directions_car,
         'states': [TripState.none],
         'actions': [],
         'highlight': [],
@@ -211,7 +204,7 @@ class CreateTripChips extends StatelessWidget {
         'icon': Icons.save,
         'states': [
           TripState.manual,
-          TripState.stoppedRecording,
+          TripState.stoppedTracking,
           TripState.editing
         ],
         'actions': [],
@@ -231,7 +224,7 @@ class CreateTripChips extends StatelessWidget {
           TripState.none,
           TripState.notFollowing,
           TripState.stoppedFollowing,
-          TripState.stoppedRecording,
+          TripState.stoppedTracking,
           TripState.manual,
         ],
         'actions': [],
@@ -245,7 +238,11 @@ class CreateTripChips extends StatelessWidget {
         'label': 'Add great road',
         'method': greatRoad,
         'icon': Icons.add_road,
-        'states': [TripState.automatic, TripState.manual, TripState.editing],
+        'states': [
+          // TripState.tracking,
+          TripState.manual,
+          TripState.editing,
+        ],
         'actions': [],
         'highlight': [HighliteActions.none],
         'loaded': null,
@@ -260,7 +257,7 @@ class CreateTripChips extends StatelessWidget {
         'label': 'Edit great road',
         'method': editGreatRoad,
         'icon': Icons.edit,
-        'states': [TripState.automatic, TripState.manual, TripState.editing],
+        'states': [TripState.tracking, TripState.manual, TripState.editing],
         'actions': [],
         'highlight': [HighliteActions.greatRoadHighlighted],
         'loaded': null,
@@ -275,7 +272,7 @@ class CreateTripChips extends StatelessWidget {
         'label': 'Plan drive',
         'method': greatRoadEnd,
         'icon': Icons.add_road,
-        'states': [],
+        'states': [TripState.manual, TripState.editing],
         'actions': [],
         'highlight': [],
         'loaded': null,
@@ -287,14 +284,34 @@ class CreateTripChips extends StatelessWidget {
         'goodRoad': true
       },
       {
-        'label': 'Start tracking',
+        'label': 'Great road end',
+        'method': greatRoadEnd,
+        'icon': Icons.add_road,
+        'states': [TripState.editing, TripState.manual],
+        'actions': [],
+        'highlight': [],
+        'loaded': null,
+        'saved': false,
+        'group': false,
+        'colour': colourList[Setup().routeColour],
+        'goodRoad': true
+      },
+      {
+        'label': 'Track drive',
+        'method': addAutomatically,
+        'icon': Icons.directions_car,
+        'states': [TripState.none],
+        'actions': [],
+        'highlight': [],
+        'loaded': false,
+        'saved': null,
+        'group': false
+      },
+      {
+        'label': 'Continue tracking',
         'method': trackRoute,
         'icon': Icons.play_arrow,
-        'states': [
-          TripState.automatic,
-          TripState.stoppedRecording,
-          TripState.paused
-        ],
+        'states': [TripState.pausedTracking],
         'actions': [],
         'highlight': [],
         'loaded': null,
@@ -303,9 +320,9 @@ class CreateTripChips extends StatelessWidget {
       },
       {
         'label': 'Pause tracking',
-        'method': pauseRecording,
+        'method': pauseTracking,
         'icon': Icons.pause,
-        'states': [TripState.recording],
+        'states': [TripState.tracking],
         'actions': [],
         'highlight': [],
         'loaded': true,
@@ -316,7 +333,7 @@ class CreateTripChips extends StatelessWidget {
         'label': 'End tracking',
         'method': endTracking,
         'icon': Icons.stop,
-        'states': [TripState.recording, TripState.paused],
+        'states': [TripState.tracking, TripState.pausedTracking],
         'actions': [],
         'highlight': [],
         'loaded': true,
@@ -378,7 +395,7 @@ class CreateTripChips extends StatelessWidget {
           TripState.notFollowing,
           TripState.loaded
         ],
-        'actions': [TripActions.none],
+        'actions': [], // [TripActions.none],
         'highlight': [],
         'loaded': true,
         'saved': null,
@@ -422,7 +439,7 @@ class CreateTripChips extends StatelessWidget {
     developer.log(' ', name: '_chips');
     developer.log(
         ' +++++++ State Tests create_trip_chips.dart  CurrentTripItem().waypointState: ${CurrentTripItem().waypointState} ++++++++',
-        name: '_chips');
+        name: '_actionChips_');
     String failure = '';
     // developer.log('States: ${CurrentTripItem().tripState}');
 
@@ -545,8 +562,9 @@ class CreateTripChips extends StatelessWidget {
   }
 
   void addAutomatically() {
-    CurrentTripItem().requestAddManually();
+    CurrentTripItem().requestAddAutomatically();
     leadingWidgetController?.changeWidget(1);
+    CurrentTripItem().tripState = TripState.tracking;
     onUpdate(MyTripActions.startTracking);
   }
 
@@ -603,15 +621,15 @@ class CreateTripChips extends StatelessWidget {
     onUpdate(MyTripActions.deleteWaypoint);
   }
 
-  void pauseRecording() {
-    CurrentTripItem().requestPauseRecording();
+  void pauseTracking() {
+    CurrentTripItem().requestPauseTracking();
     onUpdate(MyTripActions.none);
     // createTripController.updateValues(values: CurrentTripItem().tripValues);
   }
 
   void endTracking() {
     CurrentTripItem().requestEndTracking();
-    onUpdate(MyTripActions.none);
+    onUpdate(MyTripActions.stopTracking);
   }
 
   void greatRoad() {
@@ -648,7 +666,7 @@ class CreateTripChips extends StatelessWidget {
 
   void group() {
     CurrentTripItem().requestGroup();
-    onUpdate(MyTripActions.none);
+    onUpdate(MyTripActions.showGroup);
   }
 
   void messages() {
@@ -676,6 +694,7 @@ class CreateTripChips extends StatelessWidget {
 
   void stopFollowing() {
     CurrentTripItem().requestStopFollowing;
+
     onUpdate(MyTripActions.stopFollowing);
   }
 }

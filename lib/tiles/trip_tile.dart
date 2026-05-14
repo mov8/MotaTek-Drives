@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import '/classes/classes.dart';
-import 'package:latlong2/latlong.dart';
+// import 'package:latlong2/latlong.dart';
 import '/constants.dart';
 import '/models/other_models.dart';
 import '/helpers/edit_helpers.dart';
-import '/tiles/tiles.dart';
+import 'tiles.dart';
 import '/services/services.dart';
-import 'dart:developer' as developer;
+// import 'dart:developer' as developer;
 
 class TripTile extends StatefulWidget {
   final TripItem tripItem;
@@ -14,11 +14,11 @@ class TripTile extends StatefulWidget {
   final Function(int, String)? onGetTrip;
   final Function(int, int)? onRatingChanged;
   final Function(int)? onExpand;
-  bool expanded;
+  final bool? expanded;
 
   final int index;
 
-  TripTile({
+  const TripTile({
     super.key,
     required this.tripItem,
     required this.imageRepository,
@@ -26,8 +26,8 @@ class TripTile extends StatefulWidget {
     this.onGetTrip,
     this.onRatingChanged,
     this.onExpand,
-    this.expanded = false,
-  });
+    bool? expanded,
+  }) : expanded = expanded ?? false;
 
   @override
   State<TripTile> createState() => _TripTileState();
@@ -43,17 +43,18 @@ class _TripTileState extends State<TripTile> {
   void initState() {
     super.initState();
     _childCards = [];
-    expanded = widget.expanded;
+    expanded = widget.expanded!;
     photos = photosFromJson(
-        photoString: widget.tripItem.imageUrls,
-        endPoint: '${widget.tripItem.uri}/');
+      photoString: widget.tripItem.imageUrls,
+      endPoint: '${widget.tripItem.uri}/',
+    );
   }
 
   expandChange({required bool expanded}) async {
     try {
       if (expanded) {
         await getDetails();
-        widget.expanded = true;
+        //  widget.expanded = true;
         if (mounted) {
           setState(() => ());
         }
@@ -86,10 +87,11 @@ class _TripTileState extends State<TripTile> {
         _childCards.add(
           Card(
             child: PointOfInterestTile(
-                index: i,
-                canEdit: false,
-                pointOfInterest: pointOfInterest,
-                imageRepository: widget.imageRepository),
+              index: i,
+              canEdit: false,
+              pointOfInterest: pointOfInterest,
+              imageRepository: widget.imageRepository,
+            ),
           ),
         );
       }
@@ -140,17 +142,19 @@ class _TripTileState extends State<TripTile> {
                         Text(
                           'Download',
                           style: textStyle(
-                              context: context, color: Colors.black, size: 2),
+                            context: context,
+                            color: Colors.black,
+                            size: 2,
+                          ),
                         ),
                       ]),
                     ),
                     Expanded(
                       flex: 6,
-                      child: // Text(widget.tripItem.score),
-
-                          StarRating(
-                              onRatingChanged: changeRating,
-                              rating: widget.tripItem.rating),
+                      child: StarRating(
+                        onRatingChanged: changeRating,
+                        rating: widget.tripItem.rating,
+                      ),
                     ),
                   ],
                 ),
@@ -194,68 +198,98 @@ class _TripTileState extends State<TripTile> {
                   ),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(5, 0, 5, 15),
-                    child: Row(children: [
-                      Expanded(
-                        flex: 1,
-                        child: Column(children: [
-                          const Icon(Icons.publish),
-                          Text(
-                            widget.tripItem.added,
-                            style: textStyle(
-                                context: context, color: Colors.black, size: 3),
-                          )
-                        ]),
-                      ),
-                      Expanded(
-                        flex: 1,
-                        child: Column(children: [
-                          const Icon(Icons.route),
-                          Text(
-                            widget.tripItem.distance.toStringAsFixed(1),
-                            style: textStyle(
-                                context: context, color: Colors.black, size: 3),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          flex: 1,
+                          child: Column(children: [
+                            const Icon(Icons.publish),
+                            Text(
+                              widget.tripItem.added,
+                              style: textStyle(
+                                context: context,
+                                color: Colors.black,
+                                size: 3,
+                              ),
+                            )
+                          ]),
+                        ),
+                        Expanded(
+                          flex: 1,
+                          child: Column(
+                            children: [
+                              const Icon(Icons.route),
+                              Text(
+                                widget.tripItem.distance.toStringAsFixed(1),
+                                style: textStyle(
+                                  context: context,
+                                  color: Colors.black,
+                                  size: 3,
+                                ),
+                              ),
+                              Text(
+                                'miles long',
+                                style: textStyle(
+                                  context: context,
+                                  color: Colors.black,
+                                  size: 3,
+                                ),
+                              ),
+                            ],
                           ),
-                          Text(
-                            'miles long',
-                            style: textStyle(
-                                context: context, color: Colors.black, size: 3),
+                        ),
+                        Expanded(
+                          flex: 1,
+                          child: Column(
+                            children: [
+                              const Icon(Icons.landscape),
+                              Text(
+                                widget.tripItem.pointsOfInterestCount
+                                    .toString(),
+                                style: textStyle(
+                                  context: context,
+                                  color: Colors.black,
+                                  size: 3,
+                                ),
+                              ),
+                              Text(
+                                ' highlights',
+                                style: textStyle(
+                                  context: context,
+                                  color: Colors.black,
+                                  size: 3,
+                                ),
+                              )
+                            ],
                           ),
-                        ]),
-                      ),
-                      Expanded(
-                        flex: 1,
-                        child: Column(children: [
-                          const Icon(Icons.landscape),
-                          Text(
-                            widget.tripItem.pointsOfInterestCount.toString(),
-                            style: textStyle(
-                                context: context, color: Colors.black, size: 3),
+                        ),
+                        Expanded(
+                          flex: 1,
+                          child: Column(
+                            children: [
+                              const Icon(Icons.social_distance),
+                              Text(
+                                (widget.tripItem.distanceAway * metersToMiles)
+                                    .toString(),
+                                style: textStyle(
+                                  context: context,
+                                  color: Colors.black,
+                                  size: 3,
+                                ),
+                              ),
+                              Text(
+                                'miles away',
+                                style: textStyle(
+                                  context: context,
+                                  color: Colors.black,
+                                  size: 3,
+                                ),
+                              )
+                            ],
                           ),
-                          Text(
-                            ' highlights',
-                            style: textStyle(
-                                context: context, color: Colors.black, size: 3),
-                          )
-                        ]),
-                      ),
-                      Expanded(
-                        flex: 1,
-                        child: Column(children: [
-                          const Icon(Icons.social_distance),
-                          Text(
-                            (widget.tripItem.distanceAway * metersToMiles)
-                                .toString(),
-                            style: textStyle(
-                                context: context, color: Colors.black, size: 3),
-                          ),
-                          Text(
-                            'miles away',
-                            style: textStyle(
-                                context: context, color: Colors.black, size: 3),
-                          )
-                        ]),
-                      ),
-                    ]),
+                        ),
+                      ],
+                    ),
                   ),
                   SizedBox(
                     child: Padding(
@@ -265,9 +299,10 @@ class _TripTileState extends State<TripTile> {
                         child: Text(
                           widget.tripItem.subTitle,
                           style: const TextStyle(
-                              color: Colors.black,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold),
+                            color: Colors.black,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
                           textAlign: TextAlign.left,
                         ),
                       ),
@@ -278,10 +313,14 @@ class _TripTileState extends State<TripTile> {
                       padding: const EdgeInsets.fromLTRB(5, 0, 5, 10),
                       child: Align(
                         alignment: Alignment.topLeft,
-                        child: Text(widget.tripItem.body,
-                            style: const TextStyle(
-                                color: Colors.black, fontSize: 20),
-                            textAlign: TextAlign.left),
+                        child: Text(
+                          widget.tripItem.body,
+                          style: const TextStyle(
+                            color: Colors.black,
+                            fontSize: 20,
+                          ),
+                          textAlign: TextAlign.left,
+                        ),
                       ),
                     ),
                   ),
@@ -296,15 +335,20 @@ class _TripTileState extends State<TripTile> {
                               child: CircleAvatar(
                                 backgroundColor: Colors.blue,
                                 child: Text(
-                                    getInitials(name: widget.tripItem.author)),
+                                  getInitials(name: widget.tripItem.author),
+                                ),
                               ),
                             ),
                             const SizedBox(width: 10),
                             Expanded(
                               flex: 7,
-                              child: Text(widget.tripItem.author,
-                                  style: textStyle(
-                                      context: context, color: Colors.black)),
+                              child: Text(
+                                widget.tripItem.author,
+                                style: textStyle(
+                                  context: context,
+                                  color: Colors.black,
+                                ),
+                              ),
                             ),
                             Expanded(
                               flex: 2,
@@ -327,9 +371,13 @@ class _TripTileState extends State<TripTile> {
                       children: [
                         Padding(
                           padding: EdgeInsets.fromLTRB(10, 0, 0, 0),
-                          child: Text('Points of interest...',
-                              style: titleStyle(
-                                  context: context, color: Colors.black)),
+                          child: Text(
+                            'Points of interest...',
+                            style: titleStyle(
+                              context: context,
+                              color: Colors.black,
+                            ),
+                          ),
                         ),
                       ],
                     ),

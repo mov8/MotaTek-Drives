@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
+import 'dart:developer' as developer;
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart' hide Route;
 import 'package:universal_io/universal_io.dart';
@@ -8,9 +9,8 @@ import 'package:universal_io/universal_io.dart';
 // import 'package:latlong2/latlong.dart';
 import 'package:sqflite/sqflite.dart'; // Mobile only plugin
 import '/classes/utilities.dart' as utils;
-
-import 'package:geolocator/geolocator.dart';
-import 'package:path_provider/path_provider.dart'; // Mobile only plugin
+// import 'package:geolocator/geolocator.dart';
+// import 'package:path_provider/path_provider.dart'; // Mobile only plugin
 import 'package:path/path.dart';
 import 'private_storage.dart';
 import 'web_helper.dart';
@@ -796,6 +796,46 @@ class PrivateStorageLocal implements PrivateDataRepository {
   }
 
   @override
+  Future<MyTripItem> loadMyTripItem({String name = '', int id = -1}) async {
+    Database db = _db ??
+        await openDatabase(
+          _path = join(await getDatabasesPath(), 'drives.db'),
+          version: dbVersion, // in constants.dart,
+          onCreate: createDb,
+        );
+    // List<MyTripItem> myTripItems = [];
+    Map<String, dynamic> tripMap = {};
+    try {
+      Map<String, dynamic> map = {};
+      if (name.isNotEmpty) {
+        map = (await db.query(
+          'drives',
+          columns: ['trip'],
+          where: 'LOWER(RTRIM(title)) = ?',
+          whereArgs: [name.toLowerCase()],
+        ))
+            .first;
+      } else if (id > -1) {
+        map = (await db.query(
+          'drives',
+          columns: ['trip'],
+          where: 'id = ?',
+          whereArgs: [id],
+        ))
+            .first;
+      }
+      if (map.isNotEmpty) {
+        Map<String, dynamic> tripMap = jsonDecode(map['trip']);
+        return MyTripItem.fromJson(jsonObject: tripMap);
+      }
+    } catch (e) {
+      debugPrint(e.toString());
+    }
+
+    return MyTripItem();
+  }
+
+  @override
   Future<TripItem?> loadTripItemLocal({int id = -1}) async {
     if (id > -1) {
       List<Map<String, Object?>> maps;
@@ -1283,6 +1323,9 @@ class PrivateStorageLocal implements PrivateDataRepository {
 */
     } catch (e) {
       debugPrint('Error adding trip to trip_item: ${e.toString()}');
+      developer.log(
+          'private_storage_local.dart saveMyTrip() error: ${e.toString()}',
+          name: '_save_trip_');
     }
     return id;
   }

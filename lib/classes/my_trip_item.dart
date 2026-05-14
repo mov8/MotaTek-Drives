@@ -8,6 +8,7 @@ import 'dart:ui' as ui;
 import 'dart:convert';
 import 'dart:math';
 import 'package:geolocator/geolocator.dart';
+import 'package:uuid/uuid.dart';
 import '/constants.dart' hide routes;
 // import '/classes/utilities.dart' as ut;
 import '/helpers/helpers.dart';
@@ -61,6 +62,7 @@ class CreateTripValues {
   Point startPosition = Point(0, 0);
   Point lastPosition = Point(0, 0);
   Point position = Point(0, 0);
+  double heading = 0;
   int pointOfInterestIndex = 0;
   bool setState = true;
   CreateTripValues();
@@ -88,7 +90,7 @@ class CreateTripValues {
     leadingWidget = 1;
   }
 
-  void record() {
+  void track() {
     showMask = false;
     showTarget = false;
     autoCentre = true;
@@ -101,7 +103,7 @@ class CreateTripValues {
   stopFollowing() {
     stopStream = true;
     startStream = false;
-    pauseStream = false;
+    pauseStream = true;
     resumeStream = false;
     // lastLatLng = position;
     lastPosition = position;
@@ -125,12 +127,24 @@ class CreateTripValues {
     mapHeight = MapHeights.full;
   }
 
+  startTracking() {
+    stopStream = true;
+    startStream = false;
+    pauseStream = true;
+    resumeStream = false;
+    lastPosition = position;
+  }
+
   stopTracking() {
     stopStream = true;
     startStream = false;
     pauseStream = false;
     resumeStream = false;
     mapHeight = MapHeights.full;
+  }
+
+  resumeTracking() {
+    resumeFollowing();
   }
 
   resumeFollowing() {
@@ -206,7 +220,7 @@ class CurrentTripItem extends MyTripItem {
     {
       'label': 'Create a new drive',
       'icon': Icons.add_location_alt_outlined,
-      'states': [TripState.none, TripState.automatic, TripState.manual],
+      'states': [TripState.none, TripState.tracking, TripState.manual],
       'group': null,
       'leadingWidget': 0,
     },
@@ -235,10 +249,10 @@ class CurrentTripItem extends MyTripItem {
       'label': 'Tracking drive',
       'icon': Icons.moving_outlined,
       'states': [
-        TripState.recording,
-        TripState.automatic,
-        TripState.stoppedRecording,
-        TripState.paused,
+        TripState.tracking,
+        TripState.tracking,
+        TripState.stoppedTracking,
+        TripState.pausedTracking,
         TripState.startFollowing,
       ],
       'group': false,
@@ -250,7 +264,7 @@ class CurrentTripItem extends MyTripItem {
       'states': [
         TripState.following,
         TripState.stoppedFollowing,
-        TripState.paused,
+        TripState.pausedTracking,
         TripState.startFollowing,
       ],
       'group': false,
@@ -270,7 +284,7 @@ class CurrentTripItem extends MyTripItem {
     "waypoint-data": waypointsToGeoJson,
     "good-road-waypoint-data": goodRoadWaypointsToGeoJson,
     "point-of-interest-data": pointsOfInterestToGeoJson,
-    "followers-data": followersToGeoJson,
+    "streamed-data": followersToGeoJson,
   };
 
   List<List<Waypoint>> backBuffer = [[]];
@@ -495,114 +509,46 @@ class CurrentTripItem extends MyTripItem {
   ///   1 For published data that only changes when the zoom changes or the fence is breached
   ///   2 User data while editing the map initiated through the ActionChips
 
+  var testData = {
+    "type": "Feature",
+    "geometry": {
+      "type": "Point",
+      "coordinates": [-0.5900587311911636, 51.419701499164724]
+    },
+    "properties": {
+      "group": "point_of_interest",
+      "icon": "shield",
+      "color": "#4caf50",
+      "drive_id": -1,
+      "uri": "019dd42fd7fa7d37b726c51213780f5c",
+      "name": "P",
+      "description": "P",
+      "type": 15,
+      "images":
+          '[{"url":"/data/user/0/com.motatek.drives/app_flutter/point_of_interest_3_1.jpg","caption":"image 1"}]',
+      "rated": 0,
+      "rating": "☆☆☆☆☆",
+      "author": ""
+    }
+  };
+
   Future<void> updateMapGeoJson(
       {MapUpdates? exitMapUpdates, Point? centre}) async {
     centre ??= CurrentTripItem().tripValues.position;
 
-    // closestWaypoints returns a list of waypoint indexes.
-    // If insert [n-1, n] extend start [0] extend end [l-1]
-    // if (waypointState != WaypointState.remove) {
-
-    developer.log(
-        '****  updateMapGeoJson called tripState: ${tripState.name}  mapUpdates: ${mapUpdates.name} ****',
-        name: '_mapUpdates_');
-
-    if ([
-      TripState.manual,
-      TripState.editing,
-      TripState.loaded,
-      TripState.clearing,
-      TripState.goodRoadStart,
-    ].contains(tripState)) {
-      List<int> waypoints = [];
-
-      try {
-        waypoints = closestWaypoints(target: centre, routes: routes);
-      } catch (e) {
-        developer.log('ERROR updateMapGeoJson() :${e.toString()}',
-            name: '_mapUpdates_');
-      }
-
-      if (tripState == TripState.clearing) {
-        //    tripState = TripState.none;
-      }
-
-      bool waypointsChanged = false;
-
-      if (waypoints.isEmpty) {
-        waypointState = WaypointState.none;
-      } else if (waypointIndex > -1) {
-        waypointState = WaypointState.remove;
-      } else if (waypoints.length == 2) {
-        waypointState = WaypointState.insert;
-      } else if (waypoints[0] == 0) {
-        waypointState = WaypointState.extendStart;
-      } else {
-        waypointState = WaypointState.extendEnd;
-      }
-
-      /// Want to avoid unnecessary update of MapLibre so make sure something really has changed
-      if (routes.isNotEmpty) {
-        for (int i = 0; i < routes[0].waypoints.length; i++) {
-          bool state = routes[0].waypoints[i].selected ?? false;
-          routes[0].waypoints[i].selected =
-              waypoints.isNotEmpty && waypoints.contains(i);
-          waypointsChanged = state != routes[0].waypoints[i].selected!
-              ? true
-              : waypointsChanged;
-        }
-      }
-      if (waypointsChanged) {
-        mapUpdates = mapUpdates.add(MapUpdates.waypoints);
-        checkMapUpdates('adding waypoints');
-      }
-    } else {
-      developer.log(
-          'updateMapGeoJson() failed state test CurrentTripItem().tripState: ${CurrentTripItem().tripState.name}',
-          name: '_mapUpdates_');
+    if (tripState == TripState.editing) {
+      highlightWaypoints(targetCentre: centre);
     }
-    if (mapUpdates != MapUpdates.none && !mapUpdates.isUpdating) {
-      developer.log("Updating mapUpdates: $mapUpdates ", name: '_mapUpdates_');
 
+    if (mapUpdates != MapUpdates.none && !mapUpdates.isUpdating) {
       List<String> sources = mapUpdates.sourcesToUpdate;
-      developer.log(
-          " my_trip_item.dart updateMapGeoJson() updating: ${sources.join(", ")} ",
-          name: '_mapUpdates_');
       if (sources.isNotEmpty) {
         // Set the updating flag to prevent map onIdle calls restarting update before completed
         mapUpdates = mapUpdates.add(MapUpdates.updating);
-        var testData = {
-          "type": "Feature",
-          "geometry": {
-            "type": "Point",
-            "coordinates": [-0.5900587311911636, 51.419701499164724]
-          },
-          "properties": {
-            "group": "point_of_interest",
-            "icon": "shield",
-            "color": "#4caf50",
-            "drive_id": -1,
-            "uri": "019dd42fd7fa7d37b726c51213780f5c",
-            "name": "P",
-            "description": "P",
-            "type": 15,
-            "images":
-                '[{"url":"/data/user/0/com.motatek.drives/app_flutter/point_of_interest_3_1.jpg","caption":"image 1"}]',
-            "rated": 0,
-            "rating": "☆☆☆☆☆",
-            "author": ""
-          }
-        };
+
         checkMapUpdates('updating');
         for (int i = 0; i < sources.length; i++) {
           try {
-            if (i == 0) {
-              await mapController!.setGeoJsonSource('point-of-interest-data', {
-                "type": "FeatureCollection",
-                "features": [testData]
-              });
-            }
-            /*
             if (i < 5) {
               try {
                 await mapController!.setGeoJsonSource(sources[i], {
@@ -612,9 +558,9 @@ class CurrentTripItem extends MyTripItem {
               } catch (e) {
                 developer.log(
                     'my_tripItem.dart updateMapGeoJson() mapController.seGeoJsonSource() failed source: ${sources[i]} (i:$i)',
-                    name: "_mapUpdates_");
+                    name: "_error_");
               }
-            } */
+            }
           } catch (e) {
             developer.log("updateMapGeoJson()  Error: ${e.toString()}",
                 name: 'error');
@@ -623,6 +569,48 @@ class CurrentTripItem extends MyTripItem {
       }
     }
     mapUpdates = exitMapUpdates ?? MapUpdates.none;
+  }
+
+  void highlightWaypoints({required Point targetCentre}) {
+    List<int> waypoints = [];
+    developer.log('Checking waypoints', name: '_waypoints_');
+    try {
+      waypoints = closestWaypoints(target: targetCentre, routes: routes);
+    } catch (e) {
+      developer.log('ERROR updateMapGeoJson() :${e.toString()}',
+          name: '_waypoints_');
+    }
+    bool waypointsChanged = false;
+
+    if (waypoints.isEmpty) {
+      waypointState = WaypointState.none;
+    } else if (waypointIndex > -1) {
+      waypointState = WaypointState.remove;
+    } else if (waypoints.length == 2) {
+      waypointState = WaypointState.insert;
+    } else if (waypoints[0] == 0) {
+      waypointState = WaypointState.extendStart;
+    } else {
+      waypointState = WaypointState.extendEnd;
+    }
+
+    developer.log('waypointState :${waypointState.name}', name: '_waypoints_');
+
+    /// Want to avoid unnecessary update of MapLibre so make sure something really has changed
+    if (routes.isNotEmpty) {
+      for (int i = 0; i < routes[0].waypoints.length; i++) {
+        bool state = routes[0].waypoints[i].selected ?? false;
+        routes[0].waypoints[i].selected =
+            waypoints.isNotEmpty && waypoints.contains(i);
+        waypointsChanged =
+            state != routes[0].waypoints[i].selected! ? true : waypointsChanged;
+      }
+    }
+    if (waypointsChanged) {
+      mapUpdates = mapUpdates.add(MapUpdates.waypoints);
+      checkMapUpdates('adding waypoints');
+    }
+    return;
   }
 
   void checkMapUpdates(String action) {
@@ -658,11 +646,11 @@ class CurrentTripItem extends MyTripItem {
         return 'Drive: $title stopped';
       case TripState.manual:
         return 'Creating a new drive';
-      case TripState.paused:
+      case TripState.pausedTracking:
         return 'Paused: $title';
-      case TripState.recording:
+      case TripState.tracking:
         return 'Recording a new drive';
-      case TripState.stoppedRecording:
+      case TripState.stoppedTracking:
         return 'Drive recording stopped';
       case TripState.startFollowing:
         return 'Following $title';
@@ -684,14 +672,19 @@ class CurrentTripItem extends MyTripItem {
         actions.add(
           IconButton(
             onPressed: () async {
-              if (backBufferIndex < backBuffer.length - 1) {
+              if (backBufferIndex < backBuffer.length) {
                 routes.last.waypoints = backBuffer[++backBufferIndex];
-                routes = await replaceRoutes(
-                  routes: routes,
-                  updateBuffer: false,
-                );
-                mapUpdates = mapUpdates.add(MapUpdates.waypoints);
-                mapUpdates = mapUpdates.add(MapUpdates.routes);
+                if (routes.last.waypoints.length < 2) {
+                  routes.last.lines.clear();
+                } else {
+                  routes = await replaceRoutes(
+                    routes: routes,
+                    updateBuffer: false,
+                  );
+                }
+                mapUpdates = MapUpdates.routesAndWaypoints;
+                await mapController!
+                    .animateCamera(CameraUpdate.zoomBy(0.000001));
                 onUpdate!(true);
               }
             },
@@ -703,29 +696,28 @@ class CurrentTripItem extends MyTripItem {
             ),
           ),
         );
-        if (backBuffer.length > 1) {
-          actions.add(
-            IconButton(
-              onPressed: () async {
-                if (backBufferIndex > 0) {
-                  routes.last.waypoints = backBuffer[--backBufferIndex];
-                  routes = await replaceRoutes(
-                    routes: routes,
-                    updateBuffer: false,
-                  );
-                  // mapUpdates = mapUpdates.add(MapUpdates.waypoints);
-                  // mapUpdates = mapUpdates.add(MapUpdates.routes);
-                  mapUpdates = MapUpdates.routesAndWaypoints;
-                  onUpdate!(true);
-                }
-              },
-              icon: Icon(
-                Icons.redo_outlined,
-                color: backBufferIndex == 0 ? Colors.grey : Colors.white,
-              ),
+
+        actions.add(
+          IconButton(
+            onPressed: () async {
+              if (backBufferIndex > 0) {
+                routes.last.waypoints = backBuffer[--backBufferIndex];
+                routes = await replaceRoutes(
+                  routes: routes,
+                  updateBuffer: false,
+                );
+                mapUpdates = MapUpdates.routesAndWaypoints;
+                await mapController!
+                    .animateCamera(CameraUpdate.zoomBy(0.000001));
+                onUpdate!(true);
+              }
+            },
+            icon: Icon(
+              Icons.redo_outlined,
+              color: backBufferIndex == 0 ? Colors.grey : Colors.white,
             ),
-          );
-        }
+          ),
+        );
       }
     } else if (tripState == TripState.loaded) {
       actions.add(
@@ -802,7 +794,7 @@ class CurrentTripItem extends MyTripItem {
     tripValues.setState = true;
 
     /// clearAll sets tripState to TripState.clearing making sure that the geoJson is updated on next _onIdle
-    clearAll();
+    clearAll(newTripState: TripState.clearing);
     tripState = TripState.clearing;
     // Micro-nudge to update MapLibre the nudge causes the onIdle callback to be called
     await mapController!.animateCamera(CameraUpdate.zoomBy(0.000001));
@@ -810,17 +802,28 @@ class CurrentTripItem extends MyTripItem {
     //leadingWidgetController?.changeWidget(0);
   }
 
-  void requestAddManually() {
-    clearAll();
-    tripState = TripState.manualStart;
+  void requestAddManually() async {
+    clearAll(newTripState: TripState.manualStart);
+    // tripValues.startFollowing();
+    tripValues.manual();
+    if (CurrentTripItem().routes.isEmpty) {
+      CurrentTripItem().routes = [Route(lines: [], waypoints: [])];
+    }
+    await mapController!
+        .updateMyLocationTrackingMode(MyLocationTrackingMode.trackingCompass);
+    await mapController!.animateCamera(CameraUpdate.zoomBy(0.000001));
     tripActions = TripActions.headingDetail;
-    tripValues.showTarget = true;
   }
 
-  void addAutomatically() {
-    clearAll();
-    tripActions = TripActions.headingDetail;
-    tripState = TripState.automatic;
+  void requestAddAutomatically() async {
+    clearAll(newTripState: TripState.tracking);
+    tripValues.track();
+    if (CurrentTripItem().routes.isEmpty) {
+      CurrentTripItem().routes = [Route(lines: [], waypoints: [])];
+    }
+    await mapController!
+        .updateMyLocationTrackingMode(MyLocationTrackingMode.trackingCompass);
+    tripActions = TripActions.none;
   }
 
   void requestEditing() async {
@@ -903,21 +906,43 @@ class CurrentTripItem extends MyTripItem {
     isSaved = false;
   }
 
-  void requestPauseRecording() {
-    tripState = TripState.paused;
+  /// requestPauseRecording() actions:
+  ///   1 Pause the stream
+  ///   2 Change tripState to TripState.paused
+  ///
+  void requestPauseTracking() {
+    tripState = TripState.pausedTracking;
     tripValues.pauseFollowing();
   }
 
-  void requestEndTracking() {
-    tripState = TripState.stoppedRecording;
+  /// requestEndRecording
+  /// 1 Stop the stream
+  /// 2 Change the tripState to TripState.stoppedRecording,
+  /// ActionChips Save Trip & Clear Trip
+
+  void requestEndTracking() async {
+    tripState = TripState.stoppedTracking;
+    await mapController!
+        .updateMyLocationTrackingMode(MyLocationTrackingMode.none);
+    await mapController!.animateCamera(CameraUpdate.zoomBy(0.000001));
     tripValues.stopTracking;
   }
 
-  void requestGreatRoad() {
+  /// The point of interest that describes the good road is added when the good road is ended
+  /// goodRoadEnd() - this eliminates problems when icon is tapped accidentally.
+  ///
+  void requestGreatRoad({String description = '', String sounds = ''}) {
     isGoodRoad = true;
     tripValues.isEditing = tripState == TripState.editing;
-    isSaved = false;
+    if (CurrentTripItem().goodRoads.isEmpty) {
+      goodRoads = [Route(lines: [], waypoints: [])];
+    }
     goodRoads.add(Route(id: -1, uri: ''));
+    if ([TripState.tracking, TripState.following].contains(tripState)) {
+      goodRoads.last.waypoints
+          .add(Waypoint(value: 1, point: tripValues.position));
+    }
+    isSaved = false;
   }
 
   /// The goodRoadIndex is set when the goodRoad is highlighted while goodRoad = false
@@ -934,7 +959,7 @@ class CurrentTripItem extends MyTripItem {
     isGoodRoad = false;
     tripValues.showMask = false;
 
-    if (!added) {
+    if (!added && tripState != TripState.tracking) {
       tripState = tripValues.isEditing ? TripState.editing : TripState.manual;
     }
   }
@@ -950,37 +975,71 @@ class CurrentTripItem extends MyTripItem {
   }
 
   void requestGroup() {
-    CurrentTripItem().tripActions = TripActions.showGroup;
-    CurrentTripItem().tripValues.setState = true;
+    // CurrentTripItem().tripActions = TripActions.showGroup;
+    // CurrentTripItem().tripValues.setState = true;
   }
 
   void requestMessages() {
     CurrentTripItem().tripActions = TripActions.showMessages;
   }
 
-  void requestTrackRoute() {
-    tripState = TripState.recording;
+  void requestTrackRoute() async {
+    tripState = TripState.tracking;
     if (tripValues.pauseStream) {
-      tripValues.resumeFollowing();
+      tripValues.resumeTracking();
+      tripState = TripState.tracking;
+      await mapController!
+          .updateMyLocationTrackingMode(MyLocationTrackingMode.none);
+      await mapController!.animateCamera(CameraUpdate.zoomBy(0.000001));
     } else {
-      tripValues.startFollowing();
+      tripValues.startTracking();
+      if (routes.isEmpty) {
+        routes = [
+          Route(lines: [
+            [tripValues.position.x.toDouble(), tripValues.position.y.toDouble()]
+          ], waypoints: [
+            Waypoint(value: 1, point: tripValues.position)
+          ])
+        ];
+      }
+      await mapController!
+          .updateMyLocationTrackingMode(MyLocationTrackingMode.trackingCompass);
+      await mapController!.animateCamera(CameraUpdate.zoomBy(0.000001));
     }
     return;
   }
 
-  void requestFollowRoute() {
+  void requestFollowRoute() async {
     tripState = TripState.following;
+    developer.log(
+        'my_trip_item.dart requestFollowRoute() tripValues.pauseStream: ${tripValues.pauseStream}',
+        name: '_actionChips');
     if (tripValues.pauseStream) {
+      await mapController!
+          .updateMyLocationTrackingMode(MyLocationTrackingMode.trackingCompass);
+      await mapController!.animateCamera(CameraUpdate.zoomBy(0.000001));
       tripValues.resumeFollowing();
     } else {
+      await mapController!
+          .updateMyLocationTrackingMode(MyLocationTrackingMode.trackingCompass);
+      await mapController!.animateCamera(CameraUpdate.zoomTo(12.1));
+      await mapController!.animateCamera(
+        CameraUpdate.newLatLng(
+          LatLng(routes.first.lines.first[1], routes.first.lines.first[0]),
+        ),
+      ); //cameraPosition.target[0] = LatLng()
+      //   await mapController!.animateCamera(CameraUpdate.zoomBy(0.000001));
       tripValues.startFollowing();
     }
     return;
   }
 
-  void requestStopFollowing() {
+  void requestStopFollowing() async {
     tripState = TripState.stoppedFollowing;
     tripValues.pauseFollowing();
+    await mapController!
+        .updateMyLocationTrackingMode(MyLocationTrackingMode.none);
+    await mapController!.animateCamera(CameraUpdate.zoomBy(0.000001));
   }
 
   /// End create_chips.dart state routines.
@@ -995,9 +1054,12 @@ class CurrentTripItem extends MyTripItem {
     isSaved = false;
   }
 
-  loadBackBuffer() {
+  loadBackBuffer({Route? route}) {
+    route ??= routes.last;
     backBuffer.clear();
-    backBuffer.add(routes.last.waypoints);
+    if (route.waypoints.isNotEmpty) {
+      backBuffer.add(route.waypoints);
+    }
     backBufferIndex = 0;
   }
 
@@ -1070,6 +1132,7 @@ class CurrentTripItem extends MyTripItem {
   }
 */
 
+  /// closestWaypoints()
   /// NearestWaypoint strategy
   /// 3 cases:
   ///   1 before waypoint[0] extending start -> waypoint[0]
@@ -1192,16 +1255,43 @@ class CurrentTripItem extends MyTripItem {
       );
     }
 
-    routes = await replaceRoutes(routes: routes);
+    routes = await replaceRoutes(routes: routes, updateBuffer: false);
+    addToBackBuffer();
 
     mapUpdates = MapUpdates.routesAndWaypoints;
 
     isSaved = false;
   }
 
+  /// backBuffer is a [List<List<Waypoint>>].
+  /// When a waypoint is added then all the routes waypoints should be inserted
+  /// at backBuffer[0] - the latest state.
+  /// If a waypoint is added when the backBuffer has been rolled-back backBufferIndex > 0
+  /// then all the backBuffer values up to backBufferIndex is ditched.
+  /// backBuffer.length is restricted to 10
+
+  addToBackBuffer({Route? route}) {
+    route ??= routes.last;
+    if (backBufferIndex > 0) {
+      backBuffer.removeRange(0, backBufferIndex - 1);
+    }
+    List<Waypoint> waypoints = [];
+    for (int i = 0; i < route.waypoints.length; i++) {
+      waypoints.add(Waypoint.clone(
+          waypoint: route.waypoints[
+              i])); // Waypoint.fromMap(map: route.waypoints[i].toMap()));
+    }
+    backBuffer.insert(0, waypoints);
+    backBufferIndex = 0;
+    if (backBuffer.length > 10) {
+      backBuffer.removeRange(10, backBuffer.length - 1);
+    }
+  }
+
   removeWaypoint({int index = 0, int routeIndex = 0}) async {
     routes[routeIndex].waypoints.removeAt(index);
     routes = await replaceRoutes(routes: routes);
+    addToBackBuffer(route: routes[routeIndex]);
     mapUpdates = MapUpdates.routesAndWaypoints;
     isSaved = false;
   }
@@ -1368,18 +1458,22 @@ class CurrentTripItem extends MyTripItem {
   }
 
   void updateBackBuffer({required List<Waypoint> waypoints}) {
-    backBuffer.insert(0, []);
-    for (int i = 0; i < waypoints.length; i++) {
-      backBuffer[0].add(waypoints[i]);
+    if (waypoints.length > 1) {
+      /*
+      backBuffer.insert(0, []);
+      for (int i = 0; i < waypoints.length; i++) {
+        backBuffer[0].add(waypoints[i]);
+      }
+      developer.log(
+        'replaceRoutes() adding to backBuffer - length ${backBuffer.length} backBuffer[0] waypoints added: ${backBuffer[0].length}',
+        name: '_buffer',
+      );
+      if (backBuffer.length > 10) {
+        backBuffer.removeAt(10);
+      }
+      backBufferIndex = 0;
+    */
     }
-    developer.log(
-      'replaceRoutes() adding to backBuffer - length ${backBuffer.length} backBuffer[0] waypoints added: ${backBuffer[0].length}',
-      name: '_buffer',
-    );
-    if (backBuffer.length > 10) {
-      backBuffer.removeAt(10);
-    }
-    backBufferIndex = 0;
   }
 
   Future<List<Route>> replaceRoutes({
@@ -1398,14 +1492,7 @@ class CurrentTripItem extends MyTripItem {
     if (routes[routeIndex].waypoints.length > 1) {
       try {
         if (updateBuffer) {
-          backBuffer.insert(0, []);
-          for (int i = 0; i < routes[routeIndex].waypoints.length; i++) {
-            backBuffer[0].add(routes[routeIndex].waypoints[i]);
-          }
-          developer.log(
-            'replaceRoutes() adding to backBuffer - length ${backBuffer.length} backBuffer[0] waypoints added: ${backBuffer[0].length}',
-            name: '_buffer',
-          );
+          backBuffer[0] = routes[routeIndex].waypoints;
           if (backBuffer.length > 10) {
             backBuffer.removeAt(10);
           }
@@ -1719,66 +1806,98 @@ class CurrentTripItem extends MyTripItem {
   /// aims:
   ///   1 maintain all the maneuvers already passed
   ///   3 rejoin the route at the nearest sensible waypoint - type arrive
-  ///
+  ///     type "arrive" / "depart" are waypoints entered by the user
   Future<bool> changeRoute({
     required Point position,
     int lastManeuverIndex = 0,
     int routeIndex = 0,
     int pointIndex = 0,
   }) async {
-    List<Point> points = [];
+    List<Waypoint> waypoints = CurrentTripItem().routes[routeIndex].waypoints;
+    waypoints.clear();
 
     for (int i = 0; i <= lastManeuverIndex; i++) {
-      if (['depart', 'arrive'].contains(CurrentTripItem().maneuvers[i].type)) {
-        points.add(CurrentTripItem().maneuvers[i].point);
-      }
+      waypoints.add(
+          Waypoint(point: CurrentTripItem().maneuvers[i].point, value: i + 1));
     }
 
     /// now add current position as a waypoint
-    points.add(position);
+    waypoints
+        .add(Waypoint(point: tripValues.position, value: waypoints.length + 1));
 
     /// Now look for closest waypoint to rejoin the route
-    double distance = 999999999999;
-    int nextManeuver = 0;
-    for (int i = lastManeuverIndex + 1; i < maneuvers.length; i++) {
-      if (maneuvers[i].type == 'arrive' || i == maneuvers.length - 1) {
-        double delta = Geolocator.distanceBetween(
-          position.y.toDouble(),
-          position.x.toDouble(),
-          maneuvers[i].point.y.toDouble(),
-          maneuvers[i].point.x.toDouble(),
-        );
-        if (delta < distance) {
-          delta = distance;
-          nextManeuver = i;
+    try {
+      double distance = 999999999999;
+      int nextManeuver = 0;
+      for (int i = lastManeuverIndex + 1; i < maneuvers.length; i++) {
+        if (maneuvers[i].type == 'arrive' || i == maneuvers.length - 1) {
+          double delta = Geolocator.distanceBetween(
+            position.y.toDouble(),
+            position.x.toDouble(),
+            maneuvers[i].point.y.toDouble(),
+            maneuvers[i].point.x.toDouble(),
+          );
+          if (delta < distance) {
+            delta = distance;
+            nextManeuver = i;
+          }
         }
       }
-    }
 
-    /// Complete list of waypoints to feed the router
-    for (int i = nextManeuver; i < maneuvers.length; i++) {
-      if (maneuvers[i].type == 'arrive' || i == maneuvers.length - 1) {
-        points.add(maneuvers[i].point);
+      /// Complete list of waypoints to feed the router
+      for (int i = nextManeuver; i < maneuvers.length; i++) {
+        if (maneuvers[i].type == 'arrive' || i == maneuvers.length - 1) {
+          waypoints.add(
+              Waypoint(point: maneuvers[i].point, value: waypoints.length + 1));
+        }
       }
-    }
 
-    if (points.length > 2) {
-      RouterData tripData = await getRouterData(route: routes.last);
-      distance = tripData.distance;
-      maneuvers = tripData.maneuvers;
+      if (waypoints.length > 2) {
+        RouterData tripData = await getRouterData(route: routes.last);
+        distance = tripData.distance;
+        maneuvers = tripData.maneuvers;
+        routes = tripData.routes;
+        mapUpdates = MapUpdates.routes;
+        await mapController!.setGeoJsonSource('route-data', {
+          "type": "FeatureCollection",
+          "features": routesToGeoJson(),
+        });
+      }
+    } catch (e) {
+      developer.log('Error in my_trip_item.dart changeRoute() :${e.toString()}',
+          name: '_save_trip_');
     }
-    return points.length > 2;
+    return waypoints.length > 2;
   }
 
-  bool goodRoadEnd() {
-    isSaved = false;
-    String uuid = getUuid();
+  bool goodRoadEnd(
+      {String name = 'Great road',
+      String description = 'Nice road',
+      String sounds = ''}) {
+    if (tripState == TripState.tracking) {
+      goodRoads.last.waypoints.add(
+        Waypoint(
+            value: goodRoads.last.waypoints.length + 1,
+            point: tripValues.position),
+      );
+    }
     isGoodRoad = false;
+    isSaved = false;
     if (goodRoads.isNotEmpty &&
         goodRoads.last.waypoints.length > 1 &&
         goodRoads.last.pointOfInterestUri.isEmpty) {
+      String uuid = getUuid();
       Point point = goodRoads.last.waypoints.first.point;
-      pointsOfInterest.add(PointOfInterest(point: point, uuid: uuid, type: 13));
+      pointsOfInterest.add(
+        PointOfInterest(
+          point: point,
+          uuid: uuid,
+          type: 13,
+          name: name,
+          description: description,
+          sounds: sounds,
+        ),
+      );
       goodRoads.last.pointOfInterestUri = uuid;
       return true;
     } else {

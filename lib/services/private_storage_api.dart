@@ -200,6 +200,11 @@ class PrivateStorageLocal implements PrivateDataRepository {
   }
 
   @override
+  Future<MyTripItem> loadMyTripItem({String name = '', int id = -1}) async {
+    return MyTripItem();
+  }
+
+  @override
   Future<int> saveMessage(MessageLocal message) async {
     return 0;
   }
