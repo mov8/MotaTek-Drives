@@ -223,9 +223,6 @@ class DirectionDescriptors {
           nextManeuverIndex != _roundabout) {
         _sweepAngle = getRoundaboutAngle(
             maneuvers: maneuvers, index: nextManeuverIndex, routes: routes);
-        developer.log(
-            "directions.dart getDirections() _sweepAngle: $_sweepAngle",
-            name: '_roundabout_');
         _roundabout = nextManeuverIndex;
       }
       Maneuver? maneuver;
@@ -384,7 +381,7 @@ class DirectionDescriptors {
         'arrive': "arrive at your destination ${maneuver.roadTo}"
       };
     } catch (e) {
-      developer.log('Error getting headings: ${e.toString()}', name: '_error_');
+      developer.log('Error getting headings: ${e.toString()}', name: 'error');
     }
     Map<String, dynamic> subheadingTypes = {};
     try {
@@ -408,7 +405,7 @@ class DirectionDescriptors {
       };
     } catch (e) {
       developer.log('Error getting subheadings: ${e.toString()}',
-          name: '_error_');
+          name: 'error');
     }
     try {
       prompts = {
@@ -416,7 +413,8 @@ class DirectionDescriptors {
         "subheading": subheadingTypes[maneuver.type]
       };
     } catch (e) {
-      developer.log('Error : ${e.toString()}', name: '_error_');
+      developer.log('Error DirectionDescriptors().prompts(): ${e.toString()}',
+          name: 'error');
       prompts = {'heading': 'error', 'subheading': 'error'};
     }
 
@@ -514,10 +512,6 @@ class DirectionDescriptors {
     String fileName =
         'sp_${type.indexOf(maneuver.type)}_${modifier.indexOf(maneuver.modifier)}_${soundTrigger}_${maneuver.exit}_${Setup().maleVoice}.mp3';
 
-    developer.log(
-        'directions 446 soundIndex: $soundIndex, maneuverIndex: $maneuverIndex  soundTrigger: $soundTrigger metersToManeuver: $metersToManeuver sound: ${directionTypes[maneuver.type]} file: $fileName',
-        name: '_sound');
-
     return {"sound": directionTypes[maneuver.type], "file": fileName};
   }
 
@@ -550,6 +544,18 @@ class DirectionDescriptors {
       return number.roundToDouble();
     } else {
       double decimalPlace = number - number.truncateToDouble();
+      if (decimalPlace < 0.15) {
+        return number.truncateToDouble();
+      } else if (decimalPlace < 0.35) {
+        return number.truncateToDouble() + 0.25;
+      } else if (decimalPlace < 0.65) {
+        return number.truncateToDouble() + 0.5;
+      } else if (decimalPlace < 0.85) {
+        return number.truncateToDouble() + 0.75;
+      } else {
+        return number.truncateToDouble() + 1;
+      }
+      /*
       switch (decimalPlace) {
         case < 0.15:
           return number.truncateToDouble();
@@ -561,7 +567,7 @@ class DirectionDescriptors {
           return number.truncateToDouble() + 0.75;
         default:
           return number.truncateToDouble() + 1;
-      }
+      */
     }
   }
 

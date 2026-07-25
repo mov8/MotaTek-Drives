@@ -258,6 +258,8 @@ Future<RouterData> getRouterData(
   dynamic jsonResponse;
   int jump = 1;
   int points = route.waypoints.length;
+  developer.log('getRouterData() called goodRoad: $goodRoad',
+      name: '_goodRoad_');
   if (points == 0) {
     points = route.lines.length;
     jump = route.lines.length > 50 ? (points ~/ 50) : 1;
@@ -283,14 +285,21 @@ Future<RouterData> getRouterData(
   try {
     var response = await http.get(url).timeout(const Duration(seconds: 8));
     if ([200, 201].contains(response.statusCode)) {
+      developer.log('getRouterData() http response: ${response.statusCode}',
+          name: '_goodRoad_');
       jsonResponse = jsonDecode(response.body);
       if (jsonResponse == null) {
         return RouterData(message: 'Error');
       }
     } else {
+      developer.log(
+          'getRouterData() http error - response: ${response.statusCode}',
+          name: '_goodRoad_');
       return RouterData(message: 'Error');
     }
   } catch (e) {
+    developer.log('getRouterData() http error: ${e.toString()}',
+        name: '_goodRoad_');
     debugPrint('Http error: ${e.toString()}');
     return RouterData(message: 'Error');
   }
@@ -346,8 +355,9 @@ List<Maneuver> getManeuversFromJson({required List routes, name = ''}) {
                     bearingBefore = maneuver['bearing_before'] ?? 0;
                   }
                 } catch (e) {
-                  developer.log('bearing error: ${e.toString()}',
-                      name: '_roundabout');
+                  developer.log(
+                      'Error CreateTripHelpers getManeuversFromJson() bearing error: ${e.toString()}',
+                      name: 'error');
                 }
               } else {
                 bearingBefore = maneuver['bearing_before'] ?? 0;
@@ -529,10 +539,6 @@ int getRoundaboutAngle(
 
       maneuvers[index].calculated = true;
 
-      developer.log(
-          'create_trip_helpers.dart getRoundaboutAngle() 533 roadFrom: ${maneuvers[index].roadFrom} roadTo: ${maneuvers[index].roadTo} approachAngle: $approachAngle  leaveAngle: $leaveAngle  sweep angle: ${maneuvers[index].bearingAfter - maneuvers[index].bearingBefore}',
-          name: '_roundabout_');
-
       ///   when the roundaboutPainter draws an arc it always starts at 3 O'Clock and paints clockwise
       ///   the painter describes all angles in radians but its angle parameter is degrees
       ///   the painter does the adjustment of the start from 3 O'Clock to 6 O'Clock
@@ -641,6 +647,12 @@ double getDistance(
 /// Haversine calculation for the distance between two points on the globe
 /// allows the locations to be specified as Point(x, y) or as [x, y]
 
+double getDistanceBetween(
+    {Point? startXY, Point? endXY, List? startList, List? endList}) {
+  return distanceBetween(
+      startXY: startXY, endXY: endXY, startList: startList, endList: endList);
+}
+
 double distanceBetween(
     {Point? startXY, Point? endXY, List? startList, List? endList}) {
   if ((startXY == null && startList == null) ||
@@ -665,12 +677,8 @@ double distanceBetween(
             cos(_toRadians(startLatitude)) *
             cos(_toRadians(endLatitude));
     c = 2 * asin(sqrt(a));
-    //   developer.log(
-    //       'distanceBetween() startXY: $startXY  endXY: $endXY a: $a  c: $c,  distance M: ${earthRadius * c}',
-    //       name: '_roundabout_');
   } catch (e) {
-    developer.log('Error calculating distance: ${e.toString()}',
-        name: '_roundabout_');
+    developer.log('Error calculating distance: ${e.toString()}', name: 'error');
   }
 
   return earthRadius * c;

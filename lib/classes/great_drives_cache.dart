@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer' as developer;
+import 'package:drives/constants.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import '/models/other_models.dart';
@@ -70,7 +72,7 @@ class DrivesRequest {
   List<String> received = [];
   Map<String, dynamic> request = {"zoom": 14, "b_box": [], "exclude": []};
   Map<String, dynamic> exclude = {};
-  List<TripItem> trips = [];
+  // List trips = [];
   List excluded = [];
   String requestId = '';
 
@@ -105,27 +107,28 @@ class DrivesRequest {
   };
   dynamic apiGeoJson;
 
-  Future<Map<String, dynamic>> update(
-      {required LatLngBounds bounds, required double zoom}) async {
+  Future<void> update(
+      {required LatLngBounds bounds,
+      required double zoom,
+      bool force = false}) async {
     /// If changing zoom level or breaching bounds
     ///   1 zoom higher -> lower all higher polylines can be used but shields can't - excludes should be included in lower level
     ///   2 zoom lower -> higher all lower level data should be left intact
     ///   3 outside fence complete refresh of that level data with excludes from higher levels
-
     _thisZoom = zoom;
     bool zoomChanged = zoomUpdate(zoom: zoom);
     bool fenceBreached = outsideFence(bounds: bounds, zoom: zoom);
 
-    if (zoomChanged || fenceBreached) {
+    if (zoomChanged || fenceBreached || force) {
       try {
         String zLevel = level(zoom: zoom);
         excluded = [];
         String useData = "";
-        if (fenceBreached) {
+        if (fenceBreached || force) {
           _3DCache["cache"][zLevel]["data"]["lines"] = [];
           _3DCache["cache"][zLevel]["data"]["shields"] = [];
           _3DCache["cache"][zLevel]["exclude"] = [];
-          if (zoom < _lastZoom) {
+          if (zoom < _lastZoom || force) {
             useData = level(zoom: _lastZoom);
             excluded = _3DCache["cache"][useData]["exclude"];
           }
@@ -136,43 +139,75 @@ class DrivesRequest {
             exclude: excluded,
             zoom: zoom);
         var jsonData = jsonDecode(geoJson);
-        for (int i = 0; i < jsonData["features"].length; i++) {
-          // 'shield' layer contains properties to create TripItem
-          if (jsonData['features'][i]['group'] == 'shield') {
-            trips.add(TripItem.from3DCache(
-                map: jsonData['features'][i]['properties'],
-                uri: jsonData['features'][i]['id']));
-            jsonData['features'][i]['properties']['color'] =
-                Setup().routeColourHex();
-            if (!_3DCache["cache"][zLevel]["exclude"]
-                .contains(jsonData['features'][i]['id'])) {
-              _3DCache["cache"][zLevel]["exclude"]
-                  .add(jsonData['features'][i]['id']);
-            }
-            _3DCache["cache"][zLevel]["data"]["shields"]
-                .add(jsonData['features'][i]);
-          } else {
-            _3DCache["cache"][zLevel]["data"]["lines"]
-                .add(jsonData['features'][i]);
-          }
-        }
-
-        _3DCache["cache"][zLevel]["data"]["lines"].addAll(jsonData['features']);
-
-        _lastZoom = zoom;
-        onUpdated(zoom.toInt());
-        return {
-          "type": "FeatureCollection",
-          //  "features": _3DCache["cache"][zLevel]["data"]["lines"]
-
-          "features": _3DCache["cache"][zLevel]["data"]["lines"] +
+        if (jsonData['features'] != null) {
+          // trips.clear();
+          List trips = [];
+          for (int i = 0; i < jsonData["features"].length; i++) {
+            // 'shield' layer contains properties to create TripItem
+            if (jsonData['features'][i]['group'] == 'shield') {
+              trips.add(TripItem.from3DCache(
+                  map: jsonData['features'][i]['properties'],
+                  uri: jsonData['features'][i]['id']));
+              jsonData['features'][i]['properties']['color'] =
+                  Setup().routeColourHex();
+              if (!_3DCache["cache"][zLevel]["exclude"]
+                  .contains(jsonData['features'][i]['id'])) {
+                _3DCache["cache"][zLevel]["exclude"]
+                    .add(jsonData['features'][i]['id']);
+              }
               _3DCache["cache"][zLevel]["data"]["shields"]
-        };
+                  .add(jsonData['features'][i]);
+            } else {
+              _3DCache["cache"][zLevel]["data"]["lines"]
+                  .add(jsonData['features'][i]);
+            }
+          }
+
+          _3DCache["cache"][zLevel]["data"]["lines"]
+              .addAll(jsonData['features']);
+
+          _lastZoom = zoom;
+          onUpdated(zoom.toInt());
+
+          Map<String, dynamic> mapData = {
+            "type": "FeatureCollection",
+            "features": _3DCache["cache"][zLevel]["data"]["lines"] +
+                _3DCache["cache"][zLevel]["data"]["shields"]
+          };
+
+          /// Update the map
+          await MapService()
+              .controller!
+              .setGeoJsonSource("published-data", mapData);
+
+          /// Update the drawers
+          if (kIsWeb) {
+            MapService().sideDrawerController!.setContent(
+                content: BottomDrawerItems.drives, drawerItems: trips);
+          } else {
+            MapService().bottomDrawerController!.setContent(
+                content: BottomDrawerItems.drives, drawerItems: trips);
+          }
+
+          Map<String, dynamic> results = {
+            "geoJson": {
+              "type": "FeatureCollection",
+              "features": _3DCache["cache"][zLevel]["data"]["lines"] +
+                  _3DCache["cache"][zLevel]["data"]["shields"]
+            },
+            "drawerData": trips
+          };
+          return;
+        } else {
+          return;
+        }
       } catch (e) {
-        developer.log('Error using 3-DCache: ${e.toString()}');
+        developer.log('Error using 3-DCache: ${e.toString()}', name: 'error');
+        return;
       }
+    } else {
+      return;
     }
-    return {};
   }
 
   String level({required zoom}) {
@@ -228,6 +263,7 @@ class DrivesRequest {
     return;
   }
 
+/*
   List<Card> getTripTiles({String openUri = '', GlobalKey? key}) {
     List<Card> cards = [];
     // List<TripItem> trips = getSummaries();
@@ -258,7 +294,12 @@ class DrivesRequest {
     return cards;
   }
 
+  List getDrivesData() {
+    return trips;
+  }
+
   download(index, uri) {
     debugPrint('index: $index  uri: $uri');
   }
+  */
 }

@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+import 'dart:developer' as developer;
 import '/tiles/tiles.dart';
 import 'package:flutter/material.dart';
 // import 'package:flutter/services.dart';
@@ -61,6 +63,69 @@ class _InvitationsScreenState extends State<InvitationsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (kIsWeb) {
+      return ScreensAppBarBottom(
+        heading: 'Group drive invitations',
+        prompt: 'Swipe right to accept, left to decline.',
+        updateHeading: _refused.isNotEmpty
+            ? "You have declined ${_refused.length} invitation${_refused.length > 1 ? 's' : ''}"
+            : "You have accepted ${_accepted.length} invitation${_accepted.length > 1 ? 's' : ''}",
+        updateSubHeading: _refused.isNotEmpty && _accepted.isNotEmpty
+            ? "You have accepted ${_accepted.length} invitation${_accepted.length > 1 ? 's' : ''}"
+            : '',
+        update: _edited,
+        overflowPrompts: overflowPrompts,
+        /* _expanded
+            ? ['Join trip now', 'Download trip']
+            : [
+                'Show all invitations',
+                'All excluding declined',
+                'Only future invitations'
+              ],
+              */
+        overflowIcons: overflowIcons,
+        /* _expanded
+            ? [Icon(Icons.directions_car), Icon(Icons.download)]
+            : [
+                Icon(Icons.checklist_outlined),
+                Icon(Icons.remove_done_outlined),
+                Icon(Icons.more_time_outlined)
+              ], */
+        overflowMethods: overflowMethods,
+        /*_expanded
+            ? [_startDrive, _downloadDrive]
+            : [
+                getData1,
+                getData2,
+                getData3,
+              ],
+              */
+        showOverflow: true,
+        showAction: _edited,
+        updateMethod: (update) => _update(update: update),
+        textColor: const Color.fromRGBO(1, 29, 51, 1),
+        content: FutureBuilder<bool>(
+          future: dataloaded,
+          builder: (BuildContext context, snapshot) {
+            if (snapshot.hasError) {
+              debugPrint('Snapshot has error: ${snapshot.error}');
+            } else if (snapshot.hasData) {
+              return portraitView();
+            } else {
+              return const SizedBox(
+                width: double.infinity,
+                height: double.infinity,
+                child: Align(
+                  alignment: Alignment.center,
+                  child: CircularProgressIndicator(),
+                ),
+              );
+            }
+            throw ('Error - FutureBuilder introduce.dart');
+          },
+        ),
+      );
+    } else {}
     // introduces = [];
     return Scaffold(
       backgroundColor: Colors.blue,
@@ -319,8 +384,8 @@ class _InvitationsScreenState extends State<InvitationsScreen> {
     MyTripItem gotTrip = await getMyTrip(invitations[index].driveId);
     if (mounted) {
       Navigator.pushNamed(context, 'createTrip',
-          arguments: TripArguments(gotTrip, '',
-              groupDriveId: invitations[index].groupDriveId));
+          arguments: TripArguments(
+              trip: gotTrip, groupDriveId: invitations[index].groupDriveId));
     }
   }
 

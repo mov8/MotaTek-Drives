@@ -169,7 +169,7 @@ Future<List<Map<String, dynamic>>> getSurveyData(
 
 /// End of Survey stuff
 ///
-Future<List<Map<String, dynamic>>> getSetup(int id) async {
+Future<Map<String, dynamic>> getSetup(int id) async {
   Database db = await DbHelper().db;
   // int records = await recordCount('setup');
   // if (records > 0){
@@ -177,7 +177,7 @@ Future<List<Map<String, dynamic>>> getSetup(int id) async {
     List<Map<String, dynamic>> maps =
         //  await db.query('setup', where: 'id >= ?', whereArgs: [id], limit: 1);
         await db.query('setup', limit: 1);
-    return maps;
+    return maps.first;
   } catch (e) {
     debugPrint('Error loading Setup ${e.toString()}');
   }
@@ -950,7 +950,8 @@ Future<void> deleteDriveById(int id) async {
 }
 
 //
-Future<void> deleteDriveLocal({required int driveId}) async {
+Future<void> deleteDriveLocal({required MyTripItem tripItem}) async {
+  int driveId = tripItem.id;
   await deletePolyLinesByDriveId(driveId);
   await deletePointOfInterestByDriveId(driveId);
   await deleteManeuversByDriveId(driveId);

@@ -1,4 +1,6 @@
 import 'package:drives/helpers/edit_helpers.dart';
+import 'dart:developer' as developer;
+import 'package:flutter/foundation.dart';
 import '/constants.dart';
 import '/tiles/tiles.dart';
 import 'package:flutter/material.dart';
@@ -65,16 +67,14 @@ class _GroupDriveFormState extends State<GroupDriveForm>
         startDate: adding
             ? DateTime(2000, 01, 01)
             : DateTime(today.year, today.month, today.day - 2));
-    setState(() => ());
+    setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
     // _action = 0;
-    return Scaffold(
-      backgroundColor: Colors.blue,
-      resizeToAvoidBottomInset: false, // stop keyboard overflows
-      appBar: ScreensAppBar(
+    if (kIsWeb) {
+      return ScreensAppBarBottom(
         heading: 'Organise a group event',
         prompt: 'Invite group members to a group event.',
         overflowPrompts: _overflowPrompts,
@@ -82,35 +82,76 @@ class _GroupDriveFormState extends State<GroupDriveForm>
         overflowMethods: _overflowMethods,
         showOverflow: true,
         update: _changed == true,
+        textColor: const Color.fromRGBO(1, 29, 51, 1),
         // updateHeading: 'Save your group drive?',
         // updateSubHeading: 'You have made changes.',
         showAction: _changed == true,
         updateMethod: (update) => checkInvitations(update),
-      ),
-      body: FutureBuilder<bool>(
-        future: _dataLoaded,
-        builder: (BuildContext context, snapshot) {
-          if (snapshot.hasError) {
-            debugPrint('Snapshot has error: ${snapshot.error}');
-          } else if (snapshot.hasData) {
-            return portraitView(); //portraitViews(_action);
-          } else {
-            return const SizedBox(
-              width: double.infinity,
-              height: double.infinity,
-              child: Align(
-                alignment: Alignment.center,
-                child: CircularProgressIndicator(),
-              ),
-            );
-          }
-          throw ('Error - FutureBuilder group.dart');
-        },
-      ),
-    );
+
+        content: FutureBuilder<bool>(
+          future: _dataLoaded,
+          builder: (BuildContext context, snapshot) {
+            if (snapshot.hasError) {
+              debugPrint('Snapshot has error: ${snapshot.error}');
+            } else if (snapshot.hasData) {
+              return portraitView(); //portraitViews(_action);
+            } else {
+              return const SizedBox(
+                width: double.infinity,
+                height: double.infinity,
+                child: Align(
+                  alignment: Alignment.center,
+                  child: CircularProgressIndicator(),
+                ),
+              );
+            }
+            throw ('Error - FutureBuilder group.dart');
+          },
+        ),
+      );
+    } else {
+      return Scaffold(
+        backgroundColor: Colors.blue,
+        resizeToAvoidBottomInset: false, // stop keyboard overflows
+        appBar: ScreensAppBar(
+          heading: 'Organise a group event',
+          prompt: 'Invite group members to a group event.',
+          overflowPrompts: _overflowPrompts,
+          overflowIcons: _overflowIcons,
+          overflowMethods: _overflowMethods,
+          showOverflow: true,
+          update: _changed == true,
+          // updateHeading: 'Save your group drive?',
+          // updateSubHeading: 'You have made changes.',
+          showAction: _changed == true,
+          updateMethod: (update) => checkInvitations(update),
+        ),
+        body: FutureBuilder<bool>(
+          future: _dataLoaded,
+          builder: (BuildContext context, snapshot) {
+            if (snapshot.hasError) {
+              debugPrint('Snapshot has error: ${snapshot.error}');
+            } else if (snapshot.hasData) {
+              return portraitView(); //portraitViews(_action);
+            } else {
+              return const SizedBox(
+                width: double.infinity,
+                height: double.infinity,
+                child: Align(
+                  alignment: Alignment.center,
+                  child: CircularProgressIndicator(),
+                ),
+              );
+            }
+            throw ('Error - FutureBuilder group.dart');
+          },
+        ),
+      );
+    }
   }
 
   Widget portraitView() {
+    Color textColor = kIsWeb ? Colors.black : Colors.white;
     return Column(
       children: [
         if (!_showingDialog)
@@ -119,20 +160,20 @@ class _GroupDriveFormState extends State<GroupDriveForm>
             labelStyle: labelStyle(context: context),
             unselectedLabelStyle: labelStyle(context: context),
             indicatorWeight: 4,
-            labelColor: Colors.white,
+            labelColor: textColor,
             unselectedLabelColor: Colors.deepPurple,
             indicatorColor: Colors.deepOrange,
             tabs: [
               Tab(
                   icon: Icon(
                     Icons.event_available_outlined,
-                    color: Colors.white,
+                    color: textColor,
                     size: 35,
                   ),
                   text: 'Organised Events'),
               Tab(
                   icon: Icon(Icons.edit_calendar_outlined,
-                      color: Colors.white, size: 35),
+                      color: textColor, size: 35),
                   text: 'Organise New Event'),
             ],
           ),
@@ -160,6 +201,7 @@ class _GroupDriveFormState extends State<GroupDriveForm>
   }
 
   Widget organised() {
+    Color textColor = kIsWeb ? Colors.black : Colors.white;
     return SizedBox(
       height: MediaQuery.of(context).size.height - 250, //SingleChildScrollView(
       child: _trips.isNotEmpty
@@ -172,67 +214,74 @@ class _GroupDriveFormState extends State<GroupDriveForm>
                   elevation: 5,
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(5, 5, 5, 5),
-                    child: ExpansionTile(
-                      backgroundColor: Colors.white,
-                      title: SizedBox(
-                        height: 60,
-                        child: InkWell(
-                          onLongPress: () => startDrive(index),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              //      IconButton(
-                              //          onPressed: () => startDrive(index),
-                              //          icon: Icon(Icons.directions_car_outlined, size: 30)),
-                              Text(
-                                _trips[index].eventName,
-                                style: TextStyle(
-                                    fontSize: 20, fontWeight: FontWeight.bold),
-                              ),
-                              Text(
-                                'On ${dateFormatDoc.format(DateTime.parse(_trips[index].eventDate))}  (long-press to join trip now)',
-                                style: TextStyle(fontSize: 14),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      onExpansionChanged: (value) =>
-                          _expansionChange(index, value),
-
-                      //     subtitle: Text(
-                      //       'Event date  ${dateFormatDoc.format(DateTime.parse(_trips[index].eventDate))} - press button to join',
-                      //       style: TextStyle(fontSize: 14),
-                      //     ),
-                      children: [
-                        ListView.builder(
-                          physics: const NeverScrollableScrollPhysics(),
-                          // This tells the ListView to calculate its full height based on its children.
-                          // WARNING: This is bad for performance on very long lists!
-                          shrinkWrap: true,
-                          itemCount: _trips[index].invitees.length,
-                          itemBuilder: (context, mIndex) => Padding(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 0.0, vertical: 5.0),
-                            child: Padding(
-                              padding: EdgeInsetsGeometry.fromLTRB(5, 0, 5, 0),
-                              child: ListTile(
-                                //   shape: ShapeBorder()
-                                leading: Icon(inviteIcons[int.parse(
-                                    _trips[index].invitees[mIndex]['state'])]),
-                                title: Text(
-                                    '${_trips[index].invitees[mIndex]['forename']} ${_trips[index].invitees[mIndex]['surname']}',
-                                    style: TextStyle(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.bold)),
-                                subtitle: Text(
-                                    '${_trips[index].invitees[mIndex]['email']}    ${_trips[index].invitees[mIndex]['phone']}'),
-                                tileColor: Colors.white,
-                              ),
+                    child: RrExpansionTile(
+                      context: context,
+                      child: ExpansionTile(
+                        backgroundColor: Colors.white,
+                        title: SizedBox(
+                          height: 60,
+                          child: InkWell(
+                            onLongPress: () => startDrive(index),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                //      IconButton(
+                                //          onPressed: () => startDrive(index),
+                                //          icon: Icon(Icons.directions_car_outlined, size: 30)),
+                                Text(
+                                  _trips[index].eventName,
+                                  style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color: textColor),
+                                ),
+                                Text(
+                                  'On ${dateFormatDoc.format(DateTime.parse(_trips[index].eventDate))}  (long-press to join trip now)',
+                                  style: TextStyle(fontSize: 14),
+                                ),
+                              ],
                             ),
                           ),
                         ),
-                      ],
+                        onExpansionChanged: (value) =>
+                            _expansionChange(index, value),
+
+                        //     subtitle: Text(
+                        //       'Event date  ${dateFormatDoc.format(DateTime.parse(_trips[index].eventDate))} - press button to join',
+                        //       style: TextStyle(fontSize: 14),
+                        //     ),
+                        children: [
+                          ListView.builder(
+                            physics: const NeverScrollableScrollPhysics(),
+                            // This tells the ListView to calculate its full height based on its children.
+                            // WARNING: This is bad for performance on very long lists!
+                            shrinkWrap: true,
+                            itemCount: _trips[index].invitees.length,
+                            itemBuilder: (context, mIndex) => Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 0.0, vertical: 5.0),
+                              child: Padding(
+                                padding:
+                                    EdgeInsetsGeometry.fromLTRB(5, 0, 5, 0),
+                                child: ListTile(
+                                  //   shape: ShapeBorder()
+                                  leading: Icon(inviteIcons[int.parse(
+                                      _trips[index].invitees[mIndex]
+                                          ['state'])]),
+                                  title: Text(
+                                      '${_trips[index].invitees[mIndex]['forename']} ${_trips[index].invitees[mIndex]['surname']}',
+                                      style: TextStyle(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold)),
+                                  subtitle: Text(
+                                      '${_trips[index].invitees[mIndex]['email']}    ${_trips[index].invitees[mIndex]['phone']}'),
+                                  tileColor: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -247,29 +296,26 @@ class _GroupDriveFormState extends State<GroupDriveForm>
                   children: [
                     Text(
                       "No future group events.",
-                      style: headlineStyle(context: context, size: 1),
+                      style: headlineStyle(
+                          context: context, size: 1, color: textColor),
                     ),
                     SizedBox(height: 10),
                     Row(children: [
                       Text(
                         "1. Create and saved a trip.",
                         style: headlineStyle(
-                          context: context,
-                          size: 2,
-                        ),
+                            context: context, size: 2, color: textColor),
                       ),
                       if (_myTripItems.isNotEmpty)
-                        Icon(Icons.check, color: Colors.white, size: 30),
+                        Icon(Icons.check, color: textColor, size: 30),
                     ]),
                     SizedBox(height: 5),
                     Row(children: [
                       Text("2. Create a group of participants.",
                           style: headlineStyle(
-                            context: context,
-                            size: 2,
-                          )),
+                              context: context, size: 2, color: textColor)),
                       if (_groups.isNotEmpty)
-                        Icon(Icons.check, color: Colors.white, size: 30),
+                        Icon(Icons.check, color: textColor, size: 30),
                     ]),
                     SizedBox(height: 5),
                     Text(
@@ -277,6 +323,7 @@ class _GroupDriveFormState extends State<GroupDriveForm>
                       style: headlineStyle(
                         context: context,
                         size: 2,
+                        color: textColor,
                       ),
                     ),
                   ],
@@ -307,8 +354,8 @@ class _GroupDriveFormState extends State<GroupDriveForm>
     MyTripItem gotTrip = await getMyTrip(_trips[index].driveId);
     if (mounted) {
       Navigator.pushNamed(context, 'createTrip',
-          arguments:
-              TripArguments(gotTrip, '', groupDriveId: _trips[index].eventId));
+          arguments: TripArguments(
+              trip: gotTrip, groupDriveId: _trips[index].eventId));
     }
   }
 

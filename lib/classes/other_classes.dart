@@ -1,11 +1,13 @@
 //import '/models/models.dart'; //my_trip_item.dart';
 import 'dart:math';
+import 'package:flutter/material.dart' hide Route;
+
 import '/classes/classes.dart';
 import '/helpers/helpers.dart';
 import '../models/other_models.dart';
-// import 'package:flutter/widgets.dart';
+// import 'package:flutter/widgets.dart' hide Route;
 import '/constants.dart';
-import 'package:latlong2/latlong.dart';
+//import 'package:latlong2/latlong.dart';
 /*
             id: groupData['id'],
             name: groupData['name'],
@@ -38,15 +40,60 @@ class MailItem {
 }
 
 class TripArguments {
-  final MyTripItem trip;
+  final MyTripItem? trip;
   final String origin;
   final String groupDriveId;
-  TripArguments(this.trip, this.origin, {this.groupDriveId = ''});
+  final AppState appState;
+  final int activeChip;
+  bool changedScreen;
+  TripArguments({
+    this.trip,
+    this.origin = '',
+    this.groupDriveId = '',
+    this.appState = AppState.createTrip,
+    this.activeChip = 0,
+    this.changedScreen = false,
+  });
 }
 
 class MutableInt {
   int value;
   MutableInt({this.value = -1});
+}
+
+class BottomDrawerContent {
+  final BottomDrawerItems bottomDrawerItem;
+  final List<Widget> contents;
+  BottomDrawerContent({required this.bottomDrawerItem, required this.contents});
+}
+
+/// RrExpansionTile creates a rounded corner tile with padding and the Expanded divider lines removed
+class RrExpansionTile extends StatelessWidget {
+  ExpansionTile child;
+  BorderRadius? borderRadius;
+  EdgeInsetsGeometry? padding;
+  BuildContext context;
+  RrExpansionTile(
+      {super.key,
+      required this.context,
+      required this.child,
+      BorderRadius? borderRadius,
+      EdgeInsetsGeometry? padding})
+      : borderRadius = borderRadius ?? BorderRadius.circular(10.0),
+        padding = padding ?? EdgeInsetsGeometry.fromLTRB(5, 5, 5, 5);
+  @override
+  build(BuildContext context) {
+    return Padding(
+      padding: padding!,
+      child: ClipRRect(
+        borderRadius: borderRadius!,
+        child: Theme(
+          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+          child: child,
+        ),
+      ),
+    );
+  }
 }
 
 class Position {

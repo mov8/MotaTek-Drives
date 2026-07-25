@@ -94,11 +94,76 @@ extension StringInsertExtensions on String {
   }
 }
 
+extension KeepAfterNthCharacter on String {
+  String keepAfter({String delim = ' ', int position = 1}) {
+    List elements = split(delim);
+    if (position.abs() < elements.length) {
+      // if n < 0 then want to return string to include n.abs() delimiters
+      position = position < 0 ? elements.length + position : position;
+      // removeRange removes elements starting at param 1 and LESS THAN param 2
+      elements.removeRange(0, position);
+    }
+    return elements.join(delim);
+  }
+}
+
 extension FlutterStateExt on State {
   void setStateIfMounted(VoidCallback fn) {
     if (mounted) {
       // ignore: invalid_use_of_protected_member
       setState(fn);
     }
+  }
+}
+
+class TitleCaseFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    if (newValue.text.isEmpty) return newValue;
+
+    // Use a RegEx to find the first letter of every word
+    final String transformed = newValue.text.replaceAllMapped(
+      RegExp(r'\b(\w)'),
+      (match) => match.group(1)!.toUpperCase(),
+    );
+
+    // We must return the new value with the selection (cursor) preserved
+    return newValue.copyWith(
+      text: transformed,
+      selection: newValue.selection,
+    );
+  }
+}
+
+class SentenceCaseFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    if (newValue.text.isEmpty) return newValue;
+
+    final String text = newValue.text;
+
+    // Logic:
+    // 1. (^|\.|\?|\!): Look for start of string OR . ? !
+    // 2. \s*: Look for any following whitespace (including newlines)
+    // 3. ([a-z]): Capture the first lowercase letter found
+    final String transformed = text.replaceAllMapped(
+      RegExp(r'(^|[.!?]\s+)([a-z])'),
+      (match) {
+        // match.group(1) is the punctuation and whitespace
+        // match.group(2) is the letter to capitalize
+        return '${match.group(1)}${match.group(2)!.toUpperCase()}';
+      },
+    );
+
+    return newValue.copyWith(
+      text: transformed,
+      selection: newValue.selection,
+    );
   }
 }

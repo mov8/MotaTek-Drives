@@ -172,7 +172,7 @@ Future<PublishedFeatures> getPublishedFeatures(
     pinTap: pinTap,
     onGetTrip: onGetTrip,
     showRoutes: showRoutes,
-    expandNotifier: expandNotifier,
+    //  expandNotifier: expandNotifier,
   );
 }
 
@@ -240,7 +240,7 @@ class PublishedFeatures {
       this.onGetTrip,
       this.onUpdate,
       this.exclude = const [12, 14, 16, 17, 18],
-      this.expandNotifier,
+      //   this.expandNotifier,
       this.showZoom = 10,
       this.showRoutes = false});
 
@@ -254,7 +254,7 @@ class PublishedFeatures {
     required Feature feature,
     required int index,
     List<Card>? children,
-    ExpandNotifier? expandNotifier,
+    // ExpandNotifier? expandNotifier,
   }) async {
     if (feature.type == 0) {
       TripItem tripItem = await tripItemRepository.loadTripItem(
@@ -286,7 +286,7 @@ class PublishedFeatures {
         shadowColor: Colors.transparent,
         color: Colors.transparent,
         child: PointOfInterestTile(
-          expandNotifier: expandNotifier,
+          //   expandNotifier: expandNotifier,
           index: index,
           pointOfInterest: pointOfInterest!,
           imageRepository: imageRepository,

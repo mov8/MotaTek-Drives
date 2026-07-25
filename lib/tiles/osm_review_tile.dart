@@ -107,7 +107,7 @@ class _OsmReviewTileState extends State<OsmReviewTile>
                     Expanded(
                       flex: 3,
                       child: StarRating(
-                          onRatingChanged: (_) => (),
+                          onRatingChanged: (_) {},
                           rating: widget.reviews[index]['rating']),
                     ),
                     Expanded(
@@ -233,7 +233,7 @@ class _OsmReviewTileState extends State<OsmReviewTile>
                         context: context, size: 2, color: Colors.black),
                     autovalidateMode: AutovalidateMode.onUserInteraction,
                     onChanged: (text) => widget.reviewData['comment'] = text,
-                    onFieldSubmitted: (_) => ())),
+                    onFieldSubmitted: (_) {})),
           ),
         ]),
         Row(children: [

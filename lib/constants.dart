@@ -2,21 +2,25 @@ import 'package:latlong2/latlong.dart';
 import 'package:flutter/material.dart';
 import 'dart:developer' as developer;
 import 'package:intl/intl.dart';
+import 'models/models.dart';
+import 'screens/screens.dart';
 
 const appVersion = {'major': 0, 'minor': 0, 'patch': 9, 'suffix': 'beta db'};
 
 const apiAddress = 'https://drives.motatek.com/';
 const wifiIpAddress = 'http://10.101.1.216:5001/'; // <- Home
+
 // const wifiIpAddress = 'http://10.164.124.105:5001/'; // < Redmi
-// const wifiIpAddress = 'http://192.168.1.109:5001/'; // <- Boston
-// const wifiIpAddress = 'http://192.168.68.120:5001/'; // <- Barnet
+// const wifiIpAddress = 'http://192.168.1.111:5001/'; // <- Boston unit
+// const wifiIpAddress = 'http://192.168.68.122:5001/'; // <- Barnet
 // const wifiIpAddress = 'http://192.168.1.212:5001/'; // <- Irby Street
 // const wifiIpAddress = 'http://192.168.68.112:5001/'; // <- Dias
 // const wifiIpAddress = 'http://10.249.4.160:5001/'; // <- airport joburg
 // const wifiIpAddress ='http://10.2.222.57:5001/'; // <- Staines library 10.2.222.57:5001
+// https://drives.motatek.com/v1/user/test
 
-const urlBase = wifiIpAddress;
-// const urlBase = apiAddress;
+//const urlBase = wifiIpAddress;
+const urlBase = apiAddress;
 
 const mapsApiKey = '';
 
@@ -63,7 +67,7 @@ enum LoginError {
 enum MyTripActions {
   none,
   startManual,
-  startTracking,
+  beginTracking,
   track,
   addWaypoint,
   deleteWaypoint,
@@ -87,20 +91,6 @@ enum MyTripActions {
   getMap,
 }
 
-enum BottomDrawerItems {
-  none,
-  goodRoad,
-  group,
-  headingDetail,
-  maneuvers,
-  messages,
-  pointOfInterest,
-  showGroup,
-  steps,
-  trip, // <-- trip = heading, good road and points of interest
-  drives,
-}
-
 enum MarkerTypes {
   trip,
   goodRoad,
@@ -117,8 +107,8 @@ enum MapHeights {
 enum AppState {
   loading,
   home,
-  download,
   createTrip,
+  trips,
   myTrips,
   shop,
   messages,
@@ -264,7 +254,6 @@ enum BottomDrawerData {
   BottomDrawerData clear() => _fromValue((value | 128));
 
   static BottomDrawerData _fromValue(int value) {
-    developer.log('Setting BottomDrawerData value to: $value', name: '_d_open');
     return BottomDrawerData.values.firstWhere((e) => e.value == value,
         orElse: () => BottomDrawerData.none);
   }
@@ -326,7 +315,7 @@ enum MapUpdates {
   pointsOfInterest(16), // 1 << 5                           00010000
   routesAndWaypointsAndPointsOfInterest(21), //             00010101
   goodRoadsAndWaypointsAndPointsOfInterest(26), //          00011010
-  followers(32), // 1 << 6                             00100000
+  followers(32), // 1 << 6                                  00100000
   routesAndFollowers(33), //                                00100001
   allWithoutAllWaypoints(51), //                            00111011
   allWithoutWaypoints(59), //                               00110011
@@ -348,9 +337,6 @@ enum MapUpdates {
   final int value;
 
   MapUpdates add(MapUpdates added) {
-    developer.log(
-        'MapUpdates.add value: $value  added value: ${added.value} newValue: ${added.value | value}',
-        name: '_mapUpdates_');
     return _fromValue(added.value | value);
   }
 
@@ -392,9 +378,6 @@ enum MapUpdates {
         sources.add(mapSources[i]);
       }
     }
-    developer.log(
-        'MapUpdates.sourcesToUpdate value: $value  sources: ${sources.join(', ')} ',
-        name: '_mapUpdates_');
     return sources;
   }
 
@@ -419,11 +402,44 @@ DateFormat dateFormatSQL = DateFormat('yyyy-MM-dd hh:mm:ss');
 DateFormat dateFormatDoc = DateFormat('E dd/MM/yyyy');
 DateFormat dateFormatDocTime = DateFormat('E dd/MM/yyyy hh:mm:ss');
 
+Color backgroundColour = Color.fromRGBO(2, 46, 75, 0);
+
 List<IconData> inviteIcons = [
   Icons.thumbs_up_down_outlined,
   Icons.thumb_down_outlined,
   Icons.thumb_up_outlined,
   Icons.outgoing_mail,
+];
+
+/// The next 3 lists are for the bottom and top navigations
+///
+const List<String> routeNavLabels = [
+  'Home',
+  'Published', //  'Great Drives',
+  'Explore', //'My Trip',
+  'Favourites',
+  'Shop',
+  'Messages'
+];
+
+const List<IconData> routeNavIconsSelected = [
+  Icons.home,
+  Icons.cloud_download_outlined, // Icons.route,
+  Icons.explore, //Icons.map,
+  Icons.favorite_border_sharp, //Icons.person,
+  Icons.shopping_bag,
+  Icons.chat_bubble
+];
+
+const List<IconData> routeNavIcons = [
+  Icons.home_outlined,
+  // Icons.route_outlined,
+  Icons.cloud_download_outlined,
+  // Icons.map_outlined,
+  Icons.explore_outlined,
+  Icons.favorite_border_outlined, //Icons.person_outlined,
+  Icons.shopping_bag_outlined,
+  Icons.chat_bubble_outline_outlined,
 ];
 
 const Map<int, String> responseCodes = {
@@ -448,6 +464,193 @@ const List<String> contactChoices = [
   'Lost the way',
 ];
 
+/// Before changing any values check drawerOptions etc for consequences
+/// The order isn't important, but the names are.
+enum BottomDrawerItems {
+  none,
+  goodRoad,
+  group,
+  headingDetail,
+  maneuvers,
+  messages,
+  pointOfInterest,
+  showGroup,
+  steps,
+  trip, // <-- trip = heading, good road and points of interest
+  home,
+  drives,
+  favourites,
+  settings,
+  register,
+  myGroups,
+  groups,
+  invite,
+  myEvents,
+  events,
+  docs,
+  cached,
+}
+
+/// This list ensures that the overflow popup menu options are
+/// named correctly, and that when chosen the appropriate
+/// BottomDrawerItems enum is selected.
+/// Now includes all the TripState enum options too as it
+/// simplifies the Action Prompt in the WebAppBar
+List<Map<String, dynamic>> drawerOptions = [
+  {
+    'key': 'settings',
+    'text': 'App settings',
+    'iconData': const Icon(Icons.settings_outlined, size: 30),
+    'method': BottomDrawerItems.settings.index,
+    'drawer': BottomDrawerItems.settings,
+    'screen': SetupForm(),
+  },
+  {
+    'key': 'register',
+    'text': Setup().jwt.isEmpty ? 'Register my details' : 'Change my details',
+    'iconData': Icon(Icons.manage_accounts_outlined, size: 30),
+    'method': BottomDrawerItems.settings.index,
+    'drawer': BottomDrawerItems.register,
+    'screen': SignupForm(),
+  },
+  {
+    'key': 'myGroups',
+    'text': 'Groups I manage',
+    'iconData': Icon(Icons.groups_outlined, size: 30),
+    'method': BottomDrawerItems.settings.index,
+    'drawer': BottomDrawerItems.myGroups,
+    'screen': GroupForm(),
+  },
+  {
+    'key': 'groups',
+    'text': 'Groups to which I belong',
+    'iconData': Icon(Icons.group_outlined, size: 30),
+    'method': BottomDrawerItems.settings.index,
+    'drawer': BottomDrawerItems.groups,
+    'screen': MyGroupsForm(),
+  },
+  {
+    'key': 'invite',
+    'text': 'Invite a new user',
+    'iconData': Icon(Icons.person_add_outlined, size: 30),
+    'method': BottomDrawerItems.settings.index,
+    'drawer': BottomDrawerItems.invite,
+    'screen': IntroduceForm(),
+  },
+  {
+    'key': 'myEvents',
+    'text': "Events I've organised",
+    'iconData': Icon(Icons.directions_car_outlined, size: 30),
+    'method': BottomDrawerItems.settings.index,
+    'drawer': BottomDrawerItems.myEvents,
+    'screen': GroupDriveForm(),
+  },
+  {
+    'key': 'events',
+    'text': "Events to which I've been invited",
+    'iconData': Icon(Icons.mail_outlined, size: 30),
+    'method': BottomDrawerItems.settings.index,
+    'drawer': BottomDrawerItems.events,
+    'screen': InvitationsScreen(),
+  },
+  {
+    'key': 'docs',
+    'text': 'Drives documentation',
+    'iconData': Icon(Icons.groups_outlined, size: 30),
+    'method': BottomDrawerItems.settings,
+    'drawer': BottomDrawerItems.docs,
+    'screen': DocumentationForm()
+  },
+  {
+    'key': 'goodRoad',
+    'text': 'Good road details',
+    'iconData': '',
+    'method': '',
+    'drawer': BottomDrawerItems.goodRoad,
+    'screen': '',
+  },
+  {
+    'key': 'group',
+    'text': 'Group members',
+    'iconData': '',
+    'method': '',
+    'drawer': BottomDrawerItems.group,
+    'screen': '',
+  },
+  {
+    'key': 'headingDetail',
+    'text': 'Please enter trip description',
+    'iconData': '',
+    'method': '',
+    'drawer': BottomDrawerItems.headingDetail,
+    'screen': '',
+  },
+  {
+    'key': 'maneuvers',
+    'text': 'Turn-by-turn instructions',
+    'iconData': '',
+    'method': '',
+    'drawer': BottomDrawerItems.maneuvers,
+    'screen': '',
+  },
+  {
+    'key': 'messages',
+    'text': 'Messages from other users',
+    'iconData': '',
+    'method': '',
+    'drawer': BottomDrawerItems.messages,
+    'screen': '',
+  },
+  {
+    'key': 'pointOfInterest',
+    'text': 'Trip highlight details',
+    'iconData': '',
+    'method': '',
+    'drawer': BottomDrawerItems.pointOfInterest,
+    'screen': '',
+  },
+  {
+    'key': 'showGroup',
+    'text': 'Group details',
+    'iconData': '',
+    'method': '',
+    'drawer': BottomDrawerItems.showGroup,
+    'screen': '',
+  },
+  {
+    'key': 'steps',
+    'text': 'Turn-by-turn instructions',
+    'iconData': '',
+    'method': '',
+    'drawer': BottomDrawerItems.steps,
+    'screen': '',
+  },
+  {
+    'key': 'trip',
+    'text': 'Details of this trip',
+    'iconData': '',
+    'method': '',
+    'drawer': BottomDrawerItems.trip,
+    'screen': '',
+  },
+  {
+    'key': 'drives',
+    'text': 'Published drives to download',
+    'iconData': '',
+    'method': '',
+    'drawer': BottomDrawerItems.drives,
+    'screen': '',
+  },
+  {
+    'key': 'favourites',
+    'text': 'Saved private trips',
+    'iconData': '',
+    'method': '',
+    'drawer': BottomDrawerItems.favourites,
+    'screen': '',
+  },
+];
+
 enum InviteState { undecided, declined, accepted }
 
 RegExp emailRegex = RegExp(r'[a-zA-Z0-9.]+@[a-zA-Z0-9]+\.[a-zA-Z]+');
@@ -463,9 +666,14 @@ const LatLng ukNorthEast = LatLng(61, 2);
 const LatLng ukSouthWest = LatLng(49, -8);
 
 const double metersToMiles = 0.000621371192;
-const double metersToTenths = 160.934;
-const double metersToYards = 1.0936133;
-
+const double metersPerSecondToMPH = 3.6 / 8 * 5;
+const double metersPerSecondToKmPH = 3.6;
+const double metersToYards = 0.9144;
+const double metersPerMile = 1609.344;
+const double metersPerTenths = 160.934;
+const double yardsToMeters = 1.0936133;
+const double yardsPerMile = 1760;
+const double yardsToMiles = 0.000568182;
 const List<String> tableDefs = [
   /// CACHES
 
@@ -605,9 +813,8 @@ const String urlPointOfInterestRating = '${urlBase}v1/point_of_interest_rating';
 const String urlPolyline = '${urlBase}v1/polyline';
 const String urlShopItem = '${urlBase}v1/shop_item';
 const String urlOsmReview = '${urlBase}v1/osm_review';
-const String uploadHttp =
-    '${urlBase}home/james/Python-3.10.0/Drives/drives/images';
-const String uploadHttps = '${urlBase}api/static/images';
+const String staticImagesFolder =
+    '${urlBase}static/images'; // Now the same on development and production versions
 
 /// const String urlRouter = '${urlBase}router/route/v1/driving/';
 const String urlRouter = 'https://drives.motatek.com/router/route/v1/driving/';

@@ -36,9 +36,9 @@ class Zoomer extends StatelessWidget {
         child: Row(
           children: <Widget>[
             IconButton(
-                onPressed: () => (), //(open = !optionalTypeArgs),
+                onPressed: () {}, //(open = !optionalTypeArgs),
                 icon: Icon(open ? Icons.cancel : Icons.zoom_out_map_outlined)),
-            Slider(value: 10, max: 20, onChanged: (_) => ())
+            Slider(value: 10, max: 20, onChanged: (_) {})
           ],
         ),
       ),

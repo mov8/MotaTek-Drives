@@ -191,7 +191,7 @@ class _AddContactTileState extends State<AddContactTile> {
       if (_groupMemberState == GroupMemberState.isNew && complete) {
         _groupMemberState = GroupMemberState.complete;
       }
-      setState(() => ());
+      setState(() {});
     }
     return complete;
   }

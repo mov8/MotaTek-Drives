@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import '/models/other_models.dart';
 import '/classes/classes.dart';
 import '/models/models.dart';
-import '/helpers/helpers.dart';
-import '/constants.dart';
+import 'dart:developer' as developer;
+// import '/helpers/helpers.dart';
+// import '/constants.dart';
 
 class HomeTile extends StatefulWidget {
   final HomeItem homeItem;
@@ -33,9 +34,7 @@ class _HomeTileState extends State<HomeTile> {
   @override
   void initState() {
     super.initState();
-    photos = photosFromJson(
-        photoString: widget.homeItem.imageUrls,
-        endPoint: '$urlHomePageItem/images/${widget.homeItem.uri}/');
+    photos = widget.homeItem.getPhotos();
   }
 
   @override
@@ -47,72 +46,87 @@ class _HomeTileState extends State<HomeTile> {
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       child: Card(
-        child: Align(
-          alignment: Alignment.topLeft,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              SizedBox(
-                child: PhotoCarousel(
-                  imageRepository: widget.imageRepository,
-                  photos: photos,
-                  height: MediaQuery.of(context).size.width - 20, // 400,
-                  width: MediaQuery.of(context).size.width - 20,
-                ),
-              ),
-              SizedBox(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(5, 0, 5, 10),
-                  child: Align(
-                    alignment: Alignment.topLeft,
-                    child: Text(widget.homeItem.heading,
-                        style: const TextStyle(
-                            color: Colors.black,
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold),
-                        textAlign: TextAlign.left),
-                  ),
-                ),
-              ),
-              SizedBox(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(5, 0, 5, 10),
-                  child: Align(
-                    alignment: Alignment.topLeft,
-                    child: Text(
-                      widget.homeItem.subHeading,
-                      style: const TextStyle(
-                          color: Colors.black,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold),
-                      textAlign: TextAlign.left,
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(10, 0, 10, 0),
+          child: Align(
+            alignment: Alignment.topLeft,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                SizedBox(
+                  child: Expanded(
+                    child: PhotoCarousel(
+                      imageRepository: widget.imageRepository,
+                      photos: photos,
+                      height: MediaQuery.of(context).size.width * .5, // 400,
+                      width: MediaQuery.of(context).size.width * .5,
                     ),
                   ),
                 ),
-              ),
-              if (!Setup().hasLoggedIn) Row(children: []),
-              SizedBox(
+                SizedBox(
                   child: Padding(
-                padding: const EdgeInsets.fromLTRB(5, 0, 5, 10),
-                child: Align(
-                  alignment: Alignment.topLeft,
-                  child: Text(widget.homeItem.body,
-                      style: const TextStyle(color: Colors.black, fontSize: 20),
-                      textAlign: TextAlign.left),
-                ),
-              )),
-              SizedBox(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(5, 0, 5, 15),
-                  child: Align(
-                    alignment: Alignment.topRight,
-                    child: IconButton(
-                        icon: const Icon(Icons.share),
-                        onPressed: () => (setState(() {}))),
+                    padding: const EdgeInsets.fromLTRB(5, 0, 5, 10),
+                    child: Expanded(
+                      child: Align(
+                        alignment: Alignment.topLeft,
+                        child: Text(widget.homeItem.heading,
+                            style: const TextStyle(
+                                color: Colors.black,
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold),
+                            textAlign: TextAlign.left),
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ],
+                SizedBox(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(5, 0, 5, 10),
+                    child: Expanded(
+                      child: Align(
+                        alignment: Alignment.topLeft,
+                        child: Text(
+                          widget.homeItem.subHeading,
+                          style: const TextStyle(
+                              color: Colors.black,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold),
+                          textAlign: TextAlign.left,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                if (!Setup().hasLoggedIn) Row(children: []),
+                SizedBox(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(5, 0, 5, 10),
+                    child: Expanded(
+                      child: Align(
+                        alignment: Alignment.topLeft,
+                        child: Text(widget.homeItem.body,
+                            style: const TextStyle(
+                                color: Colors.black, fontSize: 20),
+                            textAlign: TextAlign.left),
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(5, 0, 5, 15),
+                    child: Expanded(
+                      child: Align(
+                        alignment: Alignment.topRight,
+                        child: IconButton(
+                            icon: const Icon(Icons.share),
+                            onPressed: () => (setState(() {}))),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

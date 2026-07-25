@@ -7,6 +7,7 @@ export '/screens/group_messages.dart';
 export '/screens/group.dart';
 export '/screens/home.dart';
 export '/screens/introduce.dart';
+export '/screens/invitations.dart';
 export '/screens/main_drawer.dart';
 export '/screens/message_by_items.dart';
 export '/screens/messages_detail.dart';

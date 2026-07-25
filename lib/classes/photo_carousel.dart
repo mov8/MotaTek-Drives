@@ -124,13 +124,23 @@ class _PhotoCarouselState extends State<PhotoCarousel> {
 
     for (int i = 0; i < photos.length; i++) {
       if (photos[i].url.contains('assets/images')) {
-        images.add(Image.asset(photos[i].url));
+        try {
+          images.add(
+            Image(
+              image:
+                  AssetImage('assets/images/${photos[i].url.split('/').last}'),
+            ),
+          );
+        } catch (e) {
+          debugPrint('error ${e.toString()}');
+        }
       } else {
-        Map<int, Image> imageMap = await widget.imageRepository.loadImage(
-            key: photos[i].key, id: photos[i].id, uri: photos[i].url);
+        Map<String, Image> imageMap = await widget.imageRepository.loadImage(
+          key: photos[i].key,
+          id: photos[i].id,
+          uri: photos[i].url,
+        );
         photos[i].key = imageMap.keys.first;
-        // photos[i].caption = '${i + 1} Image caption';
-        // photos[i].rotation = 3;
         images.add(imageMap.values.first);
       }
     }
@@ -144,21 +154,41 @@ class _PhotoCarouselState extends State<PhotoCarousel> {
       controller: _pageController,
       itemBuilder: (BuildContext context, int index) {
         /// angle is in radians 2 Pi radians = 360 degrees clockwise 0.5 1 1.5
-        return Stack(
+        // return Stack(
+        return Column(
           children: [
-            Align(
-              alignment: AlignmentDirectional.topCenter,
-              child: Transform.rotate(
+            Expanded(
+              flex: 11,
+              child: Align(
+                alignment: AlignmentDirectional.topCenter,
+                child: Transform.rotate(
                   angle: pi * photos[index].rotation * 0.5,
-                  child: imageList[index]),
+                  child: InkWell(
+                    onTap: () => _pageController.animateToPage(
+                        index == photos.length - 1 ? 0 : ++index,
+                        duration: Duration(milliseconds: 500),
+                        curve: Curves.bounceInOut),
+                    child: ClipRRect(
+                        borderRadius:
+                            BorderRadiusGeometry.all(Radius.circular(10.0)),
+                        child: imageList[index]),
+                  ),
+                ),
+              ),
             ),
-            Align(
-              alignment: AlignmentDirectional.bottomStart,
-              child: Text(photos[index].caption,
+            Expanded(
+              flex: 1,
+              child: Align(
+                alignment: AlignmentDirectional.bottomStart,
+                child: Text(
+                  photos[index].caption,
                   style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black)),
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
+                ),
+              ),
             ),
           ],
         );

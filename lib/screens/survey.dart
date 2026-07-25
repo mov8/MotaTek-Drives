@@ -410,7 +410,7 @@ class _SurveyFormState extends State<SurveyForm> {
         leading: BackButton(
           onPressed: () {
             try {
-              getPrivateRepository().insertSetup(Setup());
+              getPrivateRepository().insertSetup();
               Navigator.pop(context);
             } catch (e) {
               debugPrint('Setup error: ${e.toString()}');
@@ -560,7 +560,7 @@ class _SurveyFormState extends State<SurveyForm> {
                                 .saveSurveyData(map: map, table: 'contacts');
                           }
                         }
-                        setState(() => ());
+                        setState(() {});
                       },
                     ),
                   ),
@@ -681,7 +681,7 @@ class _SurveyFormState extends State<SurveyForm> {
             if (name == 'stand')
               Checkbox(
                   value: _stands[stands.indexOf(items[index])].seen,
-                  onChanged: (_) => ()),
+                  onChanged: (_) {}),
             Text(items[index].trim(),
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.bodyLarge!),

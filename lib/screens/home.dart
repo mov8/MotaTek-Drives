@@ -96,9 +96,9 @@ class _HomeFormState extends State<HomeForm> {
                       homeItem: _items[index],
                       controller: HomeItemTileController(),
                       index: index,
-                      onRated: (index, rate) => (),
+                      onRated: (index, rate) {},
                       onAddImage: (index) => loadImage(index),
-                      onIconTap: (index) => (),
+                      onIconTap: (index) {},
                       onSelect: (index) => postHomeItem(_items[index]),
                       onDelete: (index) => removeHomeItem(index),
                       onChange: (index) => recordChange(index),
@@ -190,7 +190,7 @@ class _HomeFormState extends State<HomeForm> {
         imageUrls: _items[index].imageUrls,
         itemIndex: index,
         imageFolder: 'home_page_item');
-    setState(() => ());
+    setState(() {});
   }
 
   Future<void> onDelete() async {

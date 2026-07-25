@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'dart:developer' as developer;
 // import 'package:flutter/services.dart';
 import '/models/other_models.dart';
 import '/services/services.dart';
@@ -93,41 +95,74 @@ class _SignupFormState extends State<SignupForm> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.blue,
-      appBar: ScreensAppBar(
-        heading: 'User details',
+    if (kIsWeb) {
+      return ScreensAppBarBottom(
         prompt: 'Please update your details.',
         updateHeading: 'You have changed your details.',
         updateSubHeading: 'Press Save to confirm the changes or Ignore',
         update: hasChanged && isComplete(),
         updateMethod: (update) => register(update: update),
-      ),
-      body: FutureBuilder<bool>(
-        future: _loadedOk,
-        builder: (BuildContext context, snapshot) {
-          if (snapshot.hasError) {
-            debugPrint('Snapshot error: ${snapshot.error}');
-          } else if (snapshot.hasData) {
-            // _building = false;
-            return portraitView();
-          } else {
-            return const SizedBox(
-              width: double.infinity,
-              height: double.infinity,
-              child: Align(
-                alignment: Alignment.center,
-                child: CircularProgressIndicator(),
-              ),
-            );
-          }
-          throw ('Error - FutureBuilder in create_trips.dart');
-        },
-      ),
-    );
+        content: FutureBuilder<bool>(
+          future: _loadedOk,
+          builder: (BuildContext context, snapshot) {
+            if (snapshot.hasError) {
+              debugPrint('Snapshot error: ${snapshot.error}');
+            } else if (snapshot.hasData) {
+              // _building = false;
+              return portraitView();
+            } else {
+              return const SizedBox(
+                width: double.infinity,
+                height: double.infinity,
+                child: Align(
+                  alignment: Alignment.center,
+                  child: CircularProgressIndicator(),
+                ),
+              );
+            }
+            throw ('Error - FutureBuilder in create_trips.dart');
+          },
+        ),
+      );
+    } else {
+      return Scaffold(
+        backgroundColor: Colors.blue,
+        appBar: ScreensAppBar(
+          heading: 'User details',
+          prompt: 'Please update your details.',
+          updateHeading: 'You have changed your details.',
+          updateSubHeading: 'Press Save to confirm the changes or Ignore',
+          update: hasChanged && isComplete(),
+          updateMethod: (update) => register(update: update),
+          showAction: hasChanged,
+        ),
+        body: FutureBuilder<bool>(
+          future: _loadedOk,
+          builder: (BuildContext context, snapshot) {
+            if (snapshot.hasError) {
+              debugPrint('Snapshot error: ${snapshot.error}');
+            } else if (snapshot.hasData) {
+              // _building = false;
+              return portraitView();
+            } else {
+              return const SizedBox(
+                width: double.infinity,
+                height: double.infinity,
+                child: Align(
+                  alignment: Alignment.center,
+                  child: CircularProgressIndicator(),
+                ),
+              );
+            }
+            throw ('Error - FutureBuilder in create_trips.dart');
+          },
+        ),
+      );
+    }
   }
 
   Widget portraitView() {
+    Color textColour = kIsWeb ? Colors.black : Colors.white;
     return SingleChildScrollView(
       child: Form(
         key: _formKey,
@@ -153,7 +188,7 @@ class _SignupFormState extends State<SignupForm> {
                         textCapitalization: TextCapitalization.words,
                         textAlign: TextAlign.left,
                         initialValue: Setup().user.forename.toString(),
-                        style: textStyle(context: context),
+                        style: textStyle(context: context, color: textColour),
                         onChanged: (text) {
                           Setup().user.forename = text;
                           hasChanged = true;
@@ -183,7 +218,7 @@ class _SignupFormState extends State<SignupForm> {
                         textInputAction: TextInputAction.next,
                         textCapitalization: TextCapitalization.words,
                         initialValue: Setup().user.surname.toString(),
-                        style: textStyle(context: context),
+                        style: textStyle(context: context, color: textColour),
                         onChanged: (text) {
                           hasChanged = true;
                           Setup().user.surname = text;
@@ -216,7 +251,7 @@ class _SignupFormState extends State<SignupForm> {
                   textInputAction: TextInputAction.next,
                   textAlign: TextAlign.left,
                   initialValue: Setup().user.email.toString(),
-                  style: textStyle(context: context),
+                  style: textStyle(context: context, color: textColour),
                   onChanged: (text) {
                     hasChanged = true;
                     Setup().user.email = text;
@@ -244,7 +279,7 @@ class _SignupFormState extends State<SignupForm> {
                   textInputAction: TextInputAction.next,
                   textAlign: TextAlign.left,
                   initialValue: Setup().user.phone.toString(),
-                  style: textStyle(context: context),
+                  style: textStyle(context: context, color: textColour),
                   onChanged: (text) {
                     hasChanged = true;
                     Setup().user.phone = text;
@@ -284,7 +319,8 @@ class _SignupFormState extends State<SignupForm> {
                               keyboardType: TextInputType.visiblePassword,
                               textInputAction: TextInputAction.done,
                               initialValue: Setup().user.password.toString(),
-                              style: textStyle(context: context),
+                              style: textStyle(
+                                  context: context, color: textColour),
                               validator: (val) =>
                                   Setup().user.newPassword.length < 8 &&
                                           isComplete()
@@ -325,7 +361,7 @@ class _SignupFormState extends State<SignupForm> {
                         keyboardType: TextInputType.number,
                         textInputAction: TextInputAction.next,
                         initialValue: '',
-                        style: textStyle(context: context),
+                        style: textStyle(context: context, color: textColour),
                         validator: (val) =>
                             Setup().user.password.length < 6 && isComplete()
                                 ? 'Six digits needed'
@@ -363,7 +399,7 @@ class _SignupFormState extends State<SignupForm> {
                                     id: 1,
                                     title: 'Error',
                                     body: status,
-                                    onConfirm: (_) => (),
+                                    onConfirm: (_) {},
                                   );
                                 }
                               }
@@ -420,7 +456,7 @@ class _SignupFormState extends State<SignupForm> {
                       textInputAction: TextInputAction.next,
                       initialValue: Setup().user.password.toString(),
                       onChanged: (text) => Setup().user.newPassword = text,
-                      style: textStyle(context: context),
+                      style: textStyle(context: context, color: textColour),
                     ),
                   ),
                   SizedBox(width: 10),
@@ -440,7 +476,7 @@ class _SignupFormState extends State<SignupForm> {
                       textInputAction: TextInputAction.next,
                       initialValue: Setup().user.newPassword.toString(),
                       onChanged: (text) => Setup().user.newPassword = text,
-                      style: Theme.of(context).textTheme.bodyMedium,
+                      style: textStyle(context: context, color: textColour),
                     ),
                   ),
                 ]
@@ -567,3 +603,791 @@ class _SignupFormState extends State<SignupForm> {
     return response;
   }
 }
+
+
+/*
+
+Below is the original implementation of the web version. A
+
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+// import 'package:flutter/services.dart';
+import 'dart:developer' as developer;
+import '/models/other_models.dart';
+import '/services/services.dart';
+import '/screens/dialogs.dart';
+import '/classes/classes.dart';
+import '/constants.dart';
+import '/helpers/edit_helpers.dart';
+
+class SignupForm extends StatefulWidget {
+  final LoginState loginState;
+  const SignupForm({super.key, context, this.loginState = LoginState.register});
+  @override
+  State<SignupForm> createState() => _SignupFormState();
+}
+
+class _SignupFormState extends State<SignupForm> {
+  //int sound = 0;
+  /*
+  late Future<bool> _loadedOk;
+ 
+  @override
+  void initState() {
+    super.initState;
+    _loadedOk = checkUserData();
+
+    // WidgetsBinding.instance.addPostFrameCallback(
+    //    (_) => FocusScope.of(context).requestFocus(_focusNode));
+  }
+  */
+
+  Future<bool> checkUserData() async {
+    if (Setup().user.email.isNotEmpty && Setup().user.surname.isEmpty) {
+      try {
+        await getUserDetails(email: Setup().user.email);
+      } catch (e) {
+        if (mounted) {
+          Utility().showOkCancelDialog(
+              context: context,
+              alertTitle: 'Data issue',
+              alertMessage:
+                  'Error getting user data email: ${Setup().user.email}',
+              okValue: 1,
+              callback: () => {});
+        }
+      }
+    }
+    return true;
+  }
+
+  String email = 'james@eggxactly.com';
+  String password = 'ohmy10';
+  int manufacturer = 0;
+  int model = 0;
+  bool carData = false;
+  bool userExists = false;
+  String savedPassword = '';
+  bool dataComplete = false;
+  late Future<bool> _loadedOk;
+  List<String> titles = [
+    'Register as new user',
+    'Update your details',
+    'Reset your password'
+  ];
+  List<String> descriptions = [
+    'You will be emailed a six digit validation code.\n Please check your emails (including spam folder).\n You can then complete your registration.',
+    'Please update your details',
+    'You will be emailed a six digit validation code.\n Please check your emails (including spam folder).'
+  ];
+  List<String> captions = ['Register', 'Update', 'Reset'];
+  int mode = 0;
+  bool hasChanged = false;
+  bool complete = false;
+  final Key _formKey = GlobalKey<FormState>();
+  //final FocusNode _focusNode = FocusNode();
+
+  final ButtonStyle style = ElevatedButton.styleFrom(
+      minimumSize: const Size.fromHeight(60),
+      backgroundColor: Colors.blue,
+      shadowColor: Colors.grey,
+      elevation: 10,
+      textStyle: const TextStyle(fontSize: 30, color: Colors.white));
+
+  @override
+  void initState() {
+    super.initState;
+    userExists =
+        Setup().user.email.isNotEmpty && Setup().user.surname.isNotEmpty;
+    savedPassword = Setup().user.password;
+    // Setup().user.password = '';
+    mode = (userExists && savedPassword.length > 7) || Setup().jwt.isNotEmpty
+        ? 1
+        : 0;
+    debugPrint('mode: $mode');
+    _loadedOk = checkUserData();
+    complete = false;
+    // WidgetsBinding.instance.addPostFrameCallback(
+    //    (_) => FocusScope.of(context).requestFocus(_focusNode));
+  }
+
+  @override
+  void dispose() {
+    // _focusNode.dispose();
+    super.dispose();
+  }
+
+  bool isComplete(bool complete) => complete;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.blue,
+      appBar: ScreensAppBar(
+        heading: 'User details',
+        prompt: 'Please update your details.',
+        updateHeading: 'You have changed your details.',
+        updateSubHeading: 'Press Save to confirm the changes or Ignore',
+        update: hasChanged && isComplete(),
+        updateMethod: (update) => register(update: update),
+      ),
+      body: FutureBuilder<bool>(
+        future: _loadedOk,
+        builder: (BuildContext context, snapshot) {
+          if (snapshot.hasError) {
+            debugPrint('Snapshot error: ${snapshot.error}');
+          } else if (snapshot.hasData) {
+            // _building = false;
+            return UserDetailsForm();
+          } else {
+            return const SizedBox(
+              width: double.infinity,
+              height: double.infinity,
+              child: Align(
+                alignment: Alignment.center,
+                child: CircularProgressIndicator(),
+              ),
+            );
+          }
+          throw ('Error - FutureBuilder in create_trips.dart');
+        },
+      ),
+    );
+  }
+}
+
+class UserDetailsFormController {
+  _UserDetailsFormState? _userDetailsFormState;
+
+  void _addState(_UserDetailsFormState userDetailsFormState) {
+    _userDetailsFormState = userDetailsFormState;
+  }
+
+  bool get isAttached => _userDetailsFormState != null;
+
+  void save() {
+    assert(isAttached, 'Controller must be attached to widget');
+    try {
+      // _webAppBarState?.changeButton(id);
+    } catch (e) {
+      debugPrint('Error changing button: ${e.toString()}');
+    }
+  }
+
+  bool get complete => _userDetailsFormState!.complete;
+  bool get changed => _userDetailsFormState!.hasChanged;
+}
+
+class UserDetailsForm extends StatefulWidget {
+  final Function(bool)? onUpdate;
+  final UserDetailsFormController? controller;
+  const UserDetailsForm({super.key, this.onUpdate, this.controller});
+  @override
+  State<UserDetailsForm> createState() => _UserDetailsFormState();
+}
+
+class _UserDetailsFormState extends State<UserDetailsForm> {
+  String email = 'james@eggxactly.com';
+  String password = 'ohmy10';
+  int manufacturer = 0;
+  int model = 0;
+  bool carData = false;
+  bool userExists = false;
+  String savedPassword = '';
+  bool dataComplete = false;
+  late Future<bool> _loadedOk;
+  List<String> titles = [
+    'Register as new user',
+    'Update your details',
+    'Reset your password'
+  ];
+  List<String> descriptions = [
+    'You will be emailed a six digit validation code.\n Please check your emails (including spam folder).\n You can then complete your registration.',
+    'Please update your details',
+    'You will be emailed a six digit validation code.\n Please check your emails (including spam folder).'
+  ];
+  List<String> captions = ['Register', 'Update', 'Reset'];
+  final Key _formKey = GlobalKey<FormState>();
+  int mode = 0;
+  bool hasChanged = false;
+  bool complete = false;
+  bool _update = false;
+  @override
+  void initState() {
+    super.initState();
+
+    if (widget.controller != null) {
+      widget.controller!._addState(this);
+    }
+    userExists =
+        Setup().user.email.isNotEmpty && Setup().user.surname.isNotEmpty;
+    savedPassword = Setup().user.password;
+    // Setup().user.password = '';
+    mode = (userExists && savedPassword.length > 7) || Setup().jwt.isNotEmpty
+        ? 1
+        : 0;
+    debugPrint('mode: $mode');
+    _loadedOk = checkUserData();
+    complete = false;
+  }
+
+  Future<bool> checkUserData() async {
+    if (Setup().user.email.isNotEmpty && Setup().user.surname.isEmpty) {
+      try {
+        await getUserDetails(email: Setup().user.email);
+      } catch (e) {
+        if (mounted) {
+          Utility().showOkCancelDialog(
+              context: context,
+              alertTitle: 'Data issue',
+              alertMessage:
+                  'Error getting user data email: ${Setup().user.email}',
+              okValue: 1,
+              callback: () => {});
+        }
+      }
+    }
+    return true;
+  }
+
+  @override
+  build(BuildContext context) {
+// Start of FutureBuilder test
+/*
+    FutureBuilder<bool>(
+      future: _loadedOk,
+      builder: (BuildContext context, snapshot) {
+        if (snapshot.hasError) {
+          debugPrint('Snapshot error: ${snapshot.error}');
+        } else if (snapshot.hasData) {
+          // _building = false;
+          return getContent(); //UserDetailsForm();
+        } else {
+          return const SizedBox(
+            width: double.infinity,
+            height: double.infinity,
+            child: Align(
+              alignment: Alignment.center,
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+        throw ('Error - FutureBuilder in create_trips.dart');
+      },
+    );
+    return Text('Whoops!');
+  }
+
+  Widget getContent() { 
+    */
+/**
+ *                             child: FutureBuilder(
+                              future:
+                                  _imagesLoaded, //   getImageList(photos: widget.photos),
+                              builder: (context, snapshot) {
+                                if (snapshot.hasError) {
+                                  debugPrint(
+                                    'Snapshot error: ${snapshot.error.toString()}',
+                                  );
+                                  return const ImageMissing(width: 400);
+                                } else if (snapshot.hasData) {
+                                  return getPageView(
+                                      snapshot.data!, widget.photos);
+                                } else {
+                                  return const Center(
+                                    child: CircularProgressIndicator(),
+                                  );
+                                }
+                              },
+                            ),
+ * 
+ */
+
+// End of test
+    return SingleChildScrollView(
+      child: Form(
+        key: _formKey,
+        autovalidateMode: AutovalidateMode.onUnfocus,
+        child: Column(
+          children: <Widget>[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+              child: Row(
+                children: [
+                  Expanded(
+                    flex: 5,
+                    child: TextFormField(
+                        autofocus: true,
+                        // focusNode: _focusNode,
+                        decoration: InputDecoration(
+                            border: OutlineInputBorder(),
+                            hintText: 'Enter your forename',
+                            hintStyle: hintStyle(context: context),
+                            labelText: 'Forename',
+                            labelStyle: labelStyle(context: context)),
+                        textInputAction: TextInputAction.next,
+                        textCapitalization: TextCapitalization.words,
+                        textAlign: TextAlign.left,
+                        initialValue: Setup().user.forename.toString(),
+                        style: textStyle(
+                            context: context,
+                            color: kIsWeb ? Colors.black : null),
+                        onChanged: (text) {
+                          Setup().user.forename = text;
+                          hasChanged = true;
+                          isComplete();
+                        },
+                        // setState(() => Setup().user.forename = text),
+                        validator: (val) {
+                          if (val == null || val.isEmpty) {
+                            return 'Please enter your forename';
+                          }
+                          return null;
+                        }),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    flex: 5,
+                    child: TextFormField(
+                        decoration: InputDecoration(
+                            border: OutlineInputBorder(),
+                            hintText: 'Enter surname',
+                            hintStyle: hintStyle(context: context),
+                            labelText: 'Surname',
+                            labelStyle: labelStyle(context: context)),
+                        textAlign: TextAlign.left,
+                        textInputAction: TextInputAction.next,
+                        textCapitalization: TextCapitalization.words,
+                        initialValue: Setup().user.surname.toString(),
+                        style: textStyle(
+                            context: context,
+                            color: kIsWeb ? Colors.black : null),
+                        onChanged: (text) {
+                          hasChanged = true;
+                          Setup().user.surname = text;
+                          isComplete();
+                        },
+                        validator: (val) {
+                          if (val == null || val.isEmpty) {
+                            return 'Please enter your surname';
+                          }
+                          return null;
+                        }),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+              child: TextFormField(
+                  readOnly:
+                      mode != 0, //Only allow emails to be altered if new user
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: InputDecoration(
+                      border: OutlineInputBorder(),
+                      hintText: 'Enter your email address',
+                      hintStyle: hintStyle(context: context),
+                      labelText: 'Email address',
+                      labelStyle: labelStyle(context: context)),
+                  textInputAction: TextInputAction.next,
+                  textAlign: TextAlign.left,
+                  initialValue: Setup().user.email.toString(),
+                  style: textStyle(
+                      context: context, color: kIsWeb ? Colors.black : null),
+                  onChanged: (text) {
+                    hasChanged = true;
+                    Setup().user.email = text;
+                    isComplete();
+                  },
+                  validator: (val) {
+                    if (val == null || val.isEmpty) {
+                      return 'Please enter your email address';
+                    }
+                    return null;
+                  }),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+              child: TextFormField(
+                  keyboardType: TextInputType.phone,
+                  decoration: InputDecoration(
+                      border: OutlineInputBorder(),
+                      hintText: 'Enter your phone number',
+                      hintStyle: hintStyle(context: context),
+                      labelText: 'Phone number',
+                      labelStyle: labelStyle(context: context)),
+                  textInputAction: TextInputAction.next,
+                  textAlign: TextAlign.left,
+                  initialValue: Setup().user.phone.toString(),
+                  style: textStyle(
+                      context: context, color: kIsWeb ? Colors.black : null),
+                  onChanged: (text) {
+                    hasChanged = true;
+                    Setup().user.phone = text;
+                    isComplete();
+                  },
+                  validator: (val) {
+                    if (val == null || val.isEmpty) {
+                      return 'Please enter your phone number';
+                    }
+                    return null;
+                  }),
+            ),
+            if (mode == 0) ...[
+              //(new User)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+                child: Row(
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: Column(
+                        children: [
+                          TextFormField(
+                              decoration: InputDecoration(
+                                  border: OutlineInputBorder(),
+                                  hintText: 'Enter your password',
+                                  hintStyle: hintStyle(context: context),
+                                  labelText: 'Password',
+                                  labelStyle: labelStyle(context: context)
+                                  //  errorText: 'Minimum of 8 characters',
+                                  // error: false,
+                                  ),
+                              textAlign: TextAlign.left,
+                              //     minLength: 8,
+                              keyboardType: TextInputType.visiblePassword,
+                              textInputAction: TextInputAction.done,
+                              initialValue: Setup().user.password.toString(),
+                              style: textStyle(
+                                  context: context,
+                                  color: kIsWeb ? Colors.black : null),
+                              validator: (val) =>
+                                  Setup().user.newPassword.length < 8 &&
+                                          isComplete()
+                                      ? 'Minimum password length is 8'
+                                      : null,
+                              onChanged: (text) {
+                                hasChanged = true;
+                                Setup().user.newPassword = text;
+                                isComplete();
+                              }),
+                          SizedBox(height: 3),
+                          Align(
+                            alignment: Alignment.topRight,
+                            child: Text(
+                                isComplete()
+                                    ? ' '
+                                    : 'Minimum 8 caracters required',
+                                style: TextStyle(fontSize: 13),
+                                textAlign: TextAlign.end),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(width: 10),
+                    Expanded(
+                      flex: 2,
+                      child: TextFormField(
+                        decoration: InputDecoration(
+                            border: OutlineInputBorder(),
+                            hintText: 'Validation code',
+                            hintStyle: hintStyle(context: context),
+                            labelText: 'Emailed code',
+                            labelStyle: labelStyle(context: context)),
+                        textAlign: TextAlign.left,
+                        maxLength: 6,
+                        keyboardType: TextInputType.number,
+                        textInputAction: TextInputAction.next,
+                        initialValue: '',
+                        style: textStyle(
+                            context: context,
+                            color: kIsWeb ? Colors.black : null),
+                        validator: (val) =>
+                            Setup().user.password.length < 6 && isComplete()
+                                ? 'Six digits needed'
+                                : null,
+                        onChanged: (text) {
+                          hasChanged = true;
+                          Setup().user.password = text;
+                          isComplete();
+                        },
+                      ),
+                    ),
+                  ],
+                  //    SizedBox(height: 15),
+                ),
+              ),
+
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+                child: Row(
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: ActionChip(
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20)),
+                        onPressed: isComplete()
+                            ? () async {
+                                String status = await register(update: true);
+                                if (status == 'Ok' && mounted) {
+                                  Navigator.pop(context);
+                                } else {
+                                  DialogOkCancel(
+                                    id: 1,
+                                    title: 'Error',
+                                    body: status,
+                                    onConfirm: (_) {},
+                                  );
+                                }
+                              }
+                            : null,
+                        backgroundColor: Colors.blue,
+                        disabledColor: Colors.grey,
+                        avatar: Icon(
+                          Icons.refresh,
+                          color: Colors.white,
+                        ),
+                        label: Text('Register now',
+                            style:
+                                TextStyle(fontSize: 18, color: Colors.white)),
+                      ),
+                    ),
+                    SizedBox(width: 20),
+                    Expanded(
+                      flex: 2,
+                      child: ActionChip(
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20)),
+                        onPressed: () => postValidateUser(user: Setup().user),
+                        backgroundColor: Colors.blue,
+                        avatar: Icon(
+                          Icons.refresh,
+                          color: Colors.white,
+                        ),
+                        label: Text('Resend code',
+                            style:
+                                TextStyle(fontSize: 18, color: Colors.white)),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            ], // mode == 0
+
+            if (mode == 1) ...[
+              //(Update user details)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+                child: Row(
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: TextFormField(
+                        readOnly: Setup().user.password.toString().isNotEmpty,
+                        decoration: InputDecoration(
+                            border: OutlineInputBorder(),
+                            hintText: '',
+                            labelText: 'Current Password',
+                            labelStyle: labelStyle(context: context)),
+                        textAlign: TextAlign.left,
+                        keyboardType: TextInputType.visiblePassword,
+                        textInputAction: TextInputAction.next,
+                        initialValue: Setup().user.password.toString(),
+                        onChanged: (text) => Setup().user.newPassword = text,
+                        style: textStyle(
+                            context: context,
+                            color: kIsWeb ? Colors.black : null),
+                      ),
+                    ),
+                    SizedBox(width: 10),
+                    Expanded(
+                      flex: 2,
+                      child: TextFormField(
+                        readOnly: false,
+                        decoration: InputDecoration(
+                          border: OutlineInputBorder(),
+                          hintText: '',
+                          hintStyle: hintStyle(context: context),
+                          labelText: 'New Password',
+                          labelStyle: labelStyle(context: context),
+                        ),
+                        textAlign: TextAlign.left,
+                        keyboardType: TextInputType.visiblePassword,
+                        textInputAction: TextInputAction.next,
+                        initialValue: Setup().user.newPassword.toString(),
+                        onChanged: (text) => Setup().user.newPassword = text,
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    ),
+                  ],
+
+                  //    SizedBox(height: 15),
+                ),
+              ),
+            ],
+            if (carData) ...[
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+                child: DropdownButtonFormField<String>(
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    labelText: 'Car Manufacturer',
+                  ),
+                  initialValue: manufacturers[0],
+                  items: manufacturers
+                      .map(
+                        (item) => DropdownMenuItem<String>(
+                          value: item,
+                          child: Text(item,
+                              style: Theme.of(context).textTheme.bodyMedium!),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (item) => setState(() =>
+                      manufacturer = manufacturers.indexOf(item.toString())),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+                child: DropdownButtonFormField<String>(
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    labelText: 'Car Model',
+                  ),
+                  // value: models[0],
+                  items: models
+                      .map(
+                        (item) => DropdownMenuItem<String>(
+                          value: item,
+                          child: Text(item,
+                              style: Theme.of(context).textTheme.bodyMedium!),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (item) =>
+                      setState(() => model = models.indexOf(item.toString())),
+                ),
+              )
+            ],
+            if (!isComplete())
+              Align(
+                alignment: Alignment.bottomLeft,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 0, 12),
+                  child: Text('Please fill in ALL the boxes above:',
+                      style:
+                          TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                ),
+              ),
+            Align(
+              alignment: Alignment.bottomLeft,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 12, 0, 0),
+                child: Text(descriptions[mode],
+                    style:
+                        TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              ),
+            ),
+            if (kIsWeb && isComplete() && hasChanged)
+              Align(
+                alignment: Alignment.bottomLeft,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 0, 12),
+                  child: Row(
+                    children: [
+                      Align(
+                        alignment: Alignment.bottomLeft,
+                        child: Padding(
+                          padding: EdgeInsetsGeometry.fromLTRB(0, 0, 10, 0),
+                          child: Text(
+                            'Update the changes you have made',
+                            style: TextStyle(
+                                fontSize: 20, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
+                      Align(
+                          alignment: Alignment.bottomLeft,
+                          child: Checkbox(
+                              value: _update,
+                              onChanged: (value) =>
+                                  setState(() => _update = value!))),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+      // ),
+    );
+
+    /// End of SingleChildScrollView
+  }
+
+  bool isComplete() {
+    bool nowComplete = Setup().user.forename.isNotEmpty &&
+        Setup().user.surname.isNotEmpty &&
+        Setup().user.email.isNotEmpty &&
+        Setup().user.phone.isNotEmpty &&
+        ((kIsWeb && Setup().user.password.isEmpty && savedPassword.isEmpty) ||
+            (Setup().user.password.length > 7 &&
+                (savedPassword.isEmpty || savedPassword.length > 7)) ||
+            (Setup().user.password.length == 6 &&
+                savedPassword
+                    .isEmpty)); // 6 is the length of the validation code
+    //   ((Setup().user.password.length > 7 && savedPassword.isNotEmpty) ||
+    //       (Setup().user.password.length == 6 && savedPassword.isEmpty));
+    developer.log('isComplete is called -> $complete', name: '_valid_');
+    if (nowComplete != complete) {
+      if (widget.onUpdate != null) {
+        widget.onUpdate!(nowComplete);
+      }
+      setState(() => complete = nowComplete);
+    }
+    return complete;
+  }
+
+  Future<String> register({bool update = false}) async {
+    String response = 'Error';
+    if (update) {
+      Map<String, dynamic> status =
+          await postUser(user: Setup().user, register: true);
+
+      switch (status['code']) {
+        case 201:
+          if (Setup().user.password.isNotEmpty &&
+              Setup().user.newPassword.isNotEmpty) {
+            Setup().user.password = Setup().user.newPassword;
+            Setup().user.newPassword = '';
+          }
+          getPrivateRepository().saveUser(Setup().user);
+          Setup().setupToDb();
+          response = 'Ok';
+          break;
+
+        case 400:
+          response = 'Submitted data error - please check all boxes';
+          break;
+
+        case 401: // unauthorised
+          response = 'Password is incorrect';
+          break;
+
+        case 404: // Not found
+          response =
+              'Validation code is incorrect - please check for latest email';
+          break;
+
+        default:
+          response = 'Failed to save user - check Internet connection';
+          break;
+      }
+    }
+    // Navigator.pop(context); 406 Notacceptable 409 conflict
+    setState(() => hasChanged = false);
+    return response;
+  }
+}
+*/

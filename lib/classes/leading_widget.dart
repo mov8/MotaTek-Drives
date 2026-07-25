@@ -13,12 +13,8 @@ class LeadingWidgetController {
   bool get isAttached => _leadingWidgetState != null;
 
   void changeWidget(int id) {
-    assert(isAttached, 'Controller must be attached to widget');
-    try {
+    if (_leadingWidgetState != null) {
       _leadingWidgetState?.changeWidget(id);
-    } catch (e) {
-      String err = e.toString();
-      debugPrint('Error changing leading widget: $err');
     }
   }
 }
@@ -125,20 +121,28 @@ class _LeadingWidgetState extends State<LeadingWidget>
             widget.onMenuTap(_widgetId);
             debugPrint('Ontap _widgetId: $_widgetId');
           }),
-          child: ClipOval(
-            child: SizedBox(
-              width: 45,
-              height: 45,
-              child: Center(
-                child: AnimatedIcon(
-                  icon: _animatedIcon,
-                  progress: animation,
-                  color: Colors.white,
-                  size: 30,
-                ),
+          //   child: ClipRect(
+          //  ClipOval(  // <-- Original mobile setup
+          //  clipper: MyClip(width: 200, height: 200),
+          child: SizedBox(
+            width: 45, // 45,
+            height: 45, //45,
+
+            // child: Center(
+            child: Positioned(
+              top: 0,
+              left: 0,
+              //    child: Padding(
+              //      padding: EdgeInsetsGeometry.fromLTRB(20, 10, 10, 10),
+              child: AnimatedIcon(
+                icon: _animatedIcon,
+                progress: animation,
+                color: Colors.white,
+                size: 30, //30,
               ),
             ),
           ),
+          //  ),
         ),
         if (Setup().tripCount > 0 && _widgetId == 0) //  showBadge)
           Positioned(
@@ -153,18 +157,34 @@ class _LeadingWidgetState extends State<LeadingWidget>
               constraints: BoxConstraints(
                 minWidth: 16 + ((Setup().tripCount / ~10) * 8),
                 minHeight: 16 + ((Setup().tripCount / ~10) * 8),
+                //  minWidth: 20 + ((Setup().tripCount / ~10) * 8),
+                //  minHeight: 20 + ((Setup().tripCount / ~10) * 8),
               ),
               child: Text(
                 '${Setup().tripCount}',
                 style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold),
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
                 textAlign: TextAlign.center,
               ),
             ),
           )
       ],
     );
+  }
+}
+
+class MyClip extends CustomClipper<Rect> {
+  double width;
+  double height;
+  MyClip({this.width = 100, this.height = 100});
+  Rect getClip(Size size) {
+    return Rect.fromLTWH(0, 0, width, height);
+  }
+
+  bool shouldReclip(oldClipper) {
+    return false;
   }
 }

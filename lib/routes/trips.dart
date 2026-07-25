@@ -1,9 +1,12 @@
-import 'dart:convert';
+/*
 
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'dart:math';
 import '/classes/classes.dart' hide Position;
+import '/models/models.dart';
 import '/screens/main_drawer.dart';
 import '/screens/painters.dart';
 import '/services/services.dart';
@@ -20,9 +23,33 @@ enum MapHeight {
   message,
 }
 
+class TripsController {
+  _TripsState? _tripsState;
+  void _addState(_TripsState tripsState) {
+    _tripsState = tripsState;
+  }
+
+  bool get isAttached => _tripsState != null;
+
+  void onUpdate(pos) {
+    if (isAttached) {
+      _tripsState!._onMapUpdate(pos);
+    }
+  }
+/*
+  void omIdle() {
+    if (isAttached) {
+      _tripsState!._onIdle();
+    }
+  }
+  */
+}
+
 class Trips extends StatefulWidget {
+  // TripsController? controller;
   const Trips({
     super.key,
+    // this.controller,
   });
 
   @override
@@ -36,12 +63,13 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
   // final ScrollController _scrollController = ScrollController();
   final ItemPositionsListener itemPositionsListener =
       ItemPositionsListener.create();
-  MapLibreMapController? _mapController;
+ // MLMapController? _mapController;
 
-  BottomDrawerController _bottomDrawerController = BottomDrawerController();
+  final BottomDrawerController _bottomDrawerController =
+      MapService().bottomDrawerController!; // BottomDrawerController();
   final GlobalKey _scaffoldKey = GlobalKey();
   late final Future<bool> _dataLoaded;
-  bool styleLoaded = false;
+  bool _styleLoaded = false;
   ImageRepository _imageRepository = ImageRepository();
   bool refreshTrips = true;
   List<double> mapHeights = [0, 0, 0, 0];
@@ -49,10 +77,11 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
   double listHeight = -1;
   final GlobalKey _appBarKey = GlobalKey();
   final GlobalKey _bottomNavKey = GlobalKey();
-  final GlobalKey _scrollToKey = GlobalKey();
+  // final GlobalKey _scrollToKey = GlobalKey();
   DrivesRequest? _drivesRequest;
   TripRequest? _tripRequest;
-  List<Card> _tripCards = [];
+  // List<Card> _tripCards = [];
+  bool _idleCalled = false;
 
   bool _opened = true;
 
@@ -63,9 +92,18 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    _leadingWidgetController = LeadingWidgetController();
-    _bottomNavController = RoutesBottomNavController();
-    _dataLoaded = dataFromDatabase();
+    //   if (widget.controller != null) {
+    //     widget.controller!._tripsState = this;
+    //   }
+
+    if (!kIsWeb) {
+      _leadingWidgetController = LeadingWidgetController();
+      _bottomNavController = RoutesBottomNavController();
+    }
+
+    //  _dataLoaded = MapService().setPage(page: 1); // <-- page 1 = published
+
+    // _dataLoaded = dataFromDatabase();
   }
 
   Future<bool> dataFromDatabase() async {
@@ -80,11 +118,11 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
   _leadingWidget(context) {
     return context?.openDrawer();
   }
-
+/*
   Widget _getPortraitBody() {
     return _handleMap();
   }
-
+*/
   Widget cardsList(
       {required List<Card> cards, required ScrollController controller}) {
     Widget scrollList = Text('');
@@ -104,9 +142,11 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
   }
 
   onUpdated(zoom) {
+    /*
     setState(
-      () => _tripCards = _drivesRequest!.getTripTiles(),
+      () =>  _tripCards = _drivesRequest!.getTripTiles(),
     );
+    */
   }
 
   onGetDetails(index) {}
@@ -115,40 +155,68 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
     debugPrint('Requesting download index: $index, name: $name');
   }
 
-  _onMapUpdate(LatLng pos, MapLibreMapController mapController) async {
-    _mapController = mapController;
+  _onMapUpdate(LatLng pos) async {
+    developer.log('*** _onMapUpdate() called ***', name: '_web_');
+    // _mapController = mapController;
+    CurrentTripItem().mapController = MapService().controller;
+    // _mapController;
     _drivesRequest ??= DrivesRequest(
         onUpdated: onUpdated,
         onGetDetails: onGetDetails,
         onGetDownload: (index, name) => onGetDownloads,
         imageRepository: _imageRepository);
-    _mapController = mapController;
+    // _mapController = mapController;
 
+    // MapService().currentPosition = await Geolocator.getCurrentPosition();
     _tripRequest ??= TripRequest(
         onUpdated: onUpdated,
         onGetDetails: onGetDetails,
         imageRepository: _imageRepository);
-    CurrentTripItem().mapController = _mapController;
+    // CurrentTripItem().mapController = _mapController;
   }
 
+  /// _onStyleLoaded() called after _onMapUpdate() so the controller is not null.
+  /// Because of Web issues have to set the current location to see the map.
+
+  _onStyleLoaded() async {
+    _styleLoaded = true;
+    developer.log('*** _onStyleLoaded() called ***', name: '_web_');
+    /*
+    await _mapController!.moveCamera(
+      CameraUpdate.newLatLngZoom(
+        MapService().currentPosition,
+        12.0,
+      ),
+    );
+    */
+  }
+
+  // MapService().onIdle();
+  /*
   _onIdle() async {
-    if (_mapController != null) {
+    if (_styleLoaded) {
       Map<String, dynamic> geoJson = {};
       try {
         LatLngBounds bounds = await _mapController!.getVisibleRegion();
-        double zoom = _mapController!.cameraPosition!.zoom;
-        Map<String, dynamic> geoJson;
-        geoJson = await _drivesRequest!.update(bounds: bounds, zoom: zoom);
+        developer.log('*** _onIdle() called ***', name: '_web_');
+       // double zoom = _mapController!.cameraPosition!.zoom;
+        Map<String, dynamic> geoJson = await _drivesRequest!.update(
+            bounds: bounds,
+            zoom: zoom,
+            force:
+                !_idleCalled); //  _bottomDrawerController.itemsCount() == 0);
         debugPrint('geoJson: $geoJson');
+        _idleCalled = true;
         if (geoJson.isNotEmpty) {
-          await _mapController!.setGeoJsonSource("published-data", geoJson);
-          _tripCards = _drivesRequest!.getTripTiles(openUri: "");
-          _bottomDrawerController.setContent(content: BottomDrawerItems.trip);
-          for (int i = 0; i < geoJson['features'].length; i++) {
-            developer.log("Routes $i ${geoJson['features'][i]['properties']}",
-                name: '_x_x_');
+          List<TripItem> tripItems = _drivesRequest!.getDrivesData();
+          if (kIsWeb) {
+            MapService().sideDrawerController!.setContent(
+                content: BottomDrawerItems.cached,
+                drawerItems: tripItems as List<Widget>);
+          } else {
+            _bottomDrawerController.setContent(
+                content: BottomDrawerItems.drives, drawerItems: tripItems);
           }
-          // cardsList(cards: _tripCards, controller: _scrollController));
         }
         geoJson = await _tripRequest!.update(bounds: bounds, zoom: zoom);
         if (geoJson['features'].isNotEmpty) {
@@ -163,25 +231,32 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
         var filter = fenceFilter(bounds: bounds, proportion: 0.6);
         _mapController!.setFilter("route-marker-layer", filter);
         _mapController!.setFilter("good_roads_highlighted", filter);
-        _mapController!.setFilter("good-road-marker-layer", filter);
+        // _mapController!.setFilter("good-road-marker-layer", filter);
         _mapController!.setFilter("roads_highlighted", filter);
         await _mapController!.animateCamera(CameraUpdate.zoomBy(0.000001));
       } catch (e) {
         developer.log('error: ${e.toString()} ${geoJson.toString()}',
-            name: '_ezoom');
+            name: '_error_');
       }
     }
+    */
   }
-
+/*
   onOpened(open) {
     //  _scrollController.jumpTo(12);
     if (!_opened) {
-      _bottomDrawerController.dockOpenTile();
+      if (kIsWeb) {
+        MapService().sideDrawerController!.open();
+      } else {
+        _bottomDrawerController.dockOpenTile();
+      }
     }
     _opened = true;
-    //  setState(() => ());
+    //  setState(()  {});
   }
+*/
 
+/*
   _onTap(var tap, LatLng pos) async {
     var foundFeatures;
     try {
@@ -193,12 +268,21 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
         var name = tappedFeature['properties']['name'];
         String uri = tappedFeature['id'].substring(0, 32);
 
-        _tripCards =
-            _drivesRequest!.getTripTiles(openUri: uri, key: _scrollToKey);
-        _bottomDrawerController.setContent(content: BottomDrawerItems.trip);
-        //  cardsList(cards: _tripCards, controller: _scrollController));
-        _bottomDrawerController.open(
-            height: 300); // height of opened ExpandTile
+        // _tripCards =
+        //    _drivesRequest!.getTripTiles(openUri: uri, key: _scrollToKey);
+        // _bottomDrawerController.setContent(content: BottomDrawerItems.drives);
+        List<TripItem> tripItems = _drivesRequest!.getDrivesData();
+        if (kIsWeb) {
+          MapService().sideDrawerController!.setContent(
+              content: BottomDrawerItems.drives,
+              drawerItems: tripItems as List<Widget>);
+          MapService().sideDrawerController!.open();
+        } else {
+          _bottomDrawerController.setContent(
+              content: BottomDrawerItems.drives, drawerItems: tripItems);
+          //  cardsList(cards: _tripCards, controller: _scrollController));
+          _bottomDrawerController.open(height: 300);
+        } // height of opened ExpandTile
         _opened = false;
       }
     } catch (e) {
@@ -212,7 +296,8 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
     await _mapController!.setGeoJsonSource("route-features", _routeFeatures);
     */
   }
-
+  */
+/*
   Future<Rect> getScreenRect({required LatLngBounds bounds}) async {
     Point topRight = await _mapController!.toScreenLocation(bounds.northeast);
     Point botLeft = await _mapController!.toScreenLocation(bounds.southwest);
@@ -235,6 +320,9 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
     return firstLabelId;
   }
 
+*/
+
+/*
   Future<bool> layerExists({required String layerId}) async {
     List<dynamic> layerIds = await _mapController!.getLayerIds();
     bool result = false;
@@ -246,7 +334,7 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
     }
     return result;
   }
-
+*/
 /*
   addGeoJson() async {
     var geoJson = await getGeoJson(zoom: 14);
@@ -258,19 +346,22 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
     }
   }
 */
+
+/*
   Widget _handleMap() {
     return Stack(children: [
-      MLMap(
+      /* MLMap(
         onUpdate: _onMapUpdate,
+        onStyleLoaded: _onStyleLoaded,
         onTap: _onTap,
         onIdle: _onIdle,
+      ), */
+      // if (_mapController != null)
+      Positioned(
+        right: 20,
+        top: 22,
+        child: HandleFabs(controller: _mapController!),
       ),
-      if (_mapController != null)
-        Positioned(
-          right: 20,
-          top: 22,
-          child: HandleFabs(controller: _mapController!),
-        ),
       CustomPaint(
         painter: HighlightPainter(
           boundary: mapSize(),
@@ -278,17 +369,20 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
           color: Colors.blueGrey,
         ),
       ),
-      BottomDrawer(
-        context: context,
-        maxHeight: 200,
-        //  content:
-        //      _tripCards, //cardsList(cards: _tripCards, controller: _scrollController),
-        controller: _bottomDrawerController,
-        // scrollController: _scrollController,
-        onOpened: onOpened,
-      ),
+      if (!kIsWeb)
+        BottomDrawer(
+          context: context,
+          maxHeight: 200,
+          //  content:
+          //      _tripCards, //cardsList(cards: _tripCards, controller: _scrollController),
+          controller: _bottomDrawerController,
+          // scrollController: _scrollController,
+          onOpened: onOpened,
+        ),
     ]);
   }
+
+  */
 
   Size mapSize() {
     Size mapSize = Size(0, 0);
@@ -307,34 +401,51 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
   onPointOfInterestRatingChanged(int value, int index) {
     putPointOfInterestRating('uri', value.toDouble());
   }
-
+/*
   @override
   Widget build(BuildContext context) {
+    developer.log('_TripState()build() called', name: 'trips');
+    if (ModalRoute.of(context)!.settings.arguments != null) {
+      TripArguments args =
+          ModalRoute.of(context)!.settings.arguments as TripArguments;
+      if (args.changedScreen) {
+        // updateArguments(arguments: args);
+        args.changedScreen =
+            false; // <-- ensure future repaints show the updated activeChip value
+      }
+    }
+    /*
+    WidgetsBinding.instance.addPostFrameCallback((_) => sideBarItems());
     return Scaffold(
       // resizeToAvoidBottomInset: false,
       // extendBodyBehindAppBar: true,
-      backgroundColor: Colors.blue,
+      backgroundColor: Colors.transparent,
       key: _scaffoldKey,
-      drawer: const MainDrawer(),
-      appBar: AppBar(
-        key: _appBarKey,
-        automaticallyImplyLeading: false,
-        leading: LeadingWidget(
-          controller: _leadingWidgetController,
-          onMenuTap: (index) => _leadingWidget(_scaffoldKey.currentState),
-        ),
-        title: Text(
-          'Trips available to download',
-          style: const TextStyle(
-              fontSize: 20, color: Colors.white, fontWeight: FontWeight.w700),
-        ),
-        iconTheme: const IconThemeData(color: Colors.white),
-        actions: [
-          IconButton(
-              onPressed: () => {}, icon: Icon(Icons.help_outline_outlined))
-        ],
-        backgroundColor: Colors.blue,
-      ),
+      drawer: kIsWeb ? null : const MainDrawer(),
+      appBar: kIsWeb
+          ? WebAppBar(context: context)
+          : AppBar(
+              key: _appBarKey,
+              automaticallyImplyLeading: false,
+              leading: LeadingWidget(
+                controller: _leadingWidgetController,
+                onMenuTap: (index) => _leadingWidget(_scaffoldKey.currentState),
+              ),
+              title: Text(
+                'Trips available to download',
+                style: const TextStyle(
+                    fontSize: 20,
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700),
+              ),
+              iconTheme: const IconThemeData(color: Colors.white),
+              actions: [
+                IconButton(
+                    onPressed: () => {},
+                    icon: Icon(Icons.help_outline_outlined))
+              ],
+              backgroundColor: Colors.blue,
+            ),
       body: FutureBuilder<bool>(
         future: _dataLoaded,
         builder: (BuildContext context, snapshot) {
@@ -362,13 +473,31 @@ class _TripsState extends State<Trips> with TickerProviderStateMixin {
       ),
       drawerEnableOpenDragGesture: false,
     );
+    */
   }
-}
 
+  void sideBarItems() async {
+    if (kIsWeb) {
+      await _dataLoaded;
+      if (kIsWeb) {
+        developer.log('trips.dart sideBarItems() called', name: '_trips_');
+        MapService().sideDrawerController!.setFixed(fixed: false);
+        MapService().sideDrawerController!.close();
+      } else {
+        developer.log('trips.dart sideBarItems() called', name: '_trips_');
+        MapService().sideDrawerController!.setFixed(fixed: false);
+        MapService().sideDrawerController!.close();
+      }
+    }
+  }
+  
+ }
+*/
+/*
 class HandleFabs extends StatelessWidget {
   final double _width = 50;
   final double _height = 56.0;
-  final MapLibreMapController controller;
+  final MLMapController controller;
   const HandleFabs({super.key, required this.controller});
 
   @override
@@ -459,6 +588,9 @@ class HandleFabs extends StatelessWidget {
   }
 }
 
+
+*/
+
 class DownloadOptions {
   bool downLoad = false;
   bool newTrip;
@@ -469,4 +601,35 @@ class DownloadOptions {
     newTrip = isNew;
     myTrip = !newTrip;
   }
-}
+
+    await _dataLoaded;
+    // MapService().sideDrawerController!.
+    getSideDrawerTiles();
+    // MapService().screenCache.clear();
+    // MapService().screenCache = _sideBarContents;
+    //  _sideBarContents.clear();
+    //  for (int i = 0; i < 10; i++) {
+    //    _sideBarContents.add(Text('item $i', style: TextStyle(fontSize: 22)));
+    //  }
+
+    developer.log('postFrameCallback fired', name: '_controller_');
+    if (_sideBarContents.isNotEmpty && mounted) {
+      developer.log(
+          'postFrameCallback mounted and fired with ${_sideBarContents.length} items',
+          name: '_controller_');
+      MapService().sideDrawerController!.open();
+
+      MapService().sideDrawerController!.setContent(
+          content: BottomDrawerItems.cached, drawerItems: _sideBarContents);
+      //   MapService().sideDrawerController!.setFixed(fixed: false);
+      //     MapService().sideDrawerController!.open();
+
+      MapService().sideDrawerController!.setFixed(fixed: true);
+      MapService().sideDrawerController!.setVisible(visible: true);
+      developer.log(
+          'postFrameCallback mounted and fired and got to bottom of sideBarItems()',
+          name: '_controller_');
+    }
+  }
+  
+} */

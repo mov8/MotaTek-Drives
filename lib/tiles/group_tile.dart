@@ -120,11 +120,11 @@ class _GroupTileState extends State<GroupTile> {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 5,
-      clipBehavior: Clip.antiAlias,
-      margin: EdgeInsets.zero,
+    return RrExpansionTile(
+      context: context,
       child: ExpansionTile(
+        backgroundColor: Colors.white,
+        collapsedBackgroundColor: Colors.white,
         tilePadding: EdgeInsets.all(10),
         initiallyExpanded: widget.expanded,
         controller: _expansibleController,
@@ -274,7 +274,7 @@ class _GroupTileState extends State<GroupTile> {
       return Icon(_titleOk ? Icons.check_circle_outline : Icons.star_outline);
     } else {
       return widget.group.name.length < 3
-          ? IconButton(onPressed: () => (), icon: Icon(Icons.cancel_outlined))
+          ? IconButton(onPressed: () {}, icon: Icon(Icons.cancel_outlined))
           : IconButton(
               onPressed: () => setState(() {
                     if (widget.onEdit != null) {

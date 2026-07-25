@@ -84,380 +84,358 @@ class _GroupDriveInvitationTileState extends State<GroupDriveInvitationTile> {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 5,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(5, 5, 5, 5),
-        child: ExpansionTile(
-          controller: _expansibleController,
-          leading: Column(
-            children: [
-              Icon(
-                inviteIcons[widget.eventInvitation.accepted],
-                size: 30,
-              ),
-              const SizedBox(
-                height: 8,
-              ),
-              Text(invState[widget.eventInvitation.accepted]),
-            ],
-          ),
-          //onLongPress: () => widget.onEdit!(widget.index),
-          //    tileColor: Color(0xFFC2DFE7),
-          //   trailing: IconButton(
-          //     iconSize: 30,
-          //     icon: const Icon(Icons.delete),
-          //     onPressed: () => widget.onDelete,
-          //   ),
-
-          title: Text(
-            widget.eventInvitation.name,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            overflow: TextOverflow.ellipsis,
-          ),
-          //  initiallyExpanded: widget.expanded,
-          subtitle: Column(
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    flex: 1,
-                    child: Text(
-                        'Drive date: ${dateFormat.format(widget.eventInvitation.eventDate)} ',
-                        style: labelStyle(
-                            context: context,
-                            size: 3,
-                            color:
-                                Colors.black) // const TextStyle(fontSize: 16),
-                        ),
-                  )
-                ],
-              ),
-              Row(
-                children: [
-                  Expanded(
-                    flex: 1,
-                    child: Text(
-                        'invited: ${dateFormat.format(widget.eventInvitation.invitationDate)}',
-                        style: labelStyle(
-                            context: context,
-                            size: 3,
-                            color:
-                                Colors.black) //const TextStyle(fontSize: 16),
-                        ),
-                  ),
-                ],
-              ),
-              Row(
-                children: [
-                  Expanded(
-                    flex: 1,
-                    child: Text(
-                        'by: ${widget.eventInvitation.forename} ${widget.eventInvitation.surname}',
-                        style: labelStyle(
-                            context: context,
-                            size: 2,
-                            color:
-                                Colors.black) //const TextStyle(fontSize: 18),
-                        ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-
-          onExpansionChanged: (val) {
-            widget.onExpandChange!(val, widget.controller);
-            photos = widget.photos ?? []; //photosFromJson(
-            // photoString: widget.tripItem!.imageUrls,
-            // endPoint: '$urlDriveImages/');
-          }, //  getSummary(val),
+    return RrExpansionTile(
+      context: context,
+      child: ExpansionTile(
+        controller: _expansibleController,
+        leading: Column(
           children: [
-            if (widget.tripItem == null) ...[
-              const Align(
-                alignment: Alignment.center,
-                child: SizedBox(
-                  width: 200,
-                  height: 200,
-                  child: Align(
-                    alignment: Alignment.center,
-                    child: Text('Details Missing',
-                        style: TextStyle(
-                            fontSize: 20)), //CircularProgressIndicator(),
-                  ),
-                ),
-              ),
-            ] else ...[
-              if (widget.tripItem != null &&
-                  widget.tripItem!.imageUrls.isNotEmpty)
-                Row(children: <Widget>[
-                  Expanded(
-                    flex: 8,
-                    child: SizedBox(
-                      child: PhotoCarousel(
-                        imageRepository: widget.imageRepository,
-                        photos: widget.photos!,
-                        height: 300,
-                        width: MediaQuery.of(context).size.width - 50,
+            Icon(
+              inviteIcons[widget.eventInvitation.accepted],
+              size: 30,
+            ),
+            const SizedBox(
+              height: 8,
+            ),
+            Text(invState[widget.eventInvitation.accepted]),
+          ],
+        ),
+        //onLongPress: () => widget.onEdit!(widget.index),
+        //    tileColor: Color(0xFFC2DFE7),
+        //   trailing: IconButton(
+        //     iconSize: 30,
+        //     icon: const Icon(Icons.delete),
+        //     onPressed: () => widget.onDelete,
+        //   ),
+
+        title: Text(
+          widget.eventInvitation.name,
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          overflow: TextOverflow.ellipsis,
+        ),
+        //  initiallyExpanded: widget.expanded,
+        subtitle: Column(
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  flex: 1,
+                  child: Text(
+                      'Drive date: ${dateFormat.format(widget.eventInvitation.eventDate)} ',
+                      style: labelStyle(
+                          context: context,
+                          size: 3,
+                          color: Colors.black) // const TextStyle(fontSize: 16),
                       ),
-                    ),
-                  ),
-                ]),
-              const SizedBox(
-                height: 10,
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(5, 0, 5, 15),
-                child: Row(
-                  children: [
-                    Expanded(
-                      flex: 1,
-                      child: Column(children: [
-                        const Icon(Icons.publish),
-                        Text('published',
-                            style: labelStyle(
-                                context: context,
-                                size: 3,
-                                color: Colors.black)),
-                        Text(widget.tripItem!.added,
-                            style: labelStyle(
-                                context: context,
-                                size: 3,
-                                color: Colors.black)),
-                      ]),
-                    ),
-                    Expanded(
-                      flex: 1,
-                      child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.route),
-                            Text(
-                              '${widget.tripItem!.distance.toStringAsFixed(1)}',
-                              style: labelStyle(
-                                  context: context,
-                                  size: 3,
-                                  color: Colors.black),
-                            ),
-                            Text(
-                              'miles long',
-                              style: labelStyle(
-                                  context: context,
-                                  size: 3,
-                                  color: Colors.black),
-                            ) //)
-                          ]),
-                    ),
-                    Expanded(
-                      flex: 1,
-                      child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.landscape),
-                            Text(
-                              widget.tripItem!.pointsOfInterestCount.toString(),
-                              style: labelStyle(
-                                  context: context,
-                                  size: 3,
-                                  color: Colors.black),
-                            ),
-                            Text(
-                              'highlights',
-                              style: labelStyle(
-                                  context: context,
-                                  size: 3,
-                                  color: Colors.black),
-                            ), //)
-                          ]),
-                    ),
-                    Expanded(
-                      flex: 1,
-                      child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.social_distance),
-                            Text(
-                                (widget.tripItem!.distanceAway * metersToMiles)
-                                    .toStringAsFixed(1),
-                                style: labelStyle(
-                                    context: context,
-                                    size: 3,
-                                    color: Colors.black)),
-                            Text(' miles away',
-                                style: labelStyle(
-                                    context: context,
-                                    size: 3,
-                                    color: Colors.black)) //)
-                          ]),
-                    ),
-                  ],
+                )
+              ],
+            ),
+            Row(
+              children: [
+                Expanded(
+                  flex: 1,
+                  child: Text(
+                      'invited: ${dateFormat.format(widget.eventInvitation.invitationDate)}',
+                      style: labelStyle(
+                          context: context,
+                          size: 3,
+                          color: Colors.black) //const TextStyle(fontSize: 16),
+                      ),
+                ),
+              ],
+            ),
+            Row(
+              children: [
+                Expanded(
+                  flex: 1,
+                  child: Text(
+                      'by: ${widget.eventInvitation.forename} ${widget.eventInvitation.surname}',
+                      style: labelStyle(
+                          context: context,
+                          size: 2,
+                          color: Colors.black) //const TextStyle(fontSize: 18),
+                      ),
+                ),
+              ],
+            ),
+          ],
+        ),
+
+        onExpansionChanged: (val) {
+          widget.onExpandChange!(val, widget.controller);
+          photos = widget.photos ?? []; //photosFromJson(
+          // photoString: widget.tripItem!.imageUrls,
+          // endPoint: '$urlDriveImages/');
+        }, //  getSummary(val),
+        children: [
+          if (widget.tripItem == null) ...[
+            const Align(
+              alignment: Alignment.center,
+              child: SizedBox(
+                width: 200,
+                height: 200,
+                child: Align(
+                  alignment: Alignment.center,
+                  child: Text('Details Missing',
+                      style: TextStyle(
+                          fontSize: 20)), //CircularProgressIndicator(),
                 ),
               ),
-              SizedBox(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(5, 0, 5, 10),
-                  child: Align(
-                    alignment: Alignment.topLeft,
-                    child: Text(
-                      widget.tripItem!.subTitle,
-                      style: const TextStyle(
-                          color: Colors.black,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold),
-                      textAlign: TextAlign.left,
+            ),
+          ] else ...[
+            if (widget.tripItem != null &&
+                widget.tripItem!.imageUrls.isNotEmpty)
+              Row(children: <Widget>[
+                Expanded(
+                  flex: 8,
+                  child: SizedBox(
+                    child: PhotoCarousel(
+                      imageRepository: widget.imageRepository,
+                      photos: widget.photos!,
+                      height: 300,
+                      width: MediaQuery.of(context).size.width - 50,
                     ),
                   ),
                 ),
+              ]),
+            const SizedBox(
+              height: 10,
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(5, 0, 5, 15),
+              child: Row(
+                children: [
+                  Expanded(
+                    flex: 1,
+                    child: Column(children: [
+                      const Icon(Icons.publish),
+                      Text('published',
+                          style: labelStyle(
+                              context: context, size: 3, color: Colors.black)),
+                      Text(widget.tripItem!.added,
+                          style: labelStyle(
+                              context: context, size: 3, color: Colors.black)),
+                    ]),
+                  ),
+                  Expanded(
+                    flex: 1,
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.route),
+                          Text(
+                            '${widget.tripItem!.distance.toStringAsFixed(1)}',
+                            style: labelStyle(
+                                context: context, size: 3, color: Colors.black),
+                          ),
+                          Text(
+                            'miles long',
+                            style: labelStyle(
+                                context: context, size: 3, color: Colors.black),
+                          ) //)
+                        ]),
+                  ),
+                  Expanded(
+                    flex: 1,
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.landscape),
+                          Text(
+                            widget.tripItem!.pointsOfInterestCount.toString(),
+                            style: labelStyle(
+                                context: context, size: 3, color: Colors.black),
+                          ),
+                          Text(
+                            'highlights',
+                            style: labelStyle(
+                                context: context, size: 3, color: Colors.black),
+                          ), //)
+                        ]),
+                  ),
+                  Expanded(
+                    flex: 1,
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.social_distance),
+                          Text(
+                              (widget.tripItem!.distanceAway * metersToMiles)
+                                  .toStringAsFixed(1),
+                              style: labelStyle(
+                                  context: context,
+                                  size: 3,
+                                  color: Colors.black)),
+                          Text(' miles away',
+                              style: labelStyle(
+                                  context: context,
+                                  size: 3,
+                                  color: Colors.black)) //)
+                        ]),
+                  ),
+                ],
               ),
-              SizedBox(
-                  child: Padding(
+            ),
+            SizedBox(
+              child: Padding(
                 padding: const EdgeInsets.fromLTRB(5, 0, 5, 10),
                 child: Align(
                   alignment: Alignment.topLeft,
-                  child: Text(widget.tripItem!.body,
-                      style: textStyle(
-                          context: context, size: 3, color: Colors.black),
-                      textAlign: TextAlign.left),
+                  child: Text(
+                    widget.tripItem!.subTitle,
+                    style: const TextStyle(
+                        color: Colors.black,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.left,
+                  ),
                 ),
-              )),
-              if (widget.tripItem!.author.isNotEmpty)
-                SizedBox(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(5, 0, 5, 15),
-                    child: Row(
+              ),
+            ),
+            SizedBox(
+                child: Padding(
+              padding: const EdgeInsets.fromLTRB(5, 0, 5, 10),
+              child: Align(
+                alignment: Alignment.topLeft,
+                child: Text(widget.tripItem!.body,
+                    style: textStyle(
+                        context: context, size: 3, color: Colors.black),
+                    textAlign: TextAlign.left),
+              ),
+            )),
+            if (widget.tripItem!.author.isNotEmpty)
+              SizedBox(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(5, 0, 5, 15),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        flex: 7,
+                        child: Text(
+                          'author: ${widget.tripItem!.author}',
+                          style: labelStyle(
+                              context: context, size: 3, color: Colors.black),
+                        ),
+                      ),
+                      Expanded(
+                        flex: 7,
+                        child: // Text(widget.tripItem!.score),
+
+                            StarRating(
+                                onRatingChanged: changeRating,
+                                rating: widget.tripItem!.rating),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            SizedBox(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(5, 0, 5, 15),
+                child: Row(children: [
+                  Expanded(
+                    flex: 1,
+                    child: Column(
                       children: [
-                        Expanded(
-                          flex: 7,
+                        IconButton(
+                          icon: const Icon(Icons.directions_car),
+                          onPressed: () {
+                            if (widget.onSelect != null) {
+                              widget.onSelect!(widget.index);
+                            }
+                          },
+                        ),
+                        Align(
+                          alignment: Alignment.center,
                           child: Text(
-                            'author: ${widget.tripItem!.author}',
+                            'join trip',
                             style: labelStyle(
                                 context: context, size: 3, color: Colors.black),
                           ),
                         ),
-                        Expanded(
-                          flex: 7,
-                          child: // Text(widget.tripItem!.score),
-
-                              StarRating(
-                                  onRatingChanged: changeRating,
-                                  rating: widget.tripItem!.rating),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    flex: 1,
+                    child: Column(
+                      children: [
+                        IconButton(
+                            icon: Icon(inviteIcons[2]),
+                            onPressed: () =>
+                                widget.onRespond!(widget.index, 2) //respond(2),
+                            ),
+                        Align(
+                          alignment: Alignment.center,
+                          child: Text(
+                            invState[2],
+                            style: getStyle(2),
+                          ),
                         ),
                       ],
                     ),
                   ),
-                ),
-              SizedBox(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(5, 0, 5, 15),
-                  child: Row(children: [
-                    Expanded(
-                      flex: 1,
-                      child: Column(
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.directions_car),
-                            onPressed: () {
-                              if (widget.onSelect != null) {
-                                widget.onSelect!(widget.index);
-                              }
-                            },
+                  Expanded(
+                    flex: 1,
+                    child: Column(
+                      children: [
+                        IconButton(
+                          icon: Icon(inviteIcons[1]),
+                          onPressed: () => widget.onRespond!(widget.index, 1),
+                        ),
+                        Align(
+                          alignment: Alignment.center,
+                          child: Text(
+                            invState[1],
+                            style: getStyle(1),
                           ),
-                          Align(
-                            alignment: Alignment.center,
-                            child: Text(
-                              'join trip',
-                              style: labelStyle(
-                                  context: context,
-                                  size: 3,
-                                  color: Colors.black),
-                            ),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                    Expanded(
-                      flex: 1,
-                      child: Column(
-                        children: [
-                          IconButton(
-                              icon: Icon(inviteIcons[2]),
-                              onPressed: () => widget.onRespond!(
-                                  widget.index, 2) //respond(2),
-                              ),
-                          Align(
-                            alignment: Alignment.center,
-                            child: Text(
-                              invState[2],
-                              style: getStyle(2),
-                            ),
+                  ),
+                  Expanded(
+                    flex: 1,
+                    child: Column(
+                      children: [
+                        IconButton(
+                          icon: Icon(inviteIcons[0]),
+                          onPressed: () => widget.onRespond!(widget.index, 0),
+                        ),
+                        Align(
+                          alignment: Alignment.center,
+                          child: Text(
+                            invState[0],
+                            style: getStyle(0),
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                    Expanded(
-                      flex: 1,
-                      child: Column(
-                        children: [
-                          IconButton(
-                            icon: Icon(inviteIcons[1]),
-                            onPressed: () => widget.onRespond!(widget.index, 1),
+                  ),
+                  Expanded(
+                    flex: 1,
+                    child: Column(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.download),
+                          onPressed: () => widget.onDownload!(widget.index),
+                        ),
+                        Align(
+                          alignment: Alignment.center,
+                          child: Text(
+                            'download',
+                            style: labelStyle(
+                                context: context, size: 3, color: Colors.black),
                           ),
-                          Align(
-                            alignment: Alignment.center,
-                            child: Text(
-                              invState[1],
-                              style: getStyle(1),
-                            ),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                    Expanded(
-                      flex: 1,
-                      child: Column(
-                        children: [
-                          IconButton(
-                            icon: Icon(inviteIcons[0]),
-                            onPressed: () => widget.onRespond!(widget.index, 0),
-                          ),
-                          Align(
-                            alignment: Alignment.center,
-                            child: Text(
-                              invState[0],
-                              style: getStyle(0),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Expanded(
-                      flex: 1,
-                      child: Column(
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.download),
-                            onPressed: () => widget.onDownload!(widget.index),
-                          ),
-                          Align(
-                            alignment: Alignment.center,
-                            child: Text(
-                              'download',
-                              style: labelStyle(
-                                  context: context,
-                                  size: 3,
-                                  color: Colors.black),
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  ]),
-                ),
+                  )
+                ]),
               ),
-            ],
-            // onLongPress: () => widget.onLongPress(widget.index),
+            ),
           ],
-        ),
+          // onLongPress: () => widget.onLongPress(widget.index),
+        ],
       ),
     );
   }

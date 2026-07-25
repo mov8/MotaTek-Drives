@@ -1357,14 +1357,14 @@ class _FeatureDetailsState extends State<FeatureDetails> {
             ? Colors.white
             : const Color.fromARGB(255, 174, 211, 241),
         child: PointOfInterestTile(
-          expandNotifier: _expandNotifier,
+          //  expandNotifier: _expandNotifier,
           controller: _pointOfInterestController,
           index: index,
           pointOfInterest: pointOfInterest!,
           imageRepository: widget.imageRepository,
           onExpandChange: widget.expandChange, //testFunc,
           onIconTap: testFunc,
-          onDelete: testFunc,
+          //  onDelete: testFunc,
           onRated: onPointOfInterestRatingChanged,
           canEdit: false,
         ),

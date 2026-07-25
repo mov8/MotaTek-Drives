@@ -46,16 +46,14 @@ import 'package:maplibre_gl/maplibre_gl.dart';
 /// User-routes
 /// Driving data - driven route and followers
 ///
-///
 ///   Data                  Source                    Flutter geoJSON List      Flutter data        Drives route
+///   ====                  ======                    ====================      =============       ============
 ///   api-routes            route-data                routeDataGEOJSON          routes              Great Drives
 ///   api-goodRoads         route-data                routeDataGEOJSON          routes              Great Drives / My Trip
 ///   waypoints             waypoint-data             waypointsGEOJSON          waypoints           My Trip
 ///   edited-routes         user-data                 userRouteGEOJSON          routes              My Trip
 ///   edited-goodRoads      goodRoad-data             goodRoadsGEOJSON          goodRoads           My Trip
-///   points of interest    point-of-interest-data    pointsOfInterestGEOJSON   pointsOfInterest    My Trip
-///
-///
+///   points of interest    point-of-interest-data    pointsOfInterestGEOJSON   pointsOfInterest    My Tri
 ///
 /// Should have two methods for each FeatureCollection
 ///   1 updateFeatures()
@@ -133,25 +131,11 @@ testFenceFilter(
   LatLng sw = LatLng(
       bounds.southwest.latitude + latGap, bounds.southwest.longitude + lngGap);
 
-  developer.log("FENCE BOUNDS - NE: $ne  SW: $sw", name: "_x_x_");
-
   for (int i = 0; i < jsonData['features'].length; i++) {
     double min_lat = jsonData['features'][i]['properties']['min_lat'] ?? 90;
     double max_lat = jsonData['features'][i]['properties']['max_lat'] ?? 0;
     double min_lon = jsonData['features'][i]['properties']['min_lon'] ?? 180;
     double max_lon = jsonData['features'][i]['properties']['max_lon'] ?? 0;
-
-    if (min_lat > ne.latitude || min_lon > ne.longitude) {
-      developer.log(
-          "OUTSIDE FENCE - Feature: $i - Object's sw corner must be further south and west than the fence's ne corner",
-          name: "_x_x_");
-    } else if (max_lat < sw.latitude || max_lon < sw.longitude) {
-      developer.log(
-          "OUTSIDE FENCE - Feature: $i - Object's ne corner must be further north and east than the fence's sw corner",
-          name: "_x_x_");
-    } else {
-      developer.log("Feature: $i - INSIDE FENCE OK ", name: "_x_x_");
-    }
   }
   return;
 }
@@ -208,8 +192,6 @@ List<Map<String, dynamic>> routesToGeoJson(
       });
     }
   }
-  developer.log('routesToGeoJson() features.length: ${features.length}',
-      name: '_geoJson*_');
   return features;
 }
 
@@ -239,14 +221,20 @@ List<Map<String, dynamic>> goodRoadsToGeoJson(
       });
     }
   }
-  developer.log('goodRoadsToGeoJson() features.length: ${features.length}',
-      name: '_geoJson*_');
+
   return features;
 }
 
 List<List<double>> dynamicToDouble({required List<dynamic> dynamicList}) {
-  List<List<double>> newList = List<List<double>>.from(dynamicList
-      .map((xy) => List<double>.from(xy.map((val) => val.toDouble()))));
+  List<List<double>> newList = List<List<double>>.from(
+    dynamicList.map(
+      (xy) => List<double>.from(
+        xy.map(
+          (val) => val.toDouble(),
+        ),
+      ),
+    ),
+  );
   return newList;
 }
 
@@ -262,9 +250,6 @@ List<Map<String, dynamic>> pointsOfInterestToGeoJson(
   List<Map<String, dynamic>> geoJson = [];
   if (pointsOfInterest.isNotEmpty) {
     try {
-      developer.log(
-          'pointsOfInterestToGeoJson() pointsOfInterest.length.length: ${pointsOfInterest.length}',
-          name: '_mapUpdates_');
       for (int i = 0; i < pointsOfInterest.length; i++) {
         if (!exclude.contains(pointsOfInterest[i].type)) {
           geoJson.add(pointsOfInterest[i].toGeoJson(index: i));
@@ -272,12 +257,9 @@ List<Map<String, dynamic>> pointsOfInterestToGeoJson(
       }
     } catch (e) {
       developer.log('Error pointsOfInterestToGeoJson(): ${e.toString()}',
-          name: '_mapUpdates_');
+          name: 'error');
     }
   }
-  developer.log(
-      'pointsOfInterestToGeoJson() geoJson.length.length: ${geoJson.length}',
-      name: '_mapUpdates_');
   return geoJson;
 }
 
@@ -331,9 +313,6 @@ List<Map<String, dynamic>> followersToGeoJson(
 
   if (followers.isNotEmpty) {
     try {
-      developer.log(
-          'pointsOfInterestToGeoJson() pointsOfInterest.length.length: ${followers.length}',
-          name: '_repaint_');
       for (int i = 0; i < followers.length; i++) {
         features.add(
           {
@@ -359,7 +338,7 @@ List<Map<String, dynamic>> followersToGeoJson(
       }
     } catch (e) {
       developer.log('Error pointsOfInterestToGeoJson(): ${e.toString()}',
-          name: '_g_j_');
+          name: 'error');
     }
   }
   return features;
@@ -383,16 +362,11 @@ List<Map<String, dynamic>> waypointsToGeoJson(
     lastPoint = lastPoint ?? [];
     colour = colour ?? Setup().routeColourHex();
     indexColour = indexColour ?? Setup().highlightedColourHex();
-    developer.log('waypointsToGeoJson() routes.length: ${waypoints.length}',
-        name: '_g_j_');
     if (CurrentTripItem().routes.isNotEmpty) {
       for (int h = 0; h < CurrentTripItem().routes.length; h++) {
         waypoints = CurrentTripItem().routes[h].waypoints;
 
         for (int i = 0; i < waypoints.length; i++) {
-          developer.log(
-              'Getting route[$h] geoJson for waypoint # $i point ${waypoints[i].point}',
-              name: '_geo_json_');
           features.add({
             "type": "Feature",
             "geometry": {
@@ -415,7 +389,47 @@ List<Map<String, dynamic>> waypointsToGeoJson(
       }
     }
   } catch (e) {
-    developer.log('Error :${e.toString}', name: '_map_');
+    developer.log('Error geojson_helpers waypointsToGeoJson() :${e.toString}',
+        name: 'error');
+  }
+  return features;
+}
+
+/// To use Waypoints have to ensure the filters _mapController.setFilter()
+/// aren't stopping them rendering
+///
+List<Map<String, dynamic>> routeEndsToGeoJson({
+  List<Route>? routes,
+  int index = -1,
+  String? colour,
+}) {
+  List<Map<String, dynamic>> features = [];
+  colour = colour ?? Setup().routeColourHex();
+  try {
+    if (routes != null) {
+      for (int i = 0; i < 2; i++) {
+        features.add({
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates":
+                i == 0 ? routes.first.lines.first : routes.last.lines.last
+          },
+          "id": i,
+          "properties": {
+            "group": 'waypoint',
+            "trip-state-1": "manual",
+            "trip-state-2": "editing",
+            "trip-state-3": "goodRoadStart",
+            "number": i + 1,
+            "color": colour, //"#673ab7", //colour,
+          }
+        });
+      }
+    }
+  } catch (e) {
+    developer.log('Error geojson_helpers.dart routeEndsToJson(): ${e.toString}',
+        name: 'error');
   }
   return features;
 }
@@ -433,9 +447,6 @@ List<Map<String, dynamic>> goodRoadWaypointsToGeoJson(
     lastPoint = lastPoint ?? [];
     colour = colour ?? Setup().goodRouteColourHex();
     indexColour = indexColour ?? Setup().highlightedColourHex();
-    developer.log(
-        'goodRoadsWaypointsToGeoJson() routes.length: ${waypoints.length}',
-        name: '_g_j_');
     if (CurrentTripItem().goodRoads.isNotEmpty) {
       for (int h = 0; h < CurrentTripItem().goodRoads.length; h++) {
         waypoints = CurrentTripItem().goodRoads[h].waypoints;
@@ -463,7 +474,9 @@ List<Map<String, dynamic>> goodRoadWaypointsToGeoJson(
       }
     }
   } catch (e) {
-    developer.log('Error :${e.toString}', name: '_map_');
+    developer.log(
+        'Error geojsonhelpers.dart goodRoadWayointsToGeoJson: ${e.toString}',
+        name: 'error');
   }
   return features;
 }

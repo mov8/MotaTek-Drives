@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'dart:developer' as developer;
 import 'package:material_symbols_icons/get.dart';
+import 'package:flutter/foundation.dart';
 import '/models/other_models.dart';
 import '/services/services.dart';
 import '/classes/classes.dart';
@@ -7,7 +9,8 @@ import '/helpers/edit_helpers.dart';
 
 class SetupForm extends StatefulWidget {
   // var setup;
-  const SetupForm({super.key, setup});
+  Function(bool)? onChange;
+  SetupForm({super.key, setup, this.onChange});
   @override
   State<SetupForm> createState() => _SetupFormState();
 }
@@ -16,21 +19,20 @@ class _SetupFormState extends State<SetupForm> {
   //int sound = 0;
   final iconFlyover = SymbolsGet.get('flyover', SymbolStyle.sharp);
   final iconRoad = SymbolsGet.get('road', SymbolStyle.sharp);
-  bool _hasChanged = false;
+  // bool _hasChanged = false;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.blue,
       appBar: ScreensAppBar(
-        heading: 'Configure the Drives app',
-        prompt: 'Enable or disable the features you want.',
-        updateHeading: 'You have changed the setup.',
-        updateSubHeading: 'Press Save to confirm the changes or Ignore',
-        update: _hasChanged,
-        updateMethod: (update) => _update(update: update),
-        showAction: _hasChanged,
-      ),
+          heading: 'Configure the Drives app',
+          prompt: 'Enable or disable the features you want.',
+          updateHeading: 'You have changed the setup.',
+          updateSubHeading: 'Press Save to confirm the changes or Ignore',
+          update: _hasChanged(),
+          updateMethod: (update) => _update(update: update),
+          showAction: _hasChanged()),
 
       body: portraitView(),
       // body: MediaQuery.of(context).orientation == Orientation.portrait ? portraitView() : landscapeView()
@@ -41,7 +43,8 @@ class _SetupFormState extends State<SetupForm> {
     if (update) {
       // insertSetup(Setup());
     }
-    setState(() => _hasChanged = false);
+    // saveSetupToApi(); <-- to debug api only
+    setState(() => !_hasChanged());
     return;
   }
 
@@ -55,7 +58,7 @@ class _SetupFormState extends State<SetupForm> {
             onChanged: (bool value) {
               setState(
                 () {
-                  _hasChanged = true;
+                  _hasChanged();
                   Setup().allowNotifications = value;
                 },
               );
@@ -69,7 +72,7 @@ class _SetupFormState extends State<SetupForm> {
             onChanged: (bool value) {
               setState(
                 () {
-                  _hasChanged = true;
+                  _hasChanged();
                   Setup().rotateMap = value;
                 },
               );
@@ -87,7 +90,7 @@ class _SetupFormState extends State<SetupForm> {
             onChanged: (bool value) {
               setState(
                 () {
-                  _hasChanged = true;
+                  _hasChanged();
                   Setup().maleVoice = value;
                 },
               );
@@ -101,7 +104,7 @@ class _SetupFormState extends State<SetupForm> {
             onChanged: (bool value) {
               setState(
                 () {
-                  _hasChanged = true;
+                  _hasChanged();
                   Setup().avoidMotorways = value;
                 },
               );
@@ -114,7 +117,7 @@ class _SetupFormState extends State<SetupForm> {
             onChanged: (bool value) {
               setState(
                 () {
-                  _hasChanged = true;
+                  _hasChanged();
                   Setup().avoidTollRoads = value;
                 },
               );
@@ -126,7 +129,7 @@ class _SetupFormState extends State<SetupForm> {
             value: Setup().avoidFerries,
             onChanged: (bool value) {
               setState(() {
-                _hasChanged = true;
+                _hasChanged();
                 Setup().avoidFerries = value;
               });
             },
@@ -139,7 +142,7 @@ class _SetupFormState extends State<SetupForm> {
             value: Setup().osmPubs,
             onChanged: (bool value) {
               setState(() {
-                _hasChanged = true;
+                _hasChanged();
                 Setup().osmPubs = value;
               });
             },
@@ -152,7 +155,7 @@ class _SetupFormState extends State<SetupForm> {
             value: Setup().osmRestaurants,
             onChanged: (bool value) {
               setState(() {
-                _hasChanged = true;
+                _hasChanged();
                 Setup().osmRestaurants = value;
               });
             },
@@ -165,7 +168,7 @@ class _SetupFormState extends State<SetupForm> {
             value: Setup().osmFuel,
             onChanged: (bool value) {
               setState(() {
-                _hasChanged = true;
+                _hasChanged();
                 Setup().osmFuel = value;
               });
             },
@@ -177,7 +180,7 @@ class _SetupFormState extends State<SetupForm> {
             value: Setup().osmToilets,
             onChanged: (bool value) {
               setState(() {
-                _hasChanged = true;
+                _hasChanged();
                 Setup().osmToilets = value;
               });
             },
@@ -189,7 +192,7 @@ class _SetupFormState extends State<SetupForm> {
             value: Setup().osmHistorical,
             onChanged: (bool value) {
               setState(() {
-                _hasChanged = true;
+                _hasChanged();
                 Setup().osmHistorical = value;
               });
             },
@@ -201,7 +204,7 @@ class _SetupFormState extends State<SetupForm> {
             value: Setup().osmAtms,
             onChanged: (bool value) {
               setState(() {
-                _hasChanged = true;
+                _hasChanged;
                 Setup().osmAtms = value;
               });
             },
@@ -214,7 +217,7 @@ class _SetupFormState extends State<SetupForm> {
             onChanged: (bool value) {
               setState(
                 () {
-                  _hasChanged = true;
+                  _hasChanged();
                   Setup().dark = value;
                   //  ThemeSetter().isDark(Setup().dark);
                 },
@@ -239,7 +242,7 @@ class _SetupFormState extends State<SetupForm> {
                         .elementAt(Setup().pointOfInterestColour),
                     items: colourChoices(context),
                     onChanged: (chosen) => setState(() {
-                      _hasChanged = true;
+                      _hasChanged();
                       Setup().pointOfInterestColour =
                           uiColours.values.toList().indexOf(chosen.toString());
                     }),
@@ -259,7 +262,7 @@ class _SetupFormState extends State<SetupForm> {
                         .elementAt(Setup().pointOfInterestColour2),
                     items: colourChoices(context),
                     onChanged: (chosen) => setState(() {
-                      _hasChanged = true;
+                      _hasChanged();
                       Setup().pointOfInterestColour2 =
                           uiColours.values.toList().indexOf(chosen.toString());
                     }),
@@ -283,7 +286,7 @@ class _SetupFormState extends State<SetupForm> {
                             uiColours.values.elementAt(Setup().waypointColour),
                         items: colourChoices(context),
                         onChanged: (chosen) => setState(() {
-                          _hasChanged = true;
+                          _hasChanged();
                           Setup().waypointColour = uiColours.values
                               .toList()
                               .indexOf(chosen.toString());
@@ -303,7 +306,7 @@ class _SetupFormState extends State<SetupForm> {
                         uiColours.values.elementAt(Setup().waypointColour2),
                     items: colourChoices(context),
                     onChanged: (chosen) => setState(() {
-                      _hasChanged = true;
+                      _hasChanged();
                       Setup().waypointColour2 =
                           uiColours.values.toList().indexOf(chosen.toString());
                     }),
@@ -328,7 +331,7 @@ class _SetupFormState extends State<SetupForm> {
                         uiColours.values.elementAt(Setup().routeColour),
                     items: colourChoices(context),
                     onChanged: (chosen) => setState(() {
-                      _hasChanged = true;
+                      _hasChanged();
                       Setup().routeColour =
                           uiColours.values.toList().indexOf(chosen.toString());
                     }),
@@ -349,7 +352,7 @@ class _SetupFormState extends State<SetupForm> {
                         uiColours.values.elementAt(Setup().goodRouteColour),
                     items: colourChoices(context),
                     onChanged: (chosen) => setState(() {
-                      _hasChanged = true;
+                      _hasChanged();
                       Setup().goodRouteColour =
                           uiColours.values.toList().indexOf(chosen.toString());
                     }),
@@ -373,7 +376,7 @@ class _SetupFormState extends State<SetupForm> {
                         uiColours.values.elementAt(Setup().publishedTripColour),
                     items: colourChoices(context),
                     onChanged: (chosen) => setState(() {
-                      _hasChanged = true;
+                      _hasChanged();
                       Setup().publishedTripColour =
                           uiColours.values.toList().indexOf(chosen.toString());
                     }),
@@ -394,7 +397,7 @@ class _SetupFormState extends State<SetupForm> {
                         uiColours.values.elementAt(Setup().highlightedColour),
                     items: colourChoices(context),
                     onChanged: (chosen) => setState(() {
-                      _hasChanged = true;
+                      _hasChanged();
                       Setup().highlightedColour =
                           uiColours.values.toList().indexOf(chosen.toString());
                     }),
@@ -420,7 +423,7 @@ class _SetupFormState extends State<SetupForm> {
                       uiColours.values.elementAt(Setup().selectedColour),
                   items: colourChoices(context),
                   onChanged: (chosen) => setState(() {
-                    _hasChanged = true;
+                    _hasChanged();
                     Setup().selectedColour =
                         uiColours.values.toList().indexOf(chosen.toString());
                   }),
@@ -433,6 +436,13 @@ class _SetupFormState extends State<SetupForm> {
         ],
       ),
     );
+  }
+
+  bool _hasChanged({bool value = true}) {
+    if (widget.onChange != null) {
+      widget.onChange;
+    }
+    return value;
   }
 }
 
@@ -460,4 +470,439 @@ List<DropdownMenuItem<String>> colourChoices(BuildContext context) {
         ),
       )
   ];
+}
+
+class SetupView extends StatefulWidget {
+  SetupView({super.key, this.context, this.onChange});
+  Function(bool)? onChange;
+  BuildContext? context;
+
+  @override
+  State<SetupView> createState() => _SetupViewState();
+}
+
+class _SetupViewState extends State<SetupView> {
+  // bool _hasChanged = false;
+  final iconFlyover = SymbolsGet.get('flyover', SymbolStyle.sharp);
+  final iconRoad = SymbolsGet.get('road', SymbolStyle.sharp);
+  final Color _textColor = kIsWeb ? Colors.black : Colors.white;
+  @override
+  Widget build(BuildContext context) {
+    // TODO: implement build
+
+    // Widget portraitView() {
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          SwitchListTile(
+            title: Text('Notifications',
+                style: textStyle(context: context, color: _textColor)),
+            value: Setup().allowNotifications,
+            onChanged: (bool value) {
+              setState(
+                () {
+                  try {
+                    _hasChanged();
+                    Setup().allowNotifications = value;
+                  } catch (e) {
+                    debugPrint('Error: ${e.toString()}');
+                  }
+                },
+              );
+            },
+            secondary: Icon(Icons.notifications_on_outlined,
+                size: 30, color: _textColor),
+          ),
+          SwitchListTile(
+            title: Text('Auto-rotate map',
+                style: textStyle(context: context, color: _textColor)),
+            value: Setup().rotateMap,
+            onChanged: (bool value) {
+              setState(
+                () {
+                  _hasChanged();
+                  Setup().rotateMap = value;
+                },
+              );
+            },
+            secondary: Icon(
+              Icons.on_device_training,
+              size: 30,
+              color: _textColor,
+            ),
+          ),
+          SwitchListTile(
+            title: Text('Speech with a male AI voice',
+                style: textStyle(context: context, color: _textColor)),
+            value: Setup().maleVoice,
+            onChanged: (bool value) {
+              setState(
+                () {
+                  _hasChanged();
+                  Setup().maleVoice = value;
+                },
+              );
+            },
+            secondary: Icon(Icons.record_voice_over_outlined,
+                size: 30, color: _textColor),
+          ),
+          SwitchListTile(
+            title: Text('Avoid motorways',
+                style: textStyle(context: context, color: _textColor)),
+            value: Setup().avoidMotorways,
+            onChanged: (bool value) {
+              setState(
+                () {
+                  _hasChanged();
+                  Setup().avoidMotorways = value;
+                },
+              );
+            },
+            secondary: Icon(iconFlyover, size: 30, color: _textColor),
+          ),
+          SwitchListTile(
+            title: Text('Avoid toll roads',
+                style: textStyle(context: context, color: _textColor)),
+            value: Setup().avoidTollRoads,
+            onChanged: (bool value) {
+              setState(
+                () {
+                  _hasChanged();
+                  Setup().avoidTollRoads = value;
+                },
+              );
+            },
+            secondary: Icon(Icons.toll, size: 30, color: _textColor),
+          ),
+          SwitchListTile(
+            title: Text('Avoid ferries',
+                style: textStyle(context: context, color: _textColor)),
+            value: Setup().avoidFerries,
+            onChanged: (bool value) {
+              setState(() {
+                _hasChanged();
+                Setup().avoidFerries = value;
+              });
+            },
+            secondary: Icon(Icons.directions_boat_outlined,
+                size: 30, color: _textColor),
+          ),
+          SwitchListTile(
+            title: Text('Show un-reviewed pubs and bars',
+                style: textStyle(context: context, color: _textColor)),
+            value: Setup().osmPubs,
+            onChanged: (bool value) {
+              setState(() {
+                _hasChanged();
+                Setup().osmPubs = value;
+              });
+            },
+            secondary:
+                Icon(Icons.sports_bar_outlined, size: 30, color: _textColor),
+          ),
+          SwitchListTile(
+            title: Text('Show un-reviewed cafes and restaurants',
+                style: textStyle(context: context, color: _textColor)),
+            value: Setup().osmRestaurants,
+            onChanged: (bool value) {
+              setState(() {
+                _hasChanged();
+                Setup().osmRestaurants = value;
+              });
+            },
+            secondary:
+                Icon(Icons.restaurant_outlined, size: 30, color: _textColor),
+          ),
+          SwitchListTile(
+            title: Text('Show fuel and charging stations',
+                style: textStyle(context: context, color: _textColor)),
+            value: Setup().osmFuel,
+            onChanged: (bool value) {
+              setState(() {
+                _hasChanged();
+                Setup().osmFuel = value;
+              });
+            },
+            secondary: Icon(Icons.local_gas_station_outlined,
+                size: 30, color: _textColor),
+          ),
+          SwitchListTile(
+            title: Text('Show toilets',
+                style: textStyle(context: context, color: _textColor)),
+            value: Setup().osmToilets,
+            onChanged: (bool value) {
+              setState(() {
+                _hasChanged();
+                Setup().osmToilets = value;
+              });
+            },
+            secondary: Icon(Icons.wc_outlined, size: 30, color: _textColor),
+          ),
+          SwitchListTile(
+            title: Text('Show un-reviewed historic sites',
+                style: textStyle(context: context, color: _textColor)),
+            value: Setup().osmHistorical,
+            onChanged: (bool value) {
+              setState(() {
+                _hasChanged();
+                Setup().osmHistorical = value;
+              });
+            },
+            secondary: Icon(Icons.castle_outlined, size: 30, color: _textColor),
+          ),
+          SwitchListTile(
+            title: Text('Show cashpoints',
+                style: textStyle(context: context, color: _textColor)),
+            value: Setup().osmAtms,
+            onChanged: (bool value) {
+              setState(() {
+                _hasChanged();
+                Setup().osmAtms = value;
+              });
+            },
+            secondary:
+                Icon(Icons.local_atm_outlined, size: 30, color: _textColor),
+          ),
+          SwitchListTile(
+            title: Text('Dark mode',
+                style: textStyle(context: context, color: _textColor)),
+            value: Setup().dark,
+            onChanged: (bool value) {
+              setState(
+                () {
+                  _hasChanged();
+                  Setup().dark = value;
+                  //  ThemeSetter().isDark(Setup().dark);
+                },
+              );
+            },
+            secondary: Icon(
+              Icons.dark_mode,
+              color: _textColor,
+            ),
+          ),
+          Row(
+            children: [
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(10, 10, 5, 10),
+                  child: DropdownButtonFormField<String>(
+                    decoration: InputDecoration(
+                        border: OutlineInputBorder(),
+                        labelText: 'Point of Interest Background',
+                        labelStyle: labelStyle(context: context)),
+                    initialValue: uiColours.values
+                        .elementAt(Setup().pointOfInterestColour),
+                    items: colourChoices(context),
+                    onChanged: (chosen) => setState(() {
+                      _hasChanged();
+                      Setup().pointOfInterestColour =
+                          uiColours.values.toList().indexOf(chosen.toString());
+                    }),
+                    //  uiColours.keys.toList().toString().indexOf(item.toString())),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(5, 10, 10, 10),
+                  child: DropdownButtonFormField<String>(
+                    decoration: InputDecoration(
+                        border: OutlineInputBorder(),
+                        labelText: 'Point of Interest Foreground',
+                        labelStyle: labelStyle(context: context)),
+                    initialValue: uiColours.values
+                        .elementAt(Setup().pointOfInterestColour2),
+                    items: colourChoices(context),
+                    onChanged: (chosen) => setState(() {
+                      _hasChanged();
+                      Setup().pointOfInterestColour2 =
+                          uiColours.values.toList().indexOf(chosen.toString());
+                    }),
+                    //  uiColours.keys.toList().toString().indexOf(item.toString())),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          Row(
+            children: [
+              Expanded(
+                  child: Padding(
+                      padding: const EdgeInsets.fromLTRB(10, 10, 5, 10),
+                      child: DropdownButtonFormField<String>(
+                        decoration: InputDecoration(
+                            border: OutlineInputBorder(),
+                            labelText: 'Waypoint Background',
+                            labelStyle: labelStyle(context: context)),
+                        initialValue:
+                            uiColours.values.elementAt(Setup().waypointColour),
+                        items: colourChoices(context),
+                        onChanged: (chosen) => setState(() {
+                          _hasChanged();
+                          Setup().waypointColour = uiColours.values
+                              .toList()
+                              .indexOf(chosen.toString());
+                        }),
+                        //  uiColours.keys.toList().toString().indexOf(item.toString())),
+                      ))),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(5, 10, 10, 10),
+                  child: DropdownButtonFormField<String>(
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(),
+                      labelText: 'Waypoint Foreground',
+                      labelStyle: labelStyle(context: context),
+                    ),
+                    initialValue:
+                        uiColours.values.elementAt(Setup().waypointColour2),
+                    items: colourChoices(context),
+                    onChanged: (chosen) => setState(() {
+                      _hasChanged();
+                      Setup().waypointColour2 =
+                          uiColours.values.toList().indexOf(chosen.toString());
+                    }),
+                    //  uiColours.keys.toList().toString().indexOf(item.toString())),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          Row(
+            children: [
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(10, 10, 5, 10),
+                  child: DropdownButtonFormField<String>(
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(),
+                      labelText: 'Route colour',
+                      labelStyle: labelStyle(context: context),
+                    ),
+                    initialValue:
+                        uiColours.values.elementAt(Setup().routeColour),
+                    items: colourChoices(context),
+                    onChanged: (chosen) => setState(() {
+                      _hasChanged();
+                      Setup().routeColour =
+                          uiColours.values.toList().indexOf(chosen.toString());
+                    }),
+                    //  uiColours.keys.toList().toString().indexOf(item.toString())),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(5, 10, 10, 10),
+                  child: DropdownButtonFormField<String>(
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(),
+                      labelText: 'Good route colour',
+                      labelStyle: labelStyle(context: context),
+                    ),
+                    initialValue:
+                        uiColours.values.elementAt(Setup().goodRouteColour),
+                    items: colourChoices(context),
+                    onChanged: (chosen) => setState(() {
+                      _hasChanged();
+                      Setup().goodRouteColour =
+                          uiColours.values.toList().indexOf(chosen.toString());
+                    }),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          Row(
+            children: [
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(10, 10, 5, 10),
+                  child: DropdownButtonFormField<String>(
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(),
+                      labelText: 'Published trip colour',
+                      labelStyle: labelStyle(context: context),
+                    ),
+                    initialValue:
+                        uiColours.values.elementAt(Setup().publishedTripColour),
+                    items: colourChoices(context),
+                    onChanged: (chosen) => setState(() {
+                      _hasChanged();
+                      Setup().publishedTripColour =
+                          uiColours.values.toList().indexOf(chosen.toString());
+                    }),
+                    //  uiColours.keys.toList().toString().indexOf(item.toString())),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(10, 10, 5, 10),
+                  child: DropdownButtonFormField<String>(
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(),
+                      labelText: 'Highlight colour',
+                      labelStyle: labelStyle(context: context),
+                    ),
+                    initialValue:
+                        uiColours.values.elementAt(Setup().highlightedColour),
+                    items: colourChoices(context),
+                    onChanged: (chosen) => setState(() {
+                      _hasChanged();
+                      Setup().highlightedColour =
+                          uiColours.values.toList().indexOf(chosen.toString());
+                    }),
+                    //  uiColours.keys.toList().toString().indexOf(item.toString())),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          Row(children: [
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(5, 10, 10, 10),
+                child: DropdownButtonFormField<String>(
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(),
+                    labelText: 'Selected colour',
+                    labelStyle: labelStyle(context: context),
+                  ),
+                  style:
+                      textStyle(context: context, size: 3, color: _textColor),
+                  initialValue:
+                      uiColours.values.elementAt(Setup().selectedColour),
+                  items: colourChoices(context),
+                  onChanged: (chosen) => setState(() {
+                    _hasChanged();
+                    Setup().selectedColour =
+                        uiColours.values.toList().indexOf(chosen.toString());
+                  }),
+                ),
+              ),
+            ),
+            const Expanded(child: SizedBox()),
+          ]),
+          SizedBox(height: 75),
+        ],
+      ),
+    );
+  }
+
+  bool _hasChanged({bool value = true}) {
+    if (widget.onChange != null) {
+      widget.onChange!(true);
+    }
+    return value;
+  }
+/*
+  void setState(Function update) {
+    update();
+    if (onChange != null) {
+      onChange!();
+    }
+  }
+*/
 }

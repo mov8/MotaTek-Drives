@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+import 'dart:developer' as developer;
 import '/constants.dart';
 import 'package:flutter/material.dart';
 // import 'package:flutter/services.dart';
@@ -36,41 +38,80 @@ class _MyGroupsFormState extends State<MyGroupsForm> {
     return true;
   }
 
+  String prompt = 'Swipe left to remove yourself from group.';
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.blue,
-      appBar: ScreensAppBar(
-        heading: 'Drives groups to which I belong',
-        prompt: 'Swipe left to remove yourself from group.',
-        updateHeading: 'You have changed group details.',
-        updateSubHeading: 'Press Save to confirm the changes or Ignore',
-        update: _changed,
-        showAction: _changed,
-        updateMethod: (update) => _update(update: update),
-      ),
-      body: FutureBuilder<bool>(
-        future: dataloaded,
-        builder: (BuildContext context, snapshot) {
-          if (snapshot.hasError) {
-            debugPrint('Snapshot has error: ${snapshot.error}');
-          } else if (snapshot.hasData) {
-            return portraitView();
-          } else {
-            return const SizedBox(
-              width: double.infinity,
-              height: double.infinity,
-              child: Align(
-                alignment: Alignment.center,
-                child: CircularProgressIndicator(),
+    if (kIsWeb) {
+      return ScreensAppBarBottom(
+        prompt: prompt,
+        textColor: Color.fromRGBO(1, 29, 51, 1),
+        content: FutureBuilder<bool>(
+          future: dataloaded,
+          builder: (BuildContext context, snapshot) {
+            if (snapshot.hasError) {
+              debugPrint('Snapshot has error: ${snapshot.error}');
+            } else if (snapshot.hasData) {
+              return portraitView();
+            } else {
+              return const SizedBox(
+                width: double.infinity,
+                height: double.infinity,
+                child: Align(
+                  alignment: Alignment.center,
+                  child: CircularProgressIndicator(),
+                ),
+              );
+            }
+            return Center(
+              child: Text(
+                'Error building My Groups content',
+                style: TextStyle(fontSize: 22, color: Colors.white),
               ),
             );
-          }
-
-          throw ('Error - FutureBuilder group.dart');
-        },
-      ),
-    );
+          },
+        ),
+      );
+    } else {
+      return Scaffold(
+        backgroundColor: Colors.blue,
+        appBar: ScreensAppBar(
+          heading: 'Drives groups to which I belong',
+          prompt: prompt,
+          updateHeading: 'You have changed group details.',
+          updateSubHeading: 'Press Save to confirm the changes or Ignore',
+          update: _changed,
+          showAction: _changed,
+          updateMethod: (update) => _update(update: update),
+        ),
+        body: FutureBuilder<bool>(
+          future: dataloaded,
+          builder: (BuildContext context, snapshot) {
+            if (snapshot.hasError) {
+              debugPrint('Snapshot has error: ${snapshot.error}');
+            } else if (snapshot.hasData) {
+              return portraitView();
+            } else {
+              return const SizedBox(
+                width: double.infinity,
+                height: double.infinity,
+                child: Align(
+                  alignment: Alignment.center,
+                  child: CircularProgressIndicator(),
+                ),
+              );
+            }
+            return Center(
+              child: Text(
+                'Error building My Groups content',
+                style: TextStyle(fontSize: 22, color: Colors.white),
+              ),
+            );
+            //  throw ('Error - FutureBuilder group.dart');
+          },
+        ),
+      );
+    }
   }
 
   void _update({bool update = false}) {
@@ -107,73 +148,78 @@ class _MyGroupsFormState extends State<MyGroupsForm> {
       );
     } else {
       widget = Column(crossAxisAlignment: CrossAxisAlignment.center, children: [
-        Expanded(
-          child: ListView.builder(
-            itemCount: groups.length,
-            itemBuilder: (context, index) => Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
-              child: Dismissible(
-                key: UniqueKey(),
-                direction: DismissDirection.endToStart,
-                background: Container(color: Colors.blueGrey),
-                onDismissed: (direction) {
-                  if (direction == DismissDirection.endToStart) {
-                    _dismissed.add(Group(id: groups[index].id, name: ''));
-                    _changed = true;
-                    setState(() => groups.removeAt(index));
-                  }
-                },
-                child: Card(
-                  elevation: 5,
-                  child: ListTile(
-                    title: Text(
-                      groups[index].name,
-                      style: const TextStyle(
-                        color: Colors.black,
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                      ),
+        // children[//]
+        //Expanded(
+        //child: ListView.builder(
+        //itemCount: groups.length,
+        //itemBuilder: (context, index) =>
+        //
+        for (int idx = 0; idx < groups.length; idx++) ...[
+          Padding(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
+            child: Dismissible(
+              key: UniqueKey(),
+              direction: DismissDirection.endToStart,
+              background: Container(color: Colors.blueGrey),
+              onDismissed: (direction) {
+                if (direction == DismissDirection.endToStart) {
+                  _dismissed.add(Group(id: groups[idx].id, name: ''));
+                  _changed = true;
+                  setState(() => groups.removeAt(idx));
+                }
+              },
+              child: Card(
+                elevation: 5,
+                child: ListTile(
+                  title: Text(
+                    groups[idx].name,
+                    style: const TextStyle(
+                      color: Colors.black,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
                     ),
-                    subtitle: Column(children: [
-                      Row(children: [
-                        Expanded(
-                          flex: 1,
-                          child: Text(
-                            'Organiser: ${groups[index].ownerForename} ${groups[index].ownerSurname}',
-                            style: TextStyle(
-                                fontSize: 18, fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      ]),
-                      Row(children: [
-                        Expanded(
-                          flex: 1,
-                          child: Text('email: ${groups[index].ownerEmail}'),
-                        ),
-                      ]),
-                      Row(children: [
-                        Expanded(
-                          flex: 1,
-                          child: Text('tel: ${groups[index].ownerPhone}'),
-                        ),
-                      ]),
-                      Row(children: [
-                        Expanded(
-                          flex: 1,
-                          child: Text(
-                            'Members: ${groups[index].memberCount}',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      ])
-                    ]),
                   ),
+                  subtitle: Column(children: [
+                    Row(children: [
+                      Expanded(
+                        flex: 1,
+                        child: Text(
+                          'Organiser: ${groups[idx].ownerForename} ${groups[idx].ownerSurname}',
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ]),
+                    Row(children: [
+                      Expanded(
+                        flex: 1,
+                        child: Text('email: ${groups[idx].ownerEmail}'),
+                      ),
+                    ]),
+                    Row(children: [
+                      Expanded(
+                        flex: 1,
+                        child: Text('tel: ${groups[idx].ownerPhone}'),
+                      ),
+                    ]),
+                    Row(children: [
+                      Expanded(
+                        flex: 1,
+                        child: Text(
+                          'Members: ${groups[idx].memberCount}',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ])
+                  ]),
                 ),
               ),
             ),
           ),
-        ),
+        ]
+        // ),
+        // ),
       ]);
     }
 

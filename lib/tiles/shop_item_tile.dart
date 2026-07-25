@@ -154,122 +154,158 @@ class _ShopItemTileState extends State<ShopItemTile> {
       getPhotos();
     }
 
-    return Card(
-      key: Key('$widget.key'),
-      child: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: ExpansionTile(
-          controller: _expansibleController,
-          title: widget.shopItem.heading == ''
-              ? Text(
-                  'Add a home page item',
-                  style: headlineStyle(
-                      context: context, size: 2, color: Colors.black),
-                )
-              : Text(
-                  widget.shopItem.heading,
-                  style: headlineStyle(
-                      context: context, size: 2, color: Colors.black),
-                ),
-          subtitle: Row(children: [
-            Expanded(
-                flex: 1,
-                child: Text(
-                  'pub ${dateFormat.format(DateTime.now())}',
-                  style:
-                      textStyle(context: context, size: 3, color: Colors.black),
-                )),
-            Expanded(
-                flex: 1,
-                child: Text('rank 0',
-                    style: textStyle(
-                        context: context, size: 3, color: Colors.black)))
-          ]),
-          onExpansionChanged: (expanded) =>
-              widget.onExpandChange!(expanded, widget.controller),
-          children: [
-            SizedBox(
-              height: 950,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(5, 5, 0, 30),
-                child: Column(
-                  children: <Widget>[
-                    Row(children: [
-                      Expanded(
-                        flex: 2,
-                        child: DropdownButtonFormField<String>(
-                          decoration: InputDecoration(
-                            border: OutlineInputBorder(),
-                            labelStyle: labelStyle(
-                                context: context, color: Colors.black, size: 2),
-                            labelText: 'Coverage',
-                            hintStyle: hintStyle(
-                                context: context, color: Colors.blueGrey),
-                          ),
-                          initialValue: widget.shopItem.coverage,
-                          items: dropDownMenuItems,
-                          style: textStyle(
+    return RrExpansionTile(
+      context: context,
+      child: ExpansionTile(
+        controller: _expansibleController,
+        title: widget.shopItem.heading == ''
+            ? Text(
+                'Add a home page item',
+                style: headlineStyle(
+                    context: context, size: 2, color: Colors.black),
+              )
+            : Text(
+                widget.shopItem.heading,
+                style: headlineStyle(
+                    context: context, size: 2, color: Colors.black),
+              ),
+        subtitle: Row(children: [
+          Expanded(
+              flex: 1,
+              child: Text(
+                'pub ${dateFormat.format(DateTime.now())}',
+                style:
+                    textStyle(context: context, size: 3, color: Colors.black),
+              )),
+          Expanded(
+              flex: 1,
+              child: Text('rank 0',
+                  style: textStyle(
+                      context: context, size: 3, color: Colors.black)))
+        ]),
+        onExpansionChanged: (expanded) =>
+            widget.onExpandChange!(expanded, widget.controller),
+        children: [
+          SizedBox(
+            height: 950,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(5, 5, 0, 30),
+              child: Column(
+                children: <Widget>[
+                  Row(children: [
+                    Expanded(
+                      flex: 2,
+                      child: DropdownButtonFormField<String>(
+                        decoration: InputDecoration(
+                          border: OutlineInputBorder(),
+                          labelStyle: labelStyle(
                               context: context, color: Colors.black, size: 2),
-                          onChanged: (item) {
-                            widget.shopItem.coverage = item ?? 'all';
-                            widget.onChange!(index);
-                          },
+                          labelText: 'Coverage',
+                          hintStyle: hintStyle(
+                              context: context, color: Colors.blueGrey),
                         ),
+                        initialValue: widget.shopItem.coverage,
+                        items: dropDownMenuItems,
+                        style: textStyle(
+                            context: context, color: Colors.black, size: 2),
+                        onChanged: (item) {
+                          widget.shopItem.coverage = item ?? 'all';
+                          widget.onChange!(index);
+                        },
                       ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        flex: 1,
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
-                          child: TextFormField(
-                              //   readOnly: !canEdit,
-                              initialValue: widget.shopItem.score.toString(),
-                              autofocus: true,
-                              textInputAction: TextInputAction.next,
-                              textAlign: TextAlign.start,
-                              keyboardType: const TextInputType
-                                  .numberWithOptions(), //for(i = -1; i < 100; i++) i.toString()],
-                              textCapitalization: TextCapitalization.sentences,
-                              decoration: InputDecoration(
-                                border: OutlineInputBorder(),
-                                hintText: "-1 invisible higher the better",
-                                labelText: 'Ad ranking',
-                                labelStyle: labelStyle(
-                                    context: context,
-                                    size: 2,
-                                    color: Colors.black),
-                              ),
-                              style: textStyle(
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      flex: 1,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
+                        child: TextFormField(
+                            //   readOnly: !canEdit,
+                            initialValue: widget.shopItem.score.toString(),
+                            autofocus: true,
+                            textInputAction: TextInputAction.next,
+                            textAlign: TextAlign.start,
+                            keyboardType: const TextInputType
+                                .numberWithOptions(), //for(i = -1; i < 100; i++) i.toString()],
+                            textCapitalization: TextCapitalization.sentences,
+                            decoration: InputDecoration(
+                              border: OutlineInputBorder(),
+                              hintText: "-1 invisible higher the better",
+                              labelText: 'Ad ranking',
+                              labelStyle: labelStyle(
                                   context: context,
                                   size: 2,
-                                  color: Colors
-                                      .black), //Theme.of(context).textTheme.bodyLarge,
-                              autovalidateMode:
-                                  AutovalidateMode.onUserInteraction,
-                              onChanged: (text) {
-                                widget.onChange!(index);
-                                widget.shopItem.heading = text;
-                              }),
-                        ),
+                                  color: Colors.black),
+                            ),
+                            style: textStyle(
+                                context: context,
+                                size: 2,
+                                color: Colors
+                                    .black), //Theme.of(context).textTheme.bodyLarge,
+                            autovalidateMode:
+                                AutovalidateMode.onUserInteraction,
+                            onChanged: (text) {
+                              widget.onChange!(index);
+                              widget.shopItem.heading = text;
+                            }),
                       ),
-                    ]),
-                    Row(children: [
+                    ),
+                  ]),
+                  Row(children: [
+                    Expanded(
+                      flex: 1,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
+                        child: TextFormField(
+                            //   readOnly: !canEdit,
+                            initialValue: widget.shopItem.heading,
+                            autofocus: true,
+                            textInputAction: TextInputAction.next,
+                            textAlign: TextAlign.start,
+                            keyboardType: TextInputType.streetAddress,
+                            textCapitalization: TextCapitalization.sentences,
+                            decoration: InputDecoration(
+                              border: OutlineInputBorder(),
+                              hintText: "What is the promotion's heading...",
+                              labelText: 'Promotion heading',
+                              labelStyle: labelStyle(
+                                  context: context,
+                                  size: 2,
+                                  color: Colors.black),
+                            ),
+                            style: textStyle(
+                                context: context,
+                                size: 2,
+                                color: Colors
+                                    .black), //Theme.of(context).textTheme.bodyLarge,
+                            //   style:Theme.of(context).textTheme.bodyLarge,
+                            autovalidateMode:
+                                AutovalidateMode.onUserInteraction,
+                            onChanged: (text) {
+                              widget.onChange!(index);
+                              widget.shopItem.heading = text;
+                            }),
+                      ),
+                    ),
+                  ]),
+                  Row(
+                    children: [
                       Expanded(
-                        flex: 1,
                         child: Padding(
                           padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
                           child: TextFormField(
-                              //   readOnly: !canEdit,
-                              initialValue: widget.shopItem.heading,
-                              autofocus: true,
+                              readOnly: !canEdit,
+                              initialValue: widget.shopItem.subHeading,
+                              autofocus: canEdit,
                               textInputAction: TextInputAction.next,
                               textAlign: TextAlign.start,
                               keyboardType: TextInputType.streetAddress,
                               textCapitalization: TextCapitalization.sentences,
                               decoration: InputDecoration(
                                 border: OutlineInputBorder(),
-                                hintText: "What is the promotion's heading...",
-                                labelText: 'Promotion heading',
+                                hintText:
+                                    "What is the shop item's sub-heading...",
+                                labelText: 'Shop item sub-heading',
                                 labelStyle: labelStyle(
                                     context: context,
                                     size: 2,
@@ -280,52 +316,112 @@ class _ShopItemTileState extends State<ShopItemTile> {
                                   size: 2,
                                   color: Colors
                                       .black), //Theme.of(context).textTheme.bodyLarge,
-                              //   style:Theme.of(context).textTheme.bodyLarge,
+                              //style: Theme.of(context).textTheme.bodyLarge,
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
                               onChanged: (text) {
                                 widget.onChange!(index);
-                                widget.shopItem.heading = text;
+                                widget.shopItem.subHeading = text;
                               }),
                         ),
+                      )
+                    ],
+                  ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
+                          child: TextFormField(
+                              readOnly: !canEdit,
+                              maxLines: null,
+                              textInputAction: TextInputAction.done,
+                              //     expands: true,
+                              initialValue: widget.shopItem.body,
+                              textAlign: TextAlign.start,
+                              keyboardType: TextInputType.streetAddress,
+                              textCapitalization: TextCapitalization.sentences,
+                              decoration: InputDecoration(
+                                border: OutlineInputBorder(),
+                                hintText: 'Promo content...',
+                                labelText: 'Promotion body',
+                                labelStyle: labelStyle(
+                                    context: context,
+                                    size: 2,
+                                    color: Colors.black),
+                              ),
+                              style: textStyle(
+                                  context: context,
+                                  size: 2,
+                                  color: Colors
+                                      .black), //Theme.of(context).textTheme.bodyLarge,
+                              // style: Theme.of(context).textTheme.bodyLarge,
+                              autovalidateMode:
+                                  AutovalidateMode.onUserInteraction,
+                              onChanged: (text) {
+                                widget.onChange!(index);
+                                widget.shopItem.body = text;
+                              }
+                              //body = text
+                              ),
+                        ),
                       ),
-                    ]),
+                    ],
+                  ),
+                  if (widget.shopItem.imageUrls.isNotEmpty)
+                    Column(
+                      children: [
+                        Row(
+                          children: <Widget>[
+                            Expanded(
+                              flex: 8,
+                              child: ImageArranger(
+                                onChange: (idx) => setState(() {
+                                  widget.onChange!(index);
+                                  imageIndex = idx;
+                                }),
+                                //  urlChange: (_) {},
+                                urlChange: (imageUrls) =>
+                                    widget.shopItem.imageUrls = imageUrls,
+                                photos: photos,
+                                endPoint: '', // widget.homeItem.uri,
+                                showCaptions: true,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  if (widget.shopItem.links > 0) ...[
                     Row(
                       children: [
                         Expanded(
                           child: Padding(
                             padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
                             child: TextFormField(
-                                readOnly: !canEdit,
-                                initialValue: widget.shopItem.subHeading,
-                                autofocus: canEdit,
-                                textInputAction: TextInputAction.next,
-                                textAlign: TextAlign.start,
-                                keyboardType: TextInputType.streetAddress,
-                                textCapitalization:
-                                    TextCapitalization.sentences,
-                                decoration: InputDecoration(
-                                  border: OutlineInputBorder(),
-                                  hintText:
-                                      "What is the shop item's sub-heading...",
-                                  labelText: 'Shop item sub-heading',
-                                  labelStyle: labelStyle(
-                                      context: context,
-                                      size: 2,
-                                      color: Colors.black),
-                                ),
-                                style: textStyle(
-                                    context: context,
-                                    size: 2,
-                                    color: Colors
-                                        .black), //Theme.of(context).textTheme.bodyLarge,
-                                //style: Theme.of(context).textTheme.bodyLarge,
-                                autovalidateMode:
-                                    AutovalidateMode.onUserInteraction,
-                                onChanged: (text) {
-                                  widget.onChange!(index);
-                                  widget.shopItem.subHeading = text;
-                                }),
+                              readOnly: !canEdit,
+                              focusNode: linkNodes[0],
+                              initialValue: widget.shopItem.buttonText1,
+                              textInputAction: TextInputAction.next,
+                              textAlign: TextAlign.start,
+                              keyboardType: TextInputType.streetAddress,
+                              textCapitalization: TextCapitalization.sentences,
+                              decoration: const InputDecoration(
+                                border: OutlineInputBorder(),
+                                hintText: "Link button label",
+                                labelText: 'Button 1 label',
+                              ),
+                              style: textStyle(
+                                  context: context,
+                                  size: 2,
+                                  color: Colors.black),
+                              autovalidateMode:
+                                  AutovalidateMode.onUserInteraction,
+                              onChanged: (text) {
+                                widget.onChange!(index);
+                                widget.shopItem.buttonText1 = text;
+                              },
+                            ),
                           ),
                         )
                       ],
@@ -336,209 +432,105 @@ class _ShopItemTileState extends State<ShopItemTile> {
                           child: Padding(
                             padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
                             child: TextFormField(
-                                readOnly: !canEdit,
-                                maxLines: null,
-                                textInputAction: TextInputAction.done,
-                                //     expands: true,
-                                initialValue: widget.shopItem.body,
-                                textAlign: TextAlign.start,
-                                keyboardType: TextInputType.streetAddress,
-                                textCapitalization:
-                                    TextCapitalization.sentences,
-                                decoration: InputDecoration(
-                                  border: OutlineInputBorder(),
-                                  hintText: 'Promo content...',
-                                  labelText: 'Promotion body',
-                                  labelStyle: labelStyle(
-                                      context: context,
-                                      size: 2,
-                                      color: Colors.black),
-                                ),
-                                style: textStyle(
-                                    context: context,
-                                    size: 2,
-                                    color: Colors
-                                        .black), //Theme.of(context).textTheme.bodyLarge,
-                                // style: Theme.of(context).textTheme.bodyLarge,
-                                autovalidateMode:
-                                    AutovalidateMode.onUserInteraction,
-                                onChanged: (text) {
-                                  widget.onChange!(index);
-                                  widget.shopItem.body = text;
-                                }
-                                //body = text
-                                ),
+                              //  readOnly: !canEdit,
+                              initialValue: widget.shopItem.url1,
+                              textInputAction: _links > 1
+                                  ? TextInputAction.next
+                                  : TextInputAction.done,
+                              textAlign: TextAlign.start,
+                              keyboardType: TextInputType.url,
+                              textCapitalization: TextCapitalization.none,
+                              decoration: const InputDecoration(
+                                border: OutlineInputBorder(),
+                                hintText: "What is the link url for button 1",
+                                labelText: 'Link 1 url',
+                              ),
+                              style: textStyle(
+                                  context: context,
+                                  size: 2,
+                                  color: Colors.black),
+                              autovalidateMode:
+                                  AutovalidateMode.onUserInteraction,
+                              onChanged: (text) {
+                                widget.onChange!(index);
+                                widget.shopItem.url1 = text;
+                              },
+                            ),
                           ),
-                        ),
+                        )
                       ],
                     ),
-                    if (widget.shopItem.imageUrls.isNotEmpty)
-                      Column(
-                        children: [
-                          Row(
-                            children: <Widget>[
-                              Expanded(
-                                flex: 8,
-                                child: ImageArranger(
-                                  onChange: (idx) => setState(() {
-                                    widget.onChange!(index);
-                                    imageIndex = idx;
-                                  }),
-                                  //  urlChange: (_) => (),
-                                  urlChange: (imageUrls) =>
-                                      widget.shopItem.imageUrls = imageUrls,
-                                  photos: photos,
-                                  endPoint: '', // widget.homeItem.uri,
-                                  showCaptions: true,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    if (widget.shopItem.links > 0) ...[
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
-                              child: TextFormField(
-                                readOnly: !canEdit,
-                                focusNode: linkNodes[0],
-                                initialValue: widget.shopItem.buttonText1,
-                                textInputAction: TextInputAction.next,
-                                textAlign: TextAlign.start,
-                                keyboardType: TextInputType.streetAddress,
-                                textCapitalization:
-                                    TextCapitalization.sentences,
-                                decoration: const InputDecoration(
-                                  border: OutlineInputBorder(),
-                                  hintText: "Link button label",
-                                  labelText: 'Button 1 label',
-                                ),
-                                style: textStyle(
-                                    context: context,
-                                    size: 2,
-                                    color: Colors.black),
-                                autovalidateMode:
-                                    AutovalidateMode.onUserInteraction,
-                                onChanged: (text) {
-                                  widget.onChange!(index);
-                                  widget.shopItem.buttonText1 = text;
-                                },
-                              ),
-                            ),
-                          )
-                        ],
-                      ),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
-                              child: TextFormField(
-                                //  readOnly: !canEdit,
-                                initialValue: widget.shopItem.url1,
-                                textInputAction: _links > 1
-                                    ? TextInputAction.next
-                                    : TextInputAction.done,
-                                textAlign: TextAlign.start,
-                                keyboardType: TextInputType.url,
-                                textCapitalization: TextCapitalization.none,
-                                decoration: const InputDecoration(
-                                  border: OutlineInputBorder(),
-                                  hintText: "What is the link url for button 1",
-                                  labelText: 'Link 1 url',
-                                ),
-                                style: textStyle(
-                                    context: context,
-                                    size: 2,
-                                    color: Colors.black),
-                                autovalidateMode:
-                                    AutovalidateMode.onUserInteraction,
-                                onChanged: (text) {
-                                  widget.onChange!(index);
-                                  widget.shopItem.url1 = text;
-                                },
-                              ),
-                            ),
-                          )
-                        ],
-                      ),
-                    ],
-                    if (widget.shopItem.links > 1) ...[
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
-                              child: TextFormField(
-                                initialValue: widget.shopItem.buttonText1,
-                                focusNode: linkNodes[1],
-                                textInputAction: TextInputAction.next,
-                                textAlign: TextAlign.start,
-                                keyboardType: TextInputType.streetAddress,
-                                textCapitalization:
-                                    TextCapitalization.sentences,
-                                decoration: const InputDecoration(
-                                  border: OutlineInputBorder(),
-                                  hintText: "Link button label",
-                                  labelText: 'Button 2 label',
-                                ),
-                                style: textStyle(
-                                    context: context,
-                                    size: 2,
-                                    color: Colors.black),
-                                autovalidateMode:
-                                    AutovalidateMode.onUserInteraction,
-                                onChanged: (text) {
-                                  widget.onChange!(index);
-                                  widget.shopItem.buttonText2 = text;
-                                },
-                              ),
-                            ),
-                          )
-                        ],
-                      ),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
-                              child: TextFormField(
-                                initialValue: widget.shopItem.url1,
-                                textInputAction: TextInputAction.done,
-                                textAlign: TextAlign.start,
-                                keyboardType: TextInputType.streetAddress,
-                                textCapitalization:
-                                    TextCapitalization.sentences,
-                                decoration: const InputDecoration(
-                                  border: OutlineInputBorder(),
-                                  hintText: "What is the link url for button 2",
-                                  labelText: 'Link 2 url',
-                                ),
-                                style: textStyle(
-                                    context: context,
-                                    size: 2,
-                                    color: Colors.black),
-                                autovalidateMode:
-                                    AutovalidateMode.onUserInteraction,
-                                onChanged: (text) {
-                                  widget.onChange!(index);
-                                  widget.shopItem.url2 = text;
-                                },
-                              ),
-                            ),
-                          )
-                        ],
-                      ),
-                    ],
                   ],
-                ),
+                  if (widget.shopItem.links > 1) ...[
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
+                            child: TextFormField(
+                              initialValue: widget.shopItem.buttonText1,
+                              focusNode: linkNodes[1],
+                              textInputAction: TextInputAction.next,
+                              textAlign: TextAlign.start,
+                              keyboardType: TextInputType.streetAddress,
+                              textCapitalization: TextCapitalization.sentences,
+                              decoration: const InputDecoration(
+                                border: OutlineInputBorder(),
+                                hintText: "Link button label",
+                                labelText: 'Button 2 label',
+                              ),
+                              style: textStyle(
+                                  context: context,
+                                  size: 2,
+                                  color: Colors.black),
+                              autovalidateMode:
+                                  AutovalidateMode.onUserInteraction,
+                              onChanged: (text) {
+                                widget.onChange!(index);
+                                widget.shopItem.buttonText2 = text;
+                              },
+                            ),
+                          ),
+                        )
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
+                            child: TextFormField(
+                              initialValue: widget.shopItem.url1,
+                              textInputAction: TextInputAction.done,
+                              textAlign: TextAlign.start,
+                              keyboardType: TextInputType.streetAddress,
+                              textCapitalization: TextCapitalization.sentences,
+                              decoration: const InputDecoration(
+                                border: OutlineInputBorder(),
+                                hintText: "What is the link url for button 2",
+                                labelText: 'Link 2 url',
+                              ),
+                              style: textStyle(
+                                  context: context,
+                                  size: 2,
+                                  color: Colors.black),
+                              autovalidateMode:
+                                  AutovalidateMode.onUserInteraction,
+                              onChanged: (text) {
+                                widget.onChange!(index);
+                                widget.shopItem.url2 = text;
+                              },
+                            ),
+                          ),
+                        )
+                      ],
+                    ),
+                  ],
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

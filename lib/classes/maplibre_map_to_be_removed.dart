@@ -4,16 +4,19 @@ import 'package:flutter/foundation.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 // import 'package:geolocator/geolocator.dart';
 import '/services/services.dart';
-import '/classes/classes.dart' hide Position;
-import '/constants.dart';
 // import '/classes/classes.dart' hide Position;
+import '/constants.dart';
+import 'dart:developer' as developer;
+// import '/classes/classes.dart' hide Position;
+import '/models/other_models.dart';
 import 'dart:collection';
 import 'dart:async';
 import 'dart:math';
-import 'dart:developer' as developer;
+// import 'dart:developer' as developer;
 
 const apiKey = "VEmtdNyruRLF2YvVedde";
 const styleUrl = "https://api.maptiler.com/maps/streets-v2/style.json";
+/*
 
 class MapPage extends StatelessWidget {
   const MapPage({super.key});
@@ -23,92 +26,266 @@ class MapPage extends StatelessWidget {
     return MLMap();
   }
 }
+*/
+/// The challenge with MapLibreMaps is that the style must be loaded before anything else happens.
+/// MapLibreMaps provides a callBack that tell the calling page that all is ready to go.
+///
+/*
+class MLMapControllerOld extends ChangeNotifier {
+  _MLMapState? _mlMapState;
+  void _addState(mlMapState) {
+    _mlMapState = mlMapState;
+  }
 
-class MLMap extends StatefulWidget {
-  final Function(LatLng, MapLibreMapController)? onUpdate;
-  MapLibreMapController? mapController;
-  final Function(Point, LatLng)? onTap;
-  final Function()? onIdle;
-  final Function(CameraPosition)? onMove;
-  bool? debug;
+//  LatLngBounds bounds = await _mapController!.getVisibleRegion();
+  Future<LatLngBounds> getVisibleRegion() async {
+    return await _mlMapState!.getVisibleRegion();
+  }
 
-  // Key? key; this.key,
-  MLMap({
-    bool? debug,
+  bool get mapLoaded => _mlMapState != null && (_mlMapState!._mapLoaded);
+
+  CameraPosition get cameraPosition => _mlMapState != null
+      ? _mlMapState!._mapLibreController!.cameraPosition!
+      : CameraPosition(target: LatLng(0, 0));
+
+// onMapCreated(MapLibreMapController controller)
+
+  // this.onMapCreated = _mlMapState._onMapCreated();
+
+  setGeoJsonSource(source, geoJson) {
+    _mlMapState!._mapLibreController!.setGeoJsonSource(source, geoJson);
+  }
+
+  animateCamera(update, {duration = 0}) {
+    _mlMapState!._mapLibreController!.animateCamera(update, duration: duration);
+  }
+
+  moveCamera(update) {
+    _mlMapState!._mapLibreController!.moveCamera(update);
+  }
+
+  queryRenderedFeatures(point, layerIds, filter) {
+    developer.log('queryRenderedFeatures ', name: 'controller');
+    _mlMapState!._mapLibreController!
+        .queryRenderedFeatures(point, layerIds, filter);
+  }
+
+  queryRenderedFeaturesInRect(rect, layerIds, filter) {
+    _mlMapState!._mapLibreController!
+        .queryRenderedFeaturesInRect(rect, layerIds, filter);
+  }
+
+  setFilter(layer, filter) {
+    _mlMapState!._mapLibreController!.setFilter(layer, filter);
+  }
+
+  getLayerIds() {
+    _mlMapState!._mapLibreController!.getLayerIds();
+  }
+
+  takeSnapshot() {
+    _mlMapState!._mapLibreController!.takeSnapshot();
+  }
+
+  toScreenLocation(latLng) {
+    _mlMapState!._mapLibreController!.toScreenLocation(latLng);
+  }
+
+  updateMyLocationTrackingMode(newMode) {
+    _mlMapState!._mapLibreController!.updateMyLocationTrackingMode(newMode);
+  }
+*/
+/// Because the MapLibreMap is going to be a persistent widget, more than one screen
+/// needs to be notified of the maps updates. This is done using the ChangeNotifier
+/// pattern. The map notifies the controller, that then broadcasts the change to
+/// any widget that's listening.
+/*
     this.onIdle,
     this.onTap,
     this.onUpdate,
     this.onMove,
-    this.mapController,
-  }) : debug = debug ?? false;
+    this.onStyleLoaded,
+    this.onLocationUpdated,
+ */
+/*
+  VoidCallback? onIdle;
+  ValueChanged<Map>? onTap;
 
-  @override
-  State createState() => MLMapState();
-}
+  VoidCallback? onMapReady;
+  void mapReady({VoidCallback? action}) {
+    developer.log(
+        'maplibre_map.dart controller.mapReady called passed up from MLMap()._onMapCreated()',
+        name: '_map_');
 
-class MLMapState extends State<MLMap> {
-  void _onMapCreated(MapLibreMapController controller) async {
-    MapService().controller = controller;
-    widget.mapController = controller;
-    widget.onUpdate!(MapService().currentPosition, controller);
-    developer.log('maplibre.dart _onMapCreated() called - controller created',
-        name: '_x_map');
+    onMapReady = action;
+    notifyListeners();
   }
 
-  MapLibreMapController? get controller => MapService().controller;
+  ValueChanged<CameraPosition>? onMove;
+  VoidCallback? onStyleLoaded;
+  ValueChanged<UserLocation>? onLocationUpdated;
+
+  bool get isAttached => _mlMapState != null;
+}
+*/
+/*
+class MLMap extends StatefulWidget {
+  Function(LatLng, MLMapController)? onUpdate;
+  MLMapController? mapController;
+  // MLMapController? controller;
+  Function(Point, LatLng)? onTap;
+  Function()? onIdle;
+  Function(UserLocation)? onLocationUpdated;
+  Function(CameraPosition)? onMove;
+  Function()? onStyleLoaded;
+  bool? debug;
+  bool? showLocation;
+  // Key? key; this.key,
+  MLMap({
+    super.key,
+    bool? debug,
+    bool? showLocation,
+    this.onIdle,
+    this.onTap,
+    this.onUpdate,
+    this.onMove,
+    this.onStyleLoaded,
+    this.onLocationUpdated,
+    this.mapController,
+    //  this.controller,
+  })  : debug = debug ?? false,
+        showLocation = showLocation ?? true;
+
+  @override
+  State createState() => _MLMapState();
+}
+
+class _MLMapState extends State<MLMap> {
+  @override
+  void initState() {
+    super.initState();
+    developer.log('_MLMap instantiated - initState() called', name: '_map_');
+    if (widget.mapController != null) {
+      widget.mapController!._addState(this);
+    }
+  }
+
+  MapLibreMapController? _mapLibreController;
+  bool _mapLoaded = false;
+
+  /// There is a bit of a problem because _onMapCreated allows
+  /// access of the MapLibreMapController, which until it does
+  /// is unavailable
+
+  void _onMapCreated(MapLibreMapController controller) async {
+    try {
+      developer.log('_MLMap  - _onMapCreated() called', name: '_map_');
+      // MapService().controller = widget.mapController;
+      //  Setup().mlMapController = mlController;
+      _mapLibreController = controller;
+      // widget.mapController = mlController;
+      // Setup().mlMapController = widget.mapController;
+
+      _mapLoaded = true;
+
+      /// .call() inside a class allows that class to be called like a function
+      ///
+      /// class CallTest {
+      ///    String call(String a, String b);
+      /// }
+      ///
+      /// CallTest()('this is a ', 'this is b');   will return 'this is a this is b'
+      ///
+      /// Check here the status of the two map controllers.
+      // Setup().mlMapController!.onMapReady!.call();
+      /*
+      if (widget.onUpdate != null) {
+        widget.onUpdate!(MapService().currentPosition, mlController);
+      }
+      */
+      developer.log(
+          'maplibre_map.dart _onMapCreated() called about to pass up to controller',
+          name: '_map_');
+      //  if (widget.mapController != null) {
+      //    widget.mapController!.onMapReady!.call();
+      //  }
+    } catch (e) {
+      developer.log(
+          'Error ${e.toString()} in maplibre_map.dart _onMapCreated()',
+          name: '_map_');
+    }
+  }
+
+  void _onStyleLoaded() {
+    if (widget.onStyleLoaded != null) {
+      developer.log('_MLMap  - _onStyleLoaded() called', name: '_map_');
+      widget.onStyleLoaded!();
+      widget.mapController!.onStyleLoaded!.call();
+    }
+  }
+
+  void _onLocationUpdated(UserLocation newLocation) {
+    if (widget.onLocationUpdated != null) {
+      widget.onLocationUpdated!(newLocation);
+      widget.mapController!.onLocationUpdated!.call(newLocation);
+    }
+  }
+
+  // MapLibreMapController? get controller => MapService().controller;
 
   void _onTap(Point<double> point, LatLng coordinates) async {
     widget.onTap!(point, coordinates);
+    widget.mapController!.onTap!
+        .call({'point': point, 'coordinates': coordinates});
   }
 
   void _onCameraIdle() async {
     widget.onIdle!();
+    widget.mapController!.onIdle!.call();
   }
 
   void _onMove(CameraPosition position) async {
     if (widget.debug ?? false) {
       widget.onMove!(position);
+      widget.mapController!.onMove!.call(position);
     }
   }
 
-//https://pub.dev/documentation/maplibre_gl/latest/maplibre_gl/
+  Future<LatLngBounds> getVisibleRegion() async {
+    if (_mapLibreController != null) {
+      return await _mapLibreController!.getVisibleRegion();
+    } else {
+      return LatLngBounds(southwest: LatLng(0, 0), northeast: LatLng(0, 0));
+    }
+  }
+
+  //https://pub.dev/documentation/maplibre_gl/latest/maplibre_gl/
+
   @override
   Widget build(BuildContext context) {
+    developer.log('_MLMap build  called', name: '_map_');
     return Scaffold(
       body: FutureBuilder<String>(
         future: MapService().style,
-        // body: FutureBuilder<bool>(
-        //   future: _gotStyle,
         builder: (BuildContext context, snapshot) {
           if (snapshot.hasError) {
             debugPrint('Error getting style ${snapshot.error}');
           } else if (snapshot.hasData) {
+            developer.log('_MLMap snapshot.hasData', name: '_map_');
             return MapLibreMap(
               key: MapService().mapKey, // <-- Stops the map being reinitialised
               styleString: snapshot.data!,
-
-              myLocationEnabled: !(widget.debug ??
-                  false), // Should only have this is debugging mode
-              //[TripState.following, TripState.automatic]
-              //   .contains(CurrentTripItem().tripState), false// true,
-              //  /*
-              // myLocationTrackingMode:
-              //     MyLocationTrackingMode.trackingCompass, //tracking,
-              // myLocationRenderMode: MyLocationRenderMode.compass, //normal,
-              // */
-              compassViewPosition: CompassViewPosition.topLeft,
+              myLocationEnabled: (widget.showLocation ??
+                  true), // Should only have this in debugging mode
+              compassViewPosition: kIsWeb ? null : CompassViewPosition.topLeft,
               onMapCreated: _onMapCreated,
+              onStyleLoadedCallback: _onStyleLoaded,
+              onUserLocationUpdated: _onLocationUpdated,
               initialCameraPosition: CameraPosition(
-                  target: MapService().currentPosition, zoom: 11),
+                  target: MapService().currentPosition, // LatLng(51.4, -0.5),
+                  zoom: 13), // MapService().currentPosition, zoom: 11),
               trackCameraPosition: true, // ensures that zoom is updated
               onCameraMove: _onMove,
-
-              //(position) => developer
-              //    .log('onCameraMove position: $position', name: '_camera_'),
-              //     onCameraMove: (position) {
-              //       widget.onUpdate!(position.target, mapController!);
-              //     },
-
               onMapClick: _onTap,
               onCameraIdle: _onCameraIdle,
               scrollGesturesEnabled: true,
@@ -117,6 +294,8 @@ class MLMapState extends State<MLMap> {
                 Factory<PanGestureRecognizer>(() => PanGestureRecognizer()),
                 Factory<ScaleGestureRecognizer>(() => ScaleGestureRecognizer()),
                 Factory<TapGestureRecognizer>(() => TapGestureRecognizer()),
+                Factory<OneSequenceGestureRecognizer>(
+                    () => EagerGestureRecognizer()),
                 Factory<VerticalDragGestureRecognizer>(
                     () => VerticalDragGestureRecognizer())
               },
@@ -147,8 +326,7 @@ class MLMapState extends State<MLMap> {
       return getStyle(url: urlTilerMapLibre);
     }
   }
-}
-
+}*/
 /// Test map from the publishers
 ///
 

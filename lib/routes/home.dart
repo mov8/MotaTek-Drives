@@ -1,25 +1,18 @@
 import 'dart:convert';
+import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import '/constants.dart';
 import '/models/other_models.dart';
 import '/tiles/home_tile.dart';
 import '/classes/classes.dart';
-// import '/services/services.dart'; // hide getPosition;
-import '/services/web_helper.dart' hide getPosition;
-// import '/services/geolocator_helper.dart';
-// import '/services/stream_data.dart' hide getPosition;
-import '/services/private_storage_local.dart';
-// import '/services/private_storage.dart';
-
+import '/services/services.dart' hide getPosition;
 import '/screens/screens.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 class Home extends StatefulWidget {
-  // var setup;
-
   const Home({super.key});
-
   @override
   State<Home> createState() => _HomeState();
 }
@@ -29,18 +22,41 @@ class _HomeState extends State<Home> {
   late final RoutesBottomNavController _bottomNavController;
   late final ImageRepository _imageRepository;
   final GlobalKey _scaffoldKey = GlobalKey();
+  // final GlobalKey _homeItemKey = GlobalKey();
+  final ItemScrollController _itemScrollController = ItemScrollController();
+
+  // int _globalKeyIndex = -1;
   List<HomeItem> homeItems = [];
+  final List<Widget> _sideBarContents = [];
+
   late Future<bool> _dataLoaded;
+
+  /// _handleExternalScroll executes the scrolling of the page content triggered by
+  /// the SideDrawer. The ItemScrollController sits in this, the target object. MapService()
+  /// just holds the index as a ValueNotifier. It exposes a method - requestScroll(index) that is
+  /// used by the SideDrawer to send the required position to scroll to. Being a ValueNotifier the
+  /// value is picked up here as the receiver, and the controller scrolls to the required target.
+  /// SideDrawer().scroll() --> MapService().requestScroll() --> HomePage()._handleExternalScroll()
+
+  void _handleExternalScroll() {
+    final index = MapService().scrollToSideDrawerIndex.value;
+    if (index != null && _itemScrollController.isAttached) {
+      _itemScrollController.scrollTo(
+        index: index,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOutCubic,
+      );
+    }
+  }
 
   @override
   void initState() {
     super.initState();
-    _leadingWidgetController = LeadingWidgetController();
+    MapService().scrollToSideDrawerIndex.addListener(_handleExternalScroll);
     _bottomNavController = RoutesBottomNavController();
+    _leadingWidgetController = LeadingWidgetController();
     _imageRepository = ImageRepository();
-    // if (!Setup().loggingIn) {
     _dataLoaded = _getHomeData();
-    // }
   }
 
   _leadingWidget(context) {
@@ -50,6 +66,8 @@ class _HomeState extends State<Home> {
   @override
   void dispose() {
     _imageRepository.clear();
+    _sideBarContents.clear();
+    MapService().scrollToSideDrawerIndex.removeListener(_handleExternalScroll);
     super.dispose();
   }
 
@@ -67,10 +85,10 @@ class _HomeState extends State<Home> {
   Future<bool> _getHomeData() async {
     bool apiUp = await apiListening();
     debugPrint('Api listeninig: ${apiUp.toString()}');
-    if (!Setup().hasLoggedIn) {
-      //Setup().hasLoggedIn = true;
+    // Setup().hasLoggedIn =
+    if (Setup().jwt.isEmpty && mounted) {
       Setup().loggingIn = true;
-      await tryLoggingIn().then((_) async {
+      Login(context: context).tryLoggingIn().then((_) async {
         try {
           Setup().serverUp = true; // debug
         } catch (e) {
@@ -85,7 +103,6 @@ class _HomeState extends State<Home> {
         /// phone
 
         Setup().lastPosition = await getPosition();
-        //  Setup().appState = '{"route": 2, "trip_id": 233}';
         if (Setup().appState.isEmpty) {
           Setup().bottomNavIndex = 0;
         } else {
@@ -95,9 +112,32 @@ class _HomeState extends State<Home> {
         if (homeItems.isNotEmpty) {
           Setup().hasLoggedIn = true;
           getStats();
+        } else {
+          homeItems.add(HomeItem(
+            id: -2,
+            uri: 'assets/images',
+            heading:
+                'New trip planning app for individuals, groups of friends and clubs',
+            subHeading: 'Stop polishing your car and start driving it...',
+            body:
+                '''Drives is a new app to help you make the most of the countryside around you. You can plan trips either on your own or you can explore in a group''',
+            imageUrls: '[{"url": "assets/images/aiaston.png", "caption": ""}]',
+          ));
+
+          homeItems.add(
+            HomeItem(
+                id: -2,
+                uri: 'assets/images',
+                heading:
+                    'Share your trips with friends, club members or publish them to everybody',
+                subHeading:
+                    'Let others know about your great trips, and download trips others have discovered already.',
+                body:
+                    '''Uploaded trips can be rated to let you know how much others enjoyed it. Waypoints like scenery, nice roads, pubs and restaurants can be rated too.''',
+                imageUrls:
+                    '[{"url": "assets/images/meeting.png", "caption": ""}]'), //CarGroup.png'),
+          );
         }
-        //    _bottomNavController.setValue(Setup().bottomNavIndex);
-        //    _bottomNavController.navigate();
       });
       return true;
     } else if (Setup().bottomNavIndex > 0) {
@@ -119,229 +159,130 @@ class _HomeState extends State<Home> {
     }
   }
 
-  Future<bool> tryLoggingIn() async {
-    try {
-      ///  User user = await getUser();
-      /// Three possibilities for logging in
-      /// 1 Password & email on device
-      ///   Silent login retrieving fresh jwt
-      /// 2 No password or email on device - new device / user
-      ///   Login dialog appears
-      /// 3 Email on device and password < 8 characters
-      ///   Sign_up form appears to allow completion of registration
-      //   int code = 0;
-
-      //   if (Setup().isWeb) {
-      //     return true;
-      //   }
-
-      if (Setup().user.password.isEmpty || kIsWeb) {
-        await getPrivateRepository().getUser();
-      }
-
-      LoginState loginState = LoginState.notLoggedin;
-      Setup().serverUp = await serverListening();
-      if (Setup().serverUp) {
-        /// Try silent login first
-        if (Setup().jwt.isNotEmpty &&
-            Setup().user.email.isNotEmpty &&
-            Setup().user.password.length > 8) {
-          bool refreshed = await refreshToken();
-          if (refreshed) {
-            Setup().hasLoggedIn = true;
-            return true;
-          }
-        }
-
-        if (Setup().user.email.isNotEmpty && Setup().user.password.length > 8) {
-          Map<String, dynamic> response = await tryLogin(user: Setup().user);
-          String status = response['msg'] ?? '';
-          //    code = response['response_status_code'] ?? 0;
-
-          if (status == 'OK') {
-            await getPrivateRepository().saveUser(Setup().user);
-            Setup().hasLoggedIn = true;
-            return status == 'OK';
-          }
-
-          /// Have user details on device but not on server
-          loginState = LoginState.register;
-        }
-
-        /// Device has no login details invite user to login
-        User user = Setup().user;
-        if ((Setup().user.email.isEmpty ||
-                Setup().jwt.isEmpty ||
-                Setup().user.password.isEmpty) &&
-            mounted) {
-          loginState = await loginDialog(context, user: user);
-
-          if (loginState == LoginState.login) {
-            Map<String, dynamic> response = await tryLogin(user: user);
-            if (response['msg'] == 'OK') {
-              Setup().hasLoggedIn = true;
-              await getPrivateRepository().saveUser(user);
-              Setup().user = user;
-              return true;
-            }
-            // return false;
-          } else if (loginState == LoginState.cancel) {
-            return false;
-          }
-        }
-
-        /// Handle partially loggedin users invite to complete registration
-        if ([
-          LoginState.register,
-          LoginState.notLoggedin,
-          LoginState.resetPassword
-        ].contains(loginState)) {
-          if (user.password.length != 6) {
-            await postValidateUser(user: user);
-            Setup().user = user;
-            Setup().user.password = '';
-          }
-          if (mounted) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (BuildContext context) => const SignupForm()),
-            );
-          }
-        }
-
-        /// Now handle login failures
-        ///       New user both email and password empty  register
-        /// 401 - Invalid password                        login dialog
-        /// 410 - Missing password                        register
-        /// 204 - Email not found                         register
-
-        Setup().hasLoggedIn = true;
-        return true; //critical one
-      } else {
-        debugPrint('Server not listening ($urlBase)');
-        return false;
-      }
-      // return false;
-    } catch (e) {
-      debugPrint('Splash login error: ${e.toString()}');
-      return false;
-    }
-  }
-
   Widget _getPortraitBody() {
-    if (homeItems.isEmpty) {
-      homeItems.add(HomeItem(
-        id: -2,
-        uri: 'assets/images',
-        heading:
-            'New trip planning app for individuals, groups of friends and clubs',
-        subHeading: 'Stop polishing your car and start driving it...',
-        body:
-            '''Drives is a new app to help you make the most of the countryside around you. You can plan trips either on your own or you can explore in a group''',
-        imageUrls: '[{"url": "assets/images/aiaston.png", "caption": ""}]',
-      ));
-
-      homeItems.add(
-        HomeItem(
-            id: -2,
-            uri: 'assets/images',
-            heading:
-                'Share your trips with friends, club members or publish them to everybody',
-            subHeading:
-                'Let others know about your great trips, and download trips others have discovered already.',
-            body:
-                '''Uploaded trips can be rated to let you know how much others enjoyed it. Waypoints like scenery, nice roads, pubs and restaurants can be rated too.''',
-            imageUrls:
-                '[{"url": "assets/images/meeting.png", "caption": ""}]'), //CarGroup.png'),
-      );
-    }
-
-    return ListView(children: [
-      const Card(
-        child: Column(
-          children: [
-            SizedBox(
-              child: Padding(
-                  padding: EdgeInsets.fromLTRB(5, 10, 5, 0),
-                  child: Align(
-                    alignment: Alignment.topCenter,
-                    child: Text(
-                      'Drives',
-                      style: TextStyle(
-                        color: Colors.blue,
-                        fontSize: 38,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      textAlign: TextAlign.left,
+    double leftPadding =
+        MediaQuery.of(context).size.width * (kIsWeb ? 0.38 : 0);
+    try {
+      Widget form = Padding(
+        padding: EdgeInsets.fromLTRB(leftPadding + 10, 5, 10, 5),
+        child: // Card(
+            ClipRRect(
+          borderRadius: BorderRadiusGeometry.all(Radius.circular(10.0)),
+          //  child: Expanded(
+          child: Container(
+            color: const Color.fromRGBO(54, 143, 244, 0.411),
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(0, 0, 0, 5),
+              // child: Expanded(
+              child: Column(
+                children: [
+                  Card(
+                    child: Column(
+                      children: [
+                        // Padding(
+                        //   padding: EdgeInsets.fromLTRB(5, 10, 5, 0),
+                        //  child:
+                        Align(
+                          alignment: Alignment.topCenter,
+                          child: Text(
+                            'Drives',
+                            style: TextStyle(
+                              color: Colors.blue,
+                              fontSize: 38,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.left,
+                          ),
+                        ),
+                        Align(
+                          alignment: Alignment.topCenter,
+                          child: Text(
+                            'the new free trip planning app',
+                            style: TextStyle(
+                              color: Colors.blue,
+                              fontSize: 25,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.left,
+                          ),
+                          //   ),
+                        ),
+                      ],
                     ),
-                  )),
-            ),
-            SizedBox(
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(5, 0, 5, 15),
-                child: Align(
-                  alignment: Alignment.topCenter,
-                  child: Text(
-                    'the new free trip planning app',
-                    style: TextStyle(
-                      color: Colors.blue,
-                      fontSize: 25,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    textAlign: TextAlign.left,
                   ),
-                ),
-              ),
+                  Expanded(
+                    child: ScrollablePositionedList.builder(
+                      itemCount: homeItems.length,
+                      itemScrollController: _itemScrollController,
+                      itemBuilder: (context, index) => HomeTile(
+                        homeItem: homeItems[index],
+                        imageRepository: _imageRepository,
+                      ),
+                    ),
+                  ),
+                ],
+              ), // */
             ),
-          ],
+          ),
         ),
-      ),
-      for (int i = 0; i < homeItems.length; i++) ...[
-        HomeTile(
-          homeItem: homeItems[i],
-          imageRepository: _imageRepository,
-        )
-      ],
-      const SizedBox(
-        height: 40,
-      ),
-    ]);
+      );
+      // MapService().sideDrawerController!.setVisible(visible: true);
+      return form;
+    } catch (e) {
+      developer.log(
+          'Error Home().getPortraitBody() form error: ${e.toString()}',
+          name: 'error');
+      return Text('Its fallen over: ${e.toString()}');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     WakelockPlus.enable();
+
+    /// Ensure the Side Drawer is populated AFTER this screen is built.
+    WidgetsBinding.instance.addPostFrameCallback((_) => sideBarItems());
     return Scaffold(
-      // backgroundColor: Colors.blue,
+      backgroundColor: Colors.blue,
       key: _scaffoldKey,
       drawer: const MainDrawer(),
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        leading: LeadingWidget(
-            controller: _leadingWidgetController,
-            onMenuTap: (index) =>
-                _leadingWidget(_scaffoldKey.currentState)), // IconButton(
-        title: const Text(
-          'Drives trip planning and sharing app',
-          style: TextStyle(
-              fontSize: 20, color: Colors.white, fontWeight: FontWeight.w700),
-        ),
-        iconTheme: const IconThemeData(color: Colors.white),
-        backgroundColor: Colors.blue,
-        actions: [
-          IconButton(
-              onPressed: () => {}, icon: Icon(Icons.help_outline_outlined))
-        ],
-      ),
+      appBar: kIsWeb
+          ? null
+          : AppBar(
+              automaticallyImplyLeading: false,
+              leading: LeadingWidget(
+                  controller: _leadingWidgetController,
+                  onMenuTap: (index) =>
+                      _leadingWidget(_scaffoldKey.currentState)), // IconButton(
+              title: const Text(
+                'Drives trip planning and sharing app',
+                style: TextStyle(
+                  fontSize: 20,
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              iconTheme: const IconThemeData(color: Colors.white),
+              backgroundColor: Colors.blue,
+              actions: [
+                IconButton(
+                  onPressed: () => {},
+                  icon: Icon(
+                    Icons.help_outline_outlined,
+                  ),
+                )
+              ],
+            ),
       body: FutureBuilder<bool>(
         //  initialData: false,
         future: _dataLoaded,
         builder: (BuildContext context, snapshot) {
           if (snapshot.hasError) {
             debugPrint('Snapshot error: ${snapshot.error}');
+            return Center(
+                child: Text(
+                    'Error getting the data from the server - check the Internet'));
           } else if (snapshot.hasData) {
-            // _building = false;
             return _getPortraitBody();
           } else {
             return const SizedBox(
@@ -353,14 +294,144 @@ class _HomeState extends State<Home> {
               ),
             );
           }
-
-          throw ('Error - FutureBuilder in main.dart');
         },
       ),
-      bottomNavigationBar: RoutesBottomNav(
-          controller: _bottomNavController,
-          initialValue: 0,
-          onMenuTap: (_) => {}),
+      bottomNavigationBar: kIsWeb
+          ? null
+          : RoutesBottomNav(
+              controller: _bottomNavController,
+              initialValue: 0,
+              onMenuTap: (_) => {}),
     );
+  }
+
+  /// getSideDrawerTiles() generates the abbreviated tiles for the side drawer from
+  /// the raw api data. This will be stored in the side drawer cache so that other
+  /// data can be shown in the side drawer, and then the original data can be restored.
+
+  List<Widget> getSideDrawerTiles() {
+    _sideBarContents.clear();
+    try {
+      for (int i = 0; i < homeItems.length; i++) {
+        _sideBarContents.add(
+          getSideDrawerTile(
+            key: Key('sdt$i'),
+            homeItem: homeItems[i],
+            index: i,
+            onPress: (index) => MapService().requestScroll(index),
+          ),
+        ); //getContents(index)));
+      }
+    } catch (e) {
+      developer.log('Error Home().getDrawerTiles(): ${e.toString()}',
+          name: 'error');
+    }
+    return _sideBarContents;
+  }
+
+  Widget getSideDrawerTile(
+      {required Key key,
+      required HomeItem homeItem,
+      required int index,
+      required Function(int) onPress}) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(5, 5, 5, 0),
+      child: Card(
+        key: key,
+        color: Colors.white,
+        child: Padding(
+          padding: EdgeInsetsGeometry.fromLTRB(5, 0, 0, 0),
+          child: Row(
+            children: [
+              if (homeItem.getPhotos().isNotEmpty) ...[
+                Expanded(
+                  flex: 10,
+                  //     alignment: Alignment.topLeft,
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(5, 5, 5, 5),
+                    child: RotatedBox(
+                      quarterTurns: homeItems[index].getPhotos().first.rotation,
+                      child: ClipRRect(
+                        borderRadius:
+                            BorderRadiusGeometry.all(Radius.circular(10.0)),
+                        child: FutureBuilder(
+                          future: getImageFromPhoto(
+                              photo: homeItems[index].getPhotos().first,
+                              imageRepository: _imageRepository),
+                          builder: (context, snapshot) {
+                            if (snapshot.hasError) {
+                              return const ImageMissing(width: 150);
+                            } else if (snapshot.hasData) {
+                              return snapshot.data!;
+                            } else {
+                              return const Center(
+                                child: CircularProgressIndicator(),
+                              );
+                            }
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+              Expanded(
+                flex: 10,
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(10, 0, 5, 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        homeItem.heading,
+                        style: TextStyle(
+                            fontSize: 22,
+                            color: Colors.black,
+                            fontWeight: FontWeight.bold),
+                      ),
+                      SizedBox(height: 20),
+                      Text(
+                        homeItem.subHeading,
+                        style: TextStyle(fontSize: 20, color: Colors.black),
+                      ),
+                      SizedBox(height: 20),
+
+                      Text(
+                        'published: ${dateFormatDoc.format(homeItem.added)}',
+                        style: TextStyle(fontSize: 13, color: Colors.black),
+                      ), // DateFormat('E dd/MM/yyyy')
+                    ],
+                  ),
+                ),
+              ),
+              Expanded(
+                flex: 2,
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(0, 0, 2, 0),
+                  child: IconButton(
+                    onPressed: () {
+                      onPress(index);
+                    },
+                    icon: Icon(Icons.arrow_circle_right_outlined, size: 40),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void sideBarItems() async {
+    await _dataLoaded;
+    getSideDrawerTiles();
+    if (_sideBarContents.isNotEmpty && mounted) {
+      MapService().sideDrawerController!.open();
+      MapService().sideDrawerController!.setContent(
+          content: BottomDrawerItems.home, drawerItems: _sideBarContents);
+      MapService().sideDrawerController!.setFixed(fixed: true);
+      MapService().sideDrawerController!.setVisible(visible: true);
+    }
   }
 }

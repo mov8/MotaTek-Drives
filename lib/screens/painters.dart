@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 // import 'package:latlng/latlng.dart';
 import 'dart:math';
@@ -75,9 +78,6 @@ class HighlightPainter extends CustomPainter {
     mbr = {'top': top, 'left': left, 'bottom': bottom, 'right': right};
     sw = Point(bottom, left);
     ne = Point(top, right);
-    developer.log("HighlightPainter painters.dart 78 setting ne: $ne  sw: $sw ",
-        name: '_nesw_');
-
     outLineBrush.color = color;
     double newX = left;
 
@@ -108,6 +108,239 @@ class HighlightPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
+/* 
+LayoutBuilder(
+  builder: (BuildContext context, BoxConstraints constraints) {
+    return Container(
+      width: constraints.maxWidth / 2,
+      height: constraints.maxHeight / 2,
+    );
+  },
+);
+*/
+
+/// LinearScale creates a linear distance scale calculated on the current map settings:
+/// It calculates the maps distance L -> R in meters and pixels and creates the scale
+/// bar appropriately. The minimum value is always 0, and the maximum is 1, 10, 100 ...
+/// depending on the map's scale. It will vary its rendered length to be as close as it
+/// can to the chosen length - where 1 = whole container width 0.1 = 10% etc.
+/// 100 |          |         | 0 Miles
+///     ======================
+///
+///
+
+class LinearScale extends CustomPainter {
+  double width;
+  double start;
+  double height;
+  Color? color;
+  double mapWidthPixels;
+  double mapWidthMeters;
+  double screenWidth;
+  bool isMiles = true;
+  bool alignRight = true;
+  TextStyle? textStyle;
+  double offset;
+  Function(double)? onDraw;
+  @override
+  LinearScale(
+      {this.start = 0,
+      this.width = 200,
+      this.height = 20,
+      Color? color,
+      TextStyle? textStyle,
+      this.mapWidthPixels = 100,
+      this.mapWidthMeters = 1000,
+      this.screenWidth = 200,
+      this.offset = 0,
+      this.onDraw})
+      : color = color ?? Colors.white,
+        textStyle = textStyle ??
+            TextStyle(
+                color: Colors.white, fontFamily: 'OpenSans', fontSize: 11);
+
+  var outLineBrush = Paint()
+    ..style = PaintingStyle.stroke
+    ..color = Colors.white
+    ..strokeWidth = 2.0;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    try {
+      if (mapWidthPixels > 0) {
+        double baseUnitsPerPixel =
+            (mapWidthMeters / mapWidthPixels) * (isMiles ? metersToYards : 1);
+        double mapUnitsPerPixel =
+            baseUnitsPerPixel * (isMiles ? yardsToMiles : 0.001);
+
+        // default to meters / yards
+        double displayUnits = baseUnitsPerPixel;
+        String keyUnits = isMiles ? 'yards' : 'meters';
+        bool scale = false;
+
+        /// Want to ensure that if the scale width is more than 1 mile / km then
+        /// switch from meters / yards to miles
+        /// scale = true;
+
+        /// if ((displayUnits * width) >= 1) {
+        if ((mapUnitsPerPixel * width) >= 1) {
+          displayUnits = mapUnitsPerPixel;
+          keyUnits = isMiles ? 'miles' : 'km';
+        }
+
+        // double targetLength = 400;
+
+        /// Only convert to miles / km if the LinearScale raw width will be >= 1 (mapWidth km / miles)
+        ///
+        /// 1609.34 meters / mile (metersPerMile)
+        /// Calculate the map width in miles / km
+        /// Calculate the map width in pixels
+        /// Calculate the raw pixel length of the LinearScale from the %age of screen width requested
+        /// Calculate the length of the LinearScale in miles
+        /// Find the closest length base 10 to the raw length - final pixel LinearScale length
+        /// Recalculate LinearScale length for new base 10 max value
+
+        // double mapWidthUnits = isMiles ? metersToMiles : 1;
+        // double unitConvert = isMiles ? metersPerMile : 1000;
+        // double keyToMapRatio = width / mapWidthPixels;
+
+        double targetLength = width * displayUnits;
+        int max = 1;
+        if (targetLength > 100) {
+          int exponent = (log(targetLength) / ln10)
+              .floor(); // log() is natural logarithm - base e
+          int lower = pow(10, exponent).toInt();
+          int upper = pow(10, exponent + 1).toInt();
+          max = (targetLength - lower) < (upper - targetLength) ? lower : upper;
+        } else if (targetLength > 0) {
+          max = -1;
+          int factor = targetLength > 10 ? targetLength ~/ 10 : 0;
+          while (max < 0) {
+            int lower = factor == 0 ? 1 : (factor * 10);
+            int upper = lower + (factor == 0 ? 9 : 10);
+            int mid = upper - 5;
+
+            /// want 1 5 10 15 20 .. 100
+            if (targetLength <= upper) {
+              if ((targetLength - lower) < (upper - targetLength)) {
+                max = targetLength - 2.5 > lower ? mid : lower;
+              } else {
+                max = targetLength + 2.5 > upper ? upper : mid;
+              }
+            }
+            factor++;
+          }
+        }
+
+        TextSpan textSpan = TextSpan(text: '$max', style: textStyle);
+
+        var textPainterStart = TextPainter(
+          text: textSpan,
+          textDirection: TextDirection.ltr,
+        );
+
+        textSpan = TextSpan(text: '0 $keyUnits', style: textStyle);
+        var textPainterEnd = TextPainter(
+          text: textSpan,
+          textDirection: TextDirection.ltr,
+        );
+
+        textPainterStart.layout(
+          // define the box for text
+          minWidth: 2,
+          maxWidth: 100,
+        );
+
+        textPainterEnd.layout(
+          minWidth: 20,
+          maxWidth: 100,
+        );
+
+        double _length = (max / displayUnits) +
+            textPainterEnd.width +
+            textPainterStart.width +
+            10;
+        // - start;
+
+        double start = (mapWidthPixels - _length);
+        double end = start + (max / displayUnits);
+        double middle = start + ((end - start) / 2);
+
+        canvas.drawLine(Offset(start, 5), Offset(start, 15), outLineBrush);
+        canvas.drawLine(Offset(middle, 10), Offset(middle, 15), outLineBrush);
+        canvas.drawLine(Offset(end, 5), Offset(end, 15), outLineBrush);
+        canvas.drawLine(Offset(start, 15), Offset(end, 15), outLineBrush);
+
+        textPainterStart.paint(
+            canvas, Offset(start - textPainterStart.width - 5, 5));
+
+        textPainterEnd.paint(canvas, Offset(end + 5, 5));
+
+        if (onDraw != null) {
+          onDraw!(mapWidthPixels - start - textPainterStart.width - 5);
+        }
+      }
+    } catch (e) {
+      debugPrint('Error painting scale: ${e.toString()}');
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) {
+    return (oldDelegate != this);
+    // return false;
+  }
+}
+
+class BarMessagePainter extends CustomPainter {
+  double start;
+  double width;
+  String message;
+  TextStyle? textStyle;
+  Function(double)? onDraw;
+
+  BarMessagePainter(
+      {this.start = 0,
+      this.width = 200,
+      this.message = '',
+      this.textStyle,
+      this.onDraw});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    try {
+      textStyle ??=
+          TextStyle(color: Colors.white, fontFamily: 'OpenSans', fontSize: 11);
+
+      TextSpan textSpan = TextSpan(text: message, style: textStyle);
+
+      var textPainter = TextPainter(
+        text: textSpan,
+        textDirection: TextDirection.ltr,
+      );
+
+      textPainter.layout(
+        minWidth: 10,
+        maxWidth: width,
+      );
+
+      textPainter.paint(canvas, Offset(start, 5));
+
+      if (onDraw != null) {
+        onDraw!(textPainter.width + 5);
+      }
+    } catch (e) {
+      developer.log('Error painters.dart BarMessagePainter(): ${e.toString()}',
+          name: 'error');
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) {
+    return this != oldDelegate;
+  }
+}
+
 /// Draws a map location pin of the correct colour
 /// The icon can be superimposed and an inkwell
 /// used to handle the user tap events
@@ -128,8 +361,8 @@ class LocationPinPainter extends CustomPainter {
       this.text = '3.5',
       this.score = 3.5});
 
-  static const textStyle =
-      TextStyle(color: Colors.white, fontFamily: 'OpenSans', fontSize: 12);
+  //static const textStyle =
+  //    TextStyle(color: Colors.white, fontFamily: 'OpenSans', fontSize: 12);
 
   Paint filledLineBrush = Paint()
     ..style = PaintingStyle.fill

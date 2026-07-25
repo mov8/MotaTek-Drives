@@ -149,7 +149,8 @@ class _InviteMemberState extends State<InviteMember> {
       try {
         _focusNode1.requestFocus();
       } catch (e) {
-        developer.log('_focusNode1.requestFocus()', name: '_addState');
+        developer.log('InviteMember().build() _focusNode1.requestFocus()',
+            name: 'error');
       }
     }
     return Card(
@@ -419,7 +420,7 @@ class _InviteMemberState extends State<InviteMember> {
       if (_groupMemberState == GroupMemberState.isNew && complete) {
         _groupMemberState = GroupMemberState.complete;
       }
-      setState(() => ());
+      setState(() {});
     }
     return complete;
   }

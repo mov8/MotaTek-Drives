@@ -9,6 +9,7 @@ import 'package:universal_io/universal_io.dart';
 import '../constants.dart';
 import 'dart:developer' as developer;
 import 'package:maplibre_gl/maplibre_gl.dart';
+import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
 /// The Map pages BottomDrawer is to allow the following data
 /// Trip details on planning and saving
@@ -63,8 +64,6 @@ class BottomDrawerController {
 
   void setContent(
       {BottomDrawerItems content = BottomDrawerItems.trip, List? drawerItems}) {
-    developer.log('~~~~ setContent(${content.name}) called ~~~~',
-        name: '_keyboard_');
     drawerItems ??= [];
     if (content != BottomDrawerItems.none) {
       _bottomDrawerState?.setContent(content, drawerItems);
@@ -75,6 +74,10 @@ class BottomDrawerController {
 
   double getHeight() {
     return _bottomDrawerState?.height ?? 0;
+  }
+
+  int itemsCount() {
+    return _bottomDrawerState?._tiles.length ?? 0;
   }
 
   void setHeight(height) {
@@ -96,7 +99,7 @@ class BottomDrawer extends StatefulWidget {
   final double height;
   final double closedTop;
   final double dividerHeight;
-  //final CurrentTripItem? content;
+  final CurrentTripItem? content;
   final BottomDrawerController? controller;
   final ImageRepository? imageRepository;
 
@@ -112,7 +115,7 @@ class BottomDrawer extends StatefulWidget {
       this.onOpened,
       //  this.requestClose,
       this.dividerHeight = 30,
-      //this.content,
+      this.content,
       this.imageRepository});
   @override
   State<BottomDrawer> createState() => _BottomDrawerState();
@@ -134,6 +137,7 @@ class _BottomDrawerState extends State<BottomDrawer>
       PointOfInterestController();
   final ScrollController _scrollController = ScrollController();
   final TripHeaderController _tripHeaderController = TripHeaderController();
+  final ItemScrollController _itemScrollController = ItemScrollController();
 
   BottomDrawerItems _content = BottomDrawerItems.none;
   final Directions _directions = Directions();
@@ -146,8 +150,6 @@ class _BottomDrawerState extends State<BottomDrawer>
     if (widget.controller != null) {
       widget.controller!._addState(this);
     }
-
-    developer.log('_BottomDrawerState initState() called', name: '_dock_');
   }
 
 /*
@@ -158,9 +160,6 @@ class _BottomDrawerState extends State<BottomDrawer>
 */
   void close() {
     if (mounted) {
-      //    FocusManager.instance.primaryFocus?.unfocus(); // dismiss keyboard
-      developer.log('bottomDrawer.close() calling setState()',
-          name: '_keyboard_');
       setState(() => height = 0);
     }
   }
@@ -168,10 +167,15 @@ class _BottomDrawerState extends State<BottomDrawer>
   void refresh() {
     if (mounted) {
       refreshList = true;
-      developer.log('bottomDrawer.refresh() calling setState()',
-          name: '_keyboard_');
-      setState(() => ()); // setContentBottom());
+      setState(() {}); // setContentBottom());
     }
+  }
+
+  void scrollTo({int index = -1}) {
+    _itemScrollController.scrollTo(
+        index: index,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOutCubic);
   }
 
   /// setContent() uses BottomDrawerItems enum to determine how to shred the the CurrentTripItem() data.
@@ -182,14 +186,20 @@ class _BottomDrawerState extends State<BottomDrawer>
 
   List<Widget> _tiles = [];
 
+/*
+  int itemsCount() {
+    return _tiles.length;
+  }
+*/
+
   void setContent(BottomDrawerItems content, List? drawerItems) {
     try {
       _content = content;
       _drawerItems = drawerItems ?? [];
       switch (content) {
         case BottomDrawerItems.trip:
-           _tiles = shredCurrentTripItemData();
-           break;
+          _tiles = shredCurrentTripItemData();
+          break;
         case BottomDrawerItems.group:
           _tiles = shredGroup(followers: _drawerItems as List<Follower>);
           break;
@@ -211,7 +221,7 @@ class _BottomDrawerState extends State<BottomDrawer>
       refreshList = true;
     } catch (e) {
       developer.log('Error setting BottomDrawer setContent(): ${e.toString()}',
-          name: '_errors_');
+          name: 'error');
     }
   }
 
@@ -230,6 +240,12 @@ class _BottomDrawerState extends State<BottomDrawer>
     }
     return tiles;
   }
+
+  loadWebTrip(int index) async {}
+
+  shareWebTrip(int index) async {}
+
+  deleteWebTrip(int index) async {}
 
   List<Widget> shredGroup({List<Follower>? followers}) {
     followers ??= [];
@@ -294,7 +310,7 @@ class _BottomDrawerState extends State<BottomDrawer>
         );
       } catch (e) {
         developer.log('Error preparing maneuvers cards: ${e.toString()}',
-            name: '_chips');
+            name: 'error');
       }
     }
     return tiles;
@@ -342,8 +358,8 @@ class _BottomDrawerState extends State<BottomDrawer>
         TripMessageTile(
           index: i,
           message: CurrentTripItem().tripMessages[i],
-          onEdit: (_) => (),
-          onSelect: (_) => (),
+          onEdit: (_) {},
+          onSelect: (_) {},
         ),
       );
     }
@@ -352,9 +368,6 @@ class _BottomDrawerState extends State<BottomDrawer>
 
   List<Widget> shredCurrentTripItemData() {
     bool expanded = false;
-    developer.log(
-        'Shredding CurrentTripItem() pointsOfInterest.length: ${CurrentTripItem().pointsOfInterest.length}',
-        name: '_keyboard_');
     List<Widget> tiles = [];
     if (_content == BottomDrawerItems.trip) {
       expanded = CurrentTripItem().headerComplete() != 7;
@@ -395,6 +408,7 @@ class _BottomDrawerState extends State<BottomDrawer>
                 pointOfInterest: CurrentTripItem().pointsOfInterest[i],
                 imageRepository: widget.imageRepository ?? ImageRepository(),
                 onUpdate: pointOfInterestComplete,
+                driveId: CurrentTripItem().uri,
               ),
             ),
           );
@@ -430,6 +444,7 @@ class _BottomDrawerState extends State<BottomDrawer>
               controller: expanded ? _pointOfInterestController : null,
               pointOfInterest: CurrentTripItem().pointsOfInterest[i],
               imageRepository: widget.imageRepository ?? ImageRepository(),
+              driveId: CurrentTripItem().driveUri,
               onUpdate: pointOfInterestComplete,
             ),
           ),
@@ -451,7 +466,6 @@ class _BottomDrawerState extends State<BottomDrawer>
   }
 
   void open(newHeight) async {
-    developer.log('bottomDrawer.open() called', name: '_keyboard_');
     bool changed = false;
     try {
       setContentBottom();
@@ -465,17 +479,15 @@ class _BottomDrawerState extends State<BottomDrawer>
       contentHeight = height; // MediaQuery.of(context).size.height;
     } catch (e) {
       developer.log('Error bottom_drawer.open(): ${e.toString()}',
-          name: '_errors_');
+          name: 'error');
     }
     try {
       if (mounted && changed) {
-        developer.log('bottomDrawer.open() calling setState()',
-            name: '_keyboard_');
         setState(() {});
       }
     } catch (e) {
       developer.log('Error bottom_drawer.open(): ${e.toString()}',
-          name: '_errors_');
+          name: 'error');
     }
   }
 
@@ -489,7 +501,7 @@ class _BottomDrawerState extends State<BottomDrawer>
   /// 1 When using using ExpansionTiles the initiallyExpanded value is set when the Tile is created, and doesn't change until
   ///   the tile is recreated. This means controlling the tile opening using an ordinary ListView - where the items are kept
   ///   alive is impossible.
-  /// 2 Changing to a ListView builder solved issue 1, as the list is rebuilt on ever setScreen, so the initiallyExpanded is
+  /// 2 Changing to a ListView builder solved issue 1, as the list is rebuilt on every setScreen, so the initiallyExpanded is
   ///   reset. However ListView builder loads the list lazily, and using GlobalKey to identify the widget to scroll to doesn't
   ///   work, as the builder has only built the visible widgets which may not include the widget with the GlobalKey to scroll to.
   ///
@@ -513,13 +525,12 @@ class _BottomDrawerState extends State<BottomDrawer>
         double yPos = widgetPosition(key: _animatedContainerKey).y.toDouble();
         double yPosT = widgetPosition(key: _scrollKey).y.toDouble();
         double delta = 32 + yPosT - yPos;
-        developer.log('dockOpenTile() delta value: $delta', name: '_dock_');
         if (delta > 0) {
           _scrollController.animateTo(delta,
               duration: Duration(milliseconds: 500), curve: Curves.ease);
         }
       } catch (e) {
-        developer.log('Error dockOpenTile(): ${e.toString()}', name: '_dock_');
+        developer.log('Error dockOpenTile(): ${e.toString()}', name: 'error');
       }
     });
   }
@@ -543,7 +554,7 @@ class _BottomDrawerState extends State<BottomDrawer>
           : contentBottom;
     } catch (e) {
       developer.log('Error bottom_drawer.setContentBottom(): ${e.toString()}',
-          name: '_errors_');
+          name: 'error');
     }
     return;
   }
@@ -582,7 +593,6 @@ class _BottomDrawerState extends State<BottomDrawer>
     //   refreshList = false;
     // }
 
-    developer.log('BottomDrawer.build() called', name: '_keyboard_');
     return Align(
       alignment: Alignment.bottomLeft,
       child: AnimatedContainer(
@@ -651,6 +661,9 @@ class _BottomDrawerState extends State<BottomDrawer>
                     child: Container(
                       height: contentHeight,
                       color: Colors.blue,
+
+                      // child: ScrollablePositionedList.(itemCount: _tiles.length, itemBuilder: (context, index) => _tiles[index])),
+
                       child: ListView(
                         controller: _scrollController,
                         children: _tiles,

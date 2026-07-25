@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'dart:async';
+import 'dart:developer' as developer;
 import '/constants.dart';
 import '/services/services.dart';
 import '/helpers/edit_helpers.dart';
@@ -640,7 +641,8 @@ Future<LoginState> loginDialog(BuildContext context,
 //  LoginError loginError = LoginError.noData;
 //  bool isRegistered = false;
   final FocusNode focusNode = FocusNode();
-  TextEditingController controller = TextEditingController();
+  TextEditingController controllerEm = TextEditingController();
+  TextEditingController controllerPw = TextEditingController();
   user.password = '';
   List<dynamic> statusPrompts = [
     {'hint': '', 'button': '', 'error': false}, // noData
@@ -671,6 +673,7 @@ Future<LoginState> loginDialog(BuildContext context,
   ];
 
   LoginStatus loginStatus = LoginStatus.noData;
+  bool seePassword = false;
 
   LoginState? loginState = await showDialog<LoginState>(
     context: context,
@@ -689,17 +692,19 @@ Future<LoginState> loginDialog(BuildContext context,
               style: textStyle(context: context, color: Colors.black, size: 1)),
         ]),
         content: SizedBox(
-          height: 160,
+          height: 175,
           width: 350,
           child: Column(children: [
             Row(
               children: [
                 Expanded(
                   child: TextField(
-                    controller: controller,
+                    maxLength: 100,
+                    controller: controllerEm,
                     autofocus: true,
                     textInputAction: TextInputAction.next,
                     keyboardType: TextInputType.emailAddress,
+                    autofillHints: const [AutofillHints.email],
                     textCapitalization: TextCapitalization.none,
                     inputFormatters: [
                       LowerCaseTextFormatter(),
@@ -738,14 +743,17 @@ Future<LoginState> loginDialog(BuildContext context,
                         }
                       }
                       if (emailRegex.hasMatch(user.email) && found) {
-                        setState(() => loginStatus = LoginStatus.emailKnown);
-                        focusNode.requestFocus();
+                        controllerEm.text = registered.first;
+                        user.email = registered.first;
+                        user.password = '';
+                        controllerPw.clear();
+                        loginStatus = LoginStatus.emailKnown;
+                        setState(() => focusNode.requestFocus());
                       }
                     },
                     onSubmitted: (text) async {
                       text = text.toLowerCase();
-                      controller.text = text.toLowerCase();
-                      debugPrint('Submitted $text');
+                      controllerEm.text = text.toLowerCase();
                       if (loginStatus == LoginStatus.emailKnown) {
                         loginStatus = LoginStatus.noPassword;
                         setState(() => focusNode.requestFocus());
@@ -771,14 +779,28 @@ Future<LoginState> loginDialog(BuildContext context,
                 children: [
                   Expanded(
                     child: TextField(
+                        obscureText: !seePassword,
                         decoration: InputDecoration(
                           hintText: 'enter password - at least 8 characters',
                           hintStyle: hintStyle(context: context),
+                          suffix: IconButton(
+                            onPressed: (() =>
+                                setState(() => (seePassword = !seePassword))),
+                            icon: Icon(
+                              seePassword
+                                  ? Icons.visibility_off_outlined
+                                  : Icons.visibility_outlined,
+                            ),
+                          ),
                         ),
                         textInputAction: TextInputAction.done,
                         keyboardType: TextInputType.visiblePassword,
+                        autofillHints: const [AutofillHints.password],
                         focusNode: focusNode,
-                        style: textStyle(context: context, color: Colors.black),
+                        style: textStyle(
+                            context: context,
+                            color: Colors.black,
+                            size: seePassword ? 3 : 1),
                         onChanged: (value) => setState(() {
                               if (value.length < 8) {
                                 loginStatus = LoginStatus.passwordTooShort;
@@ -797,6 +819,13 @@ Future<LoginState> loginDialog(BuildContext context,
                             String status = response['msg'] ?? '';
                             if (context.mounted && status == 'OK') {
                               Setup().user = user;
+
+                              /// If the user has logged in correctly then the api will contain the
+                              /// user's details.
+                              /// The Mobile version will store the user details in SQLite
+                              /// The Web version will only save the JWT but will have to retrieve the
+                              /// setup Json Object from the api that contains full user details and colours etc
+                              Setup().saveUser();
                               focusNode.dispose();
                               Navigator.pop(context, LoginState.login);
                             } else {
@@ -835,6 +864,7 @@ Future<LoginState> loginDialog(BuildContext context,
               onPressed: () async {
                 if (loginStatus == LoginStatus.emailUnknown) {
                   Setup().user = user;
+                  focusNode.dispose();
                   Navigator.pop(context, LoginState.register);
                 } else if ((user.password.isEmpty ||
                     loginStatus == LoginStatus.passwordUnknown)) {
@@ -847,6 +877,7 @@ Future<LoginState> loginDialog(BuildContext context,
                   String status = response['msg'] ?? '';
                   if (context.mounted && status == 'OK') {
                     Setup().user = user;
+                    Setup().saveUser();
                     focusNode.dispose();
                     Navigator.pop(context, LoginState.login);
                   }

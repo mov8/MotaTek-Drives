@@ -16,9 +16,9 @@ import 'private_storage.dart';
 import 'web_helper.dart';
 import '../constants.dart';
 import '/models/other_models.dart';
-import '/classes/other_classes.dart';
-import '/classes/my_trip_item.dart';
-import '/classes/route.dart';
+//import '/classes/other_classes.dart';
+//import '/classes/my_trip_item.dart';
+import '/classes/classes.dart';
 import '/helpers/helpers.dart';
 import 'package:http/http.dart' as http;
 
@@ -180,7 +180,7 @@ class PrivateStorageLocal implements PrivateDataRepository {
   }
 
   @override
-  Future<List<Map<String, dynamic>>> getSetup(int id) async {
+  Future<Map<String, dynamic>> getSetup(int id) async {
     Database db = _db ??
         await openDatabase(
           join(await getDatabasesPath(), 'drives.db'),
@@ -191,14 +191,15 @@ class PrivateStorageLocal implements PrivateDataRepository {
     // if (records > 0){
     try {
       List<Map<String, dynamic>> maps =
-          //  await db.query('setup', where: 'id >= ?', whereArgs: [id], limit: 1);
-          await db.query('setup', limit: 1);
-      return maps;
+          await db.query('setup', where: 'id >= ?', whereArgs: [id], limit: 1);
+      //  await db.query('setup', limit: 1);
+      return maps.first;
     } catch (e) {
       debugPrint('Error loading Setup ${e.toString()}');
     }
     // }
-    throw ('Error ');
+    // throw ('Error ');
+    return {};
   }
 
   @override
@@ -230,11 +231,12 @@ class PrivateStorageLocal implements PrivateDataRepository {
         );
         Setup().user = user;
         Setup().hasLoggedIn = true;
-        return user;
+        //   return user;
       }
     } catch (e) {
       debugPrint('Error retrieving user');
     }
+
     return User(
       id: id,
       forename: forename,
@@ -247,14 +249,14 @@ class PrivateStorageLocal implements PrivateDataRepository {
   }
 
   @override
-  Future<int> insertSetup(Setup setup) async {
+  Future<int> insertSetup() async {
     Database db = _db ??
         await openDatabase(
           _path = join(await getDatabasesPath(), 'drives.db'),
           version: dbVersion, // in constants.dart,
           onCreate: createDb,
         );
-    Map<String, dynamic> suMap = setup.toMap();
+    Map<String, dynamic> suMap = Setup().toMap();
     try {
       suMap.remove('id');
     } catch (e) {
@@ -270,8 +272,9 @@ class PrivateStorageLocal implements PrivateDataRepository {
         );
         return insertedId;
       } else {
-        await db.update('setup', suMap, where: 'id = ?', whereArgs: [setup.id]);
-        return setup.id;
+        await db
+            .update('setup', suMap, where: 'id = ?', whereArgs: [Setup().id]);
+        return Setup().id;
       }
     } catch (e) {
       debugPrint('Error writing setup : ${e.toString()}');
@@ -767,6 +770,46 @@ class PrivateStorageLocal implements PrivateDataRepository {
     return tripItems;
   }
 
+/*
+  @override
+
+  /// API version move to API interface after debugging
+  Future<List<MyTripItem>> loadMyTripItems() async {
+    List<MyTripItem> myTripItems = [];
+    try {
+      myTripItems = await getPrivateTrips();
+    } catch (e) {
+      debugPrint(e.toString());
+    }
+    return myTripItems;
+  }
+*/
+  /// API version move to API interface after debugging and
+  @override
+  Future<List<MyTripItem>> loadMyTripItemsSQLite() async {
+    List<MyTripItem> myTripItems = [];
+    try {
+      myTripItems = await getPrivateTrips();
+    } catch (e) {
+      debugPrint(e.toString());
+    }
+    return myTripItems;
+  }
+
+  /// API version move to API interface after debugging
+  @override
+  Future<List<MyTripItem>> loadMyTripItems() async {
+    List<MyTripItem> myTripItems = [];
+    try {
+      myTripItems = await getPrivateTrips();
+    } catch (e) {
+      debugPrint(e.toString());
+    }
+    return myTripItems;
+  }
+
+/*
+/// Mobile version to be reinstated after debugging
   @override
   Future<List<MyTripItem>> loadMyTripItems() async {
     Database db = _db ??
@@ -794,9 +837,40 @@ class PrivateStorageLocal implements PrivateDataRepository {
 
     return myTripItems;
   }
-
+*/
+/*
+  /// Temporary version for debugging web version should be moved to private_storage_api.dart
   @override
   Future<MyTripItem> loadMyTripItem({String name = '', int id = -1}) async {
+    List<MyTripItem> tripItems = await loadMyTripItems();
+    for (int i = 0; i < tripItems.length; i++) {
+      if (tripItems[i].title == name) {
+        return tripItems[i];
+      }
+    }
+    return MyTripItem();
+  }
+*/
+
+  /// Api version for testing
+  @override
+  Future<MyTripItem?> loadMyTripItem(
+      {String name = '', int id = -1, String uri = ''}) async {
+    try {
+      return await loadPrivateTrip(uri: uri);
+    } catch (e) {
+      developer.log(
+          'Error PrivateStorageLocal().loadMyTripItem() loading private trip from $uri',
+          name: 'error');
+    }
+    return null;
+  }
+
+  /// Mobile version for single trip item to be reinstated after debugging
+/*
+  @override
+  Future<MyTripItem?> loadMyTripItem(
+      {String name = '', int id = -1, String uri = ''}) async {
     Database db = _db ??
         await openDatabase(
           _path = join(await getDatabasesPath(), 'drives.db'),
@@ -832,8 +906,10 @@ class PrivateStorageLocal implements PrivateDataRepository {
       debugPrint(e.toString());
     }
 
-    return MyTripItem();
+    return null;
   }
+
+  */
 
   @override
   Future<TripItem?> loadTripItemLocal({int id = -1}) async {
@@ -1149,11 +1225,16 @@ class PrivateStorageLocal implements PrivateDataRepository {
     );
   }
 
-//
-
+  /// Api version to be moved to private_storage_api.dart
+  /*
   @override
-  Future<void> deleteDriveLocal({required String driveUri}) async {
-    await deleteDriveById(driveUri);
+  Future<void> deleteDriveLocal({required TripItem tripItem}) async {
+    await deletePrivateDrive(uri: tripItem.uri);
+  }
+*/
+  @override
+  Future<void> deleteDriveLocal({required TripItem tripItem}) async {
+    await deleteDriveById(tripItem.id.toString());
   }
 
 // "type 'int' is not a subtype of type 'Map<String, dynamic>'"
@@ -1240,10 +1321,37 @@ class PrivateStorageLocal implements PrivateDataRepository {
     debugPrint('tested');
   }
 
+  // This is the API debug version for testing
+  // The trip jsonObject already sits on the api so this
+  // call gets the data out of saved_trips and shreds it
+  // into drives. Saving the web traffic to the api.
   @override
   Future<dynamic> publish(MyTripItem tripItem) async {
+    dynamic response;
+    try {
+      var request = http.MultipartRequest(
+          'POST', Uri.parse('$urlDrive/publish/${tripItem.uri}'));
+
+      ///${tripItem.uri}'));
+      request.headers['Authorization'] = 'Bearer ${Setup().jwt}';
+      response = await request.send().timeout(const Duration(seconds: 30));
+    } catch (e) {
+      developer.log(
+          'Error PrivateStorageLocal().publish() error: ${e.toString()} ${response.statusCode}',
+          name: 'error');
+    }
+
+    return ' ';
+  }
+
+  /// This is the correct local SQLite version
+  /// sends a jsonObject of the whole trip to api
+  @override
+  Future<dynamic> publishSQLite(MyTripItem tripItem) async {
     Map<String, dynamic> apiData = tripItem.toJson();
-    List<Photo> photos = photosFromJson(photoString: tripItem.images);
+    List<Photo> photos = photosFromJson(
+      photoString: tripItem.images,
+    );
     dynamic response;
     try {
       var request =
@@ -1275,8 +1383,26 @@ class PrivateStorageLocal implements PrivateDataRepository {
     return ' ';
   }
 
+  Future<int> saveMyTrip(
+      //<-- For testing ONLY
+      CurrentTripItem tripItem,
+      ImageRepository? imageRepository) async {
+    await saveTripWeb(tripItem, imageRepository!);
+    return -1;
+  }
+
+  /// saveMyTrip()
+  /// The Saved trip goes into drives as a jsonObject if the trip column
+  /// The images are all saved here on the devices storage having been extracted
+  /// from the ImageRepository as Uint8List - to facilitate the Web version.
+  /// The image bytes get loaded straight from the Gallery into the ImageRepository
+  /// which works for both the web and mobile versions.
+
   @override
-  Future<int> saveMyTrip(CurrentTripItem tripItem) async {
+  Future<int> saveMyTripLocal(
+      // <-- Is really saveMyTrip() removed for testing api version
+      CurrentTripItem tripItem,
+      ImageRepository? imageRepository) async {
     Database db = _db ??
         await openDatabase(
           _path = join(await getDatabasesPath(), 'drives.db'),
@@ -1284,15 +1410,55 @@ class PrivateStorageLocal implements PrivateDataRepository {
           onCreate: createDb,
         );
     int id = tripItem.id;
+    //  ["{\"url\":\"4ecb1d1f-ed47-4e4d-9614-d1a4bc398b15.jpg\",\"caption\":\"image1\",\"rotation\":0}"]
+    List<Map<String, dynamic>> images = [];
     try {
+      String driveFolder = '${Setup().appDocumentDirectory}/${tripItem.uri}';
+      Directory? targetDirectory;
       Map<String, dynamic> map = {};
-      /* await db.execute('DROP TABLE IF EXISTS trip_item');
-      await db.execute(
-          '''CREATE TABLE IF NOT EXISTS trip_item(id INTEGER PRIMARY KEY AUTOINCREMENT,
-          added TEXT, title TEXT, sub_title TEXT,
-          distance INTEGER, points_of_interest INTEGER,
-          map_image TEXT, trip TEXT)''');
-      */
+      if (tripItem.mapImage != null) {
+        targetDirectory = Directory(driveFolder);
+
+        if (!await targetDirectory.exists()) {
+          await targetDirectory.create();
+        }
+        File('$driveFolder/map.png')
+            .writeAsBytes(tripItem.mapImage!.imageBytes as List<int>);
+
+        images.add(
+            {"url": '$driveFolder/map.png', "caption": 'map', "rotation": 0});
+      }
+
+      for (int i = 0; i < tripItem.pointsOfInterest.length; i++) {
+        List<Photo> photos = tripItem.pointsOfInterest[i].photos;
+        if (photos.isNotEmpty) {
+          targetDirectory ??= Directory(driveFolder);
+          if (!await targetDirectory.exists()) {
+            await targetDirectory.create();
+          }
+          for (int j = 0; j < photos.length; j++) {
+            try {
+              if (photos[j].key.isNotEmpty) {
+                File('$driveFolder/${photos[j].url}').writeAsBytes(
+                  imageRepository!.getBytes(key: photos[j].key),
+                );
+                images.add({
+                  "url": '${tripItem.uri}/${photos[j].url}',
+                  "caption": photos[j].caption,
+                  "rotation": photos[j].rotation,
+                });
+              }
+            } catch (e) {
+              developer.log(
+                  'Error PrivateStorageLocal().saveMyTripLocal(): ${e.toString()}',
+                  name: 'error');
+            }
+          }
+        }
+      }
+
+      tripItem.images = jsonEncode(images);
+
       Map<String, dynamic> tripJSON = tripItem.toJson();
       String tripString = jsonEncode(tripJSON);
 
@@ -1314,18 +1480,10 @@ class PrivateStorageLocal implements PrivateDataRepository {
       } else {
         id = await db.insert('drives', map);
       }
-/*
-      List<Map<String, dynamic>> maps =
-          await db.rawQuery("SELECT * FROM trip_item");
-      String stringJSON = maps.first['trip'];
-      Map<String, dynamic> resultJSON = jsonDecode(stringJSON);
-      debugPrint('Data is ${maps.toString} -> $resultJSON');
-*/
     } catch (e) {
-      debugPrint('Error adding trip to trip_item: ${e.toString()}');
       developer.log(
-          'private_storage_local.dart saveMyTrip() error: ${e.toString()}',
-          name: '_save_trip_');
+          'Error PrivateStorageLocal().saveMyTripLocal() private_storage_local.dart saveMyTrip() error: ${e.toString()}',
+          name: 'error');
     }
     return id;
   }
@@ -1493,11 +1651,6 @@ class PrivateStorageLocal implements PrivateDataRepository {
     String pointsMap = '';
     try {
       pointsMap = json.encode(points);
-      //     for (int i = 0; i < points.length; i++) {
-      //     }
-      //     if (pointsMap.isNotEmpty) {
-      //       pointsMap = '[${pointsMap.substring(0, pointsMap.length - 1)}]';
-      //     }
     } catch (e) {
       debugPrint('Serialisation error: ${e.toString()}');
     }
@@ -1526,17 +1679,6 @@ class PrivateStorageLocal implements PrivateDataRepository {
     );
     for (int i = 0; i < maps.length; i++) {
       pointsOfInterest.add(
-/*        
-        PointOfInterest(
-          id: maps[i]['id'],
-          driveId: driveId,
-          type: maps[i]['type'],
-          name: maps[i]['name'],
-          description: maps[i]['description'],
-          images: maps[i]['images'],
-          point: [maps[i]['longitude'], maps[i]['latitude']],
-        ),
-*/
         PointOfInterest(),
       );
     }

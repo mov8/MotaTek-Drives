@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:ui' as ui;
 import 'dart:convert';
+import 'dart:developer' as developer;
 import 'dart:typed_data';
 import 'package:flutter/material.dart' hide Route;
 import 'package:flutter_map/flutter_map.dart';
@@ -47,12 +48,19 @@ class PrivateStorageLocal implements PrivateDataRepository {
   }
 
   @override
-  Future<List<Map<String, dynamic>>> getSetup(int id) async {
-    return [];
+  Future<Map<String, dynamic>> getSetup(int id) async {
+    Map<String, dynamic> setupMap = await getWebSetup();
+    if (setupMap.isNotEmpty) {
+      return setupMap;
+    }
+    return {};
   }
 
   @override
   Future<User> getUser() async {
+    User user = await getUserApi();
+    return user;
+/*
     int id = 0;
     String forename = 'James';
     String surname = 'Seddon';
@@ -69,15 +77,28 @@ class PrivateStorageLocal implements PrivateDataRepository {
       password: password,
       imageUrl: imageUrl,
     );
+    */
   }
 
+  /// For the web version the Setup data has to be stored on the API so that users can use different
+  /// browsers on different machines
+  /// The JWT will be stored in the secureStorage on the browser but the remaining settings will come from
+  /// the API - from the users table.
+  /// The initial rules are -
+  ///   When a user first logs in the settings will be saved on the API
+  ///   When a user changes the settings on a device ONLY THE DEVICE'S SETTINGS CHANGE
+  ///   When a user changes the settings in a browser THE API SETTINGS CHANGE
+  ///   WHEN a user registers on a new device the API SETTINGS WILL BE USED
+
   @override
-  Future<int> insertSetup(Setup setup) async {
+  Future<int> insertSetup() async {
+    await saveSetupToApi();
     return 0;
   }
 
   @override
   Future<void> updateSetup() async {
+    await saveSetupApi();
     return;
   }
 
@@ -195,13 +216,31 @@ class PrivateStorageLocal implements PrivateDataRepository {
   }
 
   @override
-  Future<List<MyTripItem>> loadMyTripItems() async {
-    return [];
+  Future<MyTripItem?> loadMyTripItem(
+      {String name = '', int id = -1, String uri = ''}) async {
+    try {
+      return await loadPrivateTrip(uri: uri);
+    } catch (e) {
+      developer.log(
+          'Error PrivateStorageLocal().loadMyTripItem() loading private trip from $uri',
+          name: 'error');
+    }
+    return null;
   }
 
+  /// API version move to API interface after debugging
   @override
-  Future<MyTripItem> loadMyTripItem({String name = '', int id = -1}) async {
-    return MyTripItem();
+  Future<List<MyTripItem>> loadMyTripItems() async {
+    List<MyTripItem> myTripItems = [];
+    try {
+      myTripItems = await getPrivateTrips();
+    } catch (e) {
+      debugPrint(e.toString());
+      developer.log(
+          'Error PrivateStorageLocal().loadMyTripItems() failed: error: ${e.toString()}',
+          name: 'error');
+    }
+    return myTripItems;
   }
 
   @override
@@ -222,8 +261,8 @@ class PrivateStorageLocal implements PrivateDataRepository {
 //
 
   @override
-  Future<void> deleteDriveLocal({required String driveUri}) async {
-    return;
+  Future<void> deleteDriveLocal({required TripItem tripItem}) async {
+    await deletePrivateDrive(uri: tripItem.uri);
   }
 
 // "type 'int' is not a subtype of type 'Map<String, dynamic>'"
@@ -233,9 +272,14 @@ class PrivateStorageLocal implements PrivateDataRepository {
   }
 
   @override
-  Future<int> saveMyTrip(CurrentTripItem tripItem) async {
-    return 0;
+  Future<int> saveMyTrip(
+      //<-- For testing ONLY
+      CurrentTripItem tripItem,
+      ImageRepository? imageRepository) async {
+    await saveTripWeb(tripItem, imageRepository!);
+    return -1;
   }
+
 /*
   @override
   Future<OsmAmenity> loadOsmAmenityLocal({required int id, index = 0}) async {
@@ -415,7 +459,9 @@ class PrivateStorageLocal implements PrivateDataRepository {
   @override
   Future<List<MyTripItem>> tripItemFromDb(
       {int driveId = -1, bool showMethods = false}) async {
-    return [];
+    List<MyTripItem> tripItems = [];
+    tripItems = await getPrivateTrips();
+    return tripItems;
   }
 
   @override
@@ -424,14 +470,37 @@ class PrivateStorageLocal implements PrivateDataRepository {
     try {
       var request = http.MultipartRequest(
           'POST', Uri.parse('$urlDrive/publish/${tripItem.uri}'));
+
+      ///${tripItem.uri}'));
       request.headers['Authorization'] = 'Bearer ${Setup().jwt}';
       response = await request.send().timeout(const Duration(seconds: 30));
     } catch (e) {
-      debugPrint('error: ${e.toString()} ${response.statusCode}');
+      developer.log(
+          'Error PrivateStorageLocal().publish() error: ${e.toString()} ${response.statusCode}',
+          name: 'error');
     }
 
     return ' ';
   }
+/*
+  @override
+  Future<dynamic> publish(MyTripItem tripItem) async {
+    dynamic response;
+    try {
+      var request =
+          http.MultipartRequest('POST', Uri.parse('$urlDrive/publish}'));
+
+      ///${tripItem.uri}'));
+      request.headers['Authorization'] = 'Bearer ${Setup().jwt}';
+      response = await request.send().timeout(const Duration(seconds: 30));
+    } catch (e) {
+      developer.log('error: ${e.toString()} ${response.statusCode}',
+          name: '_args_');
+    }
+
+    return ' ';
+  }
+*/
 }
 
 PrivateStorageLocal getPrivateRepository() => PrivateStorageLocal();

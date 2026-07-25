@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:math';
 import 'dart:developer' as developer;
+import 'package:drives/services/db_helper.dart';
+
 import '/helpers/helpers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
@@ -12,12 +14,13 @@ import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import '/constants.dart';
 import '/screens/screens.dart';
-import '/classes/route.dart';
+import '/classes/classes.dart';
 // import 'package:flutter_map/flutter_map.dart';
 // import 'package:latlong2/latlong.dart' as fm;
 import 'package:flutter/material.dart' hide Route;
 import 'package:universal_io/io.dart';
 import 'package:socket_io_client/socket_io_client.dart' as sio;
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 // import 'package:geolocator/geolocator.dart';
 
 /// https://api.flutter.dev/flutter/material/Icons-class.html  get the icon codepoint from here
@@ -307,6 +310,13 @@ class Setup {
   bool maleVoice = false;
   MyTripItem? currentTrip;
   Position lastPosition = Position();
+  //WebAppBarController? webAppBarController;
+  // SideDrawerController? sideDrawerController;
+  // StatusBarController? statusBarController;
+  // SideDrawer? sideDrawer;
+  // MLMap? mlMap;
+  // WebAppBar webAppBar = WebAppBar(appBarController: WebAppBarController());
+  // MapLibreMapController? mlMapController;
 
   String jwt = '';
   User user = User(
@@ -322,75 +332,172 @@ class Setup {
   factory Setup() {
     return _instance;
   }
+  FlutterSecureStorage? _storage;
+
+  /// Setup().loaded ensures Setup singleton has been instantiated, and looks to see if a
+  /// silent login is possible by retrieving the jwt either from secure storage on
+  /// the Web version or SQLite for the mobile.
+  /// If the jwt logs in OK then the Web version has to retrieve the settings from the api, and the
+  /// mobile version from SQLite.
+  /// If the jwt isn't available or valid then a login will be initiated through dialogs.dart
+  /// LoginDialog Class.
 
   Future<bool> get loaded async {
     if (kIsWeb) {
-      user.forename = 'James';
-      user.surname = 'Seddon';
-      user.email = 'james@staintonconsultancy.com';
-      user.password = 'rubberduck';
-      user.phone = '07761632236';
-      return true;
-    }
+      _storage = FlutterSecureStorage(
+        webOptions: WebOptions(
+          dbName: 'MotatekSecure',
+          publicKey: 'Config',
+        ),
+        // iOS-specific configuration
+        iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
+      );
+      try {
+        jwt = await _storage!.read(key: 'jwt') ?? '';
 
-    appDocumentDirectory = (await getApplicationDocumentsDirectory()).path;
-    cacheDirectory = Directory('$appDocumentDirectory/cache');
-    if (!await cacheDirectory.exists()) {
-      await Directory('$appDocumentDirectory/cache').create();
-    }
-    soundsDirectory = Directory('$appDocumentDirectory/sounds');
-    if (!await soundsDirectory.exists()) {
-      await Directory('$appDocumentDirectory/sounds').create();
+        if (jwt.isNotEmpty) {
+          user = await getPrivateRepository().getUser();
+
+          /// When the server sends the setup data it will refresh the jwt sent back in the map
+          /// this will ensure the security of the site
+          /// await setupFromDb();
+          /// return true;
+        } else {
+          return false;
+        }
+      } catch (e) {
+        developer.log('Error Setup() loaded() retrieving jwt: ${e.toString()}',
+            name: 'error');
+      }
+
+      /// Have to add the get setup data from the api.
+    } else {
+      appDocumentDirectory = (await getApplicationDocumentsDirectory()).path;
+      cacheDirectory = Directory('$appDocumentDirectory/cache');
+      if (!await cacheDirectory.exists()) {
+        await Directory('$appDocumentDirectory/cache').create();
+      }
+      soundsDirectory = Directory('$appDocumentDirectory/sounds');
+      if (!await soundsDirectory.exists()) {
+        await Directory('$appDocumentDirectory/sounds').create();
+      }
     }
 
     return _loaded ??= await setupFromDb();
   }
 
   Future<bool> setupFromDb() async {
-    //  var setupRecords = await recordCount('setup');
-    //  debugPrint('Setup contains $setupRecords records');
-    List<Map<String, dynamic>> maps = await getPrivateRepository().getSetup(0);
-    if (maps.isNotEmpty) {
+    ///  var setupRecords = await recordCount('setup');
+    ///  debugPrint('Setup contains $setupRecords records');
+    //  TODO: put the user in the setup json to avoid a separate call to the api
+    Map<String, dynamic> map = await getPrivateRepository().getSetup(0);
+    if (map.isNotEmpty) {
       try {
-        id = maps[0]['id'];
-        routeColour = maps[0]['route_colour'];
-        goodRouteColour = maps[0]['good_route_colour'];
-        waypointColour = maps[0]['waypoint_colour'];
-        pointOfInterestColour = maps[0]['point_of_interest_colour'];
-        waypointColour2 = maps[0]['waypoint_colour_2'];
-        pointOfInterestColour2 = maps[0]['point_of_interest_colour_2'];
-        selectedColour = maps[0]['selected_colour'];
-        highlightedColour = maps[0]['highlighted_colour'];
-        publishedTripColour = maps[0]['published_trip_colour'] ?? 10;
-        recordDetail = maps[0]['record_detail'];
-        allowNotifications = maps[0]['allow_notifications'] == 1;
-        jwt = maps[0]['jwt'];
-        dark = maps[0]['dark'] == 1;
-        rotateMap = maps[0]['rotate_map'] == 1;
-        avoidMotorways = maps[0]['avoid_motorways'] == 1;
-        avoidAroads = maps[0]['avoid_a_roads'] == 1;
-        avoidBroads = maps[0]['avoid_b_roads'] == 1;
-        avoidTollRoads = maps[0]['avoid_toll_roads'] == 1;
-        avoidFerries = maps[0]['avoid_ferries'] == 1;
-        osmPubs = maps[0]['osm_pubs'] == 1;
-        osmRestaurants = maps[0]['osm_restaurants'] == 1;
-        osmFuel = maps[0]['osm_fuel'] == 1;
-        osmToilets = maps[0]['osm_toilets'] == 1;
-        osmAtms = maps[0]['osm_atms'] == 1;
-        osmHistorical = maps[0]['osm_historical'] == 1;
-        bottomNavIndex = maps[0]['bottom_nav_index'];
-        appState = maps[0]['app_state'];
-        maleVoice = (maps[0]['male_voice'] ?? 0) == 1;
+        id = map['id'];
+        routeColour = map['route_colour'];
+        goodRouteColour = map['good_route_colour'];
+        waypointColour = map['waypoint_colour'];
+        pointOfInterestColour = map['point_of_interest_colour'];
+        waypointColour2 = map['waypoint_colour_2'];
+        pointOfInterestColour2 = map['point_of_interest_colour_2'];
+        selectedColour = map['selected_colour'];
+        highlightedColour = map['highlighted_colour'];
+        publishedTripColour = map['published_trip_colour'] ?? 10;
+        recordDetail = map['record_detail'];
+        allowNotifications = map['allow_notifications'] == 1;
+        // jwt = map['jwt'];  /// <-- The setup jwt will be out of date
+        dark = map['dark'] == 1;
+        rotateMap = map['rotate_map'] == 1;
+        avoidMotorways = map['avoid_motorways'] == 1;
+        avoidAroads = map['avoid_a_roads'] == 1;
+        avoidBroads = map['avoid_b_roads'] == 1;
+        avoidTollRoads = map['avoid_toll_roads'] == 1;
+        avoidFerries = map['avoid_ferries'] == 1;
+        osmPubs = map['osm_pubs'] == 1;
+        osmRestaurants = map['osm_restaurants'] == 1;
+        osmFuel = map['osm_fuel'] == 1;
+        osmToilets = map['osm_toilets'] == 1;
+        osmAtms = map['osm_atms'] == 1;
+        osmHistorical = map['osm_historical'] == 1;
+        bottomNavIndex = map['bottom_nav_index'];
+        appState = map['app_state'];
+        maleVoice = (map['male_voice'] ?? 0) == 1;
       } catch (e) {
         debugPrint('Failed to load Setup() from db: ${e.toString()}');
       }
     }
-    user = await getPrivateRepository().getUser();
+
+    await getPrivateRepository().getUser();
     return true;
   }
 
+/*
+  Future<bool> setupFromStorage() async {
+    /* _storage ??= FlutterSecureStorage(
+      webOptions: WebOptions(
+        dbName: 'MotatekSecure',
+        publicKey: 'Config',
+      ),
+      iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
+    ); */
+    String mapString = await _storage!.read(key: 'values') ?? '';
+    if (mapString.isNotEmpty) {
+      Map map = json.decode(mapString);
+      id = map['id'];
+      routeColour = map['route_colour'];
+      goodRouteColour = map['good_route_colour'];
+      waypointColour = map['waypoint_colour'];
+      pointOfInterestColour = map['point_of_interest_colour'];
+      waypointColour2 = map['waypoint_colour_2'];
+      pointOfInterestColour2 = map['point_of_interest_colour_2'];
+      selectedColour = map['selected_colour'];
+      highlightedColour = map['highlighted_colour'];
+      publishedTripColour = map['published_trip_colour'] ?? 10;
+      recordDetail = map['record_detail'];
+      allowNotifications = map['allow_notifications'] == 1;
+      jwt = map['jwt'];
+      dark = map['dark'] == 1;
+      rotateMap = map['rotate_map'] == 1;
+      avoidMotorways = map['avoid_motorways'] == 1;
+      avoidAroads = map['avoid_a_roads'] == 1;
+      avoidBroads = map['avoid_b_roads'] == 1;
+      avoidTollRoads = map['avoid_toll_roads'] == 1;
+      avoidFerries = map['avoid_ferries'] == 1;
+      osmPubs = map['osm_pubs'] == 1;
+      osmRestaurants = map['osm_restaurants'] == 1;
+      osmFuel = map['osm_fuel'] == 1;
+      osmToilets = map['osm_toilets'] == 1;
+      osmAtms = map['osm_atms'] == 1;
+      osmHistorical = map['osm_historical'] == 1;
+      bottomNavIndex = map['bottom_nav_index'];
+      appState = map['app_state'];
+      maleVoice = (map['male_voice'] ?? 0) == 1;
+      return true;
+    }
+    return false;
+  }
+  */
+
   Future<void> setupToDb() async {
-    await getPrivateRepository().insertSetup(this);
+    await getPrivateRepository().insertSetup();
+  }
+
+/*
+  Future<void> setupToStorage() async {
+    Map<String, dynamic> setupMap = toMap();
+    await _storage!.write(key: 'values', value: jsonEncode(setupMap));
+  }
+*/
+
+  /// If the user has logged in correctly then the api will contain the
+  /// user's details.
+  /// The Mobile version will store the user details in SQLite
+  /// The Web version will only save the JWT but will have to retrieve the
+  /// setup Json Object from the api that contains full user details and colours etc
+  Future<void> saveUser() async {
+    if (kIsWeb) {
+      await _storage!.write(key: 'jwt', value: jwt);
+    }
   }
 
   Map<String, dynamic> toMap() {
@@ -463,6 +570,80 @@ class Setup {
   }
 }
 
+class OverflowMethods {
+  WebAppBarController? webAppBarController;
+  BuildContext? context;
+  OverflowMethods({this.context, this.webAppBarController});
+
+  void settings() {
+    if (webAppBarController == null) {
+      Navigator.push(
+        context!,
+        MaterialPageRoute(builder: (context) => SetupForm()),
+      );
+    } else {}
+  }
+
+  void register() {
+    if (webAppBarController == null) {
+      Navigator.push(
+        context!,
+        MaterialPageRoute(builder: (context) => const SignupForm()),
+      );
+    } else {}
+  }
+
+  void manageGroups() {
+    if (webAppBarController == null) {
+      Navigator.push(
+        context!,
+        MaterialPageRoute(builder: (context) => const GroupForm()),
+      );
+    } else {}
+  }
+
+  void myGroups() {
+    if (webAppBarController == null) {
+      Navigator.push(
+        context!,
+        MaterialPageRoute(builder: (context) => const MyGroupsForm()),
+      );
+    } else {}
+  }
+
+  void inviteUser() {
+    if (webAppBarController == null) {
+      Navigator.push(
+        context!,
+        MaterialPageRoute(builder: (context) => const IntroduceForm()),
+      );
+    } else {}
+  }
+
+  void manageEvents() {
+    if (webAppBarController == null) {
+      Navigator.push(
+        context!,
+        MaterialPageRoute(builder: (context) => const GroupDriveForm()),
+      );
+    } else {}
+  }
+
+  void myEvents() {
+    if (webAppBarController == null) {
+      Navigator.push(
+        context!,
+        MaterialPageRoute(builder: (context) => const InvitationsScreen()),
+      );
+    } else {}
+  }
+
+  void docs() {
+    if (webAppBarController == null) {
+    } else {}
+  }
+}
+
 class PointOfInterest {
   // GlobalKey? handle;
   int id;
@@ -476,6 +657,8 @@ class PointOfInterest {
   int scored;
   int type;
   List<Photo> photos;
+  // Map<String, dynamic> memoryImages;
+  // List<ImageInMemory> memoryImages;
 
   PointOfInterest({
     this.id = -1,
@@ -488,9 +671,12 @@ class PointOfInterest {
     this.score = 0,
     this.scored = 0,
     this.sounds = '',
+    //Map<String, dynamic>? memoryImages,
+    // List<ImageInMemory>? memoryImages,
     List<Photo>? photos,
   })  : uuid = uuid ?? getUuid(),
         photos = photos ?? <Photo>[];
+  //  memoryImages = memoryImages ?? <ImageInMemory>[]; // memoryImages ?? {};
 
   factory PointOfInterest.fromMap({required Map<String, dynamic> map}) {
     return PointOfInterest(
@@ -505,6 +691,57 @@ class PointOfInterest {
       scored: map["scored"] ?? 0,
       sounds: '',
     );
+  }
+
+  factory PointOfInterest.fromJson({required Map<String, dynamic> map}) {
+    String uploadEndPoint = '${urlBase}api/static/images';
+    Map<String, dynamic> point = jsonDecode(map['point']);
+    List images = jsonDecode(map['images']);
+
+    List<Photo> photos = [];
+    for (int i = 0; i < images.length; i++) {
+      images[i] = images[i] is String ? jsonDecode(images[i]) : images[i];
+      images[i]['url'] = '$uploadEndPoint/${map['drive_id']}/${map['id']}.jpg';
+      photos.add(Photo.fromJson(images[i]));
+    }
+
+    debugPrint('images: $images');
+
+    return PointOfInterest(
+      id: -1,
+      uuid: map['id'],
+      point: Point(point['coordinates'][0], point['coordinates'][1]),
+      type: map['type'] ?? 0,
+      name: map['name'] ?? '',
+      description: map['description'] ?? '',
+      images: map['images'] ?? '[]',
+      score: (map['rating'] ?? 0).toDouble(),
+      scored: map["rated"] ?? 0,
+      sounds: '',
+      photos: photos,
+    );
+  }
+
+  List<Photo> getPhotos({required String driveId, bool fromWeb = true}) {
+    String endPoint = fromWeb
+        ? '$staticImagesFolder/$driveId/'
+        : '${Setup().appDocumentDirectory}/$driveId/';
+
+    List<Photo> photos = photosFromJson(
+      photoString: images, // imagesString,
+      id: id,
+      endPoint: endPoint,
+    );
+    return photos;
+  }
+
+  void addPhoto({required Photo photo}) {
+    photos.add(photo);
+    if (images.isEmpty) {
+      images = photo.toString();
+    } else {
+      images = '[$images, ${photo.toString()}]';
+    }
   }
 
   /// complete returns the data state of the PointOfInterest:
@@ -534,30 +771,6 @@ class PointOfInterest {
       }, // Standardise for local storage as a map
     };
   }
-
-/*
-  Map<String, dynamic> toGeoJson() {
-    return {
-      'type': 'Feature',
-      'geometry': {
-        'type': 'point',
-        'coordinates': [point.x, point.y]
-      },
-      'properties': {
-        'uri': uuid,
-        'name': name,
-        'description': description,
-        'type': type,
-        "color": Setup().pointOfInterestColourHex(),
-        'images': images,
-        'rated': 0,
-        'rating': score,
-        'author': ''
-      }
-    };
-  }
-*/
-//  get photos => [];
 
   get published => '';
 
@@ -591,7 +804,7 @@ class PointOfInterest {
         }
       };
     } catch (e) {
-      developer.log('Error calling PointOfInterest.toGeoJson()', name: '_g_j_');
+      developer.log('Error calling PointOfInterest.toGeoJson()', name: 'error');
     }
     return geoJson;
   }
@@ -1054,19 +1267,21 @@ class GroupDriveInvitation {
   }
 }
 
+/// The Photo class is used to present the ImageArranger with the data required
+/// It takes the raw file name and adds the endpoint to give the full url
+
 class Photo {
   String url;
   int id;
-  int key;
+  String key;
   int index;
   int rotation;
   String caption;
   String endPoint;
-
   Photo(
       {required this.url,
       this.id = -1,
-      this.key = -1,
+      this.key = '',
       this.index = -1,
       this.caption = '',
       this.rotation = 0,
@@ -1074,39 +1289,51 @@ class Photo {
 
   factory Photo.fromJson(Map<String, dynamic> json,
       {int index = -1, String endPoint = ''}) {
-    String url = json['url'].contains(Setup().appDocumentDirectory) ||
-            json['url'] == "" ||
-            json['url'].contains('http')
-        ? json['url']
-        : '$endPoint${json['url']}';
+    String url = json['url'] ?? '';
+    var key = json['key'] ?? '';
+    key = key is String ? key : '';
+    url = endPoint.isNotEmpty ? url.split("/").last : url;
+    url = (Setup().appDocumentDirectory.isNotEmpty &&
+                url.contains(Setup().appDocumentDirectory)) ||
+            url.isEmpty ||
+            url.contains('http') /* ||
+            key.isNotEmpty */
+        ? url
+        : '$endPoint/$url';
+
     return Photo(
         url: url,
         id: json['id'] ?? -1,
         caption: json['caption'] ?? '',
         rotation: json['rotation'] ?? 0,
-        key: -1,
+        key: key,
         index: index);
   }
 
-  factory Photo.fromJsonMap(Map<String, String> json) {
+  factory Photo.fromJsonMap(Map<String, dynamic> json) {
     return Photo(
       url: json['url'] ?? '',
       id: int.parse(json['id'] ?? '-1'),
       caption: json['caption'] ?? '',
-      rotation: int.parse(json['rotation'] ?? '0'),
+      rotation: json['rotation'] ?? 0,
     );
   }
 
+  /// Photo.toJson() will only ever be used for sending photo data to the api so the key should be empty
   String toJson() {
-    return '{"url": $url, "caption": $caption, "rotation": $rotation}';
+    return '{"url": "$url", "caption": "$caption", "rotation": $rotation, "key": ""}';
   }
 
   String toMapString() {
     if (url.contains('http')) {
-      return '{"url": "${url.substring(url.lastIndexOf('/') + 1)}", "caption": "$caption", "rotation": $rotation}';
+      return '{"url": "${url.substring(url.lastIndexOf('/') + 1)}", "caption": "$caption", "rotation": $rotation, "key": "$key"}';
     } else {
-      return '{"url": "$url", "caption": "$caption", "rotation": $rotation}';
+      return '{"url": "$url", "caption": "$caption", "rotation": $rotation, "key": "$key"}';
     }
+  }
+
+  String toString() {
+    return '{"url": "$url", "caption": "$caption", "rotation": $rotation, "key": "$key"}';
   }
 
   String toEscapedString() {
@@ -1300,6 +1527,8 @@ class Maneuver {
       "bearing_before": bearingBefore,
       "bearing_after": bearingAfter,
       "location": '{"lat":${point.y},"long":${point.x}}',
+      "lat": '${point.y}',
+      "lon": '${point.x}',
       "modifier": modifier,
       "type": type,
       "distance": distance,
@@ -1457,7 +1686,7 @@ String handleWebImages(String urls) {
       !urls.contains('caption_')) {
     mappedUrls = urls.replaceAll(RegExp(r','), ', "caption":""},{"url": ');
     mappedUrls =
-        '[{"url":${mappedUrls.substring(1, mappedUrls.length - 1)}, "caption": ""}]';
+        '[{"url":${mappedUrls.substring(1, mappedUrls.length - 1)}, "caption": "", "rotation": 0}]';
   }
   return mappedUrls;
 }
@@ -1487,7 +1716,7 @@ class HomeItem {
 
   /// Need to be able to change the URL as the API doesn't
   /// send the endpoint address to save web traffic, The app
-  /// adds in the appropriale address as it processes the data
+  /// adds in the appropriate address as it processes the data
   /// which is sent as  by the API and read as a map.
   /// As the fromMap method has to cope with data from both the
   /// API and the local SQLite db all integer values have to be
@@ -1519,6 +1748,17 @@ class HomeItem {
       'score': score.toString(),
     };
   }
+
+  List<Photo> getPhotos() {
+    List<Photo> photos = [];
+    List imageList = jsonDecode(imageUrls);
+    for (int i = 0; i < imageList.length; i++) {
+      Map<String, dynamic> image = jsonDecode(imageList[i]);
+      image['url'] = '$staticImagesFolder/home_page/$uri/${image['url']}';
+      photos.add(Photo.fromJson(image));
+    }
+    return photos;
+  }
 }
 
 class ShopItem {
@@ -1535,6 +1775,7 @@ class ShopItem {
   String buttonText2;
   String url2;
   int links;
+  DateTime? added;
   ShopItem(
       {this.id = -1,
       this.uri = '',
@@ -1548,8 +1789,10 @@ class ShopItem {
       this.url1 = '',
       this.buttonText2 = '',
       this.url2 = '',
-      this.links = 0})
-      : imageUrls = handleWebImages(imageUrls);
+      this.links = 0,
+      DateTime? added})
+      : imageUrls = handleWebImages(imageUrls),
+        added = added ?? DateTime.now();
 
   factory ShopItem.fromMap(
       {required Map<String, dynamic> map, String url = ''}) {
@@ -1588,6 +1831,30 @@ class ShopItem {
       'button_text_2': buttonText2,
       'url_2': url2,
     };
+  }
+
+  List<Photo> getPhotos() {
+    List<Photo> photos = [];
+    List imageList = jsonDecode(imageUrls);
+    for (int i = 0; i < imageList.length; i++) {
+      imageList[i] =
+          imageList[i] is String ? jsonDecode(imageList[i]) : imageList[i];
+      imageList[i]['url'] =
+          '$staticImagesFolder/shop_item/$uri/${imageList[i]['url']}';
+      photos.add(Photo.fromJson(imageList[i]));
+    }
+    return photos;
+  }
+
+  List<Photo> getPhotos2() {
+    List<Photo> photos = [];
+    List imageList = jsonDecode(imageUrls);
+    for (int i = 0; i < imageList.length; i++) {
+      Map<String, dynamic> image = jsonDecode(imageList[i]);
+      image['url'] = '$staticImagesFolder/home_page/$uri/${image['url']}';
+      photos.add(Photo.fromJson(image));
+    }
+    return photos;
   }
 }
 
@@ -1655,7 +1922,7 @@ class TripItem {
   String authorUrl = '';
   bool published = false;
   String imageUrls = '';
-  List<Photo> photos;
+  List<Photo>? photos;
   String score = '';
   double rating = 5;
   double distance = 0;
@@ -1666,29 +1933,33 @@ class TripItem {
   int downloads = 18;
   String added = '';
   List polylines;
-  TripItem(
-      {this.handle,
-      this.id = 0,
-      this.driveUri = '',
-      this.title = '',
-      this.subTitle = '',
-      this.body = '',
-      this.author = '',
-      this.authorUrl = '',
-      this.published = false,
-      this.imageUrls = '',
-      this.score = '',
-      this.rating = 5,
-      this.distance = 0,
-      this.distanceAway = 0,
-      this.pointsOfInterestCount = 0,
-      this.closest = 12,
-      this.scored = 10,
-      this.downloads = 18,
-      this.added = '',
-      this.photos = const [],
-      this.uri = '',
-      this.polylines = const []});
+  // List<PointOfInterest>? pointsOfInterest;
+  TripItem({
+    this.handle,
+    this.id = 0,
+    this.driveUri = '',
+    this.title = '',
+    this.subTitle = '',
+    this.body = '',
+    this.author = '',
+    this.authorUrl = '',
+    this.published = false,
+    this.imageUrls = '',
+    this.score = '',
+    this.rating = 5,
+    this.distance = 0,
+    this.distanceAway = 0,
+    this.pointsOfInterestCount = 0,
+    this.closest = 12,
+    this.scored = 10,
+    this.downloads = 18,
+    this.added = '',
+    List<Photo>? photos,
+    this.uri = '',
+    this.polylines = const [],
+  }) : photos = photos ?? <Photo>[];
+  //    List<PointOfInterest>? pointsOfInterest});
+  //  : pointsOfInterest = pointsOfInterest ?? [];
 
   Map<String, dynamic> toMap() {
     return {
@@ -1758,6 +2029,10 @@ class TripItem {
       downloads: tripMap['downloads'] ?? 0,
     );
   }
+
+  List<Photo> get tripPhotos => photos ?? <Photo>[];
+
+  set addPhotos(List<Photo> photos) => photos = photos;
 
   String toStars({var value}) {
     int starValue = value.toInt();

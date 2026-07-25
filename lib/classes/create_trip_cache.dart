@@ -156,9 +156,6 @@ class TripRequest {
           }
         }
         setBounds(bounds: bounds, zoom: zoom);
-        developer.log(
-            'create_trip_cache.dart 158 - update() bounds: ${bounds.toString()} zoom: $zoom',
-            name: '_map_');
         dynamic geoJson = await getGoodRoadsGeoJson(
             boundingBox: _3DCache["cache"][level(zoom: zoom)]["fence"],
             exclude: excluded,
@@ -166,62 +163,59 @@ class TripRequest {
         var jsonData;
         if (geoJson.isNotEmpty) {
           jsonData = jsonDecode(geoJson);
-          // return jsonData;  // Debug
-          // Extract returned ids to exclude
-          for (int i = 0; i < jsonData["features"].length; i++) {
-            if (jsonData['features'][i]['properties'].length == 5) {
-              _3DCache["cache"][zLevel]["data"]["lines"]
-                  .add(jsonData["features"][i]);
-              _3DCache["cache"][zLevel]["exclude"]
-                  .add(jsonData['features'][i]["id"]);
-            } else {
-              _3DCache["cache"][zLevel]["data"]["shields"]
-                  .add(jsonData["features"][i]);
+          if (jsonData['features'] != null) {
+            // return jsonData;  // Debug
+            // Extract returned ids to exclude
+            for (int i = 0; i < jsonData["features"].length; i++) {
+              if (jsonData['features'][i]['properties'].length == 5) {
+                _3DCache["cache"][zLevel]["data"]["lines"]
+                    .add(jsonData["features"][i]);
+                _3DCache["cache"][zLevel]["exclude"]
+                    .add(jsonData['features'][i]["id"]);
+              } else {
+                _3DCache["cache"][zLevel]["data"]["shields"]
+                    .add(jsonData["features"][i]);
+              }
+            }
+
+            geoJson = await getPointsOfInterestGeoJson(
+                boundingBox: _3DCache["cache"][level(zoom: zoom)]["fence"],
+                exclude: excluded,
+                zoom: zoom);
+            if (geoJson.isNotEmpty) {
+              jsonData = jsonDecode(geoJson);
+              // return jsonData;  // Debug
+              // Extract returned ids to exclude
+              for (int i = 0; i < jsonData["features"].length; i++) {
+                _3DCache["cache"][zLevel]["data"]["pois"]
+                    .add(jsonData["features"][i]);
+              }
+            }
+            _lastZoom = zoom;
+            onUpdated(zoom.toInt());
+            for (int i = 0;
+                i < _3DCache["cache"][zLevel]["data"]["lines"].length;
+                i++) {
+              _3DCache["cache"][zLevel]["data"]["lines"][i]["properties"]
+                  ["highlighted"] = highlighted;
+            }
+            for (int i = 0;
+                i < _3DCache["cache"][zLevel]["data"]["shields"].length;
+                i++) {
+              _3DCache["cache"][zLevel]["data"]["shields"][i]["properties"]
+                  ["highlighted"] = highlighted;
             }
           }
+          return {
+            "type": "FeatureCollection",
+            "features": _3DCache["cache"][zLevel]["data"]["lines"] +
+                _3DCache["cache"][zLevel]["data"]["shields"]
+          };
         }
-
-        geoJson = await getPointsOfInterestGeoJson(
-            boundingBox: _3DCache["cache"][level(zoom: zoom)]["fence"],
-            exclude: excluded,
-            zoom: zoom);
-        if (geoJson.isNotEmpty) {
-          jsonData = jsonDecode(geoJson);
-          // return jsonData;  // Debug
-          // Extract returned ids to exclude
-          for (int i = 0; i < jsonData["features"].length; i++) {
-            _3DCache["cache"][zLevel]["data"]["pois"]
-                .add(jsonData["features"][i]);
-          }
-        }
-        _lastZoom = zoom;
-        onUpdated(zoom.toInt());
-        for (int i = 0;
-            i < _3DCache["cache"][zLevel]["data"]["lines"].length;
-            i++) {
-          _3DCache["cache"][zLevel]["data"]["lines"][i]["properties"]
-              ["highlighted"] = highlighted;
-        }
-        for (int i = 0;
-            i < _3DCache["cache"][zLevel]["data"]["shields"].length;
-            i++) {
-          _3DCache["cache"][zLevel]["data"]["shields"][i]["properties"]
-              ["highlighted"] = highlighted;
-        }
-        developer.log(
-            'TripRequest.update() returning ${_3DCache["cache"][zLevel]["data"]["lines"].length} lines + ${_3DCache["cache"][zLevel]["data"]["shields"]} shields',
-            name: '_geoJson*_');
-        return {
-          "type": "FeatureCollection",
-          "features": _3DCache["cache"][zLevel]["data"]["lines"] +
-              _3DCache["cache"][zLevel]["data"]["shields"]
-        };
       } catch (e) {
-        developer.log('Error using 3-DCache: ${e.toString()}');
+        developer.log('Error using 3-DCache: ${e.toString()}', name: 'error');
       }
     }
-    developer.log('TripRequest.update() returning no lines or shields',
-        name: '_geoJson*_');
     return {"type": "FeatureCollection", "features": []};
   }
 
@@ -238,38 +232,16 @@ class TripRequest {
     String zLevel = level(zoom: zoom);
     try {
       Map<String, dynamic> fence = _3DCache["cache"][zLevel]["fence"];
-      if (bounds.southwest.longitude < fence["sw"]["lng"]) {
-        developer.log(
-            'zLevel: $zLevel  sw longitude breach fence : ${fence["sw"]["lng"]}  bounds: ${bounds.southwest.longitude} ',
-            name: '_x_map_');
-      }
-      if (bounds.southwest.latitude < fence["sw"]["lat"]) {
-        developer.log(
-            'zLevel: $zLevel  sw longitude breach fence : ${fence["sw"]["lat"]}  bounds: ${bounds.southwest.latitude} ',
-            name: '_x_map_');
-      }
-      if (bounds.northeast.longitude > fence["ne"]["lng"]) {
-        developer.log(
-            'zLevel: $zLevel  ne longitude breach fence : ${fence["ne"]["lng"]}  bounds: ${bounds.northeast.longitude} ',
-            name: '_x_map_');
-      }
-
-      if (bounds.northeast.latitude > fence["ne"]["lat"]) {
-        developer.log(
-            'zLevel: $zLevel  ne latitude breach fence : ${fence["ne"]["lat"]}  bounds: ${bounds.northeast.latitude} ',
-            name: '_x_map_');
-      }
-
       if (bounds.southwest.longitude < fence["sw"]["lng"] ||
           bounds.southwest.latitude < fence["sw"]["lat"] ||
           bounds.northeast.longitude > fence["ne"]["lng"] ||
           bounds.northeast.latitude > fence["ne"]["lat"]) {
-        developer.log('bounds breached', name: '_x_map_');
         return true;
       }
     } catch (e) {
-      debugPrint(
-          'error getting 3-DCache outsideFence() create_trip_cache.dart: ${e.toString()}');
+      developer.log(
+          'error getting 3-DCache outsideFence() create_trip_cache.dart: ${e.toString()}',
+          name: 'error');
     }
     return false;
   }
@@ -293,9 +265,6 @@ class TripRequest {
         (bounds.northeast.latitude - bounds.southwest.latitude).abs();
     // Add a 100% buffer in all directions (1 screen width padding)
     String zLevel = level(zoom: zoom);
-    //  developer.log(
-    //      'zLevel: $zLevel , sw: ${_3DCache["cache"][zLevel]["fence"]["sw"]}, ne: ${_3DCache["cache"][zLevel]["fence"]["ne"]} bounds: sw: ${bounds.southwest} ne: ${bounds.northeast}',
-    //      name: '_x_map_');
     _3DCache["cache"][zLevel]["fence"] = {
       "sw": {
         "lng": bounds.southwest.longitude - lngSpan,
@@ -306,7 +275,6 @@ class TripRequest {
         "lat": bounds.northeast.latitude + latSpan
       }
     };
-    developer.log('bounds set', name: '_x_map_');
     return;
   }
 
@@ -355,7 +323,7 @@ class TripRequest {
               callback(true);
             }
           },
-          // onUpdate: (value) => callback!(value) ?? (_) => (),
+          // onUpdate: (value) => callback!(value) ?? (_) {},
         ),
       )
     ];
@@ -369,9 +337,6 @@ class TripRequest {
           bool toEdit = dataRequired.isPointOfInterest &&
                   CurrentTripItem().pointsOfInterest[i].name.isEmpty ||
               CurrentTripItem().pointsOfInterest[i].uuid == openUri;
-          developer.log(
-              'CurrentTripItem().pointsOfInterest[$i] toEdit: $toEdit',
-              name: '_keyboard_');
           try {
             cards.add(Card(
               child: PointOfInterestTile(
@@ -394,8 +359,7 @@ class TripRequest {
               ),
             ));
           } catch (e) {
-            developer.log('Error adding Card: ${e.toString()}',
-                name: '_keyboard_');
+            developer.log('Error adding Card: ${e.toString()}', name: 'error');
           }
         }
       }

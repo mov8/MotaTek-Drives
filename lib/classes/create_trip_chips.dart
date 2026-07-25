@@ -32,9 +32,6 @@ class CreateTripChips extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    developer.log(
-        'Building CreateChips object CurrentTripItem().tripState: ${CurrentTripItem().tripState}',
-        name: '_keyboard_');
     return Wrap(spacing: 5, children: getChips());
   }
 
@@ -74,6 +71,7 @@ class CreateTripChips extends StatelessWidget {
         'actions': [],
         'states': [
           TripState.manual,
+          TripState.manualStart,
           TripState.goodRoadStart,
         ],
         // 'waypointState': [WaypointState.none],
@@ -226,6 +224,7 @@ class CreateTripChips extends StatelessWidget {
           TripState.stoppedFollowing,
           TripState.stoppedTracking,
           TripState.manual,
+          TripState.manualStart,
         ],
         'actions': [],
         'highlight': [HighliteActions.none],
@@ -436,13 +435,7 @@ class CreateTripChips extends StatelessWidget {
       },
     ];
 
-    developer.log(' ', name: '_chips');
-    developer.log(
-        ' +++++++ State Tests create_trip_chips.dart  CurrentTripItem().waypointState: ${CurrentTripItem().waypointState} ++++++++',
-        name: '_actionChips_');
     String failure = '';
-    // developer.log('States: ${CurrentTripItem().tripState}');
-
     bool actionsOk(int i) {
       bool ok = chipDetails[i]['actions'].isEmpty ||
           chipDetails[i]['actions'].contains(CurrentTripItem().tripActions);
@@ -451,6 +444,7 @@ class CreateTripChips extends StatelessWidget {
     }
 
     bool statesOk(int i) {
+      /// CurrentTripItem().tripState is an Enum
       bool ok = (chipDetails[i]['states'].isEmpty ||
           chipDetails[i]['states'].contains(CurrentTripItem().tripState));
       failure = ok ? failure : '$failure, STATES';
@@ -548,13 +542,12 @@ class CreateTripChips extends StatelessWidget {
               avatar: Icon(chipDetails[i]['icon'],
                   size: 20, color: chipDetails[i]['colour'] ?? Colors.white)));
         } else {
-          //   Code below very useful - don't remove
+          //  Code below very useful - don't remove
           developer.log(
               '$i - [${chipDetails[i]['label']}] failed => ${actionsOk(i) ? '' : 'actions '}${statesOk(i) ? '' : 'states '}${highlightsOk(i) ? '' : 'highlights '}${waypointOk(i) ? '' : 'waypoints '}${loadedOk(i) ? '' : 'loaded '}${savedOk(i) ? '' : 'saved '}${groupOk(i) ? '' : 'group '}${goodRoadOk(i) ? '' : 'goodRoad'}',
               name: '_actionChips_');
         }
       }
-      developer.log(' ', name: '_chips');
     } catch (e) {
       debugPrint('error: &{e.toString()}');
     }
@@ -565,11 +558,17 @@ class CreateTripChips extends StatelessWidget {
     CurrentTripItem().requestAddAutomatically();
     leadingWidgetController?.changeWidget(1);
     CurrentTripItem().tripState = TripState.tracking;
-    onUpdate(MyTripActions.startTracking);
+    onUpdate(MyTripActions.beginTracking);
   }
 
   void addManually() {
-    leadingWidgetController?.changeWidget(1);
+    try {
+      leadingWidgetController?.changeWidget(1);
+    } catch (e) {
+      developer.log(
+          'Error CreateTripChips().addManually() error: ${e.toString()}',
+          name: 'error');
+    }
     CurrentTripItem().requestAddManually();
     onUpdate(MyTripActions.startManual);
   }
@@ -578,6 +577,8 @@ class CreateTripChips extends StatelessWidget {
     // CurrentTripItem().requestClear();
     CurrentTripItem().requestClear();
     leadingWidgetController?.changeWidget(0);
+    CurrentTripItem().tripState = TripState.none;
+    CurrentTripItem().mapUpdates = MapUpdates.updateAll;
     onUpdate(MyTripActions.clearTrip);
   }
 

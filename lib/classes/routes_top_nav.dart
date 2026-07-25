@@ -1,72 +1,77 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '/constants.dart';
 import '/models/models.dart';
 
-class RoutesBottomNavController {
-  _RoutesBottomNavState? _routesBottomNavState;
-  void _addState(_RoutesBottomNavState navState) {
+class RoutesTopNavController {
+  _RoutesTopNavState? _routesTopNavState;
+  void _addState(_RoutesTopNavState navState) {
     try {
-      _routesBottomNavState = navState;
-      //    debugPrint('_routesBottomNavState attached OK');
+      _routesTopNavState = navState;
+      //    debugPrint('_routesTopNavState attached OK');
     } catch (e) {
       debugPrint('Attachment error: ${e.toString()}');
     }
   }
 
-  bool get isAttached => _routesBottomNavState != null;
+  bool get isAttached => _routesTopNavState != null;
 
   void setValue(int id) {
     assert(isAttached, 'Controller must be attached to widget');
     try {
-      _routesBottomNavState?.setValue(id);
+      _routesTopNavState?.setValue(id);
     } catch (e) {
       String err = e.toString();
-      debugPrint('Error RoutesBottomNavController: $err');
+      debugPrint('Error RoutesTopNavController: $err');
     }
   }
 
   void navigate() {
     assert(isAttached, 'Controller must be attached to widget');
     try {
-      _routesBottomNavState?.navigate();
+      _routesTopNavState?.navigate();
     } catch (e) {
       String err = e.toString();
-      debugPrint('Error RoutesBottomNavController: $err');
+      debugPrint('Error RoutesTopNavController: $err');
     }
   }
 }
 
-class RoutesBottomNav extends StatefulWidget {
-  final Function(int) onMenuTap;
-  final RoutesBottomNavController controller;
+class RoutesTopNav extends StatefulWidget {
+  Function(int)? onMenuTap;
+  RoutesTopNavController? controller;
   final int initialValue;
 
-  const RoutesBottomNav({
+  RoutesTopNav({
     super.key,
-    required this.controller,
-    required this.onMenuTap,
+    this.controller,
+    this.onMenuTap,
     this.initialValue = 0,
   });
   @override
-  State<RoutesBottomNav> createState() => _RoutesBottomNavState();
+  State<RoutesTopNav> createState() => _RoutesTopNavState();
 }
 
-class _RoutesBottomNavState extends State<RoutesBottomNav>
+class _RoutesTopNavState extends State<RoutesTopNav>
     with TickerProviderStateMixin {
   // late AnimationController _animationIconController;
   bool isarrowmenu = false;
   List<int> badgeValues = [0, 0, 0, 0, 0, 0];
   int _index = 0; // 0 = hamburger 1 = back
+  late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
-    widget.controller._addState(this);
+    if (widget.controller != null) {
+      widget.controller!._addState(this);
+    }
+    /*
     _index = widget.initialValue;
     //  badgeValues[1] = Setup().tripCount;
     badgeValues[4] = Setup().shopCount;
     badgeValues[5] = Setup().messageCount;
+    _tabController = TabController(length: 6, vsync: this);
+    */
   }
 
   @override
@@ -76,7 +81,7 @@ class _RoutesBottomNavState extends State<RoutesBottomNav>
   }
 
   void setValue(id) {
-    // debugPrint('Setting bottomNavBar.index t0:$id');
+    // debugPrint('Setting topNavBar.index t0:$id');
     setState(() => _index = id);
   }
 
@@ -85,10 +90,31 @@ class _RoutesBottomNavState extends State<RoutesBottomNav>
     return;
   }
 
+  List<IconData> icons = [
+    Icons.home_outlined,
+    Icons.route_outlined,
+    Icons.map_outlined,
+    Icons.person_outlined,
+    Icons.shopping_bag_outlined,
+    Icons.chat_bubble_outline_outlined,
+  ];
+
   @override
   Widget build(BuildContext context) {
     //  debugPrint('selectedIndex: $_index');
-    return NavigationBar(
+    return Scaffold(
+      appBar: AppBar(
+          title: const Text('Drives'),
+          bottom: TabBar(
+            tabs: [for (int i = 0; i < 5; i++) Tab(icon: Icon(icons[i]))],
+          )),
+      body: TabBarView(controller: _tabController, children: [
+        for (int i = 0; i < 5; i++) Center(child: Text('Page ${i + 1}'))
+      ]),
+    );
+  }
+}
+/*
       elevation: 5,
       height: 60,
       surfaceTintColor: Colors.blue,
@@ -128,27 +154,52 @@ class _RoutesBottomNavState extends State<RoutesBottomNav>
 
   NavigationDestination _navigationDestination(
       {required int index, badgeValue = 0}) {
+    const List<String> labels = [
+      'Home',
+      'Great Drives',
+      'My Trip',
+      'My Drives',
+      'Shop',
+      'Messages'
+    ];
+    const List<IconData> iconsSelected = [
+      Icons.home,
+      Icons.route,
+      Icons.map,
+      Icons.person,
+      Icons.shopping_bag,
+      Icons.chat_bubble
+    ];
+    const List<IconData> icons = [
+      Icons.home_outlined,
+      Icons.route_outlined,
+      Icons.map_outlined,
+      Icons.person_outlined,
+      Icons.shopping_bag_outlined,
+      Icons.chat_bubble_outline_outlined,
+    ];
+
     if (badgeValue == 0) {
       return NavigationDestination(
-        selectedIcon: Icon(routeNavIconsSelected[index]),
-        icon: Icon(routeNavIcons[index]),
-        label: routeNavLabels[index],
+        selectedIcon: Icon(iconsSelected[index]),
+        icon: Icon(icons[index]),
+        label: labels[index],
       );
     } else {
       return NavigationDestination(
         icon: Badge(
           label: Text(badgeValue
               .toString()), // _messages.isEmpty ? null : Text(_messages.length.toString()),
-          child: Icon(routeNavIcons[index]),
+          child: Icon(icons[index]),
         ),
         selectedIcon: Badge(
           label: Text(
             badgeValue.toString(),
           ),
-          child: Icon(routeNavIconsSelected[index]),
+          child: Icon(iconsSelected[index]),
         ),
-        label: routeNavLabels[index],
+        label: labels[index],
       );
     }
   }
-}
+  */

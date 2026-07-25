@@ -2,6 +2,7 @@
 import '/constants.dart';
 import '/screens/invitations.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import '/screens/screens.dart';
 import '/services/services.dart';
 import '/models/other_models.dart';
@@ -16,8 +17,9 @@ class MainDrawer extends StatefulWidget {
 class _MainDrawerState extends State<MainDrawer> {
   @override
   Widget build(BuildContext context) {
+    double width = kIsWeb ? 0.3 : 0.75;
     return Drawer(
-      width: MediaQuery.of(context).size.width * 0.75,
+      width: MediaQuery.of(context).size.width * width,
       child: ListView(
         children: [
           DrawerHeader(
@@ -45,11 +47,15 @@ class _MainDrawerState extends State<MainDrawer> {
                             style:
                                 TextStyle(color: Colors.white, fontSize: 30)),
                         Padding(
-                            padding: EdgeInsets.fromLTRB(0, 0, 0, 4),
-                            child: Text(
-                                'v${appVersion['major']}.${appVersion['minor']}.${appVersion['patch']} ${appVersion['suffix']}',
-                                style: TextStyle(
-                                    color: Colors.white, fontSize: 20))),
+                          padding: EdgeInsets.fromLTRB(0, 0, 0, 4),
+                          child: Text(
+                            'v${appVersion['major']}.${appVersion['minor']}.${appVersion['patch']} ${appVersion['suffix']}',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -70,7 +76,7 @@ class _MainDrawerState extends State<MainDrawer> {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const SetupForm()),
+                MaterialPageRoute(builder: (context) => SetupForm()),
               );
             },
           ),
@@ -123,7 +129,6 @@ class _MainDrawerState extends State<MainDrawer> {
             ),
             onTap: () {
               // getMyGroups();
-
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const MyGroupsForm()),
@@ -234,21 +239,22 @@ class _MainDrawerState extends State<MainDrawer> {
             ),
             onTap: () async {
               //   login(context);
-              User user = await getPrivateRepository().getUser();
+              await getPrivateRepository().getUser();
 
               // 'test@test.com';
-              user.password = '';
-              Setup().user = user;
+              //  user.password = '';
+              //  Setup().user = user;
               if (context.mounted) {
-                LoginState loginState = await loginDialog(context, user: user);
+                LoginState loginState =
+                    await loginDialog(context, user: Setup().user);
                 if (loginState == LoginState.register) {
                   Setup().user.forename = '';
                   Setup().user.surname = '';
                   Setup().user.phone = '';
                   Setup().user.password = '';
                   Setup().jwt = '';
-                  if (user.email.isNotEmpty) {
-                    await postValidateUser(user: user);
+                  if (Setup().user.email.isNotEmpty) {
+                    await postValidateUser(user: Setup().user);
                   }
                   if (context.mounted) {
                     Navigator.push(

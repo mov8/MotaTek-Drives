@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '/models/other_models.dart';
 import '/services/services.dart';
 import '/classes/classes.dart';
+import 'dart:developer' as developer;
 import '/tiles/tiles.dart';
 
 class MessagesSummaryForm extends StatefulWidget {
@@ -29,73 +30,76 @@ class _MessagesSummaryFormState extends State<MessagesSummaryForm> {
           onCancel: (_) => newContact(add: false, email: ''),
         )
       ],
-      Expanded(
-        child: ListView.builder(
-          itemCount: widget.mailItems.length,
-          itemBuilder: (context, index) => Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
-            child: InkWell(
-              onTap: () => widget.onTap(index),
-              child: Card(
-                elevation: 5,
-                child: ListTile(
-                  key: Key('$index'),
-                  leading: widget.mailItems[index].isGroup
-                      ? Icon(Icons.group, size: 30)
-                      : Badge.count(
-                          backgroundColor:
-                              widget.mailItems[index].unreadMessages > 0
-                                  ? const Color.fromRGBO(158, 14, 4, 1)
-                                  : const Color.fromARGB(255, 91, 129, 194),
-                          textColor: widget.mailItems[index].unreadMessages > 0
-                              ? Colors.white
-                              : const Color.fromRGBO(241, 238, 238, 1),
-                          count: widget.mailItems[index].unreadMessages,
-                          child: const Icon(Icons.messenger_outlined, size: 30),
-                        ),
+      for (int index = 0; index < widget.mailItems.length; index++) ...[
+        //  Expanded(
+        //    child: ListView.builder(
+        //      itemCount: widget.mailItems.length,
+        //      itemBuilder: (context, index) =>
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
+          child: InkWell(
+            onTap: () => widget.onTap(index),
+            child: Card(
+              elevation: 5,
+              child: ListTile(
+                key: Key('$index'),
+                leading: widget.mailItems[index].isGroup
+                    ? Icon(Icons.group, size: 30)
+                    : Badge.count(
+                        backgroundColor:
+                            widget.mailItems[index].unreadMessages > 0
+                                ? const Color.fromRGBO(158, 14, 4, 1)
+                                : const Color.fromARGB(255, 91, 129, 194),
+                        textColor: widget.mailItems[index].unreadMessages > 0
+                            ? Colors.white
+                            : const Color.fromRGBO(241, 238, 238, 1),
+                        count: widget.mailItems[index].unreadMessages,
+                        child: const Icon(Icons.messenger_outlined, size: 30),
+                      ),
 
-                  title: Text(
-                    '${widget.mailItems[index].name} ',
-                    style: const TextStyle(
-                        fontSize: 20, fontWeight: FontWeight.bold),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  subtitle: Column(
-                    children: [
+                title: Text(
+                  '${widget.mailItems[index].name} ',
+                  style: const TextStyle(
+                      fontSize: 20, fontWeight: FontWeight.bold),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                subtitle: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          flex: 1,
+                          child: Text(
+                            'messages received: ${widget.mailItems[index].received}  - sent: ${widget.mailItems[index].sent}',
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                        )
+                      ],
+                    ),
+                    if (!widget.mailItems[index].isGroup)
                       Row(
                         children: [
                           Expanded(
                             flex: 1,
                             child: Text(
-                              'messages received: ${widget.mailItems[index].received}  - sent: ${widget.mailItems[index].sent}',
-                              style: const TextStyle(fontSize: 14),
+                              'unread messages: ${widget.mailItems[index].unreadMessages}',
+                              style: const TextStyle(fontSize: 18),
                             ),
-                          )
+                          ),
                         ],
                       ),
-                      if (!widget.mailItems[index].isGroup)
-                        Row(
-                          children: [
-                            Expanded(
-                              flex: 1,
-                              child: Text(
-                                'unread messages: ${widget.mailItems[index].unreadMessages}',
-                                style: const TextStyle(fontSize: 18),
-                              ),
-                            ),
-                          ],
-                        ),
-                    ],
-                  ),
-
-                  ///title: Text(_mailItems[index].name))),
+                  ],
                 ),
+
+                ///title: Text(_mailItems[index].name))),
               ),
             ),
           ),
         ),
-      ),
+        //   ),
+      ],
+
+      //  ),
     ]);
   }
 

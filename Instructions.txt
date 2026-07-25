@@ -19,6 +19,30 @@ Flutter Intellisense very SLOW
 3   Once spinner in BRHS stops spinning should be a lot faster
 Look at the end of the Gemini thread "Porting Flutter App to the Web" for other speed issue possibilities & solutions
 
+If Flutter doesn't compile try:
+flutter run -v 
+
+Problems with installing Hive
+To create an Adapter to store a non native type look trip_model.dart 
+dart run build_runner build creates the boilerplate file trip_model.g.dart that Hive uses
+build_runner looks at all the dart files in the project and is very fussy, all the issues
+must be resolved before it will work things like setState(() => ()); upset it and have to
+be changes to setState(() {});  which in fairness the docs do state,
+
+1 flutter clean
+2 flutter pub get 
+3 dart run build_runner clean 
+4 dart run build_runner build --delete-conflicting-outputs 
+
+
+
+
+
+
+
+
+Warning: In index.html:45: Flutter's service worker is deprecated and will be removed in a future Flutter release. See https://github.com/flutter/flutter/issues/156910 for more details.
+Warning: In index.html:59: "FlutterLoader.loadEntrypoint" is deprecated. Use "FlutterLoader.load" instead. See https://docs.flutter.dev/platform-integration/web/initialization for more details.
 
 flutter upgrade
 
@@ -44,21 +68,32 @@ mariadb -uroot -pmysecret  <-- Start mariadb
 To copy a new app version to the Droplet
 scp /home/james/Python-3.10.0/Drives/drives/apks/motatek_drives.apk root@64.227.34.217:/root/app/static/apks/motatek_drives.apk
 
-done:
-To do sort out problem with group drives 
-- Took drive from API 
-- Inviter was mobile Stag
-- Invitee tablet AC was first to join trip
-- Inviter tracked invitee correctly
-- Invitee didn't
+UPDATING BACKEND:
+-----------------
+DON'T FORGET TO CHANGE CONFIG.PY IF GOING FROM LOCAL TO REMOTE HOST
+===================================================================
+1 If container running on local machine docker down <container name> docker container ls
+2 Remove the image docker rmi <image id> from docker image ls
+3 Make the changes to the backend and make sure file is saved
+4 Build image - docker build -t motatekjames/drives:latest ./api <-- in Python-3.10.0/Drives
+5 $ docker login -u motatekjames -p nicetrip2drive <-- Login to Dockerhub
+6 $ docker push motatekjames/drives:latest 
+7 ssh into Droplet - ssh root@64.227.34.217  NOT SUDO
+8 In droplet docker-compose down  <-- In root folder
+9 Remove the image to be replaced
+10 docker pull motatekjames/drives:latest
+11 docker-compose up -d  to start the backend running.
+12 Don't forget any changes to nginx.conf must be followed by building the nginx container.
 
-- Then nulled the lat lng on both group_drive_invitations records and neither tracked
 
-If Flutter doesn't compile try:
-flutter run -v 
+docker exec -it root-db-1 /bin/bash     <-- get inside drives-db-1 container
+mariadb -uroot -pmysecret               <-- start mariadb in db container
 
-Understanding state for controllers:
-Had a problem where I was trying to set a variable within the GroupMemberTile. I wanted to set a variable that would
-signify that the Group Name was to be edited. I tried using the GroupMemberTileController to set the editing flag within a setState() 
-inside the Tile. I then got a setstate-called-after-dispose-error-in-flutter.  
+Git stash
+git stash <-- reverts back to last commit
+git stash list <-- shows all the stashes
+git stash apply <-- reloads the stashed data - git assumes it'll be the last stash, but you can specify stash ie git stash apply stash@{2}
 
+
+
+Todo-Tree: Failed to find vscode-ripgrep - please install ripgrep manually and set 'todo-tree.ripgrep' to point to the executable

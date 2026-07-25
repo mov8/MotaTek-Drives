@@ -31,8 +31,8 @@ class MessageExpansionTile extends StatefulWidget {
 class _MessageByGroupTileState extends State<MessageExpansionTile> {
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 5,
+    return RrExpansionTile(
+      context: context,
       child: ExpansionTile(
         // onTap: () => widget.onSelect!(widget.index),
         //  backgroundColor: Colors.transparent,
@@ -88,7 +88,7 @@ class _MessageByGroupTileState extends State<MessageExpansionTile> {
           (index) => Dismissible(
             key: UniqueKey(), // Key('gmlt$index'),
             direction: DismissDirection.endToStart,
-            onDismissed: (direction) => (),
+            onDismissed: (direction) {},
 
             background: Container(color: Colors.blueGrey),
             child: WriteMessageTile(

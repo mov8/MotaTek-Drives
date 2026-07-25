@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:developer' as developer;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 // import 'package:flutter/services.dart';
 import '/helpers/edit_helpers.dart';
@@ -45,142 +47,156 @@ class _IntroduceFormState extends State<IntroduceForm> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.blue,
-      appBar: ScreensAppBar(
-        heading: 'Introduce a new user to Drives',
-        prompt: 'Please enter all the details below.',
-        updateHeading: 'You have added user details.',
-        updateSubHeading: 'Press Save to confirm the changes or Ignore',
-        update: _isComplete,
-        updateMethod: (ok) => invite(update: ok),
-        showAction: _isComplete,
-      ),
-      body: portraitView(),
-    );
+    if (kIsWeb) {
+      return ScreensAppBarBottom(
+          heading: 'Introduce a new user to Drives',
+          prompt: 'Please enter all the details below.',
+          updateHeading: 'You have added user details.',
+          updateSubHeading: 'Press Save to confirm the changes or Ignore',
+          update: _isComplete,
+          updateMethod: (ok) => invite(update: ok),
+          showAction: _isComplete,
+          textColor: const Color.fromRGBO(1, 29, 51, 1),
+          content: portraitView());
+    } else {
+      return Scaffold(
+        backgroundColor: Colors.blue,
+        appBar: ScreensAppBar(
+          heading: 'Introduce a new user to Drives',
+          prompt: 'Please enter all the details below.',
+          updateHeading: 'You have added user details.',
+          updateSubHeading: 'Press Save to confirm the changes or Ignore',
+          update: _isComplete,
+          updateMethod: (ok) => invite(update: ok),
+          showAction: _isComplete,
+        ),
+        body: portraitView(),
+      );
+    }
   }
 
   Map<String, dynamic> invited = {};
 
-  Column portraitView() {
+  Widget portraitView() {
     _isComplete = dataComplete() ? _isComplete : false;
-    return Column(
-      children: [
-        Expanded(
-          child: Column(children: <Widget>[
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
-              child: TextFormField(
-                autofocus: true,
-                focusNode: _fn1,
-                textInputAction: TextInputAction.next,
-                controller: _controller1,
-                decoration: InputDecoration(
+    Color textColor = kIsWeb ? Colors.black : Colors.white;
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+            child: TextFormField(
+              autofocus: true,
+              focusNode: _fn1,
+              textInputAction: TextInputAction.next,
+              controller: _controller1,
+              decoration: InputDecoration(
+                border: OutlineInputBorder(),
+                hintText: 'Enter forename',
+                hintStyle: hintStyle(context: context),
+                labelText: 'Forename',
+                labelStyle: labelStyle(context: context),
+                suffixIcon: Icon(_fieldStates[0]
+                    ? Icons.check_circle_outline
+                    : Icons.star_outline),
+              ),
+              textCapitalization: TextCapitalization.words,
+              keyboardType: TextInputType.name,
+              textAlign: TextAlign.left,
+              style: textStyle(context: context, color: textColor),
+              onChanged: (text) {
+                invited['forename'] = text;
+                if (!_isComplete && dataComplete()) {
+                  setState(() => _isComplete = true);
+                }
+              },
+            ),
+          ),
+          //  /*
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+            child: TextFormField(
+              textInputAction: TextInputAction.next,
+              controller: _controller2,
+              decoration: InputDecoration(
                   border: OutlineInputBorder(),
-                  hintText: 'Enter forename',
+                  hintText: 'Enter surname',
                   hintStyle: hintStyle(context: context),
-                  labelText: 'Forename',
+                  labelText: 'Surname',
                   labelStyle: labelStyle(context: context),
-                  suffixIcon: Icon(_fieldStates[0]
+                  suffixIcon: Icon(_fieldStates[1]
                       ? Icons.check_circle_outline
-                      : Icons.star_outline),
-                ),
-                textCapitalization: TextCapitalization.words,
-                keyboardType: TextInputType.name,
-                textAlign: TextAlign.left,
-                style: textStyle(context: context),
-                onChanged: (text) {
-                  invited['forename'] = text;
-                  if (!_isComplete && dataComplete()) {
-                    setState(() => _isComplete = true);
-                  }
-                },
-              ),
+                      : Icons.star_outline)),
+              textAlign: TextAlign.left,
+              keyboardType: TextInputType.name,
+              textCapitalization: TextCapitalization.words,
+              style: textStyle(context: context, color: textColor),
+              onChanged: (text) {
+                invited['surname'] = text;
+                text;
+                if (!_isComplete && dataComplete()) {
+                  setState(() => _isComplete = true);
+                }
+              },
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-              child: TextFormField(
-                textInputAction: TextInputAction.next,
-                controller: _controller2,
-                decoration: InputDecoration(
-                    border: OutlineInputBorder(),
-                    hintText: 'Enter surname',
-                    hintStyle: hintStyle(context: context),
-                    labelText: 'Surname',
-                    labelStyle: labelStyle(context: context),
-                    suffixIcon: Icon(_fieldStates[1]
-                        ? Icons.check_circle_outline
-                        : Icons.star_outline)),
-                textAlign: TextAlign.left,
-                keyboardType: TextInputType.name,
-                textCapitalization: TextCapitalization.words,
-                style: textStyle(context: context),
-                onChanged: (text) {
-                  invited['surname'] = text;
-                  text;
-                  if (!_isComplete && dataComplete()) {
-                    setState(() => _isComplete = true);
-                  }
-                },
-              ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+            child: TextFormField(
+              textInputAction: TextInputAction.next,
+              controller: _controller3,
+              keyboardType: TextInputType.emailAddress,
+              decoration: InputDecoration(
+                  border: OutlineInputBorder(),
+                  hintText: 'Enter email address',
+                  hintStyle: hintStyle(context: context),
+                  labelText: 'Email address',
+                  labelStyle: labelStyle(context: context),
+                  suffixIcon: Icon(_fieldStates[2]
+                      ? Icons.check_circle_outline
+                      : Icons.star_outline)),
+              textAlign: TextAlign.left,
+              style: textStyle(context: context, color: textColor),
+              onChanged: (text) {
+                invited['email'] = text;
+                if (!_isComplete && dataComplete()) {
+                  setState(() => _isComplete = true);
+                }
+              },
+              validator: (value) => value != null && !emailRegex.hasMatch(value)
+                  ? 'Enter a valid email address'
+                  : null,
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-              child: TextFormField(
-                textInputAction: TextInputAction.next,
-                controller: _controller3,
-                keyboardType: TextInputType.emailAddress,
-                decoration: InputDecoration(
-                    border: OutlineInputBorder(),
-                    hintText: 'Enter email address',
-                    hintStyle: hintStyle(context: context),
-                    labelText: 'Email address',
-                    labelStyle: labelStyle(context: context),
-                    suffixIcon: Icon(_fieldStates[2]
-                        ? Icons.check_circle_outline
-                        : Icons.star_outline)),
-                textAlign: TextAlign.left,
-                style: textStyle(context: context),
-                onChanged: (text) {
-                  invited['email'] = text;
-                  if (!_isComplete && dataComplete()) {
-                    setState(() => _isComplete = true);
-                  }
-                },
-                validator: (value) =>
-                    value != null && !emailRegex.hasMatch(value)
-                        ? 'Enter a valid email address'
-                        : null,
-              ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+            child: TextFormField(
+              textInputAction: TextInputAction.done,
+              controller: _controller4,
+              decoration: InputDecoration(
+                  border: OutlineInputBorder(),
+                  hintText: 'Enter mobile phone number',
+                  hintStyle: hintStyle(context: context),
+                  labelText: 'Mobile phone number',
+                  labelStyle: labelStyle(context: context),
+                  suffixIcon: Icon(_fieldStates[3]
+                      ? Icons.check_circle_outline
+                      : Icons.star_outline)),
+              textAlign: TextAlign.left,
+              keyboardType: TextInputType.phone,
+              style: textStyle(context: context, color: textColor),
+              onChanged: (text) {
+                invited['phone'] = text;
+                if (!_isComplete && dataComplete()) {
+                  setState(() => _isComplete = true);
+                }
+              },
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-              child: TextFormField(
-                textInputAction: TextInputAction.done,
-                controller: _controller4,
-                decoration: InputDecoration(
-                    border: OutlineInputBorder(),
-                    hintText: 'Enter mobile phone number',
-                    hintStyle: hintStyle(context: context),
-                    labelText: 'Mobile phone number',
-                    labelStyle: labelStyle(context: context),
-                    suffixIcon: Icon(_fieldStates[3]
-                        ? Icons.check_circle_outline
-                        : Icons.star_outline)),
-                textAlign: TextAlign.left,
-                keyboardType: TextInputType.phone,
-                style: textStyle(context: context),
-                onChanged: (text) {
-                  invited['phone'] = text;
-                  if (!_isComplete && dataComplete()) {
-                    setState(() => _isComplete = true);
-                  }
-                },
-              ),
-            ),
-          ]),
-        ),
-      ],
+          ),
+          /*  ]),
+          ), */
+        ],
+      ),
     );
   }
 

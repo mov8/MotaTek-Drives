@@ -105,8 +105,9 @@ class _HomeItemTileState extends State<HomeItemTile> {
     canEdit = widget.canEdit;
     index = widget.index;
     photos = photosFromJson(
-        photoString: widget.homeItem.imageUrls,
-        endPoint: '$urlHomePageItem/images/${widget.homeItem.uri}/');
+      photoString: widget.homeItem.imageUrls,
+      endPoint: '$urlHomePageItem/images/${widget.homeItem.uri}/',
+    );
     dropDownMenuItems = covers
         .map(
           (item) => DropdownMenuItem<String>(value: item, child: Text(item)),
@@ -126,8 +127,9 @@ class _HomeItemTileState extends State<HomeItemTile> {
   getPhotos() {
     try {
       photos = photosFromJson(
-          photoString: widget.homeItem.imageUrls,
-          endPoint: '$urlHomePageItem/images/${widget.homeItem.uri}/');
+        photoString: widget.homeItem.imageUrls,
+        endPoint: '$urlHomePageItem/images/${widget.homeItem.uri}/',
+      );
       imageUrlLength = widget.homeItem.imageUrls.length;
     } catch (e) {
       debugPrint('Error: ${e.toString()}');
@@ -139,123 +141,153 @@ class _HomeItemTileState extends State<HomeItemTile> {
     if (widget.homeItem.imageUrls.length != imageUrlLength) {
       getPhotos();
     }
-    return Card(
-      key: Key('$widget.key'),
-      child: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: ExpansionTile(
-          controller: _expansibleController,
-          title: widget.homeItem.heading == ''
-              ? Text(
-                  'Add a home page item',
-                  style: headlineStyle(
-                      context: context, size: 2, color: Colors.black),
-                )
-              : Text(
-                  widget.homeItem.heading,
-                  style: headlineStyle(
-                      context: context, size: 2, color: Colors.black),
-                ),
-          subtitle: Row(children: [
-            Expanded(
-                flex: 1,
-                child: Text(
-                  'pub ${dateFormat.format(DateTime.now())}',
-                  style:
-                      textStyle(context: context, size: 3, color: Colors.black),
-                )),
-            const Expanded(flex: 1, child: Text('rank 0'))
-          ]),
-          initiallyExpanded: expanded,
-          onExpansionChanged: (expanded) =>
-              widget.onExpandChange!(expanded, widget.controller),
-          leading: IconButton(
-            iconSize: 25,
-            icon: const Icon(Icons.newspaper_outlined),
-            onPressed: () => (),
-          ),
-          children: [
-            SizedBox(
-              height: 950,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(5, 5, 0, 30),
-                child: Column(
-                  children: <Widget>[
-                    Row(children: [
-                      Expanded(
-                        flex: 2,
-                        child: DropdownButtonFormField<String>(
-                          decoration: InputDecoration(
-                            border: OutlineInputBorder(),
-                            labelText: 'Coverage',
-                            labelStyle: labelStyle(
-                                context: context, size: 2, color: Colors.black),
-                            hintStyle: hintStyle(
-                                context: context, color: Colors.blueGrey),
-                          ),
-                          initialValue: widget.homeItem.coverage,
-                          items: dropDownMenuItems,
-                          style: textStyle(
-                              context: context, color: Colors.black, size: 2),
-                          onChanged: (item) {
-                            widget.homeItem.coverage = item ?? 'all';
-                            widget.onChange!(index);
-                          },
+    return RrExpansionTile(
+      context: context,
+      child: ExpansionTile(
+        controller: _expansibleController,
+        title: widget.homeItem.heading == ''
+            ? Text(
+                'Add a home page item',
+                style: headlineStyle(
+                    context: context, size: 2, color: Colors.black),
+              )
+            : Text(
+                widget.homeItem.heading,
+                style: headlineStyle(
+                    context: context, size: 2, color: Colors.black),
+              ),
+        subtitle: Row(children: [
+          Expanded(
+              flex: 1,
+              child: Text(
+                'pub ${dateFormat.format(DateTime.now())}',
+                style:
+                    textStyle(context: context, size: 3, color: Colors.black),
+              )),
+          const Expanded(flex: 1, child: Text('rank 0'))
+        ]),
+        initiallyExpanded: expanded,
+        onExpansionChanged: (expanded) =>
+            widget.onExpandChange!(expanded, widget.controller),
+        leading: IconButton(
+          iconSize: 25,
+          icon: const Icon(Icons.newspaper_outlined),
+          onPressed: () {},
+        ),
+        children: [
+          SizedBox(
+            height: 950,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(5, 5, 0, 30),
+              child: Column(
+                children: <Widget>[
+                  Row(children: [
+                    Expanded(
+                      flex: 2,
+                      child: DropdownButtonFormField<String>(
+                        decoration: InputDecoration(
+                          border: OutlineInputBorder(),
+                          labelText: 'Coverage',
+                          labelStyle: labelStyle(
+                              context: context, size: 2, color: Colors.black),
+                          hintStyle: hintStyle(
+                              context: context, color: Colors.blueGrey),
                         ),
+                        initialValue: widget.homeItem.coverage,
+                        items: dropDownMenuItems,
+                        style: textStyle(
+                            context: context, color: Colors.black, size: 2),
+                        onChanged: (item) {
+                          widget.homeItem.coverage = item ?? 'all';
+                          widget.onChange!(index);
+                        },
                       ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        flex: 1,
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
-                          child: TextFormField(
-                              //   readOnly: !canEdit,
-                              initialValue: widget.homeItem.score.toString(),
-                              autofocus: true,
-                              textInputAction: TextInputAction.next,
-                              textAlign: TextAlign.start,
-                              keyboardType: const TextInputType
-                                  .numberWithOptions(), //for(i = -1; i < 100; i++) i.toString()],
-                              textCapitalization: TextCapitalization.sentences,
-                              decoration: InputDecoration(
-                                border: OutlineInputBorder(),
-                                hintText: "-1 invisible higher the better",
-                                labelText: 'Article ranking',
-                                labelStyle: labelStyle(
-                                    context: context,
-                                    size: 2,
-                                    color: Colors.black),
-                              ),
-                              style: textStyle(
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      flex: 1,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
+                        child: TextFormField(
+                            //   readOnly: !canEdit,
+                            initialValue: widget.homeItem.score.toString(),
+                            autofocus: true,
+                            textInputAction: TextInputAction.next,
+                            textAlign: TextAlign.start,
+                            keyboardType: const TextInputType
+                                .numberWithOptions(), //for(i = -1; i < 100; i++) i.toString()],
+                            textCapitalization: TextCapitalization.sentences,
+                            decoration: InputDecoration(
+                              border: OutlineInputBorder(),
+                              hintText: "-1 invisible higher the better",
+                              labelText: 'Article ranking',
+                              labelStyle: labelStyle(
                                   context: context,
                                   size: 2,
                                   color: Colors.black),
-                              autovalidateMode:
-                                  AutovalidateMode.onUserInteraction,
-                              onChanged: (text) {
-                                widget.onChange!(index);
-                                widget.homeItem.heading = text;
-                              }),
-                        ),
+                            ),
+                            style: textStyle(
+                                context: context, size: 2, color: Colors.black),
+                            autovalidateMode:
+                                AutovalidateMode.onUserInteraction,
+                            onChanged: (text) {
+                              widget.onChange!(index);
+                              widget.homeItem.heading = text;
+                            }),
                       ),
-                    ]),
-                    Row(children: [
+                    ),
+                  ]),
+                  Row(children: [
+                    Expanded(
+                      flex: 1,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
+                        child: TextFormField(
+                            //   readOnly: !canEdit,
+                            initialValue: widget.homeItem.heading,
+                            autofocus: true,
+                            textInputAction: TextInputAction.next,
+                            textAlign: TextAlign.start,
+                            keyboardType: TextInputType.streetAddress,
+                            textCapitalization: TextCapitalization.sentences,
+                            decoration: InputDecoration(
+                              border: OutlineInputBorder(),
+                              hintText: "What is the home item's heading...",
+                              labelText: 'Home item heading',
+                              labelStyle: labelStyle(
+                                  context: context,
+                                  size: 2,
+                                  color: Colors.black),
+                            ),
+                            style: textStyle(
+                                context: context, size: 2, color: Colors.black),
+                            autovalidateMode:
+                                AutovalidateMode.onUserInteraction,
+                            onChanged: (text) {
+                              widget.homeItem.heading = text;
+                              widget.onChange!(index);
+                            }),
+                      ),
+                    ),
+                  ]),
+                  Row(
+                    children: [
                       Expanded(
-                        flex: 1,
                         child: Padding(
                           padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
                           child: TextFormField(
-                              //   readOnly: !canEdit,
-                              initialValue: widget.homeItem.heading,
-                              autofocus: true,
+                              readOnly: !canEdit,
+                              initialValue: widget.homeItem.subHeading,
+                              autofocus: canEdit,
                               textInputAction: TextInputAction.next,
                               textAlign: TextAlign.start,
                               keyboardType: TextInputType.streetAddress,
                               textCapitalization: TextCapitalization.sentences,
                               decoration: InputDecoration(
                                 border: OutlineInputBorder(),
-                                hintText: "What is the home item's heading...",
-                                labelText: 'Home item heading',
+                                hintText:
+                                    "What is the home item's sub-heading...",
+                                labelText: 'Home item sub-heading',
                                 labelStyle: labelStyle(
                                     context: context,
                                     size: 2,
@@ -268,117 +300,78 @@ class _HomeItemTileState extends State<HomeItemTile> {
                               autovalidateMode:
                                   AutovalidateMode.onUserInteraction,
                               onChanged: (text) {
-                                widget.homeItem.heading = text;
+                                widget.homeItem.subHeading = text;
                                 widget.onChange!(index);
                               }),
                         ),
+                      )
+                    ],
+                  ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
+                          child: TextFormField(
+                              readOnly: !canEdit,
+                              maxLines: null,
+                              textInputAction: TextInputAction.done,
+                              //     expands: true,
+                              initialValue: widget.homeItem.body,
+                              textAlign: TextAlign.start,
+                              keyboardType: TextInputType.streetAddress,
+                              textCapitalization: TextCapitalization.sentences,
+                              decoration: InputDecoration(
+                                border: OutlineInputBorder(),
+                                hintText: 'Article content...',
+                                labelText: 'Home page article',
+                                labelStyle: labelStyle(
+                                    context: context,
+                                    size: 2,
+                                    color: Colors.black),
+                              ),
+                              style: textStyle(
+                                  context: context,
+                                  size: 2,
+                                  color: Colors.black),
+                              autovalidateMode:
+                                  AutovalidateMode.onUserInteraction,
+                              onChanged: (text) {
+                                widget.homeItem.body = text;
+                                widget.onChange!(index);
+                              }
+                              //body = text
+                              ),
+                        ),
                       ),
-                    ]),
-                    Row(
+                    ],
+                  ),
+                  if (widget.homeItem.imageUrls.isNotEmpty)
+                    Column(
                       children: [
-                        Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
-                            child: TextFormField(
-                                readOnly: !canEdit,
-                                initialValue: widget.homeItem.subHeading,
-                                autofocus: canEdit,
-                                textInputAction: TextInputAction.next,
-                                textAlign: TextAlign.start,
-                                keyboardType: TextInputType.streetAddress,
-                                textCapitalization:
-                                    TextCapitalization.sentences,
-                                decoration: InputDecoration(
-                                  border: OutlineInputBorder(),
-                                  hintText:
-                                      "What is the home item's sub-heading...",
-                                  labelText: 'Home item sub-heading',
-                                  labelStyle: labelStyle(
-                                      context: context,
-                                      size: 2,
-                                      color: Colors.black),
-                                ),
-                                style: textStyle(
-                                    context: context,
-                                    size: 2,
-                                    color: Colors.black),
-                                autovalidateMode:
-                                    AutovalidateMode.onUserInteraction,
-                                onChanged: (text) {
-                                  widget.homeItem.subHeading = text;
-                                  widget.onChange!(index);
-                                }),
-                          ),
-                        )
-                      ],
-                    ),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
-                            child: TextFormField(
-                                readOnly: !canEdit,
-                                maxLines: null,
-                                textInputAction: TextInputAction.done,
-                                //     expands: true,
-                                initialValue: widget.homeItem.body,
-                                textAlign: TextAlign.start,
-                                keyboardType: TextInputType.streetAddress,
-                                textCapitalization:
-                                    TextCapitalization.sentences,
-                                decoration: InputDecoration(
-                                  border: OutlineInputBorder(),
-                                  hintText: 'Article content...',
-                                  labelText: 'Home page article',
-                                  labelStyle: labelStyle(
-                                      context: context,
-                                      size: 2,
-                                      color: Colors.black),
-                                ),
-                                style: textStyle(
-                                    context: context,
-                                    size: 2,
-                                    color: Colors.black),
-                                autovalidateMode:
-                                    AutovalidateMode.onUserInteraction,
-                                onChanged: (text) {
-                                  widget.homeItem.body = text;
-                                  widget.onChange!(index);
-                                }
-                                //body = text
-                                ),
-                          ),
+                        Row(
+                          children: <Widget>[
+                            Expanded(
+                              flex: 8,
+                              child: ImageArranger(
+                                onChange: (idx) =>
+                                    setState(() => imageIndex = idx),
+                                urlChange: (imageUrls) =>
+                                    widget.homeItem.imageUrls = imageUrls,
+                                photos: photos,
+                                endPoint: '', // widget.homeItem.uri,
+                                showCaptions: true,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                    if (widget.homeItem.imageUrls.isNotEmpty)
-                      Column(
-                        children: [
-                          Row(
-                            children: <Widget>[
-                              Expanded(
-                                flex: 8,
-                                child: ImageArranger(
-                                  onChange: (idx) =>
-                                      setState(() => imageIndex = idx),
-                                  urlChange: (imageUrls) =>
-                                      widget.homeItem.imageUrls = imageUrls,
-                                  photos: photos,
-                                  endPoint: '', // widget.homeItem.uri,
-                                  showCaptions: true,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                  ],
-                ),
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

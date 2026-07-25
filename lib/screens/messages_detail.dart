@@ -2,57 +2,55 @@ import 'dart:developer' as developer;
 import '/constants.dart';
 import 'package:flutter/material.dart';
 import '/models/other_models.dart';
-import '/services/services.dart';
+// import '/services/services.dart';
 import '/classes/classes.dart';
 import '/tiles/tiles.dart';
 import 'package:socket_io_client/socket_io_client.dart' as sio;
 
 class MessageDetailsForm extends StatefulWidget {
   // var setup;
-  final MailItem mailItem;
+  // final MailItem mailItem;
+  final List<Message> messages;
+  final String email;
+  final bool isGroup;
+
   final sio.Socket socket;
+
   const MessageDetailsForm(
-      {super.key, required this.mailItem, required this.socket});
+      {super.key,
+      required this.socket,
+      required this.messages,
+      required this.email,
+      this.isGroup = false});
   @override
   State<MessageDetailsForm> createState() => _MessageDetailsFormState();
 }
 
 class _MessageDetailsFormState extends State<MessageDetailsForm> {
   int group = 0;
-  late Future<bool> dataloaded;
   List<Group> groups = [];
-  List<Message> _messages = [];
-
   String groupName = 'Driving Group';
 
   @override
   void initState() {
     super.initState();
-    dataloaded = dataFromWeb();
   }
 
   @override
   void dispose() {
-    if (widget.mailItem.isGroup) {
+    if (widget.isGroup) {
       widget.socket.emit('leave_group');
     }
     super.dispose();
   }
 
   Future<bool> dataFromWeb() async {
-    if (widget.mailItem.isGroup) {
-      _messages = await getGroupMessages(widget.mailItem.id);
-      widget.socket.emit(
-          'group_join', {'token': Setup().jwt, 'group': widget.mailItem.id});
-    } else {
-      _messages = await getUserMessages(widget.mailItem.id);
-    }
-    appendEmptyMessage();
+    Future.delayed(Duration(milliseconds: 200));
     return true;
   }
 
   void appendEmptyMessage() {
-    _messages.add(
+    widget.messages.add(
       Message(
           id: '',
           sender: '${Setup().user.forename} ${Setup().user.surname}',
@@ -63,71 +61,48 @@ class _MessageDetailsFormState extends State<MessageDetailsForm> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<bool>(
-      future: dataloaded,
-      builder: (BuildContext context, snapshot) {
-        if (snapshot.hasError) {
-          debugPrint('Snapshot has error: ${snapshot.error}');
-        } else if (snapshot.hasData) {
-          return portraitView();
-        } else {
-          return const SizedBox(
-            width: double.infinity,
-            height: double.infinity,
-            child: Align(
-              alignment: Alignment.center,
-              child: CircularProgressIndicator(),
-            ),
-          );
-        }
-        throw ('Error - FutureBuilder group.dart');
-      },
-      //  ),
-    );
+    return portraitView();
   }
 
   Widget portraitView() {
-    return ListView(
-      children: List.generate(
-        _messages.length,
-        (index) => Dismissible(
-          key: UniqueKey(), // Key('gmlt$index'),
-          direction: DismissDirection.endToStart,
-          onDismissed: (direction) => (),
-
-          background: Container(color: Colors.blueGrey),
-          child: WriteMessageTile(
-            index: index,
-            message: _messages[index],
-            onDismiss: (index, action) =>
-                dismissAction(index: index, action: action),
-            onSelect: (_) => sendMessage(index),
-            readOnly: (index < _messages.length - 1),
+    return Column(
+      children: [
+        for (int index = 0; index < widget.messages.length; index++) ...[
+          Dismissible(
+            key: UniqueKey(), // Key('gmlt$index'),
+            direction: DismissDirection.endToStart,
+            onDismissed: (direction) {},
+            background: Container(color: Colors.blueGrey),
+            child: WriteMessageTile(
+              index: index,
+              message: widget.messages[index],
+              onDismiss: (index, action) =>
+                  dismissAction(index: index, action: action),
+              onSelect: (_) => sendMessage(index),
+              readOnly: (index < widget.messages.length - 1),
+            ),
           ),
-        ),
-      ),
+        ],
+      ],
     );
   }
 
   dismissAction({required int index, required int action}) {}
 
   void sendMessage(int index) {
-    if (widget.mailItem.isGroup) {
-      widget.socket
-          .emit('group_message', _messages[_messages.length - 1].message);
+    if (widget.isGroup) {
+      widget.socket.emit('group_message', widget.messages.last.message);
     } else {
       try {
         widget.socket.emit('user_message', {
-          'message': _messages[_messages.length - 1].message,
+          'message': widget.messages.last.message,
           'token': Setup().jwt,
-          'user_email': widget.mailItem.email,
+          'user_email': widget.email,
         });
-        _messages[_messages.length - 1].dated =
-            dateFormatDoc.format(DateTime.now());
+        widget.messages.last.dated = dateFormatDoc.format(DateTime.now());
       } catch (e) {
-        developer.log('user_message error: ${e.toString()}', name: '_messages');
+        developer.log('user_message error: ${e.toString()}', name: 'error');
       }
-      //  setState(() => appendEmptyMessage());
     }
     setState(() => appendEmptyMessage());
   }

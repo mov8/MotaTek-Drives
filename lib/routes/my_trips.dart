@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import '/models/models.dart';
 import '/classes/classes.dart' hide Route;
 import '/tiles/my_trip_tile.dart';
@@ -25,6 +26,7 @@ class _MyTripsScreenState extends State<MyTrips> {
   late Future<bool> _dataLoaded;
   List<TripItem> _tripItems = [];
   List<MyTripItem> _myTripItems = [];
+  final ImageRepository _imageRepository = ImageRepository();
 
   @override
   void initState() {
@@ -50,29 +52,40 @@ class _MyTripsScreenState extends State<MyTrips> {
   Future<void> loadTrip(int index) async {
     // CurrentTripItem.reset();
     // CurrentTripItem().clearAll(newTripState: TripState.loaded);
-    CurrentTripItem().id = _myTripItems[index].id;
-    CurrentTripItem().uri = _myTripItems[index].uri;
-    CurrentTripItem().title = _myTripItems[index].title;
-    CurrentTripItem().subTitle = _myTripItems[index].subTitle;
-    CurrentTripItem().author = _myTripItems[index].author;
-    CurrentTripItem().authorUri = _myTripItems[index].authorUri;
-    CurrentTripItem().images = _myTripItems[index].images;
-    CurrentTripItem().imageUrls = _myTripItems[index].imageUrls;
-    CurrentTripItem().body = _myTripItems[index].body;
-    CurrentTripItem().pointsOfInterest = _myTripItems[index].pointsOfInterest;
-    CurrentTripItem().maneuvers = _myTripItems[index].maneuvers;
-    CurrentTripItem().routes = _myTripItems[index].routes;
-    CurrentTripItem().goodRoads = _myTripItems[index].goodRoads;
-    CurrentTripItem().score = _myTripItems[index].score;
+    // fromMyTripItem({required MyTripItem myTripItem})
+    // /load_private/<uri>
+
+    MyTripItem? myTripItem = await PrivateStorageLocal()
+        .loadMyTripItem(uri: _myTripItems[index].uri);
+
+    myTripItem ??= _myTripItems[index];
+
+    CurrentTripItem().id = myTripItem.id;
+    CurrentTripItem().uri = myTripItem.uri;
+    CurrentTripItem().title = myTripItem.title;
+    CurrentTripItem().subTitle = myTripItem.subTitle;
+    CurrentTripItem().author = myTripItem.author;
+    CurrentTripItem().authorUri = myTripItem.authorUri;
+    CurrentTripItem().images = myTripItem.images;
+    CurrentTripItem().imageUrls = myTripItem.imageUrls;
+    CurrentTripItem().body = myTripItem.body;
+    CurrentTripItem().pointsOfInterest = myTripItem.pointsOfInterest;
+    CurrentTripItem().maneuvers = myTripItem.maneuvers;
+    CurrentTripItem().routes = myTripItem.routes;
+    CurrentTripItem().goodRoads = myTripItem.goodRoads;
+    CurrentTripItem().score = myTripItem.score;
     CurrentTripItem().tripState = TripState.loaded;
     CurrentTripItem().tripType = TripType.none;
     CurrentTripItem().updateMap = true;
     CurrentTripItem().mapUpdates = MapUpdates.updateAll;
 
     if (mounted) {
+      //   if (kIsWeb) {
+      //   } else {
       Navigator.pushNamedAndRemoveUntil(
-          context, 'createTrip', (Route<dynamic> route) => false); //,
-      //  arguments: TripArguments(_myTripItems[index], 'db'));
+          context, 'createTrip', (Route<dynamic> route) => false, //,
+          arguments: TripArguments(trip: myTripItem, origin: 'db'));
+      //  }
     }
   }
 
@@ -95,7 +108,9 @@ class _MyTripsScreenState extends State<MyTrips> {
     return;
   }
 
-  Future<void> deleteTrip(int index) async {
+  void deleteTrip(int index) {
+    setState(() => _myTripItems.removeAt(index));
+    /* 
     Utility().showOkCancelDialog(
         context: context,
         alertTitle: 'Permanently delete trip?',
@@ -106,13 +121,14 @@ class _MyTripsScreenState extends State<MyTrips> {
 
   void onConfirmDeleteTrip(int value) async {
     if (value > -1) {
-      String id = _myTripItems[value].id >= 0
-          ? _myTripItems[value].id.toString()
-          : _myTripItems[value].uri;
+      String id =
+          kIsWeb ? _myTripItems[value].uri : _myTripItems[value].id.toString();
+
       getPrivateRepository()
-          .deleteDriveLocal(driveUri: id)
+          .deleteDriveLocal(tripItem: _myTripItems[value])
           .then((_) => setState(() => _myTripItems.removeAt(value)));
     }
+    */
   }
 
 /*
@@ -125,13 +141,13 @@ import 'package:uuid/rng.dart';
   /// May have a problem having a single method for publishing a drive on
   /// both the Web and Android version. The issue is likely to be how to
   /// handle images - Android is simple but the Web may be problematic.
-
+/*
   Future<void> publishTrip(int index) async {
     await publish(_myTripItems[index]);
     // await getPrivateRepository().publish(_myTripItems[index]);
     return;
   }
-
+*/
   /// Loading only basic trip information into the My Drives list.
   /// Will add remaining information if the user requests it by
   /// expanding the expansion tile.
@@ -145,7 +161,7 @@ import 'package:uuid/rng.dart';
       } catch (e) {
         debugPrint('Error getting the trip details');
       }
-      setState(() => ());
+      setState(()  {});
     }
     */
   }
@@ -179,21 +195,30 @@ import 'package:uuid/rng.dart';
         ),
       );
     }
-    return ListView(
+
+    ListView listView = ListView(
       children: [
         for (int i = 0; i < _myTripItems.length; i++) ...[
           Padding(
-            padding: const EdgeInsets.fromLTRB(5, 5, 5, 5),
+            padding: kIsWeb
+                ? const EdgeInsets.fromLTRB(250, 5, 250, 5)
+                : const EdgeInsets.fromLTRB(5, 5, 5, 0),
+            /*   child: Center(
+              child: Text('Stuff '),
+            ),
+          */
+
             child: MyTripTile(
               index: i,
               myTripItem: _myTripItems[i],
-              onLoadTrip: loadTrip,
-              onShareTrip: shareTrip,
-              onDeleteTrip: deleteTrip,
-              onPublishTrip: publishTrip,
+              // onLoadTrip: loadTrip,
+              // onShareTrip: shareTrip,
+              onDeleteTrip: (index) => deleteTrip(index),
+              //  onPublishTrip: publishTrip,
               onExpandChange: onExpandChange,
               showMethods:
                   !_myTripItems[i].title.contains('Save your trips for'),
+              imageRepository: _imageRepository,
             ),
           )
         ],
@@ -202,6 +227,7 @@ import 'package:uuid/rng.dart';
         ),
       ],
     );
+    return listView;
   }
 
   @override
@@ -213,9 +239,11 @@ import 'package:uuid/rng.dart';
       appBar: AppBar(
           automaticallyImplyLeading: false,
           leading: LeadingWidget(
-              controller: _leadingWidgetController,
-              onMenuTap: (index) =>
-                  _leadingWidget(_scaffoldKey.currentState)), // IconButton(
+            controller: _leadingWidgetController,
+            onMenuTap: (index) => _leadingWidget(
+              _scaffoldKey.currentState,
+            ),
+          ), // IconButton(
           title: Text(
             "My Drives",
             style: headlineStyle(context: context, size: 1),

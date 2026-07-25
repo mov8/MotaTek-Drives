@@ -1,9 +1,10 @@
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 // import 'package:flutter_map/flutter_map.dart';
-import '/classes/route.dart';
-import '/classes/my_trip_item.dart';
-import '/classes/other_classes.dart';
+import '/classes/classes.dart';
+//import '/classes/route.dart';
+//import '/classes/my_trip_item.dart';
+//import '/classes/other_classes.dart';
 import '/models/other_models.dart';
 import '/models/models.dart';
 import 'dart:async';
@@ -23,11 +24,11 @@ abstract class PrivateDataRepository {
   Future<List<Map<String, dynamic>>> getSurveyData(
       {required String table, int standId = -1, String stand = ''});
 
-  Future<List<Map<String, dynamic>>> getSetup(int id);
+  Future<Map<String, dynamic>> getSetup(int id);
 
-  Future<User> getUser();
+  Future<void> getUser();
 
-  Future<int> insertSetup(Setup setup);
+  Future<int> insertSetup();
 
   Future<void> updateSetup();
 
@@ -67,7 +68,8 @@ abstract class PrivateDataRepository {
 
   Future<List<TripItem>> loadMyTripItems();
 
-  Future<MyTripItem> loadMyTripItem({String name = '', int id = -1});
+  Future<MyTripItem?> loadMyTripItem(
+      {String name = '', int id = -1, String uri = ''});
 
   Future<dynamic> publish(MyTripItem tripItem);
 
@@ -81,11 +83,12 @@ abstract class PrivateDataRepository {
 
   Future<void> deleteDriveById(String driveUri);
 
-  Future<void> deleteDriveLocal({required String driveUri});
+  Future<void> deleteDriveLocal({required TripItem tripItem});
 
   Future<int> saveDrive({required Drive drive});
 
-  Future<int> saveMyTrip(CurrentTripItem tripItem);
+  Future<int> saveMyTrip(
+      CurrentTripItem tripItem, ImageRepository? imagerepository);
 
 /*
   Future<OsmAmenity> loadOsmAmenityLocal({required int id, index = 0});

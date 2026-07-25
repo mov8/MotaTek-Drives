@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+import 'dart:developer' as developer;
 import '/screens/messages_summary.dart';
 import 'package:flutter/material.dart';
 // import 'package:flutter/services.dart';
@@ -16,10 +18,33 @@ import '/constants.dart';
 /// 3 User messages
 /// Messages initiates with the Summary View
 /// it changes the view by changing the body: content Widget
+///
+
+class MessagesController {
+  _MessagesState? _messagesState;
+
+  void _addState(_MessagesState messagesState) {
+    _messagesState = messagesState;
+  }
+
+  bool get isAttached => _messagesState != null;
+
+  void showDetails(tileIndex) => _messagesState!.showDetails(tileIndex);
+}
 
 class Messages extends StatefulWidget {
-  const Messages({
+  int index;
+  Function(int)? onSelect;
+  Function? onBackClick;
+  MessagesController? controller;
+  WebAppBarController? webAppBarController;
+  Messages({
     super.key,
+    this.index = -1,
+    this.controller,
+    this.webAppBarController,
+    this.onSelect,
+    this.onBackClick,
   });
   @override
   State<Messages> createState() => _MessagesState();
@@ -27,14 +52,13 @@ class Messages extends StatefulWidget {
 
 class _MessagesState extends State<Messages> {
   late final RoutesBottomNavController _bottomNavController;
-  // late final MessageItemsController _messageItemsController;
   late final LeadingWidgetController _leadingWidgetController;
   final ImageRepository _imageRepository = ImageRepository();
   final GlobalKey _scaffoldKey = GlobalKey();
-  late Future<bool> _dataLoaded;
+  late final Future<bool> _dataLoaded;
   List<MailItem> _mailItems = [];
-  final List<Message> _messages = [];
-  int _tileSelected = -1;
+  List<Message> _messages = [];
+  late int _tileSelected; // = -1;
   bool _addContact = false;
 
   sio.Socket socket = sio.io(urlBase, <String, dynamic>{
@@ -54,8 +78,12 @@ class _MessagesState extends State<Messages> {
   @override
   void initState() {
     super.initState();
+    if (widget.controller != null) {
+      widget.controller!._addState(this);
+    }
     _bottomNavController = RoutesBottomNavController();
     _leadingWidgetController = LeadingWidgetController();
+    _tileSelected = widget.index;
     socket.onConnectError((_) => debugPrint('connect error'));
     socket.onError((data) => debugPrint('Error: ${data.toString()}'));
     socket.onConnect((_) {
@@ -98,9 +126,27 @@ class _MessagesState extends State<Messages> {
     super.dispose();
   }
 
+  void showDetails(int tileIndex) {}
+
   Future<bool> getMessages() async {
-    _mailItems = await getMessagesByGroup();
-    return true;
+    if (_tileSelected == -1) {
+      _mailItems = await getMessagesByGroup();
+      return true;
+    } else {
+      try {
+        if (_mailItems[_tileSelected].isGroup) {
+          _messages = await getGroupMessages(_mailItems[_tileSelected].id);
+          return true;
+        } else {
+          _messages = await getUserMessages(_mailItems[_tileSelected].id);
+          return true;
+        }
+      } catch (e) {
+        developer.log('Error message_detail.dart getMessages() ${e.toString()}',
+            name: 'error');
+        return false;
+      }
+    }
   }
 
   Widget _getPortraitBody() {
@@ -115,25 +161,54 @@ class _MessagesState extends State<Messages> {
               mailItems: _mailItems,
               onTap: (index) => setState(() => onSummaryTileTap(index: index)),
               onNewContact: () => setState(() => _addContact = false),
-              addContact: _addContact)
+              addContact: _addContact,
+            )
           : MessageDetailsForm(
-              mailItem: _mailItems[_tileSelected], socket: socket);
+              messages: _messages,
+              email: _mailItems[_tileSelected].email,
+              isGroup: _mailItems[_tileSelected].isGroup,
+              socket: socket,
+            );
     }
   }
 
   void appendEmptyMessage() {
     _messages.add(
       Message(
-          id: '',
-          sender: '${Setup().user.forename} ${Setup().user.surname}',
-          sent: true,
-          message: ''),
+        id: '',
+        sender: '${Setup().user.forename} ${Setup().user.surname}',
+        sent: true,
+        message: '',
+      ),
     );
   }
 
+  /// If a summary tile is tapped we want to change the WebAppBarContent to reflect the tile
+  /// selected, and the content in the Side Drawer. For some reason if a setState() is called
+  /// then the Side Drawer becomes inactive, after the MessagesDetail is shown.
   onSummaryTileTap({required int index}) {
-    _leadingWidgetController.changeWidget(1);
-    setState(() => _tileSelected = index);
+    if (kIsWeb) {
+      if (widget.onSelect != null) {
+        widget.onSelect!(index);
+      }
+      _tileSelected = index;
+      if (widget.webAppBarController != null) {
+        widget.webAppBarController!
+            .setActionPrompt(getHeadings()['headings'] ?? 'Injected heading');
+      }
+
+      /// The next line resets the Future<bool> and should ensure the data is read for the message details
+      setState(() => _dataLoaded = getMessages());
+    } else {
+      _leadingWidgetController.changeWidget(1);
+      setState(() => _tileSelected = index);
+    }
+  }
+
+  onDetailBackTap() {
+    if (kIsWeb && widget.onBackClick != null) {
+      widget.onBackClick!();
+    }
   }
 
   _leadingWidget(context) {
@@ -164,83 +239,140 @@ class _MessagesState extends State<Messages> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.blue,
-      key: _scaffoldKey,
-      drawer: const MainDrawer(),
-      appBar: AppBar(
-        leading: LeadingWidget(
-          controller: _leadingWidgetController,
-          initialValue: 0,
-          value: 0,
-          onMenuTap: (index) {
-            if (index == 0) {
-              _leadingWidget(_scaffoldKey.currentState);
-            } else {
-              _tileSelected = -1;
-              setState(() => _leadingWidgetController.changeWidget(0));
-            }
-          },
-        ),
-        title: Text(getHeadings()['heading']!,
-            style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: Colors.white)),
-        iconTheme: const IconThemeData(color: Colors.white),
-        backgroundColor: Colors.blue,
-        actions: _tileSelected == -1
+    if (kIsWeb) {
+      return ScreensAppBarBottom(
+        key: _scaffoldKey,
+        prompt: getHeadings()['subheading'] ?? '',
+        textColor: const Color.fromRGBO(1, 29, 51, 1),
+        leadingButton: _tileSelected > -1
+            ? IconButton(
+                onPressed: () => setState(() {
+                      if (widget.webAppBarController != null) {
+                        widget.webAppBarController!
+                            .setActionPrompt(getHeadings()['headings'] ?? '');
+                      }
+                      _tileSelected = -1;
+                    }),
+                icon:
+                    Icon(Icons.arrow_back, color: Color.fromRGBO(1, 29, 51, 1)))
+            : null,
+        actionButtons: _tileSelected == -1
             ? [
                 IconButton(
-                    icon: Icon(Icons.person_add, size: 30),
-                    onPressed: () => setState(() => _addContact = true)),
-                IconButton(
-                    onPressed: () => {},
-                    icon: Icon(Icons.help_outline_outlined)),
+                    onPressed: () => setState(() => _addContact = true),
+                    icon: Icon(Icons.person_add_outlined,
+                        color: Color.fromRGBO(1, 29, 51, 1)))
               ]
-            : [
-                IconButton(
-                    onPressed: () => {},
-                    icon: Icon(Icons.help_outline_outlined))
-              ],
-        bottom: PreferredSize(
-          preferredSize: Size.fromHeight(40),
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(5, 10, 5, 10),
-            child: Text(getHeadings()['subheading']!,
-                textAlign: TextAlign.left,
-                style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white)),
-          ),
-        ),
-      ),
-      body: FutureBuilder<bool>(
-        future: _dataLoaded,
-        builder: (BuildContext context, snapshot) {
-          if (snapshot.hasError) {
-            debugPrint('Snapshot error: ${snapshot.error}');
-          } else if (snapshot.hasData) {
-            return _getPortraitBody();
-          } else {
-            return const SizedBox(
+            : [],
+        content: FutureBuilder<bool>(
+          future: getMessages(), // _dataLoaded,
+          builder: (BuildContext context, snapshot) {
+            if (snapshot.hasError) {
+              debugPrint('Snapshot error: ${snapshot.error}');
+            } else if (snapshot.hasData) {
+              return _getPortraitBody();
+            } else {
+              return const SizedBox(
+                width: double.infinity,
+                height: double.infinity,
+                child: Align(
+                  alignment: Alignment.center,
+                  child: CircularProgressIndicator(),
+                ),
+              );
+            }
+            return SizedBox(
               width: double.infinity,
               height: double.infinity,
-              child: Align(
-                alignment: Alignment.center,
-                child: CircularProgressIndicator(),
+              child: Center(
+                child: Text(
+                  'No messages',
+                  style: TextStyle(fontSize: 22, color: Colors.white),
+                ),
               ),
             );
-          }
-          throw ('Error - FutureBuilder in main.dart');
-        },
-      ),
-      bottomNavigationBar: RoutesBottomNav(
-        controller: _bottomNavController,
-        onMenuTap: (_) => {},
-        initialValue: 5,
-      ),
-    );
+          },
+        ),
+      );
+    } else {
+      return Scaffold(
+        backgroundColor: Colors.blue,
+        key: _scaffoldKey,
+        drawer: const MainDrawer(),
+        appBar: AppBar(
+          leading: LeadingWidget(
+            controller: _leadingWidgetController,
+            initialValue: 0,
+            value: 0,
+            onMenuTap: (index) {
+              if (index == 0) {
+                _leadingWidget(_scaffoldKey.currentState);
+              } else {
+                _tileSelected = -1;
+                setState(() => _leadingWidgetController.changeWidget(0));
+              }
+            },
+          ),
+          title: Text(getHeadings()['heading']!,
+              style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white)),
+          iconTheme: const IconThemeData(color: Colors.white),
+          backgroundColor: Colors.blue,
+          actions: _tileSelected == -1
+              ? [
+                  IconButton(
+                      icon: Icon(Icons.person_add_outlined, size: 30),
+                      onPressed: () => setState(() => _addContact = true)),
+                  IconButton(
+                      onPressed: () => {},
+                      icon: Icon(Icons.help_outline_outlined)),
+                ]
+              : [
+                  IconButton(
+                      onPressed: () => {},
+                      icon: Icon(Icons.help_outline_outlined))
+                ],
+          bottom: PreferredSize(
+            preferredSize: Size.fromHeight(40),
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(5, 10, 5, 10),
+              child: Text(getHeadings()['subheading']!,
+                  textAlign: TextAlign.left,
+                  style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white)),
+            ),
+          ),
+        ),
+        body: FutureBuilder<bool>(
+          future: _dataLoaded,
+          builder: (BuildContext context, snapshot) {
+            if (snapshot.hasError) {
+              debugPrint('Snapshot error: ${snapshot.error}');
+            } else if (snapshot.hasData) {
+              return _getPortraitBody();
+            } else {
+              return const SizedBox(
+                width: double.infinity,
+                height: double.infinity,
+                child: Align(
+                  alignment: Alignment.center,
+                  child: CircularProgressIndicator(),
+                ),
+              );
+            }
+            throw ('Error - FutureBuilder in main.dart');
+          },
+        ),
+        bottomNavigationBar: RoutesBottomNav(
+          controller: _bottomNavController,
+          onMenuTap: (_) => {},
+          initialValue: 5,
+        ),
+      );
+    }
   }
 }

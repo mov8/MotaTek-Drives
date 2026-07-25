@@ -212,8 +212,7 @@ class _GroupMemberFormState extends State<GroupMemberForm> {
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 10),
                   child: ActionChip(
-                    onPressed: () =>
-                        (), // deleteMember(widget.groupMember!.id),
+                    onPressed: () {}, // deleteMember(widget.groupMember!.id),
                     backgroundColor: Colors.blue,
                     avatar: const Icon(
                       Icons.delete,
@@ -235,7 +234,7 @@ class _GroupMemberFormState extends State<GroupMemberForm> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
               ),
-              onPressed: () => setState(() => ()),
+              onPressed: () => setState(() {}),
               backgroundColor: Colors.blue,
               avatar: const Icon(
                 Icons.arrow_back,

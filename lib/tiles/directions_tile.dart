@@ -121,8 +121,9 @@ class _DirectionTileState extends State<DirectionTile> {
         }
       }
     } catch (e) {
-      developer.log('Error building DirectionsTile: ${e.toString()}',
-          name: '_error_');
+      developer.log(
+          'Error DirectionTiles().build() building DirectionsTile: ${e.toString()}',
+          name: 'error');
     }
 
     return Material(
@@ -294,8 +295,9 @@ class _DirectionTileState extends State<DirectionTile> {
         setState(() => _lastLatLng = tripItem.tripValues.position);
       }
     } catch (e) {
-      developer.log('Error updating directionsTile.position ${e.toString}',
-          name: '_error_');
+      developer.log(
+          'Error DirectionsTile() updatePosition() updating directionsTile.position ${e.toString}',
+          name: 'error');
     }
   }
 

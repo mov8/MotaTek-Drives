@@ -212,8 +212,9 @@ class _ShopFormState extends State<ShopForm> {
     Photo? image =
         await getDeviceImage(folder: 'shop_item', fileName: 'promo_$taken');
     if (image != null) {
-      List<Photo> photos =
-          photosFromJson(photoString: _items[_index!].imageUrls);
+      List<Photo> photos = photosFromJson(
+        photoString: _items[_index!].imageUrls,
+      );
       photos.add(image);
       String newUri = photosToString(photos: photos);
       _items[_index!].imageUrls = newUri;

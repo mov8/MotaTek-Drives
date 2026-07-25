@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart' show rootBundle;
 // import 'package:universal_io/universal_io.dart';
 import 'package:universal_io/universal_io.dart';
 import 'dart:developer' as developer;
@@ -191,7 +192,7 @@ class GoodRoadRepository {
 /// TileRepository doesn't try to maintain a memory cache as the VectorTile class has a pretty good
 /// cache, and it would only double the memory footprint.
 /// This repository only stores tiles offline for patchy internet.
-
+/*
 class TileRepository {
   final VectorTileProvider deligate;
   TileRepository({required this.deligate});
@@ -209,7 +210,6 @@ class TileRepository {
     bool tileExists = await mapFile.exists();
     if (tileExists) {
       data = await mapFile.readAsBytes();
-      developer.log('map got from file $key', name: '__map');
     } else {
       data = await deligate.provide(tile);
       await mapFile.writeAsBytes(data);
@@ -217,6 +217,7 @@ class TileRepository {
     return data;
   }
 }
+*/
 
 Future<Directory> getCache() async {
   Directory cacheDirectory = Directory('${Setup().appDocumentDirectory}/cache');
@@ -226,33 +227,57 @@ Future<Directory> getCache() async {
   return cacheDirectory;
 }
 
+/// ImageRepository is able to provide all images and keep them in a cache. The images come from
+/// 3 sources:
+/// 1 Assets for displaying images when not on-line.
+/// 2 Local from the documents folder for devices - used in CurrentTRipItem().
+/// 3 Images from the API for the Web version and API originating data.
+
 class ImageRepository {
-  final Map<int, Image> _imageCache = {};
+  final Map<String, Uint8List> _imageCache = {};
+//  static final ImageRepository _instance = ImageRepository._internal();
+//  factory ImageRepository() => _instance;
+//  ImageRepository._internal();
   ImageRepository();
 
-  FutureOr<Map<int, Image>> loadImage({
-    required int key,
-    required int id,
-    required String uri,
+  FutureOr<Map<String, Image>> loadImage({
+    String? key,
+    int id = -1,
+    String uri = '',
     double width = 100,
+    Uint8List? bytes,
   }) async {
+    key ??= getFileName(url: uri);
+    key = key.isNotEmpty ? key : getFileName(url: uri);
+
     if (!_imageCache.containsKey(key)) {
-      key = _imageCache.length;
-      //   isEmpty ? 0 : _imageCache.keys.last + 1;
+      // key = _imageCache.length;
+      // isEmpty ? 0 : _imageCache.keys.last + 1;
+
       if (id >= 0 && !kIsWeb) {
-        _imageCache[key] = await localImageFromBytes(id: id);
-        //   debugPrint('Image returned from local database');
+        Uint8List? imageBytes =
+            await getPrivateRepository().loadImageByIdLocal(id: id);
+        _imageCache[key] = imageBytes!;
+        // debugPrint('Image returned from local database');
       } else if (uri.isNotEmpty && uri.contains('assets')) {
-        _imageCache[key] = Image.asset(uri);
+        final ByteData bytes = await rootBundle.load(uri);
+        _imageCache[key] = bytes.buffer.asUint8List();
         //  debugPrint('Image returned from assets');
-      } else if (uri.isNotEmpty) {
-        _imageCache[key] = await webImageFromBytes(url: uri);
-        //   debugPrint('Image returned from web');
+      } else if (uri.isNotEmpty && bytes == null) {
+        _imageCache[key] = await getImageBytes(url: uri);
+        // debugPrint('Image returned from web');
+      } else if (bytes != null) {
+        // allow the bytes to be held for the Web version - they will be written away later
+        _imageCache[key] = bytes;
       }
-    } else {
-      //   debugPrint('Image returned from cache');
     }
-    return {key: _imageCache[key]!};
+
+    return {key: Image.memory(_imageCache[key]!)};
+  }
+
+  Uint8List getBytes({String key = ''}) {
+    Uint8List? bytes = _imageCache[key];
+    return bytes ?? Uint8List(0);
   }
 
   clear() {
