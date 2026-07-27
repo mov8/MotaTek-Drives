@@ -227,7 +227,7 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
         collapsedBackgroundColor: Colors.white,
         initiallyExpanded: widget.expanded,
         controller: _expandController,
-        
+
         title: Row(children: [
           if (kIsWeb) ...[
             Row(children: [
@@ -282,9 +282,7 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
         ]), //  Text('Test Name'),
         onExpansionChanged: (value) {
           _expanded = value; // <-- Important allows ExpansionController to work
-          if (widget.pointOfInterest.complete() == 3){
-
-          }
+          if (widget.pointOfInterest.complete() == 3) {}
         },
         children: [
           Padding(
@@ -418,7 +416,7 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
       // update the geoJson flag to show the details
       CurrentTripItem().mapUpdates =
           CurrentTripItem().mapUpdates.add(MapUpdates.pointsOfInterest);
-      MapService().controller.upda
+      //  MapService().controller.upda
       if (widget.onUpdate != null) {
         widget.onUpdate!(true);
       }
