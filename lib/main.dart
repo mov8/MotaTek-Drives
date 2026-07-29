@@ -1,11 +1,13 @@
+import 'package:drives/screens/create_trip_stack.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/adapters.dart';
+import 'package:path/path.dart';
 import 'dart:developer' as developer;
 import 'package:path_provider/path_provider.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
-import 'classes/classes.dart' hide NavigationService;
+import 'classes/classes.dart' hide NavigationService, Route;
 import '/services/services.dart'; // hide NavigationService;
 import 'routes/routes.dart';
 import 'dart:math';
@@ -29,7 +31,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized(); // <- needed to allow await to work
   await Hive.initFlutter();
   await Setup().loaded;
-  Setup().hasLoggedIn = Setup().user.email.isNotEmpty;
+  Setup().hasLoggedIn = Setup().jwt.isNotEmpty;
   var currentTripBox = await Hive.openBox('currentTrip');
 
   debugPrint('Setup().user.surname ${Setup().user.surname}');
@@ -85,6 +87,8 @@ void main() async {
 
       initialRoute: Setup().appState.isEmpty ? 'splash' : 'createTrip',
 
+      onGenerateRoute: Routes.generateRoute,
+/*
       routes: {
         'splash': (BuildContext context) => const Splash(), // Shop(),
         'home': (BuildContext context) => const Home(),
@@ -95,7 +99,12 @@ void main() async {
         'shop': (BuildContext context) => const Shop(),
         'messages': (BuildContext context) => Messages(),
       },
+      */
       builder: (context, child) {
+        /// Had a real issue with the map getting gestures in the Stack structure. For some reason the Scaffold
+        /// in pages blocked the gestures in Android version. The only way round it was to implement the two map pages
+        /// as vanilla Widgets. The Route for the Home, Shop, and Messages are displayed as normal.
+        UIStateService().setPage(Setup().appState.isEmpty ? 1 : 0);
         // Wrap the entire app in AnnotatedRegion and MediaQuery for colour and font scaling
         return AnnotatedRegion<SystemUiOverlayStyle>(
           value: SystemUiOverlayStyle(
@@ -123,6 +132,82 @@ void main() async {
   ); //);
 }
 
+/// Routes class allows the generation of Routes. The reason it's used
+/// is partly because it's more modular, but also it allows the generation
+/// of a page from a scaffold-free class, as the inclusion of the scaffold
+/// stops the gestures from the map reaching the map as the map is at the
+/// bottom of a Stack
+
+class Routes {
+  static Route<dynamic> generateRoute(RouteSettings settings) {
+    switch (settings.name) {
+      case 'splash':
+        return MaterialPageRoute(builder: (_) => Splash());
+      case 'home':
+        return MaterialPageRoute(builder: (_) => Home());
+      case 'trips' || 'createTrip':
+        return MaterialPageRoute(builder: (_) => CreateTrip());
+      /* return PageRouteBuilder(
+            opaque: false,
+            barrierColor: null,
+            settings: settings,
+            pageBuilder: (
+              context,
+              _,
+              __,
+            ) =>
+                const CreateTripStack(),
+            transitionsBuilder: (context, anim, _, child) => FadeTransition(
+                  opacity: anim,
+                  child: child,
+                )); */
+      case 'myTrips':
+        return MaterialPageRoute(builder: (_) => MyTrips());
+      case 'shop':
+        return MaterialPageRoute(builder: (_) => Shop());
+      case 'messages':
+        return MaterialPageRoute(builder: (_) => Messages());
+
+      default:
+        return MaterialPageRoute(
+          builder: (_) => Scaffold(
+            body: Center(
+              child: Text('No route defined for \${settings.name}'),
+            ),
+          ),
+        );
+    }
+  }
+}
+
+enum AppDisplayMode { mapOverlay, navigator }
+
+class UIStateService extends ChangeNotifier {
+  static final UIStateService _instance = UIStateService._internal();
+  factory UIStateService() => _instance;
+  UIStateService._internal();
+
+  int _page = 0;
+  int get page => _page;
+
+  void setPage(int newPage) {
+    if (_page == newPage) return;
+    _page = newPage;
+
+    // THIS IS THE MISSING LINK:
+    // It tells Flutter to look at every widget listening to this class
+    notifyListeners();
+  }
+
+  AppDisplayMode displayMode = AppDisplayMode.mapOverlay;
+
+  void setMode(AppDisplayMode mode) {
+    if (displayMode == mode) return;
+    displayMode = mode;
+    notifyListeners();
+  }
+}
+
 /// AppMasterShell allows the WebAppBar, MLMap, SideDrawer and StatusBar to be available
 /// throughout the whole app, as they're instantiated before the navigation.
 /// All references to the WebAppBar, MapLibreMap and controllers are held in the MapService() singleton
@@ -148,9 +233,20 @@ class AppMasterShell extends StatelessWidget {
     MapService().webAppBarController ??= WebAppBarController();
     MapService().sideDrawerController ??= SideDrawerController();
     MapService().statusBarController ??= StatusBarController();
+    developer.log(
+        'AppMasterShell().build() called MapService().page: ${MapService().page}',
+        name: '_map_');
     double sideDrawerOpenWidth = 0.4;
     return Scaffold(
-        body: PageStorage(
+        body:
+
+            // ListenableBuilder(
+            //   listenable: UIStateService(),
+            //   builder: (context, _) {
+            //     final mode = UIStateService().displayMode;
+            // final mode = AppDisplayMode.navigator;
+            //     return
+            PageStorage(
       // <-- has to be added because outside Navigation
       bucket: _shellStorageBucket,
       child: Column(
@@ -174,14 +270,14 @@ class AppMasterShell extends StatelessWidget {
                   future: MapService().style, // <- ensure the style is loaded
                   builder: (context, snapshot) {
                     if (snapshot.hasError) {
-                      developer.log('Error getting style', name: 'error');
+                      developer.log('Error getting style', name: '_map_');
                     } else if (snapshot.hasData) {
                       try {
                         MapLibreMap map = MapLibreMap(
                           key: MapService().mapKey,
                           styleString: snapshot.data!,
                           compassViewPosition: CompassViewPosition.topLeft,
-                          onMapCreated: onMapUpdated,
+                          onMapCreated: _onMapUpdated,
                           initialCameraPosition: CameraPosition(
                               target: MapService().currentPosition, zoom: 11),
                           trackCameraPosition: true,
@@ -189,12 +285,14 @@ class AppMasterShell extends StatelessWidget {
                           onMapClick: _onTap,
                           onCameraIdle: _onCameraIdle,
                           scrollGesturesEnabled: true,
-                          onStyleLoadedCallback: () => onStyleLoaded(),
+                          onStyleLoadedCallback: () => _onStyleLoaded(),
                           zoomGesturesEnabled: true,
                           gestureRecognizers: <Factory<
                               OneSequenceGestureRecognizer>>{
                             Factory<PanGestureRecognizer>(
                                 () => PanGestureRecognizer()),
+                            Factory<EagerGestureRecognizer>(
+                                () => EagerGestureRecognizer()),
                             Factory<ScaleGestureRecognizer>(
                                 () => ScaleGestureRecognizer()),
                             Factory<TapGestureRecognizer>(
@@ -206,7 +304,7 @@ class AppMasterShell extends StatelessWidget {
                         return map;
                       } catch (e) {
                         developer.log('Error building map: ${e.toString()}',
-                            name: 'error');
+                            name: '_map_');
                       }
                     } else {
                       return const Center(
@@ -215,7 +313,7 @@ class AppMasterShell extends StatelessWidget {
                     }
                     return Center(
                       child: Text(
-                        'Map not available - please check your Internet connection',
+                        'Map not available - \nplease check your Internet connection',
                         style: TextStyle(
                           fontSize: 22,
                           color: Colors.white,
@@ -233,7 +331,25 @@ class AppMasterShell extends StatelessWidget {
                     controller: MapService().statusBarController,
                   ),
                 ),
-                content, // <-- All the other screens and map overlays
+
+                ListenableBuilder(
+                  listenable:
+                      UIStateService(), // Flutter now "watches" your singleton
+                  builder: (context, _) {
+                    final currentPage = UIStateService().page;
+                    developer.log(
+                        'AppMasterShell() setting currentPage: $currentPage',
+                        name: '_map_');
+                    if (currentPage == 0 && !kIsWeb) {
+                      // If page is 0, the Navigator is REMOVED from the tree.
+                      // The "Glass Wall" is gone. Map gestures will work!
+                      return const CreateTripStack();
+                    } else {
+                      // If page is 1, show the Navigator (Shop, Home, etc.)
+                      return content;
+                    }
+                  },
+                ),
                 if (kIsWeb) ...[
                   Align(
                     alignment: Alignment.topLeft,
@@ -262,11 +378,15 @@ class AppMasterShell extends StatelessWidget {
           ),
         ],
       ),
-    ));
+    )
+        //   },
+        //  ),
+        );
   }
 }
 
-void onStyleLoaded() async {
+void _onStyleLoaded() async {
+  developer.log('main.dart _onStyleLoaded() called', name: '_map_');
   await MapService().controller!.moveCamera(
         CameraUpdate.newLatLngZoom(
           MapService().currentPosition,
@@ -275,15 +395,16 @@ void onStyleLoaded() async {
       );
 }
 
-void onMapUpdated(MapLibreMapController controller) async {
+void _onMapUpdated(MapLibreMapController controller) async {
   MapService().controller = controller;
-
+  developer.log('main.dart _onMapUpdated() called', name: '_map_');
   if (MapService().statusBarController != null) {
     MapService().statusBarController!.refresh();
   }
 }
 
 void _onTap(Point<double> point, LatLng coordinates) async {
+  developer.log('main.dart _onTap() called', name: '_map_');
   MapService().onTap(point, coordinates);
   // nwidget.onTap!(point, coordinates);
 }

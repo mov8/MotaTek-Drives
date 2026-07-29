@@ -666,23 +666,23 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                 (e) => PopupMenuItem(
                   onTap: () => changeType(e['id']),
                   value: e['id'].toString(),
-                  child: PointerInterceptor(
-                    child: Row(
-                      children: [
-                        Icon(
-                          // Icons.access_alarms
-                          IconData(e['iconMaterial'],
-                              fontFamily: 'MaterialIcons'),
-                          color: Color(e['colourMaterial']),
-                        ),
-                        Text(
-                          '    ${e['name'] ?? 'Er'} (${e['id']})',
-                          style: titleStyle(
-                              context: context, color: Colors.black, size: 2),
-                        )
-                      ],
-                    ),
+                  //   child: PointerInterceptor(
+                  child: Row(
+                    children: [
+                      Icon(
+                        // Icons.access_alarms
+                        IconData(e['iconMaterial'],
+                            fontFamily: 'MaterialIcons'),
+                        color: Color(e['colourMaterial']),
+                      ),
+                      Text(
+                        '    ${e['name'] ?? 'Er'} (${e['id']})',
+                        style: titleStyle(
+                            context: context, color: Colors.black, size: 2),
+                      )
+                    ],
                   ),
+                  //    ),
                 ),
               )
               .toList();

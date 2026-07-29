@@ -1,7 +1,11 @@
-import 'package:flutter/foundation.dart';
+import 'package:drives/screens/create_trip_stack.dart';
+// import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'dart:developer' as developer;
+import '/main.dart';
 import '/constants.dart';
 import '/models/models.dart';
+import '/services/services.dart';
 
 class RoutesBottomNavController {
   _RoutesBottomNavState? _routesBottomNavState;
@@ -80,49 +84,77 @@ class _RoutesBottomNavState extends State<RoutesBottomNav>
     setState(() => _index = id);
   }
 
+/*
+  Route<dynamic>? onGenerateRoute(RouteSettings settings) {
+    developer.log('onGenerateRoute() called settings.name: ${settings.name}',
+        name: '_map_');
+    if (['trips', 'createTrip'].contains(settings.name)) {
+      return PageRouteBuilder(
+        opaque: false, // <--- THIS IS THE MAGIC BULLET
+        barrierColor: null,
+        settings: settings,
+        pageBuilder: (context, _, __) => const CreateTripStack(),
+        transitionsBuilder: (context, anim, _, child) =>
+            FadeTransition(opacity: anim, child: child),
+      );
+    } else {
+      Navigator.pushNamedAndRemoveUntil(context, routes[_index], (route) => false);
+    }
+  }
+  */
+
   void navigate() {
-    Navigator.pushNamed(context, routes[_index]);
+    NavigationService().page = _index;
+    developer.log('RoutesBottomNav().navigate(${routes[_index]})',
+        name: '_map_');
+
     return;
   }
 
   @override
   Widget build(BuildContext context) {
     //  debugPrint('selectedIndex: $_index');
-    return NavigationBar(
-      elevation: 5,
-      height: 60,
-      surfaceTintColor: Colors.blue,
-      onDestinationSelected: (int index) {
-        setState(() => widget.onMenuTap(index));
-        _index = index;
-        Navigator.pushNamed(context, routes[index]);
-      },
-      indicatorColor: Colors.lightBlue,
-      selectedIndex: _index,
-      // labelTextStyle: WidgetStateProperty.all(
-      //   const TextStyle(fontSize: 12, color: Color.fromARGB(255, 87, 23, 238)),
-      // ),
-      labelTextStyle: WidgetStateProperty.resolveWith<TextStyle>(
-        (Set<WidgetState> states) {
-          // If the tab is currently selected:
-          if (states.contains(WidgetState.selected)) {
-            return const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: Colors.blue,
-            );
+    return Align(
+      alignment: AlignmentGeometry.bottomStart,
+      child: NavigationBar(
+        elevation: 5,
+        height: 60,
+        surfaceTintColor: Colors.blue,
+        onDestinationSelected: (int index) {
+          MapService().setPage(page: index);
+          setState(() => widget.onMenuTap(index));
+          if ([1, 2].contains(index)) {
+            UIStateService().setPage(0); //setMode(AppDisplayMode.navigator);
           }
-          // Default style for unselected tabs:
-          return const TextStyle(
-            fontSize: 10,
-            color: Colors.deepPurple,
-          );
+          _index = index;
+          MapService().setPage(page: index);
+          Navigator.pushNamedAndRemoveUntil(
+              context, routes[index], (route) => false);
         },
+        indicatorColor: Colors.lightBlue,
+        selectedIndex: _index,
+        labelTextStyle: WidgetStateProperty.resolveWith<TextStyle>(
+          (Set<WidgetState> states) {
+            // If the tab is currently selected:
+            if (states.contains(WidgetState.selected)) {
+              return const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: Colors.blue,
+              );
+            }
+            // Default style for unselected tabs:
+            return const TextStyle(
+              fontSize: 10,
+              color: Colors.deepPurple,
+            );
+          },
+        ),
+        destinations: List<Widget>.generate(
+            6,
+            (index) => _navigationDestination(
+                index: index, badgeValue: badgeValues[index])),
       ),
-      destinations: List<Widget>.generate(
-          6,
-          (index) => _navigationDestination(
-              index: index, badgeValue: badgeValues[index])),
     );
   }
 

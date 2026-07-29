@@ -8,7 +8,7 @@ import 'package:flutter/foundation.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:universal_io/universal_io.dart';
 import 'package:uuid/uuid.dart';
-import '/services/services.dart';
+import '/services/services.dart' hide getPosition;
 import '/classes/classes.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
@@ -352,6 +352,7 @@ class Setup {
         // iOS-specific configuration
         iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
       );
+      lastPosition = await getPosition();
       try {
         jwt = await _storage!.read(key: 'jwt') ?? '';
 

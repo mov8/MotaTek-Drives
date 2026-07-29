@@ -378,18 +378,18 @@ class _WebAppBarState extends State<WebAppBar> {
               setSideDrawerContent(content: e['drawer']);
             },
             value: e['key'],
-            child: PointerInterceptor(
-              child: Row(
-                key: Key('pmi${e['key']}'),
-                children: [
-                  e['iconData'],
-                  SizedBox(
-                    width: 10,
-                  ),
-                  Text(e['text']),
-                ],
-              ),
+            //      child: PointerInterceptor(
+            child: Row(
+              key: Key('pmi${e['key']}'),
+              children: [
+                e['iconData'],
+                SizedBox(
+                  width: 10,
+                ),
+                Text(e['text']),
+              ],
             ),
+            //        ),
           ),
         )
         .toList();

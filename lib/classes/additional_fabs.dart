@@ -68,42 +68,42 @@ class _ZoomFabState extends State<ZoomFab> {
         color: Colors.blue,
         height: widget.height,
         width: widget.width,
-        child: PointerInterceptor(
-          // absorbing: false,
-          child: Column(
-            children: [
-              Expanded(
-                flex: 2,
-                child: IconButton(
-                  onPressed: () => setState(() =>
-                      (widget.controller.animateCamera(CameraUpdate.zoomIn()))),
-                  icon: Icon(Icons.add_circle),
-                  iconSize: widget.width * .5,
-                  color: Colors.white,
-                ),
+        //    child: PointerInterceptor(
+        // absorbing: false,
+        child: Column(
+          children: [
+            Expanded(
+              flex: 2,
+              child: IconButton(
+                onPressed: () => setState(() =>
+                    (widget.controller.animateCamera(CameraUpdate.zoomIn()))),
+                icon: Icon(Icons.add_circle),
+                iconSize: widget.width * .5,
+                color: Colors.white,
               ),
-              Expanded(
-                flex: 2,
-                child: Padding(
-                  padding: EdgeInsetsGeometry.fromLTRB(0, 10, 0, 0),
-                  child: Text(
-                      widget.controller.cameraPosition!.zoom.toStringAsFixed(0),
-                      style: TextStyle(fontSize: 20, color: Colors.white)),
-                ),
+            ),
+            Expanded(
+              flex: 2,
+              child: Padding(
+                padding: EdgeInsetsGeometry.fromLTRB(0, 10, 0, 0),
+                child: Text(
+                    widget.controller.cameraPosition!.zoom.toStringAsFixed(0),
+                    style: TextStyle(fontSize: 20, color: Colors.white)),
               ),
-              Expanded(
-                flex: 2,
-                child: IconButton(
-                  onPressed: () => setState(() => (widget.controller
-                      .animateCamera(CameraUpdate.zoomOut()))),
-                  icon: Icon(Icons.do_not_disturb_on_rounded),
-                  iconSize: widget.width * .5,
-                  color: Colors.white,
-                ),
+            ),
+            Expanded(
+              flex: 2,
+              child: IconButton(
+                onPressed: () => setState(() =>
+                    (widget.controller.animateCamera(CameraUpdate.zoomOut()))),
+                icon: Icon(Icons.do_not_disturb_on_rounded),
+                iconSize: widget.width * .5,
+                color: Colors.white,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
+        // ),
       ),
     );
   }

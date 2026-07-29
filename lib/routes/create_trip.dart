@@ -588,7 +588,7 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
       // resizeToAvoidBottomInset: false,
       key: _scaffoldKey,
       drawer: const MainDrawer(),
-      appBar: kIsWeb
+      /*   appBar: kIsWeb
           ? null
           : AppBar(
               key: _appBarKey,
@@ -622,7 +622,9 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
                 onUpdate: (_) => null,
               ),
             ),
+            */
       //(val) => val ? setState(()  {}) : () {})),
+      /*
       bottomNavigationBar: kIsWeb
           ? null
           : RoutesBottomNav(
@@ -630,16 +632,30 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
               controller: _bottomNavController,
               initialValue: initialNavBarValue,
               onMenuTap: (_) => {}),
-      body: FutureBuilder<bool>(
+      */
+      extendBodyBehindAppBar: true,
+      body: GestureDetector(
+        behavior: HitTestBehavior
+            .translucent, // 4. Tell Flutter to pass touches through
+        child: Text('Debug'),
+      ),
+
+      /*FutureBuilder<bool>(
         future: _loadedOK,
         builder: (BuildContext context, snapshot) {
           if (snapshot.hasError) {
             debugPrint('Snapshot error: ${snapshot.error}');
+            developer.log('CreateTrip().build() snapshot.hasError',
+                name: '_map_');
           } else if (snapshot.hasData) {
             try {
+              developer.log('CreateTrip().build() snapshot.hasData',
+                  name: '_map_');
               Widget body = _getPortraitBody();
               return body;
             } catch (e) {
+              developer.log('CreateTrip().build() error:${e.toString()}',
+                  name: '_map_');
               debugPrint('error getting portraitBody ${e.toString()}');
             }
             // return body; //_getPortraitBody();
@@ -656,8 +672,8 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
           throw ('Error - FutureBuilder in create_trips.dart');
         },
       ),
-
-      drawerEnableOpenDragGesture: false,
+*/
+      //     drawerEnableOpenDragGesture: false,
     );
   }
 
@@ -777,10 +793,10 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
     // double start = 0;
     Future<bool>;
     try {
-      return Stack(
-        children: [
-          if (MapService().controller != null)
-            Align(
+      return Text('Hi');
+      /* Stack(children: [
+         if (MapService().controller != null)
+                 Align(
               // <-- Only do editing in "Explore" mode
               alignment: Alignment.topRight,
               child: HandleCTFabs(
@@ -790,83 +806,83 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
                   update: (update) => update ? setState(() {}) : null),
             ), //_debugUpdate),
 
-          if (_tripArguments!.activeChip == 2) ...[
-            Align(
-              // <-- Only do editing in "Explore" mode
-              alignment: Alignment.bottomLeft,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(5, 0, 5, 35),
+            if (_tripArguments!.activeChip == 2) ...[
+              Align(
+                // <-- Only do editing in "Explore" mode
+                alignment: Alignment.bottomLeft,
                 child: Padding(
-                  padding:
-                      EdgeInsetsGeometry.fromLTRB(kIsWeb ? 30 : 0, 0, 0, 0),
-                  child: CreateTripChips(
-                    tripItem: CurrentTripItem(),
-                    createTripController:
-                        widget.controller ?? CreateTripController(),
-                    leadingWidgetController: _leadingWidgetController,
-                    position:
-                        chipPosition(), // gets either stream or mapController position
-                    onUpdate: (value) =>
-                        _executeChipActions(tripActions: value),
-                  ),
-                ),
-              ),
-            ),
-            if (CurrentTripItem().tripValues.showTarget &&
-                !CurrentTripItem().tripValues.showProgress) ...[
-              CustomPaint(
-                painter: TargetPainter(
-                    top: _mapMiddle.y.toDouble(), //mapMiddle().y.toDouble(),
-                    left: _mapMiddle.x.toDouble(), //mapMiddle().x.toDouble(),
-                    color: CurrentTripItem().isGoodRoad
-                        ? Colors.red
-                        : Colors.black),
-              )
-            ],
-            if (CurrentTripItem().tripState == TripState.following) ...[
-              Positioned(
-                top: _pointAtCentre.y.toDouble() - 20,
-                left: _pointAtCentre.x.toDouble() - 20,
-                child: RotationTransition(
-                  turns: AlwaysStoppedAnimation(0 / 360),
-                  child: Icon(
-                    size: 40,
-                    Icons.navigation,
-                    // Icons.assistant_navigation,
-                    color: Colors.blueAccent,
-                  ),
-                ),
-              )
-            ],
-            if (_userPosition.speed > 0.01) ...[
-              Padding(
-                padding: const EdgeInsets.fromLTRB(15, 10, 0, 150),
-                child: Align(
-                  alignment: Alignment.bottomLeft,
-                  child: CircleAvatar(
-                    radius: 28,
-                    backgroundColor: Colors.red,
-                    child: CircleAvatar(
-                      radius: 25,
-                      backgroundColor: Colors.black,
-                      child: Text(_userPosition.speed.toString(),
-                          style: const TextStyle(
-                              fontSize: 20, color: Colors.white)),
+                  padding: const EdgeInsets.fromLTRB(5, 0, 5, 35),
+                  child: Padding(
+                    padding:
+                        EdgeInsetsGeometry.fromLTRB(kIsWeb ? 30 : 0, 0, 0, 0),
+                    child: CreateTripChips(
+                      tripItem: CurrentTripItem(),
+                      createTripController:
+                          widget.controller ?? CreateTripController(),
+                      leadingWidgetController: _leadingWidgetController,
+                      position:
+                          chipPosition(), // gets either stream or mapController position
+                      onUpdate: (value) =>
+                          _executeChipActions(tripActions: value),
                     ),
                   ),
                 ),
               ),
-            ],
-            if (_tripArguments!.activeChip == 1) ...[
-              CustomPaint(
-                painter: HighlightPainter(
-                  boundary: _mapSize, // mapSize(),
-                  proportion: 0.6,
-                  color: Colors.blueGrey,
+              if (CurrentTripItem().tripValues.showTarget &&
+                  !CurrentTripItem().tripValues.showProgress) ...[
+                CustomPaint(
+                  painter: TargetPainter(
+                      top: _mapMiddle.y.toDouble(), //mapMiddle().y.toDouble(),
+                      left: _mapMiddle.x.toDouble(), //mapMiddle().x.toDouble(),
+                      color: CurrentTripItem().isGoodRoad
+                          ? Colors.red
+                          : Colors.black),
+                )
+              ],
+              if (CurrentTripItem().tripState == TripState.following) ...[
+                Positioned(
+                  top: _pointAtCentre.y.toDouble() - 20,
+                  left: _pointAtCentre.x.toDouble() - 20,
+                  child: RotationTransition(
+                    turns: AlwaysStoppedAnimation(0 / 360),
+                    child: Icon(
+                      size: 40,
+                      Icons.navigation,
+                      // Icons.assistant_navigation,
+                      color: Colors.blueAccent,
+                    ),
+                  ),
+                )
+              ],
+              if (_userPosition.speed > 0.01) ...[
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(15, 10, 0, 150),
+                  child: Align(
+                    alignment: Alignment.bottomLeft,
+                    child: CircleAvatar(
+                      radius: 28,
+                      backgroundColor: Colors.red,
+                      child: CircleAvatar(
+                        radius: 25,
+                        backgroundColor: Colors.black,
+                        child: Text(_userPosition.speed.toString(),
+                            style: const TextStyle(
+                                fontSize: 20, color: Colors.white)),
+                      ),
+                    ),
+                  ),
                 ),
-              ),
+              ],
+              if (_tripArguments!.activeChip == 1) ...[
+                CustomPaint(
+                  painter: HighlightPainter(
+                    boundary: _mapSize, // mapSize(),
+                    proportion: 0.6,
+                    color: Colors.blueGrey,
+                  ),
+                ),
+              ],
             ],
-          ],
           if (!kIsWeb)
             BottomDrawer(
               context: context,
@@ -888,8 +904,11 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
           /// ToDo: Allow more flexible status bar messages
 
           if (kIsWeb) ...[]
+          
         ],
       );
+      
+      */
     } catch (e) {
       return Center(child: Text('Bugger: ${e.toString()}'));
     }

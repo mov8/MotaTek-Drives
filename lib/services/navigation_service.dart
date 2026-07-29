@@ -11,6 +11,8 @@ class NavigationService {
     return key.currentState!.pushNamed(routeName, arguments: arguments);
   }
 
+  int page = 0;
+
   void goBack() {
     return key.currentState!.pop();
   }

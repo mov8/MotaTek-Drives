@@ -858,98 +858,99 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
                     widget.onOpened!(width > 10);
                   }
                 },
-                child: PointerInterceptor(
-                  // absorbing: false,
-                  child: AnimatedOpacity(
-                    opacity: _visible ? 1.0 : 0.0,
-                    duration: const Duration(milliseconds: 500),
-                    child: Padding(
-                      padding: EdgeInsets.fromLTRB(0, 1, 0, 1),
-                      child: Container(
-                        width: width > dividerWidth ? width - dividerWidth : 0,
-                        child: Card(
-                          elevation: 7,
-                          shadowColor: const Color.fromARGB(255, 99, 98, 98),
-                          child: SingleChildScrollView(
-                            physics: NeverScrollableScrollPhysics(),
-                            child: Container(
-                              width: width,
-                              height: mapHeight,
-                              color: const Color.fromRGBO(54, 143, 244, 0.411),
-                              child: ScrollablePositionedList.builder(
-                                  itemScrollController: _itemScrollController,
-                                  itemCount: _tiles.length,
-                                  itemBuilder: (navContext, index) =>
-                                      _tiles[index]),
-                            ),
+                //  child: PointerInterceptor(
+                // absorbing: false,
+                child: AnimatedOpacity(
+                  opacity: _visible ? 1.0 : 0.0,
+                  duration: const Duration(milliseconds: 500),
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(0, 1, 0, 1),
+                    child: Container(
+                      width: width > dividerWidth ? width - dividerWidth : 0,
+                      child: Card(
+                        elevation: 7,
+                        shadowColor: const Color.fromARGB(255, 99, 98, 98),
+                        child: SingleChildScrollView(
+                          physics: NeverScrollableScrollPhysics(),
+                          child: Container(
+                            width: width,
+                            height: mapHeight,
+                            color: const Color.fromRGBO(54, 143, 244, 0.411),
+                            child: ScrollablePositionedList.builder(
+                                itemScrollController: _itemScrollController,
+                                itemCount: _tiles.length,
+                                itemBuilder: (navContext, index) =>
+                                    _tiles[index]),
                           ),
                         ),
                       ),
                     ),
                   ),
                 ),
+                //     ),
               ),
               if (!_fixed) ...[
-                PointerInterceptor(
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.translucent,
-                    child: AbsorbPointer(
-                      child: Container(
-                        color: const Color.fromARGB(30, 71, 71, 71),
-                        width: dividerWidth,
-                        height: mapHeight,
-                        child: Padding(
-                          padding: EdgeInsetsGeometry.fromLTRB(0, 0, 0, 0),
-                          child: RotatingIcon(
-                            icon: Icon(
-                              Icons.arrow_circle_right_outlined,
-                              size: dividerWidth,
-                              color: Colors.blueAccent,
-                            ),
-                            controller: _rotatingIconController,
+                //     PointerInterceptor(
+                //       child:
+                GestureDetector(
+                  behavior: HitTestBehavior.translucent,
+                  child: AbsorbPointer(
+                    child: Container(
+                      color: const Color.fromARGB(30, 71, 71, 71),
+                      width: dividerWidth,
+                      height: mapHeight,
+                      child: Padding(
+                        padding: EdgeInsetsGeometry.fromLTRB(0, 0, 0, 0),
+                        child: RotatingIcon(
+                          icon: Icon(
+                            Icons.arrow_circle_right_outlined,
                             size: dividerWidth,
+                            color: Colors.blueAccent,
                           ),
+                          controller: _rotatingIconController,
+                          size: dividerWidth,
                         ),
                       ),
                     ),
-                    onTap: () {
-                      setContentSide();
-                      _pointOfInterestController.dismissKeyboard();
-                      delay = 500;
-                      if (widget.onOpened != null) {
-                        widget.onOpened!(width > 10);
-                      }
-                      setState(() {
-                        width = width > 10 ? 0 : _openWidth;
-                        if (width == 0 && _rotatingIconController.rotated ||
-                            width > 0 && !_rotatingIconController.rotated) {
-                          _rotatingIconController.rotate();
-                        }
-                      });
-                      debugPrint('onTap: => width: $width');
-                    },
-                    onHorizontalDragUpdate: (DragUpdateDetails details) {
-                      if (delay > 1) setContentSide();
-                      setState(() {
-                        delay = 1;
-                        width = width + details.delta.dx < _maxWidth
-                            ? width + details.delta.dx
-                            : _maxWidth;
-                        if (widget.onChangeWidth != null) {
-                          widget.onChangeWidth!(width);
-                        }
-                        if (width < 50) {
-                          // FocusScope.of(context).unfocus();
-                          // _pointOfInterestController.dismissKeyboard();
-                        }
-                        if (width <= 20 && _rotatingIconController.rotated ||
-                            width > 20 && !_rotatingIconController.rotated) {
-                          _rotatingIconController.rotate();
-                        }
-                      });
-                    },
                   ),
+                  onTap: () {
+                    setContentSide();
+                    _pointOfInterestController.dismissKeyboard();
+                    delay = 500;
+                    if (widget.onOpened != null) {
+                      widget.onOpened!(width > 10);
+                    }
+                    setState(() {
+                      width = width > 10 ? 0 : _openWidth;
+                      if (width == 0 && _rotatingIconController.rotated ||
+                          width > 0 && !_rotatingIconController.rotated) {
+                        _rotatingIconController.rotate();
+                      }
+                    });
+                    debugPrint('onTap: => width: $width');
+                  },
+                  onHorizontalDragUpdate: (DragUpdateDetails details) {
+                    if (delay > 1) setContentSide();
+                    setState(() {
+                      delay = 1;
+                      width = width + details.delta.dx < _maxWidth
+                          ? width + details.delta.dx
+                          : _maxWidth;
+                      if (widget.onChangeWidth != null) {
+                        widget.onChangeWidth!(width);
+                      }
+                      if (width < 50) {
+                        // FocusScope.of(context).unfocus();
+                        // _pointOfInterestController.dismissKeyboard();
+                      }
+                      if (width <= 20 && _rotatingIconController.rotated ||
+                          width > 20 && !_rotatingIconController.rotated) {
+                        _rotatingIconController.rotate();
+                      }
+                    });
+                  },
                 ),
+                //    ),
               ],
             ],
           ),

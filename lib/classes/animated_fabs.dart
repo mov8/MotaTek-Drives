@@ -62,76 +62,75 @@ class _PlaceFinderState extends State<PlaceFinder> {
           ]),
       curve: Curves.fastOutSlowIn,
       onEnd: () => setState(() => _expanded = _width > _height),
-      child: PointerInterceptor(
-        child: _expanded
-            ? Row(
-                children: [
-                  SizedBox(
-                    width: _width - _height,
-                    child: Padding(
-                      padding: EdgeInsets.fromLTRB(20, 5, 2, 5),
-                      child: AutocompletePlace(
-                        options: _places,
-                        optionsMaxHeight: 100,
-                        searchLength: 3,
-                        style: textStyle(context: context, color: Colors.black),
-                        decoration: InputDecoration(
-                          filled: true,
-                          fillColor: Colors.white,
-                          border:
-                              _width > _height ? OutlineInputBorder() : null,
-                          hintText: 'Enter place name...',
-                        ),
-                        keyboardType: TextInputType.text,
-                        onSelect: (chosen) =>
-                            widget.onSelect!(LatLng(chosen.lat, chosen.lng)),
-                        onChange: (text) => (debugPrint('onChange: $text')),
-                        onUpdateOptionsRequest: (query) {
-                          debugPrint('Query: $query');
-                          getDropdownItems(query);
-                        },
+      //   child: PointerInterceptor(
+      child: _expanded
+          ? Row(
+              children: [
+                SizedBox(
+                  width: _width - _height,
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(20, 5, 2, 5),
+                    child: AutocompletePlace(
+                      options: _places,
+                      optionsMaxHeight: 100,
+                      searchLength: 3,
+                      style: textStyle(context: context, color: Colors.black),
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: Colors.white,
+                        border: _width > _height ? OutlineInputBorder() : null,
+                        hintText: 'Enter place name...',
                       ),
+                      keyboardType: TextInputType.text,
+                      onSelect: (chosen) =>
+                          widget.onSelect!(LatLng(chosen.lat, chosen.lng)),
+                      onChange: (text) => (debugPrint('onChange: $text')),
+                      onUpdateOptionsRequest: (query) {
+                        debugPrint('Query: $query');
+                        getDropdownItems(query);
+                      },
                     ),
-                  ),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: Padding(
-                      padding: EdgeInsets.fromLTRB(4, 4, 0, 0),
-                      child: IconButton(
-                        onPressed: () {
-                          setState(() => _width = _height);
-                          _expanded = false;
-                        },
-                        icon: Icon(
-                            _width > _height
-                                ? Icons.search_off_outlined
-                                : Icons.search_outlined,
-                            size: _height / 2,
-                            color: Colors.white),
-                      ),
-                    ),
-                  ),
-                ],
-              )
-            : Align(
-                alignment: Alignment.centerRight,
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(0, 0, 4, 0),
-                  child: IconButton(
-                    onPressed: () {
-                      setState(() {
-                        _expanded = false;
-                        _width = kIsWeb
-                            ? MediaQuery.of(context).size.width * .4
-                            : MediaQuery.of(context).size.width - 40;
-                      });
-                    },
-                    icon: Icon(Icons.search,
-                        size: _height / 2, color: Colors.white),
                   ),
                 ),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(4, 4, 0, 0),
+                    child: IconButton(
+                      onPressed: () {
+                        setState(() => _width = _height);
+                        _expanded = false;
+                      },
+                      icon: Icon(
+                          _width > _height
+                              ? Icons.search_off_outlined
+                              : Icons.search_outlined,
+                          size: _height / 2,
+                          color: Colors.white),
+                    ),
+                  ),
+                ),
+              ],
+            )
+          : Align(
+              alignment: Alignment.centerRight,
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(0, 0, 4, 0),
+                child: IconButton(
+                  onPressed: () {
+                    setState(() {
+                      _expanded = false;
+                      _width = kIsWeb
+                          ? MediaQuery.of(context).size.width * .4
+                          : MediaQuery.of(context).size.width - 40;
+                    });
+                  },
+                  icon: Icon(Icons.search,
+                      size: _height / 2, color: Colors.white),
+                ),
               ),
-      ),
+            ),
+      //  ),
     );
   }
 
@@ -224,36 +223,35 @@ class _FloatingChecklistState extends State<FloatingChecklist> {
           _height = _width == widget.width ? widget.height : _maxHeight + 50;
         },
       ),
-      child: PointerInterceptor(
-        child: _expanded
-            ? Row(
-                children: [
-                  SizedBox(
-                    width: _width - widget.height,
-                    child: Padding(
-                      padding: EdgeInsets.fromLTRB(20, 5, 2, 5),
-                      child: Card(
-                        color: Colors.white,
-                        child: SingleChildScrollView(
-                          child: Column(
-                            children: List.generate(
-                              widget.choices.length,
-                              (index) => Card(
-                                child: CheckboxListTile(
-                                  value: _choices[index].values.toList()[0],
-                                  onChanged: (value) {
-                                    setState(() {
-                                      _choices[index][_choices[index]
-                                          .keys
-                                          .toList()[0]] = value;
-                                      if (widget.onCheck != null) {
-                                        widget.onCheck!(index, value!);
-                                      }
-                                    });
-                                  },
-                                  title: Text(_choices[index].keys.toList()[0],
-                                      style: TextStyle(fontSize: 20)),
-                                ),
+      // child: PointerInterceptor(
+      child: _expanded
+          ? Row(
+              children: [
+                SizedBox(
+                  width: _width - widget.height,
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(20, 5, 2, 5),
+                    child: Card(
+                      color: Colors.white,
+                      child: SingleChildScrollView(
+                        child: Column(
+                          children: List.generate(
+                            widget.choices.length,
+                            (index) => Card(
+                              child: CheckboxListTile(
+                                value: _choices[index].values.toList()[0],
+                                onChanged: (value) {
+                                  setState(() {
+                                    _choices[index]
+                                            [_choices[index].keys.toList()[0]] =
+                                        value;
+                                    if (widget.onCheck != null) {
+                                      widget.onCheck!(index, value!);
+                                    }
+                                  });
+                                },
+                                title: Text(_choices[index].keys.toList()[0],
+                                    style: TextStyle(fontSize: 20)),
                               ),
                             ),
                           ),
@@ -261,62 +259,63 @@ class _FloatingChecklistState extends State<FloatingChecklist> {
                       ),
                     ),
                   ),
-                  Align(
-                    alignment: Alignment.topRight,
-                    child: Padding(
-                      padding: EdgeInsets.fromLTRB(4, 4, 0, 0),
-                      child: IconButton(
-                        onPressed: () {
-                          setState(
-                            () {
-                              _width = widget.height;
-                              _height = widget.height;
-                              if (widget.onClose != null) {
-                                widget.onClose!(true);
-                              }
-                            },
-                          );
-                          _expanded = false;
-                        },
-                        icon: Icon(
-                          _width > widget.width
-                              ? widget.closedIcon // Icons.settings_outlined
-                              : widget.openIcon, //Icons.settings,
-                          size: widget.openIconSize, //_height / 2,
-                          color: widget.openIconColor, // Colors.white),
-                        ),
+                ),
+                Align(
+                  alignment: Alignment.topRight,
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(4, 4, 0, 0),
+                    child: IconButton(
+                      onPressed: () {
+                        setState(
+                          () {
+                            _width = widget.height;
+                            _height = widget.height;
+                            if (widget.onClose != null) {
+                              widget.onClose!(true);
+                            }
+                          },
+                        );
+                        _expanded = false;
+                      },
+                      icon: Icon(
+                        _width > widget.width
+                            ? widget.closedIcon // Icons.settings_outlined
+                            : widget.openIcon, //Icons.settings,
+                        size: widget.openIconSize, //_height / 2,
+                        color: widget.openIconColor, // Colors.white),
                       ),
                     ),
                   ),
-                ],
-              )
-            : Align(
-                alignment: Alignment.topRight,
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(0, 4, 4, 0),
-                  child: IconButton(
-                    onPressed: () {
-                      setState(
-                        () {
-                          _expanded = false;
-                          _width = kIsWeb
-                              ? MediaQuery.of(context).size.width * .4
-                              : MediaQuery.of(context).size.width -
-                                  40; // _maxWidth;
-                        },
-                      );
-                    },
-                    icon: Icon(
-                      _height == widget.height
-                          ? widget.openIcon
-                          : widget.closedIcon,
-                      size: widget.closedIconSize,
-                      color: widget.closedIconColor,
-                    ),
+                ),
+              ],
+            )
+          : Align(
+              alignment: Alignment.topRight,
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(0, 4, 4, 0),
+                child: IconButton(
+                  onPressed: () {
+                    setState(
+                      () {
+                        _expanded = false;
+                        _width = kIsWeb
+                            ? MediaQuery.of(context).size.width * .4
+                            : MediaQuery.of(context).size.width -
+                                40; // _maxWidth;
+                      },
+                    );
+                  },
+                  icon: Icon(
+                    _height == widget.height
+                        ? widget.openIcon
+                        : widget.closedIcon,
+                    size: widget.closedIconSize,
+                    color: widget.closedIconColor,
                   ),
                 ),
               ),
-      ),
+            ),
+      //  ),
     );
   }
 }

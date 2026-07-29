@@ -8,7 +8,7 @@ import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:flutter/material.dart';
 import 'web_helper.dart';
 import '../constants.dart';
-// import '../classes/maplibre_map.dart';
+// import '../classes/classes.dart' as cl;
 import '../helpers/helpers.dart';
 import '../models/models.dart';
 import '../services/services.dart';
@@ -131,6 +131,8 @@ class MapService {
     return true;
   }
 
+  int get page => _page;
+
   /// onIdle called after the map has stopped doing something
   /// defined within main.dart where the persistent mapLibreMap
   /// id instantiated - its onCameraIdle gets assigned to this method.
@@ -164,10 +166,17 @@ class MapService {
       _currentPosition ?? LatLng(51.433, -0.513); // <-- Staines
 
   Future<String> _fetchStyle() async {
-    _styleString = await getStyle(url: urlTilerMapLibre);
-    Position position = await Geolocator.getCurrentPosition();
-    _currentPosition = LatLng(position.latitude, position.longitude);
-    return _styleString;
+    try {
+      _styleString = await getStyle(url: urlTilerMapLibre);
+      await getPermission();
+      Position position = await Geolocator.getCurrentPosition();
+      _currentPosition = LatLng(position.latitude, position.longitude);
+      return _styleString;
+    } catch (e) {
+      developer.log('Error getting style from api: ${e.toString()}',
+          name: '_map_');
+    }
+    return '';
   }
 
   Future<LatLngBounds> get bounds async => (await controller!
@@ -420,6 +429,27 @@ class MapService {
       }
     }
     mapUpdates = exitMapUpdates ?? MapUpdates.none;
+  }
+
+  Future getPermission() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      return Future.error('Location services not enabled.');
+    }
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        return Future.error('Location permissions denied.');
+      }
+      if (permission == LocationPermission.deniedForever) {
+        return Future.error(
+            'Location permissions are permanently denied. Check your settings');
+      }
+    }
   }
 }
 
