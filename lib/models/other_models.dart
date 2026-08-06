@@ -283,6 +283,7 @@ class Setup {
   int publishedTripColour = 10;
   int bottomNavIndex = 0;
   int recordDetail = 5;
+  int nextScreen = 1;
   bool allowNotifications = true;
   bool serverUp = false;
   bool hasLoggedIn = false;
@@ -569,6 +570,8 @@ class Setup {
   String publishedTripColourHex() {
     return colourList[publishedTripColour].toHexStringRGB();
   }
+
+  int debugIndex = 0;
 }
 
 class OverflowMethods {

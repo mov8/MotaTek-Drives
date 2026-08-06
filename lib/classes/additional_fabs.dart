@@ -12,7 +12,7 @@ class ZoomFabController {
 
   bool get isAttached => _zoomFabState != null;
 
-  void update() => _zoomFabState?.update();
+  // void update() => _zoomFabState?.update();
 }
 
 class ZoomFab extends StatefulWidget {
@@ -43,7 +43,11 @@ class _ZoomFabState extends State<ZoomFab> {
     widget.zfController._addState(this);
   }
 
-  update() => setState(() {});
+  update() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -75,8 +79,11 @@ class _ZoomFabState extends State<ZoomFab> {
             Expanded(
               flex: 2,
               child: IconButton(
-                onPressed: () => setState(() =>
-                    (widget.controller.animateCamera(CameraUpdate.zoomIn()))),
+                onPressed: () async {
+                  widget.controller
+                      .animateCamera(CameraUpdate.zoomIn())
+                      .then((_) => update());
+                },
                 icon: Icon(Icons.add_circle),
                 iconSize: widget.width * .5,
                 color: Colors.white,
@@ -94,8 +101,11 @@ class _ZoomFabState extends State<ZoomFab> {
             Expanded(
               flex: 2,
               child: IconButton(
-                onPressed: () => setState(() =>
-                    (widget.controller.animateCamera(CameraUpdate.zoomOut()))),
+                onPressed: () async {
+                  widget.controller
+                      .animateCamera(CameraUpdate.zoomOut())
+                      .then((_) => update());
+                },
                 icon: Icon(Icons.do_not_disturb_on_rounded),
                 iconSize: widget.width * .5,
                 color: Colors.white,

@@ -59,6 +59,7 @@ List<TextButton> actionButtons(
   return textButtons;
 }
 
+/*
 pointOfInterestDialog(
     BuildContext context,
     String name,
@@ -84,7 +85,7 @@ pointOfInterestDialog(
       textAlign: TextAlign.center,
     ),
     elevation: 5,
-    content: MarkerTile(
+    content:  MarkerTile(
       index: -1,
       name: name,
       description: description,
@@ -113,7 +114,7 @@ pointOfInterestDialog(
     },
   );
 }
-
+*/
 osmDataDialog(
     BuildContext context,
     String name,

@@ -45,6 +45,16 @@ class TripHeaderController {
     }
   }
 
+  void dismissKeyboard() {
+    try {
+      _tripHeaderTileState?.dismissKeyboard();
+    } catch (e) {
+      developer.log(
+          'Error TripHeaderTile().dismissKeyboard() error: ${e.toString()}',
+          name: 'error');
+    }
+  }
+
   void expand() {
     try {
       _tripHeaderTileState?.expand();
@@ -138,6 +148,7 @@ class _TripHeaderTileState extends State<TripHeaderTile> {
     setState(() {
       _textEditingControllerTitle.text = '';
       _textEditingControllerSubTitle.text = '';
+      _textEditingControllerBody.text = '';
     });
   }
 
@@ -154,11 +165,14 @@ class _TripHeaderTileState extends State<TripHeaderTile> {
   void dismissKeyboard() {
     if (mounted) {
       try {
-        collapse();
-        fn1.unfocus();
-        fn2.unfocus();
-        fn3.unfocus();
-        FocusScope.of(context).unfocus();
+        setState(() {
+          fn1.unfocus();
+          fn2.unfocus();
+          fn3.unfocus();
+          collapse();
+          FocusManager().primaryFocus?.unfocus();
+          // FocusScope.of(context).unfocus();
+        });
       } catch (e) {
         developer.log(
             'Error trip_header_tile.dart dismissKeyboard(): ${e.toString}',
@@ -167,12 +181,11 @@ class _TripHeaderTileState extends State<TripHeaderTile> {
     }
   }
 
-  void checkComplete() {
-    if (widget.tripItem.headerComplete() == 7) {
-      setState(() => dismissKeyboard());
-      collapse();
+  void checkComplete() async {
+    if (_textEditingControllerTitle.text.isNotEmpty &&
+        _textEditingControllerSubTitle.text.isNotEmpty &&
+        _textEditingControllerBody.text.isNotEmpty) {
       widget.onUpdate(true);
-      //   expandController.collapse();
     }
   }
 
@@ -232,7 +245,9 @@ class _TripHeaderTileState extends State<TripHeaderTile> {
                   CurrentTripItem().title = text;
                 }, //widget.tripItem.title = text,
                 onFieldSubmitted: (text) {
+                  CurrentTripItem().title = _textEditingControllerTitle.text;
                   checkComplete();
+                  FocusScope.of(context).requestFocus(fn2);
                 },
               ),
             ),
@@ -264,6 +279,8 @@ class _TripHeaderTileState extends State<TripHeaderTile> {
                 autovalidateMode: AutovalidateMode.onUserInteraction,
                 onChanged: (text) => CurrentTripItem().subTitle = text,
                 onFieldSubmitted: (text) {
+                  CurrentTripItem().subTitle =
+                      _textEditingControllerSubTitle.text;
                   checkComplete();
                   FocusScope.of(context).requestFocus(fn3);
                 },
@@ -297,6 +314,7 @@ class _TripHeaderTileState extends State<TripHeaderTile> {
                 onChanged: (text) => CurrentTripItem().body =
                     text, //widget.tripItem.body = text,
                 onFieldSubmitted: (text) {
+                  CurrentTripItem().body = _textEditingControllerBody.text;
                   checkComplete();
                 },
               ),

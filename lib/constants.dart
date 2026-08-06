@@ -424,20 +424,18 @@ const List<String> routeNavLabels = [
 
 const List<IconData> routeNavIconsSelected = [
   Icons.home,
-  Icons.cloud_download_outlined, // Icons.route,
-  Icons.explore, //Icons.map,
-  Icons.favorite_border_sharp, //Icons.person,
+  Icons.map_sharp,
+  Icons.explore,
+  Icons.favorite_sharp,
   Icons.shopping_bag,
   Icons.chat_bubble
 ];
 
 const List<IconData> routeNavIcons = [
   Icons.home_outlined,
-  // Icons.route_outlined,
-  Icons.cloud_download_outlined,
-  // Icons.map_outlined,
+  Icons.map_outlined,
   Icons.explore_outlined,
-  Icons.favorite_border_outlined, //Icons.person_outlined,
+  Icons.favorite_border_outlined,
   Icons.shopping_bag_outlined,
   Icons.chat_bubble_outline_outlined,
 ];
@@ -448,10 +446,10 @@ const Map<int, String> responseCodes = {
   202: 'accepted',
   204: 'no data',
   400: 'request error', //
-  401: 'unauthorised', // password failed
-  403: 'forbidden', // JWT problem
+  401: 'unauthorised', //  <-- password failed
+  403: 'forbidden', //  <-- JWT problem
   408: 'timed out',
-  410: 'missing' // User not found
+  410: 'missing' //  <-- User not found
 };
 
 const List<String> contactChoices = [

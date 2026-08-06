@@ -1,7 +1,15 @@
 import 'dart:async';
+import 'dart:math';
+import 'dart:developer' as developer;
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import '/classes/route.dart' as mt;
+import '/routes/routes.dart';
+import '/helpers/helpers.dart';
+import '/services/services.dart';
+import '/classes/classes.dart' hide Position;
+import '../constants.dart';
+import 'package:maplibre_gl/maplibre_gl.dart';
 
 class StreamSocket {
   final _socketResponse = StreamController<String>();
@@ -32,6 +40,155 @@ class DataStream<T> {
     streamController.close();
   }
 }
+
+/*
+class NavigationService {
+  static final NavigationService _instance = NavigationService._internal();
+  factory NavigationService() => _instance;
+  NavigationService._internal();
+*/
+/*
+class PositionService {
+  static final PositionService() _instance = PositionService._internal();
+  factory PositionService() => _instance;
+  PositionService._internal();
+
+  return;
+
+}
+*/
+
+class PositionService {
+  static final PositionService _instance = PositionService._internal();
+  factory PositionService() => _instance;
+  PositionService._internal();
+  Position? _currentPosition;
+  CurrentPosition? _userPosition;
+  double _speed = 0;
+
+  StreamSubscription<Position>? _positionStream;
+  StreamSubscription<Position>? _debuggingStream;
+  static const LocationSettings locationSettings = LocationSettings(
+    accuracy: LocationAccuracy.best,
+    distanceFilter: 5, // 10 meters
+  );
+  PositionUpdate _positionUpdate = PositionUpdate();
+  void Initialise() {
+    _positionStream =
+        Geolocator.getPositionStream(locationSettings: locationSettings)
+            .listen((position) {
+      _currentPosition = position;
+      _speed = _currentPosition!.speed * 3.6 / 8 * 5; // M/S -> MPH
+      if (CurrentTripItem().tripState == TripState.tracking) {
+        updateUserPosition(CurrentPosition(position: position));
+      }
+      if (_positionStream != null) {
+        _positionStream!
+            .onDone(() => CurrentTripItem().tripValues.streamFinished = true);
+      }
+    });
+  }
+
+  void InitialiseDebugging() {
+    _debuggingStream =
+        Geolocator.getPositionStream(locationSettings: locationSettings)
+            .listen((position) {
+      _currentPosition = position;
+      _speed = _currentPosition!.speed * 3.6 / 8 * 5; // M/S -> MPH
+      if (CurrentTripItem().tripState == TripState.tracking) {
+        updateUserPosition(CurrentPosition(position: position));
+      }
+    });
+  }
+
+  void pause() {
+    if (_positionStream != null) {
+      _positionStream!.pause();
+    }
+  }
+
+  void resume() {
+    if (_positionStream != null) {
+      _positionStream!.resume();
+    }
+  }
+
+  void cancel() {
+    if (_positionStream != null) {
+      _positionStream!.cancel();
+    }
+  }
+
+  void pauseDebugging() {
+    if (_positionStream != null) {
+      _debuggingStream!.pause();
+    }
+  }
+
+  void resumeDebugging() {
+    if (_positionStream != null) {
+      _debuggingStream!.resume();
+    }
+  }
+
+  void cancelDebugging() {
+    if (_positionStream != null) {
+      _debuggingStream!.cancel();
+    }
+  }
+
+  void updateUserPosition(CurrentPosition position) async {
+    if (_userPosition!.point.y > 0 &&
+        position.point.y > 0 &&
+        CurrentTripItem().tripState == TripState.tracking) {
+      double travelled = getDistanceBetween(
+          startXY: _userPosition!.point, endXY: position.point);
+      _speed = position.speed.toDouble();
+      _positionUpdate = PositionUpdate(
+        controller: MapService().controller!, // as MapLibreMapController,
+        routePoint: position.list,
+      );
+      if (travelled > 1000) {
+        CurrentTripItem().newWaypoint(point: position.point);
+      }
+    }
+
+    /// Update the map without animation
+    MapService()
+        .controller!
+        .moveCamera(CameraUpdate.newLatLng(position.latLng));
+    _userPosition = position;
+  }
+}
+
+// final GlobalKey<NavigatorState> key = GlobalKey<NavigatorState>();
+
+// NavigatorState get _navigator => key.currentState!;
+/*
+  Future<dynamic> navigateTo(String routeName, Object? arguments) async {
+    try {
+      if (key.currentState == null) {
+        developer.log('Navigator.key.currentState is null', name: 'error');
+        return;
+      } else if (!['trips', 'createTrip'].contains(routeName) || kIsWeb) {
+        key.currentState!.pushNamed(routeName, arguments: arguments);
+      }
+    } catch (e) {
+      developer.log(
+          'NavigationService().navigateTo($routeName) from: ${MapService().page}  error: ${e.toString()} ',
+          name: 'error');
+    }
+    return; // key.currentState!.pushNamed(routeName, arguments: arguments);
+ 
+ 
+  }
+
+  int page = 0;
+
+  void goBack() {
+    return key.currentState!.pop();
+  }
+  */
 
 class FollowRoute<T> {
   int _currentIndex = 0;

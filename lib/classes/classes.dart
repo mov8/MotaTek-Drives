@@ -42,6 +42,7 @@ export 'screens_appbar.dart';
 export 'side_drawer.dart';
 export 'star_ratings.dart';
 export 'status_bar.dart';
+export 'transparent_pointer.dart';
 export 'utilities.dart';
 export 'vector_map_style.dart';
 export 'web_appbar.dart';

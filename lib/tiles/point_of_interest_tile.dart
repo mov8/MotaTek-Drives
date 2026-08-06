@@ -1,5 +1,6 @@
 import 'package:universal_io/universal_io.dart';
 import 'dart:convert';
+import 'dart:collection';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:typed_data';
@@ -28,6 +29,29 @@ import 'package:maplibre_gl/maplibre_gl.dart';
 //    value = target;
 //  }
 //}
+
+typedef IconEntry = DropdownMenuEntry<IconLabel>;
+
+enum IconLabel {
+  smile('Smile', Icons.sentiment_satisfied_outlined),
+  cloud('Cloud', Icons.cloud_outlined),
+  brush('Brush', Icons.brush_outlined),
+  heart('Heart', Icons.favorite);
+
+  const IconLabel(this.label, this.icon);
+  final String label;
+  final IconData icon;
+
+  static final List<IconEntry> entries = UnmodifiableListView<IconEntry>(
+    values.map<IconEntry>(
+      (IconLabel icon) => IconEntry(
+        value: icon,
+        label: icon.label,
+        leadingIcon: Icon(icon.icon),
+      ),
+    ),
+  );
+}
 
 class PointOfInterestController {
   _PointOfInterestTileState? _pointOfInterestTileState;
@@ -215,190 +239,221 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
       widget.pointOfInterest.photos = photos;
     }
     fn1.requestFocus();
-    return canEdit ? editableTile() : unEditableTile();
+    return editableTile(); /*Card(
+      child: Text(
+        'Test Card',
+        style: (TextStyle(fontSize: 24, color: Colors.red)),
+      ),
+    ); */
+    // canEdit ? editableTile() : unEditableTile();
   }
 
   Widget editableTile() {
     promptIndex = widget.pointOfInterest.type == 13 ? 0 : 1;
-    return RrExpansionTile(
-      context: context,
-      child: ExpansionTile(
-        backgroundColor: Colors.white,
-        collapsedBackgroundColor: Colors.white,
-        initiallyExpanded: widget.expanded,
-        controller: _expandController,
+    // int iconIndex = 15;
+    try {
+      Widget poiData = RrExpansionTile(
+        context: context,
+        child: ExpansionTile(
+          backgroundColor: Colors.white,
+          collapsedBackgroundColor: Colors.white,
+          initiallyExpanded: widget.expanded,
+          controller: _expandController,
+/*
+          title: DropdownMenu<IconLabel>(
+            dropdownMenuEntries: IconLabel.entries,
+          ),
+*/
+          title: DropdownMenu(
+            dropdownMenuEntries: getDropdownMenuItems(),
+            textStyle:
+                textStyle(context: context, color: Colors.black, size: 2),
+            initialSelection: widget.pointOfInterest.type
+                .toString(), //New point of interest',
+            selectOnly: true,
+            onSelected: (selected) {
+              int id = 15;
+              fn2.requestFocus();
+              try {
+                id = int.parse(selected ?? '15');
+              } catch (e) {
+                developer.log('error: ${e.toString()}', name: 'error');
+              }
+              setState(() => widget.pointOfInterest.type = id);
+            },
+            menuHeight: 200,
+            // menuStyle:MenuStyle(maximumSize: Size.fromHeight(300))
+            leadingIcon: Icon(
+              IconData(poiTypes[widget.pointOfInterest.type]['iconMaterial'],
+                  fontFamily: 'MaterialIcons'),
+              color: Color(poiTypes[17]['colourMaterial']),
+            ),
+          ),
 
-        title: Row(children: [
-          if (kIsWeb) ...[
-            Row(children: [
-              Padding(
-                  padding: EdgeInsetsGeometry.fromLTRB(0, 0, 10, 0),
-                  child: Icon(_typeIcon /*getTypeIcon() */,
-                      size: 30, color: Colors.black)),
-              Text(_typeName, style: TextStyle(fontSize: 20)),
-              Align(
-                alignment: Alignment.topRight,
-                child: IconButton(
-                  key: _menuButtonKey,
-                  icon: Icon(Icons.arrow_drop_down_circle_outlined,
-                      color: Colors.black),
-                  onPressed: () => setState(() => _showCustomMenu(context)),
-                ),
-              ),
-            ]),
-          ],
-          if (!kIsWeb) ...[
-            DropdownButtonFormField<String>(
-              decoration: InputDecoration(
-                border: InputBorder.none, //OutlineInputBorder(),
-              ),
-              initialValue: getIconIndex(iconIndex: widget.pointOfInterest.type)
-                  .toString(),
-              items: poiTypes
-                  .map((item) => DropdownMenuItem<String>(
-                        value: item['id'].toString(),
-                        child: Row(children: [
-                          Icon(
-                            IconData(item['iconMaterial'],
-                                fontFamily: 'MaterialIcons'),
-                            color: Color(item['colourMaterial']),
-                          ),
-                          Text(
-                            '    ${item['name']}',
-                            style: titleStyle(
-                                context: context, color: Colors.black, size: 2),
-                          )
-                        ]),
-                      ))
-                  .toList(),
-              onChanged: (item) {},
-            ),
-          ],
-          //  ],
-          Expanded(
-            flex: 2,
-            child: SizedBox(width: 20),
-          ),
-        ]), //  Text('Test Name'),
-        onExpansionChanged: (value) {
-          _expanded = value; // <-- Important allows ExpansionController to work
-          if (widget.pointOfInterest.complete() == 3) {}
-        },
-        children: [
-          Padding(
-            padding: EdgeInsetsGeometry.fromLTRB(20, 20, 20, 10),
-            child: TextFormField(
-              readOnly: false,
-              focusNode: fn1,
-              controller: _textEditingControllerName,
-              textInputAction: TextInputAction.next,
-              textAlign: TextAlign.start,
-              keyboardType: TextInputType.streetAddress,
-              textCapitalization: TextCapitalization.words,
-              inputFormatters: [TitleCaseFormatter()],
-              decoration: InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: prompts["name_hint"][promptIndex],
-                hintStyle: hintStyle(context: context),
-                labelText: prompts["name_label"][promptIndex],
-                labelStyle: labelStyle(
-                  context: context,
-                ),
-              ),
-              style: textStyle(context: context, color: Colors.black, size: 3),
-              autovalidateMode: AutovalidateMode.onUserInteraction,
-              onChanged: (value) => widget.pointOfInterest.name = value,
-              onFieldSubmitted: (text) {
-                checkComplete();
-                fn2.requestFocus();
-              },
-            ),
-          ),
-          Row(
+          /* Text('Title',
+                style: TextStyle(fontSize: 22, color: Colors.red)), */
+
+          /* Overlay(
+            initialEntries: [
+              OverlayEntry(
+                  builder: (context) => Material(
+                          child: DropdownMenu<IconLabel>(
+                        dropdownMenuEntries: IconLabel.entries,
+                      ))),
+            ],
+          ), */
+
+          /* Row(
             children: [
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
-                  child: TextFormField(
-                    readOnly: false,
-                    controller: _textEditingControllerDescription,
-                    focusNode: fn2,
-                    maxLines: null,
-                    textInputAction: TextInputAction.done,
-                    textAlign: TextAlign.start,
-                    keyboardType: TextInputType.streetAddress,
-                    textCapitalization: TextCapitalization.sentences,
-                    inputFormatters: [SentenceCaseFormatter()],
-                    decoration: canEdit
-                        ? InputDecoration(
-                            border: OutlineInputBorder(),
-                            hintText: prompts["description_hint"][promptIndex],
-                            hintStyle: hintStyle(context: context),
-                            labelText: prompts["description_label"]
-                                [promptIndex],
-                            labelStyle: labelStyle(context: context),
-                          )
-                        : null,
-                    style: textStyle(
-                        context: context, color: Colors.black, size: 3),
-                    autovalidateMode: AutovalidateMode.onUserInteraction,
-                    onChanged: (text) =>
-                        widget.pointOfInterest.description = text,
-                    onFieldSubmitted: (text) {
-                      checkComplete();
-                    },
+              //     if (kIsWeb) ...[
+              Row(
+                children: [
+                  Padding(
+                      padding: EdgeInsetsGeometry.fromLTRB(0, 0, 10, 0),
+                      child: Icon(_typeIcon /*getTypeIcon() */,
+                          size: 30, color: Colors.black)),
+                  Text(_typeName, style: TextStyle(fontSize: 20)),
+                  Align(
+                    alignment: Alignment.topRight,
+                    child: IconButton(
+                      key: _menuButtonKey,
+                      icon: Icon(Icons.arrow_drop_down_circle_outlined,
+                          color: Colors.black),
+                      onPressed: () => setState(() => _showCustomMenu(context)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ), */ //  Text('Test Name'),
+          onExpansionChanged: (value) {
+            _expanded =
+                value; // <-- Important allows ExpansionController to work
+            if (widget.pointOfInterest.complete() == 3) {}
+          },
+          children: [
+            Padding(
+              padding: EdgeInsetsGeometry.fromLTRB(20, 20, 20, 10),
+              child: TextFormField(
+                readOnly: false,
+                focusNode: fn1,
+                controller: _textEditingControllerName,
+                textInputAction: TextInputAction.next,
+                textAlign: TextAlign.start,
+                keyboardType: TextInputType.streetAddress,
+                textCapitalization: TextCapitalization.words,
+                inputFormatters: [TitleCaseFormatter()],
+                decoration: InputDecoration(
+                  border: OutlineInputBorder(),
+                  hintText: prompts["name_hint"][promptIndex],
+                  hintStyle: hintStyle(context: context),
+                  labelText: prompts["name_label"][promptIndex],
+                  labelStyle: labelStyle(
+                    context: context,
                   ),
                 ),
+                style:
+                    textStyle(context: context, color: Colors.black, size: 3),
+                autovalidateMode: AutovalidateMode.onUserInteraction,
+                onChanged: (value) => widget.pointOfInterest.name = value,
+                onFieldSubmitted: (text) {
+                  checkComplete();
+                  fn2.requestFocus();
+                },
               ),
-            ],
-          ),
-          Row(
-            children: [
-              Expanded(
-                flex: 7,
-                child: imageChip(),
-              ),
-              Expanded(
-                flex: 7,
-                child: memoChip(),
-              ),
-              Expanded(
-                flex: 7,
-                child: deleteChip(),
-              ),
-              Expanded(
-                flex: 6,
-                child: saveChip(),
-              ),
-            ],
-          ),
-          SizedBox(
-            height: 30,
-          ),
-          if (widget.pointOfInterest.photos.isNotEmpty) ...[
-            //images.isNotEmpty) ...[
+            ),
             Row(
-              children: <Widget>[
+              children: [
                 Expanded(
-                  flex: 8,
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(10, 0, 0, 0),
-                    child: ImageArranger(
-                      urlChange: (url) => updateImages(url),
-                      photos: widget.pointOfInterest.photos, //getPhotos(
-                      // driveId: widget.driveId ?? CurrentTripItem().uri,
-                      //   ),
-                      showCaptions: true,
-                      imageRepository: widget.imageRepository,
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+                    child: TextFormField(
+                      readOnly: false,
+                      controller: _textEditingControllerDescription,
+                      focusNode: fn2,
+                      maxLines: null,
+                      textInputAction: TextInputAction.done,
+                      textAlign: TextAlign.start,
+                      keyboardType: TextInputType.streetAddress,
+                      textCapitalization: TextCapitalization.sentences,
+                      inputFormatters: [SentenceCaseFormatter()],
+                      decoration: canEdit
+                          ? InputDecoration(
+                              border: OutlineInputBorder(),
+                              hintText: prompts["description_hint"]
+                                  [promptIndex],
+                              hintStyle: hintStyle(context: context),
+                              labelText: prompts["description_label"]
+                                  [promptIndex],
+                              labelStyle: labelStyle(context: context),
+                            )
+                          : null,
+                      style: textStyle(
+                          context: context, color: Colors.black, size: 3),
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
+                      onChanged: (text) =>
+                          widget.pointOfInterest.description = text,
+                      onFieldSubmitted: (text) {
+                        checkComplete();
+                      },
                     ),
                   ),
                 ),
               ],
             ),
+            Row(
+              children: [
+                Expanded(
+                  flex: 7,
+                  child: imageChip(),
+                ),
+                Expanded(
+                  flex: 7,
+                  child: memoChip(),
+                ),
+                Expanded(
+                  flex: 7,
+                  child: deleteChip(),
+                ),
+                Expanded(
+                  flex: 6,
+                  child: saveChip(),
+                ),
+              ],
+            ),
+            SizedBox(
+              height: 30,
+            ),
+            if (widget.pointOfInterest.photos.isNotEmpty) ...[
+              //images.isNotEmpty) ...[
+              Row(
+                children: <Widget>[
+                  Expanded(
+                    flex: 8,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(10, 0, 0, 0),
+                      child: ImageArranger(
+                        urlChange: (url) => updateImages(url),
+                        photos: widget.pointOfInterest.photos, //getPhotos(
+                        // driveId: widget.driveId ?? CurrentTripItem().uri,
+                        //   ),
+                        showCaptions: true,
+                        imageRepository: widget.imageRepository,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+            // )
           ],
-        ],
-      ),
-    );
+        ),
+      );
+      return poiData;
+    } catch (e) {
+      developer.log('error getting poiTile: ${e.toString()}', name: 'error');
+    }
+    return Text('SNAFU');
   }
 
   void updateImages(url) {
@@ -609,8 +664,9 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
           String key = imageMap.keys.first;
           Photo newPhoto = Photo(
               url: name, caption: 'image $imageCount', rotation: 0, key: key);
-
-          setState(() => widget.pointOfInterest.addPhoto(photo: newPhoto));
+          widget.pointOfInterest.addPhoto(photo: newPhoto);
+          _expandController.expand(); // <-- Stop keyboard closing
+          setState(() => fn2.requestFocus());
         } catch (e) {
           debugPrint('Error saving temporary image: ${e.toString()}');
         }
@@ -624,6 +680,7 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
       // 1. Find the position of the button on the screen
       final RenderBox button =
           _menuButtonKey.currentContext!.findRenderObject() as RenderBox;
+
       final RenderBox overlay = NavigationService()
           .key
           .currentContext!
@@ -631,21 +688,25 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
       // Calculate the position for the menu to appear
       final RelativeRect position = RelativeRect.fromRect(
         Rect.fromPoints(
-          //  button.localToGlobal(Offset.zero, ancestor: overlay),
-          button.localToGlobal(Offset(550, 0), ancestor: overlay),
+          // button.localToGlobal(Offset.zero, ancestor: overlay),
+          button.localToGlobal(Offset(10, 0), ancestor: overlay),
           button.localToGlobal(
-              button.size.bottomRight(Offset(500, 0)), // .zero),
+              button.size.bottomRight(Offset(10, 0)), // .zero),
               ancestor: overlay),
+          /*    button.localToGlobal(
+              button.size.bottomRight(Offset(500, 0)), // .zero),
+              ancestor: overlay), */
         ),
-        Offset(0, 0) /*.zero */ & overlay.size,
+        Offset(200, 0) /*.zero */ & overlay.size,
       );
       // 2. Use showMenu with the ROOT navigator's context
       final String? selected = await showMenu<String>(
         constraints: BoxConstraints(minWidth: 250),
-        context: NavigationService()
-            .key
-            .currentContext!, // BREAK OUT: Use the main navigator!
-        position: position,
+        context: /* context, */
+            NavigationService()
+                .key
+                .currentContext!, // BREAK OUT: Use the main navigator!
+        position: RelativeRect.fromLTRB(10, 100, 0, 0), // position,
         items: getPopupMenuItems().toList(),
       );
     }
@@ -682,6 +743,37 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                       )
                     ],
                   ),
+                  //    ),
+                ),
+              )
+              .toList();
+      return menuItems;
+    } catch (e) {
+      developer.log('Error getting Popup data error: ${e.toString()}',
+          name: 'error');
+    }
+    return [];
+  }
+
+  List<DropdownMenuEntry<String>> getDropdownMenuItems() {
+    try {
+      List<DropdownMenuEntry<String>>
+          menuItems = /*[
+        PopupMenuItem(onTap: () {}, value: ' ', child: Text('Child'))
+      ].toList(); */
+          poiTypes
+              .where(
+                (map) => (![9, 11, 12, 16, 18, 19].contains(map['id'])),
+              )
+              .map<DropdownMenuEntry<String>>(
+                (e) => DropdownMenuEntry(
+                  value: e['id'].toString(),
+                  label: e['name'],
+                  leadingIcon: Icon(
+                    IconData(e['iconMaterial'], fontFamily: 'MaterialIcons'),
+                    color: Color(e['colourMaterial']),
+                  ),
+
                   //    ),
                 ),
               )

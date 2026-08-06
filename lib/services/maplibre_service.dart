@@ -1,5 +1,7 @@
 import 'dart:math';
+import 'dart:async';
 import 'dart:developer' as developer;
+import 'package:drives/screens/create_trip_stack.dart';
 import 'package:flutter/foundation.dart';
 import 'package:drives/classes/classes.dart' hide Position, distanceBetween;
 import 'package:flutter/rendering.dart';
@@ -12,6 +14,7 @@ import '../constants.dart';
 import '../helpers/helpers.dart';
 import '../models/models.dart';
 import '../services/services.dart';
+import '../routes/create_trip.dart';
 import '../tiles/tiles.dart';
 import 'package:geolocator/geolocator.dart';
 
@@ -52,7 +55,18 @@ class MapService {
   MapService._internal();
 
   int _page = 0;
+  int _navIndex = 0;
 
+  /// Completers are the way to use a manual Future. It triggers any FutureBuilder that the action being
+  /// waited for has completed. The completer is completed in the setMapController() below.
+  /// A reset call has been added just in case there is a restart
+  /// In the UI section CreateTripStack() The FutureBuilder the Future is MapService().mapFuture, and the
+  /// controller = snapShot.data! - it works well
+  Future<MapLibreMapController> get mapFuture => _controllerCompleter.future;
+  final Completer<MapLibreMapController> _controllerCompleter =
+      Completer<MapLibreMapController>();
+
+  ///
   MapLibreMapController? controller;
   SideDrawerController? sideDrawerController;
   BottomDrawerController? bottomDrawerController;
@@ -60,6 +74,12 @@ class MapService {
   StatusBarController? statusBarController;
   ZoomFabController zoomFabController = ZoomFabController();
   ScrollController scrollController = ScrollController();
+  CreateTripController createTripController = CreateTripController();
+  LeadingWidgetController leadingWidgetController = LeadingWidgetController();
+  RoutesBottomNavController? routesBottomNavController =
+      RoutesBottomNavController();
+  CreateTripStackController? createTripStackController =
+      CreateTripStackController();
 
   final GlobalKey mapKey = GlobalKey();
   // final GlobalKey scrollToKey = GlobalKey();
@@ -76,6 +96,8 @@ class MapService {
   CameraPosition? _cameraPosition;
   MapUpdates mapUpdates = MapUpdates.updateAll; // <-- What geoJson to update
   MapUpdates onExitUpdate = MapUpdates.none;
+  Future<bool>? _controllerReady;
+  Future<bool>? mapControllerReady;
 
   final ValueNotifier<int?> scrollToSideDrawerIndex = ValueNotifier<int?>(null);
 
@@ -83,6 +105,24 @@ class MapService {
     scrollToSideDrawerIndex.value = index;
   }
 
+  Future<bool> setMapController(MapLibreMapController mapController) async {
+    controller = mapController;
+    developer.log(
+        'MapService().setMapController() called - controller ${controller == null ? 'is null' : 'is not null'}',
+        name: '_map_');
+    if (!_controllerCompleter.isCompleted) {
+      _controllerCompleter.complete(mapController);
+    }
+    // mapControllerReady = controller == mapController;
+    return true;
+  }
+
+/*
+  Future<bool> controllerReady(MapLibreMapController controller) async {
+    bool controllerReady = await setMapController(controller); // != null;
+    return controllerReady;
+  }
+*/
   onTap(tap, position) {
     if (_page == 1) {
       _tripsOnTap(tap);
@@ -133,6 +173,22 @@ class MapService {
 
   int get page => _page;
 
+  setNavIndex(int index) {
+    _navIndex = index;
+  }
+
+  int get navIndex => _navIndex;
+
+  int screen() {
+    return _page;
+  }
+
+  /*{
+    developer.log('MapService().page => $_page', name: '_index_');
+    return _page;
+  }
+  */
+
   /// onIdle called after the map has stopped doing something
   /// defined within main.dart where the persistent mapLibreMap
   /// id instantiated - its onCameraIdle gets assigned to this method.
@@ -140,12 +196,17 @@ class MapService {
   onIdle() async {
     _meters = await getMapWidthMeters();
     statusBarController!.refresh();
-    zoomFabController.update();
+    //  zoomFabController.update();
     //  if (_page == 1) {
     _tripsOnIdle(page: _page);
-    //  } else if (_page == 2) {
-    //    _createTripsOnIdle();
-    // }
+    CurrentTripItem().tripValues.position = Point(
+        MapService().controller!.cameraPosition!.target.longitude,
+        MapService().controller!.cameraPosition!.target.latitude);
+  }
+
+  Future<Position> getCurrentPosition() async {
+    Position position = await Geolocator.getCurrentPosition();
+    return position;
   }
 
   LatLng? _currentPosition;
@@ -335,23 +396,28 @@ class MapService {
   Future<bool> initialiseTrips() async {
     _tripsOnMapUpdate(); // <-- Initialise the Trips cache
     await clearGeoJson();
+    developer.log('MapService().initialiseTrips() called', name: '_index_');
     await _tripsOnIdle(
         page: _page,
         force: true); // <-- Update the drawer contents and map geoJson
     if (kIsWeb) {
       sideDrawerController!.setFixed(fixed: false);
       sideDrawerController!.open();
+    } else {
+      //     routesBottomNavController!.setValue(1);
     }
     return true;
   }
 
   Future<bool> initialiseExplore() async {
     await clearGeoJson();
+    developer.log('MapService().initialiseExplore() called', name: '_index_');
     if (kIsWeb) {
       sideDrawerController!.setContent(content: BottomDrawerItems.trip);
       sideDrawerController!.setFixed(fixed: false);
       sideDrawerController!.close();
     } else {
+      //     routesBottomNavController!.setValue(2);
       // await bottomDrawerController!.setContent(content: BottomDrawerItems.trip, drawerItems: [empty]);
     }
     return true;
@@ -394,10 +460,6 @@ class MapService {
       {required MapUpdates mapUpdates,
       MapUpdates? exitMapUpdates,
       Point? centre}) async {
-    //  centre ??= CurrentTripItem().tripValues.position;
-    developer.log(
-        '--- MapService().updateMapGeoJson() called mapUpdates: ${mapUpdates.toString()} ---',
-        name: '_goodRoad_');
     centre ??= Point(controller!.cameraPosition!.target.longitude,
         controller!.cameraPosition!.target.latitude);
 
@@ -452,194 +514,3 @@ class MapService {
     }
   }
 }
-
-/*
-void _executeChipActions(
-    {MyTripActions tripActions = MyTripActions.none}) async {
-  developer.log('_executeChipAction MyTripActions.${tripActions.toString()}',
-      name: '_chips_');
-  switch (tripActions) {
-    case MyTripActions.beginTracking:
-      await MapService().controller!.animateCamera(CameraUpdate.zoomTo(14.2));
-      CurrentTripItem().tripState = TripState.tracking;
-      setLocationUpdates();
-      // setState(()  {});
-      return;
-
-    case MyTripActions.none || MyTripActions.addWaypoint:
-      // setState(()  {});
-      return;
-
-    case MyTripActions.editTrip:
-      CurrentTripItem().tripState = TripState.editing;
-      return;
-
-    case MyTripActions.saveTrip:
-      _saveTrip();
-      return;
-
-    case MyTripActions.clearTrip:
-      // setState(() => (CurrentTripItem().tripState = TripState.none));
-      // CurrentTripItem().mapUpdates = MapUpdates.updateAll;
-      // micro-nudge to ensure MapLibre refreshes
-      // await _mapController!.animateCamera(CameraUpdate.zoomBy(0.000001));
-      return;
-
-    case MyTripActions.startManual:
-      /*
-        _bottomDrawerController.setContent(content: BottomDrawerItems.trip);
-        _bottomDrawerController.open(height: 300);
-        _bottomDrawerController.dockOpenTile();
-      */
-      try {
-        updateControllers(
-            items: BottomDrawerItems.trip, open: true, dock: true);
-        CurrentTripItem().tripValues.showTarget = true;
-        CurrentTripItem().tripActions = TripActions.none;
-        CurrentTripItem().tripState = TripState.manualStart;
-        // setState(()  {});
-      } catch (e) {
-        developer.log('Error _executeTripActions() ${e.toString()}',
-            name: '_chips_');
-      }
-      return;
-
-    case MyTripActions.addPointOfInterest:
-      /*
-        _bottomDrawerController.setContent(content: BottomDrawerItems.trip);
-        _bottomDrawerController.open(height: 300);
-        _bottomDrawerController.dockOpenTile();
-      */
-      setState(
-        () => updateControllers(
-          items: BottomDrawerItems.trip,
-          open: true,
-          dock: true,
-        ),
-      );
-
-      return;
-
-    case MyTripActions.addGoodRoad:
-      setState(() => (CurrentTripItem().isGoodRoad = true));
-      return;
-
-    /// May be able to combine this with .addPointOfInterest
-    case MyTripActions.addGoodRoadDetails:
-      /*
-        _bottomDrawerController.setContent(content: BottomDrawerItems.goodRoad);
-        _bottomDrawerController.open(height: 300);
-        _bottomDrawerController.dockOpenTile();
-        */
-      updateControllers(
-          items: BottomDrawerItems.goodRoad, open: true, dock: true);
-      setState(()  {});
-      return;
-
-    case MyTripActions.showSteps:
-      /*
-        _bottomDrawerController.setContent(content: BottomDrawerItems.maneuvers);
-        _bottomDrawerController.open(height: 300);
-        */
-      updateControllers(
-          items: BottomDrawerItems.maneuvers, open: true, dock: true);
-      CurrentTripItem().tripActions = TripActions.none;
-      return;
-
-    case MyTripActions.showMessages:
-      _bottomDrawerController.setContent(content: BottomDrawerItems.maneuvers);
-      _bottomDrawerController.open(height: 300);
-      CurrentTripItem().tripActions = TripActions.none;
-      return;
-
-    case MyTripActions.showGroup:
-      _bottomDrawerController.setContent(
-          content: BottomDrawerItems.group, drawerItems: _following);
-      _bottomDrawerController.open(height: 300);
-      CurrentTripItem().tripActions = TripActions.none;
-      return;
-
-    case MyTripActions.follow:
-      _bottomDrawerController.setContent(content: BottomDrawerItems.maneuvers);
-      setState(() => CurrentTripItem().tripActions = TripActions.none);
-      setLocationUpdates();
-
-      return;
-
-    case MyTripActions.stopFollowing:
-      CurrentTripItem().tripValues.pauseStream = true;
-      setState(() => CurrentTripItem().tripState = TripState.stoppedFollowing);
-      setLocationUpdates();
-      return;
-
-    case MyTripActions.track:
-      setLocationUpdates();
-      setState(()  {});
-      return;
-
-    case MyTripActions.stopTracking:
-      CurrentTripItem().tripValues.stopStream = true;
-      setState(() => CurrentTripItem().tripState = TripState.stoppedTracking);
-      setLocationUpdates();
-      return;
-
-    default:
-      _bottomDrawerController.setContent(content: BottomDrawerItems.trip);
-      //  _bottomDrawerController.open(height: 300);
-      CurrentTripItem().tripActions = TripActions.none;
-  }
-  return;
-}
-*/
-
-/*
-class PersistentMap extends StatelessWidget {
-  final Function(LatLng, MapLibreMapController)? onUpdate;
-  final Function(Point, LatLng)? onTap;
-  final Function()? onIdle;
-  const PersistentMap({super.key, this.onIdle, this.onTap, this.onUpdate});
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<String>(
-      future: MapService().style,
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return Center(child: CircularProgressIndicator());
-        }
-        return MapLibreMap(
-          key: MapService().mapKey, // <-- Keeps the map alive
-          styleString: snapshot.data!,
-
-          /// snapshot.data!.toString(),
-          initialCameraPosition:
-              CameraPosition(target: MapService().currentPosition, zoom: 11),
-
-          trackCameraPosition: true, // ensures that zoom is updated
-          //     onCameraMove: (position) {
-          //       widget.onUpdate!(position.target, mapController!);
-          //     },
-          onMapCreated: _onMapCreated,
-          onMapClick: onTap,
-          onCameraIdle: onIdle,
-          scrollGesturesEnabled: true,
-          zoomGesturesEnabled: true,
-          gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
-            Factory<PanGestureRecognizer>(() => PanGestureRecognizer()),
-            Factory<ScaleGestureRecognizer>(() => ScaleGestureRecognizer()),
-            Factory<TapGestureRecognizer>(() => TapGestureRecognizer()),
-            Factory<VerticalDragGestureRecognizer>(
-                () => VerticalDragGestureRecognizer())
-          },
-        );
-      },
-    );
-  }
-
-  void _onMapCreated(MapLibreMapController controller) async {
-    MapService().controller = controller;
-    Position position = await Geolocator.getCurrentPosition();
-    LatLng currentPosition = LatLng(position.latitude, position.longitude);
-    onUpdate!(currentPosition, controller);
-  }
-}
-*/

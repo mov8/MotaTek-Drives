@@ -1,13 +1,11 @@
 import 'dart:async';
+import 'package:drives/main.dart';
 import 'package:flutter/foundation.dart';
-import 'dart:ui' as ui;
-import '/constants.dart';
 import '../services/services.dart';
 import 'package:flutter/material.dart';
-import 'dart:developer' as developer;
 import '/models/models.dart';
 import '/classes/classes.dart';
-import '/services/services.dart';
+import '../constants.dart';
 
 class Splash extends StatefulWidget {
   const Splash({super.key});
@@ -59,7 +57,8 @@ class _SplashState extends State<Splash> {
     MapService().sideDrawerController?.setVisible(visible: true);
 
     if (mounted) {
-      Navigator.pushNamed(context, routes[routeIndex]);
+      NavigationService().navigateTo(routes[0], null);
+      UIStateService().setPage(1);
     }
   }
 
@@ -71,56 +70,26 @@ class _SplashState extends State<Splash> {
     aspectRatio = aspectRatio > 1 ? 9 / 18 : aspectRatio;
     double paddingLR = kIsWeb ? 0 : 0;
     double paddingTB = kIsWeb ? 50 : 0;
-    //AssetImage splash = AssetImage('assets/images/splash.png');
-    //Completer<ui.Image> completer = Completer<ui.Image>();
-    //splash.resolve(ImageConfiguration()).addListener(ImageStreamListener(
-    //    (ImageInfo info, bool _) => completer.complete(info.image)));
 
-    // debugPrint('Image info: $completer');
-    return Stack(children: [
-      Center(
-        child: Padding(
-          padding: EdgeInsetsGeometry.fromLTRB(
-              paddingLR, paddingTB, paddingLR, paddingTB),
-          child: AspectRatio(
-            aspectRatio: aspectRatio,
-            child: Image(
-              image: AssetImage('assets/images/splash.png'),
-              // image: Image.asset('assets/images/splash.png'),
-              fit: BoxFit.cover,
-              height: double.infinity,
-              width: double.infinity,
-              alignment: Alignment.center,
+    return Stack(
+      children: [
+        Center(
+          child: Padding(
+            padding: EdgeInsetsGeometry.fromLTRB(
+                paddingLR, paddingTB, paddingLR, paddingTB),
+            child: AspectRatio(
+              aspectRatio: aspectRatio,
+              child: Image(
+                image: AssetImage('assets/images/splash.png'),
+                fit: BoxFit.cover,
+                height: double.infinity,
+                width: double.infinity,
+                alignment: Alignment.center,
+              ),
             ),
           ),
-        ),
-      )
-      /*
-      Positioned(
-        top: 50,
-        left: 120,
-        child: Text(
-          'Drives',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 52,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
-      Positioned(
-        top: 700,
-        left: 140,
-        child: Text(
-          'Explore your world',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      )
-      */
-    ]);
+        )
+      ],
+    );
   }
 }

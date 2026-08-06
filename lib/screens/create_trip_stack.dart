@@ -1,13 +1,7 @@
 import 'dart:async';
 import 'dart:core';
 import '../main.dart';
-// import 'dart:js_interop_unsafe';
-import 'dart:ui' as ui;
-// import 'dart:js' as js; //_interop' as js1;
-import 'dart:convert';
 import 'dart:developer' as developer;
-import 'package:intl/intl.dart';
-// import 'dart:typed_data';
 import 'dart:math';
 import '/constants.dart';
 import '/classes/classes.dart' hide Position;
@@ -20,10 +14,7 @@ import '/tiles/tiles.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:http/http.dart' as http;
-import 'package:hive/hive.dart';
 import '/routes/routes.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:socket_io_client/socket_io_client.dart' as sio;
 import 'package:maplibre_gl/maplibre_gl.dart'; // hide LatLng;
 
@@ -34,6 +25,18 @@ class CreateTripStackController {
   }
 
   bool get isAttached => _createTripStackState != null;
+
+  void refresh() {
+    if (isAttached) {
+      _createTripStackState!.refresh();
+    }
+  }
+
+  void setBottomNav(int index) {
+    if (isAttached) {
+      _createTripStackState!.setBottomNav(index);
+    }
+  }
 }
 
 class CreateTripStack extends StatefulWidget {
@@ -46,16 +49,14 @@ class CreateTripStack extends StatefulWidget {
 class _CreateTripStackState extends State<CreateTripStack>
     with TickerProviderStateMixin {
   late Future<bool> _dataLoaded;
-  TripArguments? _tripArguments;
+  // TripArguments? _tripArguments;
   final LeadingWidgetController _leadingWidgetController =
       LeadingWidgetController();
-  final CreateTripController _createTripController = CreateTripController();
-  final BottomDrawerController _bottomDrawerController =
-      BottomDrawerController();
+  // final CreateTripController _createTripController = CreateTripController();
   final DirectionTileController _directionTileController =
       DirectionTileController();
-  final RoutesBottomNavController _bottomNavController =
-      RoutesBottomNavController();
+  // final RoutesBottomNavController _bottomNavController =
+  //    RoutesBottomNavController();
 
   final ImageRepository _imageRepository = ImageRepository();
   StreamSubscription<Position>? _positionStream;
@@ -72,6 +73,7 @@ class _CreateTripStackState extends State<CreateTripStack>
   final bool _debugging = false; //true; //false; //true;
   final String _debuggingRoute = '';
   double _speed = 0.0;
+  int _navIndex = 0;
   int positionUpdates = 0;
 
   StreamSocket streamSocket = StreamSocket();
@@ -99,15 +101,20 @@ class _CreateTripStackState extends State<CreateTripStack>
     super.dispose();
   }
 
+  void refresh() => setState(() => {});
+
+  void setBottomNav(int index) {
+    setState(() => _navIndex = index);
+  }
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<bool>(
       future: _dataLoaded,
       builder: (BuildContext context, snapshot) {
         if (snapshot.hasError) {
-          debugPrint('Snapshot error: ${snapshot.error}');
           developer.log('CreateTrip().build() snapshot.hasError',
-              name: '_map_');
+              name: 'error');
         } else if (snapshot.hasData) {
           try {
             developer.log('CreateTrip().build() snapshot.hasData',
@@ -146,19 +153,11 @@ class _CreateTripStackState extends State<CreateTripStack>
   }
 
   Widget _getPortraitBody() {
-    _tripArguments ??=
-        TripArguments(activeChip: 2, appState: AppState.createTrip);
-    // double start = 0;
+    // _tripArguments ??=
+    //     TripArguments(activeChip: 2, appState: AppState.createTrip);
     Future<bool>;
-
-    return //IgnorePointer(
-        //ignoring: false,
-        // child:
-        //    Container(
-        //  color: Colors.red.withOpacity(0.3),
-        //  child:
-
-        Stack(
+    // Widget chips = Text('');
+    return Stack(
       children: [
         Positioned(
           left: 0,
@@ -182,23 +181,44 @@ class _CreateTripStackState extends State<CreateTripStack>
           ),
         ),
 
-        if (MapService().controller != null)
-          Positioned(
-            left: 0,
-            right: 0,
-            top: 110,
-            child: Align(
-              // <-- Only do editing in "Explore" mode
-              alignment: Alignment.topRight,
-              child: HandleCTFabs(
-                  controller: MapService().controller!,
-                  sbController: MapService().statusBarController,
-                  zfController: MapService().zoomFabController,
-                  update: (update) => update ? setState(() {}) : null),
+        //   if (MapService().controller != null)
+        Positioned(
+          left: 0,
+          right: 0,
+          top: 110,
+          child: Align(
+            // <-- Only do editing in "Explore" mode
+            alignment: Alignment.topRight,
+            child: FutureBuilder(
+              future: MapService().mapFuture, // <-- From Completer
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Text(
+                      'Map not ready',
+                      style: (TextStyle(fontSize: 22, color: Colors.red)),
+                    ),
+                  );
+                } else {
+                  bool ready = snapshot.hasData;
+                  return AnimatedScale(
+                    scale: ready ? 1.0 : 0.0,
+                    duration: Duration(milliseconds: 300),
+                    child: ready
+                        ? HandleCTFabs(
+                            controller: MapService().controller!,
+                            sbController: MapService().statusBarController,
+                            zfController: MapService().zoomFabController,
+                            update: (update) => update ? setState(() {}) : null,
+                          )
+                        : SizedBox.shrink(),
+                  );
+                }
+              },
             ),
-          ), //_debugUpdate),
-
-        if (_tripArguments!.activeChip == 2) ...[
+          ),
+        ),
+        if (NavigationService().page == 2) ...[
           Positioned(
             left: 0,
             right: 0,
@@ -213,14 +233,10 @@ class _CreateTripStackState extends State<CreateTripStack>
                   padding:
                       EdgeInsetsGeometry.fromLTRB(kIsWeb ? 30 : 0, 0, 0, 0),
                   child: CreateTripChips(
-                    tripItem: CurrentTripItem(),
-                    createTripController:
-                        _createTripController ?? CreateTripController(),
-                    leadingWidgetController: _leadingWidgetController,
-                    position:
-                        chipPosition(), // gets either stream or mapController position
-                    onUpdate: (value) =>
-                        _executeChipActions(tripActions: value),
+                    createTripController: MapService().createTripController,
+                    onUpdate: (_) {
+                      setState(() => UIStateService().notify());
+                    },
                   ),
                 ),
               ),
@@ -276,7 +292,7 @@ class _CreateTripStackState extends State<CreateTripStack>
               ),
             ),
           ],
-          if (_tripArguments!.activeChip == 1) ...[
+          if (NavigationService().page == 1) ...[
             CustomPaint(
               painter: HighlightPainter(
                 boundary: MapService().mapSize(),
@@ -294,13 +310,12 @@ class _CreateTripStackState extends State<CreateTripStack>
             //  height: 110,
             child: BottomDrawer(
               context: context,
-              maxHeight: 200,
+              maxHeight: 500,
+              controller: MapService().bottomDrawerController,
               content: CurrentTripItem(),
-              //  globalKey: _scrollKey,
-              controller: _bottomDrawerController,
-              //  requestClose: closeAndUpdateDrawer,
               imageRepository: _imageRepository,
               onOpened: onOpened,
+              onUpdate: update,
             ),
           ),
 
@@ -326,7 +341,7 @@ class _CreateTripStackState extends State<CreateTripStack>
                     type: MaterialType.transparency,
                     child: Padding(
                         padding: EdgeInsets.fromLTRB(0, 0, 0, 0),
-                        child: StackNavBar()),
+                        child: StackNavBar(index: _navIndex)),
                   ),
                 ),
               ],
@@ -338,150 +353,7 @@ class _CreateTripStackState extends State<CreateTripStack>
     );
   }
 
-  void _executeChipActions(
-      {MyTripActions tripActions = MyTripActions.none}) async {
-    developer.log(
-        '** CreateTrip().executeChipActions() tripActions: ${tripActions.toString()} **',
-        name: '_goodRoad_');
-    switch (tripActions) {
-      case MyTripActions.beginTracking:
-        await MapService().controller!.animateCamera(CameraUpdate.zoomTo(14.2));
-        CurrentTripItem().tripState = TripState.tracking;
-        setLocationUpdates();
-        setState(() {});
-        return;
-
-      case MyTripActions.none || MyTripActions.addWaypoint:
-        setState(() {});
-        return;
-
-      case MyTripActions.editTrip:
-        setState(() => CurrentTripItem().tripState = TripState.editing);
-        return;
-
-      case MyTripActions.saveTrip:
-        _saveTrip();
-        return;
-
-      case MyTripActions.clearTrip:
-        setState(() => (CurrentTripItem().tripState = TripState.none));
-        CurrentTripItem().mapUpdates = MapUpdates.updateAll;
-        // micro-nudge to ensure MapLibre refreshes
-        await MapService()
-            .controller!
-            .animateCamera(CameraUpdate.zoomBy(0.000001));
-        return;
-
-      case MyTripActions.startManual:
-        /*
-        _bottomDrawerController.setContent(content: BottomDrawerItems.trip);
-        _bottomDrawerController.open(height: 300);
-        _bottomDrawerController.dockOpenTile();
-      */
-        try {
-          updateControllers(
-              items: BottomDrawerItems.trip, open: true, dock: true);
-          CurrentTripItem().tripValues.showTarget = true;
-          CurrentTripItem().tripActions = TripActions.none;
-          CurrentTripItem().tripState = TripState.manualStart;
-          setState(() {});
-        } catch (e) {
-          developer.log('Error _executeTripActions() ${e.toString()}',
-              name: '_chips_');
-        }
-        return;
-
-      case MyTripActions.addPointOfInterest:
-        /*
-        _bottomDrawerController.setContent(content: BottomDrawerItems.trip);
-        _bottomDrawerController.open(height: 300);
-        _bottomDrawerController.dockOpenTile();
-      */
-        setState(
-          () => updateControllers(
-            items: BottomDrawerItems.trip,
-            open: true,
-            dock: true,
-          ),
-        );
-
-        return;
-
-      case MyTripActions.addGoodRoad:
-        setState(() => (CurrentTripItem().isGoodRoad = true));
-        return;
-
-      /// May be able to combine this with .addPointOfInterest
-      case MyTripActions.addGoodRoadDetails:
-        /*
-        _bottomDrawerController.setContent(content: BottomDrawerItems.goodRoad);
-        _bottomDrawerController.open(height: 300);
-        _bottomDrawerController.dockOpenTile();
-        */
-        updateControllers(
-            items: BottomDrawerItems.goodRoad, open: true, dock: true);
-        setState(() {});
-        return;
-
-      case MyTripActions.showSteps:
-        /*
-        _bottomDrawerController.setContent(content: BottomDrawerItems.maneuvers);
-        _bottomDrawerController.open(height: 300);
-        */
-        updateControllers(
-            items: BottomDrawerItems.maneuvers, open: true, dock: true);
-        CurrentTripItem().tripActions = TripActions.none;
-        return;
-
-      case MyTripActions.showMessages:
-        _bottomDrawerController.setContent(
-            content: BottomDrawerItems.maneuvers);
-        _bottomDrawerController.open(height: 300);
-        CurrentTripItem().tripActions = TripActions.none;
-        return;
-
-      case MyTripActions.showGroup:
-        _bottomDrawerController.setContent(
-            content: BottomDrawerItems.group, drawerItems: _following);
-        _bottomDrawerController.open(height: 300);
-        CurrentTripItem().tripActions = TripActions.none;
-        return;
-
-      case MyTripActions.follow:
-        _bottomDrawerController.setContent(
-            content: BottomDrawerItems.maneuvers);
-        setState(() => CurrentTripItem().tripActions = TripActions.none);
-        setLocationUpdates();
-
-        return;
-
-      case MyTripActions.stopFollowing:
-        CurrentTripItem().tripValues.pauseStream = true;
-        setState(
-            () => CurrentTripItem().tripState = TripState.stoppedFollowing);
-        setLocationUpdates();
-        return;
-
-      case MyTripActions.track:
-        setLocationUpdates();
-        setState(() {});
-        return;
-
-      case MyTripActions.stopTracking:
-        CurrentTripItem().tripValues.stopStream = true;
-        setState(() => CurrentTripItem().tripState = TripState.stoppedTracking);
-        setLocationUpdates();
-        return;
-
-      default:
-        _bottomDrawerController.setContent(content: BottomDrawerItems.trip);
-        //  _bottomDrawerController.open(height: 300);
-        CurrentTripItem().tripActions = TripActions.none;
-    }
-    return;
-  }
-
-  void setLocationUpdates() async {
+  void setLocationUpdates2() async {
     try {
       if (CurrentTripItem().tripValues.pauseStream) {
         _positionStream!.pause();
@@ -632,6 +504,12 @@ class _CreateTripStackState extends State<CreateTripStack>
     setState(() {});
   }
 
+  update(complete) {
+    if (complete) {
+      MapService().bottomDrawerController!.close();
+    }
+  }
+
   Align getDirections(int index) {
     if (CurrentTripItem().tripState == TripState.following &&
         CurrentTripItem().maneuvers.isNotEmpty) {
@@ -668,10 +546,12 @@ class _CreateTripStackState extends State<CreateTripStack>
   }
 
   _getTripDescriptions() async {
-    _bottomDrawerController.setContent(content: BottomDrawerItems.trip);
-    _bottomDrawerController.open(height: 300);
+    MapService()
+        .bottomDrawerController!
+        .setContent(content: BottomDrawerItems.trip);
+    MapService().bottomDrawerController!.open(height: 500);
     await Future.delayed(Duration(milliseconds: 500));
-    _bottomDrawerController.dockOpenTile();
+    MapService().bottomDrawerController!.dockOpenTile();
     //   }
     CurrentTripItem().tripActions = TripActions.none;
   }
@@ -682,7 +562,7 @@ class _CreateTripStackState extends State<CreateTripStack>
         CurrentTripItem().tripActions = TripActions.saving;
         CurrentTripItem().highliteActions = HighliteActions.none;
         CurrentTripItem().tripValues.showProgress = true;
-        _bottomDrawerController.close();
+        MapService().bottomDrawerController!.close();
       });
       int tries = 0;
       while (_resized == false && ++tries < 5) {
@@ -722,22 +602,26 @@ class _CreateTripStackState extends State<CreateTripStack>
               .sideDrawerController!
               .setContent(content: BottomDrawerItems.trip);
         } else {
-          _bottomDrawerController.setContent(content: BottomDrawerItems.trip);
+          MapService()
+              .bottomDrawerController!
+              .setContent(content: BottomDrawerItems.trip);
         }
       }
       if (open) {
         if (kIsWeb) {
           MapService().sideDrawerController!.open(width: 0.4);
         } else {
-          _bottomDrawerController.setContent(content: BottomDrawerItems.trip);
-          _bottomDrawerController.open(height: 300);
+          MapService()
+              .bottomDrawerController!
+              .setContent(content: BottomDrawerItems.trip);
+          MapService().bottomDrawerController!.open(height: 500);
         }
       }
       if (dock) {
         if (kIsWeb) {
           MapService().sideDrawerController!.scrollTo(index: 0);
         } else {
-          _bottomDrawerController.dockOpenTile();
+          MapService().bottomDrawerController!.dockOpenTile();
         }
       }
     } catch (e) {
@@ -946,21 +830,705 @@ class _CreateTripStackState extends State<CreateTripStack>
       }
     }
   }
+
+  getChips() {
+    //   List<String> chipNames = [];
+    // CreateTripCurrentTripItem().values CurrentTripItem().tripValues = CreateTripCurrentTripItem().values();
+    MyTripItem tripItem = CurrentTripItem();
+    List<ActionChip> chips = [];
+    try {
+      if (CurrentTripItem().tripState == TripState.startFollowing) {
+        () => MapService()
+            .createTripController
+            .updateValues(values: CurrentTripItem().tripValues);
+      }
+      if (CurrentTripItem().tripState == TripState.none) {
+        CurrentTripItem().tripActions = TripActions.none;
+        CurrentTripItem().isSaved = false;
+        CurrentTripItem().isTracking = false;
+        CurrentTripItem().highliteActions = HighliteActions.none;
+      }
+      final List<Map> chipDetails = [
+        {
+          'label': 'Extend start',
+          'method': extendStart, //extendStart,
+          'icon': Icons.pin_drop,
+          'states': [TripState.editing],
+          'actions': [],
+          'waypointState': WaypointState.extendStart,
+          'highlight': [HighliteActions.none],
+          'loaded': true,
+          'saved': null,
+          'group': false,
+          'goodRoad': false,
+        },
+        {
+          'label': 'Waypoint',
+          'method': waypoint,
+          'icon': Icons.pin_drop,
+          'actions': [],
+          'states': [
+            TripState.manual,
+            TripState.manualStart,
+            TripState.goodRoadStart,
+          ],
+          // 'waypointState': [WaypointState.none],
+          'highlight': [HighliteActions.none, HighliteActions.greatRoadStarted],
+          'waypointState': WaypointState.none,
+          'colour': CurrentTripItem().isGoodRoad
+              ? colourList[Setup().goodRouteColour]
+              : colourList[Setup().routeColour],
+          'loaded': null,
+          'saved': null,
+          'goodRoad': null,
+          'group': false
+        },
+        {
+          'label': 'Insert waypoint',
+          'method': waypoint,
+          'icon': Icons.pin_drop,
+          'states': [TripState.editing],
+          'actions': [],
+          'waypointState': WaypointState.insert,
+          'highlight': [HighliteActions.none, HighliteActions.greatRoadStarted],
+          'colour': CurrentTripItem().isGoodRoad
+              ? colourList[Setup().goodRouteColour]
+              : colourList[Setup().routeColour],
+          'loaded': null,
+          'saved': null,
+          'group': false,
+          'goodRoad': false,
+        },
+        {
+          'label': 'Extend end',
+          'method': extendEnd, // extendEnd,
+          'icon': Icons.pin_drop,
+          'states': [TripState.editing],
+          'waypointState': WaypointState.extendEnd,
+          'actions': [],
+          'highlight': [HighliteActions.none],
+          'loaded': true,
+          'saved': null,
+          'group': false,
+          'goodRoad': false,
+        },
+        {
+          'label': 'Remove waypoint',
+          'method': removeWaypoint,
+          'icon': Icons.wrong_location,
+          'states': [TripState.manual, TripState.editing],
+          'actions': [],
+          'waypointState': WaypointState.remove,
+          'highlight': [],
+          'colour': CurrentTripItem().isGoodRoad
+              ? colourList[Setup().goodRouteColour]
+              : colourList[Setup().routeColour],
+          'loaded': null,
+          'saved': null,
+          'group': false
+        },
+        {
+          'label': 'Revisit waypoint',
+          'method': revisitWaypoint,
+          'icon': Icons.wrong_location,
+          'states': [TripState.manual, TripState.editing],
+          'actions': [],
+          'waypointState': WaypointState.revisit,
+          'highlight': [],
+          'colour': CurrentTripItem().isGoodRoad
+              ? colourList[Setup().goodRouteColour]
+              : colourList[Setup().routeColour],
+          'loaded': null, //true,
+          'saved': null,
+          'group': false
+        },
+        {
+          'label': 'Reverse trip',
+          'method': reverseTrip,
+          'icon': Icons.autorenew_outlined,
+          'states': [TripState.editing],
+          'actions': [],
+          'highlight': [HighliteActions.waypointHighlited],
+          'loaded': true,
+          'saved': null,
+          'group': false,
+          'goodRoad': false,
+        },
+        {
+          'label': 'Point of interest',
+          'method': pointOfInterest,
+          'icon': Icons.add_photo_alternate,
+          'states': [
+            TripState.manual,
+            TripState.editing,
+            //   TripState.tracking,
+            //   TripState.pausedTracking,
+            //   TripState.stoppedTracking
+          ],
+          'actions': [],
+          'highlight': [HighliteActions.none, HighliteActions.routeHighlited],
+          'loaded': null, //true,
+          'saved': null,
+          'group': false,
+          'goodRoad': false,
+        },
+        {
+          'label': 'Create manually',
+          'method': addManually,
+          'icon': Icons.touch_app,
+          'states': [TripState.none],
+          'actions': [],
+          'highlight': [],
+          'loaded': false,
+          'saved': null,
+          'group': false
+        },
+        {
+          'label': 'Edit route',
+          'method': editing,
+          'icon': Icons.edit,
+          'states': [TripState.none, TripState.loaded, TripState.notFollowing],
+          'actions': [],
+          'highlight': [],
+          'loaded': true,
+          'saved': null,
+          'group': false
+        },
+        {
+          'label': 'Save route',
+          'method': saveTrip,
+          'icon': Icons.save,
+          'states': [
+            TripState.manual,
+            TripState.stoppedTracking,
+            TripState.editing
+          ],
+          'actions': [],
+          'highlight': [HighliteActions.none],
+          'loaded': true,
+          'saved': false,
+          'group': false,
+          'goodRoad': false,
+        },
+        {
+          'label': 'Clear route',
+          'method': clear,
+          'icon': Icons.delete,
+          'states': [
+            TripState.editing,
+            TripState.loaded,
+            TripState.none,
+            TripState.notFollowing,
+            TripState.stoppedFollowing,
+            TripState.stoppedTracking,
+            TripState.manual,
+            TripState.manualStart,
+          ],
+          'actions': [],
+          'highlight': [HighliteActions.none],
+          'loaded': true,
+          'saved': null,
+          'group': false,
+          'goodRoad': false,
+        },
+        {
+          'label': 'Add great road',
+          'method': greatRoad,
+          'icon': Icons.add_road,
+          'states': [
+            // TripState.tracking,
+            TripState.manual,
+            TripState.editing,
+          ],
+          'actions': [],
+          'highlight': [HighliteActions.none],
+          'loaded': null,
+          'saved': null,
+          'colour': CurrentTripItem().isGoodRoad
+              ? colourList[Setup().routeColour]
+              : colourList[Setup().goodRouteColour],
+          'group': false,
+          'goodRoad': false,
+        },
+        {
+          'label': 'Edit great road',
+          'method': editGreatRoad,
+          'icon': Icons.edit,
+          'states': [TripState.tracking, TripState.manual, TripState.editing],
+          'actions': [],
+          'highlight': [HighliteActions.greatRoadHighlighted],
+          'loaded': null,
+          'saved': null,
+          'colour': CurrentTripItem().isGoodRoad
+              ? colourList[Setup().routeColour]
+              : colourList[Setup().goodRouteColour],
+          'group': false,
+          'goodRoad': false,
+        },
+        {
+          'label': 'Plan drive',
+          'method': greatRoadEnd,
+          'icon': Icons.add_road,
+          'states': [TripState.manual, TripState.editing],
+          'actions': [],
+          'highlight': [],
+          'loaded': null,
+          'saved': false,
+          'group': false,
+          'colour': CurrentTripItem().isGoodRoad
+              ? colourList[Setup().routeColour]
+              : colourList[Setup().goodRouteColour],
+          'goodRoad': true
+        },
+        {
+          'label': 'Great road end',
+          'method': greatRoadEnd,
+          'icon': Icons.add_road,
+          'states': [TripState.editing, TripState.manual],
+          'actions': [],
+          'highlight': [],
+          'loaded': null,
+          'saved': false,
+          'group': false,
+          'colour': colourList[Setup().routeColour],
+          'goodRoad': true
+        },
+        {
+          'label': 'Track drive',
+          'method': addAutomatically,
+          'icon': Icons.directions_car,
+          'states': [TripState.none],
+          'actions': [],
+          'highlight': [],
+          'loaded': false,
+          'saved': null,
+          'group': false
+        },
+        {
+          'label': 'Continue tracking',
+          'method': trackRoute,
+          'icon': Icons.play_arrow,
+          'states': [TripState.pausedTracking],
+          'actions': [],
+          'highlight': [],
+          'loaded': null,
+          'saved': null,
+          'group': false
+        },
+        {
+          'label': 'Pause tracking',
+          'method': pauseTracking,
+          'icon': Icons.pause,
+          'states': [TripState.tracking],
+          'actions': [],
+          'highlight': [],
+          'loaded': true,
+          'saved': null,
+          'group': false
+        },
+        {
+          'label': 'End tracking',
+          'method': endTracking,
+          'icon': Icons.stop,
+          'states': [TripState.tracking, TripState.pausedTracking],
+          'actions': [],
+          'highlight': [],
+          'loaded': true,
+          'saved': null,
+          'group': false
+        },
+        {
+          'label': 'Follow drive',
+          'method': followRoute,
+          'icon': Icons.play_arrow,
+          'states': [
+            TripState.loaded,
+            TripState.stoppedFollowing,
+            TripState.notFollowing,
+          ],
+          'actions': [],
+          'highlight': [],
+          'loaded': true,
+          'saved': null,
+          'group': null
+        },
+        {
+          'label': 'Stop following',
+          'method': stopFollowing,
+          'icon': Icons.stop,
+          'states': [TripState.following],
+          'actions': [],
+          'highlight': [],
+          'loaded': true,
+          'saved': null,
+          'group': null
+        },
+        {
+          'label': 'Steps',
+          'method': steps,
+          'icon': Icons.timeline,
+          'states': [
+            TripState.following,
+            TripState.stoppedFollowing,
+            TripState.notFollowing,
+            TripState.loaded,
+            TripState.manual,
+            TripState.editing
+          ],
+          'actions': [], // [TripActions.none],
+          'highlight': [],
+          'loaded': true,
+          'saved': null,
+          'group': null,
+          'goodRoad': false,
+        },
+        {
+          'label': 'Group',
+          'method': group,
+          'icon': Icons.directions_car,
+          'states': [
+            TripState.following,
+            TripState.stoppedFollowing,
+            TripState.notFollowing,
+            TripState.loaded
+          ],
+          'actions': [], // [TripActions.none],
+          'highlight': [],
+          'loaded': true,
+          'saved': null,
+          'group': true
+        },
+        /*
+      {
+        'label': 'Drive info',
+        'method': tripData,
+        'icon': Icons.map,
+        'states': [],
+        'actions': [
+          TripActions.showGroup,
+          TripActions.showMessages,
+          TripActions.showSteps
+        ],
+        'highlight': [],
+        'loaded': true,
+        'saved': null,
+        'group': false
+      },
+    */
+        {
+          'label': 'Messages',
+          'method': messages,
+          'icon': Icons.chat_outlined,
+          'states': [
+            TripState.following,
+            TripState.stoppedFollowing,
+            TripState.notFollowing,
+            TripState.loaded
+          ],
+          'actions': [],
+          'highlight': [],
+          'loaded': true,
+          'saved': null,
+          'group': true
+        },
+      ];
+
+      String failure = '';
+      bool actionsOk(int i) {
+        bool ok = chipDetails[i]['actions'].isEmpty ||
+            chipDetails[i]['actions'].contains(CurrentTripItem().tripActions);
+        failure = ok ? failure : '$failure, ACTIONS';
+        return ok;
+      }
+
+      bool statesOk(int i) {
+        /// CurrentTripItem().tripState is an Enum
+        bool ok = (chipDetails[i]['states'].isEmpty ||
+            chipDetails[i]['states'].contains(CurrentTripItem().tripState));
+        failure = ok ? failure : '$failure, STATES';
+        return ok;
+      }
+
+      bool waypointOk2(int i) {
+        return false;
+      }
+
+      bool waypointOk(int i) {
+        return chipDetails[i]['waypointState'] == null ||
+            chipDetails[i]['waypointState'] == CurrentTripItem().waypointState;
+      }
+
+      bool highlightsOk(int i) {
+        bool ok = ((chipDetails[i]['highlight'].isEmpty ||
+                chipDetails[i]['highlight']
+                    .contains(CurrentTripItem().highliteActions)) &&
+            chipDetails[i]['highlight'] != HighliteActions.none);
+        failure = ok ? failure : '$failure, HIGHLIGHTS';
+        return ok;
+      }
+
+      /// loaded is a tri-value flag true, false either (null)
+      /// Have to include the null test twice as Dart evaluates both sides of the || and
+      /// errors if the RHS does a non null save evaluation even though the LHS satisfies the test.
+      bool loadedOk(int i) {
+        bool ok = chipDetails[i]['loaded'] == null ||
+            (chipDetails[i]['loaded'] != null && chipDetails[i]['loaded']
+                ? CurrentTripItem().routes.isNotEmpty
+                : CurrentTripItem().routes.isEmpty);
+        return ok;
+      }
+
+      bool savedOk(int i) {
+        bool ok = chipDetails[i]['saved'] == null ||
+            CurrentTripItem().isSaved == chipDetails[i]['saved'];
+        failure = ok ? failure : '$failure, SAVED';
+        return ok;
+      }
+
+      bool groupOk(int i) {
+        bool ok = chipDetails[i]['group'] == null ||
+            (chipDetails[i]['group'] ==
+                CurrentTripItem().groupDriveId.isNotEmpty);
+        failure = ok ? failure : '$failure, GROUP';
+        return ok;
+      }
+
+      bool goodRoadOk(int i) {
+        bool ok = chipDetails[i]['goodRoad'] == null ||
+            CurrentTripItem().isGoodRoad == chipDetails[i]['goodRoad'];
+        failure = ok ? failure : '$failure, GOODROAD';
+        return ok;
+      }
+
+      bool isValid(int i) {
+        return actionsOk(i) &&
+            statesOk(i) &&
+            highlightsOk(i) &&
+            waypointOk(i) &&
+            loadedOk(i) &&
+            savedOk(i) &&
+            groupOk(i) &&
+            goodRoadOk(i);
+      }
+
+      try {
+        for (int i = 0; i < chipDetails.length; i++) {
+          failure = '';
+
+          Color colour = CurrentTripItem().isGoodRoad &&
+                  ['Waypoint'].contains(chipDetails[i]['label'])
+              ? colourList[Setup().goodRouteColour]
+              : Colors.white;
+          Color wpColour = CurrentTripItem().isGoodRoad &&
+                  ['Waypoint', 'Plan drive', 'Add great road']
+                      .contains(chipDetails[i]['label'])
+              ? colourList[Setup().goodRouteColour]
+              : Colors.white;
+
+          if (isValid(i)) {
+            chips.add(ActionChip(
+                visualDensity:
+                    const VisualDensity(horizontal: 0.0, vertical: 0.5),
+                backgroundColor: Colors.blueAccent,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20)),
+                label: Text(chipDetails[i]['label'],
+                    style: TextStyle(fontSize: 16, color: Colors.white)),
+                elevation: 10,
+                shadowColor: Colors.black,
+                onPressed: () => chipDetails[i]['method'](),
+                avatar: Icon(chipDetails[i]['icon'],
+                    size: 20,
+                    color: chipDetails[i]['colour'] ?? Colors.white)));
+          } else {
+            //  Code below very useful - don't remove
+            developer.log(
+                '$i - [${chipDetails[i]['label']}] failed => ${actionsOk(i) ? '' : 'actions '}${statesOk(i) ? '' : 'states '}${highlightsOk(i) ? '' : 'highlights '}${waypointOk(i) ? '' : 'waypoints '}${loadedOk(i) ? '' : 'loaded '}${savedOk(i) ? '' : 'saved '}${groupOk(i) ? '' : 'group '}${goodRoadOk(i) ? '' : 'goodRoad'}',
+                name: '_actionChips_');
+          }
+        }
+      } catch (e) {
+        debugPrint('error: &{e.toString()}');
+      }
+    } catch (e) {
+      developer.log('Error creating ActionChips: ${e.toString()}',
+          name: '_nav_');
+    }
+    return chips;
+  }
+
+  void addAutomatically() {
+    CurrentTripItem().requestAddAutomatically();
+    MapService().leadingWidgetController.changeWidget(1);
+    CurrentTripItem().tripState = TripState.tracking;
+    onUpdate!(MyTripActions.beginTracking);
+  }
+
+  void addManually() {
+    try {
+      MapService().leadingWidgetController.changeWidget(1);
+    } catch (e) {
+      developer.log(
+          'Error CreateTripChips().addManually() error: ${e.toString()}',
+          name: 'error');
+    }
+    CurrentTripItem().requestAddManually();
+    onUpdate!(MyTripActions.startManual);
+  }
+
+  void clear() {
+    // CurrentTripItem().requestClear();
+    CurrentTripItem().requestClear();
+    MapService().leadingWidgetController.changeWidget(0);
+    CurrentTripItem().tripState = TripState.none;
+    CurrentTripItem().mapUpdates = MapUpdates.updateAll;
+    onUpdate!(MyTripActions.clearTrip);
+  }
+
+  void editing() {
+    CurrentTripItem().requestEditing();
+    MapService().leadingWidgetController.changeWidget(1);
+    onUpdate!(MyTripActions.editTrip);
+  }
+
+  void extendStart() async {
+    CurrentTripItem().requestExtendStart();
+    onUpdate!(MyTripActions.addWaypoint);
+  }
+
+  void waypoint() async {
+    CurrentTripItem().requestWaypoint();
+    if (CurrentTripItem().tripValues.addGoodRoadDetail) {
+      onUpdate!(MyTripActions.addGoodRoadDetails);
+    } else {
+      onUpdate!(MyTripActions.addWaypoint);
+    }
+  }
+
+  void revisitWaypoint() async {
+    CurrentTripItem().requestRevisitWaypoint();
+    onUpdate!(MyTripActions.revisitWaypoint);
+  }
+
+  void extendEnd() async {
+    CurrentTripItem().requestExtendEnd();
+    onUpdate!(MyTripActions.addWaypoint);
+  }
+
+  saveTrip() async {
+    onUpdate!(MyTripActions.saveTrip);
+    return;
+  }
+
+  void removeWaypoint() async {
+    CurrentTripItem().requestRemoveWaypoint();
+    onUpdate!(MyTripActions.deleteWaypoint);
+  }
+
+  void pauseTracking() {
+    CurrentTripItem().requestPauseTracking();
+    onUpdate!(MyTripActions.none);
+    // createTripController.updateValues(values: CurrentTripItem().tripValues);
+  }
+
+  void endTracking() {
+    CurrentTripItem().requestEndTracking();
+    onUpdate!(MyTripActions.stopTracking);
+  }
+
+  void greatRoad() {
+    CurrentTripItem().requestGreatRoad();
+    onUpdate!(MyTripActions.addGoodRoad);
+  }
+
+  void editGreatRoad() {
+    CurrentTripItem().requestEditGreatRoad();
+    onUpdate!(MyTripActions.saveGoodRoad);
+  }
+
+  void greatRoadEnd() {
+    CurrentTripItem().requestGreatRoadEnd();
+    onUpdate!(MyTripActions.addGoodRoadDetails);
+    //  onUpdate(MyTripActions.addGoodRoad);
+  }
+
+  void reverseTrip() async {
+    await CurrentTripItem().reverseRoute();
+    onUpdate!(MyTripActions.reverseTrip);
+    return;
+  }
+
+  void pointOfInterest() {
+    CurrentTripItem().requestPointOfInterest();
+    onUpdate!(MyTripActions.addPointOfInterest);
+    return;
+  }
+
+  void steps() {
+    onUpdate!(MyTripActions.showSteps);
+  }
+
+  void group() {
+    CurrentTripItem().requestGroup();
+    onUpdate!(MyTripActions.showGroup);
+  }
+
+  void messages() {
+    CurrentTripItem().requestMessages();
+    onUpdate!(MyTripActions.message);
+  }
+
+  void tripData() {
+    CurrentTripItem().tripActions = TripActions.none;
+    CurrentTripItem().tripValues.setState = true;
+    MapService()
+        .createTripController
+        .updateValues(values: CurrentTripItem().tripValues);
+  }
+
+  void trackRoute() {
+    CurrentTripItem().requestTrackRoute();
+    onUpdate!(MyTripActions.track);
+    return;
+  }
+
+  void followRoute() {
+    CurrentTripItem().requestFollowRoute();
+    onUpdate!(MyTripActions.follow);
+    return;
+  }
+
+  void stopFollowing() {
+    CurrentTripItem().requestStopFollowing;
+    onUpdate!(MyTripActions.stopFollowing);
+  }
+
+  onUpdate(MyTripActions tripActions) {}
+
+  ///
+  ///
 }
 
 class StackNavBar extends StatelessWidget {
   final RoutesBottomNavController? _controller;
-  StackNavBar({super.key, RoutesBottomNavController? controller})
+  int index;
+  StackNavBar(
+      {super.key, RoutesBottomNavController? controller, this.index = 0})
       : _controller = controller ?? RoutesBottomNavController();
+
+//  void setIndex({required int index}) {
+//    index = index;
+//  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       bottomNavigationBar: kIsWeb
           ? null
           : RoutesBottomNav(
-              key: Key('bnb1'),
+              key: Key('bsnb1'),
               controller: _controller!,
-              initialValue: 0,
+              //    initialValue: index,
               onMenuTap: (_) => {}),
     );
   }
@@ -1014,112 +1582,5 @@ class StackAppBar extends StatelessWidget {
               ),
             ),
     );
-  }
-}
-
-class StackNavBar2 extends StatelessWidget {
-  const StackNavBar2({super.key});
-  @override
-  Widget build(BuildContext context) {
-    int _index = 0;
-    List<int> badgeValues = [0, 0, 0, 0, 0, 0];
-    return Positioned(
-      left: 0,
-      right: 0,
-      bottom: 0,
-      height: 105,
-      child: Material(
-        elevation: 8,
-        child: NavigationBarTheme(
-          data: NavigationBarThemeData(
-            // 1. Force the height to 60 (default is 80)
-            height: 60,
-            // 2. Reduce the label font size so it fits the smaller bar
-            labelTextStyle: WidgetStateProperty.all(
-              const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
-            ),
-            // 3. Optional: Make the "pill" indicator smaller or remove it if it feels too tight
-            indicatorShape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-          ),
-          child: NavigationBar(
-            elevation: 5,
-            height: 60,
-            surfaceTintColor: Colors.blue,
-            onDestinationSelected: (int index) {
-              MapService().setPage(page: index);
-              //  setState(() => widget.onMenuTap(index));
-              if ([1, 2].contains(index)) {
-                UIStateService()
-                    .setPage(0); //setMode(AppDisplayMode.navigator);
-              }
-              _index = index;
-              MapService().setPage(page: index);
-              Navigator.pushNamedAndRemoveUntil(
-                  context, routes[index], (route) => false);
-            },
-            indicatorColor: Colors.lightBlue,
-            selectedIndex: _index,
-            labelTextStyle: WidgetStateProperty.resolveWith<TextStyle>(
-              (Set<WidgetState> states) {
-                // If the tab is currently selected:
-                if (states.contains(WidgetState.selected)) {
-                  return const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blue,
-                  );
-                }
-                // Default style for unselected tabs:
-                return const TextStyle(
-                  fontSize: 10,
-                  color: Colors.deepPurple,
-                );
-              },
-            ),
-            destinations: List<Widget>.generate(
-                6,
-                (index) => _navigationDestination(
-                    index: index, badgeValue: badgeValues[index])),
-          ), /* BottomNavigationBar(
-          // The M2 version is shorter
-          type: BottomNavigationBarType.fixed,
-          currentIndex: 0,
-          onTap: (_) => (),
-          items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.map), label: 'Map'),
-            BottomNavigationBarItem(icon: Icon(Icons.shop), label: 'Shop'),
-          ],
-        ), */
-        ),
-      ),
-    );
-  }
-
-  NavigationDestination _navigationDestination(
-      {required int index, badgeValue = 0}) {
-    if (badgeValue == 0) {
-      return NavigationDestination(
-        selectedIcon: Icon(routeNavIconsSelected[index]),
-        icon: Icon(routeNavIcons[index]),
-        label: routeNavLabels[index],
-      );
-    } else {
-      return NavigationDestination(
-        icon: Badge(
-          label: Text(badgeValue
-              .toString()), // _messages.isEmpty ? null : Text(_messages.length.toString()),
-          child: Icon(routeNavIcons[index]),
-        ),
-        selectedIcon: Badge(
-          label: Text(
-            badgeValue.toString(),
-          ),
-          child: Icon(routeNavIconsSelected[index]),
-        ),
-        label: routeNavLabels[index],
-      );
-    }
   }
 }

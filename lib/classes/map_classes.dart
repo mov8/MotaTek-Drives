@@ -1169,7 +1169,7 @@ class _TripsMapState extends State<TripsMap> with TickerProviderStateMixin {
 }
 
 */
-
+/*
 class MapLegend extends StatelessWidget {
   final double bottom;
   final double left;
@@ -1208,7 +1208,7 @@ class MapLegend extends StatelessWidget {
     );
   }
 }
-
+*/
 /// FeatureDetails handles the display of the cards
 /// handing it Cards rather than Features allows the
 /// Cards to be defined by a parent

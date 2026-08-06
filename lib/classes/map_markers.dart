@@ -1,3 +1,4 @@
+/*
 import '/models/models.dart';
 
 import '/screens/screens.dart';
@@ -154,3 +155,4 @@ IconData markerIcon(int type, {double size = 0}) {
   return IconData(poiTypes.toList()[type]['iconMaterial'],
       fontFamily: 'MaterialIcons');
 }
+*/

@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:ui' as ui;
+// import 'dart:ui' as ui;
 //import 'package:flutter_map/flutter_map.dart';
 //import 'package:uuid/uuid.dart';
 // import 'dart:io';
@@ -8,6 +8,7 @@ import 'dart:ui' as ui;
 import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
+// import 'package:geolocator_platform_interface/src/models/position.dart' as gl;
 import 'package:geolocator/geolocator.dart';
 // import 'package:uuid/uuid.dart';
 import '/constants.dart' hide routes;
@@ -334,7 +335,7 @@ class CurrentTripItem extends MyTripItem {
     mapUpdates = MapUpdates.updateAll;
 
     // micro-nudge
-    await mapController!.animateCamera(CameraUpdate.zoomBy(0.000001));
+    await MapService().controller!.animateCamera(CameraUpdate.zoomBy(0.000001));
   }
 
   /*
@@ -390,6 +391,8 @@ class CurrentTripItem extends MyTripItem {
   RouteDelta goodRoadStart = RouteDelta();
   RouteDelta routeDelta = RouteDelta();
   WaypointState waypointState = WaypointState.none;
+  bool debugging = false;
+  final String debuggingRoute = ''; // <-- Route name to follow
 
   /// load() method to hydrate the CurrentTripItem object with data from the
   /// api or the local SQLite database
@@ -473,7 +476,9 @@ class CurrentTripItem extends MyTripItem {
       }
       MapService().updateMapGeoJson(mapUpdates: mapUpdates);
       // Micro-nudge to update MapLibre the nudge causes the onIdle callback to be called
-      await mapController!.animateCamera(CameraUpdate.zoomBy(0.000001));
+      await MapService()
+          .controller!
+          .animateCamera(CameraUpdate.zoomBy(0.000001));
     } catch (e) {
       developer.log(
           'Error CurrentTripItem().refreshMap() called BUT FAILED: ${e.toString()}',
@@ -549,7 +554,7 @@ class CurrentTripItem extends MyTripItem {
           try {
             if (i < 5) {
               try {
-                await mapController!.setGeoJsonSource(sources[i], {
+                await MapService().controller!.setGeoJsonSource(sources[i], {
                   "type": "FeatureCollection",
                   "features": mapSources[sources[i]](),
                 });
@@ -797,7 +802,7 @@ class CurrentTripItem extends MyTripItem {
     mapUpdates = MapUpdates.routesAndWaypoints;
     MapService().updateMapGeoJson(mapUpdates: mapUpdates);
     // Micro-nudge to update MapLibre the nudge causes the onIdle callback to be called
-    await mapController!.animateCamera(CameraUpdate.zoomBy(0.000001));
+    await MapService().controller!.animateCamera(CameraUpdate.zoomBy(0.000001));
     // mapController = null;
     //leadingWidgetController?.changeWidget(0);
   }
@@ -811,9 +816,9 @@ class CurrentTripItem extends MyTripItem {
       CurrentTripItem().routes = [Route(lines: [], waypoints: [])];
     }
     CurrentTripItem().tripValues.showTarget = true;
-    await mapController!.updateMyLocationTrackingMode(
+    await MapService().controller!.updateMyLocationTrackingMode(
         MyLocationTrackingMode.none); // trackingCompass);
-    await mapController!.animateCamera(CameraUpdate.zoomBy(0.000001));
+    await MapService().controller!.animateCamera(CameraUpdate.zoomBy(0.000001));
     tripActions = TripActions.headingDetail;
   }
 
@@ -823,7 +828,7 @@ class CurrentTripItem extends MyTripItem {
     if (CurrentTripItem().routes.isEmpty) {
       CurrentTripItem().routes = [Route(lines: [], waypoints: [])];
     }
-    await mapController!.updateMyLocationTrackingMode(
+    await MapService().controller!.updateMyLocationTrackingMode(
         MyLocationTrackingMode.none); // trackingCompass);
     tripActions = TripActions.none;
   }
@@ -836,13 +841,15 @@ class CurrentTripItem extends MyTripItem {
     mapUpdates = MapUpdates.updateAll;
     MapService().updateMapGeoJson(mapUpdates: mapUpdates);
     // Micro-nudge to update MapLibre the nudge causes the onIdle callback to be called
-    await mapController!.animateCamera(CameraUpdate.zoomBy(0.000001));
+    await MapService().controller!.animateCamera(CameraUpdate.zoomBy(0.000001));
   }
 
   void requestExtendStart() async {
     tripActions = TripActions.none;
     tripValues.beforeWaypoint();
     // addWaypoints methods set the appropriate mapUpdate enum values
+    await addWaypoint(index: 0, point: tripValues.position);
+
     if (isGoodRoad) {
       await addGoodRoadWaypoint(point: tripValues.position);
     } else {
@@ -850,7 +857,7 @@ class CurrentTripItem extends MyTripItem {
     }
     tripValues.afterWaypoint();
     // Micro-nudge to update MapLibre the nudge causes the onIdle callback to be called
-    await mapController!.animateCamera(CameraUpdate.zoomBy(0.000001));
+    await MapService().controller!.animateCamera(CameraUpdate.zoomBy(0.000001));
     isSaved = false;
   }
 
@@ -860,9 +867,6 @@ class CurrentTripItem extends MyTripItem {
     tripValues.beforeWaypoint();
     tripState = tripState =
         tripState == TripState.manualStart ? TripState.manual : tripState;
-    developer.log(
-        'CurrentTripItem().rquestWaypoint() isGoodRoad: $isGoodRoad tripState: ${tripState.toString()}',
-        name: '_goodRoad_');
     if (isGoodRoad) {
       await addGoodRoadWaypoint(
         index: 0,
@@ -874,34 +878,37 @@ class CurrentTripItem extends MyTripItem {
       }
       MapService().updateMapGeoJson(mapUpdates: mapUpdates);
     } else {
-      await addWaypoint(index: 0, point: CurrentTripItem().tripValues.position);
+      await addWaypoint(index: 0, point: tripValues.position);
       mapUpdates = MapUpdates.routesAndWaypoints;
       MapService().updateMapGeoJson(mapUpdates: mapUpdates);
     }
     tripValues.afterWaypoint(); // pass flag that we need user to add details
     // Micro-nudge to update MapLibre the nudge causes the onIdle callback to be called
-    await mapController!.animateCamera(CameraUpdate.zoomBy(0.000001));
+    await MapService().controller!.animateCamera(CameraUpdate.zoomBy(0.000001));
     isSaved = false;
   }
 
   void requestRevisitWaypoint() async {
     tripActions = TripActions.none;
     tripValues.beforeWaypoint();
+
     await addWaypoint(index: 0, point: tripValues.position, revisit: true);
+
     tripValues.afterWaypoint();
     isSaved = false;
     // Micro-nudge to update MapLibre the nudge causes the onIdle callback to be called
-    await mapController!.animateCamera(CameraUpdate.zoomBy(0.000001));
+    await MapService().controller!.animateCamera(CameraUpdate.zoomBy(0.000001));
   }
 
   void requestExtendEnd() async {
     tripActions = TripActions.none;
     tripValues.beforeWaypoint();
 // addWaypoints methods set the appropriate mapUpdate enum values
-    await addWaypoint(index: 1, point: CurrentTripItem().tripValues.position);
+
+    await addWaypoint(index: 0, point: tripValues.position);
     tripValues.afterWaypoint();
     // Micro-nudge to update MapLibre the nudge causes the onIdle callback to be called
-    await mapController!.animateCamera(CameraUpdate.zoomBy(0.000001));
+    await MapService().controller!.animateCamera(CameraUpdate.zoomBy(0.000001));
     isSaved = false;
   }
 
@@ -911,7 +918,7 @@ class CurrentTripItem extends MyTripItem {
       await removeWaypoint(index: waypointIndex);
     }
     // Micro-nudge to update MapLibre the nudge causes the onIdle callback to be called
-    await mapController!.animateCamera(CameraUpdate.zoomBy(0.000001));
+    await MapService().controller!.animateCamera(CameraUpdate.zoomBy(0.000001));
     tripValues.showTarget = true;
     isSaved = false;
   }
@@ -932,9 +939,10 @@ class CurrentTripItem extends MyTripItem {
 
   void requestEndTracking() async {
     tripState = TripState.stoppedTracking;
-    await mapController!
+    await MapService()
+        .controller!
         .updateMyLocationTrackingMode(MyLocationTrackingMode.none);
-    await mapController!.animateCamera(CameraUpdate.zoomBy(0.000001));
+    await MapService().controller!.animateCamera(CameraUpdate.zoomBy(0.000001));
     tripValues.stopTracking;
   }
 
@@ -998,9 +1006,12 @@ class CurrentTripItem extends MyTripItem {
     if (tripValues.pauseStream) {
       tripValues.resumeTracking();
       tripState = TripState.tracking;
-      await mapController!
+      await MapService()
+          .controller!
           .updateMyLocationTrackingMode(MyLocationTrackingMode.none);
-      await mapController!.animateCamera(CameraUpdate.zoomBy(0.000001));
+      await MapService()
+          .controller!
+          .animateCamera(CameraUpdate.zoomBy(0.000001));
     } else {
       tripValues.startTracking();
       if (routes.isEmpty) {
@@ -1012,9 +1023,12 @@ class CurrentTripItem extends MyTripItem {
           ])
         ];
       }
-      await mapController!
+      await MapService()
+          .controller!
           .updateMyLocationTrackingMode(MyLocationTrackingMode.trackingCompass);
-      await mapController!.animateCamera(CameraUpdate.zoomBy(0.000001));
+      await MapService()
+          .controller!
+          .animateCamera(CameraUpdate.zoomBy(0.000001));
     }
     return;
   }
@@ -1022,20 +1036,24 @@ class CurrentTripItem extends MyTripItem {
   void requestFollowRoute() async {
     tripState = TripState.following;
     if (tripValues.pauseStream) {
-      await mapController!
+      await MapService()
+          .controller!
           .updateMyLocationTrackingMode(MyLocationTrackingMode.trackingCompass);
-      await mapController!.animateCamera(CameraUpdate.zoomBy(0.000001));
+      await MapService()
+          .controller!
+          .animateCamera(CameraUpdate.zoomBy(0.000001));
       tripValues.resumeFollowing();
     } else {
-      await mapController!
+      await MapService()
+          .controller!
           .updateMyLocationTrackingMode(MyLocationTrackingMode.trackingCompass);
-      await mapController!.animateCamera(CameraUpdate.zoomTo(12.1));
-      await mapController!.animateCamera(
-        CameraUpdate.newLatLng(
-          LatLng(routes.first.lines.first[1], routes.first.lines.first[0]),
-        ),
-      ); //cameraPosition.target[0] = LatLng()
-      //   await mapController!.animateCamera(CameraUpdate.zoomBy(0.000001));
+      await MapService().controller!.animateCamera(CameraUpdate.zoomTo(12.1));
+      await MapService().controller!.animateCamera(
+            CameraUpdate.newLatLng(
+              LatLng(routes.first.lines.first[1], routes.first.lines.first[0]),
+            ),
+          ); //cameraPosition.target[0] = LatLng()
+      //   await MapService().controller!.animateCamera(CameraUpdate.zoomBy(0.000001));
       tripValues.startFollowing();
     }
     return;
@@ -1044,20 +1062,29 @@ class CurrentTripItem extends MyTripItem {
   void requestStopFollowing() async {
     tripState = TripState.stoppedFollowing;
     tripValues.pauseFollowing();
-    await mapController!
+    await MapService()
+        .controller!
         .updateMyLocationTrackingMode(MyLocationTrackingMode.none);
-    await mapController!.animateCamera(CameraUpdate.zoomBy(0.000001));
+    await MapService().controller!.animateCamera(CameraUpdate.zoomBy(0.000001));
   }
 
   /// End create_chips.dart state routines.
 
   void newPointOfInterest({Point? position, int type = 15}) async {
+    /*
     position = position ??
         Point(
-          mapController!.cameraPosition!.target.longitude,
-          mapController!.cameraPosition!.target.latitude,
+          MapService().controller!.cameraPosition!.target.longitude,
+          MapService().controller!.cameraPosition!.target.latitude,
         );
-    pointsOfInterest.add(PointOfInterest(point: position, type: type));
+    */
+    try {
+      pointsOfInterest
+          .add(PointOfInterest(point: tripValues.position, type: type));
+    } catch (e) {
+      developer.log('Error trying to add point of interest: ${e.toString()}',
+          name: 'error');
+    }
     isSaved = false;
   }
 
@@ -1221,56 +1248,60 @@ class CurrentTripItem extends MyTripItem {
     bool revisit = false,
     bool insert = false,
   }) async {
-    routes = routes.isEmpty ? [Route(waypoints: [])] : routes;
-    int insertAt = routes.last.waypoints.length;
-    if (waypointState == WaypointState.insert) {
-      for (int i = 0; i < routes.last.waypoints.length; i++) {
-        if (routes.last.waypoints[i].selected!) {
-          insertAt = i + 1;
-          break;
+    try {
+      routes = routes.isEmpty ? [Route(waypoints: [])] : routes;
+      int insertAt = routes.last.waypoints.length;
+      if (waypointState == WaypointState.insert) {
+        for (int i = 0; i < routes.last.waypoints.length; i++) {
+          if (routes.last.waypoints[i].selected!) {
+            insertAt = i + 1;
+            break;
+          }
         }
       }
-    }
-
-    LatLng target = mapController!.cameraPosition!.target;
-    point = point == null || point.x == 0
-        ? Point(target.longitude, target.latitude)
-        : point;
-    // routeFeatures.clear();
-    Waypoint waypoint = Waypoint(point: point);
-    // Set the mapUpdates flag
-    routes.last.waypoints.insert(insertAt, waypoint);
-    if (routes.last.waypoints.length == 1) {
-      pointsOfInterest.add(
-        PointOfInterest(
-          point: Point(target.longitude, target.latitude),
-          name: 'Start',
-          type: 17,
-        ),
-      );
-    } else {
-      final lstIdx = pointsOfInterest.indexWhere((poi) => poi.type == 18);
-      if (lstIdx >= 0) {
-        pointsOfInterest[lstIdx].type = 12;
-        pointsOfInterest[lstIdx].name = 'Waypoint';
+      LatLng target = MapService().controller!.cameraPosition!.target;
+      point = point == null || point.x == 0
+          ? Point(target.longitude, target.latitude)
+          : point;
+      // routeFeatures.clear();
+      Waypoint waypoint = Waypoint(point: point);
+      // Set the mapUpdates flag
+      routes.last.waypoints.insert(insertAt, waypoint);
+      if (routes.last.waypoints.length == 1) {
+        pointsOfInterest.add(
+          PointOfInterest(
+            point: Point(target.longitude, target.latitude),
+            name: 'Start',
+            type: 17,
+          ),
+        );
+      } else {
+        final lstIdx = pointsOfInterest.indexWhere((poi) => poi.type == 18);
+        if (lstIdx >= 0) {
+          pointsOfInterest[lstIdx].type = 12;
+          pointsOfInterest[lstIdx].name = 'Waypoint';
+        }
+        pointsOfInterest.add(
+          PointOfInterest(
+            point: Point(target.longitude, target.latitude),
+            name: 'End',
+            type: 18,
+          ),
+        );
       }
-      pointsOfInterest.add(
-        PointOfInterest(
-          point: Point(target.longitude, target.latitude),
-          name: 'End',
-          type: 18,
-        ),
-      );
+
+      routes = await replaceRoutes(routes: routes, updateBuffer: false);
+      addToBackBuffer();
+
+      mapUpdates = MapUpdates.routesAndWaypoints;
+
+      MapService().updateMapGeoJson(mapUpdates: mapUpdates);
+
+      isSaved = false;
+    } catch (e) {
+      developer.log('CurrentTripItem().addWaypoint() error: ${e.toString()}',
+          name: 'error');
     }
-
-    routes = await replaceRoutes(routes: routes, updateBuffer: false);
-    addToBackBuffer();
-
-    mapUpdates = MapUpdates.routesAndWaypoints;
-
-    MapService().updateMapGeoJson(mapUpdates: mapUpdates);
-
-    isSaved = false;
   }
 
   /// backBuffer is a [List<List<Waypoint>>].
@@ -1325,7 +1356,8 @@ class CurrentTripItem extends MyTripItem {
         goodRoads.last.waypoints.isEmpty ? 0 : goodRoads.last.waypoints.length;
     try {
       Waypoint waypoint = Waypoint(
-          point: latLngToPoint(latLng: mapController!.cameraPosition!.target),
+          point: latLngToPoint(
+              latLng: MapService().controller!.cameraPosition!.target),
           colour: Setup().goodRouteColourHex());
       if (goodRoads.last.waypoints.length == 1 &&
           goodRoads.last.waypoints[0].point.x == 0) {
@@ -1678,7 +1710,7 @@ class CurrentTripItem extends MyTripItem {
     mapUpdates = mapUpdates.add(MapUpdates.goodRoads);
     MapService().updateMapGeoJson(mapUpdates: mapUpdates);
     // Micro-nudge to update MapLibre
-    await mapController!.animateCamera(CameraUpdate.zoomBy(0.000001));
+    await MapService().controller!.animateCamera(CameraUpdate.zoomBy(0.000001));
   }
 
   Future<void> reverseRoute({List<Map<String, dynamic>>? features}) async {

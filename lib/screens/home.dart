@@ -1,5 +1,6 @@
 import '/tiles/tiles.dart';
 import 'package:flutter/material.dart';
+import 'dart:developer' as developer;
 // import 'package:flutter/services.dart';
 import '/models/models.dart';
 import '/services/services.dart';
@@ -81,6 +82,7 @@ class _HomeFormState extends State<HomeForm> {
   }
 
   Widget portraitView() {
+    developer.log('Home().portraitView() called', name: '_nav_');
     return Column(children: [
       Expanded(
         child: Column(
@@ -145,8 +147,10 @@ class _HomeFormState extends State<HomeForm> {
         future: _dataloaded,
         builder: (BuildContext context, snapshot) {
           if (snapshot.hasError) {
-            debugPrint('Snapshot has error: ${snapshot.error}');
+            developer.log('Home() snapshot has error: ${snapshot.error}',
+                name: '_nav_');
           } else if (snapshot.hasData) {
+            developer.log('Home() snapshot has data', name: '_nav_');
             return portraitView();
           } else {
             return const SizedBox(
@@ -158,7 +162,13 @@ class _HomeFormState extends State<HomeForm> {
               ),
             );
           }
-          throw ('Error - FutureBuilder group.dart');
+          return Center(
+            child: Text(
+              'FutureBuilder failed',
+              style: TextStyle(fontSize: 25, color: Colors.red),
+            ),
+          );
+          // throw ('Error - FutureBuilder group.dart');
         },
       ),
     );

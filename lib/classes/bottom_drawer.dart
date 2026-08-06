@@ -92,6 +92,7 @@ class BottomDrawerController {
 class BottomDrawer extends StatefulWidget {
   final Function(double)? onChangeHeight;
   final Function(bool)? onOpened;
+  final Function(bool)? onUpdate;
   // final Function(bool)? requestClose;
   final GlobalKey? globalKey;
   final BuildContext context;
@@ -101,22 +102,24 @@ class BottomDrawer extends StatefulWidget {
   final double dividerHeight;
   final CurrentTripItem? content;
   final BottomDrawerController? controller;
+
   final ImageRepository? imageRepository;
 
-  const BottomDrawer(
+  BottomDrawer(
       {super.key,
       required this.context,
-      this.controller,
       this.globalKey,
       this.maxHeight = 0,
       this.height = 0,
       this.closedTop = 0,
       this.onChangeHeight,
+      this.onUpdate,
       this.onOpened,
-      //  this.requestClose,
+      this.controller,
       this.dividerHeight = 30,
       this.content,
       this.imageRepository});
+
   @override
   State<BottomDrawer> createState() => _BottomDrawerState();
 }
@@ -147,6 +150,7 @@ class _BottomDrawerState extends State<BottomDrawer>
   @override
   void initState() {
     super.initState;
+
     if (widget.controller != null) {
       widget.controller!._addState(this);
     }
@@ -158,16 +162,19 @@ class _BottomDrawerState extends State<BottomDrawer>
     super.dispose();
   }
 */
-  void close() {
+
+  void close() async {
     if (mounted) {
+      while (View.of(context).viewInsets.bottom > 0) {
+        await Future.delayed(const Duration(milliseconds: 10));
+      }
       setState(() => height = 0);
     }
   }
 
   void refresh() {
     if (mounted) {
-      refreshList = true;
-      setState(() {}); // setContentBottom());
+      setState(() => refreshList = true); // setContentBottom());
     }
   }
 
@@ -185,12 +192,6 @@ class _BottomDrawerState extends State<BottomDrawer>
   /// the initiallyExpanded property is set when the tile is created.
 
   List<Widget> _tiles = [];
-
-/*
-  int itemsCount() {
-    return _tiles.length;
-  }
-*/
 
   void setContent(BottomDrawerItems content, List? drawerItems) {
     try {
@@ -219,6 +220,9 @@ class _BottomDrawerState extends State<BottomDrawer>
           break;
       }
       refreshList = true;
+      _tiles.add(Container(
+          height: 300,
+          color: Colors.transparent)); // <-- add spacer for keyboard
     } catch (e) {
       developer.log('Error setting BottomDrawer setContent(): ${e.toString()}',
           name: 'error');
@@ -328,7 +332,6 @@ class _BottomDrawerState extends State<BottomDrawer>
         ),
         duration: Duration(milliseconds: 300));
 
-    // debugPrint('index: $index moved: ${moved ?? false}');
     final String fileName = await getSpeech(
         text:
             'Stop the car you idiot, I want to get out', //CurrentTripItem().maneuvers[index].modifier,
@@ -382,7 +385,7 @@ class _BottomDrawerState extends State<BottomDrawer>
             tripItem: CurrentTripItem(),
             expanded: expanded, //!headerComplete,
             appState: CurrentTripItem().appState,
-            onUpdate: (complete) => headingComplete(complete),
+            onUpdate: headingComplete,
           ),
         ),
       );
@@ -454,12 +457,28 @@ class _BottomDrawerState extends State<BottomDrawer>
     return tiles;
   }
 
-  void headingComplete(bool complete) {
-    close();
+  void headingComplete(bool complete) async {
+    //  if (complete) {
+    // _tripHeaderController.collapse();
+    // _tripHeaderController.dismis
+
+    _tripHeaderController.dismissKeyboard();
+    while (View.of(context).viewInsets.bottom > 0) {
+      await Future.delayed(const Duration(milliseconds: 10));
+    }
+    height = 0;
+    if (widget.onUpdate != null) {
+      widget.onUpdate!(true);
+    }
+    setState(() {});
   }
 
   void pointOfInterestComplete(bool complete) async {
-    //  _pointOfInterestController.dismissKeyboard();
+    _pointOfInterestController.dismissKeyboard();
+    while (View.of(context).viewInsets.bottom > 0) {
+      await Future.delayed(const Duration(milliseconds: 10));
+    }
+    height = 0;
     CurrentTripItem()
         .refreshMap(change: MapUpdates.pointsOfInterest)
         .then((_) => close());
@@ -470,6 +489,7 @@ class _BottomDrawerState extends State<BottomDrawer>
     try {
       setContentBottom();
       delay = 500;
+
       height = height == 0
           ? newHeight == 0
               ? widget.maxHeight
@@ -514,8 +534,9 @@ class _BottomDrawerState extends State<BottomDrawer>
   void dockOpenTile() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       try {
+        double oldHeight = height;
         var box = _scrollKey.currentContext!.findRenderObject() as RenderBox;
-        height = box.size.height < 400 ? box.size.height + 4 : 400;
+        //  height = box.size.height < 400 ? box.size.height + 4 : 400;
         Scrollable.ensureVisible(
           _scrollKey.currentContext!,
           duration: const Duration(milliseconds: 300),
@@ -580,6 +601,7 @@ class _BottomDrawerState extends State<BottomDrawer>
   @override
   Widget build(BuildContext context) {
     double dividerHeight = 35;
+    bool _visible = true;
 
     /// Ensure a fresh set of tiles is generated to ensure the initiallyExpanded value is
     /// set to reflect the completeness of the tile's content.
@@ -592,87 +614,106 @@ class _BottomDrawerState extends State<BottomDrawer>
     //   _tiles = shredCurrentTripItemData();
     //   refreshList = false;
     // }
-
-    return Align(
-      alignment: Alignment.bottomLeft,
-      child: AnimatedContainer(
-        key: _animatedContainerKey,
-        duration: Duration(milliseconds: delay),
-        curve: Curves.easeOut, // fastOutSlowIn,
-        height: height + dividerHeight,
-        width: mounted ? MediaQuery.of(context).size.width : 100,
-        onEnd: () async {
-          contentHeight = height;
-          if (widget.onOpened != null) {
-            widget.onOpened!(height > 10);
-          }
-        },
-        child: SingleChildScrollView(
-          physics: NeverScrollableScrollPhysics(),
-          child: Column(
-            children: [
-              Column(
+    return FocusScope(
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(0, 0, 0, 0),
+        child: Align(
+          alignment: Alignment.bottomLeft,
+          child: AnimatedContainer(
+            key: _animatedContainerKey,
+            duration: Duration(milliseconds: delay),
+            curve: Curves.easeOut, // fastOutSlowIn,
+            height: height + dividerHeight,
+            width: mounted ? MediaQuery.of(context).size.width : 100,
+            onEnd: () async {
+              contentHeight = height;
+              if (widget.onOpened != null) {
+                widget.onOpened!(height > 10);
+              }
+            },
+            child: SingleChildScrollView(
+              physics: NeverScrollableScrollPhysics(),
+              child: Column(
                 children: [
-                  GestureDetector(
-                    behavior: HitTestBehavior.translucent,
-                    child: AbsorbPointer(
-                      child: Container(
-                        color: const Color.fromARGB(255, 158, 158, 158),
-                        height: dividerHeight,
-                        width: MediaQuery.of(context).size.width,
-                        child: Icon(
-                          Icons.drag_handle,
-                          size: dividerHeight,
-                          color: Colors.blue,
+                  Column(
+                    children: [
+                      GestureDetector(
+                        behavior: HitTestBehavior.translucent,
+                        child: AbsorbPointer(
+                          child: Container(
+                            color: const Color.fromARGB(255, 158, 158, 158),
+                            height: dividerHeight,
+                            width: MediaQuery.of(context).size.width,
+                            child: Icon(
+                              Icons.drag_handle,
+                              size: dividerHeight,
+                              color: Colors.blue,
+                            ),
+                          ),
+                        ),
+                        onTap: () => setState(() async {
+                          setContentBottom();
+
+                          delay = 500;
+                          height = height == 0 ? widget.maxHeight : 0;
+                          contentHeight = height == 0 ? contentHeight : height;
+                          if (height < 10 && widget.onOpened != null) {
+                            _pointOfInterestController.dismissKeyboard();
+                            while (View.of(context).viewInsets.bottom > 0) {
+                              await Future.delayed(
+                                  const Duration(milliseconds: 10));
+                            }
+                            height = 0;
+                            widget.onOpened!(false);
+                          }
+                          debugPrint('height: $height');
+                        }),
+                        onVerticalDragUpdate:
+                            (DragUpdateDetails details) async {
+                          if (delay > 1) setContentBottom();
+                          delay = 1;
+                          height = height - details.delta.dy > 0
+                              ? height - details.delta.dy
+                              : 0;
+                          if (widget.onChangeHeight != null) {
+                            widget.onChangeHeight!(height);
+                          }
+                          if (height < 50) {
+                            FocusScope.of(context).unfocus();
+                            _pointOfInterestController.dismissKeyboard();
+                            while (View.of(context).viewInsets.bottom > 0) {
+                              await Future.delayed(
+                                  const Duration(milliseconds: 10));
+                            }
+                            height = 0;
+                          }
+                          setState(() {});
+                        },
+                      ),
+                      AnimatedOpacity(
+                        opacity: _visible ? 1.0 : 0.0,
+                        duration: const Duration(milliseconds: 500),
+                        child: Container(
+                          height: contentHeight,
+                          child: SingleChildScrollView(
+                            physics: NeverScrollableScrollPhysics(),
+                            child: Container(
+                              height: contentHeight,
+                              color: Colors.blue,
+                              child: ScrollablePositionedList.builder(
+                                  itemScrollController: _itemScrollController,
+                                  itemCount: _tiles.length,
+                                  itemBuilder: (navContext, index) =>
+                                      _tiles[index]),
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                    onTap: () => setState(() {
-                      setContentBottom();
-                      _pointOfInterestController.dismissKeyboard();
-                      delay = 500;
-                      height = height == 0 ? widget.maxHeight : 0;
-                      contentHeight = height == 0 ? contentHeight : height;
-                      if (height < 10 && widget.onOpened != null) {
-                        height = 0;
-                        widget.onOpened!(false);
-                      }
-                      debugPrint('height: $height');
-                    }),
-                    onVerticalDragUpdate: (DragUpdateDetails details) {
-                      if (delay > 1) setContentBottom();
-                      setState(() {
-                        delay = 1;
-                        height = height - details.delta.dy > 0
-                            ? height - details.delta.dy
-                            : 0;
-                        if (widget.onChangeHeight != null) {
-                          widget.onChangeHeight!(height);
-                        }
-                        if (height < 50) {
-                          FocusScope.of(context).unfocus();
-                          _pointOfInterestController.dismissKeyboard();
-                        }
-                      });
-                    },
-                  ),
-                  SingleChildScrollView(
-                    physics: NeverScrollableScrollPhysics(),
-                    child: Container(
-                      height: contentHeight,
-                      color: Colors.blue,
-
-                      // child: ScrollablePositionedList.(itemCount: _tiles.length, itemBuilder: (context, index) => _tiles[index])),
-
-                      child: ListView(
-                        controller: _scrollController,
-                        children: _tiles,
-                      ),
-                    ),
+                    ],
                   ),
                 ],
               ),
-            ],
+            ),
           ),
         ),
       ),
