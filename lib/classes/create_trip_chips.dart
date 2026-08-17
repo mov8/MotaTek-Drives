@@ -948,18 +948,13 @@ class CreateTripChips extends StatelessWidget {
               .sideDrawerController!
               .setContent(content: BottomDrawerItems.trip);
         } else {
-          MapService()
-              .bottomDrawerController!
-              .setContent(content: BottomDrawerItems.trip);
+          MapService().bottomDrawerController!.setContent(content: items);
         }
       }
       if (open) {
         if (kIsWeb) {
           MapService().sideDrawerController!.open(width: 0.4);
         } else {
-          MapService()
-              .bottomDrawerController!
-              .setContent(content: BottomDrawerItems.trip);
           MapService().bottomDrawerController!.open(height: 500);
         }
       }

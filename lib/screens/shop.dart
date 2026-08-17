@@ -439,10 +439,11 @@ class _ShopFormState extends State<ShopForm> {
       backgroundColor: Colors.blue,
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        leading: LeadingWidget(
-            controller: _leadingWidgetController,
-            onMenuTap: (index) =>
-                _leadingWidget(_scaffoldKey.currentState)), // IconButton(
+        leading: BackButton(
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
         title: const Text(
           'Shop',
           style: TextStyle(

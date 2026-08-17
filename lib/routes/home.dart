@@ -1,5 +1,8 @@
 import 'dart:convert';
+import 'dart:math';
 import 'dart:developer' as developer;
+import 'package:image_picker/image_picker.dart';
+import 'package:drives/helpers/markdown_helpers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
@@ -11,6 +14,7 @@ import '/classes/classes.dart';
 import '/services/services.dart' hide getPosition;
 // import 'package:flutter/services.dart' show rootBundle;
 import '/screens/screens.dart';
+import '/helpers/helpers.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 class Home extends StatefulWidget {
@@ -26,12 +30,16 @@ class _HomeState extends State<Home> {
   final GlobalKey _scaffoldKey = GlobalKey();
   // final GlobalKey _homeItemKey = GlobalKey();
   final ItemScrollController _itemScrollController = ItemScrollController();
+  final TextEditingController _textEditingController = TextEditingController();
+  late final MdStyleSheet _styleSheet;
 
   // int _globalKeyIndex = -1;
   List<HomeItem> homeItems = [];
   final List<Widget> _sideBarContents = [];
 
   late Future<bool> _dataLoaded;
+
+  List<Map<String, dynamic>> _images = [];
 
   /// _handleExternalScroll executes the scrolling of the page content triggered by
   /// the SideDrawer. The ItemScrollController sits in this, the target object. MapService()
@@ -141,6 +149,12 @@ class _HomeState extends State<Home> {
           );
         }
       });
+
+      // TODO: Get the markdown stylesheet from the api
+
+      Map<String, dynamic> styleJson = {};
+
+      _styleSheet = MdStyleSheet.fromJson(json: styleJson);
       return true;
     } else if (Setup().bottomNavIndex > 0) {
       // Look to see if the app was left open
@@ -152,11 +166,17 @@ class _HomeState extends State<Home> {
         Setup().bottomNavIndex = jsonDecode(Setup().appState)['route'] ?? 0;
       }
       Setup().setupToDb();
+      Map<String, dynamic> styleJson = {};
+
+      _styleSheet = MdStyleSheet.fromJson(json: styleJson);
       return true;
       //   _bottomNavController.navigate();
     } else {
       //  homeItems = await loadHomeItems(); // get cached homeItems
       homeItems = await getHomeItems(1); // get API data
+      Map<String, dynamic> styleJson = {};
+
+      _styleSheet = MdStyleSheet.fromJson(json: styleJson);
       return true;
     }
   }
@@ -168,6 +188,30 @@ class _HomeState extends State<Home> {
   }
 
   String mdData = '''
+# Drives Trip Planning and Sharing App
+---
+
+*A memorable drive is not just about reaching a destination, but all about enjoying the journey...*
+
+**How many times on a beautiful day have you not known where to go?**
+
+> Drives makes planning great trips easy
+
+- Based on Open Street Maps data
+- Publish and download memorable trips
+- Publish points of interest and great stretches of road
+- Create new trips linking published highlights
+- Can track where you've been when out exploring
+- Powerful controllable routing engine
+- Turn-by-turn instructions with AI voice
+- Discretionary re-routing
+- Support for group drives
+- Built in group chat messaging
+
+
+''';
+
+  String mdData2 = '''
 
 # Drives Free Trip Planning App
 --- 
@@ -212,7 +256,103 @@ main() {
 ```
 ''';
 
-  Widget _getPortraitBodyMD() {
+  Widget _getPortraitBodyMd() {
+    _textEditingController.value = TextEditingValue(
+      text: mdData, // mdHelp
+    );
+    String data = _textEditingController.text;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(8, 8, 8, 50), //   all(8.0),
+        child: Center(
+          child: SingleChildScrollView(
+            child: MarkdownBody(
+              data: data,
+              imageBuilder: (Uri uri, String? title, String? alt) {
+                String text = alt ?? '';
+
+                String? getAttr(String key) {
+                  final reg = RegExp('$key="([^":]+)"');
+                  return reg.firstMatch(text)?.group(1);
+                }
+
+                developer.log('ImageShortCodeBuilder() called',
+                    name: '_markdown_');
+                final String? caption = getAttr('caption');
+                final String align = getAttr('align') ?? 'center';
+                final double rotation =
+                    double.tryParse(getAttr('rotation') ?? '') ?? 0.0;
+                final double width =
+                    double.tryParse(getAttr('width') ?? '') ?? 300.0;
+
+                bool cached = uri.toString() == 'cache';
+                MainAxisAlignment mainAlign;
+                switch (align) {
+                  case 'left':
+                    mainAlign = MainAxisAlignment.start;
+                    break;
+                  case 'right':
+                    mainAlign = MainAxisAlignment.end;
+                    break;
+                  default:
+                    mainAlign = MainAxisAlignment.center;
+                }
+
+                return Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: mainAlign,
+                      children: [
+                        Padding(
+                          padding: EdgeInsets.fromLTRB(0, 10, 0, 0),
+                          child: Transform.rotate(
+                            angle: pi *
+                                rotation, //2 pi radians = 360  widget.photos[i].rotation * 0.5,
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: cached
+                                  ? Image.memory(
+                                      _imageRepository.getBytes(
+                                          key: _images[0]['key']),
+                                      width: width,
+                                      fit: BoxFit.contain,
+                                      // Error handling is vital for Web/Mobile
+                                      errorBuilder: (context, _, __) =>
+                                          const Icon(Icons.broken_image),
+                                    )
+                                  : Image.network(
+                                      uri.toString(),
+                                      width: 200,
+                                    ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (caption != null) ...[
+                      Padding(
+                        padding: EdgeInsets.fromLTRB(20, 0, 0, 0),
+                        child: Text(
+                          caption,
+                          style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black),
+                        ),
+                      ),
+                    ]
+                  ],
+                );
+              },
+              styleSheet: _styleSheet.markdownStyleSheet,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _getPortraitBodyMD1() {
     return Card(
       color: Colors.white,
       child: Padding(
@@ -269,7 +409,7 @@ main() {
     );
   }
 
-  Widget _getPortraitBody() {
+  Widget _getPortraitBodyMD2() {
     double leftPadding =
         MediaQuery.of(context).size.width * (kIsWeb ? 0.38 : 0);
     try {
@@ -393,7 +533,7 @@ main() {
                 child: Text(
                     'Error getting the data from the server - check the Internet'));
           } else if (snapshot.hasData) {
-            return _getPortraitBodyMD();
+            return _getPortraitBodyMd();
           } else {
             return const SizedBox(
               width: double.infinity,
@@ -531,6 +671,24 @@ main() {
         ),
       ),
     );
+  }
+
+  Future<void> loadImage(int id) async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? xImage = await picker.pickImage(source: ImageSource.gallery);
+    if (xImage != null) {
+      try {
+        String name = '${getUuid()}.${xImage.name.split(".").last}';
+        Uint8List bytes = await xImage.readAsBytes();
+        var imageMap =
+            await _imageRepository.loadImage(bytes: bytes, uri: name);
+        // get the new key's value to access the image
+        String key = imageMap.keys.first;
+        _images.add({'name': name, 'key': key});
+      } catch (e) {
+        debugPrint('Error saving temporary image: ${e.toString()}');
+      }
+    }
   }
 
   void sideBarItems() async {

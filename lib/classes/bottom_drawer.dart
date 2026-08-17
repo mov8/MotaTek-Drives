@@ -389,6 +389,7 @@ class _BottomDrawerState extends State<BottomDrawer>
           ),
         ),
       );
+      int listIndex = 1;
       for (int i = 0; i < CurrentTripItem().pointsOfInterest.length; i++) {
         if (![12, 14, 17, 18]
             .contains(CurrentTripItem().pointsOfInterest[i].type)) {
@@ -405,13 +406,15 @@ class _BottomDrawerState extends State<BottomDrawer>
               key: tileKey,
               child: PointOfInterestTile(
                 key: Key('poit_$i'), // UniqueKey(),
-                index: i + 1,
+                index: i,
+                listIndex: listIndex++,
                 expanded: expanded,
                 controller: expanded ? _pointOfInterestController : null,
                 pointOfInterest: CurrentTripItem().pointsOfInterest[i],
                 imageRepository: widget.imageRepository ?? ImageRepository(),
                 onUpdate: pointOfInterestComplete,
                 driveId: CurrentTripItem().uri,
+                onDelete: removePointOfInterest,
               ),
             ),
           );
@@ -419,6 +422,22 @@ class _BottomDrawerState extends State<BottomDrawer>
       }
     }
     return tiles;
+  }
+
+  removePointOfInterest(index, listIndex) {
+    try {
+      setState(() {
+        _pointOfInterestController.dismissKeyboard();
+        CurrentTripItem().pointsOfInterest.removeAt(index);
+        _tiles.removeAt(listIndex);
+      });
+      if (_tiles.length < 2) {
+        close();
+      }
+      developer.log('point of interest removed at: $index', name: '_poi_');
+    } catch (e) {
+      developer.log('error removing pointOfInterest[$index]', name: '_poi_');
+    }
   }
 
   List<Widget> shredPointsOfInterest({int type = -1}) {
@@ -623,9 +642,12 @@ class _BottomDrawerState extends State<BottomDrawer>
             key: _animatedContainerKey,
             duration: Duration(milliseconds: delay),
             curve: Curves.easeOut, // fastOutSlowIn,
+            color: Colors.blue,
             height: height + dividerHeight,
             width: mounted ? MediaQuery.of(context).size.width : 100,
             onEnd: () async {
+              developer.log('AnimatedContainer().onEnd() height: $height',
+                  name: '_drawer_');
               contentHeight = height;
               if (widget.onOpened != null) {
                 widget.onOpened!(height > 10);
@@ -651,23 +673,22 @@ class _BottomDrawerState extends State<BottomDrawer>
                             ),
                           ),
                         ),
-                        onTap: () => setState(() async {
+                        onTap: () async {
                           setContentBottom();
-
                           delay = 500;
-                          height = height == 0 ? widget.maxHeight : 0;
-                          contentHeight = height == 0 ? contentHeight : height;
-                          if (height < 10 && widget.onOpened != null) {
+                          if (height > 50) {
+                            FocusScope.of(context).unfocus();
                             _pointOfInterestController.dismissKeyboard();
                             while (View.of(context).viewInsets.bottom > 0) {
                               await Future.delayed(
                                   const Duration(milliseconds: 10));
                             }
                             height = 0;
-                            widget.onOpened!(false);
+                          } else {
+                            height = widget.maxHeight;
                           }
-                          debugPrint('height: $height');
-                        }),
+                          setState(() {});
+                        },
                         onVerticalDragUpdate:
                             (DragUpdateDetails details) async {
                           if (delay > 1) setContentBottom();
@@ -678,6 +699,9 @@ class _BottomDrawerState extends State<BottomDrawer>
                           if (widget.onChangeHeight != null) {
                             widget.onChangeHeight!(height);
                           }
+                          developer.log(
+                              'SetState(() => BottomDrawer().GestureDetector().onVerticalDragUpdate() contentHeight: $contentHeight height: $height)',
+                              name: '_drawer_');
                           if (height < 50) {
                             FocusScope.of(context).unfocus();
                             _pointOfInterestController.dismissKeyboard();

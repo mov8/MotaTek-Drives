@@ -283,9 +283,12 @@ class _MainDrawerState extends State<MainDrawer> {
                 size: 30,
               ),
               trailing: PopupMenuButton(
+                  color: const Color.from(
+                      alpha: 1, red: 0.569, green: 0.686, blue: 0.741),
                   itemBuilder: (context) => adminOptions
                       .map<PopupMenuEntry<String>>(
                         (e) => PopupMenuItem(
+                          textStyle: TextStyle(fontSize: 14),
                           value: e['value'],
                           onTap: () {
                             debugPrint('Admin Option: ${e['text']}');
@@ -334,7 +337,13 @@ class _MainDrawerState extends State<MainDrawer> {
                             }
                           },
                           child: Row(
-                            children: [e['iconData'], Text(e['text'])],
+                            children: [
+                              e['iconData'],
+                              SizedBox(
+                                width: 10,
+                              ),
+                              Text(e['text'], style: TextStyle(fontSize: 18))
+                            ],
                           ),
                         ),
                       )

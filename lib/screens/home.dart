@@ -385,15 +385,20 @@ class _HomeFormState extends State<HomeForm> {
                       ],
                     ),
                     if (caption != null) ...[
-                      Padding(
-                        padding: EdgeInsets.fromLTRB(20, 0, 0, 0),
-                        child: Text(
-                          caption,
-                          style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black),
-                        ),
+                      Row(
+                        mainAxisAlignment: mainAlign,
+                        children: [
+                          Padding(
+                            padding: EdgeInsets.fromLTRB(0, 10, 0, 0),
+                            child: Text(
+                              caption,
+                              style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black),
+                            ),
+                          ),
+                        ],
                       ),
                     ]
                   ],
@@ -441,10 +446,11 @@ class _HomeFormState extends State<HomeForm> {
       backgroundColor: Colors.blue,
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        leading: LeadingWidget(
-            controller: _leadingWidgetController,
-            onMenuTap: (index) =>
-                _leadingWidget(_scaffoldKey.currentState)), // IconButton(
+        leading: BackButton(
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
         title: const Text(
           'Home',
           style: TextStyle(
