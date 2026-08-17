@@ -3,11 +3,13 @@ import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import '/constants.dart';
 import '/models/other_models.dart';
 import '/tiles/home_tile.dart';
 import '/classes/classes.dart';
 import '/services/services.dart' hide getPosition;
+// import 'package:flutter/services.dart' show rootBundle;
 import '/screens/screens.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
@@ -159,6 +161,114 @@ class _HomeState extends State<Home> {
     }
   }
 
+  Future<String> getFileData(String path) async {
+    // return '';
+    // return await rootBundle.loadString(path);
+    return await DefaultAssetBundle.of(context).loadString(path);
+  }
+
+  String mdData = '''
+
+# Drives Free Trip Planning App
+--- 
+
+Name  | Favorite Color
+------------- | -------------
+Rooney  | Red
+Fred  | Blue
+Lisa  | Yellow
+Kyle  | Maroon
+Sammy  | Blue
+  
+> blockquote  
+
+
+>[!INFO]  
+>Callout  
+
+
+  ---
+
+# My New Blog Post
+
+### What I did today!
+#### *December 25, 2020*
+Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+
+---
+
+# My Second post about new code!
+**Check out this code snippet**
+
+``` dart 
+main() {
+  var poemLines = lines(poem);
+  print(yell(poemLines.first));
+
+  // functions are first-class
+  var whisper = (String str) => str.toLowerCase();
+  print(poemLines.map(whisper).last);
+}
+```
+''';
+
+  Widget _getPortraitBodyMD() {
+    return Card(
+      color: Colors.white,
+      child: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Center(
+            child: Markdown(
+          data: mdData,
+          styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
+            p: Theme.of(context)
+                .textTheme
+                .bodyMedium
+                ?.copyWith(color: Colors.black),
+            h1: const TextStyle(
+                color: Colors.blue, fontSize: 24, fontWeight: FontWeight.bold),
+            h2: const TextStyle(
+                color: Colors.blue, fontSize: 22, fontWeight: FontWeight.bold),
+            h3: const TextStyle(
+                color: Colors.black, fontSize: 20, fontWeight: FontWeight.bold),
+            h4: const TextStyle(
+                color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold),
+            tableBody: const TextStyle(
+                color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold),
+            tableHead: const TextStyle(
+                color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold),
+            tableHeadAlign: TextAlign.start,
+            blockquote: const TextStyle(
+                color: Colors.black, fontSize: 20, fontWeight: FontWeight.bold),
+            code: const TextStyle(
+                color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+        )
+
+            /*FutureBuilder(
+            future: getFileData('assets/markdown/markdown_source_data.md'),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData) {
+                return Text('Loading Markdown Info...');
+              } else if (snapshot.hasError) {
+                return Text('Loading Markdown Failed!');
+              }
+              String data =   
+
+              return 
+              // Text('Markdown should be here!',
+              //     style: TextStyle(fontSize: 22, color: Colors.red));
+               Markdown(
+                 data: snapshot.data!,
+              //  selectable: true,
+                 );
+            },
+          ), */
+            ),
+      ),
+    );
+  }
+
   Widget _getPortraitBody() {
     double leftPadding =
         MediaQuery.of(context).size.width * (kIsWeb ? 0.38 : 0);
@@ -283,7 +393,7 @@ class _HomeState extends State<Home> {
                 child: Text(
                     'Error getting the data from the server - check the Internet'));
           } else if (snapshot.hasData) {
-            return _getPortraitBody();
+            return _getPortraitBodyMD();
           } else {
             return const SizedBox(
               width: double.infinity,

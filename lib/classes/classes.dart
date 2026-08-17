@@ -40,6 +40,7 @@ export 'routes_bottom_nav.dart';
 export 'routes_top_nav.dart';
 export 'screens_appbar.dart';
 export 'side_drawer.dart';
+export 'side_toolbar.dart';
 export 'star_ratings.dart';
 export 'status_bar.dart';
 export 'transparent_pointer.dart';

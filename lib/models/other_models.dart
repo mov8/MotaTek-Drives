@@ -24,7 +24,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 // import 'package:geolocator/geolocator.dart';
 
 /// https://api.flutter.dev/flutter/material/Icons-class.html  get the icon codepoint from here
-/// https://api.flutter.dev/flutter/material/Icons/add_road-constant.html
+/// https://api.flutter.dev/flutter/material/Icons/add_road-constant.html eeaf
 
 const List<Map> poiTypes = [
   {

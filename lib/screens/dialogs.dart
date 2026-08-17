@@ -1,3 +1,5 @@
+import 'dart:collection';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -5,7 +7,7 @@ import 'dart:async';
 import 'dart:developer' as developer;
 import '/constants.dart';
 import '/services/services.dart';
-import '/helpers/edit_helpers.dart';
+import '/helpers/helpers.dart'; /*edit_helpers.dart';*/
 import '/models/models.dart';
 import '/classes/classes.dart';
 import '/tiles/tiles.dart';
@@ -115,6 +117,261 @@ pointOfInterestDialog(
   );
 }
 */
+/*
+styleButtons() {
+  List<IconButton> buttons = [
+    IconButton(onPressed: () => (), icon: Icon(Icons.access_alarm)),
+    IconButton(onPressed: () => (), icon: Icon(Icons.access_alarm)),
+    IconButton(onPressed: () => (), icon: Icon(Icons.access_alarm)),
+    IconButton(onPressed: () => (), icon: Icon(Icons.access_alarm)),
+  ];
+  return SideToolbar(buttons: buttons, onClick: (_, __) => ());
+}
+
+Future<void> markdownStyleDialog(BuildContext context) async {
+  SideToolbar(buttons: buttons, onClick: (_, __) => ());
+  // Widget options = Column(children: [Text('one'), Text('two')]);
+  // try {
+  //   options = getStyles(context);
+  // } catch (e) {
+  //   developer.log('Error getting menu options: ${e.toString()}',
+  //       name: '_markdown_');
+  // }
+  return showDialog<void>(
+    context: context,
+    barrierDismissible: false,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: const Text('Markdown Style',
+            style: TextStyle(color: Colors.black, fontSize: 20)),
+        content: SingleChildScrollView(
+          child: ListBody(children: [
+            // buildStyleRow('H1')
+            /*  Row(children: [
+              Text('Style', style: TextStyle(color: Colors.black)),
+              DropdownMenu<ColourLabel>(
+                textStyle: TextStyle(fontSize: 16, color: Colors.black),
+                menuStyle: MenuStyle(shape: null),
+                dropdownMenuEntries: ColourLabel.entries,
+              )
+            ]),
+            */
+          ]
+              /* Row(children: [
+              Text('first', style: TextStyle(color: Colors.black)),
+              SizedBox(
+                width: 10,
+              ),
+              Text('second', style: TextStyle(color: Colors.black))
+            ]),
+            Row(children: [
+              Text('first', style: TextStyle(color: Colors.black)),
+              SizedBox(
+                width: 10,
+              ),
+              Text('second', style: TextStyle(color: Colors.black))
+            ])
+          ] */
+              // getStyles(context), // [Text('Line 1'), Text('Line 2')],
+              ),
+        ),
+        actions: [
+          TextButton(
+            child: const Text('Approve'),
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+          ),
+        ],
+      );
+    },
+  );
+}
+*/
+/*
+List<DropdownMenuEntry<String>> getDropdownMenuItems() {
+  return [
+    for (var e in styleColourList.keys)
+      DropdownMenuItem<String>(
+        value: e,
+        child: Row(
+          children: [
+            Container(
+              width: 15,
+              height: 15,
+              decoration: BoxDecoration(
+                  shape: BoxShape.circle, color: styleColourList[e]),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(5, 0, 10, 0),
+              child: Text(
+                e.toString(),
+                style:
+                    textStyle(context: context, size: 3, color: Colors.black),
+              ),
+            )
+          ],
+        ),
+      )
+  ];
+}
+*/
+List<Map<String, dynamic>> styleItems = [
+  {
+    'name': 'h1',
+    'description': 'heading 1',
+    'colour': Colors.blue,
+    'font size': 24,
+    'font weight': FontWeight.bold
+  },
+  {
+    'name': 'h2',
+    'description': 'heading 2',
+    'colour': Colors.blue,
+    'font size': 22,
+    'font weight': FontWeight.bold
+  },
+  {
+    'name': 'h3',
+    'description': 'heading 3',
+    'colour': Colors.blue,
+    'font size': 20,
+    'font weight': FontWeight.bold
+  },
+  {
+    'name': 'h4',
+    'description': 'heading 4',
+    'colour': Colors.black,
+    'font size': 28,
+    'font weight': FontWeight.bold
+  },
+  {
+    'name': 'tableHead',
+    'description': 'table headings',
+    'colour': Colors.black,
+    'font size': 18,
+    'font weight': FontWeight.bold
+  },
+  {
+    'name': 'tableBody',
+    'description': 'table contents',
+    'colour': Colors.black,
+    'font size': 16,
+    'font weight': FontWeight.bold
+  },
+  {
+    'name': 'blockquote',
+    'description': 'block quote',
+    'colour': Colors.black,
+    'font size': 20,
+    'font weight': FontWeight.bold
+  },
+  {
+    'name': 'code',
+    'description': 'code',
+    'colour': Colors.black,
+    'font size': 16,
+    'font weight': FontWeight.bold
+  },
+];
+
+typedef ColourEntry = DropdownMenuEntry<ColourLabel>;
+
+enum ColourLabel {
+  amber('Amber', Colors.amber),
+  black('Black', Colors.black),
+  blue('Blue', Colors.blue),
+  cyan('Cyan', Colors.cyan),
+  green('Green', Colors.green),
+  grey('Grey', Colors.grey),
+  indigo('Indigo', Colors.indigo),
+  lime('Lime', Colors.lime),
+  orange('Orange', Colors.orange),
+  pink('Pink', Colors.pink),
+  purple('Purple', Colors.purple),
+  red('Red', Colors.red),
+  teal('Teal', Colors.teal),
+  white('White', Colors.white),
+  yellow('Yellow', Colors.yellow);
+
+  const ColourLabel(this.label, this.colour);
+  final String label;
+  final Color colour;
+  static final List<ColourEntry> entries = UnmodifiableListView<ColourEntry>(
+    values.map<ColourEntry>(
+      (ColourLabel colour) => ColourEntry(
+        value: colour,
+        label: colour.label,
+        style: MenuItemButton.styleFrom(foregroundColor: colour.colour),
+      ),
+    ),
+  );
+}
+
+List<Row> getStyles(BuildContext context) {
+  List<Row> widget = styleItems
+      .map(
+        (item) => Row(
+          children: [
+            Text(item['description']),
+            DropdownMenu<ColourLabel>(
+              requestFocusOnTap: true,
+              label: const Text('Colour'),
+              onSelected: ((_) => ()),
+              dropdownMenuEntries: ColourLabel.entries,
+            )
+          ],
+        ),
+      )
+      .toList();
+  return widget;
+}
+
+// Function(List<DropdownMenuEntry<dynamic>>, String)
+/*
+List<DropdownMenuEntry<dynamic>> styleColourChoices(
+  BuildContext context,
+) {
+ 
+    try{
+      List<DropdownMenuEntry<String>>
+          menuItems = styleColourList.keys.map  => DropdownMenuEntry(value: e.key, label: e.key)).toList();
+
+    } catch (e) {
+      developer.log('Problem getting color values: ${e.toString()}', name: '_markdown_');
+    }
+
+return [];
+}
+*/
+/*
+    for (var e in styleColourList.keys)
+      DropdownMenuEntry<String>(
+        value: e,
+        child: Row(
+          children: [
+            Container(
+              width: 15,
+              height: 15,
+              decoration: BoxDecoration(
+                  shape: BoxShape.circle, color: styleColourList[e]),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(5, 0, 10, 0),
+              child: Text(
+                e.toString(),
+                style:
+                    textStyle(context: context, size: 3, color: Colors.black),
+              ),
+            )
+          ],
+        ),
+      )
+  ];
+}
+*/
+/// OSM DATA
+
 osmDataDialog(
     BuildContext context,
     String name,

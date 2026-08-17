@@ -2255,6 +2255,32 @@ Future<bool> deleteHomeItem(HomeItem homeItem) async {
   return false;
 }
 
+Future<bool> deleteShopItem(ShopItem shopItem) async {
+  var request;
+  http.MultipartRequest('POST', Uri.parse('$urlShopPageItem/delete'));
+  try {
+    request.fields['uri'] =
+        shopItem.uri.substring((shopItem.uri.lastIndexOf('/') + 1));
+    request.rfields['heading'] = shopItem.heading;
+    request.fields['subHeading'] = shopItem.subHeading;
+    request.fields['imageUrls'] = shopItem.imageUrls;
+
+    dynamic response =
+        await request.send().timeout(const Duration(seconds: 30));
+    if (response.statusCode == 201) {
+      return true;
+    }
+  } catch (e) {
+    if (e is TimeoutException) {
+      debugPrint('Request timed out');
+    } else {
+      debugPrint('Error posting article: ${e.toString()}');
+    }
+  }
+
+  return false;
+}
+
 Future<String> postHomeItem(HomeItem homeItem) async {
   Map<String, dynamic> map = homeItem.toMap();
   List<Photo> photos = photosFromJson(
@@ -2403,6 +2429,7 @@ Future<String> postShopItem(ShopItem shopItem) async {
   }
 }
 
+/*
 Future<bool> deleteShopItem({required String shopUri}) async {
   try {
     var uri = Uri.parse('$urlShopItem/delete');
@@ -2419,7 +2446,7 @@ Future<bool> deleteShopItem({required String shopUri}) async {
 
   return true;
 }
-
+*/
 Future<List<EventInvitation>> getInvitationsByUser({int state = 0}) async {
   try {
     final http.Response response = await getWebData(

@@ -86,7 +86,9 @@ void main() async {
             systemOverlayStyle: SystemUiOverlayStyle.light,
           )),
 
-      initialRoute: 'splash',
+      /// Removing the initialRoute causes problems - don't !
+      initialRoute: NavigationService().initialRoute,
+      // 'splash', //  UIStateService().showSplash ? 'splash' : 'home',
 
       /*[0, 3, 4, 5].contains(Setup().nextScreen)
           ? routes[Setup().nextScreen]
@@ -108,7 +110,7 @@ void main() async {
       builder: (context, child) {
         /// Had a real issue with the map getting gestures in the Stack structure. For some reason the Scaffold
         /// in pages blocked the gestures in Android version. The only way round it was to implement the two map pages
-        /// as vanilla Widgets. The Route for the Home, Shop, and Messages are displayed as normal.
+        /// as non Scaffold Widgets. The Route for the Home, Shop, and Messages are displayed as normal.
         /// UIStateService().setPage(Setup().appState.isEmpty ? 1 : 0);
         /// NavigationService().setContext(context);
         /// Wrap the entire app in AnnotatedRegion and MediaQuery for colour and font scaling
@@ -127,10 +129,10 @@ void main() async {
           child: MediaQuery(
             data: MediaQuery.of(context)
                 .copyWith(textScaler: TextScaler.linear(0.9)),
-            // The child is the Navigator widget that contains all screens to which the test scaling will be applied
-            child: AppMasterShell(
-              content: child!,
-            ), //    child!,
+
+            /// The child is the Navigator widget that contains all screens to
+            /// which the test scaling will be applied
+            child: AppMasterShell(content: child!),
           ),
         );
       },
@@ -142,8 +144,8 @@ void main() async {
 /// is partly because it's more modular, but also it allows the generation
 /// of a page from a scaffold-free class, as the inclusion of the scaffold
 /// stops the gestures from the map reaching the map as the map is at the
-/// bottom of a Stack
-
+/// bottom of a Stack/*
+/*
 class Routes {
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -173,8 +175,9 @@ class Routes {
     }
   }
 }
+*/
 
-enum AppDisplayMode { mapOverlay, navigator }
+// enum AppDisplayMode { mapOverlay, navigator }
 
 CreateTripStackController _createTripStackController =
     CreateTripStackController();
@@ -186,17 +189,20 @@ class UIStateService extends ChangeNotifier {
   factory UIStateService() => _instance;
   UIStateService._internal();
 
+  bool showSplash = true;
+
   int _page = 0;
-  int get page => _page;
+  int get page => showSplash ? 1 : _page;
+  // NavigationService()
 
   void notify() {
     notifyListeners();
   }
 
   void setPage(int newPage) {
+    /// setPage is now implemented in NavigationService() may need it for Web version
     if (_page == newPage && newPage == 1) return;
     _page = newPage;
-    developer.log('UIService().setPage().notifyListener()', name: '_index1');
     notifyListeners();
   }
 }
@@ -326,10 +332,16 @@ class AppMasterShell extends StatelessWidget {
                           UIStateService(), // Flutter now "watches" your singleton
                       builder: (context, _) {
                         final currentPage = UIStateService().page;
+
+                        /// Using IndexedStack to switch between the Page version - content
+                        /// and the Widget version CreateTripStack(). CreateTripStack()
+                        /// allows the mouse to affect the map, as it doesn't use a
+                        /// Scaffold which appears to stop the mouse affecting the map.
                         return IndexedStack(
                           index: currentPage,
                           children: [
                             Overlay(initialEntries: [
+                              // <-- 0 The Widget version
                               OverlayEntry(
                                   builder: (context) => Material(
                                         type: MaterialType
@@ -339,18 +351,10 @@ class AppMasterShell extends StatelessWidget {
                                                 .createTripStackController),
                                       ))
                             ]),
-                            Positioned.fill(child: content),
+                            Positioned.fill(
+                                child: content), // <-- 1 The page version
                           ],
                         );
-
-/* Previous version worked OK but had Overlay issues on the Mobile version.
-
-                        IndexedStack(index: currentPage, children: [
-                          const CreateTripStack(),
-                          Positioned.fill(child: content),
-                        ]);
-
-*/
                       },
                     ),
                     if (kIsWeb) ...[
@@ -407,7 +411,6 @@ void _onMapUpdated(MapLibreMapController controller) async {
   if (MapService().statusBarController != null) {
     MapService().statusBarController!.refresh();
   }
-  UIStateService().notify();
   _createTripStackController.refresh();
 }
 

@@ -404,6 +404,46 @@ DateFormat dateFormatDocTime = DateFormat('E dd/MM/yyyy hh:mm:ss');
 
 Color backgroundColour = Color.fromRGBO(2, 46, 75, 0);
 
+/// Constants for Markdown helpers
+Map<String, Color> colour = {
+  'amber': Colors.amber,
+  'black': Colors.black,
+  'blue': Colors.blue,
+  'cyan': Colors.cyan,
+  'green': Colors.green,
+  'grey': Colors.grey,
+  'indigo': Colors.indigo,
+  'lime': Colors.lime,
+  'orange': Colors.orange,
+  'pink': Colors.pink,
+  'purple': Colors.purple,
+  'red': Colors.red,
+  'teal': Colors.teal,
+  'white': Colors.white,
+  'yellow': Colors.yellow,
+};
+
+Map<String, double> fontSize = {
+  '16 pt': 16,
+  '18 pt': 18,
+  '20 pt': 20,
+  '22 pt': 22,
+  '24 pt': 24,
+  '28 pt': 28
+};
+
+Map<String, FontStyle> fontStyle = {
+  'italic': FontStyle.italic,
+  'normal': FontStyle.normal
+};
+
+Map<String, FontWeight> fontWeight = {
+  'bold': FontWeight.bold,
+  'normal': FontWeight.normal
+};
+
+///
+
 List<IconData> inviteIcons = [
   Icons.thumbs_up_down_outlined,
   Icons.thumb_down_outlined,
@@ -801,6 +841,7 @@ const String urlGroupDrive = '${urlBase}v1/group_drive';
 const String urlGroupDriveInvitation = '${urlBase}v1/group_drive_invitation';
 const String urlGroupMember = '${urlBase}v1/group_member';
 const String urlHomePageItem = '${urlBase}v1/home_page_item';
+const String urlShopPageItem = '${urlBase}v1/shop_page_item';
 const String urlIntroduced = '${urlBase}v1/introduced';
 const String urlManeuver = '${urlBase}v1/maneuver';
 const String urlTextToSpeech = '${urlBase}v1/text_to_speech';

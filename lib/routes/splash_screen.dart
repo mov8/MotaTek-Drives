@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '/models/models.dart';
 import '/classes/classes.dart';
 import '../constants.dart';
+import 'dart:developer' as developer;
 
 class Splash extends StatefulWidget {
   const Splash({super.key});
@@ -15,10 +16,11 @@ class Splash extends StatefulWidget {
 
 class _SplashState extends State<Splash> {
   final int _delaySecs = 4;
+  bool _initialised = false;
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => initialise());
+    // WidgetsBinding.instance.addPostFrameCallback((_) => initialise());
   }
 
   @override
@@ -37,11 +39,12 @@ class _SplashState extends State<Splash> {
   }
 
   Future<void> initialise() async {
+    if (!UIStateService().showSplash) return;
     if (Setup().jwt.isEmpty) {
       Setup().loggingIn = true;
       await Login(context: context).tryLoggingIn();
     }
-    await Future.delayed(Duration(seconds: _delaySecs));
+
     int routeIndex = Setup().bottomNavIndex;
 
     if (routeIndex != 0) {
@@ -50,20 +53,28 @@ class _SplashState extends State<Splash> {
     }
     //  routeIndex = 4;
     await MapService().loadStyle();
-
-    MapService().webAppBarController?.showControls();
-    MapService().sideDrawerController?.setFixed(fixed: true);
-    MapService().sideDrawerController?.open();
-    MapService().sideDrawerController?.setVisible(visible: true);
+    await Future.delayed(Duration(seconds: _delaySecs));
+    if (kIsWeb) {
+      MapService().webAppBarController?.showControls();
+      MapService().sideDrawerController?.setFixed(fixed: true);
+      MapService().sideDrawerController?.open();
+      MapService().sideDrawerController?.setVisible(visible: true);
+    }
 
     if (mounted) {
+      setState(() {
+        UIStateService().setPage(0);
+        NavigationService().navigateTo(routes[0], null);
+      });
+    } else {
       NavigationService().navigateTo(routes[0], null);
-      UIStateService().setPage(1);
+      UIStateService().setPage(0); // <-- Page not Widget
     }
+    UIStateService().showSplash = false;
   }
 
   Widget _getPortraitBody() {
-    //Size screenSize = MediaQuery.of(context).size;
+    WidgetsBinding.instance.addPostFrameCallback((_) => initialise());
     Size screenSize = MediaQuery.of(context).size;
 
     double aspectRatio = screenSize.width / screenSize.height;

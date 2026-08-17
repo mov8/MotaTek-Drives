@@ -1,3 +1,4 @@
+import 'package:drives/main.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'services.dart';
@@ -8,23 +9,24 @@ class NavigationService {
   factory NavigationService() => _instance;
   NavigationService._internal();
   final GlobalKey<NavigatorState> key = GlobalKey<NavigatorState>();
-
-  NavigatorState get _navigator => key.currentState!;
+  String initialRoute = 'splash';
 
   Future<dynamic> navigateTo(String routeName, Object? arguments) async {
+    initialRoute = routeName;
     try {
       if (key.currentState == null) {
         developer.log('Navigator.key.currentState is null', name: 'error');
         return;
-      } else if (!['trips', 'createTrip'].contains(routeName) || kIsWeb) {
-        key.currentState!.pushNamed(routeName, arguments: arguments);
       }
+      UIStateService()
+          .setPage(['trips', 'createTrip'].contains(routeName) ? 0 : 1);
+      key.currentState!.pushNamed(routeName, arguments: arguments);
     } catch (e) {
       developer.log(
           'NavigationService().navigateTo($routeName) from: ${MapService().page}  error: ${e.toString()} ',
           name: 'error');
     }
-    return; // key.currentState!.pushNamed(routeName, arguments: arguments);
+    return;
   }
 
   int _page = 0;

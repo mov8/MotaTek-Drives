@@ -73,6 +73,7 @@ dependencies:
   hive: ^2.2.3
   hive_flutter: ^1.1.0
   flutter_markdown_plus: ^1.0.12
+  markdown: ^7.1.1
   # isar_plus_flutter_libs: ^4.0.0-dev.13
 dev_dependencies:
   flutter_test:

@@ -34,13 +34,6 @@ be changes to setState(() {});  which in fairness the docs do state,
 3 dart run build_runner clean 
 4 dart run build_runner build --delete-conflicting-outputs 
 
-
-
-
-
-
-
-
 Warning: In index.html:45: Flutter's service worker is deprecated and will be removed in a future Flutter release. See https://github.com/flutter/flutter/issues/156910 for more details.
 Warning: In index.html:59: "FlutterLoader.loadEntrypoint" is deprecated. Use "FlutterLoader.load" instead. See https://docs.flutter.dev/platform-integration/web/initialization for more details.
 
@@ -93,7 +86,7 @@ Git stash
 git stash <-- reverts back to last commit
 git stash list <-- shows all the stashes
 git stash apply <-- reloads the stashed data - git assumes it'll be the last stash, but you can specify stash ie git stash apply stash@{2}
-
+git push origin master
 
 
 Todo-Tree: Failed to find vscode-ripgrep - please install ripgrep manually and set 'todo-tree.ripgrep' to point to the executable
