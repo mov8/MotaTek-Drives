@@ -8,7 +8,8 @@ import 'screens/screens.dart';
 const appVersion = {'major': 0, 'minor': 0, 'patch': 9, 'suffix': 'beta db'};
 
 const apiAddress = 'https://drives.motatek.com/';
-const wifiIpAddress = 'http://10.101.1.216:5001/'; // <- Home
+const wifiIpAddress = 'http://192.168.1.168:5001/';
+// 'http://10.101.1.216:5001/'; // <- Home
 
 // const wifiIpAddress = 'http://10.164.124.105:5001/'; // < Redmi
 // const wifiIpAddress = 'http://192.168.1.111:5001/'; // <- Boston unit
@@ -19,12 +20,16 @@ const wifiIpAddress = 'http://10.101.1.216:5001/'; // <- Home
 // const wifiIpAddress ='http://10.2.222.57:5001/'; // <- Staines library 10.2.222.57:5001
 // https://drives.motatek.com/v1/user/test
 
-//const urlBase = wifiIpAddress;
-const urlBase = apiAddress;
+const urlBase = wifiIpAddress;
+// const urlBase = apiAddress;
 
 const mapsApiKey = '';
 
+const String motatekId = 'f9440cb2e8c747c2811bc80ef5653ce6';
+
 const double degreeToRadians = 0.0174532925; // degrees to radians pi/180
+
+const organisationName = 'MotaTek';
 
 const List<String> routes = [
   'home',
@@ -423,7 +428,7 @@ Map<String, Color> colour = {
   'yellow': Colors.yellow,
 };
 
-Map<String, double> fontSize = {
+Map<String, double> fontSizes = {
   '16 pt': 16,
   '18 pt': 18,
   '20 pt': 20,
@@ -432,12 +437,12 @@ Map<String, double> fontSize = {
   '28 pt': 28
 };
 
-Map<String, FontStyle> fontStyle = {
+Map<String, FontStyle> fontStyles = {
   'italic': FontStyle.italic,
   'normal': FontStyle.normal
 };
 
-Map<String, FontWeight> fontWeight = {
+Map<String, FontWeight> fontWeights = {
   'bold': FontWeight.bold,
   'normal': FontWeight.normal
 };
@@ -502,6 +507,16 @@ const List<String> contactChoices = [
   'Lost the way',
 ];
 
+/// allow access to shop and home
+enum UserType {
+  user(1),
+  administrator(2),
+  owner(4);
+
+  final int value;
+  const UserType(this.value);
+}
+
 /// Before changing any values check drawerOptions etc for consequences
 /// The order isn't important, but the names are.
 enum BottomDrawerItems {
@@ -516,6 +531,7 @@ enum BottomDrawerItems {
   steps,
   trip, // <-- trip = heading, good road and points of interest
   home,
+  shop,
   drives,
   favourites,
   settings,
@@ -526,6 +542,9 @@ enum BottomDrawerItems {
   myEvents,
   events,
   docs,
+  markdown, // <-- Markdown editor
+  markdownHome, // <-- Markdown summary tile
+  markdownShop, // <-- Markdown summary tile
   cached,
 }
 
@@ -598,6 +617,28 @@ List<Map<String, dynamic>> drawerOptions = [
     'method': BottomDrawerItems.settings,
     'drawer': BottomDrawerItems.docs,
     'screen': DocumentationForm()
+  },
+  {
+    'key': 'markdownHome',
+    'text': 'Home page contents',
+    'iconData': Icon(Icons.home_outlined, size: 30),
+    'method': BottomDrawerItems.settings.index,
+    'drawer': BottomDrawerItems.markdownHome,
+    'screen': MarkdownForm(
+      markdownData: {},
+      dataType: 'home',
+    )
+  },
+  {
+    'key': 'markdownShop',
+    'text': 'Shop page contents',
+    'iconData': Icon(Icons.shopping_bag_outlined, size: 30),
+    'method': BottomDrawerItems.settings.index,
+    'drawer': BottomDrawerItems.markdownShop,
+    'screen': MarkdownForm(
+      markdownData: {},
+      dataType: 'shop',
+    ) //Shop()
   },
   {
     'key': 'goodRoad',
@@ -840,8 +881,8 @@ const String urlGroup = '${urlBase}v1/group';
 const String urlGroupDrive = '${urlBase}v1/group_drive';
 const String urlGroupDriveInvitation = '${urlBase}v1/group_drive_invitation';
 const String urlGroupMember = '${urlBase}v1/group_member';
-const String urlHomePageItem = '${urlBase}v1/home_page_item';
-const String urlShopPageItem = '${urlBase}v1/shop_page_item';
+const String urlHomeItem = '${urlBase}v1/home_item';
+const String urlShopItem = '${urlBase}v1/shop_item';
 const String urlIntroduced = '${urlBase}v1/introduced';
 const String urlManeuver = '${urlBase}v1/maneuver';
 const String urlTextToSpeech = '${urlBase}v1/text_to_speech';
@@ -850,11 +891,9 @@ const String urlMessage = '${urlBase}v1/message';
 const String urlPointOfInterest = '${urlBase}v1/point_of_interest';
 const String urlPointOfInterestRating = '${urlBase}v1/point_of_interest_rating';
 const String urlPolyline = '${urlBase}v1/polyline';
-const String urlShopItem = '${urlBase}v1/shop_item';
 const String urlOsmReview = '${urlBase}v1/osm_review';
 const String staticImagesFolder =
     '${urlBase}static/images'; // Now the same on development and production versions
-
 /// const String urlRouter = '${urlBase}router/route/v1/driving/';
 const String urlRouter = 'https://drives.motatek.com/router/route/v1/driving/';
 const String urlTiler = '${urlBase}v1/tile/style';

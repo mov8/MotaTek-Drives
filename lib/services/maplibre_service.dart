@@ -12,10 +12,12 @@ import 'web_helper.dart';
 import '../constants.dart';
 // import '../classes/classes.dart' as cl;
 import '../helpers/helpers.dart';
-import '../models/models.dart';
+// import '../models/models.dart';
 import '../services/services.dart';
 import '../routes/create_trip.dart';
-import '../tiles/tiles.dart';
+import '../routes/home.dart';
+import '../routes/shop.dart';
+// import '../tiles/tiles.dart';
 import 'package:geolocator/geolocator.dart';
 
 // import 'package:flutter/gestures.dart';
@@ -80,6 +82,8 @@ class MapService {
       RoutesBottomNavController();
   CreateTripStackController? createTripStackController =
       CreateTripStackController();
+  HomeController? homeController = HomeController();
+  ShopController? shopController = ShopController();
 
   final GlobalKey mapKey = GlobalKey();
   // final GlobalKey scrollToKey = GlobalKey();

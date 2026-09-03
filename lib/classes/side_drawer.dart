@@ -5,6 +5,7 @@ import '../classes/classes.dart';
 import '../models/models.dart';
 import '../tiles/tiles.dart';
 import '../services/services.dart';
+import '../helpers/helpers.dart';
 import 'package:flutter/material.dart' hide Route;
 import 'package:audioplayers/audioplayers.dart';
 import 'package:universal_io/universal_io.dart';
@@ -304,10 +305,20 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
       _content = content;
       _drawerItems = drawerItems;
       _offerRestore = false; // default state
+      developer.log(
+          'SideDrawer().setContent() BottomDrawerItems.${content.name}',
+          name: '_markdown_');
       switch (content) {
         case BottomDrawerItems.home:
-          _tiles = List<Widget>.from(_drawerItems!);
-          _screenCache = _tiles;
+          try {
+            _tiles = shredMarkdownItems('home');
+            if (Setup().user.type >= 3) {
+              _screenCache = _tiles;
+            }
+          } catch (e) {
+            developer.log('error shredding homeItems: ${e.toString()}',
+                name: 'error');
+          }
           break;
         case BottomDrawerItems.trip:
           _tiles = shredCurrentTripItemData();
@@ -368,6 +379,59 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
           break;
         case BottomDrawerItems.events:
           _tiles = [InvitationsScreen()];
+          _offerRestore = true;
+          break;
+        case BottomDrawerItems.markdownHome:
+          developer.log(
+              'SideDrawer().setContent() called - BottomDrawerItems.markdownHome',
+              name: '_markdown_');
+          try {
+            _tiles = [
+              MarkdownForm(markdownData: {}, dataType: 'home'),
+            ];
+            developer.log(
+                'SideDrawer().setContent() called - _tiles[].length : ${_tiles.length}',
+                name: '_markdown_');
+          } catch (e) {
+            developer.log('SideDrawer().setContent() error: ${e.toString()}',
+                name: 'error');
+          }
+          _offerRestore = true;
+          break;
+        case BottomDrawerItems.shop:
+          _tiles = shredMarkdownItems('shop');
+          // _drawerItems;
+/*
+          try {
+            _tiles = shredHomeItems();
+            if (Setup().user.type >= 3) {
+              _screenCache = _tiles;
+            }
+          } catch (e) {
+            developer.log('error shredding homeItems: ${e.toString()}',
+                name: '_markdown_');
+          }
+ */
+          if (Setup().user.type >= 3) {
+            _offerRestore = true;
+            _screenCache = _tiles;
+          }
+          break;
+        case BottomDrawerItems.markdownShop:
+          developer.log(
+              'SideDrawer().setContent() called - BottomDrawerItems.markdowShop',
+              name: '_markdown_');
+          try {
+            _tiles = [
+              MarkdownForm(markdownData: {}, dataType: 'shop'),
+            ];
+            developer.log(
+                'SideDrawer().setContent() called - _tiles[].length : ${_tiles.length}',
+                name: '_markdown_');
+          } catch (e) {
+            developer.log('SideDrawer().setContent() error: ${e.toString()}',
+                name: 'error');
+          }
           _offerRestore = true;
           break;
         case BottomDrawerItems.messages:
@@ -594,6 +658,228 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
     return tiles;
   }
 
+  List<Widget> shredMarkdownItems(String type) {
+    List<Widget> tiles = [];
+    final controller;
+
+    controller = type == 'home'
+        ? MapService().homeController
+        : MapService().shopController;
+
+    for (int i = 0; i < _drawerItems!.length; i++) {
+      tiles.add(
+        Padding(
+          padding: EdgeInsets.fromLTRB(10, 10, 10, 5),
+          child: Card(
+            elevation: 5,
+            child: Padding(
+              padding: EdgeInsetsGeometry.fromLTRB(5, 5, 5, 5),
+              child: Row(children: [
+                Expanded(
+                  flex: 11,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _drawerItems![i].heading,
+                        style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black),
+                      ),
+                      Text(
+                        _drawerItems![i].subheading,
+                        style: TextStyle(fontSize: 22, color: Colors.black),
+                      ),
+                      Text(
+                        _drawerItems![i].author,
+                        style: TextStyle(fontSize: 16, color: Colors.black),
+                      ),
+                      Text(
+                        _drawerItems![i].added,
+                        style: TextStyle(fontSize: 16, color: Colors.black),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  flex: 1,
+                  child: Column(
+                    children: [
+                      SizedBox(),
+                      IconButton(
+                        onPressed: () => setState(
+                          () => controller!.update(
+                            {
+                              'data': _drawerItems![i].markdown,
+                              'style': _drawerItems![i].style,
+                              'index': i,
+                            },
+                          ),
+                        ),
+                        icon: Icon(
+                          Icons.arrow_circle_right_outlined,
+                          size: 40,
+                          color: controller!.index == i
+                              ? Colors.blue
+                              : Colors.black,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ]),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return tiles;
+  }
+/*
+  List<Widget> shredShopItems() {
+    List<Widget> tiles = [];
+    for (int i = 0; i < _drawerItems!.length; i++) {
+      tiles.add(
+        Padding(
+          padding: EdgeInsets.fromLTRB(10, 10, 10, 5),
+          child: Card(
+            child: Padding(
+              padding: EdgeInsetsGeometry.fromLTRB(5, 5, 5, 5),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _drawerItems![i].heading,
+                    style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black),
+                  ),
+                  Text(
+                    _drawerItems![i].subheading,
+                    style: TextStyle(fontSize: 22, color: Colors.black),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+    return tiles;
+  }
+  */
+
+/*
+  List<Widget> shredHomeItems(
+      {required Key key,
+      required HomeItem homeItem,
+      required int index,
+      required Function(int) onPress}) {
+    final String imageString = (homeItems[index].images ?? '').toString();
+    Map<String, dynamic> imageMap = {};
+    if (imageString.isNotEmpty) {
+      imageMap = jsonDecode(imageString);
+    }
+    developer.log('getSideDrawerTile() called', name: '_markdown_');
+    return Padding(
+      padding: EdgeInsets.fromLTRB(5, 5, 5, 0),
+      child: Card(
+        key: key,
+        color: Colors.white,
+        child: Padding(
+          padding: EdgeInsetsGeometry.fromLTRB(5, 0, 0, 0),
+          child: Row(
+            children: [
+              if (imageString.isNotEmpty) ...[
+                Expanded(
+                  flex: 10,
+                  //     alignment: Alignment.topLeft,
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(5, 5, 5, 5),
+                    child: RotatedBox(
+                      quarterTurns: int.tryParse(imageMap['rotation'] ?? '0')!,
+                      child: ClipRRect(
+                        borderRadius:
+                            BorderRadiusGeometry.all(Radius.circular(10.0)),
+                        child: FutureBuilder(
+                          future: getImageFromPhoto(
+                              photo: Photo(
+                                  url: imageMap['url'],
+                                  align: imageMap['align'],
+                                  width: imageMap['width'],
+                                  caption: imageMap['caption'],
+                                  rotation: imageMap[
+                                      'rotation']), // homeItems[index].getPhotos().first,
+                              imageRepository:
+                                  MarkdownService().imageRepository),
+                          builder: (context, snapshot) {
+                            if (snapshot.hasError) {
+                              return const ImageMissing(width: 150);
+                            } else if (snapshot.hasData) {
+                              return snapshot.data!;
+                            } else {
+                              return const Center(
+                                child: CircularProgressIndicator(),
+                              );
+                            }
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+              Expanded(
+                flex: 10,
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(10, 0, 5, 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        homeItem.heading,
+                        style: TextStyle(
+                            fontSize: 22,
+                            color: Colors.black,
+                            fontWeight: FontWeight.bold),
+                      ),
+                      SizedBox(height: 20),
+                      Text(
+                        homeItem.subheading,
+                        style: TextStyle(fontSize: 20, color: Colors.black),
+                      ),
+                      SizedBox(height: 20),
+
+                      Text(
+                        'published: ${dateFormatDoc.format(homeItem.added)}',
+                        style: TextStyle(fontSize: 13, color: Colors.black),
+                      ), // DateFormat('E dd/MM/yyyy')
+                    ],
+                  ),
+                ),
+              ),
+              Expanded(
+                flex: 2,
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(0, 0, 2, 0),
+                  child: IconButton(
+                    onPressed: () {
+                      onPress(index);
+                    },
+                    icon: Icon(Icons.arrow_circle_right_outlined, size: 40),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+*/
   List<Widget> shredCurrentTripItemData() {
     ExpandNotifier expandNotifier = ExpandNotifier(1);
     bool expanded = false;
@@ -860,35 +1146,38 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
                 },
                 //  child: PointerInterceptor(
                 // absorbing: false,
-                child: AnimatedOpacity(
-                  opacity: _visible ? 1.0 : 0.0,
-                  duration: const Duration(milliseconds: 500),
-                  child: Padding(
-                    padding: EdgeInsets.fromLTRB(0, 1, 0, 1),
-                    child: Container(
-                      width: width > dividerWidth ? width - dividerWidth : 0,
-                      child: Card(
-                        elevation: 7,
-                        shadowColor: const Color.fromARGB(255, 99, 98, 98),
-                        child: SingleChildScrollView(
-                          physics: NeverScrollableScrollPhysics(),
-                          child: Container(
-                            width: width,
-                            height: mapHeight,
-                            color: const Color.fromRGBO(54, 143, 244, 0.411),
-                            child: ScrollablePositionedList.builder(
-                                itemScrollController: _itemScrollController,
-                                itemCount: _tiles.length,
-                                itemBuilder: (navContext, index) =>
-                                    _tiles[index]),
+                child: PointerInterceptor(
+                  child: AnimatedOpacity(
+                    opacity: _visible ? 1.0 : 0.0,
+                    duration: const Duration(milliseconds: 500),
+                    child: Padding(
+                      padding: EdgeInsets.fromLTRB(0, 1, 0, 1),
+                      child: Container(
+                        width: width > dividerWidth ? width - dividerWidth : 0,
+                        child: Card(
+                          elevation: 7,
+                          shadowColor: const Color.fromARGB(255, 99, 98, 98),
+                          child: SingleChildScrollView(
+                            physics: NeverScrollableScrollPhysics(),
+                            child: Container(
+                              width: width,
+                              height: mapHeight,
+                              color: const Color.fromRGBO(54, 143, 244, 0.411),
+                              child: ScrollablePositionedList.builder(
+                                  itemScrollController: _itemScrollController,
+                                  itemCount: _tiles.length,
+                                  itemBuilder: (navContext, index) =>
+                                      _tiles[index]),
+                            ),
                           ),
                         ),
                       ),
                     ),
                   ),
                 ),
-                //     ),
               ),
+              //     ),
+
               if (!_fixed) ...[
                 //     PointerInterceptor(
                 //       child:

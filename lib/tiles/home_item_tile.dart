@@ -217,8 +217,8 @@ class _HomeItemTileState extends State<HomeItemTile> {
     canEdit = widget.canEdit;
     index = widget.index;
     photos = photosFromJson(
-      photoString: widget.homeItem.imageUrls,
-      endPoint: '$urlHomePageItem/images/${widget.homeItem.uri}/',
+      photoString: widget.homeItem.images.toString(), //imageUrls,
+      endPoint: '$urlHomeItem/images/${widget.homeItem.uri}/',
     );
     dropDownMenuItems = covers
         .map(
@@ -245,10 +245,10 @@ class _HomeItemTileState extends State<HomeItemTile> {
   getPhotos() {
     try {
       photos = photosFromJson(
-        photoString: widget.homeItem.imageUrls,
-        endPoint: '$urlHomePageItem/images/${widget.homeItem.uri}/',
+        photoString: widget.homeItem.images.toString(),
+        endPoint: '$urlHomeItem/images/${widget.homeItem.uri}/',
       );
-      imageUrlLength = widget.homeItem.imageUrls.length;
+      imageUrlLength = widget.homeItem.images!.length;
     } catch (e) {
       debugPrint('Error: ${e.toString()}');
     }
@@ -256,7 +256,7 @@ class _HomeItemTileState extends State<HomeItemTile> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.homeItem.imageUrls.length != imageUrlLength) {
+    if (widget.homeItem.images!.length != imageUrlLength) {
       getPhotos();
     }
     return /*RrExpansionTile(
@@ -393,7 +393,7 @@ class _HomeItemTileState extends State<HomeItemTile> {
     //    ),
     //  );
   }
-
+/*
   Widget oldFormToBeDeleted() {
     return SizedBox(
       height: 950,
@@ -574,6 +574,7 @@ class _HomeItemTileState extends State<HomeItemTile> {
       ),
     );
   }
+  */
 
   save(int id) {
     if (widget.index == id) {

@@ -1,16 +1,276 @@
-import 'dart:typed_data';
-import 'dart:math';
-import '/tiles/tiles.dart';
-import 'package:flutter/material.dart';
 import 'dart:developer' as developer;
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
-import 'package:image_picker/image_picker.dart';
-import '/models/models.dart';
-import '/services/services.dart';
+import 'package:markdown/markdown.dart' as md;
+import '/constants.dart';
+import '/models/other_models.dart';
 import '/classes/classes.dart';
+import '/services/services.dart' hide getPosition;
+import '/screens/screens.dart';
 import '/helpers/helpers.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
-String mdShopData = '''
+class ShopController {
+  _ShopState? _shopState;
+
+/*
+  void _addState(_ShopState shopState) {
+    _shopState = shopState;
+  }
+*/
+  void _addState(_ShopState, shopState) {
+    _shopState = shopState;
+  }
+
+  bool get isAttached => _shopState != null;
+
+  int get index => _shopState!._index;
+
+  void update(Map<String, dynamic> data) {
+    _shopState?.updateData(data);
+  }
+
+  String getMarkdown() => _shopState!.mdData;
+  MdStyleSheet getStyle() => _shopState!._styleSheet;
+}
+
+class Shop extends StatefulWidget {
+  const Shop({super.key, int index = 0});
+  @override
+  State<Shop> createState() => _ShopState();
+}
+
+class _ShopState extends State<Shop> {
+  late final LeadingWidgetController _leadingWidgetController;
+  late final RoutesBottomNavController _bottomNavController;
+  final GlobalKey _scaffoldKey = GlobalKey();
+  final ItemScrollController _itemScrollController = ItemScrollController();
+  late MdStyleSheet _styleSheet;
+  List<ShopItem> shopItems = [];
+  //final List<Widget> _sideBarContents = [];
+
+  late Future<bool> _dataLoaded;
+  bool _sideDrawerLoaded = false;
+  int _index = 0;
+
+  // List<Map<String, dynamic>> _images = [];
+
+  /// _handleExternalScroll executes the scrolling of the page content triggered by
+  /// the SideDrawer. The ItemScrollController sits in this, the target object. MapService()
+  /// just holds the index as a ValueNotifier. It exposes a method - requestScroll(index) that is
+  /// used by the SideDrawer to send the required position to scroll to. Being a ValueNotifier the
+  /// value is picked up here as the receiver, and the controller scrolls to the required target.
+  /// SideDrawer().scroll() --> MapService().requestScroll() --> ShopPage()._handleExternalScroll()
+
+  void _handleExternalScroll() {
+    final index = MapService().scrollToSideDrawerIndex.value;
+    if (index != null && _itemScrollController.isAttached) {
+      _itemScrollController.scrollTo(
+        index: index,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOutCubic,
+      );
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    MapService().scrollToSideDrawerIndex.addListener(_handleExternalScroll);
+    _bottomNavController = RoutesBottomNavController();
+    _leadingWidgetController = LeadingWidgetController();
+
+    if (MapService().shopController != null) {
+      //  MapService().shopController!._addState();
+    }
+    _dataLoaded = _getShopData();
+    _styleSheet = MdStyleSheet();
+  }
+
+  _leadingWidget(context) {
+    return context?.openDrawer();
+  }
+
+  @override
+  void dispose() {
+    // _sideBarContents.clear();
+    MapService().scrollToSideDrawerIndex.removeListener(_handleExternalScroll);
+    super.dispose();
+  }
+
+  Future<bool> _getShopData() async {
+    try {
+      List<Map<String, dynamic>> items = await getMarkdownItems(type: 'shop');
+      for (int i = 0; i < items.length; i++) {
+        shopItems.add(ShopItem.fromMap(map: items[i]));
+      }
+      mdData = shopItems[0].markdown;
+    } catch (e) {
+      developer.log('Error Shop()_getShopData() : ${e.toString()}',
+          name: 'error');
+    }
+    if (shopItems.isEmpty) {
+      shopItems = [
+        ShopItem(
+            heading: 'Drives trip planning app',
+            subheading: 'there is always somewhere to go',
+            markdown: mdData,
+            style: _styleSheet.toJson())
+      ];
+    }
+    return true;
+  }
+
+  /// _getShopData() used to trigger FutureBuilder
+  /// Has to be used in the initState() and the result used
+  /// in the FutureBuilder
+  /// It's going to see if the server is up, and if so copy all the
+  /// shop_page items into a local SQLite cache. The shop_tile will
+  /// read the data from the cache saving network traffic and ensuring
+  /// seamless use when off-lime. It also allows the shop_page to be
+  /// displayed before the user has logged in.
+  /// Once the user logs in it will check that all the shop_item entries
+  /// are up to date and will synchronise the cache with the API data.
+/*
+  Future<bool> _getShopData() async {
+    bool apiUp = await apiListening();
+    developer.log('Api listening: ${apiUp.toString()}', name: '_markdown_');
+    // Setup().hasLoggedIn =
+    // List<ShopItem> = [];
+    /// nested function to return a [empty ShopItem]
+    List<ShopItem> getShopItemList() {
+      // Map<String, dynamic> style = {};
+      try {
+        if (shopItems.isEmpty) {
+          final items = shredMarkdown(markdown: mdData);
+          //   style = Map<String, dynamic>.from(_styleSheet.toJson());
+          shopItems.add(ShopItem(
+            markdown: mdData,
+            heading: items['heading'],
+            subheading: items['subheading'],
+            style: _styleSheet.toJson(),
+            images: [],
+          )
+              // style: style),
+              );
+        }
+      } catch (e) {
+        developer.log(
+            '_getShopData() error: ${e.toString()} ', // type:${style.runtimeType}',
+            name: '_markdown_');
+      }
+
+      return shopItems;
+    }
+
+//
+    if (Setup().jwt.isEmpty && mounted) {
+      Setup().loggingIn = true;
+      Login(context: context).tryLoggingIn().then((_) async {
+        /// ShopItem() contains the markdown and the style
+        if (Setup().serverUp) {
+          shopItems = await getShopItems(1);
+        } // get API data
+
+        /// If the app hangs sometimes it's
+        /// due to getting the current position have to restart the
+        /// phone
+
+        Setup().lastPosition = await getPosition();
+        if (Setup().appState.isEmpty) {
+          Setup().bottomNavIndex = 0;
+        } else {
+          Setup().bottomNavIndex = jsonDecode(Setup().appState)['route'] ?? 0;
+        }
+
+        if (shopItems.isNotEmpty) {
+          Setup().hasLoggedIn = true;
+          getStats();
+        } else {
+          shopItems.add(ShopItem(
+            style: {},
+          ));
+        }
+      });
+
+      // todo - Get the markdown stylesheet from the api
+
+      _styleSheet = MdStyleSheet.fromJson(json: shopItems[0].style);
+
+      if (shopItems.isEmpty) {
+        try {
+          shopItems = getShopItemList();
+        } catch (e) {
+          developer.log('Error getShopItemList(): ${e.toString()}',
+              name: '_markdown_');
+        }
+      }
+      return true;
+    } else if (Setup().bottomNavIndex > 0) {
+      // Look to see if the app was left open
+      _bottomNavController.setValue(Setup().bottomNavIndex);
+      // Setup().appState = "{route: 2, trip_id: 233}";
+      if (Setup().appState == '') {
+        Setup().bottomNavIndex = 0;
+      } else {
+        Setup().bottomNavIndex = jsonDecode(Setup().appState)['route'] ?? 0;
+      }
+      Setup().setupToDb();
+      Map<String, dynamic> styleJson = {};
+      _styleSheet = MdStyleSheet.fromJson(json: styleJson);
+      return true;
+      //   _bottomNavController.navigate();
+    } else {
+      //  shopItems = await loadShopItems(); // get cached shopItems
+      shopItems = await getShopItems(1); // get API data
+      Map<String, dynamic> styleJson = {};
+
+      _styleSheet = MdStyleSheet.fromJson(json: styleJson);
+      if (shopItems.isEmpty) {
+        try {
+          shopItems = getShopItemList();
+        } catch (e) {
+          developer.log('Error getShopItemList(): ${e.toString()}',
+              name: '_markdown_');
+        }
+      }
+      return true;
+    }
+  }
+
+  Future<String> getFileData(String path) async {
+    // return '';
+    // return await rootBundle.loadString(path);
+    return await DefaultAssetBundle.of(context).loadString(path);
+  }
+*/
+  String markdown = '''
+
+# Drives Trip Planning and Sharing App  
+
+---
+
+*A memorable drive is not just about reaching a destination, but all about enjoying the journey...*
+
+**How many times on a beautiful day have you not known where to go?**
+
+> Drives makes planning great trips easy
+
+- Based on Open Street Maps data
+- Published trips points of interest and good roads to download
+- Publish your memorable trips points of interest and great stretches of road
+- Create new trips linking published highlights and save them privately or share them
+- Track your trip whn you've been when out exploring
+- Powerful controllable routing engine - re-route only when you want to
+- Turn-by-turn instructions with AI voice
+- Support for groups with email or messaging for news invitations or just chat
+- Group chat messaging and real time group tracking makes group trips easy
+''';
+
+  String mdData = '''
+
 # Drives Free Trip Planning App
 --- 
 
@@ -25,26 +285,9 @@ Sammy  | Blue
 > blockquote  
 
 
-> [!INFO]  Callout ?                                                                                   
+>[!INFO]  
+>Callout  
 
-
-sentence with a footnote. [^1] 
-
-- [x] **First line**
-- [ ] Second line
-- [ ] Third line
-
-this is a ==highlight==
-
-this is a ~subscript~ 
-
-1. **Ordered 1**
-2. Ordered 2
-3. Ordered 3
-
-- **Unordered 1**
-- Unordered 2
-- Unordered 3
 
   ---
 
@@ -71,333 +314,111 @@ main() {
 ```
 ''';
 
-/// Four tabs appear to work as a line break
-String mdShopHelp = '''
-# Markdown syntax 
----
-| Element | Syntax |
-|----------|-----------------------------------|
-|Headings  | `# H1  ## H2          ### H3 #### H4`|
-|Bold | ` **bold text** `|
-|Italic | ` *italicised text* `|
-|Blockquote | ` > blockquote `|
-|Ordered List | `1. First Item        2. Second Item`|
-|Unordered List | `- First Item       - Second Item `|
-|Horizontal Rule | `---`|
-|Link | ` [title](https://www.example.com) `|
-|Check List | ` - [x] Item 1        - [ ] Item 2 `|
-|Table | `!Col 1 !Col 2 !       !------!-------!        !text 1!text 2!       !text 3! text 4!`|
-|Line break| `four       tabs`|
+  String mdData2 = '''
 
+# Drives Free Trip Planning App
+--- 
+
+Name  | Favorite Color
+------------- | -------------
+Rooney  | Red
+Fred  | Blue
+Lisa  | Yellow
+Kyle  | Maroon
+Sammy  | Blue
+  
+> blockquote  
+
+
+>[!INFO]  
+>Callout  
+
+
+  ---
+
+# My New Blog Post
+
+### What I did today!
+#### *December 25, 2020*
+Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+
+---
+
+# My Second post about new code!
+**Check out this code snippet**
+
+``` dart 
+main() {
+  var poemLines = lines(poem);
+  print(yell(poemLines.first));
+
+  // functions are first-class
+  var whisper = (String str) => str.toLowerCase();
+  print(poemLines.map(whisper).last);
+}
+```
 ''';
 
-class ShopForm extends StatefulWidget {
-  const ShopForm({super.key, setup});
-  @override
-  State<ShopForm> createState() => _ShopFormState();
-}
+// shopItems.clear();
 
-class _ShopFormState extends State<ShopForm> {
-  late Future<bool> _dataloaded;
-  List<ShopItem> _items = [];
-  bool _expanded = false;
-  int? _index;
-  bool _code = true;
-  List<bool> _changes = [];
-  List<Map<String, dynamic>> _images = [];
-  bool _changed = false;
-  String _prompt = 'Add, delete or edit page';
-  ShopItemTileController? _activeController;
-  final TextEditingController _textEditingController = TextEditingController();
-  final ImageRepository _imageRepository = ImageRepository();
-  final LeadingWidgetController _leadingWidgetController =
-      LeadingWidgetController();
-  final SideToolbarController _sideToolBarController = SideToolbarController();
-  final GlobalKey _scaffoldKey = GlobalKey();
-  late MdStyleSheet _styleSheet;
-  bool _hidden = true;
-  List<String> _buffer = [];
-  int _bufferIndex = -1;
-
-  @override
-  void initState() {
-    super.initState();
-    _dataloaded = dataFromWeb();
-
-    _textEditingController.value = TextEditingValue(
-      text: mdData, // mdHelp
-    );
-
-    _textEditingController.addListener(_lastCharacter);
-
-    //  _textEditingController.text = mdData;
-  }
-
-  @override
-  void dispose() {
-    // Clean up the focus node when the Form is disposed.
-    _textEditingController.dispose();
-    super.dispose();
-  }
-
-  void _lastCharacter() {
-    final text = _textEditingController.text;
-    final selection = _textEditingController.selection;
-    if (text.isEmpty || !selection.isCollapsed || selection.end <= 0) {
-      return;
-    }
-    String lastCharacter = text.characters.elementAt(selection.end - 1);
-    if (lastCharacter == " " || _buffer.isEmpty) {
-      // save buffer for each new word and restrict buffer to 100 entries
-      addToBuffer(text: text);
-      developer.log('buffer length:${_buffer.length}', name: '_tools_');
-    }
-  }
-
-  Map<String, dynamic> textStyle = {
-    'color': Colors.blue,
-    'fontSize': 24,
-    'fontWeight': FontWeight.bold,
-    'fontStyle': FontStyle.normal,
-  };
-
-  void addToBuffer({String? text}) {
-    text ??= _textEditingController.text;
-    setState(() {
-      _buffer.insert(0, text!);
-      if (_buffer.length == 101) {
-        _buffer.removeAt(100);
-        _bufferIndex = 0;
-      }
-    });
-  }
-
-  Map<String, dynamic> mdStyle = {
-    'caption': 'body',
-    'attribute': 'p',
-    'textStyle': {
-      'color': Colors.blue,
-      'fontSize': 24,
-      'fontWeight': FontWeight.bold,
-      'fontStyle': FontStyle.normal,
-    }
-  };
-  List<Map<String, dynamic>> msStyles = [];
-
-  _leadingWidget(context) {
-    return context?.openDrawer();
-  }
-
-  Future<bool> dataFromDatabase() async {
-    return true;
-  }
-
-  Future<bool> dataFromWeb() async {
-    _items = await getShopItems(1);
-    if (_items.isEmpty) {
-      newShopItem();
-    }
-
-    for (int i = 0; i < _items.length; i++) {
-      _changes.add(false);
-    }
-
-    /// DEBUG - replace styleJson with json from api
-    /// Each shop page content will have to have a stylesheet stored as json
-    Map<String, dynamic> styleJson = {};
-
-    _styleSheet = MdStyleSheet.fromJson(json: styleJson);
-
-    return true;
-  }
-
-  expanded(int index, bool expanded, ShopItemTileController controller) {
-    if (expanded) {
-      try {
-        _activeController?.contract();
-      } catch (_) {
-        debugPrint('Contract() failed');
-      }
+  void updateData(Map<String, dynamic> data) {
+    try {
       setState(() {
-        _index = index;
-        _activeController = controller;
-        _expanded = true;
-        _prompt = 'Edit ${_items[index].heading}';
+        mdData = data['data'] ?? '';
+        _styleSheet = data['style'];
+        //  MdStyleSheet.fromJson(json: data['style']);
+        _index = data['index'] ?? _index;
       });
-    } else {
-      if (index == _index) {
-        // closing open tile
-        setState(() {
-          _prompt = 'Add, delete or edit page';
-          _expanded = false;
-          _index = null;
-          _activeController = null;
-        });
-      }
+    } catch (e) {
+      developer.log('Shop().updateData() error: ${e.toString()}',
+          name: 'error');
     }
   }
 
-  recordChange(int index) {
-    _changes[index] = true;
-    setState(() => _changed = true);
-  }
+  // BuildContext pageContext = NavigationService().pageKey.currentContext!;
+  Widget _getPortraitBody() {
+    double leftPadding =
+        MediaQuery.of(context).size.width * (kIsWeb ? 0.38 : 0);
+    return Padding(
+      padding: EdgeInsets.fromLTRB(leftPadding + 10, 5, 10, 5), //   all(8.0),
+      child: // Card(
+          ClipRRect(
+        borderRadius: BorderRadiusGeometry.all(Radius.circular(10.0)),
+        child: Container(
+          color: const Color.fromRGBO(54, 143, 244, 0.411),
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(0, 0, 0, 5),
+            child: SingleChildScrollView(
+              child: MarkdownBody(
+                data: mdData,
 
-  /// portraitView is a simple editor to allow the users to input markdown
-  /// there is no syntax checking
+                ///
+                /// by defalt = false Markdown expects two spaces for a line break
+                softLineBreak: true,
 
-  onUpdate(dynamic arg) {
-    setState(() => _hidden = !_hidden);
-  }
+                ///
+                /// gitHubFlavored is essential to display tables checklists etc
+                extensionSet: md.ExtensionSet.gitHubFlavored,
 
-  onCodePressed() {
-    setState(() => _code = !_code);
-  }
+                ///
+                /// inlineSyntaxes: define the match strings to allow MarkdownBody
+                /// to recognise the block to be built with the builders
+                inlineSyntaxes: [ShortcodeSyntax()], //, LineBreakSyntax()],
+                ///
+                /// The builders: when they find the inlineSyntaxes pattern will
+                /// then convert the syntax to Dart
+                builders: {
+                  'shortcode': SpaceShortcodeBuilder(),
+                },
 
-  onUndoPressed() {
-    if (_bufferIndex < _buffer.length) {
-      _bufferIndex++;
-      setState(() => _textEditingController.value =
-          TextEditingValue(text: _buffer[_bufferIndex]));
-    }
-  }
-
-  onRedoPressed() {
-    if (_bufferIndex > 0) {
-      _bufferIndex--;
-      setState(() => _textEditingController.value =
-          TextEditingValue(text: _buffer[_bufferIndex]));
-    }
-  }
-
-  Widget portraitView() {
-    List<FormatEditor> buttons = getButtons(
-        styleSheet: _styleSheet, onUpdate: onUpdate, hidden: _hidden);
-    return Card(
-      child: Stack(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Center(
-              child: TextField(
-                decoration: InputDecoration(
-                  hintText:
-                      "Enter Markdown - use the Markdown help from the overflow options menu...",
-                  border: InputBorder.none,
-                  enabledBorder: InputBorder.none,
-                  focusedBorder: InputBorder.none,
-                  contentPadding: EdgeInsets.all(20),
-                ),
-                controller: _textEditingController,
-                minLines: 50,
-                maxLines: null,
-                expands: false,
-                textCapitalization: TextCapitalization.sentences,
-                style: TextStyle(fontSize: 20, color: Colors.black),
+                ///
+                /// imageBuilder: looks at the data: mdData and using the standard markdown
+                /// syntax ![alt ](uri) executes this builder - the uri must be a valid uri.
+                /// the alt is used to hold the caption, align, width and rotation.
+                imageBuilder: (Uri uri, String? title, String? alt) =>
+                    imageBuilder(uri, title, alt),
+                styleSheet: _styleSheet.markdownStyleSheet,
               ),
-            ),
-          ),
-          for (int i = 0; i < buttons.length; i++) ...[
-            Positioned(
-              top: 10 +
-                  (buttons[i].height * i) -
-                  (i == 0 ? 0 : (buttons[1].height - buttons[0].height)),
-              right: 5,
-              child: buttons[i],
-            )
-          ],
-        ],
-      ),
-    );
-  }
-
-  /// portraitViewMd displays the rendered markdown
-  ///
-  Widget portraitViewMd() {
-    String data = _textEditingController.text;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(8, 8, 8, 50), //   all(8.0),
-        child: Center(
-          child: SingleChildScrollView(
-            child: MarkdownBody(
-              data: data,
-              imageBuilder: (Uri uri, String? title, String? alt) {
-                String text = alt ?? '';
-
-                String? getAttr(String key) {
-                  final reg = RegExp('$key="([^":]+)"');
-                  return reg.firstMatch(text)?.group(1);
-                }
-
-                developer.log('ImageShortCodeBuilder() called',
-                    name: '_markdown_');
-                final String? caption = getAttr('caption');
-                final String align = getAttr('align') ?? 'center';
-                final double rotation =
-                    double.tryParse(getAttr('rotation') ?? '') ?? 0.0;
-                final double width =
-                    double.tryParse(getAttr('width') ?? '') ?? 300.0;
-
-                bool cached = uri.toString() == 'cache';
-                MainAxisAlignment mainAlign;
-                switch (align) {
-                  case 'left':
-                    mainAlign = MainAxisAlignment.start;
-                    break;
-                  case 'right':
-                    mainAlign = MainAxisAlignment.end;
-                    break;
-                  default:
-                    mainAlign = MainAxisAlignment.center;
-                }
-
-                return Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: mainAlign,
-                      children: [
-                        Padding(
-                          padding: EdgeInsets.fromLTRB(0, 10, 0, 0),
-                          child: Transform.rotate(
-                            angle: pi *
-                                rotation, //2 pi radians = 360  widget.photos[i].rotation * 0.5,
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: cached
-                                  ? Image.memory(
-                                      _imageRepository.getBytes(
-                                          key: _images[0]['key']),
-                                      width: width,
-                                      fit: BoxFit.contain,
-                                      // Error handling is vital for Web/Mobile
-                                      errorBuilder: (context, _, __) =>
-                                          const Icon(Icons.broken_image),
-                                    )
-                                  : Image.network(
-                                      uri.toString(),
-                                      width: 200,
-                                    ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    if (caption != null) ...[
-                      Padding(
-                        padding: EdgeInsets.fromLTRB(20, 0, 0, 0),
-                        child: Text(
-                          caption,
-                          style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black),
-                        ),
-                      ),
-                    ]
-                  ],
-                );
-              },
-              styleSheet: _styleSheet.markdownStyleSheet,
             ),
           ),
         ),
@@ -407,73 +428,53 @@ class _ShopFormState extends State<ShopForm> {
 
   @override
   Widget build(BuildContext context) {
-    PopupMenuButton overflow = PopupMenuButton(
-      itemBuilder: (context) => markdownOptions
-          .map<PopupMenuEntry<String>>(
-            (e) => PopupMenuItem(
-              textStyle: TextStyle(fontSize: 18, color: Colors.black),
-              onTap: () async {
-                debugPrint('Admin Option: ${e['text']}');
-                if (e['value'] == 'help') {
-                  setState(() => _sideToolBarController.close());
-                } else if (e['value'] == 'imageLeft') {
-                  insertImage(orientation: 'left');
-                } else if (e['value'] == 'imageCentre') {
-                  insertImage(orientation: 'centre');
-                } else if (e['value'] == 'imageRight') {
-                  insertImage(orientation: 'right');
-                } else if (e['value'] == 'style') {
-                  setState(() => _hidden = false);
-                  //  markdownStyleDialog(context);
-                }
-              },
-              child: Row(
-                children: [e['iconData'], Text(e['text'])],
-              ),
-            ),
-          )
-          .toList(),
-    );
+    WakelockPlus.enable();
 
+    /// Ensure the Side Drawer is populated AFTER this screen is built.
+
+    WidgetsBinding.instance.addPostFrameCallback((_) => sideBarItems());
     return Scaffold(
       backgroundColor: Colors.blue,
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        leading: BackButton(
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
-        title: const Text(
-          'Shop',
-          style: TextStyle(
-            fontSize: 20,
-            color: Colors.white,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        iconTheme: const IconThemeData(color: Colors.white),
-        backgroundColor: Colors.blue,
-        toolbarHeight: 40,
-        actions: getActions(
-          code: _code,
-          buffer: _buffer,
-          overflow: overflow,
-          bufferIndex: _bufferIndex,
-          codePressed: onCodePressed,
-          undoPressed: onUndoPressed,
-          redoPressed: onRedoPressed,
-        ),
-      ),
+      key: _scaffoldKey,
+      drawer: const MainDrawer(),
+      appBar: kIsWeb
+          ? null
+          : AppBar(
+              automaticallyImplyLeading: false,
+              leading: LeadingWidget(
+                  controller: _leadingWidgetController,
+                  onMenuTap: (index) =>
+                      _leadingWidget(_scaffoldKey.currentState)), // IconButton(
+              title: const Text(
+                'Drives trip planning and sharing app',
+                style: TextStyle(
+                  fontSize: 20,
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              iconTheme: const IconThemeData(color: Colors.white),
+              backgroundColor: Colors.blue,
+              actions: [
+                IconButton(
+                  onPressed: () => {},
+                  icon: Icon(
+                    Icons.help_outline_outlined,
+                  ),
+                )
+              ],
+            ),
       body: FutureBuilder<bool>(
-        future: _dataloaded,
+        //  initialData: false,
+        future: _dataLoaded,
         builder: (BuildContext context, snapshot) {
           if (snapshot.hasError) {
-            developer.log('Shop() snapshot has error: ${snapshot.error}',
-                name: '_nav_');
+            developer.log('Snapshot error: ${snapshot.error}', name: 'error');
+            return Center(
+                child: Text(
+                    'Error getting the data from the server - check the Internet'));
           } else if (snapshot.hasData) {
-            developer.log('Shop() snapshot has data', name: '_nav_');
-            return _code ? portraitView() : portraitViewMd();
+            return _getPortraitBody();
           } else {
             return const SizedBox(
               width: double.infinity,
@@ -484,133 +485,135 @@ class _ShopFormState extends State<ShopForm> {
               ),
             );
           }
-          return Center(
-            child: Text(
-              'FutureBuilder failed',
-              style: TextStyle(fontSize: 25, color: Colors.red),
-            ),
-          );
-          // throw ('Error - FutureBuilder group.dart');
         },
       ),
+      bottomNavigationBar: kIsWeb
+          ? null
+          : RoutesBottomNav(
+              controller: _bottomNavController,
+              initialValue: 0,
+              onMenuTap: (_) => {}),
     );
   }
 
-  /// The images will be stored on the api - /static/images/shop_page/user_id
-  /// The images will have the user_id added in the api - not before
-  /// The images will be held in _imageRepository until they are uploaded
-  /// The reference to the image is held in _images name is the filename.
-  /// The image is referenced in the markdown as _images[index+1]
-  /// orientation is taken from the option chosen from the overflow menu,
-  /// and the rotation is in radians atm.
-
-  Future<void> insertImage({String orientation = 'centre'}) async {
-    await loadImage(-1);
-    _images.last['orientation'] = orientation;
-    final text = _textEditingController.text;
-    final selection = _textEditingController.selection;
-    int start = selection.baseOffset;
-    if (start < 0) start = text.length;
-    //  _imageRepository.loadImage()
-    addToBuffer(text: text);
-    final insertion =
-        '![alt image:${_images.length} caption="image ${_images.length}" align="$orientation" width="200" rotation="0" ](cache)';
-    //  '{{< image src= repository/${_images.last["key"]} align="$orientation" width="250"}}';
-    final newText = text.replaceRange(
-      selection.start,
-      selection.end,
-      insertion,
-    );
-    _textEditingController.value = TextEditingValue(
-        text: newText,
-        selection: TextSelection.collapsed(offset: start + insertion.length));
-    addToBuffer();
-  }
-
-  removeShopItem(int index) async {
-    await deleteShopItem(_items[index]);
-    _items.removeAt(index);
-    if (_items.isEmpty) {
-      newShopItem();
+/*
+  Widget getSideDrawerTile(
+      {required Key key,
+      required ShopItem shopItem,
+      required int index,
+      required Function(int) onPress}) {
+    final String imageString = (shopItems[index].images ?? '').toString();
+    Map<String, dynamic> imageMap = {};
+    if (imageString.isNotEmpty) {
+      imageMap = jsonDecode(imageString);
     }
-    setState(() => _expanded = false);
-  }
+    developer.log('getSideDrawerTile() called', name: '_markdown_');
+    return Padding(
+      padding: EdgeInsets.fromLTRB(5, 5, 5, 0),
+      child: Card(
+        key: key,
+        color: Colors.white,
+        child: Padding(
+          padding: EdgeInsetsGeometry.fromLTRB(5, 0, 0, 0),
+          child: Row(
+            children: [
+              if (imageString.isNotEmpty) ...[
+                Expanded(
+                  flex: 10,
+                  //     alignment: Alignment.topLeft,
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(5, 5, 5, 5),
+                    child: RotatedBox(
+                      quarterTurns: int.tryParse(imageMap['rotation'] ?? '0')!,
+                      child: ClipRRect(
+                        borderRadius:
+                            BorderRadiusGeometry.all(Radius.circular(10.0)),
+                        child: FutureBuilder(
+                          future: getImageFromPhoto(
+                              photo: Photo(
+                                  url: imageMap['url'],
+                                  align: imageMap['align'],
+                                  width: imageMap['width'],
+                                  caption: imageMap['caption'],
+                                  rotation: imageMap[
+                                      'rotation']), // shopItems[index].getPhotos().first,
+                              imageRepository:
+                                  MarkdownService().imageRepository),
+                          builder: (context, snapshot) {
+                            if (snapshot.hasError) {
+                              return const ImageMissing(width: 150);
+                            } else if (snapshot.hasData) {
+                              return snapshot.data!;
+                            } else {
+                              return const Center(
+                                child: CircularProgressIndicator(),
+                              );
+                            }
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+              Expanded(
+                flex: 10,
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(10, 0, 5, 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        shopItem.heading,
+                        style: TextStyle(
+                            fontSize: 22,
+                            color: Colors.black,
+                            fontWeight: FontWeight.bold),
+                      ),
+                      SizedBox(height: 20),
+                      Text(
+                        shopItem.subheading,
+                        style: TextStyle(fontSize: 20, color: Colors.black),
+                      ),
+                      SizedBox(height: 20),
 
-  newShopItem() {
-    _items.add(
-      ShopItem(
-        heading: 'New trip planning app',
-        subHeading: 'Stop polishing your car and start driving it...',
-        body:
-            '''Drives is a new app to help you make the most of  the countryside around you. 
-              You can plan trips either on your own or you can explore in a group''',
+                      Text(
+                        'published: ${dateFormatDoc.format(shopItem.added)}',
+                        style: TextStyle(fontSize: 13, color: Colors.black),
+                      ), // DateFormat('E dd/MM/yyyy')
+                    ],
+                  ),
+                ),
+              ),
+              Expanded(
+                flex: 2,
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(0, 0, 2, 0),
+                  child: IconButton(
+                    onPressed: () {
+                      onPress(index);
+                    },
+                    icon: Icon(Icons.arrow_circle_right_outlined, size: 40),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
-
-  Future<void> onDelete() async {
-    _items.removeAt(_index!);
-    _changes.removeAt(_index!);
-    if (_items.isEmpty) {
-      newShopItem();
-    }
-    setState(() {
-      _expanded = false;
-      _index = null;
-      _activeController = null;
-    });
-    return;
-  }
-
-  onAddImage() async {
-    int taken = _items[_index!].imageUrls.countOccurrences('com.motatek') + 1;
-    Photo? image =
-        await getDeviceImage(folder: 'shop_item', fileName: 'pic_$taken');
-    if (image != null) {
-      /// Don't need to specify endpoint as it's handled in the tile
-      List<Photo> testPhotos =
-          photosFromJson(photoString: _items[_index!].imageUrls);
-      testPhotos.add(image);
-      String testUri = photosToString(photos: testPhotos);
-      _items[_index!].imageUrls = testUri;
-    }
-
-    debugPrint(_items[_index!].imageUrls.toString());
-    setState(() => (_activeController!.updatePhotos()));
-  }
-
-  onMarkdown() => setState(() => _code = true);
-  onShop() => setState(() => _code = false);
-  onHelp() async {}
-  onPost() {
-    try {
-      postShopItem(_items[_index!]);
-      _changes[_index!] = false;
-      for (int i = 0; i < _changes.length; i++) {
-        _changed = _changes[i];
-        if (_changed) {
-          break;
-        }
-      }
-    } catch (e) {
-      debugPrint("Can't save ${_items[_index!].heading} - ${e.toString()}");
-    }
-  }
-
-  /// Handling images:
-  /// User selects image from gallery - image remains in _imageRepository
-  /// User saves the Markdown image gets uploaded to api
-  /// The Markdown identifier holds the api url and position metadata
-  /// On viewing the Markdown the image gets pulled from api and rendered
-  Future<void> loadImage(int id) async {
+*/
+  /* Future<void> loadImage(int id) async {
     final ImagePicker picker = ImagePicker();
     final XFile? xImage = await picker.pickImage(source: ImageSource.gallery);
     if (xImage != null) {
       try {
         String name = '${getUuid()}.${xImage.name.split(".").last}';
         Uint8List bytes = await xImage.readAsBytes();
-        var imageMap =
-            await _imageRepository.loadImage(bytes: bytes, uri: name);
+        var imageMap = await MarkdownService()
+            .imageRepository
+            .loadImage(bytes: bytes, uri: name);
         // get the new key's value to access the image
         String key = imageMap.keys.first;
         _images.add({'name': name, 'key': key});
@@ -619,18 +622,17 @@ class _ShopFormState extends State<ShopForm> {
       }
     }
   }
-
-  onPostAll(bool save) {
-    if (save) {
-      for (int i = 0; i < _items.length; i++) {
-        if (_changes[i]) {
-          try {
-            postShopItem(_items[i]);
-          } catch (e) {
-            debugPrint("Can't save ${_items[i].heading} - ${e.toString()}");
-          }
-        }
-      }
+*/
+  void sideBarItems() async {
+    await _dataLoaded;
+    if (shopItems.isNotEmpty && mounted && !_sideDrawerLoaded) {
+      MapService().sideDrawerController!.open();
+      MapService()
+          .sideDrawerController!
+          .setContent(content: BottomDrawerItems.shop, drawerItems: shopItems);
+      MapService().sideDrawerController!.setFixed(fixed: true);
+      MapService().sideDrawerController!.setVisible(visible: true);
+      _sideDrawerLoaded = true;
     }
   }
 }

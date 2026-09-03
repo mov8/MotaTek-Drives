@@ -7,7 +7,10 @@ class NavigationService {
   static final NavigationService _instance = NavigationService._internal();
   factory NavigationService() => _instance;
   NavigationService._internal();
+  // key is the key for the bottom Stack level - the map
   final GlobalKey<NavigatorState> key = GlobalKey<NavigatorState>();
+  // uiKey is the key for the second Stack layer - the pages and side drawer
+  final GlobalKey<NavigatorState> uiKey = GlobalKey<NavigatorState>();
   String initialRoute = 'splash';
 
   Future<dynamic> navigateTo(String routeName, Object? arguments) async {
@@ -17,9 +20,15 @@ class NavigationService {
         developer.log('Navigator.key.currentState is null', name: 'error');
         return;
       }
+
+      /// UIStateService() is used to switch between Page and Widget for the AppMasterShell
       UIStateService()
           .setPage(['trips', 'createTrip'].contains(routeName) ? 0 : 1);
-      key.currentState!.pushNamed(routeName, arguments: arguments);
+      if (['home', 'shop'].contains(routeName)) {
+        key.currentState!.pushNamed(routeName, arguments: arguments);
+      } else {
+        key.currentState!.pushNamed(routeName, arguments: arguments);
+      }
     } catch (e) {
       developer.log(
           'NavigationService().navigateTo($routeName) from: ${MapService().page}  error: ${e.toString()} ',

@@ -239,13 +239,14 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
       widget.pointOfInterest.photos = photos;
     }
     fn1.requestFocus();
-    return editableTile(); /*Card(
+    // return editableTile();
+    /*Card(
       child: Text(
         'Test Card',
         style: (TextStyle(fontSize: 24, color: Colors.red)),
       ),
     ); */
-    // canEdit ? editableTile() : unEditableTile();
+    return canEdit ? editableTile() : unEditableTile();
   }
 
   Widget editableTile() {

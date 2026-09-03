@@ -13,6 +13,11 @@ Cure follow 4 steps:
 3 remove the version from the device 
 4 rebuild on the device
 
+IF SEARCH / REPLACE STOPS WORKING - IT'S A BUGGY KEYBOARD!
+TO FIX press Ctrl + Fn + B (Ctrl break) and LET GO OF THE B FIRST
+IT FIXES IT
+
+
 Flutter Intellisense very SLOW
 1   Open Command Pallet Ctrl+Shift+P
 2   Restart Analysis Server + Enter

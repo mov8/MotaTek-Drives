@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:js_interop';
 import 'package:universal_io/universal_io.dart';
 import 'dart:math';
 import 'dart:convert';
@@ -226,11 +227,6 @@ class _SearchLocationState extends State<SearchLocation> {
   }
 }
 
-// 'UPDATE users SET settings = \'b\'{"id":1,"route_colour":12,"good_route_colour":3,"waypoint_colour":2,"point_of_interest_colour":8,"waypoint_colour_2":14,"point_of_interest_colour_2":14,"highlighted_colour":13,"published_trip_colour":10,"selected_colour":7,"record_detail":5,"jwt":"","allow_notifications":1,"dark":0,"rotate_map":0,"avoid_motorways":0,"avoid_a_roads":0,"avoid_b_roads":0,"avoid_toll_roads":0,"avoid_ferries":0,"osm_pubs":0,"osm_restaurants":0,"osm_fuel":0,"osm_toilets":0,"osm_atms":0,"osm_historical":0,"bottom_nav_index":0,"app_state":""}\'\' WHERE id = \'611bcd2eeb0d463d9c0986ba72829fb9\''
-// 'UPDATE users SET settings = b\'{"id":1,"route_colour":12,"good_route_colour":3,"waypoint_colour":2,"point_of_interest_colour":8,"waypoint_colour_2":14,"point_of_interest_colour_2":14,"highlighted_colour":13,"published_trip_colour":10,"selected_colour":7,"record_detail":5,"jwt":"","allow_notifications":1,"dark":0,"rotate_map":0,"avoid_motorways":0,"avoid_a_roads":0,"avoid_b_roads":0,"avoid_toll_roads":0,"avoid_ferries":0,"osm_pubs":0,"osm_restaurants":0,"osm_fuel":0,"osm_toilets":0,"osm_atms":0,"osm_historical":0,"bottom_nav_index":0,"app_state":""}\' WHERE id = 611bcd2eeb0d463d9c0986ba72829fb9'
-// 'UPDATE users SET settings = {"id": 1, "route_colour": 12, "good_route_colour": 3, "waypoint_colour": 2, "point_of_interest_colour": 8, "waypoint_colour_2": 14, "point_of_interest_colour_2": 14, "highlighted_colour": 13, "published_trip_colour": 10, "selected_colour": 7, "record_detail": 5, "jwt": "", "allow_notifications": 1, "dark": 0, "rotate_map": 0, "avoid_motorways": 0, "avoid_a_roads": 0, "avoid_b_roads": 0, "avoid_toll_roads": 0, "avoid_ferries": 0, "osm_pubs": 0, "osm_restaurants": 0, "osm_fuel": 0, "osm_toilets": 0, "osm_atms": 0, "osm_historical": 0, "bottom_nav_index": 0, "app_state": ""} WHERE id = 611bcd2eeb0d463d9c0986ba72829fb9'
-// 'UPDATE users SET settings = \'{"id": 1, "route_colour": 12, "good_route_colour": 3, "waypoint_colour": 2, "point_of_interest_colour": 8, "waypoint_colour_2": 14, "point_of_interest_colour_2": 14, "highlighted_colour": 13, "published_trip_colour": 10, "selected_colour": 7, "record_detail": 5, "jwt": "", "allow_notifications": 1, "dark": 0, "rotate_map": 0, "avoid_motorways": 0, "avoid_a_roads": 0, "avoid_b_roads": 0, "avoid_toll_roads": 0, "avoid_ferries": 0, "osm_pubs": 0, "osm_restaurants": 0, "osm_fuel": 0, "osm_toilets": 0, "osm_atms": 0, "osm_historical": 0, "bottom_nav_index": 0, "app_state": ""}\' WHERE id = 611bcd2eeb0d463d9c0986ba72829fb9'
-//'UPDATE users SET settings = {"id": 1, "route_colour": 12, "good_route_colour": 3, "waypoint_colour": 2, "point_of_interest_colour": 8, "waypoint_colour_2": 14, "point_of_interest_colour_2": 14, "highlighted_colour": 13, "published_trip_colour": 10, "selected_colour": 7, "record_detail": 5, "jwt": "", "allow_notifications": 1, "dark": 0, "rotate_map": 0, "avoid_motorways": 0, "avoid_a_roads": 0, "avoid_b_roads": 0, "avoid_toll_roads": 0, "avoid_ferries": 0, "osm_pubs": 0, "osm_restaurants": 0, "osm_fuel": 0, "osm_toilets": 0, "osm_atms": 0, "osm_historical": 0, "bottom_nav_index": 0, "app_state": ""} WHERE id = \'611bcd2eeb0d463d9c0986ba72829fb9\''
 Future<void> saveSetupToApi() async {
   Map<String, dynamic> map = Setup().toMap();
   map['jwt'] = '';
@@ -345,6 +341,7 @@ Future<User> getUserApi() async {
       user.surname = data['surname'] ?? '';
       user.email = data['email'] ?? '';
       user.phone = data['phone'] ?? '';
+      user.type = data['type'] ?? 1;
     } catch (e) {
       developer.log(
           'Error WebHelpers getUserApi() retrieving user data: ${e.toString()}',
@@ -365,6 +362,7 @@ Future<void> getUserDetails({required String email}) async {
       Setup().user.surname = data['surname'] ?? '';
       Setup().user.email = email;
       Setup().user.phone = data['phone'] ?? '';
+      Setup().user.type = data['type'] ?? 1;
     } catch (e) {
       debugPrint('Error retrieving user data: ${e.toString()}');
     }
@@ -417,6 +415,7 @@ Future<Map<String, dynamic>> tryLogin({required User user}) async {
         Setup().user.forename = map['forename'];
         Setup().user.surname = map['surname'];
         Setup().user.phone = map['phone'];
+        Setup().user.type = map['type'];
         Setup().jwt = map['token'];
         await getPrivateRepository()
             .saveUser(Setup().user); // <-- Only implemented for mobile
@@ -495,7 +494,7 @@ Future<dynamic> publish(MyTripItem tripItem) async {
     /// the points of interest. This is so that all images can be displayed in the MyTripTile
     /// As the whole trip is being published as a single Json object it makes sense to upload all
     /// the images in a single MultiPart.
-    /// On the API as Drives are now downloaded as a single Json Object too it makes sense to again to
+    /// On the API as Drives are now downloaded as a single Json Object too it makes sense to again
     /// down load the images in a single MultiPart.
     /// To make life easier, and ensure that the order of the PointOfInterest images is correct they are to be named
     /// as {pointOfInterest.uri}_{imageNumber}.jpg. The pointOfInterest.uri will be generated on creation.
@@ -1109,7 +1108,7 @@ Future<List<Feature>> getFeatures(
   }
   return [];
 }
-
+/*
 Future<List<ImageCacheItem>> getImages() async {
   http.Response response = await getWebData(uri: Uri.parse('$urlDrive/images'));
   if (response.statusCode == 200) {
@@ -1122,6 +1121,7 @@ Future<List<ImageCacheItem>> getImages() async {
   }
   return [];
 }
+*/
 
 Future<List<TripSummary>> getTripSummaries(
     {required LatLng northEast,
@@ -2130,9 +2130,12 @@ Future<String> putGroup(Map<String, dynamic> groupData) async {
 /// The scope parameter isn't yet implemented, but is to allow
 /// some selection of who sees what on the home page
 
+/*
 Future<List<HomeItem>> getHomeItems(int scope) async {
   try {
-    String url = '$urlHomePageItem/get/$scope';
+    String url = '$urlHomeItem/get/$motatekId';
+
+    ///$scope';
     final http.Response response = await getWebData(uri: Uri.parse(url));
     if ([200, 201].contains(response.statusCode)) {
       List<dynamic> items = jsonDecode(response.body);
@@ -2140,17 +2143,18 @@ Future<List<HomeItem>> getHomeItems(int scope) async {
         List<HomeItem> homeItems = [];
 
         for (Map<String, dynamic> map in items) {
-          homeItems.add(HomeItem.fromMap(
-              map: map)); //, url: '$urlHomePageItem/images/'));
+          homeItems.add(
+              HomeItem.fromMap(map: map)); //, url: '$urlHomeItem/images/'));
         }
         return homeItems;
       }
     }
   } catch (e) {
-    debugPrint("getHomeItems error: ${e.toString()}");
+    developer.log("getHomeItems error: ${e.toString()}", name: 'error');
   }
   return [];
 }
+*/
 
 dynamic getGeoJson(
     {Map<String, dynamic> boundingBox = const {},
@@ -2229,15 +2233,16 @@ dynamic getTripDetails({required String uuid}) async {
   return detail;
 }
 
+/*
 Future<bool> deleteHomeItem(HomeItem homeItem) async {
   var request;
-  http.MultipartRequest('POST', Uri.parse('$urlHomePageItem/delete'));
+  http.MultipartRequest('POST', Uri.parse('$urlHomeItem/delete'));
   try {
     request.fields['uri'] =
         homeItem.uri.substring((homeItem.uri.lastIndexOf('/') + 1));
-    request.rfields['heading'] = homeItem.heading;
-    request.fields['subHeading'] = homeItem.subHeading;
-    request.fields['imageUrls'] = homeItem.imageUrls;
+    request.fields['heading'] = homeItem.heading;
+    request.fields['subheading'] = homeItem.subheading;
+    request.fields['images'] = homeItem.images;
 
     dynamic response =
         await request.send().timeout(const Duration(seconds: 30));
@@ -2254,16 +2259,17 @@ Future<bool> deleteHomeItem(HomeItem homeItem) async {
 
   return false;
 }
-
+*/
+/*
 Future<bool> deleteShopItem(ShopItem shopItem) async {
   var request;
-  http.MultipartRequest('POST', Uri.parse('$urlShopPageItem/delete'));
+  http.MultipartRequest('POST', Uri.parse('$urlShopItem/delete'));
   try {
     request.fields['uri'] =
         shopItem.uri.substring((shopItem.uri.lastIndexOf('/') + 1));
-    request.rfields['heading'] = shopItem.heading;
-    request.fields['subHeading'] = shopItem.subHeading;
-    request.fields['imageUrls'] = shopItem.imageUrls;
+    request.fields['heading'] = shopItem.heading;
+    request.fields['subheading'] = shopItem.subheading;
+    request.fields['imageUrls'] = shopItem.images;
 
     dynamic response =
         await request.send().timeout(const Duration(seconds: 30));
@@ -2280,76 +2286,145 @@ Future<bool> deleteShopItem(ShopItem shopItem) async {
 
   return false;
 }
+*/
 
-Future<String> postHomeItem(HomeItem homeItem) async {
-  Map<String, dynamic> map = homeItem.toMap();
-  List<Photo> photos = photosFromJson(
-    photoString: homeItem.imageUrls,
-  );
-
-  var request =
-      http.MultipartRequest('POST', Uri.parse('$urlHomePageItem/add'));
-
-  List<String> imageUris = [];
-  int imageNum = 0;
-  try {
-    for (Photo photo in photos) {
-      if (!photo.url.substring(0, 10).contains('http') &&
-          photo.url.contains('/')) {
-        request.files
-            .add(await http.MultipartFile.fromPath('files', photo.url));
-        imageUris.add(
-            '{"url":"new_image_${++imageNum}","caption":"${photo.caption}","rotation":${photo.rotation}}');
-      } else {
-        imageUris.add(
-            '{"url":"${photo.url.substring(photo.url.lastIndexOf('/') + 1)}","caption":"${photo.caption}","rotation":${photo.rotation}}');
-      }
+Future<List<Map<String, dynamic>>> getMarkdownItems(
+    {required String type}) async {
+  // List<Map<String, dynamic>> apiItems = [];
+  String url = type == 'home' ? urlHomeItem : urlShopItem;
+  http.Response response =
+      await getWebData(uri: Uri.parse('$url/get'), secure: true);
+  if (response.statusCode == 200) {
+    try {
+      List<dynamic> items = jsonDecode(response.body);
+      List<Map<String, dynamic>> mapList =
+          List<Map<String, dynamic>>.from(items);
+      return mapList;
+    } catch (e) {
+      debugPrint('Error processing summaries: ${e.toString()}');
     }
-  } catch (e) {
-    debugPrint('Error: ${e.toString()}');
   }
-  dynamic response;
-  // String jwToken = Setup().jwt;
-  try {
-    request.fields['id'] = map['uri'];
-    request.fields['title'] = map['heading'];
-    request.fields['sub_title'] = map['sub_heading'];
-    request.fields['body'] = map['body'].replaceAll("\n", " ");
-    request.fields['added'] = map['added'] ?? DateTime.now().toString();
-    request.fields['score'] = map['score'].toString();
-    request.fields['coverage'] = map['coverage'];
-    request.fields['image_urls'] = imageUris.toString();
+  return [];
+}
 
-    response = await request.send().timeout(const Duration(seconds: 30));
+Future<bool> deleteMarkdownItem(type, uri) async {
+  var request;
+  String markdownUri =
+      type == 'home' ? '$urlHomeItem/delete' : '$urlShopItem/delete';
+  http.MultipartRequest('POST', Uri.parse(markdownUri));
+  try {
+    request.fields['uri'] = uri;
+    dynamic response =
+        await request.send().timeout(const Duration(seconds: 30));
+    if (response.statusCode == 201) {
+      return true;
+    }
   } catch (e) {
     if (e is TimeoutException) {
       debugPrint('Request timed out');
     } else {
-      debugPrint('Error posting article: ${e.toString()}');
+      debugPrint('Error posting $type markdown to api: ${e.toString()}');
+    }
+  }
+
+  return false;
+}
+
+Future<String> postMarkdownItem(
+    String uri, String type, Map<String, dynamic> mapItem) async {
+//  Map<String, dynamic> map = homeItem.toMap();
+  String action = uri.isEmpty ? 'publish' : 'update';
+  String markdownUri =
+      type == 'home' ? '$urlHomeItem/publish' : '$urlShopItem/$action';
+  var request = http.MultipartRequest('POST', Uri.parse(markdownUri));
+
+  try {
+    request.headers['Authorization'] = 'Bearer ${Setup().jwt}';
+    request.fields['data'] = jsonEncode(mapItem);
+    if (mapItem['images']!.isNotEmpty) {
+      for (int i = 0; i < mapItem['images']!.length; i++) {
+        request.files.add(
+          http.MultipartFile.fromBytes(
+            'files',
+            MarkdownService().imageRepository.getBytes(
+                  key: mapItem['images']![i]['key'],
+                ),
+            filename: mapItem['images']![i]['url'],
+          ),
+        );
+      }
+    }
+    await request.send().timeout(const Duration(seconds: 30));
+    return 'OK';
+  } catch (e) {
+    if (e is TimeoutException) {
+      developer.log('Request timed out', name: 'error');
+    } else {
+      developer.log('Error posting article: ${e.toString()}', name: 'error');
+    }
+    return 'error posting $type markdown: ${e.toString()}';
+  }
+}
+
+/*
+/// postHomeItem sends the new HomeItem to the API. The data consists of the markdown text, the stylesheet
+/// the imageUrls, the title, and the subtitle. The Url is added on the client end so the image destination is
+/// known
+
+Future<String> postHomeItemOld(HomeItem homeItem) async {
+//  Map<String, dynamic> map = homeItem.toMap();
+  var request =
+      http.MultipartRequest('POST', Uri.parse('$urlHomeItem/publish'));
+  dynamic response;
+  try {
+    request.headers['Authorization'] = 'Bearer ${Setup().jwt}';
+    request.fields['data'] = jsonEncode({
+      'uri': homeItem.url,
+      'heading': homeItem.heading,
+      'subheading': homeItem.subheading,
+      'markdown': homeItem.markdown,
+      'style': jsonEncode(homeItem.style),
+      'images': jsonEncode(homeItem.images),
+    });
+    if (homeItem.images!.isNotEmpty) {
+      for (int i = 0; i < homeItem.images!.length; i++) {
+        request.files.add(
+          http.MultipartFile.fromBytes(
+            'files',
+            MarkdownService().imageRepository.getBytes(
+                  key: homeItem.images![i]['key'],
+                ),
+            filename: homeItem.images![i]['url'],
+          ),
+        );
+      }
+    }
+    response = await request.send().timeout(const Duration(seconds: 30));
+  } catch (e) {
+    if (e is TimeoutException) {
+      developer.log('Request timed out', name: 'error');
+    } else {
+      developer.log('Error posting article: ${e.toString()}', name: 'error');
     }
   }
 
   if (response.statusCode == 201) {
-    // 201 = Created
-    // debugPrint('Home article posted OK');
     dynamic responseData = await response.stream.bytesToString();
-    // debugPrint('Server response: $responseData');
     return jsonEncode(responseData);
   } else {
-    // debugPrint('Failed to post home article: ${response.statusCode}');
     return jsonEncode({'token': '', 'code': response.statusCode});
   }
 }
 
 /// getShopItems gets a list of shop items for the shop screen
 /// The scope parameter isn't yet implemented, but is to allow
-/// some selection of who sees what on the shop page
+/// some selection of who sees what on the shop page  String url = '$urlHomeItem/get/$motatekId';
 Future<List<ShopItem>> getShopItems(int scope) async {
   List<ShopItem> itemsSent = [];
   try {
     final http.Response response = await http
         .get(
-          Uri.parse('$urlShopItem/get/$scope'),
+          Uri.parse('$urlShopItem/get/$motatekId'),
           headers: webHeader(),
         )
         .timeout(const Duration(seconds: 30));
@@ -2368,60 +2443,44 @@ Future<List<ShopItem>> getShopItems(int scope) async {
   return itemsSent;
 }
 
+/// posShopItem sends the new HomeItem to the API. The data consists of the markdown text, the stylesheet
+/// the imageUrls, the title, and the subtitle. The Url is added on the client end so the image destination is
+/// known
+
 Future<String> postShopItem(ShopItem shopItem) async {
   Map<String, dynamic> map = shopItem.toMap();
-  List<Photo> photos = photosFromJson(
-    photoString: shopItem.imageUrls,
-  );
-
   var request = http.MultipartRequest('POST', Uri.parse('$urlShopItem/add'));
-
-  request.headers['Authorization'] = 'Bearer ${Setup().jwt}';
-  List<String> imageUris = [];
-
-  int imageNum = 0;
-  for (Photo photo in photos) {
-    try {
-      if (!photo.url.substring(0, 20).contains('http')) {
-        request.files
-            .add(await http.MultipartFile.fromPath('files', photo.url));
-        imageUris.add(
-            '{"url":"new_image_${++imageNum}","caption":"${photo.caption}","rotation":${photo.rotation}}');
-      } else {
-        imageUris.add(
-            '{"url":${photo.url},"caption":"${photo.caption}","rotation":${photo.rotation}}');
-      }
-    } catch (e) {
-      debugPrint('Error saving file: ${photo.url} error: ${e.toString()}');
-    }
-  }
-
   dynamic response;
   try {
-    request.fields['id'] = map['uri'];
-    request.fields['title'] = map['heading'];
-    request.fields['sub_title'] = map['sub_heading'];
-    request.fields['body'] = (map['body'] ?? '').replaceAll("\n", " ");
-    request.fields['added'] = map['added'] ?? DateTime.now().toString();
-    request.fields['score'] = map['score'].toString();
-    request.fields['coverage'] = map['coverage'] ?? '';
-    request.fields['image_urls'] = imageUris.toString();
-    request.fields['button_text_1'] = map['buttonText1'] ?? '';
-    request.fields['url_1'] = map['url1'] ?? '';
-    request.fields['button_text_2'] = map['buttonText2'] ?? '';
-    request.fields['url_2'] = map['url2'] ?? '';
+    final styleSheet = map['style'];
+    Map jsonStyle = styleSheet.toJsonString();
+    request.headers['Authorization'] = 'Bearer ${Setup().jwt}';
+    request.fields['data'] = jsonEncode({
+      'uri': map['url'],
+      'markdown': map['markdown'],
+      'heading': map['heading'],
+      'subheading': map['subheading'],
+      'style': jsonStyle,
+      'images': map['images'],
+    });
+    for (int i = 0; i < map['images'].length; i++) {
+      final imageMap = jsonDecode(map['images'][i]);
+      request.files.add(
+        http.MultipartFile.fromBytes('files',
+            MarkdownService().imageRepository.getBytes(key: imageMap['key']),
+            filename: imageMap['url']),
+      );
+    }
     response = await request.send().timeout(const Duration(seconds: 30));
   } catch (e) {
     if (e is TimeoutException) {
-      debugPrint('Request timed out');
+      developer.log('Request timed out', name: 'error');
     } else {
-      debugPrint('Error posting article: ${e.toString()}');
+      developer.log('Error posting article: ${e.toString()}', name: 'error');
     }
   }
 
   if (response.statusCode == 201) {
-    // 201 = Created
-    // debugPrint('Shop item posted OK');
     dynamic responseData = await response.stream.bytesToString();
     return jsonEncode(responseData);
   } else {
@@ -2429,7 +2488,6 @@ Future<String> postShopItem(ShopItem shopItem) async {
   }
 }
 
-/*
 Future<bool> deleteShopItem({required String shopUri}) async {
   try {
     var uri = Uri.parse('$urlShopItem/delete');
@@ -2447,6 +2505,7 @@ Future<bool> deleteShopItem({required String shopUri}) async {
   return true;
 }
 */
+
 Future<List<EventInvitation>> getInvitationsByUser({int state = 0}) async {
   try {
     final http.Response response = await getWebData(

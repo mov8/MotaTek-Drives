@@ -388,6 +388,63 @@ class Setup {
     return _loaded ??= await setupFromDb();
   }
 
+  fromJson({required Map<String, dynamic> map}) {
+    id = 0;
+    routeColour = map['routeColour'];
+    goodRouteColour = map['goodRouteColour'];
+    waypointColour = map['waypointColour'];
+    pointOfInterestColour = map['pointOfInterestColour'];
+    waypointColour2 = map['waypointColour2'];
+    pointOfInterestColour2 = map['pointOfInterestColour2'];
+    selectedColour = map['selectedColour'];
+    highlightedColour = map['highlightedColour'];
+    publishedTripColour = map['publishedTripColour'];
+    allowNotifications = map['allowNotifications'];
+    dark = map['dark'];
+    rotateMap = map['rotateMap'];
+    avoidMotorways = map['avoidMotorways'];
+    avoidAroads = map['avoidAroads'];
+    avoidBroads = map['avoidBroads'];
+    avoidTollRoads = map['avoidTollRoads'];
+    avoidFerries = map['avoidFerries'];
+    osmPubs = map['osmPubs'];
+    osmRestaurants = map['osmRestaurants'];
+    osmFuel = map['osmFuel'];
+    osmToilets = map['osmToilets'];
+    osmAtms = map['osmAtms'];
+    osmHistorical = map['osmHistorical'];
+    maleVoice = map['maleVoice'];
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'routeColour': routeColour,
+      'goodRouteColour': goodRouteColour,
+      'waypointColour': waypointColour,
+      'pointOfInterestColour': pointOfInterestColour,
+      'waypointColour2': waypointColour2,
+      'pointOfInterestColour2': pointOfInterestColour2,
+      'selectedColour': selectedColour,
+      'highlightedColour': highlightedColour,
+      'publishedTripColour': publishedTripColour,
+      'allowNotifications': allowNotifications,
+      'dark': dark,
+      'rotateMap': rotateMap,
+      'avoidMotorways': avoidMotorways,
+      'avoidAroads': avoidAroads,
+      'avoidBroads': avoidBroads,
+      'avoidTollRoads': avoidTollRoads,
+      'avoidFerries': avoidFerries,
+      'osmPubs': osmPubs,
+      'osmRestaurants': osmRestaurants,
+      'osmFuel': osmFuel,
+      'osmToilets': osmToilets,
+      'osmAtms': osmAtms,
+      'osmHistorical': osmHistorical,
+      'maleVoice': maleVoice,
+    };
+  }
+
   Future<bool> setupFromDb() async {
     ///  var setupRecords = await recordCount('setup');
     ///  debugPrint('Setup contains $setupRecords records');
@@ -1280,6 +1337,8 @@ class Photo {
   String key;
   int index;
   int rotation;
+  double width;
+  String align;
   String caption;
   String endPoint;
   Photo(
@@ -1287,8 +1346,10 @@ class Photo {
       this.id = -1,
       this.key = '',
       this.index = -1,
+      this.align = 'center',
       this.caption = '',
       this.rotation = 0,
+      this.width = 200,
       this.endPoint = ''});
 
   factory Photo.fromJson(Map<String, dynamic> json,
@@ -1309,7 +1370,9 @@ class Photo {
         url: url,
         id: json['id'] ?? -1,
         caption: json['caption'] ?? '',
+        align: json['align'] ?? 'center',
         rotation: json['rotation'] ?? 0,
+        width: json['width'] ?? 200,
         key: key,
         index: index);
   }
@@ -1319,37 +1382,41 @@ class Photo {
       url: json['url'] ?? '',
       id: int.parse(json['id'] ?? '-1'),
       caption: json['caption'] ?? '',
+      align: json['align'] ?? 'center',
       rotation: json['rotation'] ?? 0,
+      width: json['width'] ?? 200,
     );
   }
 
   /// Photo.toJson() will only ever be used for sending photo data to the api so the key should be empty
   String toJson() {
-    return '{"url": "$url", "caption": "$caption", "rotation": $rotation, "key": ""}';
+    return '{"url": "$url", "caption": "$caption", "align": "$align", "rotation": $rotation, "width": $width, "key": ""}';
   }
 
   String toMapString() {
     if (url.contains('http')) {
-      return '{"url": "${url.substring(url.lastIndexOf('/') + 1)}", "caption": "$caption", "rotation": $rotation, "key": "$key"}';
+      return '{"url": "${url.substring(url.lastIndexOf('/') + 1)}", "caption": "$caption", "rotation": $rotation, "width": $width, "key": "$key"}';
     } else {
-      return '{"url": "$url", "caption": "$caption", "rotation": $rotation, "key": "$key"}';
+      return '{"url": "$url", "caption": "$caption",  "align": "$align","rotation": $rotation,  "width": $width, "key": "$key"}';
     }
   }
 
   String toString() {
-    return '{"url": "$url", "caption": "$caption", "rotation": $rotation, "key": "$key"}';
+    return '{"url": "$url", "caption": "$caption",  "align": "$align", "rotation": $rotation,  "width": $width,"key": "$key"}';
   }
 
   String toEscapedString() {
     Map<String, dynamic> json = {
       'url': url,
       'caption': caption,
-      'rotation': rotation
+      'align': align,
+      'rotation': rotation,
+      'width': width,
     };
     return jsonEncode(json);
   }
 }
-
+/*
 class ImageCacheItem {
   int index;
   int localId;
@@ -1373,7 +1440,7 @@ class ImageCacheItem {
         lng: map['lng'] ?? 0);
   }
 }
-
+*/
 /*
 class GoodRoadCacheItem {
   int index;
@@ -1411,6 +1478,7 @@ class User {
   String phone;
   String email;
   String imageUrl;
+  int type;
 
   User({
     this.id = 0,
@@ -1421,6 +1489,7 @@ class User {
     this.password = '',
     this.uri = '',
     this.imageUrl = '',
+    this.type = 1,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -1431,7 +1500,8 @@ class User {
         email: json['email'],
         phone: json['phone'],
         password: json['password'],
-        imageUrl: json['imageUrl']);
+        imageUrl: json['imageUrl'],
+        type: json['type']);
   }
 
   Map<String, dynamic> toMap() {
@@ -1443,6 +1513,7 @@ class User {
       'phone': phone,
       'password': newPassword.isEmpty ? password : newPassword,
       'imageUrl': imageUrl,
+      'type': type,
     };
   }
 
@@ -1456,6 +1527,7 @@ class User {
       'password': password,
       'new_password': newPassword,
       'imageUrl': imageUrl,
+      'type': type,
     };
   }
 }
@@ -1697,6 +1769,82 @@ String handleWebImages(String urls) {
 
 class HomeItem {
   int id;
+  String markdown;
+  // MdStyleSheet? style;
+  Map<String, dynamic>? style;
+  int score;
+  List<Map<String, dynamic>>? images;
+  String heading;
+  String subheading;
+  String url;
+  String added;
+  String author;
+
+  HomeItem({
+    this.id = 0,
+    this.url = '',
+    this.markdown = '',
+    this.style,
+    this.images,
+    this.score = 5,
+    this.heading = 'Heading',
+    this.subheading = 'Subheading',
+    added,
+    this.author = ' ',
+  }) : added = added ?? dateFormatDoc.format(DateTime.now());
+
+  factory HomeItem.fromMap({required Map<String, dynamic> map}) {
+    try {
+      List<Map<String, dynamic>> images = [{}];
+      if (map['images'].isNotEmpty) {
+        List dynamicMap = jsonDecode(map['images']);
+        for (Map image in dynamicMap) {
+          images.add(Map<String, dynamic>.from(image));
+        }
+      }
+      // dateFormatDoc.format(homeItem.added)
+      HomeItem homeItem = HomeItem(
+          url: map['id'], //<-- on api the uri is id the primary column
+          heading: map['heading'],
+          subheading: map['subheading'],
+          markdown: map['markdown'],
+          style: Map<String, dynamic>.from(jsonDecode(map['style'])),
+          images: images,
+          added: dateFormatDoc.format(DateTime.parse(map['added'])),
+          author: map['author'],
+          score: map['score'] ?? 5);
+      return homeItem;
+    } catch (e) {
+      developer.log('error getting HomeItem.fromMap(): ${e.toString()}',
+          name: 'error');
+    }
+    return (HomeItem());
+  }
+  String uri = getUuid();
+
+  Map<String, dynamic> toMap() {
+    return {
+      'url': url,
+      'heading': heading,
+      'subheading': subheading,
+      'markdown': markdown,
+      'style': style,
+      'score': score,
+      'images': images,
+      'added': added,
+      'author': author,
+    };
+  }
+
+  // DateTime added = DateTime.now();
+  /* List<Photo> getPhotos() {
+    return [];
+  } */
+}
+
+/*
+class HomeItem {
+  int id;
   String uri;
   String heading;
   String subHeading;
@@ -1765,6 +1913,134 @@ class HomeItem {
   }
 }
 
+*/
+
+/// ShopItem that uses Markdown version. The only data that it uses is the Markdown text, the
+/// stylesheet, and the images. The titles, subtitles and links remain in the Markdown and
+/// don't have to be handled separately.
+
+class ShopItem {
+  int id;
+  String markdown;
+  // MdStyleSheet? style;
+  Map<String, dynamic>? style;
+  int score;
+  List<Map<String, dynamic>>? images;
+  String heading;
+  String subheading;
+  String url;
+  String added;
+  String author;
+
+  ShopItem({
+    this.id = 0,
+    this.url = '',
+    this.markdown = '',
+    this.style,
+    this.images,
+    this.score = 5,
+    this.heading = 'Heading',
+    this.subheading = 'Subheading',
+    added,
+    this.author = ' ',
+  }) : added = added ?? dateFormatDoc.format(DateTime.now());
+
+  factory ShopItem.fromMap({required Map<String, dynamic> map}) {
+    try {
+      List<Map<String, dynamic>> images = [{}];
+      if (map['images'].isNotEmpty) {
+        List dynamicMap = jsonDecode(map['images']);
+        for (Map image in dynamicMap) {
+          images.add(Map<String, dynamic>.from(image));
+        }
+      }
+      // dateFormatDoc.format(shopItem.added)
+      ShopItem shopItem = ShopItem(
+          url: map['id'], //<-- on api the uri is id the primary column
+          heading: map['heading'],
+          subheading: map['subheading'],
+          markdown: map['markdown'],
+          style: Map<String, dynamic>.from(jsonDecode(map['style'])),
+          images: images,
+          added: dateFormatDoc.format(DateTime.parse(map['added'])),
+          author: map['author'],
+          score: map['score'] ?? 5);
+      return shopItem;
+    } catch (e) {
+      developer.log('error getting ShopItem.fromMap(): ${e.toString()}',
+          name: 'error');
+    }
+    return (ShopItem());
+  }
+  String uri = getUuid();
+
+  Map<String, dynamic> toMap() {
+    return {
+      'url': url,
+      'heading': heading,
+      'subheading': subheading,
+      'markdown': markdown,
+      'style': style,
+      'score': score,
+      'images': images,
+      'added': added,
+      'author': author,
+    };
+  }
+}
+
+/*
+class ShopItem {
+  int id;
+  String markdown;
+  MdStyleSheet? style;
+  int score;
+  List<String>? images;
+  String url;
+  String imageUrls = '';
+  String heading;
+  String subheading;
+  ShopItem({
+    this.id = 0,
+    this.url = '',
+    this.markdown = '',
+    this.heading = 'Heading',
+    this.subheading = 'Subheading',
+    this.style,
+    this.images,
+    this.score = 5,
+  }) {
+    style ??= MdStyleSheet();
+  }
+  factory ShopItem.fromMap({required Map<String, dynamic> map}) {
+    return ShopItem(
+        url: map['url'],
+        heading: map['heading'],
+        subheading: map['subheading'],
+        markdown: map['markdown'],
+        style: map['style'],
+        images: map['images'],
+        score: map['score']);
+  }
+  String uri = getUuid();
+
+  Map<String, dynamic> toMap() {
+    return {
+      'url': url,
+      'markdown': markdown,
+      'style': style,
+      'score': score,
+      'images': images,
+    };
+  }
+
+  DateTime added = DateTime.now();
+  /* List<Photo> getPhotos() {
+    return [];
+  } */
+}
+*/
+/*
 class ShopItem {
   int id = -1;
   String uri = '';
@@ -1862,6 +2138,7 @@ class ShopItem {
   }
 }
 
+*/
 /// class TripItem
 ///
 

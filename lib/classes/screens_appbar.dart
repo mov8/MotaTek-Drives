@@ -223,10 +223,10 @@ class ScreensAppBarBottom extends StatelessWidget
                 ],
                 if (showOverflow) ...[
                   Expanded(
-                    flex: 1,
+                    flex: 2,
                     child: IconButton(
                       key: _menuButtonKey,
-                      icon: Icon(Icons.more_vert, color: Colors.white),
+                      icon: Icon(Icons.more_vert, color: textColor),
                       onPressed: () => _showCustomMenu(context),
                     ),
                   ),
@@ -326,7 +326,7 @@ class ScreensAppBarBottom extends StatelessWidget
       final String? selected = await showMenu<String>(
         constraints: BoxConstraints(minWidth: 250),
         context: NavigationService()
-            .key
+            .uiKey
             .currentContext!, // BREAK OUT: Use the main navigator!
         position: position,
         items: overflowPrompts!

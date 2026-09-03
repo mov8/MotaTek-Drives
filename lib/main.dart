@@ -16,17 +16,6 @@ import 'package:flutter/gestures.dart';
 import 'package:hive/hive.dart';
 import '../constants.dart';
 
-/*
-https://techblog.geekyants.com/implementing-flutter-maps-with-osm     /// Shows how to implement markers and group them
-https://stackoverflow.com/questions/76090873/how-to-set-location-marker-size-depend-on-zoom-in-flutter-map      
-https://pub.dev/packages/flutter_map_location_marker
-https://github.com/tlserver/flutter_map_location_marker
-https://www.appsdeveloperblog.com/alert-dialog-with-a-text-field-in-flutter/   /// Shows text input dialog
-https://fabricesumsa2000.medium.com/openstreetmaps-osm-maps-and-flutter-daeb23f67620  /// tapableRouteLayer  
-https://github.com/OwnWeb/flutter_map_tappable_Route/blob/master/lib/flutter_map_tappable_Route.dart
-https://pub.dev/packages/flutter_map_animations/example  shows how to animate markers too
-*/
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized(); // <- needed to allow await to work
   await Hive.initFlutter();
@@ -196,14 +185,14 @@ class UIStateService extends ChangeNotifier {
   // NavigationService()
 
   void notify() {
-    notifyListeners();
+    // notifyListeners();
   }
 
   void setPage(int newPage) {
     /// setPage is now implemented in NavigationService() may need it for Web version
     if (_page == newPage && newPage == 1) return;
     _page = newPage;
-    notifyListeners();
+    // notifyListeners();
   }
 }
 
@@ -235,6 +224,8 @@ class AppMasterShell extends StatelessWidget {
     MapService().bottomDrawerController ??= BottomDrawerController();
     MapService().routesBottomNavController ??= RoutesBottomNavController();
     MapService().createTripStackController ??= CreateTripStackController();
+    MapService().homeController ??= HomeController();
+    MapService().shopController ??= ShopController();
 
     double sideDrawerOpenWidth = 0.4;
     return Scaffold(
@@ -243,148 +234,163 @@ class AppMasterShell extends StatelessWidget {
         bucket: _shellStorageBucket,
         child: GestureDetector(
           behavior: HitTestBehavior.translucent,
-          child: Column(
-            children: [
-              if (kIsWeb) ...[
-                Expanded(
-                  flex: 2,
-                  child: WebAppBar(
-                    context: context,
-                    appBarController: MapService().webAppBarController,
-                    sideDrawerController: MapService().sideDrawerController,
-                    statusBarController: MapService().statusBarController,
-                  ),
-                ),
-              ],
+          child: Column(children: [
+            if (kIsWeb) ...[
               Expanded(
-                flex: 12,
-                child: Stack(
-                  children: [
-                    FutureBuilder(
-                      future:
-                          MapService().style, // <- ensure the style is loaded
-                      builder: (context, snapshot) {
-                        if (snapshot.hasError) {
-                          developer.log('Error getting style', name: 'error');
-                        } else if (snapshot.hasData) {
-                          try {
-                            MapLibreMap map = MapLibreMap(
-                              key: MapService().mapKey,
-                              styleString: snapshot.data!,
-                              compassViewPosition: CompassViewPosition.topLeft,
-                              onMapCreated: _onMapUpdated,
-                              initialCameraPosition: CameraPosition(
-                                  target: LatLng(
-                                      MapService().currentPosition.latitude,
-                                      MapService().currentPosition.longitude),
-                                  zoom: 11),
-                              trackCameraPosition: true,
-                              onCameraMove: _onCameraMove,
-                              onMapClick: _onTap,
-                              onCameraIdle: _onCameraIdle,
-                              scrollGesturesEnabled: true,
-                              onStyleLoadedCallback: () => _onStyleLoaded(),
-                              zoomGesturesEnabled: true,
-                              gestureRecognizers: Set()
-                                ..add(
-                                  Factory<EagerGestureRecognizer>(
-                                    () => EagerGestureRecognizer(),
-                                  ),
-                                ),
-                            );
-                            return GestureDetector(
-                                onLongPress: () {}, child: map);
-                          } catch (e) {
-                            developer.log('Error building map: ${e.toString()}',
-                                name: 'error');
-                          }
-                        } else {
-                          return const Center(
-                            child: CircularProgressIndicator(),
-                          );
-                        }
-                        return Center(
-                          child: Text(
-                            'Map not available - \nplease check your Internet connection',
-                            style: TextStyle(
-                              fontSize: 22,
-                              color: Colors.white,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-
-                    Align(
-                      alignment: Alignment.bottomLeft,
-                      child: StatusBar(
-                        controller: MapService().statusBarController,
-                      ),
-                    ),
-
-                    /// Using ListenableBuilder so that the NavigationService can trigger a rebuild
-                    /// because can only show the map overlays as a widget, not a scaffold screen, as
-                    /// for some reason the scaffold prevents gestures reaching the map.
-                    /// UIService() is a Notifier and triggered by NavigationService().
-
-                    ListenableBuilder(
-                      listenable:
-                          UIStateService(), // Flutter now "watches" your singleton
-                      builder: (context, _) {
-                        final currentPage = UIStateService().page;
-
-                        /// Using IndexedStack to switch between the Page version - content
-                        /// and the Widget version CreateTripStack(). CreateTripStack()
-                        /// allows the mouse to affect the map, as it doesn't use a
-                        /// Scaffold which appears to stop the mouse affecting the map.
-                        return IndexedStack(
-                          index: currentPage,
-                          children: [
-                            Overlay(initialEntries: [
-                              // <-- 0 The Widget version
-                              OverlayEntry(
-                                  builder: (context) => Material(
-                                        type: MaterialType
-                                            .transparency, // Important: don't block the map!
-                                        child: CreateTripStack(
-                                            controller: MapService()
-                                                .createTripStackController),
-                                      ))
-                            ]),
-                            Positioned.fill(
-                                child: content), // <-- 1 The page version
-                          ],
-                        );
-                      },
-                    ),
-                    if (kIsWeb) ...[
-                      Align(
-                        alignment: Alignment.topLeft,
-                        child: Overlay(
-                          // <-- has to be added because outside Navigation
-                          initialEntries: [
-                            OverlayEntry(
-                              builder: (context) => Material(
-                                type: MaterialType.transparency,
-                                child: SideDrawer(
-                                  width: sideDrawerOpenWidth,
-                                  context: context,
-                                  controller: MapService().sideDrawerController,
-                                  mapController: MapService().controller,
-                                  webAppBarController:
-                                      MapService().webAppBarController,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ],
+                flex: 2,
+                child: WebAppBar(
+                  context: context,
+                  appBarController: MapService().webAppBarController,
+                  sideDrawerController: MapService().sideDrawerController,
+                  statusBarController: MapService().statusBarController,
                 ),
               ),
             ],
-          ),
+            Expanded(
+              flex: 12,
+              child: Stack(
+                children: [
+                  FutureBuilder(
+                    future: MapService().style, // <- ensure the style is loaded
+                    builder: (context, snapshot) {
+                      if (snapshot.hasError) {
+                        developer.log('Error getting style', name: 'error');
+                      } else if (snapshot.hasData) {
+                        try {
+                          MapLibreMap map = MapLibreMap(
+                            key: MapService().mapKey,
+                            styleString: snapshot.data!,
+                            compassViewPosition: CompassViewPosition.topLeft,
+                            onMapCreated: _onMapUpdated,
+                            initialCameraPosition: CameraPosition(
+                                target: LatLng(
+                                    MapService().currentPosition.latitude,
+                                    MapService().currentPosition.longitude),
+                                zoom: 11),
+                            trackCameraPosition: true,
+                            onCameraMove: _onCameraMove,
+                            onMapClick: _onTap,
+                            onCameraIdle: _onCameraIdle,
+                            scrollGesturesEnabled: true,
+                            onStyleLoadedCallback: () => _onStyleLoaded(),
+                            zoomGesturesEnabled: true,
+                            gestureRecognizers: Set()
+                              ..add(
+                                Factory<EagerGestureRecognizer>(
+                                  () => EagerGestureRecognizer(),
+                                ),
+                              ),
+                          );
+                          return GestureDetector(
+                              onLongPress: () {}, child: map);
+                        } catch (e) {
+                          developer.log('Error building map: ${e.toString()}',
+                              name: 'error');
+                        }
+                      } else {
+                        return const Center(
+                          child: CircularProgressIndicator(),
+                        );
+                      }
+                      return Center(
+                        child: Text(
+                          'Map not available - \nplease check your Internet connection',
+                          style: TextStyle(
+                            fontSize: 22,
+                            color: Colors.white,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+
+                  Align(
+                    alignment: Alignment.bottomLeft,
+                    child: StatusBar(
+                      controller: MapService().statusBarController,
+                    ),
+                  ),
+
+                  /// Using ListenableBuilder so that the NavigationService can trigger a rebuild
+                  /// because can only show the map overlays as a widget, not a scaffold screen, as
+                  /// for some reason the scaffold prevents gestures reaching the map.
+                  /// UIService() is a Notifier and triggered by NavigationService().
+                  if (UIStateService().page == 0)
+                    CreateTripStack(
+                      controller: MapService().createTripStackController,
+                    ),
+/*
+                  ListenableBuilder(
+                    listenable:
+                        UIStateService(), // Flutter now "watches" your singleton
+                    builder: (context, _) {
+                      final currentPage = UIStateService().page;
+
+                      /// Using IndexedStack to switch between the Page version - content
+                      /// and the Widget version CreateTripStack(). CreateTripStack()
+                      /// allows the mouse to affect the map, as it doesn't use a
+                      /// Scaffold which appears to stop the mouse affecting the map.
+                      return IndexedStack(
+                        index: currentPage,
+                        children: [
+                          Overlay(initialEntries: [
+                            // <-- 0 The Widget version
+                            OverlayEntry(
+                                builder: (context) => Material(
+                                      type: MaterialType
+                                          .transparency, // Important: don't block the map!
+                                      child: CreateTripStack(
+                                          controller: MapService()
+                                              .createTripStackController),
+                                    ))
+                          ]),
+                          //  Positioned.fill(
+                          //   child: content,
+
+                          /* Navigator(
+                              key: NavigationService().pageKey,
+                              /*Overlay(
+                            // <-- has to be added because outside Navigation
+                            initialEntries: [
+                              OverlayEntry( */
+                              onGenerateRoute: (settings) => MaterialPageRoute(
+                                builder: (shellContext) => Material(
+                                    type: MaterialType.transparency,
+                                    child: content),
+                              ), 
+                            ), */
+                          //   ), // <-- 1 The page version
+                        ],
+                      );
+                    },
+                  ), 
+ */
+                  //        if (kIsWeb) ...[
+                  Navigator(
+                    key: NavigationService().uiKey,
+                    onGenerateRoute: (settings) => MaterialPageRoute(
+                      builder: (shellContext) => Material(
+                        type: MaterialType.transparency,
+                        child: Stack(children: [
+                          content, // <-- The page content
+                          if (kIsWeb)
+                            SideDrawer(
+                              width: sideDrawerOpenWidth,
+                              context: context,
+                              controller: MapService().sideDrawerController,
+                              mapController: MapService().controller,
+                              webAppBarController:
+                                  MapService().webAppBarController,
+                            ),
+                        ]),
+                      ),
+                    ),
+                  ),
+                  //     ],
+                ],
+              ),
+            ),
+          ]),
         ),
       ),
       resizeToAvoidBottomInset: false,

@@ -296,14 +296,17 @@ class _MainDrawerState extends State<MainDrawer> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => const ShopForm(),
+                                  builder: (context) => const Shop(),
                                 ),
                               );
                             } else if (e['value'] == 'home') {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => const HomeForm(),
+                                  builder: (context) => const MarkdownForm(
+                                    markdownData: {},
+                                    dataType: 'home',
+                                  ),
                                 ),
                               );
                             } else if (e['value'] == 'remove') {

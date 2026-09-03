@@ -251,9 +251,6 @@ class ImageRepository {
     key = key.isNotEmpty ? key : getFileName(url: uri);
 
     if (!_imageCache.containsKey(key)) {
-      // key = _imageCache.length;
-      // isEmpty ? 0 : _imageCache.keys.last + 1;
-
       if (id >= 0 && !kIsWeb) {
         Uint8List? imageBytes =
             await getPrivateRepository().loadImageByIdLocal(id: id);

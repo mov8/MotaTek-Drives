@@ -1,4 +1,5 @@
 import 'package:drives/routes/create_trip.dart';
+import 'package:drives/routes/home.dart';
 import 'package:flutter/material.dart';
 import '../models/models.dart';
 import '../services/services.dart';
@@ -86,6 +87,7 @@ class WebAppBar extends StatefulWidget implements PreferredSizeWidget {
   final WebAppBarController? appBarController;
   final SideDrawerController? sideDrawerController;
   final StatusBarController? statusBarController;
+  final HomeController? homeController;
   Function(int)? onMenuTap;
   final Function(int)? onSelect;
 
@@ -102,6 +104,7 @@ class WebAppBar extends StatefulWidget implements PreferredSizeWidget {
     this.tripController,
     this.sideDrawerController,
     this.statusBarController,
+    this.homeController,
     this.initialValue = 0,
     this.selected = 0,
     this.value = 0,
@@ -331,6 +334,13 @@ class _WebAppBarState extends State<WebAppBar> {
     );
   }
 
+  /// Gets the menu to overcome the Navigator issue when using a Static Stack architecture
+  /// The Navigator belongs to the lowest Static layer, so pop-ups have problems finding a
+  /// canvas to paint on. This represents the first fix.
+  /// todo follow the new solution of adding a Global key for the upper overlaid UI elements
+  /// as implemented for the side drawer.
+  /// getPopupMenuItems() creates the list of PopupMenuItems from the data.
+
   void _showCustomMenu(BuildContext context) async {
     if (!_menuExists) {
       _menuExists = true;
@@ -357,7 +367,7 @@ class _WebAppBarState extends State<WebAppBar> {
         await showMenu<String>(
           constraints: BoxConstraints(minWidth: 250),
           context: NavigationService()
-              .key
+              .uiKey
               .currentContext!, // BREAK OUT: Use the main navigator!
           position: position,
           items: getPopupMenuItems(),
@@ -367,32 +377,40 @@ class _WebAppBarState extends State<WebAppBar> {
     }
   }
 
+  /// For the popup menu only want to include those drawerOptions that have an icon
+  /// Also want to only allow the Home option if the _selected == 0 and the user canEdit
+  /// and want to only allow Shop option is _selected == 4 and the user canEdit
   List<PopupMenuEntry<String>> getPopupMenuItems() {
     _menuExists = true;
-    List<PopupMenuEntry<String>> menuItems = drawerOptions
-        .where((map) =>
-            (map['iconData'] ?? '') != '') // <- show only ones with Icons
-        .map<PopupMenuEntry<String>>(
-          (e) => PopupMenuItem(
-            onTap: () {
-              setSideDrawerContent(content: e['drawer']);
-            },
-            value: e['key'],
-            //      child: PointerInterceptor(
-            child: Row(
-              key: Key('pmi${e['key']}'),
-              children: [
-                e['iconData'],
-                SizedBox(
-                  width: 10,
+    List<PopupMenuEntry<String>> menuItems =
+        drawerOptions // <-- Links enum BottomDrawerItems with menuItems
+            .where((map) =>
+                (map['iconData'] ?? '') != '' &&
+                    //   !['home', 'shop'].contains(map['key']) ||
+                    !['markdownHome', 'markdownShop'].contains(map['key']) ||
+                Setup().user.type >= 3 &&
+                    ((map['key'] == 'markdownHome' && _selected == 0 ||
+                        map['key'] == 'markdownShop' &&
+                            _selected == 4))) // <- show only ones with Icons
+            .map<PopupMenuEntry<String>>(
+              (e) => PopupMenuItem(
+                onTap: () {
+                  setSideDrawerContent(content: e['drawer']);
+                },
+                value: e['key'],
+                child: Row(
+                  key: Key('pmi${e['key']}'),
+                  children: [
+                    e['iconData'],
+                    SizedBox(
+                      width: 10,
+                    ),
+                    Text(e['text']),
+                  ],
                 ),
-                Text(e['text']),
-              ],
-            ),
-            //        ),
-          ),
-        )
-        .toList();
+              ),
+            )
+            .toList();
 
     /// Add the restore option to set Side Drawer content back to original page data.
     if (widget.sideDrawerController!.screenCache.isNotEmpty &&
@@ -492,9 +510,9 @@ class _WebAppBarState extends State<WebAppBar> {
 
   /// navigate changes the pages for the app note:
   ///   The only real page changes are:
-  ///     Home
-  ///     Explore
-  ///     Shop
+  ///   - Home
+  ///   - Explore
+  ///   - Shop
   ///   all the other pages in the web version are handled by the side drawer
   ///   navigate uses the NavigationService() singleton that holds the whole app's
   ///   context. This is important, because the persistent widgets WebAppBar() and
@@ -503,14 +521,15 @@ class _WebAppBarState extends State<WebAppBar> {
     _heading = pageHeadings[index];
     _menuExists = false;
 
-    /// <--- If the user taps a button when the menu is showing they'll never see it again
+    /// If the user taps a button when the menu is showing they'll never see it again
     if (index != 5) {
-      // <-- stop messages changing the side drawer type to fixed == false
+      // stop messages changing the side drawer type to fixed == false
       MapService()
           .sideDrawerController!
           .setFixed(fixed: [0, 4].contains(index));
     }
     switch (index) {
+      /// 1 - Published the map Widget CreateTripStack() show map with published data in the side drawer
       case 1:
         {
           /// Fulfil Published - Trips
@@ -518,7 +537,7 @@ class _WebAppBarState extends State<WebAppBar> {
           try {
             MapService().setPage(page: 1);
 
-            /// <-- Tell the MapService what to do
+            /// Tell MapService() singleton what to do
             if (screenName != 'createTrip') {
               NavigationService().navigateTo(
                 routes[2], // <--- Published uses CreateTrip() screen
@@ -539,6 +558,8 @@ class _WebAppBarState extends State<WebAppBar> {
                 name: 'error');
           }
         }
+
+      /// 2 - Explore the map Widget CreateTripStack() show map with good roads and points of interest data in the side drawer
       case 2:
         {
           /// Fulfil Explore - CreateTrip
@@ -566,6 +587,8 @@ class _WebAppBarState extends State<WebAppBar> {
                 name: 'error');
           }
         }
+
+      /// 3 - Favourites the map Widget CreateTripStack() shows map with private trip data in the side drawer
       case 3:
         {
           MapService().setPage(page: 3);
@@ -587,6 +610,9 @@ class _WebAppBarState extends State<WebAppBar> {
             );
           }
         }
+
+      /// Messages - special case in the Web version only want to show the data in the side drawer
+      /// This is so messages can be accessed any time. A PC screen with an expanding side drawer works well.
       case 5: // <-- Messages
         if (widget.sideDrawerController!.content ==
                 BottomDrawerItems.messages &&
@@ -595,15 +621,14 @@ class _WebAppBarState extends State<WebAppBar> {
         } else {
           setSideDrawerContent(content: BottomDrawerItems.messages);
         }
+
+      /// The other cases will be rendered as screen contents and so are just pushed
+      /// by the NavigationService() singleton. The map is totally hidden in the stack.
+      /// The side drawer is fixed, and contains the data to navigate the main screen area.
       default:
         debugPrint('Current page: $screenName');
         NavigationService().navigateTo(routes[index],
             TripArguments(appState: AppState.myTrips, activeChip: index));
-      /*          )
-        Navigator.pushNamed(context, routes[index],
-            arguments:
-                TripArguments(appState: AppState.myTrips, activeChip: index));
-      */
     }
 
     if (widget.onSelect != null) {
@@ -614,6 +639,7 @@ class _WebAppBarState extends State<WebAppBar> {
     return;
   }
 
+/*
   List<Map<String, dynamic>> adminOptions = [
     {
       'text': 'Home Page Content',
@@ -647,6 +673,8 @@ class _WebAppBarState extends State<WebAppBar> {
     },
   ];
 
+  */
+
   Future<void> setSideDrawerContent(
       {required BottomDrawerItems content, List<Widget>? drawerData}) async {
     drawerData ??= [];
@@ -673,20 +701,3 @@ class _WebAppBarState extends State<WebAppBar> {
     }
   }
 }
-/*
-class NavigationService {
-  static final NavigationService _instance = NavigationService._internal();
-  factory NavigationService() => _instance;
-  NavigationService._internal();
-
-  final GlobalKey<NavigatorState> key = GlobalKey<NavigatorState>();
-
-  Future<void> navigateTo(String routeName, Object? arguments) {
-    return key.currentState!.pushNamed(routeName, arguments: arguments);
-  }
-
-  void goBack() {
-    return key.currentState!.pop();
-  }
-}
-*/
