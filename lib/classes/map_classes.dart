@@ -18,9 +18,9 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart' as gl;
 import '/classes/route.dart' as mt;
 // import '/constants.dart';
-import 'package:vector_map_tiles/vector_map_tiles.dart';
+//import 'package:vector_map_tiles/vector_map_tiles.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:flutter_map_animations/flutter_map_animations.dart';
+//import 'package:flutter_map_animations/flutter_map_animations.dart';
 
 /// Improving performance -
 /// Use classes not functions

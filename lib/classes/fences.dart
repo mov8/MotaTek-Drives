@@ -3,7 +3,7 @@
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 // import 'package:flutter/material.dart';
-// import 'package:maplibre_gl/maplibre_gl.dart';
+import 'package:maplibre_gl/maplibre_gl.dart' as ml;
 import '/classes/route.dart';
 
 /// The issue of slow data loading is to be addressed by only retrieving the data

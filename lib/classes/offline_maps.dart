@@ -5,8 +5,10 @@ import 'package:flutter/material.dart';
 import '/classes/route.dart' as mt;
 import '/classes/classes.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:vector_map_tiles/vector_map_tiles.dart';
+// import 'package:vector_map_tiles/vector_map_tiles.dart';
 import '/helpers/edit_helpers.dart';
+
+/*
 
 class OfflineTiles {
   static const double EARTH_CIRCUMFERENCE = 40075016.686; // meters
@@ -59,14 +61,14 @@ class OfflineTiles {
 
   mt.Route routesFlatten({required List<mt.Route> routes}) {
     mt.Route route = mt.Route(lines: []);
-    /*
+   
     for (int i = 0; i < routes.length; i++) {
       route.points.addAll(routes[i].points);
     }
-    */
+
     return route;
   }
-/*
+
   Future<bool> downloadMaps2(
       {required List<mt.Route> routes,
       int minZoom = 12,
@@ -82,7 +84,7 @@ class OfflineTiles {
 
     return ok;
   }
-  */
+
 
   Set<TileIdentity> tilesToDownload(
       {required double margin, double zoom = 0.5}) {
@@ -305,7 +307,7 @@ class OfflineTiles {
     return tilesToDownload;
   }
 }
-/*
+
 void main() {
   // Example: Bounding box around a small area (e.g., a city block)
   final LatLng southWest =

@@ -13,6 +13,11 @@ Cure follow 4 steps:
 3 remove the version from the device 
 4 rebuild on the device
 
+IF SEARCH / REPLACE STOPS WORKING - IT'S A BUGGY KEYBOARD!
+TO FIX press Ctrl + Fn + B (Ctrl break) and LET GO OF THE B FIRST
+IT FIXES IT
+
+
 Flutter Intellisense very SLOW
 1   Open Command Pallet Ctrl+Shift+P
 2   Restart Analysis Server + Enter
@@ -21,6 +26,31 @@ Look at the end of the Gemini thread "Porting Flutter App to the Web" for other 
 
 If Flutter doesn't compile try:
 flutter run -v 
+
+Gradle issues
+Tried upgrading to the new Gradle 9 but had problems so reverted back to 8.1.4 After the beta will try to upgrade
+again as the current non built-in Kotlin setup will be deprecated. 
+
+Should try again 
+Maplibre minimum SDK 0.26.x
+
+Android apps on AGP 9
+The plugin no longer applies the Kotlin Gradle Plugin when your app builds with Android Gradle Plugin 9 or later, which is what broke that build before. Apps on AGP 8 are unaffected and need no change.
+
+good Flutter docs on Gradle
+https://docs.flutter.dev/deployment/android#review-the-gradle-build-configuration
+
+AGP / KGP settings 
+https://kotlinlang.org/docs/gradle-configure-project.html#apply-the-plugin
+
+JAVA / Gradle settings
+https://docs.gradle.org/current/userguide/compatibility.html#java
+
+Useful migration description Groovy -> Kotlin
+https://codewithandrea.com/articles/flutter-android-gradle-kts/
+
+cd android
+gradlew assembleDebug --stacktrace --info
 
 Problems with installing Hive
 To create an Adapter to store a non native type look trip_model.dart 

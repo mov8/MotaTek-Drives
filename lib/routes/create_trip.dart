@@ -327,7 +327,7 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     widget.controller?._addState(this);
-
+    developer.log('CreateTrip().initState() run', name: '_stack_');
     _leadingWidgetController = LeadingWidgetController();
     // CurrentTripItem().clearAll(); // debug
     // NetworkState().initialise();
@@ -583,12 +583,15 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
         ? 1
         : 0;
 
-    return Scaffold(
+    return _getPortraitBody();
+
+    /*Scaffold(
       backgroundColor: Colors.transparent,
       // resizeToAvoidBottomInset: false,
       key: _scaffoldKey,
       drawer: const MainDrawer(),
-      /*    appBar: kIsWeb
+      //    /*
+      appBar: kIsWeb
           ? null
           : AppBar(
               key: _appBarKey,
@@ -622,10 +625,10 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
                 onUpdate: (_) => null,
               ),
             ),
-*/
+      // */
       //(val) => val ? setState(()  {}) : () {})),
       body: _getPortraitBody(),
-      /*
+
       bottomNavigationBar: kIsWeb
           ? null
           : RoutesBottomNav(
@@ -633,7 +636,7 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
               controller: _bottomNavController,
               initialValue: initialNavBarValue,
               onMenuTap: (_) => {}),
-      */
+
       // extendBodyBehindAppBar: true,
 
       /*FutureBuilder<bool>(
@@ -670,7 +673,7 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
       ),
 */
       //     drawerEnableOpenDragGesture: false,
-    );
+    ); */
   }
 
 // https://drives.motatek.com/static/tiles/{z}/{x}/{y}.pbf
@@ -731,6 +734,9 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
 
   updateTripArguments() async {
     try {
+      developer.log(
+          'CreateTrip().updateTripArguments() ${_tripArguments!.appState.name}',
+          name: '_published_');
       switch (_tripArguments!.appState) {
         case AppState.myTrips:
           {
@@ -789,121 +795,123 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
     // double start = 0;
     Future<bool>;
     try {
-      return GestureDetector(
-          behavior: HitTestBehavior.translucent,
-          child: Stack(
-            children: [
-              if (MapService().controller != null)
-                Align(
-                  // <-- Only do editing in "Explore" mode
-                  alignment: Alignment.topRight,
-                  child: HandleCTFabs(
-                      controller: MapService().controller!,
-                      sbController: MapService().statusBarController,
-                      zfController: MapService().zoomFabController,
-                      update: (update) => update ? setState(() {}) : null),
-                ), //_debugUpdate),
+      return Text('test');
+      /* Stack(
+        //  GestureDetector(
+        //    behavior: HitTestBehavior.translucent,
+        //    child: Stack(
+        children: [
+          if (MapService().controller != null)
+            Align(
+              // <-- Only do editing in "Explore" mode
+              alignment: Alignment.topRight,
+              child: HandleCTFabs(
+                  controller: MapService().controller!,
+                  sbController: MapService().statusBarController,
+                  zfController: MapService().zoomFabController,
+                  update: (update) => update ? setState(() {}) : null),
+            ), //_debugUpdate),
 
-              if (_tripArguments!.activeChip == 2) ...[
-                Align(
-                  // <-- Only do editing in "Explore" mode
-                  alignment: Alignment.bottomLeft,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(5, 0, 5, 35),
-                    child: Padding(
-                      padding:
-                          EdgeInsetsGeometry.fromLTRB(kIsWeb ? 30 : 0, 0, 0, 0),
-                      child: CreateTripChips(
-                        createTripController:
-                            widget.controller ?? CreateTripController(),
-                        position:
-                            chipPosition(), // gets either stream or mapController position
-                        onUpdate: (value) =>
-                            _executeChipActions(tripActions: value),
-                      ),
-                    ),
+          if (_tripArguments!.activeChip == 2) ...[
+            Align(
+              // <-- Only do editing in "Explore" mode
+              alignment: Alignment.bottomLeft,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(5, 0, 5, 35),
+                child: Padding(
+                  padding:
+                      EdgeInsetsGeometry.fromLTRB(kIsWeb ? 30 : 0, 0, 0, 0),
+                  child: CreateTripChips(
+                    createTripController:
+                        widget.controller ?? CreateTripController(),
+                    position:
+                        chipPosition(), // gets either stream or mapController position
+                    onUpdate: (value) =>
+                        _executeChipActions(tripActions: value),
                   ),
                 ),
-                if (CurrentTripItem().tripValues.showTarget &&
-                    !CurrentTripItem().tripValues.showProgress) ...[
-                  CustomPaint(
-                    painter: TargetPainter(
-                        top:
-                            _mapMiddle.y.toDouble(), //mapMiddle().y.toDouble(),
-                        left:
-                            _mapMiddle.x.toDouble(), //mapMiddle().x.toDouble(),
-                        color: CurrentTripItem().isGoodRoad
-                            ? Colors.red
-                            : Colors.black),
-                  )
-                ],
-                if (CurrentTripItem().tripState == TripState.following) ...[
-                  Positioned(
-                    top: _pointAtCentre.y.toDouble() - 20,
-                    left: _pointAtCentre.x.toDouble() - 20,
-                    child: RotationTransition(
-                      turns: AlwaysStoppedAnimation(0 / 360),
-                      child: Icon(
-                        size: 40,
-                        Icons.navigation,
-                        // Icons.assistant_navigation,
-                        color: Colors.blueAccent,
-                      ),
-                    ),
-                  )
-                ],
-                if (_userPosition.speed > 0.01) ...[
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(15, 10, 0, 150),
-                    child: Align(
-                      alignment: Alignment.bottomLeft,
-                      child: CircleAvatar(
-                        radius: 28,
-                        backgroundColor: Colors.red,
-                        child: CircleAvatar(
-                          radius: 25,
-                          backgroundColor: Colors.black,
-                          child: Text(_userPosition.speed.toString(),
-                              style: const TextStyle(
-                                  fontSize: 20, color: Colors.white)),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-                if (_tripArguments!.activeChip == 1) ...[
-                  CustomPaint(
-                    painter: HighlightPainter(
-                      boundary: _mapSize, // mapSize(),
-                      proportion: 0.6,
-                      color: Colors.blueGrey,
-                    ),
-                  ),
-                ],
-              ],
-              if (!kIsWeb)
-                BottomDrawer(
-                  context: context,
-                  maxHeight: 200,
-                  //  content: _tripCards,
-                  globalKey: _scrollKey,
-
-                  //  requestClose: closeAndUpdateDrawer,
-                  imageRepository: _imageRepository,
-                  onOpened: onOpened,
-                ),
-
-              /// getDirections shows the turn-by-turn navigation details
-              getDirections(_directionsIndex),
-
-              /// The StatusBar allows the showing of messages and the KeyScale.
-              /// At the moment the KeyScale is always right justified.
-              /// There is only one BarMessage widget catered for
-              /// ToDo: Allow more flexible status bar messages
-
-              if (kIsWeb) ...[]
+              ),
+            ),
+            if (CurrentTripItem().tripValues.showTarget &&
+                !CurrentTripItem().tripValues.showProgress) ...[
+              CustomPaint(
+                painter: TargetPainter(
+                    top: _mapMiddle.y.toDouble(), //mapMiddle().y.toDouble(),
+                    left: _mapMiddle.x.toDouble(), //mapMiddle().x.toDouble(),
+                    color: CurrentTripItem().isGoodRoad
+                        ? Colors.red
+                        : Colors.black),
+              )
             ],
-          ));
+            if (CurrentTripItem().tripState == TripState.following) ...[
+              Positioned(
+                top: _pointAtCentre.y.toDouble() - 20,
+                left: _pointAtCentre.x.toDouble() - 20,
+                child: RotationTransition(
+                  turns: AlwaysStoppedAnimation(0 / 360),
+                  child: Icon(
+                    size: 40,
+                    Icons.navigation,
+                    // Icons.assistant_navigation,
+                    color: Colors.blueAccent,
+                  ),
+                ),
+              )
+            ],
+            if (_userPosition.speed > 0.01) ...[
+              Padding(
+                padding: const EdgeInsets.fromLTRB(15, 10, 0, 150),
+                child: Align(
+                  alignment: Alignment.bottomLeft,
+                  child: CircleAvatar(
+                    radius: 28,
+                    backgroundColor: Colors.red,
+                    child: CircleAvatar(
+                      radius: 25,
+                      backgroundColor: Colors.black,
+                      child: Text(_userPosition.speed.toString(),
+                          style: const TextStyle(
+                              fontSize: 20, color: Colors.white)),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+            if (_tripArguments!.activeChip == 1) ...[
+              CustomPaint(
+                painter: HighlightPainter(
+                  boundary: _mapSize, // mapSize(),
+                  proportion: 0.6,
+                  color: Colors.blueGrey,
+                ),
+              ),
+            ],
+          ],
+          if (!kIsWeb)
+            BottomDrawer(
+              context: context,
+              maxHeight: 200,
+              //  content: _tripCards,
+              globalKey: _scrollKey,
+
+              //  requestClose: closeAndUpdateDrawer,
+              imageRepository: _imageRepository,
+              onOpened: onOpened,
+            ),
+
+          /// getDirections shows the turn-by-turn navigation details
+          getDirections(_directionsIndex),
+
+          /// The StatusBar allows the showing of messages and the KeyScale.
+          /// At the moment the KeyScale is always right justified.
+          /// There is only one BarMessage widget catered for
+          /// ToDo: Allow more flexible status bar messages
+
+          if (kIsWeb) ...[]
+        ],
+     */
+      //,
+      // ); // GesureDetector
     } catch (e) {
       return Center(child: Text('Bugger: ${e.toString()}'));
     }

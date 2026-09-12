@@ -11,7 +11,7 @@ import '/classes/classes.dart';
 import 'package:flutter/material.dart' hide Route;
 // import 'package:latlong2/latlong.dart';
 import '/classes/route.dart';
-import 'package:vector_map_tiles/vector_map_tiles.dart';
+// import 'package:vector_map_tiles/vector_map_tiles.dart';
 // import 'package:path_provider/path_provider.dart';
 
 // import '/classes/classes.dart';
@@ -251,9 +251,6 @@ class ImageRepository {
     key = key.isNotEmpty ? key : getFileName(url: uri);
 
     if (!_imageCache.containsKey(key)) {
-      // key = _imageCache.length;
-      // isEmpty ? 0 : _imageCache.keys.last + 1;
-
       if (id >= 0 && !kIsWeb) {
         Uint8List? imageBytes =
             await getPrivateRepository().loadImageByIdLocal(id: id);

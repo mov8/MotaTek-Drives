@@ -1,7 +1,5 @@
 import 'dart:async';
-import 'dart:math';
 import 'dart:developer' as developer;
-import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import '/classes/route.dart' as mt;
 import '/routes/routes.dart';
@@ -40,23 +38,6 @@ class DataStream<T> {
     streamController.close();
   }
 }
-
-/*
-class NavigationService {
-  static final NavigationService _instance = NavigationService._internal();
-  factory NavigationService() => _instance;
-  NavigationService._internal();
-*/
-/*
-class PositionService {
-  static final PositionService() _instance = PositionService._internal();
-  factory PositionService() => _instance;
-  PositionService._internal();
-
-  return;
-
-}
-*/
 
 class PositionService {
   static final PositionService _instance = PositionService._internal();

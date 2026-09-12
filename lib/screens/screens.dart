@@ -5,7 +5,7 @@ export '/screens/documentation.dart';
 export '/screens/group_member.dart';
 export '/screens/group_messages.dart';
 export '/screens/group.dart';
-export '/screens/home.dart';
+export 'markdown.dart';
 export '/screens/introduce.dart';
 export '/screens/invitations.dart';
 export '/screens/main_drawer.dart';

@@ -12,7 +12,7 @@ import '/models/models.dart';
 import '/classes/classes.dart';
 import '/tiles/tiles.dart';
 import 'package:socket_io_client/socket_io_client.dart' as sio;
-import 'package:flutter_phone_direct_caller/flutter_phone_direct_caller.dart';
+// import 'package:flutter_phone_direct_caller/flutter_phone_direct_caller.dart';
 //import '/screens/screens.dart';
 
 const Duration fakeAPIDuration = Duration(seconds: 1);
@@ -554,8 +554,8 @@ AlertDialog contactDiolog({
               children: [
                 ElevatedButton(
                   onPressed: () async {
-                    await FlutterPhoneDirectCaller.callNumber(
-                        follower["phoneNumber"] ?? '');
+                    //  await FlutterPhoneDirectCaller.callNumber(
+                    //      follower["phoneNumber"] ?? '');
                   },
                   child: Expanded(
                     flex: 1,
@@ -1084,7 +1084,6 @@ Future<LoginState> loginDialog(BuildContext context,
                               /// The Web version will only save the JWT but will have to retrieve the
                               /// setup Json Object from the api that contains full user details and colours etc
                               Setup().saveUser();
-                              focusNode.dispose();
                               Navigator.pop(context, LoginState.login);
                             } else {
                               setState(() =>
@@ -1122,12 +1121,10 @@ Future<LoginState> loginDialog(BuildContext context,
               onPressed: () async {
                 if (loginStatus == LoginStatus.emailUnknown) {
                   Setup().user = user;
-                  focusNode.dispose();
                   Navigator.pop(context, LoginState.register);
                 } else if ((user.password.isEmpty ||
                     loginStatus == LoginStatus.passwordUnknown)) {
                   Setup().user = user;
-                  focusNode.dispose();
                   Navigator.pop(context, LoginState.resetPassword);
                 } else {
                   Map<String, dynamic> response =
@@ -1136,7 +1133,6 @@ Future<LoginState> loginDialog(BuildContext context,
                   if (context.mounted && status == 'OK') {
                     Setup().user = user;
                     Setup().saveUser();
-                    focusNode.dispose();
                     Navigator.pop(context, LoginState.login);
                   }
                   if ([204, 401].contains(response["response_status_code"])) {
@@ -1152,7 +1148,7 @@ Future<LoginState> loginDialog(BuildContext context,
             ),
           TextButton(
             onPressed: () {
-              focusNode.dispose();
+              //  focusNode.dispose();
               Navigator.pop(context, LoginState.cancel);
             },
             child: const Text(
@@ -1164,6 +1160,7 @@ Future<LoginState> loginDialog(BuildContext context,
       ),
     ),
   );
+  focusNode.dispose;
   return loginState ?? LoginState.cancel;
 }
 

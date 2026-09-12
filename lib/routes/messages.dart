@@ -66,7 +66,7 @@ class _MessagesState extends State<Messages> {
     'transports': ['websocket'], // Specify WebSocket transport
     'autoConnect': false, // Prevent auto-connection
   });
-
+/*
   HomeItem homeItem = HomeItem(
       heading: 'Keep in contact ',
       subHeading: 'Message group members or individuals.',
@@ -74,7 +74,7 @@ class _MessagesState extends State<Messages> {
           'Tell members about new events, or keep in contact on a group drive',
       uri: 'assets/images',
       imageUrls: '[{"url": "assets/images/message.png", "caption": ""}]');
-
+*/
   @override
   void initState() {
     super.initState();
@@ -150,26 +150,26 @@ class _MessagesState extends State<Messages> {
   }
 
   Widget _getPortraitBody() {
-    if (Setup().user.email.isEmpty || !Setup().hasLoggedIn) {
+    /*  if (Setup().user.email.isEmpty || !Setup().hasLoggedIn) {
       return HomeTile(
         homeItem: homeItem,
         imageRepository: _imageRepository,
       );
-    } else {
-      return _tileSelected == -1
-          ? MessagesSummaryForm(
-              mailItems: _mailItems,
-              onTap: (index) => setState(() => onSummaryTileTap(index: index)),
-              onNewContact: () => setState(() => _addContact = false),
-              addContact: _addContact,
-            )
-          : MessageDetailsForm(
-              messages: _messages,
-              email: _mailItems[_tileSelected].email,
-              isGroup: _mailItems[_tileSelected].isGroup,
-              socket: socket,
-            );
-    }
+    } else { */
+    return _tileSelected == -1
+        ? MessagesSummaryForm(
+            mailItems: _mailItems,
+            onTap: (index) => setState(() => onSummaryTileTap(index: index)),
+            onNewContact: () => setState(() => _addContact = false),
+            addContact: _addContact,
+          )
+        : MessageDetailsForm(
+            messages: _messages,
+            email: _mailItems[_tileSelected].email,
+            isGroup: _mailItems[_tileSelected].isGroup,
+            socket: socket,
+          );
+    //   }
   }
 
   void appendEmptyMessage() {

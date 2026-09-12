@@ -1,11 +1,102 @@
-import 'package:drives/constants.dart';
 import 'package:flutter/material.dart';
+import 'dart:typed_data';
+import 'dart:convert';
 import '/models/other_models.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import '/classes/classes.dart';
 import 'package:universal_io/universal_io.dart';
 import 'package:intl/intl.dart';
-import 'dart:developer' as developer;
 import '/helpers/helpers.dart';
+import '/constants.dart';
+
+/// An example of a widget with a controller.
+/// The controller allows to the widget to be controlled externally
+/// In this case I wanted the widget to edit the data independantly
+/// of the external data and update the external data when the save method is called
+/// accessing the save method is achieved through the controller
+///
+Map ShopMarkdownStyle = {
+  // 'h1': TextStyle(color: Colors.blue, fontSize: 24, fontWeight: FontWeight.bold), //
+  'h1': {'color': Colors.blue, 'fontSize': 24.0, 'fontWeight': FontWeight.bold},
+  'h2': {'color': Colors.blue, 'fontSize': 22.0, 'fontWeight': FontWeight.bold},
+  'h3': {
+    'color': Colors.black,
+    'fontSize': 20.0,
+    'fontWeight': FontWeight.bold
+  },
+  'h4': {
+    'color': Colors.black,
+    'fontSize': 18.0,
+    'fontWeight': FontWeight.bold
+  },
+  'tableHead': {
+    'color': Colors.black,
+    'fontSize': 18.0,
+    'fontWeight': FontWeight.bold
+  },
+  'tableBody': {
+    'color': Colors.black,
+    'fontSize': 16.0,
+    'fontWeight': FontWeight.bold
+  },
+  'tableAlign': TextAlign.start,
+  'backquote': {
+    'color': Colors.black,
+    'fontSize': 20.0,
+    'fontWeight': FontWeight.bold
+  },
+  'code': {
+    'color': Colors.black,
+    'fontSize': 16.0,
+    'fontWeight': FontWeight.bold
+  },
+};
+
+String mdShopData = '''
+
+# Drives Free Trip Planning App
+--- 
+
+Name  | Favorite Color
+------------- | -------------
+Rooney  | Red
+Fred  | Blue
+Lisa  | Yellow
+Kyle  | Maroon
+Sammy  | Blue
+  
+> blockquote  
+
+
+>[!INFO]  
+>Callout  
+
+
+  ---
+
+# My New Blog Post
+
+### What I did today!
+#### *December 25, 2020*
+Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+
+---
+
+# My Second post about new code!
+**Check out this code snippet**
+
+``` dart 
+main() {
+  var poemLines = lines(poem);
+  print(yell(poemLines.first));
+
+  // functions are first-class
+  var whisper = (String str) => str.toLowerCase();
+  print(poemLines.map(whisper).last);
+}
+```
+''';
 
 class ShopItemTileController {
   _ShopItemTileState? _shopItemTileState;
@@ -34,40 +125,39 @@ class ShopItemTileController {
       debugPrint('Error getting photos: $err');
     }
   }
-
-  void addLink() {
-    assert(isAttached, 'Controller must be attached to widget to clear');
-    try {
-      _shopItemTileState?.addLink();
-    } catch (e) {
-      String err = e.toString();
-      debugPrint('Error getting photos: $err');
-    }
-  }
 }
 
 class ShopItemTile extends StatefulWidget {
+//  final PointOfInterestController? pointOfInterestController;
   final ShopItem shopItem;
   final ShopItemTileController controller;
   final int index;
+  final Function(int)? onIconTap;
   final Function(bool, ShopItemTileController)? onExpandChange;
+  final Function(int)? onDelete;
+  final Function(int)? onAddImage;
   final Function(int, int)? onRated;
   final Function(int)? onChange;
+  final Function(int)? onSelect; // final Key key;
   final bool expanded;
   final bool canEdit;
-  bool? changed;
-  ShopItemTile({
-    super.key,
-    required this.controller,
-    required this.index,
-    required this.shopItem,
-    this.onExpandChange,
-    this.onRated,
-    this.onChange,
-    this.expanded = false,
-    this.canEdit = true,
-  });
-//      this.onSelect});
+  final bool code;
+
+  ShopItemTile(
+      {super.key,
+      required this.index,
+      required this.shopItem,
+      required this.controller,
+      this.onIconTap,
+      this.onExpandChange,
+      this.onDelete,
+      this.onAddImage,
+      this.onChange,
+      this.onRated,
+      this.expanded = false,
+      this.canEdit = true,
+      this.code = true,
+      this.onSelect});
   @override
   State<ShopItemTile> createState() => _ShopItemTileState();
 }
@@ -75,12 +165,15 @@ class ShopItemTile extends StatefulWidget {
 class _ShopItemTileState extends State<ShopItemTile> {
   late int index;
   int imageUrlLength = 0;
-  int _links = 0;
+  int imageIndex = 0;
   bool expanded = true;
   bool canEdit = true;
   DateFormat dateFormat = DateFormat("dd MMM yy");
+  TextEditingController _textEditingController = TextEditingController();
+  FocusNode fn1 = FocusNode();
   List<Photo> photos = [];
-  List<String> covers = [
+
+  final List<String> covers = [
     'all',
     'North',
     'North West',
@@ -91,10 +184,10 @@ class _ShopItemTileState extends State<ShopItemTile> {
     'South West',
     'South East'
   ];
-  int imageIndex = 0;
+
   List<DropdownMenuItem<String>> dropDownMenuItems = [];
-  ExpansibleController _expansibleController = ExpansibleController();
-  List<FocusNode> linkNodes = [FocusNode(), FocusNode()];
+  final ExpansibleController _expansibleController = ExpansibleController();
+  final ImageRepository _imageRepository = ImageRepository();
 
   @override
   void initState() {
@@ -103,20 +196,20 @@ class _ShopItemTileState extends State<ShopItemTile> {
     expanded = widget.expanded;
     canEdit = widget.canEdit;
     index = widget.index;
+    photos = photosFromJson(
+      photoString: jsonEncode(widget.shopItem.images),
+      endPoint: '$urlShopItem/images/${widget.shopItem.uri}/',
+    );
     dropDownMenuItems = covers
         .map(
           (item) => DropdownMenuItem<String>(value: item, child: Text(item)),
         )
         .toList();
-    _links = widget.shopItem.url1.isNotEmpty ? 1 : 0;
-    _links = widget.shopItem.url2.isNotEmpty ? 2 : _links;
-    //  getPhotos();
   }
 
   @override
   void dispose() {
-    linkNodes[0].dispose();
-    linkNodes[1].dispose();
+    fn1.dispose();
     super.dispose();
   }
 
@@ -131,406 +224,51 @@ class _ShopItemTileState extends State<ShopItemTile> {
 
   getPhotos() {
     try {
-      imageUrlLength = widget.shopItem.imageUrls.length;
       photos = photosFromJson(
-          photoString: widget.shopItem.imageUrls,
-          endPoint: '$urlShopItem/images/${widget.shopItem.uri}/');
-      imageIndex = 0;
+        photoString: jsonEncode(widget.shopItem.images),
+        endPoint: '$urlShopItem/images/${widget.shopItem.uri}/',
+      );
+      imageUrlLength = widget.shopItem.images!.length;
     } catch (e) {
       debugPrint('Error: ${e.toString()}');
     }
   }
 
-  addLink() {
-    if (_links < 2) {
-      _links++;
-      setState(() => linkNodes[_links - 1].requestFocus());
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    if (widget.shopItem.imageUrls.length != imageUrlLength) {
+    if (widget.shopItem.images!.length != imageUrlLength) {
       getPhotos();
     }
-
-    return RrExpansionTile(
-      context: context,
-      child: ExpansionTile(
-        controller: _expansibleController,
-        title: widget.shopItem.heading == ''
-            ? Text(
-                'Add a home page item',
-                style: headlineStyle(
-                    context: context, size: 2, color: Colors.black),
-              )
-            : Text(
-                widget.shopItem.heading,
-                style: headlineStyle(
-                    context: context, size: 2, color: Colors.black),
-              ),
-        subtitle: Row(children: [
-          Expanded(
-              flex: 1,
-              child: Text(
-                'pub ${dateFormat.format(DateTime.now())}',
-                style:
-                    textStyle(context: context, size: 3, color: Colors.black),
-              )),
-          Expanded(
-              flex: 1,
-              child: Text('rank 0',
-                  style: textStyle(
-                      context: context, size: 3, color: Colors.black)))
-        ]),
-        onExpansionChanged: (expanded) =>
-            widget.onExpandChange!(expanded, widget.controller),
-        children: [
-          SizedBox(
-            height: 950,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(5, 5, 0, 30),
-              child: Column(
-                children: <Widget>[
-                  Row(children: [
-                    Expanded(
-                      flex: 2,
-                      child: DropdownButtonFormField<String>(
-                        decoration: InputDecoration(
-                          border: OutlineInputBorder(),
-                          labelStyle: labelStyle(
-                              context: context, color: Colors.black, size: 2),
-                          labelText: 'Coverage',
-                          hintStyle: hintStyle(
-                              context: context, color: Colors.blueGrey),
-                        ),
-                        initialValue: widget.shopItem.coverage,
-                        items: dropDownMenuItems,
-                        style: textStyle(
-                            context: context, color: Colors.black, size: 2),
-                        onChanged: (item) {
-                          widget.shopItem.coverage = item ?? 'all';
-                          widget.onChange!(index);
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      flex: 1,
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
-                        child: TextFormField(
-                            //   readOnly: !canEdit,
-                            initialValue: widget.shopItem.score.toString(),
-                            autofocus: true,
-                            textInputAction: TextInputAction.next,
-                            textAlign: TextAlign.start,
-                            keyboardType: const TextInputType
-                                .numberWithOptions(), //for(i = -1; i < 100; i++) i.toString()],
-                            textCapitalization: TextCapitalization.sentences,
-                            decoration: InputDecoration(
-                              border: OutlineInputBorder(),
-                              hintText: "-1 invisible higher the better",
-                              labelText: 'Ad ranking',
-                              labelStyle: labelStyle(
-                                  context: context,
-                                  size: 2,
-                                  color: Colors.black),
-                            ),
-                            style: textStyle(
-                                context: context,
-                                size: 2,
-                                color: Colors
-                                    .black), //Theme.of(context).textTheme.bodyLarge,
-                            autovalidateMode:
-                                AutovalidateMode.onUserInteraction,
-                            onChanged: (text) {
-                              widget.onChange!(index);
-                              widget.shopItem.heading = text;
-                            }),
-                      ),
-                    ),
-                  ]),
-                  Row(children: [
-                    Expanded(
-                      flex: 1,
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
-                        child: TextFormField(
-                            //   readOnly: !canEdit,
-                            initialValue: widget.shopItem.heading,
-                            autofocus: true,
-                            textInputAction: TextInputAction.next,
-                            textAlign: TextAlign.start,
-                            keyboardType: TextInputType.streetAddress,
-                            textCapitalization: TextCapitalization.sentences,
-                            decoration: InputDecoration(
-                              border: OutlineInputBorder(),
-                              hintText: "What is the promotion's heading...",
-                              labelText: 'Promotion heading',
-                              labelStyle: labelStyle(
-                                  context: context,
-                                  size: 2,
-                                  color: Colors.black),
-                            ),
-                            style: textStyle(
-                                context: context,
-                                size: 2,
-                                color: Colors
-                                    .black), //Theme.of(context).textTheme.bodyLarge,
-                            //   style:Theme.of(context).textTheme.bodyLarge,
-                            autovalidateMode:
-                                AutovalidateMode.onUserInteraction,
-                            onChanged: (text) {
-                              widget.onChange!(index);
-                              widget.shopItem.heading = text;
-                            }),
-                      ),
-                    ),
-                  ]),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
-                          child: TextFormField(
-                              readOnly: !canEdit,
-                              initialValue: widget.shopItem.subHeading,
-                              autofocus: canEdit,
-                              textInputAction: TextInputAction.next,
-                              textAlign: TextAlign.start,
-                              keyboardType: TextInputType.streetAddress,
-                              textCapitalization: TextCapitalization.sentences,
-                              decoration: InputDecoration(
-                                border: OutlineInputBorder(),
-                                hintText:
-                                    "What is the shop item's sub-heading...",
-                                labelText: 'Shop item sub-heading',
-                                labelStyle: labelStyle(
-                                    context: context,
-                                    size: 2,
-                                    color: Colors.black),
-                              ),
-                              style: textStyle(
-                                  context: context,
-                                  size: 2,
-                                  color: Colors
-                                      .black), //Theme.of(context).textTheme.bodyLarge,
-                              //style: Theme.of(context).textTheme.bodyLarge,
-                              autovalidateMode:
-                                  AutovalidateMode.onUserInteraction,
-                              onChanged: (text) {
-                                widget.onChange!(index);
-                                widget.shopItem.subHeading = text;
-                              }),
-                        ),
-                      )
-                    ],
-                  ),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
-                          child: TextFormField(
-                              readOnly: !canEdit,
-                              maxLines: null,
-                              textInputAction: TextInputAction.done,
-                              //     expands: true,
-                              initialValue: widget.shopItem.body,
-                              textAlign: TextAlign.start,
-                              keyboardType: TextInputType.streetAddress,
-                              textCapitalization: TextCapitalization.sentences,
-                              decoration: InputDecoration(
-                                border: OutlineInputBorder(),
-                                hintText: 'Promo content...',
-                                labelText: 'Promotion body',
-                                labelStyle: labelStyle(
-                                    context: context,
-                                    size: 2,
-                                    color: Colors.black),
-                              ),
-                              style: textStyle(
-                                  context: context,
-                                  size: 2,
-                                  color: Colors
-                                      .black), //Theme.of(context).textTheme.bodyLarge,
-                              // style: Theme.of(context).textTheme.bodyLarge,
-                              autovalidateMode:
-                                  AutovalidateMode.onUserInteraction,
-                              onChanged: (text) {
-                                widget.onChange!(index);
-                                widget.shopItem.body = text;
-                              }
-                              //body = text
-                              ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (widget.shopItem.imageUrls.isNotEmpty)
-                    Column(
-                      children: [
-                        Row(
-                          children: <Widget>[
-                            Expanded(
-                              flex: 8,
-                              child: ImageArranger(
-                                onChange: (idx) => setState(() {
-                                  widget.onChange!(index);
-                                  imageIndex = idx;
-                                }),
-                                //  urlChange: (_) {},
-                                urlChange: (imageUrls) =>
-                                    widget.shopItem.imageUrls = imageUrls,
-                                photos: photos,
-                                endPoint: '', // widget.homeItem.uri,
-                                showCaptions: true,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  if (widget.shopItem.links > 0) ...[
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
-                            child: TextFormField(
-                              readOnly: !canEdit,
-                              focusNode: linkNodes[0],
-                              initialValue: widget.shopItem.buttonText1,
-                              textInputAction: TextInputAction.next,
-                              textAlign: TextAlign.start,
-                              keyboardType: TextInputType.streetAddress,
-                              textCapitalization: TextCapitalization.sentences,
-                              decoration: const InputDecoration(
-                                border: OutlineInputBorder(),
-                                hintText: "Link button label",
-                                labelText: 'Button 1 label',
-                              ),
-                              style: textStyle(
-                                  context: context,
-                                  size: 2,
-                                  color: Colors.black),
-                              autovalidateMode:
-                                  AutovalidateMode.onUserInteraction,
-                              onChanged: (text) {
-                                widget.onChange!(index);
-                                widget.shopItem.buttonText1 = text;
-                              },
-                            ),
-                          ),
-                        )
-                      ],
-                    ),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
-                            child: TextFormField(
-                              //  readOnly: !canEdit,
-                              initialValue: widget.shopItem.url1,
-                              textInputAction: _links > 1
-                                  ? TextInputAction.next
-                                  : TextInputAction.done,
-                              textAlign: TextAlign.start,
-                              keyboardType: TextInputType.url,
-                              textCapitalization: TextCapitalization.none,
-                              decoration: const InputDecoration(
-                                border: OutlineInputBorder(),
-                                hintText: "What is the link url for button 1",
-                                labelText: 'Link 1 url',
-                              ),
-                              style: textStyle(
-                                  context: context,
-                                  size: 2,
-                                  color: Colors.black),
-                              autovalidateMode:
-                                  AutovalidateMode.onUserInteraction,
-                              onChanged: (text) {
-                                widget.onChange!(index);
-                                widget.shopItem.url1 = text;
-                              },
-                            ),
-                          ),
-                        )
-                      ],
-                    ),
-                  ],
-                  if (widget.shopItem.links > 1) ...[
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
-                            child: TextFormField(
-                              initialValue: widget.shopItem.buttonText1,
-                              focusNode: linkNodes[1],
-                              textInputAction: TextInputAction.next,
-                              textAlign: TextAlign.start,
-                              keyboardType: TextInputType.streetAddress,
-                              textCapitalization: TextCapitalization.sentences,
-                              decoration: const InputDecoration(
-                                border: OutlineInputBorder(),
-                                hintText: "Link button label",
-                                labelText: 'Button 2 label',
-                              ),
-                              style: textStyle(
-                                  context: context,
-                                  size: 2,
-                                  color: Colors.black),
-                              autovalidateMode:
-                                  AutovalidateMode.onUserInteraction,
-                              onChanged: (text) {
-                                widget.onChange!(index);
-                                widget.shopItem.buttonText2 = text;
-                              },
-                            ),
-                          ),
-                        )
-                      ],
-                    ),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
-                            child: TextFormField(
-                              initialValue: widget.shopItem.url1,
-                              textInputAction: TextInputAction.done,
-                              textAlign: TextAlign.start,
-                              keyboardType: TextInputType.streetAddress,
-                              textCapitalization: TextCapitalization.sentences,
-                              decoration: const InputDecoration(
-                                border: OutlineInputBorder(),
-                                hintText: "What is the link url for button 2",
-                                labelText: 'Link 2 url',
-                              ),
-                              style: textStyle(
-                                  context: context,
-                                  size: 2,
-                                  color: Colors.black),
-                              autovalidateMode:
-                                  AutovalidateMode.onUserInteraction,
-                              onChanged: (text) {
-                                widget.onChange!(index);
-                                widget.shopItem.url2 = text;
-                              },
-                            ),
-                          ),
-                        )
-                      ],
-                    ),
-                  ],
-                ],
-              ),
-            ),
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Center(
+            child: Markdown(
+          data: mdShopData,
+          styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
+            p: Theme.of(context)
+                .textTheme
+                .bodyMedium
+                ?.copyWith(color: Colors.black),
+            h1: const TextStyle(
+                color: Colors.blue, fontSize: 24, fontWeight: FontWeight.bold),
+            h2: const TextStyle(
+                color: Colors.blue, fontSize: 22, fontWeight: FontWeight.bold),
+            h3: const TextStyle(
+                color: Colors.black, fontSize: 20, fontWeight: FontWeight.bold),
+            h4: const TextStyle(
+                color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold),
+            tableBody: const TextStyle(
+                color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold),
+            tableHead: const TextStyle(
+                color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold),
+            tableHeadAlign: TextAlign.start,
+            blockquote: const TextStyle(
+                color: Colors.black, fontSize: 20, fontWeight: FontWeight.bold),
+            code: const TextStyle(
+                color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold),
           ),
-        ],
+        )),
       ),
     );
   }
@@ -548,6 +286,31 @@ class _ShopItemTileState extends State<ShopItemTile> {
 
   expand(bool state, bool canEdit) {
     expanded = state;
+  }
+
+  loadImage(int id) async {
+    if (widget.index == id) {
+      int imageCount = photos.length + 1;
+      final ImagePicker picker = ImagePicker();
+      final XFile? xImage = await picker.pickImage(source: ImageSource.gallery);
+      if (xImage != null) {
+        try {
+          String name = '${getUuid()}.${xImage.name.split(".").last}';
+          Uint8List bytes = await xImage.readAsBytes();
+          var imageMap =
+              await _imageRepository.loadImage(bytes: bytes, uri: name);
+          // get the new key's value to access the image
+          String key = imageMap.keys.first;
+          Photo newPhoto = Photo(
+              url: name, caption: 'image $imageCount', rotation: 0, key: key);
+          photos.add(newPhoto);
+          _expansibleController.expand(); // <-- Stop keyboard closing
+          setState(() => fn1.requestFocus());
+        } catch (e) {
+          debugPrint('Error saving temporary image: ${e.toString()}');
+        }
+      }
+    }
   }
 
   Widget showLocalImage(String url, {index = -1}) {

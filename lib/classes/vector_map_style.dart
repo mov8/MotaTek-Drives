@@ -1,3 +1,4 @@
+/*
 import 'package:universal_io/universal_io.dart';
 import 'dart:convert';
 import 'dart:async';
@@ -5,9 +6,9 @@ import 'package:flutter/foundation.dart';
 import 'package:latlong2/latlong.dart';
 import '/constants.dart';
 import '/services/services.dart';
-import 'package:vector_tile_renderer/vector_tile_renderer.dart';
+// import 'package:vector_tile_renderer/vector_tile_renderer.dart';
 import '/classes/classes.dart';
-import 'package:vector_map_tiles/vector_map_tiles.dart';
+// import 'package:vector_map_tiles/vector_map_tiles.dart';
 
 /// Stackoverflow descripion of extending TileProvide to cache
 /// https://stackoverflow.com/questions/79609507/how-to-cache-map-tiles-in-flutter-using-flutter-map-for-offline-usage
@@ -135,3 +136,4 @@ class DrivesStyleReader {
     return providers;
   }
 }
+*/

@@ -1,4 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import '/services/navigation_service.dart';
 import '../constants.dart';
 import 'dart:developer' as developer;
 import '/helpers/helpers.dart';
@@ -60,7 +63,7 @@ class _SideToolbarState extends State<SideToolbar>
         children: [
           for (int i = 0; i < widget.buttons.length; i++)
             Row(children: [
-              Expanded(child: SizedBox(width: double.infinity)),
+              //    Expanded(child: SizedBox(width: double.infinity)),
               widget.buttons[i]
             ]),
         ],
@@ -76,7 +79,7 @@ class _SideToolbarState extends State<SideToolbar>
     setState(() => width = 0);
   }
 }
-
+/*
 List<double> heights = [20, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60];
 List<double> iconSizes = [15, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30];
 List<Function> dropdownTools = [
@@ -144,19 +147,6 @@ List<String> titles = [
   'bock quote text',
   'code text'
 ];
-/*
-  @override
-  build(BuildContext context) {
-    return getFormatEditors(
-        heights: heights,
-        iconSizes: iconSizes,
-        dropdownTools: dropdownTools,
-        icons: icons,
-        onSelects: onSelects,
-        styleKeys: styleKeys,
-        titles: titles);
-  }
-*/
 List<Widget> getFormatEditors(
     {double top = 10,
     double right = 5,
@@ -193,6 +183,7 @@ List<Widget> getFormatEditors(
   }
   return editors;
 }
+*/
 
 /// The FormatEditor class creates the animated tool bar that displays
 /// a series of CompactDropdowns along the bar
@@ -228,129 +219,158 @@ class FormatEditor<T> extends StatefulWidget {
 class _FormatEditorState extends State<FormatEditor>
     with TickerProviderStateMixin {
   double _expandedWidth = 0;
-  double _width = 45;
+  double _width = 50;
   double _height = 40;
   double _collapsedWidth = 40;
   bool _end = true;
-  // bool _hidden = true;
+  bool _hidden = true;
+
   @override
   void initState() {
     super.initState();
-    _width = widget.width; // <-- Button size + 20 works
+
+    // <-- Button size + 20 works
     _height = widget.height; // widget.index == 0 ? 10 : _width;
-    _collapsedWidth = _width;
-    // _hidden = widget.hidden;
+    _collapsedWidth = widget.width; //- 20;
+    _hidden = widget.hidden;
+    _width = 0;
   }
 
   @override
   Widget build(BuildContext context) {
-    _expandedWidth = MediaQuery.of(context).size.width - 25;
-    return AnimatedContainer(
-      color: Colors.blue,
-      duration: const Duration(seconds: 1),
-      width: widget.hidden ? 0 : _width, //_collapsedWidth,
-      height: _height,
-      onEnd: (() => setState(() => _end = true)),
-      curve: Curves.fastOutSlowIn,
-      child: SizedBox(
-        width: double.infinity,
-        height: _height,
-        child: Container(
-          color: Colors.red,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Expanded(
-                child: SizedBox(
-                  width: double.infinity,
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Column(
-                      children: [
-                        if (_end == true && _width == _expandedWidth) ...[
-                          Align(
-                            alignment: Alignment.center,
-                            child: Text(
-                              widget.title ?? 'Attribute',
-                              style: TextStyle(fontSize: 14),
-                            ),
-                          ),
-                          Padding(
-                            padding: EdgeInsets.only(left: 10),
-                            child: Row(
+    _expandedWidth = kIsWeb
+        ? (MediaQuery.of(context).size.width / 3) + 30
+        : MediaQuery.of(context).size.width - 25;
+    return widget.hidden
+        ? SizedBox()
+        : AnimatedContainer(
+            color: Colors.blue,
+            duration: const Duration(seconds: 1),
+            width: _width < _expandedWidth
+                ? _collapsedWidth
+                : _width, //_collapsedWidth,
+            height: _height,
+            onEnd: (() => setState(() => _end = true)),
+            curve: Curves.fastOutSlowIn,
+            child: SizedBox(
+              width: _width > 70 ? _width + 20 : _width, //double.infinity,
+              height: _height,
+              child: Container(
+                color: Colors.blue,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    if (_width > 70) ...[
+                      Expanded(
+                        child: SizedBox(
+                          width: _width, //double.infinity,
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: Column(
                               children: [
-                                for (int i = 0;
-                                    i < widget.tools.length;
-                                    i++) ...[
-                                  Expanded(
-                                    flex: 2,
-                                    child: Text(
-                                      // 'heading?',
-                                      widget.tools[i].heading,
-                                      style: TextStyle(fontSize: 14),
-                                    ),
+                                Expanded(
+                                  flex: 3,
+                                  child: Align(
+                                    alignment: Alignment.center,
+                                    child: Text(widget.title ?? 'Title',
+                                        style: TextStyle(fontSize: 14)),
                                   ),
-                                ],
+                                ),
+                                Expanded(
+                                  flex: 3,
+                                  child: Row(
+                                    children: [
+                                      if (_width == _expandedWidth && _end) ...[
+                                        for (int i = 0;
+                                            i < widget.tools.length;
+                                            i++) ...[
+                                          SizedBox(width: i == 0 ? 15 : 3),
+                                          Expanded(
+                                            flex: 2,
+                                            child: Text(
+                                              // 'heading?',
+                                              widget.tools[i].heading,
+                                              style: TextStyle(fontSize: 14),
+                                            ),
+                                          ),
+                                          SizedBox(
+                                            width: i == widget.tools.length - 1
+                                                ? 15
+                                                : 5,
+                                          ),
+                                        ],
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                                Expanded(
+                                  flex: 4,
+                                  child: Row(
+                                    children: [
+                                      if (_width == _expandedWidth && _end) ...[
+                                        for (int i = 0;
+                                            i < widget.tools.length;
+                                            i++) ...[
+                                          Expanded(
+                                            flex: 2,
+                                            child: SizedBox(
+                                              width: i == 0 ? 15 : 3,
+                                            ),
+                                          ),
+                                          widget.tools[i],
+                                          SizedBox(
+                                            width: i == widget.tools.length - 1
+                                                ? 15
+                                                : 5,
+                                          ),
+                                        ],
+                                      ],
+                                    ],
+                                  ),
+                                ),
                               ],
                             ),
                           ),
-                          Padding(
-                            padding: EdgeInsets.only(left: 10),
-                            child: Row(
-                              children: [
-                                for (int i = 0;
-                                    i < widget.tools.length;
-                                    i++) ...[
-                                  Expanded(
-                                    flex: 2,
-                                    child: widget.tools[i],
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
-                        ],
-                      ],
+                        ),
+                      ),
+                    ],
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: IconButton(
+                        onPressed: () {
+                          setState(
+                            () {
+                              /// index -1 = close button
+                              if (widget.onSelect != null && widget.index < 0) {
+                                widget.onSelect!('close');
+                              } else {
+                                _end = false;
+                                _width = _width < _expandedWidth
+                                    ? _expandedWidth
+                                    : _collapsedWidth;
+                                if (widget.onSelect != null &&
+                                    _width == _collapsedWidth) {
+                                  widget.onSelect!(widget.styleKey);
+                                }
+                              }
+                              // _end = !_end;
+                            },
+                          );
+                        },
+                        icon: widget.buttonIcon,
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               ),
-              Align(
-                alignment: Alignment.centerRight,
-                child: IconButton(
-                  onPressed: () {
-                    setState(
-                      () {
-                        if (widget.onSelect != null && widget.index < 0) {
-                          widget.onSelect!('close');
-                        } else {
-                          _end = false;
-                          _width = _width == _collapsedWidth
-                              ? _expandedWidth
-                              : _collapsedWidth;
-                          if (widget.onSelect != null &&
-                              _width == _collapsedWidth) {
-                            widget.onSelect!(widget.styleKey);
-                          }
-                        }
-                      },
-                    );
-                  },
-                  icon: widget.buttonIcon,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+            ),
+          );
   }
 }
 
+/// getButtons gets the contents of the SideToolbar that lets users change fonts etc
 List<FormatEditor> getButtons(
-    {required MdStyleSheet styleSheet, onUpdate, bool hidden = false}) {
-  developer.log('getButtons() called _hidden: $hidden', name: '_tools_');
-
+    {required MdStyleSheet styleSheet, onUpdate, bool hidden = true}) {
   return [
     FormatEditor(
       index: -1,

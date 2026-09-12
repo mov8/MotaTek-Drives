@@ -118,14 +118,19 @@ class _RoutesBottomNavState extends State<RoutesBottomNav>
   Widget build(BuildContext context) {
     //  debugPrint('selectedIndex: $_index');
     // int newIndex = 0;
-    developer.log(
-        'RoutesBottomNav().widget.initialValue: ${widget.initialValue} MapService().page: ${MapService().page}',
-        name: '_index_');
 
     /// The line below makes sure that the two map page bottom nav bar buttons are correct
-    _index = UIStateService().page == 0 ? NavigationService().page : _index;
+    _index = NavigationService().isWidget ? NavigationService().page : _index;
+    try {
+      developer.log(
+          'RoutesBottomNav().widget.initialValue: ${widget.initialValue} MapService().page: ${MapService().page} NaigationService().isWidget: ${NavigationService().isWidget} _index: $_index',
+          name: '_stack_');
+    } catch (e) {
+      developer.log('RoutesBottomNav().error: ${e.toString()}',
+          name: '_stack_');
+    }
 
-    return UIStateService().page == 0
+    return NavigationService().isWidget // <-- Use Widget
         ? Align(
             alignment: Alignment.bottomLeft,
             child: NavigationBar(
@@ -133,7 +138,10 @@ class _RoutesBottomNavState extends State<RoutesBottomNav>
               height: 60,
               surfaceTintColor: Colors.blue,
               onDestinationSelected: (int index) {
-                UIStateService().setPage([1, 2].contains(index) ? 0 : 1);
+                developer.log(
+                    'RoutesBottomNav().onDestinatioSelected: $index, UIStateService().page == 0',
+                    name: '_stack_');
+                //    index = NavigationService().isWidget ? 0 : 1;
                 NavigationService().navigateTo(routes[index], TripArguments());
                 MapService()
                     .setPage(page: index); //   <-- Ensures correct cache loaded
@@ -166,12 +174,20 @@ class _RoutesBottomNavState extends State<RoutesBottomNav>
             ),
           ) //;
         : NavigationBar(
+            // <-- Use Page
             elevation: 5,
             height: 60,
             surfaceTintColor: Colors.blue,
             onDestinationSelected: (int index) {
               try {
-                UIStateService().setPage([1, 2].contains(index) ? 0 : 1);
+                // developer.log(
+                //     'RoutesBottomNav().onDestinatioSelected: $index, UIStateService().page == ${UIStateService().page}',
+                //    name: '_stack_');
+                // index = 1 or 2 means that the
+                // UIStateService().setPage([1, 2].contains(index) ? 0 : 1);
+                developer.log(
+                    'NavigationBar().onDestinationSelected(index : $index)',
+                    name: '_nav_');
                 _index = index;
                 NavigationService()
                     .setPage(index); //  <-- Controls this the RoutesBottomNav
@@ -185,7 +201,7 @@ class _RoutesBottomNavState extends State<RoutesBottomNav>
               }
             },
             indicatorColor: Colors.lightBlue,
-            selectedIndex: _index,
+            selectedIndex: NavigationService().page, //_index,
             labelTextStyle: WidgetStateProperty.resolveWith<TextStyle>(
               (Set<WidgetState> states) {
                 // If the tab is currently selected:
@@ -206,17 +222,26 @@ class _RoutesBottomNavState extends State<RoutesBottomNav>
             destinations: List<Widget>.generate(
               6,
               (index) => _navigationDestination(
-                  index: index, badgeValue: badgeValues[index]),
+                index: index,
+                badgeValue: badgeValues[index],
+              ),
             ),
           );
   }
 
   NavigationDestination _navigationDestination(
       {required int index, badgeValue = 0}) {
+    developer.log('RoutesBottomNav()._navigationDestination($index)',
+        name: '_stack_');
+
     if (badgeValue == 0) {
       return NavigationDestination(
-        selectedIcon: Icon(routeNavIconsSelected[index]),
-        icon: Icon(routeNavIcons[index]),
+        selectedIcon: Icon(
+          routeNavIconsSelected[index],
+        ),
+        icon: Icon(
+          routeNavIcons[index],
+        ),
         label: routeNavLabels[index],
       );
     } else {
@@ -224,13 +249,17 @@ class _RoutesBottomNavState extends State<RoutesBottomNav>
         icon: Badge(
           label: Text(badgeValue
               .toString()), // _messages.isEmpty ? null : Text(_messages.length.toString()),
-          child: Icon(routeNavIcons[index]),
+          child: Icon(
+            routeNavIcons[index],
+          ),
         ),
         selectedIcon: Badge(
           label: Text(
             badgeValue.toString(),
           ),
-          child: Icon(routeNavIconsSelected[index]),
+          child: Icon(
+            routeNavIconsSelected[index],
+          ),
         ),
         label: routeNavLabels[index],
       );

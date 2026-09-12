@@ -1,6 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+/*
+
+ double unitHeightValue = MediaQuery.of(context).size.height * 0.01;
+ double multiplier = 25;
+ return Text(
+  'Some Text', 
+  style: TextStyle(
+    fontSize: multiplier * unitHeightValue,
+  ),
+ );
+
+*/
+
 TextStyle hintStyle({required BuildContext context, color = Colors.blueGrey}) {
   return Theme.of(context).textTheme.bodySmall!.copyWith(color: color);
 }

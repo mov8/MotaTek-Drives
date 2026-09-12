@@ -88,6 +88,7 @@ class _CreateTripStackState extends State<CreateTripStack>
     super.initState();
     widget.controller?._addState(this);
     _dataLoaded = dataFromDatabase();
+    developer.log('CreateTripStack().initState run', name: '_stack_');
     if (CurrentTripItem().routes.isNotEmpty) {
       CurrentTripItem().mapUpdates = MapUpdates.updateAll;
     } else {
@@ -118,7 +119,7 @@ class _CreateTripStackState extends State<CreateTripStack>
         } else if (snapshot.hasData) {
           try {
             developer.log('CreateTrip().build() snapshot.hasData',
-                name: '_map_');
+                name: '_stack_');
             Widget body = _getPortraitBody();
             return body;
           } catch (e) {
@@ -235,7 +236,7 @@ class _CreateTripStackState extends State<CreateTripStack>
                   child: CreateTripChips(
                     createTripController: MapService().createTripController,
                     onUpdate: (_) {
-                      setState(() => UIStateService().notify());
+                      // setState(() => UIStateService().notify());
                     },
                   ),
                 ),
