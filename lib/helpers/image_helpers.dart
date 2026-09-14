@@ -56,28 +56,7 @@ class ImageTempStore {
 ///   3 Homepage images
 ///   4 Shop images
 /// They will be held in their parent objects so their origin will be maintained.
-/*
-class ImageInMemory {
-  final String name;
-  Uint8List? _imageBytes;
-  String caption = '';
-  int rotation = 0;
-  ImageInMemory({
-    this.name = '',
-    Uint8List? imageBytes,
-  }) : _imageBytes = imageBytes ?? Uint8List(0);
-  
-  String get asString =>
-      jsonEncode({'url': name, 'caption': caption, 'rotation': rotation});
-  Map<String, dynamic> get asJson =>
-      {'url': name, 'caption': caption, 'rotation': rotation};
 
-  Uint8List get imageBytes => _imageBytes ?? Uint8List(0);
-  set imageBytes(Uint8List imageBytes) => _imageBytes;
-
-  Photo get asPhoto => Photo(url: name, endPoint: 'memory');
-}
-*/
 class ImageInMemory {
   final String name;
   Uint8List imageBytes;

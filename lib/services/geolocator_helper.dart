@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
-// import 'package:geolocator_android/geolocator_android.dart';
-// import 'package:geolocator_android/geolocator_web.dart';
-// import 'package:geolocator_apple/geolocator_apple.dart';
 
 LocationSettings getGeolocatorSettings(
     {required TargetPlatform defaultTargetPlatform,

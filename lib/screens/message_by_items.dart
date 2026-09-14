@@ -2,7 +2,6 @@ import '/classes/classes.dart';
 import '/models/models.dart';
 import '/tiles/tiles.dart';
 import 'package:flutter/material.dart';
-// import '/models/other_models.dart';
 import '/services/services.dart';
 
 class MessageItemsController {
@@ -110,15 +109,6 @@ class _MessageItemsState extends State<MessageItems> {
 */
   void onGroupOpen(int index) async {
     debugPrint('Opened index: $index');
-    /*  widget.onOpen!(groupItems[index]);
-
-    if (groupItems[groupIndex].groupMembers().isEmpty) {
-      List<GroupMember> members =
-          await getManagedGroupMembers(groups[groupIndex].id);
-      groupItems[groupIndex].setGroupMembers(members);
-      setState(() => {});
-    }
-*/
     return;
   }
 

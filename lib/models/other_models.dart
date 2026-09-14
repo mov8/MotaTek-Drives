@@ -334,6 +334,7 @@ class Setup {
     return _instance;
   }
   FlutterSecureStorage? _storage;
+  // await _storage!.write(key: 'jwt', value: jwt);
 
   /// Setup().loaded ensures Setup singleton has been instantiated, and looks to see if a
   /// silent login is possible by retrieving the jwt either from secure storage on
@@ -344,36 +345,37 @@ class Setup {
   /// LoginDialog Class.
 
   Future<bool> get loaded async {
-    if (kIsWeb) {
-      _storage = FlutterSecureStorage(
-        webOptions: WebOptions(
-          dbName: 'MotatekSecure',
-          publicKey: 'Config',
-        ),
-        // iOS-specific configuration
-        iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
-      );
-      lastPosition = await getPosition();
-      try {
-        jwt = await _storage!.read(key: 'jwt') ?? '';
+    //  if (kIsWeb) {
+    _storage = FlutterSecureStorage(
+      webOptions: WebOptions(
+        dbName: 'MotatekSecure',
+        publicKey: 'Config',
+      ),
+      // iOS-specific configuration
+      iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
+    );
+    lastPosition = await getPosition();
+    try {
+      jwt = await _storage!.read(key: 'jwt') ?? '';
 
-        if (jwt.isNotEmpty) {
-          user = await getPrivateRepository().getUser();
+      if (jwt.isNotEmpty) {
+        user = await getPrivateRepository().getUser();
+        return true;
 
-          /// When the server sends the setup data it will refresh the jwt sent back in the map
-          /// this will ensure the security of the site
-          /// await setupFromDb();
-          /// return true;
-        } else {
-          return false;
-        }
-      } catch (e) {
-        developer.log('Error Setup() loaded() retrieving jwt: ${e.toString()}',
-            name: 'error');
+        /// When the server sends the setup data it will refresh the jwt sent back in the map
+        /// this will ensure the security of the site
+        /// await setupFromDb();
+        /// return true;
+      } else {
+        return false;
       }
+    } catch (e) {
+      developer.log('Error Setup() loaded() retrieving jwt: ${e.toString()}',
+          name: 'error');
+    }
 
-      /// Have to add the get setup data from the api.
-    } else {
+    /// Have to add the get setup data from the api.
+    /* } else {
       appDocumentDirectory = (await getApplicationDocumentsDirectory()).path;
       cacheDirectory = Directory('$appDocumentDirectory/cache');
       if (!await cacheDirectory.exists()) {
@@ -383,9 +385,9 @@ class Setup {
       if (!await soundsDirectory.exists()) {
         await Directory('$appDocumentDirectory/sounds').create();
       }
-    }
-
-    return _loaded ??= await setupFromDb();
+    } */
+    hasLoggedIn = await setupFromDb();
+    return _loaded ??= hasLoggedIn;
   }
 
   fromJson({required Map<String, dynamic> map}) {
@@ -538,6 +540,8 @@ class Setup {
   */
 
   Future<void> setupToDb() async {
+    // webHelper sets Setup().jwt before calling setupToDb
+    await _storage!.write(key: 'jwt', value: jwt);
     await getPrivateRepository().insertSetup();
   }
 
@@ -554,11 +558,11 @@ class Setup {
   /// The Web version will only save the JWT but will have to retrieve the
   /// setup Json Object from the api that contains full user details and colours etc
   Future<void> saveUser() async {
-    if (kIsWeb) {
-      await _storage!.write(key: 'jwt', value: jwt);
-    } else {
-      getPrivateRepository().saveUser(user);
-    }
+    //   if (kIsWeb) {
+    await _storage!.write(key: 'jwt', value: jwt);
+    //   } else {
+    getPrivateRepository().saveUser(user);
+    //  }
   }
 
   Map<String, dynamic> toMap() {

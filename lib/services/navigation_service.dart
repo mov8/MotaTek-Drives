@@ -17,43 +17,36 @@ class NavigationService {
   bool _isWidget = false;
   bool showSplash = true;
 
+  /// Current version
   bool get isWidget => _isWidget;
 
   Future<dynamic> navigateTo(String routeName, Object? arguments) async {
     initialRoute = routeName;
     try {
       if (key.currentState == null) {
-        developer.log('Navigator.key.currentState is null', name: '_stack_');
         return;
       }
 
       final pages = kIsWeb
           ? ['trips', 'createTrip', 'myTrips' 'shop', 'messages']
-          : []; //'trips', 'createTrip'];
+          : ['trips', 'createTrip'];
 
-      /// UIStateService() is used to switch between Page and Widget for the AppMasterShell
-      //   UIStateService()
-      //       .setPage(['trips', 'createTrip'].contains(routeName) ? 0 : 1);
       if (!showSplash) {
         if (pages.contains(routeName)) {
           _isWidget = true;
-          developer.log(
-              'NavigationService().navigateTo($routeName) isWidget == true',
-              name: '_nav_');
-          MapService().createTripStackController!.refresh();
-          MapService()
-              .routesBottomNavController!
-              .setValue(routes.indexOf(routeName));
-          //  UIStateService().setPage(0); // <-- Use Widget
-          // key.currentState!.pushNamed(routeName, arguments: arguments);
+          MapService().appMasterShellController!.update(); // <-- update UI
         } else {
           _isWidget = false;
-          developer.log(
-              'NavigationService().navigateTo($routeName) isWidget == false',
-              name: '_nav_');
-          //  UIStateService().setPage(1); // <-- Use Page
-          key.currentState!.pushNamed(routeName, arguments: arguments);
+          try {
+            key.currentState!.pushNamed(routeName, arguments: arguments);
+          } catch (e) {
+            developer.log('Error pushNamed($routeName)', name: '_nav_');
+          }
         }
+
+        MapService()
+            .routesBottomNavController!
+            .setValue(routes.indexOf(routeName));
       }
     } catch (e) {
       developer.log(
@@ -64,11 +57,6 @@ class NavigationService {
   }
 
   int _page = 0;
-
-  setPage(int page) {
-    developer.log('NavigationService().setPage($page) ', name: '_stack_');
-    _page = page;
-  }
 
   int get page => _page;
 

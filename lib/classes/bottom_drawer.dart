@@ -434,9 +434,8 @@ class _BottomDrawerState extends State<BottomDrawer>
       if (_tiles.length < 2) {
         close();
       }
-      developer.log('point of interest removed at: $index', name: '_poi_');
     } catch (e) {
-      developer.log('error removing pointOfInterest[$index]', name: '_poi_');
+      developer.log('error removing pointOfInterest[$index]', name: 'error');
     }
   }
 
@@ -646,8 +645,6 @@ class _BottomDrawerState extends State<BottomDrawer>
             height: height + dividerHeight,
             width: mounted ? MediaQuery.of(context).size.width : 100,
             onEnd: () async {
-              developer.log('AnimatedContainer().onEnd() height: $height',
-                  name: '_drawer_');
               contentHeight = height;
               if (widget.onOpened != null) {
                 widget.onOpened!(height > 10);
@@ -699,9 +696,6 @@ class _BottomDrawerState extends State<BottomDrawer>
                           if (widget.onChangeHeight != null) {
                             widget.onChangeHeight!(height);
                           }
-                          developer.log(
-                              'SetState(() => BottomDrawer().GestureDetector().onVerticalDragUpdate() contentHeight: $contentHeight height: $height)',
-                              name: '_drawer_');
                           if (height < 50) {
                             FocusScope.of(context).unfocus();
                             _pointOfInterestController.dismissKeyboard();

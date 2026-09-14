@@ -4,16 +4,13 @@ import 'dart:collection';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:typed_data';
-// import 'package:intl/intl.dart';
 import '/constants.dart';
 import 'package:image_picker/image_picker.dart';
 import '/helpers/helpers.dart';
-// import 'package:path_provider/path_provider.dart';
 import '/classes/classes.dart';
 import '/models/other_models.dart';
 import '/services/services.dart';
 import 'package:audioplayers/audioplayers.dart';
-import 'package:pointer_interceptor/pointer_interceptor.dart';
 import 'dart:developer' as developer;
 import 'package:maplibre_gl/maplibre_gl.dart';
 
@@ -63,22 +60,16 @@ class PointOfInterestController {
 
   void expand({bool state = true, bool canEdit = false}) {
     assert(isAttached, 'Controller must be attached to widget');
-    developer.log('PointOfInterestController expand called', name: '_expand_');
+
     _pointOfInterestTileState?.expand(state, canEdit);
   }
 
   void collapse() {
-    developer.log('PointOfInterestController collapse called',
-        name: '_expand_');
     _pointOfInterestTileState?.collapse();
   }
 
   void expandChange({required bool expanded}) {
-    developer.log(
-        'PointOfInterestController expandChange called expanded: $expanded',
-        name: '_expand_');
     assert(isAttached, 'Controller must be attached to widget');
-    // _pointOfInterestTileState?.expandChange(expanded: expanded);
   }
 
   void dismissKeyboard() {
@@ -219,12 +210,8 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
 
   @override
   Widget build(BuildContext context) {
-    developer.log('PointOfInterestTile().build() _expand: $_expanded',
-        name: '_poi_');
     if (widget.pointOfInterest.name.isEmpty ||
         widget.pointOfInterest.description.isEmpty) {
-      // if (CurrentTripItem().pointsOfInterest[widget.index].name.isEmpty ||
-      //     CurrentTripItem().pointsOfInterest[widget.index].description.isEmpty) {
       _expandController.expand();
     } else if (_expanded == false) {
       // <-- only force a collapse if user taps tile
@@ -458,14 +445,10 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
   }
 
   void updateImages(url) {
-    developer.log('PointOfInterestTile().udateImages($url)', name: '_poi_');
     setState(() => widget.pointOfInterest.images = url);
   }
 
   void checkComplete({String text = '', bool close = true}) {
-    developer.log(
-        'PointOfInterestTile().checkComplete($close) text: $text widget.pointOfInterest.complete(): ${widget.pointOfInterest.complete()}',
-        name: '_poi_');
     if (widget.pointOfInterest.complete() == 3) {
       setState(() => dismissKeyboard());
 
@@ -502,12 +485,10 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
 
   void collapse() {
     dismissKeyboard();
-    developer.log('PointOfInterestTile().collapse() called', name: '_expand_');
     _expandController.collapse();
   }
 
   String getTitle() {
-    developer.log('PointOfInterestTile().getTitle() called', name: '_poi_');
     int type = _typeName.isEmpty ? 15 : widget.pointOfInterest.type;
     setState(() => _typeName = poiTypes.toList()[type]['name']);
     return _typeName;
@@ -859,9 +840,6 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
   }
 
   expandChange(index, expanded) async {
-    developer.log(
-        'PontOfInterestTile().expansionChange() index:$index, expanded:$expanded',
-        name: '_expand_');
     if (expanded) {
       // _expandController.expand();
       if (MapService().controller != null) {
@@ -950,8 +928,6 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
       avatar: const Icon(Icons.delete, size: 20, color: Colors.white),
       onPressed: () {
         if (widget.onDelete != null) {
-          developer.log('PointOfInterestTile().onDelete() called',
-              name: '_poi_');
           widget.onDelete!(widget.index, widget.listIndex ?? -1);
         }
       },

@@ -6,11 +6,10 @@ import 'dart:developer' as developer;
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:image_picker/image_picker.dart';
 import '/models/models.dart';
-import '/services/services.dart';
 import '/classes/classes.dart';
-import '/helpers/helpers.dart';
+import '/helpers/helpers.dart' hide getHomeItems;
 
-String mdData = '''
+String mdHdata = '''
 # Drives Free Trip Planning App
 --- 
 
@@ -72,7 +71,7 @@ main() {
 ''';
 
 /// Four tabs appear to work as a line break
-String mdHelp = '''
+String mdHhelp = '''
 # Markdown syntax 
 ---
 | Element | Syntax |
@@ -127,7 +126,7 @@ class _HomeFormState extends State<HomeForm> {
     _dataloaded = dataFromWeb();
 
     _textEditingController.value = TextEditingValue(
-      text: mdData, // mdHelp
+      text: mdHdata, // mdHelp
     );
 
     _textEditingController.addListener(_lastCharacter);
@@ -152,7 +151,6 @@ class _HomeFormState extends State<HomeForm> {
     if (lastCharacter == " " || _buffer.isEmpty) {
       // save buffer for each new word and restrict buffer to 100 entries
       addToBuffer(text: text);
-      developer.log('buffer length:${_buffer.length}', name: '_tools_');
     }
   }
 
@@ -195,7 +193,7 @@ class _HomeFormState extends State<HomeForm> {
   }
 
   Future<bool> dataFromWeb() async {
-    _items = await getHomeItems(1);
+//    _items = await getHomeItems(1);
     if (_items.isEmpty) {
       newHomeItem();
     }
@@ -331,8 +329,6 @@ class _HomeFormState extends State<HomeForm> {
                   return reg.firstMatch(text)?.group(1);
                 }
 
-                developer.log('ImageShortCodeBuilder() called',
-                    name: '_markdown_');
                 final String? caption = getAttr('caption');
                 final String align = getAttr('align') ?? 'center';
                 final double rotation =
@@ -462,7 +458,7 @@ class _HomeFormState extends State<HomeForm> {
         iconTheme: const IconThemeData(color: Colors.white),
         backgroundColor: Colors.blue,
         toolbarHeight: 40,
-        actions: getActions(
+        /*       actions: getActions(
           code: _code,
           buffer: _buffer,
           overflow: overflow,
@@ -471,15 +467,15 @@ class _HomeFormState extends State<HomeForm> {
           undoPressed: onUndoPressed,
           redoPressed: onRedoPressed,
         ),
+*/
       ),
       body: FutureBuilder<bool>(
         future: _dataloaded,
         builder: (BuildContext context, snapshot) {
           if (snapshot.hasError) {
             developer.log('Home() snapshot has error: ${snapshot.error}',
-                name: '_nav_');
+                name: 'error');
           } else if (snapshot.hasData) {
-            developer.log('Home() snapshot has data', name: '_nav_');
             return _code ? portraitView() : portraitViewMd();
           } else {
             return const SizedBox(
@@ -535,7 +531,7 @@ class _HomeFormState extends State<HomeForm> {
   }
 
   removeHomeItem(int index) async {
-    await deleteHomeItem(_items[index]);
+//    await deleteHomeItem(_items[index]);
     _items.removeAt(index);
     if (_items.isEmpty) {
       newHomeItem();
@@ -547,10 +543,10 @@ class _HomeFormState extends State<HomeForm> {
     _items.add(
       HomeItem(
         heading: 'New trip planning app',
-        subHeading: 'Stop polishing your car and start driving it...',
-        body:
-            '''Drives is a new app to help you make the most of  the countryside around you. 
-              You can plan trips either on your own or you can explore in a group''',
+//        subHeading: 'Stop polishing your car and start driving it...',
+//       body:
+//            '''Drives is a new app to help you make the most of  the countryside around you.
+//              You can plan trips either on your own or you can explore in a group''',
       ),
     );
   }
@@ -568,7 +564,7 @@ class _HomeFormState extends State<HomeForm> {
     });
     return;
   }
-
+/*
   onAddImage() async {
     int taken = _items[_index!].imageUrls.countOccurrences('com.motatek') + 1;
     Photo? image =
@@ -586,12 +582,14 @@ class _HomeFormState extends State<HomeForm> {
     setState(() => (_activeController!.updatePhotos()));
   }
 
+  */
+
   onMarkdown() => setState(() => _code = true);
   onHome() => setState(() => _code = false);
   onHelp() async {}
   onPost() {
     try {
-      postHomeItem(_items[_index!]);
+//      postHomeItem(_items[_index!]);
       _changes[_index!] = false;
       for (int i = 0; i < _changes.length; i++) {
         _changed = _changes[i];
@@ -632,7 +630,7 @@ class _HomeFormState extends State<HomeForm> {
       for (int i = 0; i < _items.length; i++) {
         if (_changes[i]) {
           try {
-            postHomeItem(_items[i]);
+//            postHomeItem(_items[i]);
           } catch (e) {
             debugPrint("Can't save ${_items[i].heading} - ${e.toString()}");
           }

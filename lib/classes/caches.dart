@@ -189,36 +189,6 @@ class GoodRoadRepository {
   }
 }
 
-/// TileRepository doesn't try to maintain a memory cache as the VectorTile class has a pretty good
-/// cache, and it would only double the memory footprint.
-/// This repository only stores tiles offline for patchy internet.
-/*
-class TileRepository {
-  final VectorTileProvider deligate;
-  TileRepository({required this.deligate});
-  FutureOr<Uint8List> loadTile({
-    required TileIdentity tile,
-    required int id,
-    required String uri,
-  }) async {
-    Directory? cacheDirectory;
-    cacheDirectory ??= await getCache();
-    Uint8List? data = Uint8List.fromList([]);
-    String key = '${tile.z}.${tile.x}.${tile.y}';
-    File mapFile =
-        File('${cacheDirectory.path}/_${tile.z}_${tile.x}_${tile.y}.pbf');
-    bool tileExists = await mapFile.exists();
-    if (tileExists) {
-      data = await mapFile.readAsBytes();
-    } else {
-      data = await deligate.provide(tile);
-      await mapFile.writeAsBytes(data);
-    }
-    return data;
-  }
-}
-*/
-
 Future<Directory> getCache() async {
   Directory cacheDirectory = Directory('${Setup().appDocumentDirectory}/cache');
   if (!await cacheDirectory.exists()) {
@@ -235,9 +205,6 @@ Future<Directory> getCache() async {
 
 class ImageRepository {
   final Map<String, Uint8List> _imageCache = {};
-//  static final ImageRepository _instance = ImageRepository._internal();
-//  factory ImageRepository() => _instance;
-//  ImageRepository._internal();
   ImageRepository();
 
   FutureOr<Map<String, Image>> loadImage({
@@ -255,11 +222,9 @@ class ImageRepository {
         Uint8List? imageBytes =
             await getPrivateRepository().loadImageByIdLocal(id: id);
         _imageCache[key] = imageBytes!;
-        // debugPrint('Image returned from local database');
       } else if (uri.isNotEmpty && uri.contains('assets')) {
         final ByteData bytes = await rootBundle.load(uri);
         _imageCache[key] = bytes.buffer.asUint8List();
-        //  debugPrint('Image returned from assets');
       } else if (uri.isNotEmpty && bytes == null) {
         _imageCache[key] = await getImageBytes(url: uri);
         // debugPrint('Image returned from web');

@@ -8,7 +8,8 @@ import 'screens/screens.dart';
 const appVersion = {'major': 0, 'minor': 0, 'patch': 9, 'suffix': 'beta db'};
 
 const apiAddress = 'https://drives.motatek.com/';
-const wifiIpAddress = 'http://192.168.1.168:5001/'; // <- Home
+// const wifiIpAddress = 'http://192.168.1.216:5001/'; // <- Home extendor
+const wifiIpAddress = 'http://192.168.1.168:5001/'; // <- Home fibre
 
 // const wifiIpAddress = 'http://10.164.124.105:5001/'; // < Redmi
 // const wifiIpAddress = 'http://192.168.1.111:5001/'; // <- Boston unit

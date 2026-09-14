@@ -1,18 +1,10 @@
 import 'dart:async';
-// import 'dart:ui' as ui;
-//import 'package:flutter_map/flutter_map.dart';
-//import 'package:uuid/uuid.dart';
-// import 'dart:io';
-//import 'package:universal_io/universal_io.dart';/
-//import 'dart:typed_data';
+
 import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
-// import 'package:geolocator_platform_interface/src/models/position.dart' as gl;
 import 'package:geolocator/geolocator.dart';
-// import 'package:uuid/uuid.dart';
 import '/constants.dart' hide routes;
-// import '/classes/utilities.dart' as ut;
 import '/helpers/helpers.dart';
 import '/tiles/tiles.dart';
 import 'package:image_picker/image_picker.dart';
@@ -22,8 +14,6 @@ import '/classes/classes.dart' hide distanceBetween;
 import 'package:flutter/material.dart' hide Route;
 import 'dart:developer' as developer;
 import 'package:maplibre_gl/maplibre_gl.dart';
-
-//import 'package:path/path.dart';
 
 String colorToHex(Color color) {
   // String hexString = '#' + color.value.toRadixString(16).substring(2, hexString.length)
@@ -497,86 +487,6 @@ class CurrentTripItem extends MyTripItem {
           isGoodRoad: true));
     }
   }
-
-  /// updateMapGeoJson() is the only function that updates
-  /// the MapLibre geoJson on the MapLibreMap onIdle callback in
-  /// create_tip.dart. The updates are determined by the
-  /// multi-value enum MapUpdates that tracks what has to be updated
-  /// and holds both the MapLibre source names and the Dart method to convert the data
-  /// to be used in the map update.
-  /// The objective is to simplify the alignment of Dart data with the MapLibre source & layer
-  /// so that there are only two calls to update the map
-  ///   1 For published data that only changes when the zoom changes or the fence is breached
-  ///   2 User data while editing the map initiated through the ActionChips
-/*
-  var testData = {
-    "type": "Feature",
-    "geometry": {
-      "type": "Point",
-      "coordinates": [-0.5900587311911636, 51.419701499164724]
-    },
-    "properties": {
-      "group": "point_of_interest",
-      "icon": "shield",
-      "color": "#4caf50",
-      "drive_id": -1,
-      "uri": "019dd42fd7fa7d37b726c51213780f5c",
-      "name": "P",
-      "description": "P",
-      "type": 15,
-      "images":
-          '[{"url":"/data/user/0/com.motatek.drives/app_flutter/point_of_interest_3_1.jpg","caption":"image 1"}]',
-      "rated": 0,
-      "rating": "☆☆☆☆☆",
-      "author": ""
-    }
-  };
-*/
-// MapService().updateMapGeoJson(mapUpdates: mapUpdates);
-/*
-  Future<void> updateMapGeoJson(
-      {required MapUpdates mapUpdates,
-      MapUpdates? exitMapUpdates,
-      Point? centre}) async {
-    centre ??= CurrentTripItem().tripValues.position;
-    developer.log('CurrentTripItem().updateMapGeoJson() called',
-        name: 'goodRoad');
-    if (tripState == TripState.editing) {
-      highlightWaypoints(targetCentre: centre);
-    }
-
-    if (mapUpdates != MapUpdates.none && !mapUpdates.isUpdating) {
-      List<String> sources = mapUpdates.sourcesToUpdate;
-      if (sources.isNotEmpty) {
-        // Set the updating flag to prevent map onIdle calls restarting update before completed
-        mapUpdates = mapUpdates.add(MapUpdates.updating);
-        for (int i = 0; i < sources.length; i++) {
-          try {
-            if (i < 5) {
-              try {
-                await MapService().controller!.setGeoJsonSource(sources[i], {
-                  "type": "FeatureCollection",
-                  "features": mapSources[sources[i]](),
-                });
-              } catch (e) {
-                developer.log(
-                    'my_tripItem.dart updateMapGeoJson() mapController.seGeoJsonSource() failed source: ${sources[i]} (i:$i)',
-                    name: "error");
-              }
-            }
-          } catch (e) {
-            developer.log("Error updateMapGeoJson()  Error: ${e.toString()}",
-                name: 'error');
-          }
-        }
-      }
-    }
-    exitMapUpdates ??= MapUpdates.none;
-    MapService().updateMapGeoJson(
-        mapUpdates: mapUpdates, exitMapUpdates: exitMapUpdates);
-  }
-
-  */
 
   void highlightWaypoints({required Point targetCentre}) {
     List<int> waypoints = [];
@@ -1499,22 +1409,7 @@ class CurrentTripItem extends MyTripItem {
   }
 
   void updateBackBuffer({required List<Waypoint> waypoints}) {
-    if (waypoints.length > 1) {
-      /*
-      backBuffer.insert(0, []);
-      for (int i = 0; i < waypoints.length; i++) {
-        backBuffer[0].add(waypoints[i]);
-      }
-      developer.log(
-        'replaceRoutes() adding to backBuffer - length ${backBuffer.length} backBuffer[0] waypoints added: ${backBuffer[0].length}',
-        name: '_buffer',
-      );
-      if (backBuffer.length > 10) {
-        backBuffer.removeAt(10);
-      }
-      backBufferIndex = 0;
-    */
-    }
+    if (waypoints.length > 1) {}
   }
 
   Future<List<Route>> replaceRoutes({
@@ -1524,9 +1419,6 @@ class CurrentTripItem extends MyTripItem {
     bool revisit = false,
   }) async {
     routes ??= <Route>[];
-
-    developer.log('replaceRoutes() called', name: '_goodRoad_');
-
     if (routes.isNotEmpty) {
       routeIndex = routeIndex == -1 ? routes.length - 1 : routeIndex;
       updateBackBuffer(waypoints: routes[routeIndex].waypoints);

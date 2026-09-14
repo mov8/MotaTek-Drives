@@ -17,6 +17,7 @@ export '/screens/group_drives.dart';
 export '/screens/invite.dart';
 export '/screens/setup.dart';
 export '/screens/share.dart';
+export '/screens/home.dart';
 export '/screens/shop.dart';
 export '/screens/sign_up.dart';
 export '/classes/star_ratings.dart';

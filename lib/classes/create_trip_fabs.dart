@@ -5,8 +5,6 @@ import '../services/services.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import '../constants.dart';
-import 'dart:developer' as developer;
-import 'package:pointer_interceptor/pointer_interceptor.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 
 // List<String> ['jj'];
@@ -41,7 +39,6 @@ class HandleCTFabs extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     bool osmIncludingChange = false;
-    developer.log('HandleCTFabs().build() called', name: '_map_');
     return Material(
       color: Colors.transparent,
       child: Container(
@@ -302,15 +299,6 @@ class HandleCTFabs extends StatelessWidget {
         CameraUpdate.newLatLng(LatLng(position.latitude, position.longitude)));
   }
 
-  /// updateRouteType()
-  /// if ! CurrentTripItem().isGoodRoad
-  ///   sets the CurrentTripItem().isGoodRoad
-  ///   Adds a Route to CurrentTripItem().goodRoads with waypoints[Waypoint(currentPosition)]
-  /// else
-  ///   updates the goodRoads.last.route.uuid
-  ///   adds a waypoint(Waypoint(currentPosition)) to goodRoads.last.waypoints
-  ///   adds a pointOfInterest(uuid, description, sound) to CurrentTripItems().pointsOfInterest
-  ///
   updateRouteType({String description = '', String sound = ''}) {
     if (CurrentTripItem().isGoodRoad) {
       CurrentTripItem().goodRoadEnd(description: description, sounds: sound);

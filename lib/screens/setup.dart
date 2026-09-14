@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'dart:developer' as developer;
 import 'package:material_symbols_icons/get.dart';
 import 'package:flutter/foundation.dart';
 import '/models/other_models.dart';
-import '/services/services.dart';
 import '/classes/classes.dart';
 import '/helpers/edit_helpers.dart';
 

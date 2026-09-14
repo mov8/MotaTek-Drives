@@ -1,5 +1,4 @@
 import 'dart:math';
-import 'package:drives/main.dart';
 import 'package:drives/screens/create_trip_stack.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';

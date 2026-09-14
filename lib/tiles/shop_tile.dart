@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '/models/other_models.dart';
 import '/classes/classes.dart';
 import '/models/models.dart';
-// import 'dart:developer' as developer;
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import '/helpers/helpers.dart';
 

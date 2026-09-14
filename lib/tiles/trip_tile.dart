@@ -72,56 +72,6 @@ class _TripTileState extends State<TripTile> {
     }
   }
 
-/*
-  expandChange(index, expanded) async {
-    // if (widget.onExpandChange != null) {
-    //   widget.onExpandChange!(index, expanded);
-    // }
-
-    if (expanded) {
-      if (widget.tripItem.pointsOfInterestCount > 0) {
-        MyTripItem? fullTrip = await getPrivateRepository()
-            .loadMyTripItem(uri: widget.myTripItem.uri);
-        if (fullTrip != null) {
-          setState(() {
-            widget.myTripItem.routes = fullTrip.routes;
-            widget.myTripItem.goodRoads = fullTrip.goodRoads;
-            widget.myTripItem.pointsOfInterest = fullTrip.pointsOfInterest;
-          });
-
-          developer.log('Trip name: ${fullTrip.title}', name: '_init_');
-        } else {
-          developer.log('Trip is null', name: '_init_');
-        }
-      }
-      if (widget.mapController != null && widget.myTripItem.routes.isNotEmpty) {
-        try {
-          developer.log('Ready to draw routes', name: '_map_');
-          List<Map<String, dynamic>> jsonRoutes =
-              routesToGeoJson(routes: widget.myTripItem.routes);
-          await widget.mapController!.setGeoJsonSource("route-data", {
-            "type": "FeatureCollection",
-            "features": jsonRoutes,
-          });
-          List<Map<String, dynamic>> jsonEnds =
-              routeEndsToGeoJson(routes: widget.myTripItem.routes);
-          List coordinates = widget.myTripItem.routes.first.lines.first;
-          LatLng start = LatLng(coordinates[1], coordinates[0]);
-          await widget.mapController!.setGeoJsonSource("waypoint-data", {
-            "type": "FeatureCollection",
-            "features": jsonEnds,
-          });
-          widget.mapController!.animateCamera(CameraUpdate.newLatLng(start),
-              duration: Duration(seconds: 1));
-        } catch (e) {
-          developer.log('Error showing routes: ${e.toString()}', name: '_map_');
-        }
-      } else {
-        developer.log('Skipped draw routes bit', name: '_map_');
-      }
-    }
-  }
-*/
   getDetails() async {
     if (_childCards.isEmpty) {
       try {

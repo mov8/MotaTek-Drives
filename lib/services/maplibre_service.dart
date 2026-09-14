@@ -6,23 +6,16 @@ import 'package:flutter/foundation.dart';
 import 'package:drives/classes/classes.dart' hide Position, distanceBetween;
 import 'package:flutter/rendering.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
-// import 'package:drives/helpers/create_trip_helpers.dart';
 import 'package:flutter/material.dart';
 import 'web_helper.dart';
 import '../constants.dart';
-// import '../classes/classes.dart' as cl;
 import '../helpers/helpers.dart';
-// import '../models/models.dart';
 import '../services/services.dart';
 import '../routes/create_trip.dart';
 import '../routes/home.dart';
 import '../routes/shop.dart';
-// import '../tiles/tiles.dart';
 import 'package:geolocator/geolocator.dart';
-
-// import 'package:flutter/gestures.dart';
-// import 'package:flutter/foundation.dart';
-// import 'dart:developer' as developer;
+import '../main.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 
 /// OVERALL STRUCTURE
@@ -84,6 +77,8 @@ class MapService {
       CreateTripStackController();
   HomeController? homeController = HomeController();
   ShopController? shopController = ShopController();
+  AppMasterShellController? appMasterShellController =
+      AppMasterShellController();
 
   final GlobalKey mapKey = GlobalKey();
   // final GlobalKey scrollToKey = GlobalKey();
@@ -111,9 +106,7 @@ class MapService {
 
   Future<bool> setMapController(MapLibreMapController mapController) async {
     controller = mapController;
-    developer.log(
-        'MapService().setMapController() called - controller ${controller == null ? 'is null' : 'is not null'}',
-        name: '_map_');
+
     if (!_controllerCompleter.isCompleted) {
       _controllerCompleter.complete(mapController);
     }
@@ -187,12 +180,6 @@ class MapService {
     return _page;
   }
 
-  /*{
-    developer.log('MapService().page => $_page', name: '_index_');
-    return _page;
-  }
-  */
-
   /// onIdle called after the map has stopped doing something
   /// defined within main.dart where the persistent mapLibreMap
   /// id instantiated - its onCameraIdle gets assigned to this method.
@@ -239,7 +226,7 @@ class MapService {
       return _styleString;
     } catch (e) {
       developer.log('Error getting style from api: ${e.toString()}',
-          name: '_map_');
+          name: 'error');
     }
     return '';
   }
@@ -347,7 +334,6 @@ class MapService {
 
   _tripsOnIdle({required int page, bool force = false}) async {
     Map geoJson = {};
-    developer.log('MapLibreService()._tripsOnIdle()', name: '_published');
     if (force || (_checkUpdates ?? false)) {
       _checkUpdates = false; // <-- Only run this when the map has moved
 
@@ -401,7 +387,7 @@ class MapService {
   Future<bool> initialiseTrips() async {
     _tripsOnMapUpdate(); // <-- Initialise the Trips cache
     await clearGeoJson();
-    developer.log('MapService().initialiseTrips() called', name: '_index_');
+
     await _tripsOnIdle(
         page: _page,
         force: true); // <-- Update the drawer contents and map geoJson
@@ -416,7 +402,6 @@ class MapService {
 
   Future<bool> initialiseExplore() async {
     await clearGeoJson();
-    developer.log('MapService().initialiseExplore() called', name: '_index_');
     if (kIsWeb) {
       sideDrawerController!.setContent(content: BottomDrawerItems.trip);
       sideDrawerController!.setFixed(fixed: false);

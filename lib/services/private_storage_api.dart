@@ -482,25 +482,6 @@ class PrivateStorageLocal implements PrivateDataRepository {
 
     return ' ';
   }
-/*
-  @override
-  Future<dynamic> publish(MyTripItem tripItem) async {
-    dynamic response;
-    try {
-      var request =
-          http.MultipartRequest('POST', Uri.parse('$urlDrive/publish}'));
-
-      ///${tripItem.uri}'));
-      request.headers['Authorization'] = 'Bearer ${Setup().jwt}';
-      response = await request.send().timeout(const Duration(seconds: 30));
-    } catch (e) {
-      developer.log('error: ${e.toString()} ${response.statusCode}',
-          name: '_args_');
-    }
-
-    return ' ';
-  }
-*/
 }
 
 PrivateStorageLocal getPrivateRepository() => PrivateStorageLocal();

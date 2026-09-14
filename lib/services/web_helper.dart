@@ -72,9 +72,6 @@ Future<List<String>> getApiOptions(
       final http.Response response = await getWebData(
           uri: Uri.parse('$urlUser/emails/$value/${secure ? 'True' : 'False'}'),
           secure: secure);
-      developer.log(
-          'getApiOptions().response.statusCode: ${response.statusCode}',
-          name: '_stack_');
       if ([200, 201].contains(response.statusCode)) {
         results = jsonDecode(response.body);
       }
@@ -2131,7 +2128,7 @@ Future<String> putGroup(Map<String, dynamic> groupData) async {
 /// getHomeItems gets a list of home articles for the home screen
 /// The scope parameter isn't yet implemented, but is to allow
 /// some selection of who sees what on the home page
-
+/// This has been removed since the json version of homeItems was implemented
 /*
 Future<List<HomeItem>> getHomeItems(int scope) async {
   try {

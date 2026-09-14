@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:core';
-import '../main.dart';
 import 'dart:developer' as developer;
 import 'dart:math';
 import '/constants.dart';
@@ -40,8 +39,8 @@ class CreateTripStackController {
 }
 
 class CreateTripStack extends StatefulWidget {
-  final CreateTripStackController? controller;
-  const CreateTripStack({super.key, this.controller});
+  // final CreateTripStackController? controller;
+  const CreateTripStack({super.key});
   @override
   State<CreateTripStack> createState() => _CreateTripStackState();
 }
@@ -49,15 +48,10 @@ class CreateTripStack extends StatefulWidget {
 class _CreateTripStackState extends State<CreateTripStack>
     with TickerProviderStateMixin {
   late Future<bool> _dataLoaded;
-  // TripArguments? _tripArguments;
   final LeadingWidgetController _leadingWidgetController =
       LeadingWidgetController();
-  // final CreateTripController _createTripController = CreateTripController();
   final DirectionTileController _directionTileController =
       DirectionTileController();
-  // final RoutesBottomNavController _bottomNavController =
-  //    RoutesBottomNavController();
-
   final ImageRepository _imageRepository = ImageRepository();
   StreamSubscription<Position>? _positionStream;
   late final FollowRoute _debugRoute;
@@ -78,7 +72,6 @@ class _CreateTripStackState extends State<CreateTripStack>
 
   StreamSocket streamSocket = StreamSocket();
   sio.Socket socket = sio.io(urlBase, <String, dynamic>{
-    // sio.Socket socket = sio.io('http://192.168.1.10:5000', <String, dynamic>{
     'transports': ['websocket'], // Specify WebSocket transport
     'autoConnect': false, // Prevent auto-connection
   });
@@ -86,9 +79,8 @@ class _CreateTripStackState extends State<CreateTripStack>
   @override
   void initState() {
     super.initState();
-    widget.controller?._addState(this);
+
     _dataLoaded = dataFromDatabase();
-    developer.log('CreateTripStack().initState run', name: '_stack_');
     if (CurrentTripItem().routes.isNotEmpty) {
       CurrentTripItem().mapUpdates = MapUpdates.updateAll;
     } else {
@@ -118,14 +110,11 @@ class _CreateTripStackState extends State<CreateTripStack>
               name: 'error');
         } else if (snapshot.hasData) {
           try {
-            developer.log('CreateTrip().build() snapshot.hasData',
-                name: '_stack_');
             Widget body = _getPortraitBody();
             return body;
           } catch (e) {
             developer.log('CreateTrip().build() error:${e.toString()}',
-                name: '_map_');
-            debugPrint('error getting portraitBody ${e.toString()}');
+                name: 'error');
           }
           // return body; //_getPortraitBody();
         } else {
@@ -835,7 +824,6 @@ class _CreateTripStackState extends State<CreateTripStack>
   getChips() {
     //   List<String> chipNames = [];
     // CreateTripCurrentTripItem().values CurrentTripItem().tripValues = CreateTripCurrentTripItem().values();
-    MyTripItem tripItem = CurrentTripItem();
     List<ActionChip> chips = [];
     try {
       if (CurrentTripItem().tripState == TripState.startFollowing) {
@@ -1353,7 +1341,7 @@ class _CreateTripStackState extends State<CreateTripStack>
       }
     } catch (e) {
       developer.log('Error creating ActionChips: ${e.toString()}',
-          name: '_nav_');
+          name: 'error');
     }
     return chips;
   }
@@ -1394,7 +1382,7 @@ class _CreateTripStackState extends State<CreateTripStack>
 
   void extendStart() async {
     CurrentTripItem().requestExtendStart();
-    onUpdate!(MyTripActions.addWaypoint);
+    onUpdate(MyTripActions.addWaypoint);
   }
 
   void waypoint() async {
@@ -1402,76 +1390,76 @@ class _CreateTripStackState extends State<CreateTripStack>
     if (CurrentTripItem().tripValues.addGoodRoadDetail) {
       onUpdate!(MyTripActions.addGoodRoadDetails);
     } else {
-      onUpdate!(MyTripActions.addWaypoint);
+      onUpdate(MyTripActions.addWaypoint);
     }
   }
 
   void revisitWaypoint() async {
     CurrentTripItem().requestRevisitWaypoint();
-    onUpdate!(MyTripActions.revisitWaypoint);
+    onUpdate(MyTripActions.revisitWaypoint);
   }
 
   void extendEnd() async {
     CurrentTripItem().requestExtendEnd();
-    onUpdate!(MyTripActions.addWaypoint);
+    onUpdate(MyTripActions.addWaypoint);
   }
 
   saveTrip() async {
-    onUpdate!(MyTripActions.saveTrip);
+    onUpdate(MyTripActions.saveTrip);
     return;
   }
 
   void removeWaypoint() async {
     CurrentTripItem().requestRemoveWaypoint();
-    onUpdate!(MyTripActions.deleteWaypoint);
+    onUpdate(MyTripActions.deleteWaypoint);
   }
 
   void pauseTracking() {
     CurrentTripItem().requestPauseTracking();
-    onUpdate!(MyTripActions.none);
+    onUpdate(MyTripActions.none);
     // createTripController.updateValues(values: CurrentTripItem().tripValues);
   }
 
   void endTracking() {
     CurrentTripItem().requestEndTracking();
-    onUpdate!(MyTripActions.stopTracking);
+    onUpdate(MyTripActions.stopTracking);
   }
 
   void greatRoad() {
     CurrentTripItem().requestGreatRoad();
-    onUpdate!(MyTripActions.addGoodRoad);
+    onUpdate(MyTripActions.addGoodRoad);
   }
 
   void editGreatRoad() {
     CurrentTripItem().requestEditGreatRoad();
-    onUpdate!(MyTripActions.saveGoodRoad);
+    onUpdate(MyTripActions.saveGoodRoad);
   }
 
   void greatRoadEnd() {
     CurrentTripItem().requestGreatRoadEnd();
-    onUpdate!(MyTripActions.addGoodRoadDetails);
+    onUpdate(MyTripActions.addGoodRoadDetails);
     //  onUpdate(MyTripActions.addGoodRoad);
   }
 
   void reverseTrip() async {
     await CurrentTripItem().reverseRoute();
-    onUpdate!(MyTripActions.reverseTrip);
+    onUpdate(MyTripActions.reverseTrip);
     return;
   }
 
   void pointOfInterest() {
     CurrentTripItem().requestPointOfInterest();
-    onUpdate!(MyTripActions.addPointOfInterest);
+    onUpdate(MyTripActions.addPointOfInterest);
     return;
   }
 
   void steps() {
-    onUpdate!(MyTripActions.showSteps);
+    onUpdate(MyTripActions.showSteps);
   }
 
   void group() {
     CurrentTripItem().requestGroup();
-    onUpdate!(MyTripActions.showGroup);
+    onUpdate(MyTripActions.showGroup);
   }
 
   void messages() {
@@ -1489,19 +1477,19 @@ class _CreateTripStackState extends State<CreateTripStack>
 
   void trackRoute() {
     CurrentTripItem().requestTrackRoute();
-    onUpdate!(MyTripActions.track);
+    onUpdate(MyTripActions.track);
     return;
   }
 
   void followRoute() {
     CurrentTripItem().requestFollowRoute();
-    onUpdate!(MyTripActions.follow);
+    onUpdate(MyTripActions.follow);
     return;
   }
 
   void stopFollowing() {
     CurrentTripItem().requestStopFollowing;
-    onUpdate!(MyTripActions.stopFollowing);
+    onUpdate(MyTripActions.stopFollowing);
   }
 
   onUpdate(MyTripActions tripActions) {}
@@ -1511,15 +1499,8 @@ class _CreateTripStackState extends State<CreateTripStack>
 }
 
 class StackNavBar extends StatelessWidget {
-  final RoutesBottomNavController? _controller;
   int index;
-  StackNavBar(
-      {super.key, RoutesBottomNavController? controller, this.index = 0})
-      : _controller = controller ?? RoutesBottomNavController();
-
-//  void setIndex({required int index}) {
-//    index = index;
-//  }
+  StackNavBar({super.key, this.index = 0});
 
   @override
   Widget build(BuildContext context) {
@@ -1528,8 +1509,7 @@ class StackNavBar extends StatelessWidget {
           ? null
           : RoutesBottomNav(
               key: Key('bsnb1'),
-              controller: _controller!,
-              //    initialValue: index,
+              controller: MapService().routesBottomNavController!,
               onMenuTap: (_) => {}),
     );
   }
@@ -1572,8 +1552,10 @@ class StackAppBar extends StatelessWidget {
                   }
                 },
               ),
-              title: Text(CurrentTripItem().getTripTitle(),
-                  style: headlineStyle(context: context, size: 2)),
+              title: Text(
+                CurrentTripItem().getTripTitle(),
+                style: headlineStyle(context: context, size: 2),
+              ),
               iconTheme: const IconThemeData(color: Colors.white),
               backgroundColor: Colors.blue,
               actions: CurrentTripItem().getActions(

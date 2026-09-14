@@ -116,7 +116,9 @@ Git stash
 git stash <-- reverts back to last commit
 git stash list <-- shows all the stashes
 git stash apply <-- reloads the stashed data - git assumes it'll be the last stash, but you can specify stash ie git stash apply stash@{2}
+git checkout stash -- .  Restores the stash overwriting any changes made since the stash - the . is needed
 git push origin master
-
+git branch <-- shows all branches
+git checkout <branch> <-- changes the brunch
 
 Todo-Tree: Failed to find vscode-ripgrep - please install ripgrep manually and set 'todo-tree.ripgrep' to point to the executable

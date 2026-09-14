@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:developer' as developer;
 
 class CompactDropdown<T> extends StatefulWidget {
   T value;
@@ -67,7 +66,6 @@ class _CompactDropdownState<T> extends State<CompactDropdown<T>> {
   }
 
   void changed(value) {
-    developer.log('Compact().onChanged value: $value', name: '_tools_');
     setState(() => _value = value);
     widget.onChanged(value, widget.styleKey);
   }

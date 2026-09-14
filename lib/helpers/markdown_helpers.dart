@@ -63,9 +63,6 @@ Future<Map<String, dynamic>> shredMarkdown({required String markdown}) async {
       }
     }
     elements['images'] = images;
-    developer.log(
-        'HomeItem.heading: ${elements['heading']} subheading: ${elements['subheading']} images: ${elements['images']}',
-        name: '_images_');
   }
 
   return elements;
@@ -77,7 +74,6 @@ cacheImages(item) async {
 }
 
 imageBuilder(Uri uri, String? title, String? alt) {
-  developer.log('ImageBuilder().url: ${uri.toString()}', name: '_images_');
   String text = alt ?? '';
   bool cached = uri.toString().contains('cache');
   String? getAttr(String key) {
@@ -113,8 +109,6 @@ imageBuilder(Uri uri, String? title, String? alt) {
   // uriString =
   //     'http://10.101.1.216:5001/static/images/home/f9440cb2e8c747c2811bc80ef5653ce6/01a05c9ef8ed7b8f8b0f63363cafa5b9/01a05c9e0e167a1ab481605f26f0f9c2.jpg';
 
-  developer.log('Image url: ${uri.toString()}', name: '_images_');
-
   return Column(
     children: [
       Row(
@@ -140,9 +134,6 @@ imageBuilder(Uri uri, String? title, String? alt) {
                         uri.toString(),
                         loadingBuilder: (BuildContext context, Widget child,
                             ImageChunkEvent? loadingProgress) {
-                          developer.log(
-                              'imageBuilder() Image url: $urlBase/${uri.toString()}',
-                              name: '_images_');
                           if (loadingProgress == null) {
                             return child;
                           }
@@ -159,7 +150,7 @@ imageBuilder(Uri uri, String? title, String? alt) {
                             StackTrace? stackTrace) {
                           developer.log(
                               'imageBuilder(),errorBuilder error:${exception.toString()} uri: $urlBase/${uri.toString()}',
-                              name: '_error_');
+                              name: 'error');
                           return ImageMissing(width: width);
                         },
                       ),
@@ -338,11 +329,6 @@ class ImageShortcodeBuilder extends MarkdownElementBuilder {
     final double width = double.tryParse(getAttr('width') ?? '') ?? 300.0;
 
     String key = '';
-
-    developer.log(
-        'ImageShortCodeBuilder() src ${src == null ? "is null" : "isn't null"}',
-        name: '_images_');
-
     if (src == null) return null;
     // Handle Alignment
     MainAxisAlignment mainAlign;
@@ -633,7 +619,6 @@ class MdStyleSheet {
   }
 
   Map<String, dynamic> toJson() {
-    developer.log('Calling MdStylesSheet().toJson()', name: '_markdown_');
     return Map<String, dynamic>.from({
       'p': markdownStyleSheet.p?.toDataMap(),
       'h1': markdownStyleSheet.h1?.toDataMap(),

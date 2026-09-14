@@ -1,9 +1,7 @@
 import 'package:drives/classes/other_classes.dart';
 import 'package:drives/screens/create_trip_stack.dart';
-// import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'dart:developer' as developer;
-import '/main.dart';
 import '/constants.dart';
 import '/models/models.dart';
 import '/services/services.dart';
@@ -24,7 +22,6 @@ class RoutesBottomNavController {
   void setValue(int id) {
     assert(isAttached, 'Controller must be attached to widget');
     try {
-      developer.log('RoutesNavController().setValue($id)', name: '_index_');
       _routesBottomNavState?.setValue(id);
     } catch (e) {
       String err = e.toString();
@@ -34,12 +31,6 @@ class RoutesBottomNavController {
 
   void navigate() {
     assert(isAttached, 'Controller must be attached to widget');
-    try {
-      _routesBottomNavState?.navigate();
-    } catch (e) {
-      String err = e.toString();
-      debugPrint('Error RoutesBottomNavController: $err');
-    }
   }
 }
 
@@ -64,9 +55,7 @@ class _RoutesBottomNavState extends State<RoutesBottomNav>
   bool isarrowmenu = false;
   List<int> badgeValues = [0, 0, 0, 0, 0, 0];
   int _index = 0; // 0 = hamburger 1 = back
-
-  final CreateTripStackController _createTripStackController =
-      CreateTripStackController();
+  List<Widget> _destinations = [];
 
   @override
   void initState() {
@@ -76,6 +65,13 @@ class _RoutesBottomNavState extends State<RoutesBottomNav>
     //  badgeValues[1] = Setup().tripCount;
     badgeValues[4] = Setup().shopCount;
     badgeValues[5] = Setup().messageCount;
+    _destinations = List<Widget>.generate(
+      6,
+      (index) => _navigationDestination(
+        index: index,
+        badgeValue: badgeValues[index],
+      ),
+    );
   }
 
   @override
@@ -84,34 +80,9 @@ class _RoutesBottomNavState extends State<RoutesBottomNav>
     super.dispose();
   }
 
-  void setValue(id) {
+  void setValue(int id) {
+    developer.log('routesBottomNav.setValue($id)', name: '_nav_');
     setState(() => _index = id);
-  }
-
-/*
-  Route<dynamic>? onGenerateRoute(RouteSettings settings) {
-    developer.log('onGenerateRoute() called settings.name: ${settings.name}',
-        name: '_map_');
-    if (['trips', 'createTrip'].contains(settings.name)) {
-      return PageRouteBuilder(
-        opaque: false, // <--- THIS IS THE MAGIC BULLET
-        barrierColor: null,
-        settings: settings,
-        pageBuilder: (context, _, __) => const CreateTripStack(),
-        transitionsBuilder: (context, anim, _, child) =>
-            FadeTransition(opacity: anim, child: child),
-      );
-    } else {
-      Navigator.pushNamedAndRemoveUntil(context, routes[_index], (route) => false);
-    }
-  }
-*/
-
-  void navigate() {
-    //   NavigationService().page = _index;
-    developer.log('RoutesBottomNav().navigate(${routes[_index]})',
-        name: '_map_');
-    return;
   }
 
   @override
@@ -120,15 +91,7 @@ class _RoutesBottomNavState extends State<RoutesBottomNav>
     // int newIndex = 0;
 
     /// The line below makes sure that the two map page bottom nav bar buttons are correct
-    _index = NavigationService().isWidget ? NavigationService().page : _index;
-    try {
-      developer.log(
-          'RoutesBottomNav().widget.initialValue: ${widget.initialValue} MapService().page: ${MapService().page} NaigationService().isWidget: ${NavigationService().isWidget} _index: $_index',
-          name: '_stack_');
-    } catch (e) {
-      developer.log('RoutesBottomNav().error: ${e.toString()}',
-          name: '_stack_');
-    }
+    // _index = NavigationService().isWidget ? NavigationService().page : _index;
 
     return NavigationService().isWidget // <-- Use Widget
         ? Align(
@@ -138,15 +101,10 @@ class _RoutesBottomNavState extends State<RoutesBottomNav>
               height: 60,
               surfaceTintColor: Colors.blue,
               onDestinationSelected: (int index) {
-                developer.log(
-                    'RoutesBottomNav().onDestinatioSelected: $index, UIStateService().page == 0',
-                    name: '_stack_');
-                //    index = NavigationService().isWidget ? 0 : 1;
                 NavigationService().navigateTo(routes[index], TripArguments());
                 MapService()
                     .setPage(page: index); //   <-- Ensures correct cache loaded
-                NavigationService()
-                    .setPage(index); //  <-- Controls this the RoutesBottomNav
+                _index = index;
               },
               indicatorColor: Colors.lightBlue,
               selectedIndex: _index,
@@ -167,10 +125,7 @@ class _RoutesBottomNavState extends State<RoutesBottomNav>
                   );
                 },
               ),
-              destinations: List<Widget>.generate(
-                  6,
-                  (index) => _navigationDestination(
-                      index: index, badgeValue: badgeValues[index])),
+              destinations: _destinations,
             ),
           ) //;
         : NavigationBar(
@@ -180,20 +135,13 @@ class _RoutesBottomNavState extends State<RoutesBottomNav>
             surfaceTintColor: Colors.blue,
             onDestinationSelected: (int index) {
               try {
-                // developer.log(
-                //     'RoutesBottomNav().onDestinatioSelected: $index, UIStateService().page == ${UIStateService().page}',
-                //    name: '_stack_');
-                // index = 1 or 2 means that the
-                // UIStateService().setPage([1, 2].contains(index) ? 0 : 1);
-                developer.log(
-                    'NavigationBar().onDestinationSelected(index : $index)',
-                    name: '_nav_');
-                _index = index;
-                NavigationService()
-                    .setPage(index); //  <-- Controls this the RoutesBottomNav
                 MapService()
                     .setPage(page: index); //   <-- Ensures correct cache loaded
                 NavigationService().navigateTo(routes[index], null);
+                _index = index;
+                developer.log(
+                    'RoutesBottomNav() _index: $_index  index: $index',
+                    name: '_nav_');
               } catch (e) {
                 developer.log(
                     'Error with NavigatonService().navigateTo() error: ${e.toString()}',
@@ -201,7 +149,7 @@ class _RoutesBottomNavState extends State<RoutesBottomNav>
               }
             },
             indicatorColor: Colors.lightBlue,
-            selectedIndex: NavigationService().page, //_index,
+            selectedIndex: _index, //NavigationService().page, //_index,
             labelTextStyle: WidgetStateProperty.resolveWith<TextStyle>(
               (Set<WidgetState> states) {
                 // If the tab is currently selected:
@@ -219,21 +167,12 @@ class _RoutesBottomNavState extends State<RoutesBottomNav>
                 );
               },
             ),
-            destinations: List<Widget>.generate(
-              6,
-              (index) => _navigationDestination(
-                index: index,
-                badgeValue: badgeValues[index],
-              ),
-            ),
+            destinations: _destinations,
           );
   }
 
   NavigationDestination _navigationDestination(
       {required int index, badgeValue = 0}) {
-    developer.log('RoutesBottomNav()._navigationDestination($index)',
-        name: '_stack_');
-
     if (badgeValue == 0) {
       return NavigationDestination(
         selectedIcon: Icon(

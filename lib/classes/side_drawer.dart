@@ -5,7 +5,6 @@ import '../classes/classes.dart';
 import '../models/models.dart';
 import '../tiles/tiles.dart';
 import '../services/services.dart';
-import '../helpers/helpers.dart';
 import 'package:flutter/material.dart' hide Route;
 import 'package:audioplayers/audioplayers.dart';
 import 'package:universal_io/universal_io.dart';
@@ -42,14 +41,6 @@ class SideDrawerController {
     }
   }
 
-  /* void dockOpenTile() {
-    try {
-      _sideDrawerState?.dockOpenTile();
-    } catch (e) {
-      debugPrint("Can't dock open tile: ${e.toString()}");
-    }
-  }
-*/
   void scrollTo({int index = -1}) {
     try {
       _sideDrawerState?.scrollTo(index: index);
@@ -249,9 +240,6 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
 */
   void close() {
     if (mounted) {
-      developer.log(
-          'SideDrawer().close() called BottomDrawerItems.${_content.toString()}',
-          name: '_poi_');
       setState(() => width = 0);
       // }
     }
@@ -305,9 +293,6 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
       _content = content;
       _drawerItems = drawerItems;
       _offerRestore = false; // default state
-      developer.log(
-          'SideDrawer().setContent() BottomDrawerItems.${content.name}',
-          name: '_markdown_');
       switch (content) {
         case BottomDrawerItems.home:
           try {
@@ -382,16 +367,10 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
           _offerRestore = true;
           break;
         case BottomDrawerItems.markdownHome:
-          developer.log(
-              'SideDrawer().setContent() called - BottomDrawerItems.markdownHome',
-              name: '_markdown_');
           try {
             _tiles = [
               MarkdownForm(markdownData: {}, dataType: 'home'),
             ];
-            developer.log(
-                'SideDrawer().setContent() called - _tiles[].length : ${_tiles.length}',
-                name: '_markdown_');
           } catch (e) {
             developer.log('SideDrawer().setContent() error: ${e.toString()}',
                 name: 'error');
@@ -400,34 +379,16 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
           break;
         case BottomDrawerItems.shop:
           _tiles = shredMarkdownItems('shop');
-          // _drawerItems;
-/*
-          try {
-            _tiles = shredHomeItems();
-            if (Setup().user.type >= 3) {
-              _screenCache = _tiles;
-            }
-          } catch (e) {
-            developer.log('error shredding homeItems: ${e.toString()}',
-                name: '_markdown_');
-          }
- */
           if (Setup().user.type >= 3) {
             _offerRestore = true;
             _screenCache = _tiles;
           }
           break;
         case BottomDrawerItems.markdownShop:
-          developer.log(
-              'SideDrawer().setContent() called - BottomDrawerItems.markdowShop',
-              name: '_markdown_');
           try {
             _tiles = [
               MarkdownForm(markdownData: {}, dataType: 'shop'),
             ];
-            developer.log(
-                'SideDrawer().setContent() called - _tiles[].length : ${_tiles.length}',
-                name: '_markdown_');
           } catch (e) {
             developer.log('SideDrawer().setContent() error: ${e.toString()}',
                 name: 'error');
@@ -737,149 +698,7 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
 
     return tiles;
   }
-/*
-  List<Widget> shredShopItems() {
-    List<Widget> tiles = [];
-    for (int i = 0; i < _drawerItems!.length; i++) {
-      tiles.add(
-        Padding(
-          padding: EdgeInsets.fromLTRB(10, 10, 10, 5),
-          child: Card(
-            child: Padding(
-              padding: EdgeInsetsGeometry.fromLTRB(5, 5, 5, 5),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _drawerItems![i].heading,
-                    style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black),
-                  ),
-                  Text(
-                    _drawerItems![i].subheading,
-                    style: TextStyle(fontSize: 22, color: Colors.black),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-    return tiles;
-  }
-  */
 
-/*
-  List<Widget> shredHomeItems(
-      {required Key key,
-      required HomeItem homeItem,
-      required int index,
-      required Function(int) onPress}) {
-    final String imageString = (homeItems[index].images ?? '').toString();
-    Map<String, dynamic> imageMap = {};
-    if (imageString.isNotEmpty) {
-      imageMap = jsonDecode(imageString);
-    }
-    developer.log('getSideDrawerTile() called', name: '_markdown_');
-    return Padding(
-      padding: EdgeInsets.fromLTRB(5, 5, 5, 0),
-      child: Card(
-        key: key,
-        color: Colors.white,
-        child: Padding(
-          padding: EdgeInsetsGeometry.fromLTRB(5, 0, 0, 0),
-          child: Row(
-            children: [
-              if (imageString.isNotEmpty) ...[
-                Expanded(
-                  flex: 10,
-                  //     alignment: Alignment.topLeft,
-                  child: Padding(
-                    padding: EdgeInsets.fromLTRB(5, 5, 5, 5),
-                    child: RotatedBox(
-                      quarterTurns: int.tryParse(imageMap['rotation'] ?? '0')!,
-                      child: ClipRRect(
-                        borderRadius:
-                            BorderRadiusGeometry.all(Radius.circular(10.0)),
-                        child: FutureBuilder(
-                          future: getImageFromPhoto(
-                              photo: Photo(
-                                  url: imageMap['url'],
-                                  align: imageMap['align'],
-                                  width: imageMap['width'],
-                                  caption: imageMap['caption'],
-                                  rotation: imageMap[
-                                      'rotation']), // homeItems[index].getPhotos().first,
-                              imageRepository:
-                                  MarkdownService().imageRepository),
-                          builder: (context, snapshot) {
-                            if (snapshot.hasError) {
-                              return const ImageMissing(width: 150);
-                            } else if (snapshot.hasData) {
-                              return snapshot.data!;
-                            } else {
-                              return const Center(
-                                child: CircularProgressIndicator(),
-                              );
-                            }
-                          },
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-              Expanded(
-                flex: 10,
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(10, 0, 5, 0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        homeItem.heading,
-                        style: TextStyle(
-                            fontSize: 22,
-                            color: Colors.black,
-                            fontWeight: FontWeight.bold),
-                      ),
-                      SizedBox(height: 20),
-                      Text(
-                        homeItem.subheading,
-                        style: TextStyle(fontSize: 20, color: Colors.black),
-                      ),
-                      SizedBox(height: 20),
-
-                      Text(
-                        'published: ${dateFormatDoc.format(homeItem.added)}',
-                        style: TextStyle(fontSize: 13, color: Colors.black),
-                      ), // DateFormat('E dd/MM/yyyy')
-                    ],
-                  ),
-                ),
-              ),
-              Expanded(
-                flex: 2,
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(0, 0, 2, 0),
-                  child: IconButton(
-                    onPressed: () {
-                      onPress(index);
-                    },
-                    icon: Icon(Icons.arrow_circle_right_outlined, size: 40),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-*/
   List<Widget> shredCurrentTripItemData() {
     ExpandNotifier expandNotifier = ExpandNotifier(1);
     bool expanded = false;
@@ -888,9 +707,6 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
     List<Widget> tiles = [];
     int j = 0;
     if (_content == BottomDrawerItems.trip) {
-      // developer.log(
-      //     'SideDrawer().shredCurrentTripItemData() called CurrentTripItem().tripState:${CurrentTripItem().tripState.toString()} CurrentTripItem().headerComplete():${CurrentTripItem().headerComplete()}',
-      //     name: '_expand_');
       expanded = CurrentTripItem().headerComplete() != 7;
       tiles.add(
         Padding(
@@ -1021,50 +837,6 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
     width = width;
   }
 
-  /// dockOpenTile() ensures the tile to edit is visible to the user. Two issues presented themselves here while implementing
-  /// this bit of code.
-  /// READ THE FOLLOWING CAREFULLY IT EXPLAINS TWO IMPORTANT ISSUES -
-  /// 1 When using using ExpansionTiles the initiallyExpanded value is set when the Tile is created, and doesn't change until
-  ///   the tile is recreated. This means controlling the tile opening using an ordinary ListView - where the items are kept
-  ///   alive is impossible.
-  /// 2 Changing to a ListView builder solved issue 1, as the list is rebuilt on ever setScreen, so the initiallyExpanded is
-  ///   reset. However ListView builder loads the list lazily, and using GlobalKey to identify the widget to scroll to doesn't
-  ///   work, as the builder has only built the visible widgets which may not include the widget with the GlobalKey to scroll to.
-  ///
-  /// The dockOpenTile call can only be actioned once the tiles have been created, else the GlobalKey has no currentContext.
-  /// To ensure they have been created use WidgetsBinding.instance.addPostFrameCallback(... in the dockOpenTile() method.
-  ///
-  /// To make sure the initiallyExpanded are not stuck in the ExpansionTiles have a key: UniqueKey() which forces Flutter
-  /// to rebuild the ExpansionTile's state and so updating the initiallyExpanded state.
-
-/*
-  void dockOpenTile() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      try {
-        // int index = _tiles.indexWhere()
-
-        var box = _scrollKey.currentContext!.findRenderObject() as RenderBox;
-        //  width = box.size.width < 400 ? box.size.width + 4 : 400;
-        Scrollable.ensureVisible(
-          _scrollKey.currentContext!,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
-          alignment: 0.0, // 0.0 = top of screen, 0.5 = middle, 1.0 = side
-        );
-        double yPos = widgetPosition(key: _animatedContainerKey).y.toDouble();
-        double yPosT = widgetPosition(key: _scrollKey).y.toDouble();
-        double delta = 32 + yPosT - yPos;
-        if (delta > 0) {
-          _scrollController.animateTo(delta,
-              duration: Duration(milliseconds: 500), curve: Curves.ease);
-        }
-      } catch (e) {
-        developer.log('Error dockOpenTile(): ${e.toString()}', name: 'error');
-      }
-    });
-  }
-*/
-
   Point widgetPosition({required GlobalKey<State<StatefulWidget>> key}) {
     Point pos = Point(0, 0);
     final bnKeyContext = key.currentContext;
@@ -1104,7 +876,6 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
     _mapWidth = MediaQuery.of(context).size.width;
     _maxWidth = _mapWidth * widget.maxWidth;
     _openWidth = _mapWidth * widget.width;
-    WidgetsBinding.instance.addPostFrameCallback((_) => openIncompleteTiles());
     double mapHeight = MediaQuery.of(context).size.height; //width;
     // MapService().mapHeight;
 
@@ -1247,61 +1018,4 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
       ),
     );
   }
-
-  void openIncompleteTiles() {
-    /*
-    int j = 0;
-        if (CurrentTripItem().title.isEmpty ||
-            CurrentTripItem().subTitle.isEmpty ||
-            CurrentTripItem().body.isEmpty) {
-          _tripHeaderController.expand();
-        } else {
-          _tripHeaderController.collapse();
-        }
-      for (int i = 0; i < CurrentTripItem().pointsOfInterest.length; i++){
-
-      }
-      } else {
-        (![9, 11, 12, 16, 18, 19].contains(
-        Padding padding = _tiles[i] as Padding;
-        PointOfInterestTile poiTile = padding!.child;
-        //  PointOfInterest poi = poiTile.pointOfInterest;
-
-        developer.log(
-            'openIncompleteTiles() called on poiTile poiTile.pointOfInterest.name: ${poi.name}',
-            name: '_trips_');
-        if (poiTile.pointOfInterest.name.isEmpty ||
-            poiTile.pointOfInterest.description.isEmpty) {
-          poiTile.controller = _poiController;
-          _poiController.expand();
-        } else {
-          _poiController.collapse();
-        }
-      }
-    }
-    */
-    /*   for (int i = 0; i < CurrentTripItem().pointsOfInterest.length; i++) {
-        if(![9, 11, 12, 16, 18, 19].contains(CurrentTripItem().pointsOfInterest[i].type)) {
-          if (CurrentTripItem().pointsOfInterest[i].name.isEmpty || CurrentTripItem().pointsOfInterest[i].description.isEmpty) {
-            CurrentTripItem().pointsOfInterest[i].
-          }
-        }
-      }
-    } */
-  }
 }
-/*
-class SidebarMessages extends StatelessWidget {
-  @override
-  build(BuildContext context) {
-    return Column(children: [
-      ScreensAppBarBottom(
-        leadingButton:
-            IconButton(onPressed: () {}, icon: Icon(Icons.arrow_back)),
-        prompt: 'Test message',
-      ),
-      Messages()
-    ]);
-  }
-}
-*/

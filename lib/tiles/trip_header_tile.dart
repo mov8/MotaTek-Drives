@@ -117,11 +117,6 @@ class _TripHeaderTileState extends State<TripHeaderTile> {
     _initiallyExpanded = _textEditingControllerTitle.text.isEmpty ||
         _textEditingControllerSubTitle.text.isEmpty ||
         _textEditingControllerBody.text.isEmpty;
-
-    // developer.log(
-    //     'TripHeaderTile().initState _initiallyExpanded: $_initiallyExpanded',
-    //     name: '_expand_');
-    // fn1.requestFocus();
   }
 
   @override

@@ -68,152 +68,6 @@ Map<String, dynamic> getBlTr({required Size screenSize, double factor = 1}) {
   return {"bl": Point(bottom, left), "tr": Point(top, right)};
 }
 
-/*
-List<LatLng> waypointsFromPointsOfInterest(
-    {bool reversed = false,
-    double newPointLat = 0.0,
-    newPointLng = 0.0,
-    atEnd = false}) {
-  List<LatLng> waypoints = [];
-  List<PointOfInterest> pois = [];
-  pois.addAll(CurrentTripItem().pointsOfInterest);
-  if (reversed) {
-    pois = pois.reversed.toList();
-  }
-
-  if (newPointLat + newPointLng != 0) {
-    if (atEnd) {
-      if (pois[pois.length - 1].type == 18) {
-        pois[pois.length - 1].type = 12;
-      }
-      pois.add(
-        PointOfInterest(
-          type: 18,
-          point: LatLng(newPointLat, newPointLng),
-        ),
-      );
-    } else {
-      if (pois[0].type == 17) {
-        pois[0].type = 12;
-      }
-      pois.insert(
-        0,
-        PointOfInterest(
-          type: 17,
-          point: LatLng(newPointLat, newPointLng),
-        ),
-      );
-    }
-    CurrentTripItem().pointsOfInterest = pois;
-  }
-
-  for (int i = 0; i < pois.length; i++) {
-    if ([12, 17, 18, 19].contains(pois[i].type)) {
-      waypoints.add(pois[i].point);
-    }
-  }
-
-  return waypoints;
-}
-*/
-/*
-Future<String> waypointsFromManeuvers(
-    {int points = 50, reverse = false}) async {
-  List<List<double>> latLongs = [];
-
-  /// Only going to add the start, end, and any turns. The Router will do the rest
-  latLongs.add(CurrentTripItem().maneuvers[0].location);
-  latLongs.add(CurrentTripItem()
-      .maneuvers[CurrentTripItem().maneuvers.length - 1]
-      .location);
-
-  if (reverse) {
-    latLongs = latLongs.reversed.toList();
-    return '${latLongs[0][0]},${latLongs[0][1]};${latLongs[1][0]},${latLongs[1][1]}';
-  }
-
-  int count = latLongs.length;
-  final double incrementer;
-  if (count <= points) {
-    incrementer = 1;
-  } else {
-    incrementer = count / points;
-  }
-
-  String waypoints = '';
-  String delimiter = '';
-  for (int i = 0; i < count; i++) {
-    int idx = (incrementer * i).round();
-    if (idx < latLongs.length) {
-      waypoints = '$waypoints$delimiter${latLongs[idx][0]},${latLongs[idx][1]}';
-      delimiter = ';';
-    } else {
-      debugPrint('Index overflow');
-    }
-  }
-
-  return waypoints;
-}
-*/
-/*
-Future<String> waypointsFromPoints(int points) async {
-  List<LatLng> latLongs = [];
-  for (int i = 0; i < CurrentTripItem().routes.length; i++) {
-    latLongs = latLongs + CurrentTripItem().routes[i].points;
-  }
-  int count = latLongs.length;
-
-  if (count / points < 10) {
-    points = count ~/ 10;
-  }
-
-  int gap = (count - 2) ~/ points;
-
-  String waypoints = '${latLongs[0].longitude},${latLongs[0].latitude}';
-  for (int i = 0; i < points - 2; i++) {
-    int idx = gap * (i + 1);
-    try {
-      waypoints =
-          '$waypoints;${latLongs[idx].longitude},${latLongs[idx].latitude}';
-    } catch (e) {
-      debugPrint('Error getting points: ${e.toString()}');
-    }
-  }
-
-  waypoints =
-      '$waypoints;${latLongs[count - 1].longitude},${latLongs[count - 1].latitude}';
-
-  return waypoints;
-}
-*/
-/*
-addWaypointAt({required LatLng pos, bool before = false}) async {
-  String name = 'End';
-  int idx = CurrentTripItem().pointsOfInterest.length;
-  int markerType = 18;
-  if (idx == 0 || before) {
-    name = 'Start';
-    idx = 0;
-    markerType = 17;
-  }
-  PointOfInterest waypoint = PointOfInterest(
-    id: -1,
-    driveId: CurrentTripItem().driveId,
-    type: markerType,
-    name: name,
-    description: '',
-    width: 10,
-    height: 10,
-    point: pos,
-  );
-  if (before) {
-    CurrentTripItem().pointsOfInterest.insert(0, waypoint);
-  } else {
-    CurrentTripItem().pointsOfInterest.add(waypoint);
-  }
-}
-*/
-
 String setAvoiding() {
   /// avoid = '&exclude=motorway,trunk,primary';
   /// The avoid categories are defined in OSRM/osrm-backend/car.lua
@@ -258,8 +112,6 @@ Future<RouterData> getRouterData(
   dynamic jsonResponse;
   int jump = 1;
   int points = route.waypoints.length;
-  developer.log('getRouterData() called goodRoad: $goodRoad',
-      name: '_goodRoad_');
   if (points == 0) {
     points = route.lines.length;
     jump = route.lines.length > 50 ? (points ~/ 50) : 1;
@@ -285,8 +137,6 @@ Future<RouterData> getRouterData(
   try {
     var response = await http.get(url).timeout(const Duration(seconds: 8));
     if ([200, 201].contains(response.statusCode)) {
-      developer.log('getRouterData() http response: ${response.statusCode}',
-          name: '_goodRoad_');
       jsonResponse = jsonDecode(response.body);
       if (jsonResponse == null) {
         return RouterData(message: 'Error');
@@ -294,13 +144,11 @@ Future<RouterData> getRouterData(
     } else {
       developer.log(
           'getRouterData() http error - response: ${response.statusCode}',
-          name: '_goodRoad_');
+          name: 'error');
       return RouterData(message: 'Error');
     }
   } catch (e) {
-    developer.log('getRouterData() http error: ${e.toString()}',
-        name: '_goodRoad_');
-    debugPrint('Http error: ${e.toString()}');
+    developer.log('getRouterData() http error: ${e.toString()}', name: 'error');
     return RouterData(message: 'Error');
   }
   return RouterData.fromGeoJson(
@@ -589,9 +437,6 @@ PositionData getClosestPoint(
       }
     }
   }
-  // developer.log(
-  //     'create_trip_helpers.dart getClosestPoint() metersToRoute: ${positionData.metersToRoute}',
-  //     name: '_roundabout_');
   positionData.metersToRoute =
       positionData.metersToRoute == 999999999 ? 0 : positionData.metersToRoute;
   return positionData;

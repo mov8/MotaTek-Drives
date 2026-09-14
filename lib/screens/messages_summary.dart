@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '/models/other_models.dart';
 import '/services/services.dart';
 import '/classes/classes.dart';
-import 'dart:developer' as developer;
 import '/tiles/tiles.dart';
 
 class MessagesSummaryForm extends StatefulWidget {

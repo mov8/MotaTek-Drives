@@ -20,7 +20,6 @@ class _SplashState extends State<Splash> {
   @override
   void initState() {
     super.initState();
-    // WidgetsBinding.instance.addPostFrameCallback((_) => initialise());
   }
 
   @override
@@ -39,7 +38,6 @@ class _SplashState extends State<Splash> {
   }
 
   Future<void> initialise() async {
-    developer.log('Initialise called', name: '_splash_');
     if (!NavigationService().showSplash) return;
     NavigationService().showSplash = false;
     int routeIndex = Setup().bottomNavIndex;
@@ -49,13 +47,12 @@ class _SplashState extends State<Splash> {
       //   Setup().setupToDb();
     }
     //  routeIndex = 4;
-    await MapService().loadStyle();
-    developer.log('Style loaded', name: '_splash_');
+    bool styleLoaded = await MapService().loadStyle();
+
     if (Setup().jwt.isEmpty) {
       Setup().loggingIn = true;
       await Login(context: context).tryLoggingIn();
     }
-    developer.log('Gone past login', name: '_splash_');
 
     await Future.delayed(Duration(seconds: _delaySecs));
     if (kIsWeb) {
@@ -64,17 +61,14 @@ class _SplashState extends State<Splash> {
       MapService().sideDrawerController?.open();
       MapService().sideDrawerController?.setVisible(visible: true);
     }
-    developer.log('MapService() controllers loaded', name: '_splash_');
+
     if (mounted) {
-      developer.log('mounted = true', name: '_splash_');
       setState(() {
         //UIStateService().setPage(0);
         NavigationService().navigateTo(routes[0], null);
       });
     } else {
-      developer.log('mounted = false', name: '_splash_');
       NavigationService().navigateTo(routes[0], null);
-      //UIStateService().setPage(0); // <-- Page not Widget
     }
   }
 

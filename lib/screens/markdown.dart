@@ -1,17 +1,11 @@
 import 'dart:typed_data';
-import 'dart:math';
-import 'dart:convert' show utf8;
-import '/tiles/tiles.dart';
 import 'package:flutter/material.dart';
 import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
-import 'package:markdown/markdown.dart' as md;
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:image_picker/image_picker.dart';
-import '/models/models.dart';
 import '/services/services.dart';
 import '/classes/classes.dart';
-import '/routes/routes.dart';
 import '/helpers/helpers.dart';
 
 String mdData = '''
@@ -225,67 +219,6 @@ class _MarkdownFormState extends State<MarkdownForm> {
     return true;
   }
 
-/*
-  Future<bool> dataFromWeb() async {
-    try {
-      _items = await getMarkdownItems(1);
-
-      if (_items.isEmpty) {
-        newMarkdownItem(mdData);
-      }
-
-      //  for (int i = 0; i < _items.length; i++) {
-      //    if _items.
-      //    _changes.add(false);
-      //  }
-
-      /// DEBUG - replace styleJson with json from api
-      /// Each Markdown page content will have to have a stylesheet stored as json
-      Map<String, dynamic> styleJson = {};
-
-      _styleSheet = MdStyleSheet.fromJson(
-          json: _items[0].style); // MdStyleSheet.fromJson(json: styleJson);
-      _textEditingController.value = TextEditingValue(text: mdData);
-    } catch (e) {
-      developer.log('Error MarkdownForm().dataFromWeb(): ${e.toString()}',
-          name: '_markdown_');
-    }
-    return true;
-  }
-*/
-/*  
-  expanded(int index, bool expanded, MarkdownItemTileController controller) {
-    if (expanded) {
-      try {
-        _activeController?.contract();
-      } catch (_) {
-        debugPrint('Contract() failed');
-      }
-      setState(() {
-        _index = index;
-        _activeController = controller;
-        _expanded = true;
-        _prompt = 'Edit ${_MarkdownItem.heading}';
-      });
-    } else {
-      if (index == _index) {
-        // closing open tile
-        setState(() {
-          _prompt = 'Add, delete or edit page';
-          _expanded = false;
-          _index = null;
-          _activeController = null;
-        });
-      }
-    }
-  }
-  */
-/*
-  recordChange(int index) {
-    _changes[index] = true;
-    setState(() => _changed = true);
-  }
-*/
   /// portraitView is a simple editor to allow the users to input markdown
   /// there is no syntax checking
 
@@ -566,37 +499,7 @@ class _MarkdownFormState extends State<MarkdownForm> {
             uploadPressed: onUploadPressed,
           ),
         ),
-        body: _code
-            ? portraitView()
-            : portraitViewMd(), /*   FutureBuilder
-          future: _dataloaded,
-          builder: (BuildContext context, snapshot) {
-            if (snapshot.hasError) {
-              developer.log('Markdown() snapshot has error: ${snapshot.error}',
-                  name: '_nav_');
-            } else if (snapshot.hasData) {
-              developer.log('Markdown() snapshot has data', name: '_nav_');
-              return _code ? portraitView() : portraitViewMd();
-            } else {
-              return const SizedBox(
-                width: double.infinity,
-                height: double.infinity,
-                child: Align(
-                  alignment: Alignment.center,
-                  child: CircularProgressIndicator(),
-                ),
-              );
-            }
-            return Center(
-              child: Text(
-                'FutureBuilder failed',
-                style: TextStyle(fontSize: 25, color: Colors.red),
-              ),
-            );
-            // throw ('Error - FutureBuilder group.dart');
-          },
-        ),
-  */
+        body: _code ? portraitView() : portraitViewMd(),
       );
     }
   }

@@ -116,6 +116,7 @@ flutter:
     - assets/images/meeting.png
     - assets/images/message.png
     
+  #   - can use .gifs too for an animated splash
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see

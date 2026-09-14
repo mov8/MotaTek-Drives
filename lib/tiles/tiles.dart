@@ -10,7 +10,6 @@ export '/tiles/group_drive_invitee_tile.dart';
 export '/tiles/home_tile.dart';
 export '/tiles/home_item_tile.dart';
 export '/tiles/maneuver_tile.dart';
-export '/tiles/marker_tile.dart';
 export '/tiles/message_by_group_tile.dart';
 export '/tiles/message_expansion_tile.dart';
 export '/tiles/message_tile.dart';
