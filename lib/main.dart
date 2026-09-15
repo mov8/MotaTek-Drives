@@ -299,6 +299,7 @@ class _AppMasterShellState extends State<AppMasterShell> {
     );
   }
 }
+
 /* 
 class AppMasterShell extends StatefulWidget {
   final AppMasterShellController? controller;
@@ -319,7 +320,7 @@ class _AppMasterShellState extends State<AppMasterShell> {
 
   void update() => setState(() => ());
 */
-
+/*
 class ShellBody extends StatefulWidget {
   final ShellBodyController? controller;
   const ShellBody({super.key, this.controller});
@@ -336,7 +337,7 @@ class _ShellBodyState extends State<ShellBody> {
 
   void update() => setState(() => ());
 }
-
+*/
 void _onStyleLoaded() async {
   await MapService().controller!.moveCamera(
         CameraUpdate.newLatLngZoom(
