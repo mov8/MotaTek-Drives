@@ -512,8 +512,20 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
         ? 1
         : 0;
 
-    return Center(
-        child: Text('Test', style: TextStyle(fontSize: 25, color: Colors.red)));
+    FutureBuilder(
+      future: _loadedOK,
+      builder: (BuildContext context, snapshot) {
+        if (snapshot.hasError) {
+          debugPrint('Snapshot error: ${snapshot.error}');
+        } else if (snapshot.hasData) {
+          return SizedBox();
+        } else {
+          return SizedBox();
+        }
+        throw ('error creating details cards');
+      },
+    );
+    throw ('error creating details cards');
   }
 
 // https://drives.motatek.com/static/tiles/{z}/{x}/{y}.pbf

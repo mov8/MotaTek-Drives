@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:core';
+import '../main.dart';
 import 'dart:developer' as developer;
 import 'dart:math';
 import '/constants.dart';
@@ -39,8 +40,8 @@ class CreateTripStackController {
 }
 
 class CreateTripStack extends StatefulWidget {
-  // final CreateTripStackController? controller;
-  const CreateTripStack({super.key});
+  final CreateTripStackController? controller;
+  const CreateTripStack({super.key, this.controller});
   @override
   State<CreateTripStack> createState() => _CreateTripStackState();
 }
@@ -48,10 +49,15 @@ class CreateTripStack extends StatefulWidget {
 class _CreateTripStackState extends State<CreateTripStack>
     with TickerProviderStateMixin {
   late Future<bool> _dataLoaded;
+  // TripArguments? _tripArguments;
   final LeadingWidgetController _leadingWidgetController =
       LeadingWidgetController();
+  // final CreateTripController _createTripController = CreateTripController();
   final DirectionTileController _directionTileController =
       DirectionTileController();
+  // final RoutesBottomNavController _bottomNavController =
+  //    RoutesBottomNavController();
+
   final ImageRepository _imageRepository = ImageRepository();
   StreamSubscription<Position>? _positionStream;
   late final FollowRoute _debugRoute;
@@ -72,6 +78,7 @@ class _CreateTripStackState extends State<CreateTripStack>
 
   StreamSocket streamSocket = StreamSocket();
   sio.Socket socket = sio.io(urlBase, <String, dynamic>{
+    // sio.Socket socket = sio.io('http://192.168.1.10:5000', <String, dynamic>{
     'transports': ['websocket'], // Specify WebSocket transport
     'autoConnect': false, // Prevent auto-connection
   });
@@ -79,8 +86,9 @@ class _CreateTripStackState extends State<CreateTripStack>
   @override
   void initState() {
     super.initState();
-
+    widget.controller?._addState(this);
     _dataLoaded = dataFromDatabase();
+    developer.log('-- CreateTripStack().initState run --', name: '_stack_');
     if (CurrentTripItem().routes.isNotEmpty) {
       CurrentTripItem().mapUpdates = MapUpdates.updateAll;
     } else {
@@ -110,11 +118,14 @@ class _CreateTripStackState extends State<CreateTripStack>
               name: 'error');
         } else if (snapshot.hasData) {
           try {
+            //     developer.log('CreateTrip().build() snapshot.hasData',
+            //         name: '_stack_');
             Widget body = _getPortraitBody();
             return body;
           } catch (e) {
             developer.log('CreateTrip().build() error:${e.toString()}',
-                name: 'error');
+                name: '_map_');
+            debugPrint('error getting portraitBody ${e.toString()}');
           }
           // return body; //_getPortraitBody();
         } else {
@@ -824,6 +835,7 @@ class _CreateTripStackState extends State<CreateTripStack>
   getChips() {
     //   List<String> chipNames = [];
     // CreateTripCurrentTripItem().values CurrentTripItem().tripValues = CreateTripCurrentTripItem().values();
+    MyTripItem tripItem = CurrentTripItem();
     List<ActionChip> chips = [];
     try {
       if (CurrentTripItem().tripState == TripState.startFollowing) {
@@ -1341,7 +1353,7 @@ class _CreateTripStackState extends State<CreateTripStack>
       }
     } catch (e) {
       developer.log('Error creating ActionChips: ${e.toString()}',
-          name: 'error');
+          name: '_nav_');
     }
     return chips;
   }
@@ -1499,8 +1511,15 @@ class _CreateTripStackState extends State<CreateTripStack>
 }
 
 class StackNavBar extends StatelessWidget {
+  final RoutesBottomNavController? _controller;
   int index;
-  StackNavBar({super.key, this.index = 0});
+  StackNavBar(
+      {super.key, RoutesBottomNavController? controller, this.index = 0})
+      : _controller = controller ?? RoutesBottomNavController();
+
+//  void setIndex({required int index}) {
+//    index = index;
+//  }
 
   @override
   Widget build(BuildContext context) {
@@ -1508,8 +1527,10 @@ class StackNavBar extends StatelessWidget {
       bottomNavigationBar: kIsWeb
           ? null
           : RoutesBottomNav(
-              key: Key('bsnb1'),
-              controller: MapService().routesBottomNavController!,
+              // key: NavigationService().key, // Key('bsnb1'),
+              controller:
+                  MapService().routesBottomNavController!, // _controller!,
+              //    initialValue: index,
               onMenuTap: (_) => {}),
     );
   }
@@ -1552,10 +1573,8 @@ class StackAppBar extends StatelessWidget {
                   }
                 },
               ),
-              title: Text(
-                CurrentTripItem().getTripTitle(),
-                style: headlineStyle(context: context, size: 2),
-              ),
+              title: Text(CurrentTripItem().getTripTitle(),
+                  style: headlineStyle(context: context, size: 2)),
               iconTheme: const IconThemeData(color: Colors.white),
               backgroundColor: Colors.blue,
               actions: CurrentTripItem().getActions(

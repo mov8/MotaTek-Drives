@@ -28,6 +28,16 @@ void main() async {
   //   Setup().webAppBarController = WebAppBarController();
   // }
 
+  Map<String, WidgetBuilder> appRoutes = {
+    'splash': (BuildContext context) => const Splash(),
+    '${routes[0]}': (BuildContext context) => const Home(),
+    '${routes[1]}': (BuildContext context) => const MyTrips(), //Trips(),
+    '${routes[2]}': (BuildContext context) => const Shop(), //CreateTrip(),
+    '${routes[3]}': (BuildContext context) => const MyTrips(),
+    '${routes[4]}': (BuildContext context) => const Shop(),
+    '${routes[5]}': (BuildContext context) => Messages(),
+  };
+
   runApp(
     MaterialApp(
       navigatorKey: NavigationService().key,
@@ -75,18 +85,7 @@ void main() async {
 
       /// Removing the initialRoute causes problems - don't !
       initialRoute: NavigationService().initialRoute,
-
-      routes: {
-        'splash': (BuildContext context) => const Splash(),
-        'home': (BuildContext context) => const Home(),
-        'trips': (BuildContext context) =>
-            const Trips(), // <-- Dummy for Navigator
-        'createTrip': (BuildContext context) =>
-            const CreateTrip(), // <-- does Trips() too
-        'myTrips': (BuildContext context) => const MyTrips(),
-        'shop': (BuildContext context) => const Shop(),
-        'messages': (BuildContext context) => Messages(),
-      },
+      routes: appRoutes,
 
       builder: (context, child) {
         /// Persistent Map is MapLibre's recommendation so the Map is placed at the route of a Stack
@@ -267,6 +266,30 @@ class _AppMasterShellState extends State<AppMasterShell> {
                       webAppBarController: MapService().webAppBarController,
                     ),
                 ],
+
+                //    if (!NavigationService().showSplash)
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  height: 105,
+                  child: Material(
+                    child: Overlay(
+                      // <-- has to be added because outside Navigation
+                      initialEntries: [
+                        OverlayEntry(
+                          builder: (context) => Material(
+                            //  key: NavigationService().uiKey,
+                            type: MaterialType.transparency,
+                            child: Padding(
+                                padding: EdgeInsets.fromLTRB(0, 0, 0, 0),
+                                child: StackNavBar(index: 0)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ]),
             ),
           ]),
@@ -275,6 +298,43 @@ class _AppMasterShellState extends State<AppMasterShell> {
       resizeToAvoidBottomInset: false,
     );
   }
+}
+/* 
+class AppMasterShell extends StatefulWidget {
+  final AppMasterShellController? controller;
+  final Widget content;
+  const AppMasterShell({super.key, required this.content, this.controller});
+  @override
+  State<AppMasterShell> createState() => _AppMasterShellState();
+}
+
+class _AppMasterShellState extends State<AppMasterShell> {
+  final PageStorageBucket _shellStorageBucket = PageStorageBucket();
+
+  @override
+  void initState() {
+    super.initState();
+    widget.controller?._addState(this);
+  }
+
+  void update() => setState(() => ());
+*/
+
+class ShellBody extends StatefulWidget {
+  final ShellBodyController? controller;
+  const ShellBody({super.key, this.controller});
+  @override
+  State<ShellBody> createState() => _ShellBodyState();
+}
+
+class _ShellBodyState extends State<ShellBody> {
+  @override
+  void initState() {
+    super.initState();
+    widget.controller?._addState(this);
+  }
+
+  void update() => setState(() => ());
 }
 
 void _onStyleLoaded() async {

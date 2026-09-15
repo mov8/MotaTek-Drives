@@ -1,6 +1,5 @@
 import 'package:latlong2/latlong.dart';
 import 'package:flutter/material.dart';
-import 'dart:developer' as developer;
 import 'package:intl/intl.dart';
 import 'models/models.dart';
 import 'screens/screens.dart';
@@ -8,7 +7,7 @@ import 'screens/screens.dart';
 const appVersion = {'major': 0, 'minor': 0, 'patch': 9, 'suffix': 'beta db'};
 
 const apiAddress = 'https://drives.motatek.com/';
-// const wifiIpAddress = 'http://192.168.1.216:5001/'; // <- Home extendor
+// const wifiIpAddress = 'http://192.168.1.216:5001/';  // <- Home extendor
 const wifiIpAddress = 'http://192.168.1.168:5001/'; // <- Home fibre
 
 // const wifiIpAddress = 'http://10.164.124.105:5001/'; // < Redmi
@@ -31,7 +30,7 @@ const double degreeToRadians = 0.0174532925; // degrees to radians pi/180
 
 const organisationName = 'MotaTek';
 
-const List<String> routes = [
+const List routes = [
   'home',
   'trips',
   'createTrip',

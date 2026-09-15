@@ -275,10 +275,10 @@ import 'package:uuid/rng.dart';
           throw ('Error - FutureBuilder in main.dart');
         },
       ),
-      bottomNavigationBar: RoutesBottomNav(
+      /*   bottomNavigationBar: RoutesBottomNav(
           controller: _bottomNavController,
           initialValue: 3,
-          onMenuTap: (_) => {}),
+          onMenuTap: (_) => {}), */
     );
   }
 }

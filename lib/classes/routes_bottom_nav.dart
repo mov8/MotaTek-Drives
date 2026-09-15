@@ -61,6 +61,7 @@ class _RoutesBottomNavState extends State<RoutesBottomNav>
   void initState() {
     super.initState();
     widget.controller._addState(this);
+    developer.log('RoutesBottomNav().initState() called', name: '_nav_');
     _index = widget.initialValue;
     //  badgeValues[1] = Setup().tripCount;
     badgeValues[4] = Setup().shopCount;
@@ -97,10 +98,13 @@ class _RoutesBottomNavState extends State<RoutesBottomNav>
         ? Align(
             alignment: Alignment.bottomLeft,
             child: NavigationBar(
+              key: Key('bnb1'),
               elevation: 5,
               height: 60,
               surfaceTintColor: Colors.blue,
               onDestinationSelected: (int index) {
+                developer.log('NavigationBar().onDestinationSelected($index)',
+                    name: '_nav_');
                 NavigationService().navigateTo(routes[index], TripArguments());
                 MapService()
                     .setPage(page: index); //   <-- Ensures correct cache loaded
@@ -135,6 +139,8 @@ class _RoutesBottomNavState extends State<RoutesBottomNav>
             surfaceTintColor: Colors.blue,
             onDestinationSelected: (int index) {
               try {
+                developer.log('NavigationBar().onDestinationSelected($index)',
+                    name: '_nav_');
                 MapService()
                     .setPage(page: index); //   <-- Ensures correct cache loaded
                 NavigationService().navigateTo(routes[index], null);

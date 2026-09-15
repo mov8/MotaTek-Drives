@@ -352,12 +352,12 @@ main() {
           }
         },
       ),
-      bottomNavigationBar: kIsWeb
+      /* bottomNavigationBar: kIsWeb
           ? null
           : RoutesBottomNav(
               controller: _bottomNavController,
               initialValue: 4,
-              onMenuTap: (_) => {}),
+              onMenuTap: (_) => {}),*/
     );
   }
 

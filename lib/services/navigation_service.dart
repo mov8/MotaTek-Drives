@@ -21,33 +21,29 @@ class NavigationService {
   bool get isWidget => _isWidget;
 
   Future<dynamic> navigateTo(String routeName, Object? arguments) async {
-    initialRoute = routeName;
+    developer.log('NavigationService().navigateTo($routeName)', name: '_nav_');
+    initialRoute = routeName; //<-- used in Main().scaffold
     try {
-      if (key.currentState == null) {
-        return;
-      }
-
       final pages = kIsWeb
           ? ['trips', 'createTrip', 'myTrips' 'shop', 'messages']
           : ['trips', 'createTrip'];
 
       if (!showSplash) {
+        developer.log(
+            'NavigationService().key.currentState ${key.currentState == null ? "IS" : "ISN'T"} NULL before pushing $routeName',
+            name: '_nav_');
         if (pages.contains(routeName)) {
           _isWidget = true;
-          MapService().appMasterShellController!.update(); // <-- update UI
-        } else {
+          //  MapService().appMasterShellController!.update(); // <-- update UI
+        } else if (key.currentState != null) {
           _isWidget = false;
-          try {
-            key.currentState!.pushNamed(routeName, arguments: arguments);
-          } catch (e) {
-            developer.log('Error pushNamed($routeName)', name: '_nav_');
-          }
+          key.currentState!.pushNamed(routeName, arguments: arguments);
         }
-
-        MapService()
-            .routesBottomNavController!
-            .setValue(routes.indexOf(routeName));
       }
+
+      //  MapService()
+      //      .routesBottomNavController!
+      //      .setValue(routes.indexOf(routeName));
     } catch (e) {
       developer.log(
           'NavigationService().navigateTo($routeName) from: ${MapService().page}  error: ${e.toString()} ',

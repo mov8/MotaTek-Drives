@@ -359,13 +359,14 @@ main() {
           }
         },
       ),
-      bottomNavigationBar: kIsWeb
+    );
+    /*   bottomNavigationBar: kIsWeb
           ? null
           : RoutesBottomNav(
               controller: _bottomNavController,
               initialValue: 0,
               onMenuTap: (_) => {}),
-    );
+    ); */
   }
 
   void sideBarItems() async {

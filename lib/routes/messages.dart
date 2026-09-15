@@ -366,12 +366,12 @@ class _MessagesState extends State<Messages> {
             }
             throw ('Error - FutureBuilder in main.dart');
           },
-        ),
+        ), /*
         bottomNavigationBar: RoutesBottomNav(
           controller: _bottomNavController,
           onMenuTap: (_) => {},
           initialValue: 5,
-        ),
+        ), */
       );
     }
   }
