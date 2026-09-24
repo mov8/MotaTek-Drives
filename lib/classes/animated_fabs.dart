@@ -13,7 +13,7 @@ import '/helpers/edit_helpers.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:pointer_interceptor/pointer_interceptor.dart';
+// import 'package:pointer_interceptor/pointer_interceptor.dart';
 
 //import '/classes/classes.dart';
 //import ''

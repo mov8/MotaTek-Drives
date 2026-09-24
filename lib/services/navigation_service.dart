@@ -11,8 +11,11 @@ class NavigationService {
   NavigationService._internal();
   // key is the key for the bottom Stack level - the map
   final GlobalKey<NavigatorState> key = GlobalKey<NavigatorState>();
-  // uiKey is the key for the second Stack layer - the pages and side drawer
   final GlobalKey<NavigatorState> uiKey = GlobalKey<NavigatorState>();
+  bool showSplash = true;
+
+  // uiKey is the key for the second Stack layer - the pages and side drawer
+  /* 
   String initialRoute = 'splash';
   bool _isWidget = false;
   bool showSplash = true;
@@ -51,12 +54,37 @@ class NavigationService {
     }
     return;
   }
+  */
+
+  List<String> headings = [
+    'Home',
+    'Published - trips to explore',
+    'Explore - plan a trip',
+    'Favourite - your personal trips',
+    'Shop offers - ',
+    'Messages - keep in touch'
+  ];
+
+  String get heading => headings[_page];
 
   int _page = 0;
-
   int get page => _page;
 
+  int destination(int newPage) {
+    _page = newPage;
+    if ((kIsWeb & [1, 2, 3, 5].contains(newPage)) ||
+        (!kIsWeb && [1, 2].contains(_page))) {
+      MapService().createTripController.update();
+      return 1;
+    }
+    int page = newPage > 0 ? --newPage : newPage;
+    return page;
+  }
+
+  selected(int num) => _page = num;
+/*
   void goBack() {
     return key.currentState!.pop();
   }
+*/
 }

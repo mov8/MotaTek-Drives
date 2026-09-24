@@ -13,10 +13,14 @@ Cure follow 4 steps:
 3 remove the version from the device 
 4 rebuild on the device
 
-IF SEARCH / REPLACE STOPS WORKING - IT'S A BUGGY KEYBOARD!
+IF ^F SEARCH / REPLACE STOPS WORKING - IT'S A BUGGY KEYBOARD!
 TO FIX press Ctrl + Fn + B (Ctrl break) and LET GO OF THE B FIRST
 IT FIXES IT
 
+Creating a splash screen 
+dart run flutter_native_splash:create --path=lib\flutter_native_splash.yaml
+The yaml file holds all the configuration values - works well.
+The splash icon has to be a very precise size and must have no background.
 
 Flutter Intellisense very SLOW
 1   Open Command Pallet Ctrl+Shift+P
@@ -122,3 +126,9 @@ git branch <-- shows all branches
 git checkout <branch> <-- changes the brunch
 
 Todo-Tree: Failed to find vscode-ripgrep - please install ripgrep manually and set 'todo-tree.ripgrep' to point to the executable
+
+Problems with OSM-Routing 
+Adding waypoints to the map became very slow 
+1 Test using curl:
+    curl "https://drives.motatek.com/router/route/v1/driving/-0.5167664999999602,51.436069199999956;-0.5469509104114536,51.435485744846865;-0.5619807402775052,51.428639345443905;-0.5767611051253141,51.420702467696685;-0.594534947246558,51.40875565252129?steps=true&annotations=true&geometries=geojson&overview=full"
+

@@ -135,20 +135,16 @@ Future<RouterData> getRouterData(
   var url = Uri.parse(
       '$urlRouter$waypoints?steps=true&annotations=true&geometries=geojson&overview=full$avoid');
   try {
-    var response = await http.get(url).timeout(const Duration(seconds: 8));
+    var response = await http.get(url).timeout(const Duration(seconds: 20));
     if ([200, 201].contains(response.statusCode)) {
       jsonResponse = jsonDecode(response.body);
       if (jsonResponse == null) {
         return RouterData(message: 'Error');
       }
     } else {
-      developer.log(
-          'getRouterData() http error - response: ${response.statusCode}',
-          name: 'error');
       return RouterData(message: 'Error');
     }
   } catch (e) {
-    developer.log('getRouterData() http error: ${e.toString()}', name: 'error');
     return RouterData(message: 'Error');
   }
   return RouterData.fromGeoJson(

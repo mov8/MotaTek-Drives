@@ -9,12 +9,16 @@ const appVersion = {'major': 0, 'minor': 0, 'patch': 9, 'suffix': 'beta db'};
 const apiAddress = 'https://drives.motatek.com/';
 // const wifiIpAddress = 'http://192.168.1.216:5001/';  // <- Home extendor
 const wifiIpAddress = 'http://192.168.1.168:5001/'; // <- Home fibre
+// const wifiIpAddress = 'http://192.168.235.1:5001/'; // <- Home no internet
+// Use the Ethernet adapter VMware Network Adapter VMnet1 IP address at home because of router problems
 
+// const wifiIpAddress = "http://10.0.2.2:5001"; //  <- Android emulator
+// const wifiIpAddress = "http://10.2.222.7:5001";
 // const wifiIpAddress = 'http://10.164.124.105:5001/'; // < Redmi
 // const wifiIpAddress = 'http://192.168.1.111:5001/'; // <- Boston unit
 // const wifiIpAddress = 'http://192.168.68.122:5001/'; // <- Barnet
 // const wifiIpAddress = 'http://192.168.1.211:5001/'; // <- Irby Street
-// const wifiIpAddress = 'http://192.168.68.112:5001/'; // <- Dias
+// const wifiIpAddress = 'http://192.168.68.112:5001/'; // <- DiasF
 // const wifiIpAddress = 'http://10.249.4.160:5001/'; // <- airport joburg
 // const wifiIpAddress ='http://10.2.222.57:5001/'; // <- Staines library 10.2.222.57:5001
 // https://drives.motatek.com/v1/user/test
@@ -839,6 +843,9 @@ const List<String> tableDefs = [
   '''CREATE TABLE trip_items(id INTEGER PRIMARY KEY AUTOINCREMENT, heading TEXT, uri TEXT, sub_heading TEXT, 
   body TEXT, author TEXT, author_url TEXT, published DATETIME, image_urls TEXT, score REAL, 
   scored INTEGER, distance REAL, points_of_interest INTEGER, closest INTEGER, downloads INTEGER)''',
+
+  '''CREATE TABLE saved_trips(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT, added DATETIME, title TEXT,
+  sub_title TEXT, body TEXT, images TEXT, pois INTEGER, distance REAL, trip TEXT)''',
 
   /// USERS
   '''CREATE TABLE users(id INTEGER PRIMARY KEY AUTOINCREMENT, forename TEXT, surname TEXT, email TEXT, 

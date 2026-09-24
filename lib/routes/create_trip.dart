@@ -10,21 +10,26 @@ import 'package:intl/intl.dart';
 // import 'dart:typed_data';
 import 'dart:math';
 import '/constants.dart';
+// import '/services/services.dart';
 import '/classes/classes.dart' hide Position;
 import 'package:flutter/foundation.dart';
 import '/screens/screens.dart';
 import '/services/services.dart' hide getPosition;
+import '/services/maplibre_service.dart';
 import '/models/models.dart';
 import '/helpers/helpers.dart';
 import '/tiles/tiles.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:flutter/gestures.dart';
 import 'package:http/http.dart' as http;
 import 'package:hive/hive.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:socket_io_client/socket_io_client.dart' as sio;
 import 'package:maplibre_gl/maplibre_gl.dart'; // hide LatLng;
+import 'package:go_router/go_router.dart';
 
 // MapLibreMapController? _mapController;
 BottomDrawerController _bottomDrawerController = BottomDrawerController();
@@ -147,6 +152,10 @@ class CreateTripController {
     }
   }
 
+  void update() {
+    _createTripState?.update();
+  }
+
 /*
   void editing() {
   setLocationUpdates()
@@ -197,8 +206,13 @@ class CreateTripController {
 ///
 
 class CreateTrip extends StatefulWidget {
-  final CreateTripController? controller;
-  const CreateTrip({super.key, this.controller});
+  // final CreateTripController? controller;
+  final String mapType;
+  const CreateTrip({
+    super.key,
+    // this.controller,
+    this.mapType = 'explore',
+  });
   @override
   State<CreateTrip> createState() => _CreateTripState();
 }
@@ -272,6 +286,7 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   String grId = '';
   // late final MLMap _mapLibreMap;
   String images = '';
+  String mapStyle = '';
 
   int _triggered = 0;
   int _onIdleCalled = 0;
@@ -295,7 +310,7 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   Size _mapSize = Size(0, 0);
   bool _idleCalled = false;
   Point _pointAtCentre = Point(0, 0);
-
+  // late MapLibreMap mlMap;
   final ImageRepository _imageRepository = ImageRepository();
 
 /*
@@ -326,7 +341,7 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    widget.controller?._addState(this);
+    MapService().createTripController._addState(this);
     _leadingWidgetController = LeadingWidgetController();
     // CurrentTripItem().clearAll(); // debug
     // NetworkState().initialise();
@@ -334,6 +349,10 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
     /// being controlled, as the controller shares the widgets state
     /// A single controller would then share the state of
     /// all the widgets it controls - not good.
+    ///
+
+    MapService().statusBarController = StatusBarController();
+    MapService().zoomFabController = ZoomFabController();
 
     _bottomNavController = RoutesBottomNavController();
     _directionTileController = DirectionTileController();
@@ -455,7 +474,11 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
     }
   }
 
-  updateArguments({required TripArguments arguments}) async {
+  void update() {
+    setState(() => {});
+  }
+
+  void updateArguments({required TripArguments arguments}) async {
     if (_tripArguments != arguments) {
       if (kIsWeb) {
         MapService().sideDrawerController!.close();
@@ -488,52 +511,89 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    int initialNavBarValue = 2;
-
-    /// When the create_trip widget is called the caller can pass arguments from my_trips.dart and group_drives.dart
-    /// This allows the map to be positioned and zoomed correctly
-    /// The activeChip is to set the WebAppBar route button correctly. If the form is built without any arguments
-    /// then the user has clicked the Explore button so the Explore ActionChip is active. If the have clicked
-    /// Published or Favourites then the Explore route is navigated to, but the chips should reflect Published and
-    /// Favourites respectively, which is handed over with the Navigate arguments.
-
-    if (ModalRoute.of(context)!.settings.arguments != null) {
-      TripArguments args =
-          ModalRoute.of(context)!.settings.arguments as TripArguments;
-      if (args.changedScreen) {
-        updateArguments(arguments: args);
-        args.changedScreen =
-            false; // <-- ensure future repaints show the updated activeChip value
-      }
-    }
-
-    initialLeadingWidgetValue = [TripState.manual, TripState.editing]
-            .contains(CurrentTripItem().tripState)
-        ? 1
-        : 0;
-
-    FutureBuilder(
-      future: _loadedOK,
-      builder: (BuildContext context, snapshot) {
-        if (snapshot.hasError) {
-          debugPrint('Snapshot error: ${snapshot.error}');
-        } else if (snapshot.hasData) {
-          return SizedBox();
-        } else {
-          return SizedBox();
-        }
-        throw ('error creating details cards');
-      },
+    AppBar appBar = AppBar(
+      automaticallyImplyLeading: false,
+      leading: LeadingWidget(
+        controller: _leadingWidgetController,
+        onMenuTap: (index) => _leadingWidget(_scaffoldKey.currentState),
+      ), // IconButton(
+      title: Text(
+        NavigationService().heading,
+        style: TextStyle(
+          fontSize: 20,
+          color: Colors.white,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+      iconTheme: const IconThemeData(color: Colors.white),
+      backgroundColor: Colors.blue,
+      actions: [
+        IconButton(
+          onPressed: () => {
+            if (Setup().jwt.isEmpty) {context.push('/login')},
+          },
+          icon: Icon(
+            Setup().jwt.isEmpty
+                ? Icons.no_accounts_outlined
+                : Icons.account_circle_outlined,
+            size: 35,
+          ),
+        )
+      ],
     );
-    throw ('error creating details cards');
+    return Scaffold(
+      backgroundColor: Colors.blue,
+      key: _scaffoldKey,
+      drawer: const MainDrawer(),
+      appBar: kIsWeb ? null : appBar,
+      floatingActionButton: HandleCTFabs(
+        top: appBar.preferredSize.height + kToolbarHeight,
+        controller: MapService().fabsController,
+      ),
+      body: _getPortraitBody(),
+      bottomSheet: kIsWeb
+          ? null
+          : BottomDrawer(
+              context: context,
+              maxHeight: 500,
+              controller: MapService().bottomDrawerController,
+              content: CurrentTripItem(),
+              imageRepository: _imageRepository,
+              onOpened: onOpened,
+            ),
+    );
   }
 
 // https://drives.motatek.com/static/tiles/{z}/{x}/{y}.pbf
 
+  Future getPermission() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      return Future.error('Location services not enabled.');
+    }
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        return Future.error('Location permissions denied.');
+      }
+      if (permission == LocationPermission.deniedForever) {
+        return Future.error(
+            'Location permissions are permanently denied. Check your settings');
+      }
+    }
+  }
+
   Future<bool> dataFromDatabase() async {
     try {
+      await getPermission();
+      // String style = await MapService().style;
       _currentPosition = await Geolocator.getCurrentPosition();
-
+      // mapStyle = await getStyle(url: urlTilerMapLibre);
+      // mapStyle = await MapService().style;
       if (Setup().hasLoggedIn) {
         var setupRecords = await getPrivateRepository().recordCount('setup');
         _preferences.avoidMotorways = Setup().avoidMotorways;
@@ -547,11 +607,12 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
           }
         }
       }
+      return true;
+      // mapStyle = await MapService().style;
     } catch (e) {
       debugPrint('Error getting features data: ${e.toString()}');
+      return false;
     }
-
-    return true;
   }
 
   double appBarHeight() {
@@ -637,6 +698,59 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   }
 
   Widget _getPortraitBody() {
+    _tripArguments ??=
+        TripArguments(activeChip: 2, appState: AppState.createTrip);
+    return Stack(children: [
+      MapService().mlMap!,
+      CreateTripStack(controller: MapService().createTripStackController)
+    ]);
+
+    /*MapLibreMap(
+      key: MapService().mapKey,
+      styleString: mapStyle,
+      compassViewPosition: CompassViewPosition.topLeft,
+      onMapCreated: _onMapUpdated,
+      initialCameraPosition: CameraPosition(
+          target: LatLng(MapService().currentPosition.latitude,
+              MapService().currentPosition.longitude),
+          zoom: 11),
+      trackCameraPosition: true,
+      onCameraMove: _onCameraMove,
+      onMapClick: _onTap,
+      onCameraIdle: _onCameraIdle,
+      scrollGesturesEnabled: true,
+      onStyleLoadedCallback: () => _onStyleLoaded(),
+      zoomGesturesEnabled: true,
+      gestureRecognizers: Set()
+        ..add(
+          Factory<EagerGestureRecognizer>(
+            () => EagerGestureRecognizer(),
+          ),
+        ),
+    ); */
+  }
+
+  void _onMapUpdated(MapLibreMapController controller) async {
+    //true;
+
+    // fabs.controller = MapService().controller;
+    // fabs.zoomFabController = MapService().zoomFabController;
+    /*
+    fabs = HandleCTFabs(
+      controller: MapService().controller!,
+      sbController: MapService().statusBarController,
+      zfController: MapService().zoomFabController,
+      top: AppBar().preferredSize.height + 20,
+      update: (update) => update ? setState(() {}) : null,
+    );
+    */
+    // if (MapService().statusBarController != null) {
+    //   MapService().statusBarController!.refresh();
+    // }
+    // _createTripStackController.refresh();
+  }
+
+  Widget _getPortraitBodyOld() {
     _mapSize = MapService().mapSize();
     _mapMiddle = MapService().mapMiddle;
     _tripArguments ??=
@@ -902,9 +1016,9 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
 
   _getTripDescriptions() async {
     _bottomDrawerController.setContent(content: BottomDrawerItems.trip);
-    _bottomDrawerController.open(height: 300);
-    await Future.delayed(Duration(milliseconds: 500));
-    _bottomDrawerController.dockOpenTile();
+    _bottomDrawerController.open();
+    //   await Future.delayed(Duration(milliseconds: 500));
+    //   _bottomDrawerController.dockOpenTile();
     //   }
     CurrentTripItem().tripActions = TripActions.none;
   }
@@ -941,14 +1055,14 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
           MapService().sideDrawerController!.open(width: 0.4);
         } else {
           _bottomDrawerController.setContent(content: BottomDrawerItems.trip);
-          _bottomDrawerController.open(height: 300);
+          _bottomDrawerController.open();
         }
       }
       if (dock) {
         if (kIsWeb) {
           MapService().sideDrawerController!.scrollTo(index: 0);
-        } else {
-          _bottomDrawerController.dockOpenTile();
+          //   } else {
+          //     _bottomDrawerController.dockOpenTile();
         }
       }
     } catch (e) {
@@ -1053,14 +1167,14 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
       case MyTripActions.showMessages:
         _bottomDrawerController.setContent(
             content: BottomDrawerItems.maneuvers);
-        _bottomDrawerController.open(height: 300);
+        _bottomDrawerController.open();
         CurrentTripItem().tripActions = TripActions.none;
         return;
 
       case MyTripActions.showGroup:
         _bottomDrawerController.setContent(
             content: BottomDrawerItems.group, drawerItems: _following);
-        _bottomDrawerController.open(height: 300);
+        _bottomDrawerController.open();
         CurrentTripItem().tripActions = TripActions.none;
         return;
 
@@ -1883,7 +1997,7 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
         Utility().showConfirmDialog(context, "Can't save - more info needed",
             "Please enter what you'd like to call this trip.");
       }
-      _bottomDrawerController.open(height: 300); // height of opened ExpandTile
+      _bottomDrawerController.open(); // height of opened ExpandTile
 
       CurrentTripItem().tripActions = TripActions.headingDetail;
       fn1.requestFocus();

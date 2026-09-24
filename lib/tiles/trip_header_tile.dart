@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '/classes/classes.dart'; //   my_trip_item.dart';
-
+import '/services/services.dart';
 import '/constants.dart';
 import '/helpers/edit_helpers.dart';
 import 'dart:developer' as developer;
@@ -168,6 +168,7 @@ class _TripHeaderTileState extends State<TripHeaderTile> {
           FocusManager().primaryFocus?.unfocus();
           // FocusScope.of(context).unfocus();
         });
+        MapService().bottomDrawerController?.close();
       } catch (e) {
         developer.log(
             'Error trip_header_tile.dart dismissKeyboard(): ${e.toString}',

@@ -593,7 +593,7 @@ Future<dynamic> saveTripWeb(
       if (photos.isNotEmpty) {
         for (int j = 0; j < photos.length; j++) {
           try {
-            String key = photos[j].key ?? "";
+            String key = photos[j].key;
             if (key.isNotEmpty) {
               files.add(
                 http.MultipartFile.fromBytes(
@@ -612,7 +612,7 @@ Future<dynamic> saveTripWeb(
           } catch (e) {
             developer.log(
                 'Error WebHelper saveTripWeb() j:$j -> ${e.toString()}',
-                name: 'error');
+                name: '_actionChips_');
           }
         }
       }
@@ -627,7 +627,8 @@ Future<dynamic> saveTripWeb(
     request.files.addAll(files);
     response = await request.send().timeout(const Duration(seconds: 30));
   } catch (e) {
-    debugPrint('error: ${e.toString()} ${response.statusCode}');
+    developer.log('saveTripWeb() error: ${e.toString()} ${response.statusCode}',
+        name: '_actionChips_');
   }
   return ' ';
 }
@@ -1904,7 +1905,7 @@ Future<bool> apiListening() async {
 Future<String> getStyle({required String url}) async {
   try {
     final http.Response response =
-        await http.get(Uri.parse(url)).timeout(const Duration(seconds: 10));
+        await http.get(Uri.parse(url)).timeout(const Duration(seconds: 20));
     return response.body;
   } catch (e) {
     debugPrint('Error ${e.toString()}');

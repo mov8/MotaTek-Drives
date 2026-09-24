@@ -1400,6 +1400,38 @@ class PrivateStorageLocal implements PrivateDataRepository {
 
   @override
   Future<int> saveMyTripLocal(
+      CurrentTripItem tripItem, ImageRepository? imageRepository) async {
+    Database db = _db ??
+        await openDatabase(
+          _path = join(await getDatabasesPath(), 'drives.db'),
+          version: dbVersion, // in constants.dart,
+          onCreate: createDb,
+        );
+    List<Map<String, dynamic>> images = [];
+    try {
+      String driveFolder = '${Setup().appDocumentDirectory}/${tripItem.uri}';
+      Directory? targetDirectory;
+      Map<String, dynamic> map = {};
+      if (tripItem.mapImage != null) {
+        targetDirectory = Directory(driveFolder);
+
+        if (!await targetDirectory.exists()) {
+          await targetDirectory.create();
+        }
+        File('$driveFolder/map.png')
+            .writeAsBytes(tripItem.mapImage!.imageBytes as List<int>);
+
+        images.add(
+            {"url": '$driveFolder/map.png', "caption": 'map', "rotation": 0});
+      }
+    } catch (e) {
+      developer.log('Error storing data to SQLLite: ${e.toString()}',
+          name: 'error');
+    }
+    return 1;
+  }
+
+  Future<int> saveMyTripLocalOld(
       // <-- Is really saveMyTrip() removed for testing api version
       CurrentTripItem tripItem,
       ImageRepository? imageRepository) async {

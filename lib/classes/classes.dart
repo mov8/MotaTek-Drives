@@ -2,6 +2,7 @@ export 'additional_fabs.dart';
 export 'animated_fabs.dart';
 export 'autocomplete_widget.dart';
 export 'bottom_drawer.dart';
+export 'bottom_sheet.dart';
 export 'drives_classes.dart';
 export 'caches.dart';
 export 'compact_dropdown.dart';

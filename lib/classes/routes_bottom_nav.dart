@@ -61,7 +61,6 @@ class _RoutesBottomNavState extends State<RoutesBottomNav>
   void initState() {
     super.initState();
     widget.controller._addState(this);
-    developer.log('RoutesBottomNav().initState() called', name: '_nav_');
     _index = widget.initialValue;
     //  badgeValues[1] = Setup().tripCount;
     badgeValues[4] = Setup().shopCount;
@@ -94,7 +93,8 @@ class _RoutesBottomNavState extends State<RoutesBottomNav>
     /// The line below makes sure that the two map page bottom nav bar buttons are correct
     // _index = NavigationService().isWidget ? NavigationService().page : _index;
 
-    return NavigationService().isWidget // <-- Use Widget
+    return const SizedBox
+        .shrink(); /*NavigationService().isWidget // <-- Use Widget
         ? Align(
             alignment: Alignment.bottomLeft,
             child: NavigationBar(
@@ -105,6 +105,7 @@ class _RoutesBottomNavState extends State<RoutesBottomNav>
               onDestinationSelected: (int index) {
                 developer.log('NavigationBar().onDestinationSelected($index)',
                     name: '_nav_');
+
                 NavigationService().navigateTo(routes[index], TripArguments());
                 MapService()
                     .setPage(page: index); //   <-- Ensures correct cache loaded
@@ -175,6 +176,7 @@ class _RoutesBottomNavState extends State<RoutesBottomNav>
             ),
             destinations: _destinations,
           );
+      */
   }
 
   NavigationDestination _navigationDestination(

@@ -32,7 +32,13 @@ class CreateTripChips extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(spacing: 5, children: getChips());
+    return Align(
+      alignment: Alignment.bottomLeft,
+      child: Wrap(
+        spacing: 5,
+        children: getChips(),
+      ),
+    );
   }
 
   final List<Follower> _following = [];
@@ -203,7 +209,7 @@ class CreateTripChips extends StatelessWidget {
           'group': false
         },
         {
-          'label': 'Save route',
+          'label': 'Save trip',
           'method': saveTrip,
           'icon': Icons.save,
           'states': [
@@ -535,7 +541,8 @@ class CreateTripChips extends StatelessWidget {
 
           if (isValid(i)) {
             try {
-              chips.add(ActionChip(
+              chips.add(
+                ActionChip(
                   visualDensity:
                       const VisualDensity(horizontal: 0.0, vertical: 0.5),
                   backgroundColor: Colors.blueAccent,
@@ -546,9 +553,13 @@ class CreateTripChips extends StatelessWidget {
                   elevation: 10,
                   shadowColor: Colors.black,
                   onPressed: () => chipDetails[i]['method'](),
-                  avatar: Icon(chipDetails[i]['icon'],
-                      size: 20,
-                      color: chipDetails[i]['colour'] ?? Colors.white)));
+                  avatar: Icon(
+                    chipDetails[i]['icon'],
+                    size: 20,
+                    color: chipDetails[i]['colour'] ?? Colors.white,
+                  ),
+                ),
+              );
             } catch (e) {
               developer.log(
                   'Error adding ActionChip in grtChips() : ${e.toString()}',
@@ -556,11 +567,10 @@ class CreateTripChips extends StatelessWidget {
             }
           } else {
             //  Code below very useful - don't remove
-            /*
+
             developer.log(
                 '$i - [${chipDetails[i]['label']}] failed => ${actionsOk(i) ? '' : 'actions '}${statesOk(i) ? '' : 'states '}${highlightsOk(i) ? '' : 'highlights '}${waypointOk(i) ? '' : 'waypoints '}${loadedOk(i) ? '' : 'loaded '}${savedOk(i) ? '' : 'saved '}${groupOk(i) ? '' : 'group '}${goodRoadOk(i) ? '' : 'goodRoad'}',
                 name: '_actionChips_');
-            */
           }
         }
       } catch (e) {
@@ -633,7 +643,7 @@ class CreateTripChips extends StatelessWidget {
     _executeChipActions(tripActions: MyTripActions.addWaypoint);
   }
 
-  saveTrip() async {
+  void saveTrip() async {
     _executeChipActions(tripActions: MyTripActions.saveTrip);
     return;
   }
@@ -804,7 +814,7 @@ class CreateTripChips extends StatelessWidget {
         MapService()
             .bottomDrawerController!
             .setContent(content: BottomDrawerItems.maneuvers);
-        MapService().bottomDrawerController!.open(height: 300);
+        MapService().bottomDrawerController!.open();
         CurrentTripItem().tripActions = TripActions.none;
         onUpdate!(MyTripActions.none);
         return;
@@ -812,7 +822,7 @@ class CreateTripChips extends StatelessWidget {
       case MyTripActions.showGroup:
         MapService().bottomDrawerController!.setContent(
             content: BottomDrawerItems.group, drawerItems: _following);
-        MapService().bottomDrawerController!.open(height: 300);
+        MapService().bottomDrawerController!.open();
         CurrentTripItem().tripActions = TripActions.none;
         onUpdate!(MyTripActions.none);
         return;
@@ -859,6 +869,8 @@ class CreateTripChips extends StatelessWidget {
 
   _saveTrip() async {
     if (CurrentTripItem().headerComplete() != 7) {
+      MapService().createTripStackController?.warn(0);
+      MapService().bottomDrawerController?.open();
       _getTripDescriptions();
       return;
     }
@@ -866,10 +878,16 @@ class CreateTripChips extends StatelessWidget {
       CurrentTripItem().uri = getUuid();
     }
     await _createMapImage();
+
+    if (Setup().jwt.isEmpty) {
+      MapService().createTripStackController?.warn(1);
+    }
+
     CurrentTripItem().imageRepository ??= ImageRepository();
     await CurrentTripItem().savePrivate();
     CurrentTripItem().tripState = TripState.loaded;
     CurrentTripItem().tripValues.editing();
+    MapService().createTripStackController?.warn(-1);
   }
 
   void setLocationUpdates() async {
@@ -954,14 +972,14 @@ class CreateTripChips extends StatelessWidget {
         if (kIsWeb) {
           MapService().sideDrawerController!.open(width: 0.4);
         } else {
-          MapService().bottomDrawerController!.open(height: 500);
+          MapService().bottomDrawerController!.open();
         }
       }
       if (dock) {
         if (kIsWeb) {
           MapService().sideDrawerController!.scrollTo(index: 0);
-        } else {
-          MapService().bottomDrawerController!.dockOpenTile();
+          //   } else {
+          //     MapService().bottomDrawerController!.dockOpenTile();
         }
       }
     } catch (e) {
@@ -974,9 +992,9 @@ class CreateTripChips extends StatelessWidget {
     MapService()
         .bottomDrawerController!
         .setContent(content: BottomDrawerItems.trip);
-    MapService().bottomDrawerController!.open(height: 500);
-    await Future.delayed(Duration(milliseconds: 500));
-    MapService().bottomDrawerController!.dockOpenTile();
+    MapService().bottomDrawerController!.open();
+    // await Future.delayed(Duration(milliseconds: 500));
+    // MapService().bottomDrawerController!.dockOpenTile();
     //   }
     CurrentTripItem().tripActions = TripActions.none;
   }
@@ -988,7 +1006,7 @@ class CreateTripChips extends StatelessWidget {
         CurrentTripItem().highliteActions = HighliteActions.none;
         CurrentTripItem().tripValues.showProgress = true;
         MapService().bottomDrawerController!.close();
-        try {
+        /* try {
           Uint8List mapBytes = await MapService().controller!.takeSnapshot();
 
           if (CurrentTripItem().mapImage == null) {
@@ -1002,7 +1020,7 @@ class CreateTripChips extends StatelessWidget {
           developer.log(
               'Error CreateTrip().createMapImage() saving map screenshot: "{eo.toString()',
               name: 'error');
-        }
+        } */
       } catch (e) {
         developer.log(
             'Error creating CreateTripChips().createMapImage(): ${e.toString()}',

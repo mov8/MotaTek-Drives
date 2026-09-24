@@ -40,6 +40,7 @@ class BottomDrawerController {
     }
   }
 
+/*
   void dockOpenTile() {
     try {
       _bottomDrawerState?.dockOpenTile();
@@ -47,10 +48,10 @@ class BottomDrawerController {
       debugPrint("Can't dock open tile: ${e.toString()}");
     }
   }
-
-  void open({height = 0}) {
+*/
+  void open() {
     try {
-      _bottomDrawerState?.open(height);
+      _bottomDrawerState?.open();
     } catch (e) {
       debugPrint("Can't open bottom drawer: ${e.toString()}");
     }
@@ -138,7 +139,7 @@ class _BottomDrawerState extends State<BottomDrawer>
 
   final PointOfInterestController _pointOfInterestController =
       PointOfInterestController();
-  final ScrollController _scrollController = ScrollController();
+  // final ScrollController _scrollController = ScrollController();
   final TripHeaderController _tripHeaderController = TripHeaderController();
   final ItemScrollController _itemScrollController = ItemScrollController();
 
@@ -164,12 +165,13 @@ class _BottomDrawerState extends State<BottomDrawer>
 */
 
   void close() async {
-    if (mounted) {
+    _isSheetContentExpanded = false;
+    /*  if (mounted) {
       while (View.of(context).viewInsets.bottom > 0) {
         await Future.delayed(const Duration(milliseconds: 10));
       }
       setState(() => height = 0);
-    }
+    } */
   }
 
   void refresh() {
@@ -191,10 +193,21 @@ class _BottomDrawerState extends State<BottomDrawer>
   /// The CurrentTripItem() data has to be shredded every time the bottom drawer gets rebuilt, as the
   /// the initiallyExpanded property is set when the tile is created.
 
-  List<Widget> _tiles = [];
+  List<Widget> _tiles = [
+    Container(
+      height: 400,
+      width: double.infinity,
+      color: Colors.blue,
+      child: Center(
+        child: Text('No data',
+            style: TextStyle(fontSize: 22, color: Colors.white)),
+      ),
+    ),
+  ];
 
   void setContent(BottomDrawerItems content, List? drawerItems) {
     try {
+      _tiles.clear();
       _content = content;
       _drawerItems = drawerItems ?? [];
       switch (content) {
@@ -502,27 +515,10 @@ class _BottomDrawerState extends State<BottomDrawer>
         .then((_) => close());
   }
 
-  void open(newHeight) async {
-    bool changed = false;
+  void open() async {
     try {
-      setContentBottom();
-      delay = 500;
-
-      height = height == 0
-          ? newHeight == 0
-              ? widget.maxHeight
-              : newHeight.toDouble()
-          : 0;
-      changed = contentHeight != height;
-      contentHeight = height; // MediaQuery.of(context).size.height;
-    } catch (e) {
-      developer.log('Error bottom_drawer.open(): ${e.toString()}',
-          name: 'error');
-    }
-    try {
-      if (mounted && changed) {
-        setState(() {});
-      }
+      MapService().fabsController?.hide();
+      setState(() => _isSheetContentExpanded = true);
     } catch (e) {
       developer.log('Error bottom_drawer.open(): ${e.toString()}',
           name: 'error');
@@ -549,6 +545,7 @@ class _BottomDrawerState extends State<BottomDrawer>
   /// To make sure the initiallyExpanded are not stuck in the ExpansionTiles have a key: UniqueKey() which forces Flutter
   /// to rebuild the ExpansionTile's state and so updating the initiallyExpanded state.
 
+/*
   void dockOpenTile() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       try {
@@ -573,7 +570,7 @@ class _BottomDrawerState extends State<BottomDrawer>
       }
     });
   }
-
+*/
   Point widgetPosition({required GlobalKey<State<StatefulWidget>> key}) {
     Point pos = Point(0, 0);
     final bnKeyContext = key.currentContext;
@@ -584,7 +581,7 @@ class _BottomDrawerState extends State<BottomDrawer>
     }
     return pos;
   }
-
+/*
   void setContentBottom({double offset = 0}) {
     try {
       contentBottom = contentBottom == 0 &&
@@ -597,6 +594,7 @@ class _BottomDrawerState extends State<BottomDrawer>
     }
     return;
   }
+  */
 
 /*
   Following two functions are useful for understanding rebuild problems - don't delete
@@ -616,7 +614,86 @@ class _BottomDrawerState extends State<BottomDrawer>
   }
 */
 
+  bool _isSheetContentExpanded = false;
+
+  void _toggleSheet() {
+    setState(() {
+      _isSheetContentExpanded = !_isSheetContentExpanded;
+    });
+    if (!_isSheetContentExpanded) {
+      MapService().fabsController?.show();
+    } else {
+      MapService().fabsController?.hide();
+    }
+  }
+
   @override
+  Widget build(BuildContext context) {
+    return Container(
+      child: Column(
+        mainAxisSize:
+            MainAxisSize.min, // Prevents taking up full screen unless open
+        children: [
+          // 3. THE TAPPABLE / DRAGGABLE BAR
+          GestureDetector(
+            onTap:
+                _toggleSheet, // Clicking this smoothly opens/closes the drawer
+            onVerticalDragEnd: (details) {
+              // Quick drag gesture checking: swipe up to open, swipe down to close
+              if (details.primaryVelocity! < 0 && !_isSheetContentExpanded) {
+                _toggleSheet();
+              } else if (details.primaryVelocity! > 0 &&
+                  _isSheetContentExpanded) {
+                _toggleSheet();
+              }
+            },
+            child: Container(
+              width: double.infinity,
+              color: Colors.blueGrey,
+              // .transparent, // Ensures the entire bar width is interactive
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              child: Center(
+                child: Container(
+                  width: 40,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[400], // Clean visual pill asset
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // 4. THE DATA CONTENT ZONE
+          // AnimatedCrossFade handles animating your list smoothly out of view
+          // without leaving weird data text fragments visible when closed.
+          AnimatedCrossFade(
+            duration: const Duration(milliseconds: 500),
+            crossFadeState: _isSheetContentExpanded
+                ? CrossFadeState.showFirst
+                : CrossFadeState.showSecond,
+            // WHAT SHOWS WHEN EXPANDED: Your full scrolling API list data
+            firstChild: Container(
+              constraints: BoxConstraints(
+                // Locks the drawer to exactly 45% of whatever screen height they have
+                maxHeight: MediaQuery.of(context).size.height * 0.45,
+              ),
+              child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: _tiles.length,
+                  itemBuilder: (context, index) => _tiles[index]),
+            ),
+            // WHAT SHOWS WHEN CLOSED: Absolutely nothing (SizedBox with 0 height)
+            // This makes the drag bar sit flush right against your bottom navigation bar!
+            secondChild: const SizedBox.shrink(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /* @override
   Widget build(BuildContext context) {
     double dividerHeight = 35;
     bool _visible = true;
@@ -736,5 +813,5 @@ class _BottomDrawerState extends State<BottomDrawer>
         ),
       ),
     );
-  }
+  } */
 }

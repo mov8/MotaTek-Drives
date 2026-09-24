@@ -20,7 +20,6 @@ class _SplashState extends State<Splash> {
   @override
   void initState() {
     super.initState();
-    developer.log('Splash().initStae() called', name: '_nav_');
   }
 
   @override
@@ -39,9 +38,6 @@ class _SplashState extends State<Splash> {
   }
 
   Future<void> initialise() async {
-    developer.log(
-        'Splash().initialise() NavigationService().showSplash: ${NavigationService().showSplash}',
-        name: '_nav_');
     if (!NavigationService().showSplash) return;
     NavigationService().showSplash = false;
     int routeIndex = Setup().bottomNavIndex;
@@ -52,14 +48,11 @@ class _SplashState extends State<Splash> {
     }
     //  routeIndex = 4;
     bool styleLoaded = await MapService().loadStyle();
-    developer.log('Splash().initialise() styleLoaded: $styleLoaded',
-        name: '_nav_');
 
     if (Setup().jwt.isEmpty) {
       Setup().loggingIn = true;
       await Login(context: context).tryLoggingIn();
     }
-    developer.log('Splash().initialise() passed login', name: '_nav_');
 
     await Future.delayed(Duration(seconds: _delaySecs));
     if (kIsWeb) {
@@ -68,14 +61,13 @@ class _SplashState extends State<Splash> {
       MapService().sideDrawerController?.open();
       MapService().sideDrawerController?.setVisible(visible: true);
     }
-    developer.log('Splash().initialise() about to navigate to routes[0]',
-        name: '_nav_');
+
     if (mounted) {
       setState(() {
-        NavigationService().navigateTo(routes[0], null);
+        //  NavigationService().navigateTo(routes[0], null);
       });
     } else {
-      NavigationService().navigateTo(routes[0], null);
+      // NavigationService().navigateTo(routes[0], null);
     }
   }
 
@@ -91,20 +83,21 @@ class _SplashState extends State<Splash> {
     return Stack(
       children: [
         Center(
-          child: Padding(
+          child: Text(
+              'Hi'), /*Padding(
             padding: EdgeInsetsGeometry.fromLTRB(
                 paddingLR, paddingTB, paddingLR, paddingTB),
-            child: AspectRatio(
-              aspectRatio: aspectRatio,
-              child: Image(
-                image: AssetImage('assets/images/splash.png'),
-                fit: BoxFit.cover,
-                height: double.infinity,
-                width: double.infinity,
-                alignment: Alignment.center,
-              ),
-            ),
-          ),
+          //  child: AspectRatio(
+          //    aspectRatio: aspectRatio,
+          //    child: Image(
+           //     image: AssetImage('assets/images/splash.png'),
+           //     fit: BoxFit.cover,
+           //     height: double.infinity,
+           //     width: double.infinity,
+           //     alignment: Alignment.center,
+            //  ),
+            ), */
+          // ),
         )
       ],
     );

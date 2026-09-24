@@ -15,8 +15,9 @@ import '../routes/create_trip.dart';
 import '../routes/home.dart';
 import '../routes/shop.dart';
 import 'package:geolocator/geolocator.dart';
-import '../main.dart';
+// import '../main.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
+import 'package:flutter/gestures.dart';
 
 /// OVERALL STRUCTURE
 /// 1 CurrentTripItem - singleton that looks after the persistent data - routes, waypoints etc
@@ -57,6 +58,7 @@ class MapService {
   /// A reset call has been added just in case there is a restart
   /// In the UI section CreateTripStack() The FutureBuilder the Future is MapService().mapFuture, and the
   /// controller = snapShot.data! - it works well
+
   Future<MapLibreMapController> get mapFuture => _controllerCompleter.future;
   final Completer<MapLibreMapController> _controllerCompleter =
       Completer<MapLibreMapController>();
@@ -67,7 +69,8 @@ class MapService {
   BottomDrawerController? bottomDrawerController;
   WebAppBarController? webAppBarController;
   StatusBarController? statusBarController;
-  ZoomFabController zoomFabController = ZoomFabController();
+  FabsController? fabsController;
+  ZoomFabController? zoomFabController; // = ZoomFabController();
   ScrollController scrollController = ScrollController();
   CreateTripController createTripController = CreateTripController();
   LeadingWidgetController leadingWidgetController = LeadingWidgetController();
@@ -77,8 +80,8 @@ class MapService {
       CreateTripStackController();
   HomeController? homeController = HomeController();
   ShopController? shopController = ShopController();
-  AppMasterShellController? appMasterShellController =
-      AppMasterShellController();
+  // AppMasterShellController? appMasterShellController =
+  //     AppMasterShellController();
 
   final GlobalKey mapKey = GlobalKey();
   // final GlobalKey scrollToKey = GlobalKey();
@@ -88,6 +91,7 @@ class MapService {
 
   String _styleString = '';
   Future<String>? _styleFuture;
+  late Future<bool> mapReady;
   Future<String> get style => _styleFuture ??= _fetchStyle();
   DrivesRequest? _drivesRequest;
   TripRequest? _tripRequest;
@@ -95,8 +99,9 @@ class MapService {
   CameraPosition? _cameraPosition;
   MapUpdates mapUpdates = MapUpdates.updateAll; // <-- What geoJson to update
   MapUpdates onExitUpdate = MapUpdates.none;
-  Future<bool>? _controllerReady;
+  // Future<bool>? _controllerReady;
   Future<bool>? mapControllerReady;
+  MapLibreMap? mlMap;
 
   final ValueNotifier<int?> scrollToSideDrawerIndex = ValueNotifier<int?>(null);
 
@@ -106,7 +111,6 @@ class MapService {
 
   Future<bool> setMapController(MapLibreMapController mapController) async {
     controller = mapController;
-
     if (!_controllerCompleter.isCompleted) {
       _controllerCompleter.complete(mapController);
     }
@@ -131,6 +135,10 @@ class MapService {
   void updateRequest(
       {required MapUpdates mapUpdates, MapUpdates onExit = MapUpdates.none}) {
     mapUpdates.add(mapUpdates);
+  }
+
+  void mapStyle(String style) {
+    _styleString = style;
   }
 
   onCameraMove(position) {
@@ -185,14 +193,16 @@ class MapService {
   /// id instantiated - its onCameraIdle gets assigned to this method.
 
   onIdle() async {
-    _meters = await getMapWidthMeters();
-    statusBarController!.refresh();
-    //  zoomFabController.update();
-    //  if (_page == 1) {
-    _tripsOnIdle(page: _page);
-    CurrentTripItem().tripValues.position = Point(
-        MapService().controller!.cameraPosition!.target.longitude,
-        MapService().controller!.cameraPosition!.target.latitude);
+    if (controller != null) {
+      _meters = await getMapWidthMeters();
+      statusBarController!.refresh();
+      //  zoomFabController.update();
+      //  if (_page == 1) {
+      _tripsOnIdle(page: _page);
+      CurrentTripItem().tripValues.position = Point(
+          MapService().controller!.cameraPosition!.target.longitude,
+          MapService().controller!.cameraPosition!.target.latitude);
+    }
   }
 
   Future<Position> getCurrentPosition() async {
@@ -206,11 +216,65 @@ class MapService {
   LatLngBounds? _bounds;
 
   Future<bool> loadStyle() async {
-    if (_styleString.isEmpty) {
-      _styleFuture ??= _fetchStyle();
-      return await _styleFuture != null;
-    } else {
-      return true;
+    try {
+      if (_styleString.isEmpty) {
+        // _styleFuture ??= _fetchStyle();
+        String style = await _fetchStyle();
+        mlMap = MapLibreMap(
+          key: MapService().mapKey,
+          styleString: style,
+          compassViewPosition: CompassViewPosition.topLeft,
+          onMapCreated: onMapUpdated,
+          initialCameraPosition: CameraPosition(
+              target: LatLng(MapService().currentPosition.latitude,
+                  MapService().currentPosition.longitude),
+              zoom: 11),
+          trackCameraPosition: true,
+          onCameraMove: onCameraMove,
+          onMapClick: onTap,
+          onCameraIdle: onIdle,
+          scrollGesturesEnabled: true,
+          onStyleLoadedCallback: () => onStyleLoaded(),
+          zoomGesturesEnabled: true,
+          gestureRecognizers: Set()
+            ..add(
+              Factory<EagerGestureRecognizer>(
+                () => EagerGestureRecognizer(),
+              ),
+            ),
+        );
+
+        //  await _onMapUpdated;
+
+        return style.isNotEmpty;
+      } else {
+        return true;
+      }
+    } catch (e) {
+      developer.log('MapService().loadStyle() error: ${e.toString()}',
+          name: 'error');
+    }
+    return false;
+  }
+
+  void onMapUpdated(MapLibreMapController mapController) async {
+    controller = mapController;
+    zoomFabController ??= ZoomFabController();
+
+    fabsController?.refresh();
+    if (kIsWeb && statusBarController != null) {
+      statusBarController!.refresh();
+    }
+  }
+
+  Future<void> onStyleLoaded() async {
+    if (controller != null) {
+      await controller?.moveCamera(
+        CameraUpdate.newLatLngZoom(
+          currentPosition,
+          12.0,
+        ),
+      );
     }
   }
 
@@ -452,7 +516,6 @@ class MapService {
       Point? centre}) async {
     centre ??= Point(controller!.cameraPosition!.target.longitude,
         controller!.cameraPosition!.target.latitude);
-
     if (mapUpdates != MapUpdates.none && !mapUpdates.isUpdating) {
       List<String> sources = mapUpdates.sourcesToUpdate;
       if (sources.isNotEmpty) {
@@ -480,6 +543,7 @@ class MapService {
         }
       }
     }
+    // MapService().createTripController.update();
     mapUpdates = exitMapUpdates ?? MapUpdates.none;
   }
 

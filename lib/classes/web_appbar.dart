@@ -3,9 +3,9 @@ import 'package:drives/routes/home.dart';
 import 'package:flutter/material.dart';
 import '../models/models.dart';
 import '../services/services.dart';
-import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
-import 'package:collection/collection.dart';
-import 'package:pointer_interceptor/pointer_interceptor.dart';
+// import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
+// import 'package:collection/collection.dart';
+// import 'package:pointer_interceptor/pointer_interceptor.dart';
 import 'dart:developer' as developer;
 // import '/helpers/edit_helpers.dart';
 import 'classes.dart';
@@ -539,13 +539,13 @@ class _WebAppBarState extends State<WebAppBar> {
 
             /// Tell MapService() singleton what to do
             if (screenName != 'createTrip') {
-              NavigationService().navigateTo(
+              /* NavigationService().navigateTo(
                 routes[2], // <--- Published uses CreateTrip() screen
                 TripArguments(
                     appState: AppState.trips,
                     activeChip: 1,
                     changedScreen: true),
-              );
+              ); */
             } else {
               widget.tripController?.updateArguements(
                 arguments:
@@ -566,13 +566,13 @@ class _WebAppBarState extends State<WebAppBar> {
           try {
             MapService().setPage(page: 2); // <-- Published setup
             if (screenName != 'createTrip') {
-              NavigationService().navigateTo(
+              /* NavigationService().navigateTo(
                 routes[2], // <-- CreateTrips()
                 TripArguments(
                     appState: AppState.createTrip,
                     activeChip: 2,
                     changedScreen: true),
-              );
+              ); */
 
               //  arguments: TripArguments(myTripItem, 'db'));
             } else {
@@ -595,14 +595,14 @@ class _WebAppBarState extends State<WebAppBar> {
 
           /// Fulfil Favourites - MyTrips
           if (screenName != 'createTrip') {
-            NavigationService().navigateTo(
+            /* NavigationService().navigateTo(
               routes[2], // <-- uses CreateTrips() with MyTrips in SideDrawer
               TripArguments(
                 appState: AppState.myTrips,
                 activeChip: 3,
                 changedScreen: true,
-              ),
-            );
+              ), 
+            ); */
           } else {
             widget.tripController?.updateArguements(
               arguments:
@@ -627,8 +627,9 @@ class _WebAppBarState extends State<WebAppBar> {
       /// The side drawer is fixed, and contains the data to navigate the main screen area.
       default:
         debugPrint('Current page: $screenName');
-        NavigationService().navigateTo(routes[index],
+      /*  NavigationService().navigateTo(routes[index],
             TripArguments(appState: AppState.myTrips, activeChip: index));
+      */
     }
 
     if (widget.onSelect != null) {

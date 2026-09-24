@@ -12,158 +12,132 @@ import 'dart:math';
 import 'models/models.dart';
 import 'package:flutter/gestures.dart';
 import 'package:hive/hive.dart';
+import 'package:go_router/go_router.dart';
 import '../constants.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '/screens/login_screen.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized(); // <- needed to allow await to work
-  await Hive.initFlutter();
-  await Setup().loaded;
-  Setup().hasLoggedIn = Setup().jwt.isNotEmpty;
-  var currentTripBox = await Hive.openBox('currentTrip');
+final rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
+final splashBranchKey = GlobalKey<NavigatorState>(debugLabel: 'splash');
+final homeBranchKey = GlobalKey<NavigatorState>(debugLabel: 'home');
+final mapBranchKey = GlobalKey<NavigatorState>(debugLabel: 'trips');
+final myTripsBranchKey = GlobalKey<NavigatorState>(debugLabel: 'myTrips');
+final shopBranchKey = GlobalKey<NavigatorState>(debugLabel: 'shop');
+final messagesBranchKey = GlobalKey<NavigatorState>(debugLabel: 'messages');
 
-  debugPrint('Setup().user.surname ${Setup().user.surname}');
-  final CreateTripController createTripController = CreateTripController();
-  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-  // if (kIsWeb) {
-  //   Setup().webAppBarController = WebAppBarController();
-  // }
-
-  Map<String, WidgetBuilder> appRoutes = {
-    'splash': (BuildContext context) => const Splash(),
-    '${routes[0]}': (BuildContext context) => const Home(),
-    '${routes[1]}': (BuildContext context) => const MyTrips(), //Trips(),
-    '${routes[2]}': (BuildContext context) => const Shop(), //CreateTrip(),
-    '${routes[3]}': (BuildContext context) => const MyTrips(),
-    '${routes[4]}': (BuildContext context) => const Shop(),
-    '${routes[5]}': (BuildContext context) => Messages(),
-  };
-
-  runApp(
-    MaterialApp(
-      navigatorKey: NavigationService().key,
-      debugShowCheckedModeBanner: false,
-      // https://docs.flutter.dev/cookbook/design/themes
-      // theme: ThemeData.light(),
-      // flutter pub add google_fonts
-      // import "package:google_fonts/google_fonts.dart";
-      // textTheme: GoogleFonts.rubikBubblesTextTheme(),
-      ///        Theme.of(context).textTheme.bodyLarge,
-      // theme: ThemeData(
-      //     primarySwatch: Colors.indigo,
-      //     scaffoldBackgroundColor: Colors.blueGrey,
-      //     textTheme: TextTheme()),
-      // darkTheme: ThemeData.dark(),
-      // themeMode: ThemeMode.system, //light,
-      theme: ThemeData(
-          primarySwatch: Colors.blue,
-          useSystemColors: true,
-          scaffoldBackgroundColor: backgroundColour, // Colors.blue,
-          textSelectionTheme: const TextSelectionThemeData(
-            selectionHandleColor: Colors.transparent,
-          ),
-          textTheme: TextTheme(
-            headlineLarge: const TextStyle(
-                fontSize: 26, color: Colors.white, fontWeight: FontWeight.bold),
-            headlineMedium: const TextStyle(
-                fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold),
-            headlineSmall: const TextStyle(
-                fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold),
-            titleLarge: const TextStyle(fontSize: 24, color: Colors.white),
-            titleMedium: const TextStyle(fontSize: 20, color: Colors.white),
-            titleSmall: const TextStyle(fontSize: 16, color: Colors.white),
-            bodyLarge: const TextStyle(fontSize: 24, color: Colors.white),
-            bodyMedium: const TextStyle(fontSize: 20, color: Colors.white),
-            bodySmall: const TextStyle(fontSize: 16, color: Colors.white),
-            labelLarge: const TextStyle(fontSize: 24, color: Colors.white),
-            labelMedium: const TextStyle(fontSize: 20, color: Colors.white),
-            labelSmall: const TextStyle(fontSize: 12, color: Colors.white),
-          ),
-          appBarTheme: const AppBarTheme(
-            // This ensures the status bar icons are light (for a dark app bar)
-            systemOverlayStyle: SystemUiOverlayStyle.light,
-          )),
-
-      /// Removing the initialRoute causes problems - don't !
-      initialRoute: NavigationService().initialRoute,
-      routes: appRoutes,
-
-      builder: (context, child) {
-        /// Persistent Map is MapLibre's recommendation so the Map is placed at the route of a Stack
-        /// All other screens / Widgets are displayed over the top. For CreateTrip() / Trips() their
-        /// Widgets are displayed via the CreateTripStack() widget. In the Web versions MyTrips(), and
-        /// Messages are displayed in the SideBar. This has similar dimensions to a mobile's screen. The
-        /// details are shown in the remaining 2/3 of the screen.
-        /// The web version only can do the admin tasks like changing shop and home contents
-
-        // Wrap the entire app in AnnotatedRegion and MediaQuery for colour and font scaling
-        return AnnotatedRegion<SystemUiOverlayStyle>(
-          value: SystemUiOverlayStyle(
-            statusBarBrightness: Brightness.light, // For iOS
-            // the order of the contrast and the colour may be critical.
-            systemStatusBarContrastEnforced: false,
-            statusBarColor: Colors.blue,
-            // The next line doesn't make any difference
-            statusBarIconBrightness: Brightness.dark,
-            systemNavigationBarContrastEnforced: false,
-            systemNavigationBarColor: Colors.blue,
-            systemNavigationBarIconBrightness: Brightness.dark,
-          ),
-          child: MediaQuery(
-            data: MediaQuery.of(context)
-                .copyWith(textScaler: TextScaler.linear(0.9)),
-
-            /// The child is the Navigator widget that contains all screens to
-            /// which the test scaling will be applied
-            child: AppMasterShell(
-                content: child!,
-                controller: MapService().appMasterShellController),
-          ),
-        );
-      },
-    ),
-  ); //);
+void main() {
+  WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+  // FlutterNativeSplash.remove();
+  // initialise().then(() =>
+  runApp(const MyApp()); //);
 }
 
-CreateTripStackController _createTripStackController =
-    CreateTripStackController();
-
-/// AppMasterShell allows the WebAppBar, MLMap, SideDrawer and StatusBar to be available
-
-class AppMasterShellController {
-  _AppMasterShellState? _appMasterShellState;
-  void _addState(_AppMasterShellState appMasterShellState) {
-    _appMasterShellState = appMasterShellState;
-  }
-
-  bool get isAttached => _appMasterShellState != null;
-  void update() {
-    _appMasterShellState?.update();
-  }
-}
-
-class AppMasterShell extends StatefulWidget {
-  final AppMasterShellController? controller;
-  final Widget content;
-  const AppMasterShell({super.key, required this.content, this.controller});
-  @override
-  State<AppMasterShell> createState() => _AppMasterShellState();
-}
-
-class _AppMasterShellState extends State<AppMasterShell> {
-  final PageStorageBucket _shellStorageBucket = PageStorageBucket();
-
-  @override
-  void initState() {
-    super.initState();
-    widget.controller?._addState(this);
-  }
-
-  void update() => setState(() => ());
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    /// The whole app rebuilds if the browser size changes so have to make
-    /// sure the controllers don't get re-instantiated when the browser re-sizes
+    return MaterialApp.router(
+      debugShowCheckedModeBanner: false,
+      title: 'MapLibre Web App',
+      routerConfig:
+          appRouter, // Injects your clean browser navigation configuration
+    );
+  }
+}
+
+final GoRouter appRouter = GoRouter(
+  navigatorKey: rootNavigatorKey,
+  initialLocation: '/home',
+  routes: [
+    StatefulShellRoute.indexedStack(
+      builder: (context, state, navigationShell) {
+        return BaseShellScreen(navigationShell: navigationShell);
+      },
+      branches: [
+        StatefulShellBranch(
+          navigatorKey: homeBranchKey,
+          routes: [
+            GoRoute(
+              path: '/home',
+              builder: (context, state) => const Home(),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          navigatorKey: mapBranchKey,
+          routes: [
+            GoRoute(
+              path: '/map',
+              builder: (context, state) => const CreateTrip(mapType: 'explore'),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          navigatorKey: myTripsBranchKey,
+          routes: [
+            GoRoute(
+              path: '/myTrips',
+              builder: (context, state) => const MyTrips(),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          navigatorKey: shopBranchKey,
+          routes: [
+            GoRoute(
+              path: '/shop',
+              builder: (context, state) => const Shop(),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          navigatorKey: messagesBranchKey,
+          routes: [
+            GoRoute(
+              path: '/messages',
+              builder: (context, state) => Messages(),
+            ),
+          ],
+        )
+      ],
+    ),
+    GoRoute(
+      path: '/login',
+      parentNavigatorKey: rootNavigatorKey, // Covers shell & nav bar
+      pageBuilder: (context, state) {
+        return const MaterialPage(
+          fullscreenDialog: true, // Native modal transition
+          child: LoginScreen(), // Rebuilt fresh every time
+        );
+      },
+    )
+  ],
+);
+
+class BaseShellScreen extends StatefulWidget {
+  final StatefulNavigationShell navigationShell;
+  BaseShellScreen({
+    super.key,
+    required this.navigationShell,
+  });
+  @override
+  State<BaseShellScreen> createState() => _BaseShellScreen();
+}
+
+class _BaseShellScreen extends State<BaseShellScreen> {
+  int currentPageIndex = 0;
+  @override
+  late List<Widget> destinations;
+  late Future<bool> initialised;
+  @override
+  void initState() {
+    super.initState();
+    destinations = [
+      for (int i = 0; i < 6; i++) _navigationDestination(index: i)
+    ];
     MapService().webAppBarController ??= WebAppBarController();
     MapService().sideDrawerController ??= SideDrawerController();
     MapService().statusBarController ??= StatusBarController();
@@ -172,197 +146,125 @@ class _AppMasterShellState extends State<AppMasterShell> {
     MapService().createTripStackController ??= CreateTripStackController();
     MapService().homeController ??= HomeController();
     MapService().shopController ??= ShopController();
-    MapService().appMasterShellController ??= AppMasterShellController();
+    MapService().fabsController ??= FabsController();
+    initialised = initialise();
+  }
 
-    double sideDrawerOpenWidth = 0.4;
+  @override
+  Widget build(BuildContext context) {
+    MapService().createTripController ??= CreateTripController();
     return Scaffold(
-      body: PageStorage(
-        // <-- has to be added because outside Navigation
-        bucket: _shellStorageBucket,
-        child: GestureDetector(
-          behavior: HitTestBehavior.translucent,
-          child: Column(children: [
-            if (kIsWeb) ...[
-              Expanded(
-                flex: 2,
-                child: WebAppBar(
-                  context: context,
-                  appBarController: MapService().webAppBarController,
-                  sideDrawerController: MapService().sideDrawerController,
-                  statusBarController: MapService().statusBarController,
+      body: FutureBuilder<bool>(
+          future: initialised,
+          builder: (BuildContext context, snapshot) {
+            if (snapshot.hasError) {
+              developer.log('Snapshot error: ${snapshot.error}', name: 'error');
+              return Center(
+                  child: Text(
+                      'Error getting the data from the server - check the Internet'));
+            } else if (snapshot.hasData) {
+              return widget.navigationShell;
+            } else {
+              return const SizedBox(
+                width: double.infinity,
+                height: double.infinity,
+                child: Align(
+                  alignment: Alignment.center,
+                  child: CircularProgressIndicator(),
                 ),
-              ),
-            ],
-            Expanded(
-              flex: 12,
-              child: Stack(children: [
-                FutureBuilder(
-                  future: MapService().style, // <- ensure the style is loaded
-                  builder: (context, snapshot) {
-                    if (snapshot.hasError) {
-                      developer.log('Error getting style', name: 'error');
-                    } else if (snapshot.hasData) {
-                      try {
-                        MapLibreMap map = MapLibreMap(
-                          key: MapService().mapKey,
-                          styleString: snapshot.data!,
-                          compassViewPosition: CompassViewPosition.topLeft,
-                          onMapCreated: _onMapUpdated,
-                          initialCameraPosition: CameraPosition(
-                              target: LatLng(
-                                  MapService().currentPosition.latitude,
-                                  MapService().currentPosition.longitude),
-                              zoom: 11),
-                          trackCameraPosition: true,
-                          onCameraMove: _onCameraMove,
-                          onMapClick: _onTap,
-                          onCameraIdle: _onCameraIdle,
-                          scrollGesturesEnabled: true,
-                          onStyleLoadedCallback: () => _onStyleLoaded(),
-                          zoomGesturesEnabled: true,
-                          gestureRecognizers: Set()
-                            ..add(
-                              Factory<EagerGestureRecognizer>(
-                                () => EagerGestureRecognizer(),
-                              ),
-                            ),
-                        );
-                        return GestureDetector(onLongPress: () {}, child: map);
-                      } catch (e) {
-                        developer.log('Error building map: ${e.toString()}',
-                            name: 'error');
-                      }
-                    } else {
-                      return const Center(
-                        child: CircularProgressIndicator(),
-                      );
-                    }
-                    return Center(
-                      child: Text(
-                        'Map not available - \nplease check your Internet connection',
-                        style: TextStyle(
-                          fontSize: 22,
-                          color: Colors.white,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-                Align(
-                  alignment: Alignment.bottomLeft,
-                  child: StatusBar(
-                    controller: MapService().statusBarController,
-                  ),
-                ),
-                CreateTripStack(), // <-- all non-page overlays
-                if (!NavigationService().isWidget) ...[
-                  widget.content,
-                  if (kIsWeb)
-                    SideDrawer(
-                      width: sideDrawerOpenWidth,
-                      context: context,
-                      controller: MapService().sideDrawerController,
-                      mapController: MapService().controller,
-                      webAppBarController: MapService().webAppBarController,
-                    ),
-                ],
+              );
+            }
+          }),
 
-                //    if (!NavigationService().showSplash)
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  height: 105,
-                  child: Material(
-                    child: Overlay(
-                      // <-- has to be added because outside Navigation
-                      initialEntries: [
-                        OverlayEntry(
-                          builder: (context) => Material(
-                            //  key: NavigationService().uiKey,
-                            type: MaterialType.transparency,
-                            child: Padding(
-                                padding: EdgeInsets.fromLTRB(0, 0, 0, 0),
-                                child: StackNavBar(index: 0)),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ]),
-            ),
-          ]),
+      // widget.navigationShell,
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: currentPageIndex,
+        onDestinationSelected: (int index) {
+          final int pageIndex = NavigationService().destination(index);
+          widget.navigationShell.goBranch(pageIndex,
+              initialLocation: index == widget.navigationShell.currentIndex);
+          setState(() => currentPageIndex = index);
+        },
+        surfaceTintColor: Colors.blue,
+        indicatorColor: Colors.lightBlue,
+        labelTextStyle: WidgetStateProperty.resolveWith<TextStyle>(
+          (Set<WidgetState> states) {
+            // If the tab is currently selected:
+            if (states.contains(WidgetState.selected)) {
+              return const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: Colors.blue,
+              );
+            }
+            // Default style for unselected tabs:
+            return const TextStyle(
+              fontSize: 10,
+              color: Colors.deepPurple,
+            );
+          },
         ),
+        destinations: destinations,
       ),
-      resizeToAvoidBottomInset: false,
     );
   }
-}
 
-/* 
-class AppMasterShell extends StatefulWidget {
-  final AppMasterShellController? controller;
-  final Widget content;
-  const AppMasterShell({super.key, required this.content, this.controller});
-  @override
-  State<AppMasterShell> createState() => _AppMasterShellState();
-}
-
-class _AppMasterShellState extends State<AppMasterShell> {
-  final PageStorageBucket _shellStorageBucket = PageStorageBucket();
-
-  @override
-  void initState() {
-    super.initState();
-    widget.controller?._addState(this);
-  }
-
-  void update() => setState(() => ());
-*/
-/*
-class ShellBody extends StatefulWidget {
-  final ShellBodyController? controller;
-  const ShellBody({super.key, this.controller});
-  @override
-  State<ShellBody> createState() => _ShellBodyState();
-}
-
-class _ShellBodyState extends State<ShellBody> {
-  @override
-  void initState() {
-    super.initState();
-    widget.controller?._addState(this);
-  }
-
-  void update() => setState(() => ());
-}
-*/
-void _onStyleLoaded() async {
-  await MapService().controller!.moveCamera(
-        CameraUpdate.newLatLngZoom(
-          MapService().currentPosition,
-          12.0,
+  NavigationDestination _navigationDestination(
+      {required int index, badgeValue = 0}) {
+    if (badgeValue == 0) {
+      return NavigationDestination(
+        selectedIcon: Icon(
+          routeNavIconsSelected[index],
         ),
+        icon: Icon(
+          routeNavIcons[index],
+        ),
+        label: routeNavLabels[index],
       );
-}
-
-void _onMapUpdated(MapLibreMapController controller) async {
-  MapService().setMapController(controller);
-  if (MapService().statusBarController != null) {
-    MapService().statusBarController!.refresh();
+    } else {
+      return NavigationDestination(
+        icon: Badge(
+          label: Text(badgeValue
+              .toString()), // _messages.isEmpty ? null : Text(_messages.length.toString()),
+          child: Icon(
+            routeNavIcons[index],
+          ),
+        ),
+        selectedIcon: Badge(
+          label: Text(
+            badgeValue.toString(),
+          ),
+          child: Icon(
+            routeNavIconsSelected[index],
+          ),
+        ),
+        label: routeNavLabels[index],
+      );
+    }
   }
-  _createTripStackController.refresh();
-}
 
-void _onTap(Point<double> point, LatLng coordinates) async {
-  MapService().onTap(point, coordinates);
-}
-
-void _onCameraIdle() async {
-  MapService().onIdle();
-}
-
-void _onCameraMove(CameraPosition position) async {
-  MapService().onCameraMove(position);
+  Future<bool> initialise() async {
+    await MapService().loadStyle();
+    if (kIsWeb) {
+      MapService().webAppBarController?.showControls();
+      MapService().sideDrawerController?.setFixed(fixed: true);
+      MapService().sideDrawerController?.open();
+      MapService().sideDrawerController?.setVisible(visible: true);
+    }
+    try {
+      Setup().loaded;
+      /*
+      if (Setup().jwt.isEmpty) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (context) => LoginScreen(user: Setup().user)),
+        );
+      }
+      */
+    } catch (e) {
+      debugPrint('Error starting local database: ${e.toString()}');
+    }
+    return true;
+  }
 }

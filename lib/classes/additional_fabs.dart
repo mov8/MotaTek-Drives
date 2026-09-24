@@ -1,6 +1,6 @@
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:flutter/material.dart';
-import 'package:pointer_interceptor/pointer_interceptor.dart';
+// import 'package:pointer_interceptor/pointer_interceptor.dart';
 // import 'maplibre_map.dart';
 import 'dart:developer' as developer;
 

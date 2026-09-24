@@ -8,6 +8,7 @@ import '/screens/screens.dart';
 import '/services/services.dart';
 import '/helpers/edit_helpers.dart';
 import '../constants.dart';
+import 'package:go_router/go_router.dart';
 // import 'package:latlong2/latlong.dart';
 
 class MyTrips extends StatefulWidget {
@@ -174,26 +175,70 @@ import 'package:uuid/rng.dart';
   */
 
   Widget _getPortraitBody() {
-    if (_myTripItems.isEmpty) {
-      _myTripItems.add(
-        MyTripItem(
-          title: 'Save your trips for later, or to share',
-          subTitle: 'Add points of interest, nice roads, pubs restaurants etc.',
-          body:
-              'Describe the trip and why you liked it. You can share the trip with members of a group. You can also publish a trip for other people to enjoy',
-          pointsOfInterest: [
-            PointOfInterest(
-              point: Point(0, 0),
-            ),
-          ],
-          distance: 35,
-          closest: 10,
-          images:
-              '[{"url": "assets/images/map.png", "caption": ""},{"url": "assets/images/meeting.png", "caption": ""}]',
-          added: dateFormat.format((DateTime.now())),
-          author: Setup().user.forename,
+    if (Setup().jwt.isEmpty) {
+      return Stack(children: [
+        Positioned.fill(
+          child: Image.asset(
+            'assets/images/aiaston.png',
+            fit: BoxFit.cover,
+          ),
         ),
-      );
+        Positioned.fill(
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.black.withValues(alpha: 0.4), // // Light shadow top
+                  Colors.black.withValues(alpha: 0.6), // Dark contrast bottom
+                ],
+              ),
+            ),
+          ),
+        ),
+        Padding(
+          padding: EdgeInsetsGeometry.fromLTRB(20, 20, 20, 0),
+          child: Column(
+            children: [
+              Text(
+                  'My Drives allows you to build up a library of trips that you have enjoyed.',
+                  style: TextStyle(fontSize: 22, color: Colors.white)),
+              SizedBox(height: 20),
+              Text(
+                  "If you haven't logged in to Drives then your trip details will only be saved on your device.",
+                  style: TextStyle(fontSize: 22, color: Colors.white)),
+              SizedBox(height: 20),
+              Text(
+                  "Trip information can't be stored on your PC if you are using the Web version.",
+                  style: TextStyle(fontSize: 22, color: Colors.white)),
+              SizedBox(height: 20),
+              Text(
+                  "You can't access data stored on your device for the PC browser version.",
+                  style: TextStyle(fontSize: 22, color: Colors.white)),
+              SizedBox(height: 20),
+              Text(
+                  "If you want to share your trip with other people, or access it with your PC you have to login first.",
+                  style: TextStyle(fontSize: 22, color: Colors.white)),
+              SizedBox(height: 20),
+              Text("Tap the button below to log in.",
+                  style: TextStyle(fontSize: 22, color: Colors.white)),
+              SizedBox(height: 50),
+              ActionChip(
+                label: Text('Login Now',
+                    style: TextStyle(fontSize: 22, color: Colors.white)),
+                onPressed: () => context.push('/login'),
+                backgroundColor: Colors.blue,
+              ),
+            ],
+          ),
+        )
+      ]);
+    }
+
+    if (_myTripItems.isEmpty) {
+      _tripItems.add(TripItem(
+          title: 'No favourite trips saved', subTitle: 'Why not add one now?'));
     }
 
     ListView listView = ListView(
@@ -244,15 +289,30 @@ import 'package:uuid/rng.dart';
               _scaffoldKey.currentState,
             ),
           ), // IconButton(
-          title: Text(
-            "My Drives",
-            style: headlineStyle(context: context, size: 1),
+          title: const Text(
+            'My Drives',
+            style: TextStyle(
+              fontSize: 24,
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+            ),
           ),
           iconTheme: const IconThemeData(color: Colors.white),
           backgroundColor: Colors.blue,
           actions: [
             IconButton(
-                onPressed: () => {}, icon: Icon(Icons.help_outline_outlined))
+              onPressed: () {
+                if (Setup().jwt.isEmpty) {
+                  context.push('/login');
+                }
+              },
+              icon: Icon(
+                Setup().jwt.isEmpty
+                    ? Icons.no_accounts_outlined
+                    : Icons.account_circle_outlined,
+                size: 30,
+              ),
+            )
           ]),
       body: FutureBuilder<bool>(
         future: _dataLoaded,

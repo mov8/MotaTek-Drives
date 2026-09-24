@@ -45,6 +45,7 @@ class TripArguments {
   final String groupDriveId;
   final AppState appState;
   final int activeChip;
+  final String mapType;
   bool changedScreen;
   TripArguments({
     this.trip,
@@ -52,6 +53,7 @@ class TripArguments {
     this.groupDriveId = '',
     this.appState = AppState.createTrip,
     this.activeChip = 0,
+    this.mapType = 'published',
     this.changedScreen = false,
   });
 }

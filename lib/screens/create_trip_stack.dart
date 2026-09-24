@@ -28,13 +28,19 @@ class CreateTripStackController {
 
   void refresh() {
     if (isAttached) {
-      _createTripStackState!.refresh();
+      _createTripStackState?.refresh();
     }
   }
 
   void setBottomNav(int index) {
     if (isAttached) {
-      _createTripStackState!.setBottomNav(index);
+      _createTripStackState?.setBottomNav(index);
+    }
+  }
+
+  void warn(int index) {
+    if (isAttached) {
+      _createTripStackState?.warn(index);
     }
   }
 }
@@ -88,7 +94,6 @@ class _CreateTripStackState extends State<CreateTripStack>
     super.initState();
     widget.controller?._addState(this);
     _dataLoaded = dataFromDatabase();
-    developer.log('-- CreateTripStack().initState run --', name: '_stack_');
     if (CurrentTripItem().routes.isNotEmpty) {
       CurrentTripItem().mapUpdates = MapUpdates.updateAll;
     } else {
@@ -104,9 +109,27 @@ class _CreateTripStackState extends State<CreateTripStack>
 
   void refresh() => setState(() => {});
 
+  void warn(int index) async {
+    if (index < 0) {
+      MapService().fabsController?.show();
+    } else {
+      _warningIndex = index;
+      setState(() => MapService().fabsController?.hide());
+      await Future.delayed(const Duration(seconds: 15));
+      _warningIndex = -1;
+      setState(() => MapService().fabsController?.show);
+    }
+  }
+
   void setBottomNav(int index) {
     setState(() => _navIndex = index);
   }
+
+  final List<String> _warnings = [
+    'The trip details are incomplete. before saving please add the missing details',
+    "You haven't yet registered. To share this trip register now. Tap the icon at the top right of this screen",
+  ];
+  int _warningIndex = -1;
 
   @override
   Widget build(BuildContext context) {
@@ -124,8 +147,7 @@ class _CreateTripStackState extends State<CreateTripStack>
             return body;
           } catch (e) {
             developer.log('CreateTrip().build() error:${e.toString()}',
-                name: '_map_');
-            debugPrint('error getting portraitBody ${e.toString()}');
+                name: 'error');
           }
           // return body; //_getPortraitBody();
         } else {
@@ -160,7 +182,7 @@ class _CreateTripStackState extends State<CreateTripStack>
     // Widget chips = Text('');
     return Stack(
       children: [
-        Positioned(
+/*        Positioned(
           left: 0,
           right: 0,
           top: 0,
@@ -181,7 +203,7 @@ class _CreateTripStackState extends State<CreateTripStack>
             ),
           ),
         ),
-
+*/
         //   if (MapService().controller != null)
         Positioned(
           left: 0,
@@ -202,7 +224,8 @@ class _CreateTripStackState extends State<CreateTripStack>
                   );
                 } else {
                   bool ready = snapshot.hasData;
-                  return AnimatedScale(
+                  return SizedBox
+                      .shrink(); /* AnimatedScale(
                     scale: ready ? 1.0 : 0.0,
                     duration: Duration(milliseconds: 300),
                     child: ready
@@ -213,17 +236,52 @@ class _CreateTripStackState extends State<CreateTripStack>
                             update: (update) => update ? setState(() {}) : null,
                           )
                         : SizedBox.shrink(),
-                  );
+                  ); */
                 }
               },
             ),
           ),
         ),
+
+        if (_warningIndex > -1)
+          Positioned(
+            left: 0,
+            right: 0,
+            top: 0,
+            child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black
+                          .withValues(alpha: 0.4), // // Light shadow top
+                      Colors.black
+                          .withValues(alpha: 0.6), // Dark contrast bottom
+                    ],
+                  ),
+                ),
+                width: double.infinity,
+                //    color: Colors.blueGrey,
+                // .transparent, // Ensures the entire bar width is interactive
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                child: Row(children: [
+                  Expanded(
+                      flex: 1,
+                      child: Icon(Icons.error_outline_outlined,
+                          size: 34, color: Colors.red)),
+                  Expanded(
+                      flex: 10,
+                      child: Text(_warnings[_warningIndex],
+                          style: TextStyle(fontSize: 20, color: Colors.white)))
+                ])),
+          ),
+
         if (NavigationService().page == 2) ...[
           Positioned(
             left: 0,
             right: 0,
-            bottom: 100,
+            bottom: 0,
             // height: 110,
             child: Align(
               // <-- Only do editing in "Explore" mode
@@ -303,7 +361,7 @@ class _CreateTripStackState extends State<CreateTripStack>
             ),
           ],
         ],
-        if (!kIsWeb)
+        /*       if (!kIsWeb)
           Positioned(
             left: 0,
             right: 0,
@@ -319,7 +377,7 @@ class _CreateTripStackState extends State<CreateTripStack>
               onUpdate: update,
             ),
           ),
-
+*/
         /// getDirections shows the turn-by-turn navigation details
         getDirections(_directionsIndex),
 
@@ -328,6 +386,7 @@ class _CreateTripStackState extends State<CreateTripStack>
         /// There is only one BarMessage widget catered for
         /// ToDo: Allow more flexible status bar messages
         ///S
+        /*
         Positioned(
           left: 0,
           right: 0,
@@ -349,6 +408,7 @@ class _CreateTripStackState extends State<CreateTripStack>
             ),
           ),
         ),
+        */
         if (kIsWeb) ...[]
       ],
     );
@@ -550,9 +610,9 @@ class _CreateTripStackState extends State<CreateTripStack>
     MapService()
         .bottomDrawerController!
         .setContent(content: BottomDrawerItems.trip);
-    MapService().bottomDrawerController!.open(height: 500);
-    await Future.delayed(Duration(milliseconds: 500));
-    MapService().bottomDrawerController!.dockOpenTile();
+    MapService().bottomDrawerController!.open();
+    //   await Future.delayed(Duration(milliseconds: 500));
+    //   MapService().bottomDrawerController!.dockOpenTile();
     //   }
     CurrentTripItem().tripActions = TripActions.none;
   }
@@ -615,14 +675,14 @@ class _CreateTripStackState extends State<CreateTripStack>
           MapService()
               .bottomDrawerController!
               .setContent(content: BottomDrawerItems.trip);
-          MapService().bottomDrawerController!.open(height: 500);
+          MapService().bottomDrawerController!.open();
         }
       }
       if (dock) {
         if (kIsWeb) {
           MapService().sideDrawerController!.scrollTo(index: 0);
-        } else {
-          MapService().bottomDrawerController!.dockOpenTile();
+          //  } else {
+          //    MapService().bottomDrawerController!.dockOpenTile();
         }
       }
     } catch (e) {
@@ -831,7 +891,7 @@ class _CreateTripStackState extends State<CreateTripStack>
       }
     }
   }
-
+/*
   getChips() {
     //   List<String> chipNames = [];
     // CreateTripCurrentTripItem().values CurrentTripItem().tripValues = CreateTripCurrentTripItem().values();
@@ -1505,7 +1565,7 @@ class _CreateTripStackState extends State<CreateTripStack>
   }
 
   onUpdate(MyTripActions tripActions) {}
-
+*/
   ///
   ///
 }
@@ -1535,7 +1595,7 @@ class StackNavBar extends StatelessWidget {
     );
   }
 }
-
+/*
 class StackAppBar extends StatelessWidget {
   final LeadingWidgetController? _controller;
   final BottomDrawerController? _bdController;
@@ -1585,4 +1645,4 @@ class StackAppBar extends StatelessWidget {
             ),
     );
   }
-}
+} */

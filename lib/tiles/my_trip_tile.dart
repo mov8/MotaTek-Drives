@@ -50,8 +50,8 @@ class _MyTripTileState extends State<MyTripTile> {
               Expanded(
                 flex: 8,
                 child: Text(widget.myTripItem.title,
-                    style: headlineStyle(
-                        context: context, color: Colors.black, size: 2)),
+                    style: textStyle(
+                        context: context, color: Colors.black, size: 3)),
               ),
             ]),
             Padding(

@@ -10,6 +10,7 @@ import '/tiles/tiles.dart';
 import '/services/services.dart';
 import 'package:socket_io_client/socket_io_client.dart' as sio;
 import '/constants.dart';
+import 'package:go_router/go_router.dart';
 // import 'dart:developer' as developer;
 
 /// Messages route supports 3 message views:
@@ -153,9 +154,62 @@ class _MessagesState extends State<Messages> {
     /*  if (Setup().user.email.isEmpty || !Setup().hasLoggedIn) {
       return HomeTile(
         homeItem: homeItem,
-        imageRepository: _imageRepository,
+        imageRepository: _imageRepository, 
       );
     } else { */
+
+    if (Setup().jwt.isEmpty) {
+      return Stack(children: [
+        Positioned.fill(
+          child: Image.asset(
+            'assets/images/message.png',
+            fit: BoxFit.cover,
+          ),
+        ),
+        Positioned.fill(
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.black.withValues(alpha: 0.5), // // Light shadow top
+                  Colors.black.withValues(alpha: 0.7), // Dark contrast bottom
+                ],
+              ),
+            ),
+          ),
+        ),
+        Padding(
+          padding: EdgeInsets.fromLTRB(20, 20, 20, 0),
+          child: Column(
+            children: [
+              Text(
+                  'Messaging allows you to keep in contact with members of your Drives group.',
+                  style: TextStyle(fontSize: 22, color: Colors.white)),
+              SizedBox(height: 10),
+              Text(
+                  'It is very useful if you are driving together with friends, or in group organised by your club.',
+                  style: TextStyle(fontSize: 22, color: Colors.white)),
+              SizedBox(height: 10),
+              Text(
+                  'To use Messaging you have to be logged into the Drives server.',
+                  style: TextStyle(fontSize: 22, color: Colors.white)),
+              SizedBox(height: 10),
+              Text('To login tap the button below:',
+                  style: TextStyle(fontSize: 22, color: Colors.white)),
+              SizedBox(height: 30),
+              ActionChip(
+                label: Text('Login Now',
+                    style: TextStyle(fontSize: 22, color: Colors.white)),
+                onPressed: () => context.push('/login'),
+                backgroundColor: Colors.blue,
+              ),
+            ],
+          ),
+        )
+      ]);
+    }
     return _tileSelected == -1
         ? MessagesSummaryForm(
             mailItems: _mailItems,
@@ -320,20 +374,34 @@ class _MessagesState extends State<Messages> {
                   color: Colors.white)),
           iconTheme: const IconThemeData(color: Colors.white),
           backgroundColor: Colors.blue,
-          actions: _tileSelected == -1
-              ? [
-                  IconButton(
-                      icon: Icon(Icons.person_add_outlined, size: 30),
-                      onPressed: () => setState(() => _addContact = true)),
-                  IconButton(
-                      onPressed: () => {},
-                      icon: Icon(Icons.help_outline_outlined)),
-                ]
-              : [
-                  IconButton(
-                      onPressed: () => {},
-                      icon: Icon(Icons.help_outline_outlined))
-                ],
+          actions: [
+            IconButton(
+              onPressed: () => {
+                if (Setup().jwt.isEmpty) {context.push('/login')},
+              },
+              icon: Icon(
+                Setup().jwt.isEmpty
+                    ? Icons.no_accounts_outlined
+                    : Icons.account_circle_outlined,
+                size: 30,
+              ),
+            ),
+            if (Setup().jwt.isNotEmpty) ...[
+              if (_tileSelected == -1) ...[
+                IconButton(
+                    icon: Icon(Icons.person_add_outlined, size: 30),
+                    onPressed: () => setState(() => _addContact = true)),
+                IconButton(
+                    onPressed: () => {},
+                    icon: Icon(Icons.help_outline_outlined)),
+              ],
+              if (_tileSelected > -1) ...[
+                IconButton(
+                    onPressed: () => {},
+                    icon: Icon(Icons.help_outline_outlined))
+              ],
+            ],
+          ],
           bottom: PreferredSize(
             preferredSize: Size.fromHeight(40),
             child: Padding(

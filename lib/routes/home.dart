@@ -11,6 +11,8 @@ import '/services/services.dart' hide getPosition;
 import '/screens/screens.dart';
 import '/helpers/helpers.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
+import 'package:go_router/go_router.dart';
 
 class HomeController {
   _HomeState? _homeState;
@@ -95,6 +97,7 @@ class _HomeState extends State<Home> {
 
   Future<bool> _getHomeData() async {
     try {
+      // await initialise();
       List<Map<String, dynamic>> items = await getMarkdownItems(type: 'home');
       for (int i = 0; i < items.length; i++) {
         homeItems.add(HomeItem.fromMap(map: items[i]));
@@ -318,9 +321,9 @@ main() {
                   onMenuTap: (index) =>
                       _leadingWidget(_scaffoldKey.currentState)), // IconButton(
               title: const Text(
-                'Drives trip planning and sharing app',
+                'Drives Community',
                 style: TextStyle(
-                  fontSize: 20,
+                  fontSize: 24,
                   color: Colors.white,
                   fontWeight: FontWeight.w700,
                 ),
@@ -329,9 +332,14 @@ main() {
               backgroundColor: Colors.blue,
               actions: [
                 IconButton(
-                  onPressed: () => {},
+                  onPressed: () => {
+                    if (Setup().jwt.isEmpty) {context.push('/login')},
+                  },
                   icon: Icon(
-                    Icons.help_outline_outlined,
+                    Setup().jwt.isEmpty
+                        ? Icons.no_accounts_outlined
+                        : Icons.account_circle_outlined,
+                    size: 35,
                   ),
                 )
               ],
@@ -370,8 +378,9 @@ main() {
   }
 
   void sideBarItems() async {
+    FlutterNativeSplash.remove();
     await _dataLoaded;
-    if (homeItems.isNotEmpty && mounted && !_sideDrawerLoaded) {
+    if (homeItems.isNotEmpty && mounted && kIsWeb && !_sideDrawerLoaded) {
       MapService().sideDrawerController!.open();
       MapService()
           .sideDrawerController!

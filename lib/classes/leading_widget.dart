@@ -132,13 +132,14 @@ class _LeadingWidgetState extends State<LeadingWidget>
             child: Positioned(
               top: 0,
               left: 0,
-              //    child: Padding(
-              //      padding: EdgeInsetsGeometry.fromLTRB(20, 10, 10, 10),
-              child: AnimatedIcon(
-                icon: _animatedIcon,
-                progress: animation,
-                color: Colors.white,
-                size: 30, //30,
+              child: Padding(
+                padding: EdgeInsetsGeometry.fromLTRB(10, 10, 0, 0),
+                child: AnimatedIcon(
+                  icon: _animatedIcon,
+                  progress: animation,
+                  color: Colors.white,
+                  size: 30, //30,
+                ),
               ),
             ),
           ),
