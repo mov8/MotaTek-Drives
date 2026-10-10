@@ -266,7 +266,7 @@ class _MainDrawerState extends State<MainDrawer> {
                   }
                 } else if (loginState == LoginState.login) {
                   await getPrivateRepository().saveUser(Setup().user);
-                  Setup().setupToDb();
+                  Setup().save();
                 }
               }
               setState(() {});

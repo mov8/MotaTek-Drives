@@ -108,7 +108,7 @@ class CreateTripController {
     _createTripState = createTripState;
   }
 
-  bool get isAttached => _createTripState != null;
+  bool isAttached() => _createTripState != null;
 
   Future<ui.Image?> getMapImage() async {
     try {
@@ -149,6 +149,14 @@ class CreateTripController {
       //     _createTripState?.setLocationUpdates();
     } catch (e) {
       debugPrint('Controller error: ${e.toString()}');
+    }
+  }
+
+  void changePage(String page) {
+    if (_createTripState != null) {
+      developer.log('CreateTrip().changePage() called from controller',
+          name: '_map_');
+      _createTripState?.changePage(page);
     }
   }
 
@@ -305,6 +313,7 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
     'autoConnect': false, // Prevent auto-connection
   });
 
+  late String _title;
   TripRequest? _tripRequest;
   Point _mapMiddle = Point(0, 0);
   Size _mapSize = Size(0, 0);
@@ -312,7 +321,7 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   Point _pointAtCentre = Point(0, 0);
   // late MapLibreMap mlMap;
   final ImageRepository _imageRepository = ImageRepository();
-
+  late final Future<bool> _dataLoaded;
 /*
   Future<String> getPoiName({required latLng, name = ''}) async {
     dynamic jsonResponse;
@@ -341,7 +350,7 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    MapService().createTripController._addState(this);
+    MapService().createTripController!._addState(this);
     _leadingWidgetController = LeadingWidgetController();
     // CurrentTripItem().clearAll(); // debug
     // NetworkState().initialise();
@@ -353,17 +362,11 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
 
     MapService().statusBarController = StatusBarController();
     MapService().zoomFabController = ZoomFabController();
-
+    _title = widget.mapType;
     _bottomNavController = RoutesBottomNavController();
     _directionTileController = DirectionTileController();
     // _expandNotifier = ExpandNotifier(-1);
     _bottomDrawerController.close();
-
-    // _mapController = MapLibreMapController(maplibrePlatform: maplibrePlatform, initialCameraPosition: initialCameraPosition, annotationOrder: annotationOrder, annotationConsumeTapEvents: annotationConsumeTapEvents)
-    //   _locationSettings = getGeolocatorSettings(
-    //       defaultTargetPlatform: TargetPlatform.android,
-    //       distanceFilter: 5,
-//        kIsWeb: kIsWeb);
 
     if (_debugging) {
       _debugPositionController = StreamController<Position>();
@@ -478,6 +481,10 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
     setState(() => {});
   }
 
+  void changePage(String page) {
+    setState(() => _title = page);
+  }
+
   void updateArguments({required TripArguments arguments}) async {
     if (_tripArguments != arguments) {
       if (kIsWeb) {
@@ -511,43 +518,13 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    AppBar appBar = AppBar(
-      automaticallyImplyLeading: false,
-      leading: LeadingWidget(
-        controller: _leadingWidgetController,
-        onMenuTap: (index) => _leadingWidget(_scaffoldKey.currentState),
-      ), // IconButton(
-      title: Text(
-        NavigationService().heading,
-        style: TextStyle(
-          fontSize: 20,
-          color: Colors.white,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-      iconTheme: const IconThemeData(color: Colors.white),
-      backgroundColor: Colors.blue,
-      actions: [
-        IconButton(
-          onPressed: () => {
-            if (Setup().jwt.isEmpty) {context.push('/login')},
-          },
-          icon: Icon(
-            Setup().jwt.isEmpty
-                ? Icons.no_accounts_outlined
-                : Icons.account_circle_outlined,
-            size: 35,
-          ),
-        )
-      ],
-    );
+    developer.log('CreateTrip() build called', name: '_map_');
     return Scaffold(
       backgroundColor: Colors.blue,
       key: _scaffoldKey,
       drawer: const MainDrawer(),
-      appBar: kIsWeb ? null : appBar,
       floatingActionButton: HandleCTFabs(
-        top: appBar.preferredSize.height + kToolbarHeight,
+        top: 20, //appBar.preferredSize.height + kToolbarHeight,
         controller: MapService().fabsController,
       ),
       body: _getPortraitBody(),
@@ -626,26 +603,14 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
     return abHeight;
   }
 
-  detailClose() {
+  void detailClose() {
     if (_poiDetailIndex > -1) {
       _poiDetailIndex = -1;
       setState(() {});
     }
   }
 
-/*
-  onPlaceSelect(var position) async {
-    CurrentTripItem().tripValues.autoCentre = false;
-    getDropdownItems(String query) async {
-      _places.clear();
-      _places.addAll(await getPlaces(value: query));
-      setState(() {});
-    }
-  }*/
-  /// MapLibre port changes
-  ///
-
-  updateTripArguments() async {
+  Future<void> updateTripArguments() async {
     try {
       switch (_tripArguments!.appState) {
         case AppState.myTrips:
@@ -704,72 +669,13 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
       MapService().mlMap!,
       CreateTripStack(controller: MapService().createTripStackController)
     ]);
-
-    /*MapLibreMap(
-      key: MapService().mapKey,
-      styleString: mapStyle,
-      compassViewPosition: CompassViewPosition.topLeft,
-      onMapCreated: _onMapUpdated,
-      initialCameraPosition: CameraPosition(
-          target: LatLng(MapService().currentPosition.latitude,
-              MapService().currentPosition.longitude),
-          zoom: 11),
-      trackCameraPosition: true,
-      onCameraMove: _onCameraMove,
-      onMapClick: _onTap,
-      onCameraIdle: _onCameraIdle,
-      scrollGesturesEnabled: true,
-      onStyleLoadedCallback: () => _onStyleLoaded(),
-      zoomGesturesEnabled: true,
-      gestureRecognizers: Set()
-        ..add(
-          Factory<EagerGestureRecognizer>(
-            () => EagerGestureRecognizer(),
-          ),
-        ),
-    ); */
-  }
-
-  void _onMapUpdated(MapLibreMapController controller) async {
-    //true;
-
-    // fabs.controller = MapService().controller;
-    // fabs.zoomFabController = MapService().zoomFabController;
-    /*
-    fabs = HandleCTFabs(
-      controller: MapService().controller!,
-      sbController: MapService().statusBarController,
-      zfController: MapService().zoomFabController,
-      top: AppBar().preferredSize.height + 20,
-      update: (update) => update ? setState(() {}) : null,
-    );
-    */
-    // if (MapService().statusBarController != null) {
-    //   MapService().statusBarController!.refresh();
-    // }
-    // _createTripStackController.refresh();
-  }
-
-  Widget _getPortraitBodyOld() {
-    _mapSize = MapService().mapSize();
-    _mapMiddle = MapService().mapMiddle;
-    _tripArguments ??=
-        TripArguments(activeChip: 2, appState: AppState.createTrip);
-    // double start = 0;
-    Future<bool>;
-    try {
-      return Text('test');
-      // ); // GesureDetector
-    } catch (e) {
-      return Center(child: Text('Bugger: ${e.toString()}'));
-    }
   }
 
   /// callback for BottomDrawer object. Is fired when the BottomDrawer.AnimatedContainer has finished its animation.
   /// Value of open is true if the drawer is currently open.
   /// This callback is used to update the map when the user has completed adding data like the trip heading, points of
   /// interest etc.
-  onOpened(open) async {
+  Future<void> onOpened(bool open) async {
     if (!open) {
       CurrentTripItem().tripActions = TripActions.none;
       if (MapService().controller != null &&
@@ -794,171 +700,16 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
       if (MapService().sideDrawerController!.content ==
               BottomDrawerItems.settings &&
           MapService().sideDrawerController!.changed) {
-        Setup().setupToDb(); // <-- Writes the setup changes to api
+        Setup().save(); // <-- Writes the setup changes to Hive
       }
     }
     setState(() {});
   }
 
-  /// _onStyleLoaded() is triggered after _onMapUpdate() so the _mapController should be instantiated
-  ///
-
-/*
-  _onStyleLoaded() async {
-    _styleLoaded = true;
-    double zoom = 12;
-    if (MapService().controller != null) {
-      if (_tripArguments != null) {
-        zoom = _tripArguments!.appState == AppState.trips ? 8 : zoom;
-      }
-      await MapService().controller!.moveCamera(
-            CameraUpdate.newLatLngZoom(MapService().currentPosition, zoom),
-          );
-      _idleCalled = false;
-      _onIdleTrips(forceUpdate: true);
-    }
-
-    // _onIdleTrips();
-  }
-*/
   /// closeAndUpdateDrawer() closes the drawer and refreshes its contents with
   /// the new CurrentTripItem(). This ensures all completed tiles are contracted
   void closeAndUpdateDrawer(bool closed) {
     _bottomDrawerController.close();
-  }
-
-  /// _onMapUpdate() is called by MapLibre, and it defines the controller
-  /// It is called before the style has been loaded.
-/*
-  _onMapUpdate(LatLng pos) async {
-    CurrentTripItem().mapController = MapService().controller;
-    //  MapService().sideDrawer?.mapController =
-    //     MapService().controller!;
-
-// Published data required
-    if (_tripArguments!.activeChip == 1) {
-    } else if (_tripArguments != null) {
-      if (_tripArguments!.origin == 'db') {
-        Point start = CurrentTripItem().maneuvers.first.point;
-        LatLng pos = LatLng(start.y.toDouble(), start.x.toDouble());
-        MapService().setPosition(latLng: pos);
-        await MapService().controller!.animateCamera(
-              CameraUpdate.newLatLngZoom(
-                MapService().currentPosition,
-                15.0,
-              ),
-            );
-        switch (_tripArguments!.appState) {
-          case AppState.myTrips:
-            {
-              MapService()
-                  .sideDrawerController!
-                  .setContent(content: BottomDrawerItems.trip);
-            }
-          case AppState.trips:
-            {
-              _idleCalled = false;
-              _onIdleTrips();
-              //_sideDrawerController.setContent(content: BottomDrawerItems.trip);
-            }
-          default:
-            {
-              MapService()
-                  .sideDrawerController!
-                  .setContent(content: BottomDrawerItems.trip);
-            }
-        }
-
-        //  await _mapController!.animateCamera(CameraUpdate.newLatLng(pos));
-        //  await _mapController!.animateCamera(CameraUpdate.zoomTo(13));
-      } else if (![AppState.createTrip] //, AppState.myTrips]
-          .contains(_tripArguments!.appState)) {
-        await updateTripArguments();
-      }
-    }
-
-    setState(() {
-      _mapSize = MapService().mapSize();
-      _mapMiddle = MapService().mapMiddle;
-    });
-  }
-  */
-/*
-  _updateLocation(UserLocation location) async {
-    if ([TripState.following, TripState.tracking]
-        .contains(CurrentTripItem().tripState)) {
-      //  _currentPosition = await Geolocator.getCurrentPosition();
-      //  CurrentPosition position = CurrentPosition(position: _currentPosition);
-      // Position
-      // updateUserPosition(position);
-    }
-  }
-
-  _onMove(CameraPosition position) async {
-    try {
-      if (CurrentTripItem().tripState == TripState.following) {
-        _directionTileController.updatePosition();
-      }
-      if (_following.isNotEmpty) {
-        await MapService().controller!.setGeoJsonSource(
-          'streamed-data',
-          {
-            "type": "FeatureCollection",
-            "features": followersToGeoJson(
-              followers: _following,
-              location: Point(
-                position.target.longitude,
-                position.target.latitude,
-              ),
-              debugging: _debugging,
-            ),
-          },
-        );
-      }
-    } catch (e) {
-      developer.log('create_trip.dart error _onMove() : ${e.toString()}',
-          name: 'error');
-    }
-    setState(()  {});
-  }
-*/
-  onGetDetails(index) {}
-
-  Future<Point> pointAtCentre() async {
-    LatLng latLng = MapService().controller!.cameraPosition!.target;
-    Point centre = await MapService().controller!.toScreenLocation(latLng);
-    return centre;
-  }
-/*
-  _onTap(Point tap, LatLng pos) async {
-    var foundFeatures;
-    try {
-      foundFeatures = await MapService().controller!.queryRenderedFeatures(
-          tap as Point<double>, ["planned_routes", "location-icon"], null);
-    } catch (e) {
-      developer.log('create_trip.dart _onTap() error: ${e.toString()}',
-          name: 'error');
-    }
-  }
-*/
-  /// Saves the Drive data privately
-  /// 1. Ensures description is complete
-  /// 2. Saves the map image
-  /// 3. Saves the trip data as private Web -> api  Device -> SQLite
-
-  _saveTrip() async {
-    if (CurrentTripItem().headerComplete() != 7) {
-      _getTripDescriptions();
-      return;
-    }
-    if (CurrentTripItem().uri.isEmpty) {
-      CurrentTripItem().uri = getUuid();
-    }
-    await _createMapImage();
-    CurrentTripItem().imageRepository ??= _imageRepository;
-    await CurrentTripItem().savePrivate();
-    CurrentTripItem().tripState = TripState.loaded;
-    setState(() => CurrentTripItem().tripValues.editing());
   }
 
   Future<int> waypointTargetted({required Point point}) async {
@@ -1069,147 +820,6 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
       developer.log('Error in updateControllers(): ${e.toString()}',
           name: 'error');
     }
-  }
-
-  /// This carries out the requests from CreateTripActionChips()
-  void _executeChipActions(
-      {MyTripActions tripActions = MyTripActions.none}) async {
-    switch (tripActions) {
-      case MyTripActions.beginTracking:
-        await MapService().controller!.animateCamera(CameraUpdate.zoomTo(14.2));
-        CurrentTripItem().tripState = TripState.tracking;
-        setLocationUpdates();
-        setState(() {});
-        return;
-
-      case MyTripActions.none || MyTripActions.addWaypoint:
-        setState(() {});
-        return;
-
-      case MyTripActions.editTrip:
-        setState(() => CurrentTripItem().tripState = TripState.editing);
-        return;
-
-      case MyTripActions.saveTrip:
-        _saveTrip();
-        return;
-
-      case MyTripActions.clearTrip:
-        setState(() => (CurrentTripItem().tripState = TripState.none));
-        CurrentTripItem().mapUpdates = MapUpdates.updateAll;
-        // micro-nudge to ensure MapLibre refreshes
-        await MapService()
-            .controller!
-            .animateCamera(CameraUpdate.zoomBy(0.000001));
-        return;
-
-      case MyTripActions.startManual:
-        /*
-        _bottomDrawerController.setContent(content: BottomDrawerItems.trip);
-        _bottomDrawerController.open(height: 300);
-        _bottomDrawerController.dockOpenTile();
-      */
-        try {
-          updateControllers(
-              items: BottomDrawerItems.trip, open: true, dock: true);
-          CurrentTripItem().tripValues.showTarget = true;
-          CurrentTripItem().tripActions = TripActions.none;
-          CurrentTripItem().tripState = TripState.manualStart;
-          setState(() {});
-        } catch (e) {
-          developer.log('Error _executeTripActions() ${e.toString()}',
-              name: 'error');
-        }
-        return;
-
-      case MyTripActions.addPointOfInterest:
-        /*
-        _bottomDrawerController.setContent(content: BottomDrawerItems.trip);
-        _bottomDrawerController.open(height: 300);
-        _bottomDrawerController.dockOpenTile();
-      */
-        setState(
-          () => updateControllers(
-            items: BottomDrawerItems.trip,
-            open: true,
-            dock: true,
-          ),
-        );
-
-        return;
-
-      case MyTripActions.addGoodRoad:
-        setState(() => (CurrentTripItem().isGoodRoad = true));
-        return;
-
-      /// May be able to combine this with .addPointOfInterest
-      case MyTripActions.addGoodRoadDetails:
-        /*
-        _bottomDrawerController.setContent(content: BottomDrawerItems.goodRoad);
-        _bottomDrawerController.open(height: 300);
-        _bottomDrawerController.dockOpenTile();
-        */
-        updateControllers(
-            items: BottomDrawerItems.goodRoad, open: true, dock: true);
-        setState(() {});
-        return;
-
-      case MyTripActions.showSteps:
-        /*
-        _bottomDrawerController.setContent(content: BottomDrawerItems.maneuvers);
-        _bottomDrawerController.open(height: 300);
-        */
-        updateControllers(
-            items: BottomDrawerItems.maneuvers, open: true, dock: true);
-        CurrentTripItem().tripActions = TripActions.none;
-        return;
-
-      case MyTripActions.showMessages:
-        _bottomDrawerController.setContent(
-            content: BottomDrawerItems.maneuvers);
-        _bottomDrawerController.open();
-        CurrentTripItem().tripActions = TripActions.none;
-        return;
-
-      case MyTripActions.showGroup:
-        _bottomDrawerController.setContent(
-            content: BottomDrawerItems.group, drawerItems: _following);
-        _bottomDrawerController.open();
-        CurrentTripItem().tripActions = TripActions.none;
-        return;
-
-      case MyTripActions.follow:
-        _bottomDrawerController.setContent(
-            content: BottomDrawerItems.maneuvers);
-        setState(() => CurrentTripItem().tripActions = TripActions.none);
-        setLocationUpdates();
-
-        return;
-
-      case MyTripActions.stopFollowing:
-        CurrentTripItem().tripValues.pauseStream = true;
-        setState(
-            () => CurrentTripItem().tripState = TripState.stoppedFollowing);
-        setLocationUpdates();
-        return;
-
-      case MyTripActions.track:
-        setLocationUpdates();
-        setState(() {});
-        return;
-
-      case MyTripActions.stopTracking:
-        CurrentTripItem().tripValues.stopStream = true;
-        setState(() => CurrentTripItem().tripState = TripState.stoppedTracking);
-        setLocationUpdates();
-        return;
-
-      default:
-        _bottomDrawerController.setContent(content: BottomDrawerItems.trip);
-        //  _bottomDrawerController.open(height: 300);
-        CurrentTripItem().tripActions = TripActions.none;
-    }
-    return;
   }
 
   Point chipPosition() {

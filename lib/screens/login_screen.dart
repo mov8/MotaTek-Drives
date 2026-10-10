@@ -82,7 +82,7 @@ class _LoginScreen extends State<LoginScreen> {
         children: [
           Positioned.fill(
             child: Image.asset(
-              'assets/images/Cheddar_Gorge.png',
+              'assets/images/login.png',
               fit: BoxFit.cover,
             ),
           ),
@@ -107,11 +107,14 @@ class _LoginScreen extends State<LoginScreen> {
                 Padding(
                   padding: EdgeInsets.fromLTRB(10, 20, 10, 50),
                   child: Center(
-                    child: Text('Login to Drives',
-                        style: TextStyle(
-                            fontSize: 36,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blue)),
+                    child: Text(
+                      'Login to Drives',
+                      style: TextStyle(
+                        fontSize: 36,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
                   ),
                 ),
                 Row(
@@ -402,19 +405,26 @@ class _LoginScreen extends State<LoginScreen> {
                           Setup().user = user;
                           context.pop();
                         } else {
+                          developer.log('ActionChip Login onPressed()',
+                              name: '_login_');
                           Map<String, dynamic> response =
                               await tryLogin(user: Setup().user);
                           String status = response['msg'] ?? '';
+                          developer.log(
+                              'ActionChip Login onPressed() tryLogin returned ${response['msg'] ?? 'no message'}',
+                              name: '_login_');
                           if (context.mounted && status == 'OK') {
-                            Setup().user = user;
-                            Setup().saveUser();
+                            MapService().persistentAppBarController?.update('');
                             Navigator.pop(context, LoginState.login);
-                          }
-                          if ([204, 401]
+                          } else if ([204, 401]
                               .contains(response["response_status_code"])) {
                             loginStatus = LoginStatus.passwordUnknown;
                             setState(() =>
                                 loginStatus == LoginStatus.passwordUnknown);
+                          } else {
+                            developer.log(
+                                'Error loggin in return code from api: ${response["response_status_code"]}',
+                                name: 'error');
                           }
                         }
                       },

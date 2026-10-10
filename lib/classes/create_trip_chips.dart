@@ -1,5 +1,5 @@
 import 'dart:math';
-import 'package:drives/screens/create_trip_stack.dart';
+import 'package:drives/classes/create_trip_stack.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import '/classes/classes.dart';
@@ -765,9 +765,12 @@ class CreateTripChips extends StatelessWidget {
         try {
           updateControllers(
               items: BottomDrawerItems.trip, open: true, dock: true);
-          CurrentTripItem().tripValues.showTarget = true;
           CurrentTripItem().tripActions = TripActions.none;
           CurrentTripItem().tripState = TripState.manualStart;
+          CurrentTripItem().tripValues.showTarget = true;
+          CurrentTripItem().tripValues.showProgress = false;
+          // CurrentTripItem().tripValues.manual();
+          MapService().createTripStackController?.refresh();
           if (onUpdate != null) {
             onUpdate!(MyTripActions.none);
           }
@@ -811,26 +814,33 @@ class CreateTripChips extends StatelessWidget {
         return;
 
       case MyTripActions.showMessages:
-        MapService()
-            .bottomDrawerController!
-            .setContent(content: BottomDrawerItems.maneuvers);
-        MapService().bottomDrawerController!.open();
+        updateControllers(
+            items: BottomDrawerItems.messages, open: true, dock: true);
+        //     MapService()
+        //         .bottomDrawerController!
+        //         .setContent(content: BottomDrawerItems.maneuvers);
+        //     MapService().bottomDrawerController!.open();
         CurrentTripItem().tripActions = TripActions.none;
         onUpdate!(MyTripActions.none);
         return;
 
       case MyTripActions.showGroup:
-        MapService().bottomDrawerController!.setContent(
-            content: BottomDrawerItems.group, drawerItems: _following);
-        MapService().bottomDrawerController!.open();
+        //      MapService().bottomDrawerController!.setContent(
+        //          content: BottomDrawerItems.group, drawerItems: _following);
+        //     MapService().bottomDrawerController!.open();
+        updateControllers(
+            items: BottomDrawerItems.groups, open: true, dock: true);
         CurrentTripItem().tripActions = TripActions.none;
         onUpdate!(MyTripActions.none);
         return;
 
       case MyTripActions.follow:
-        MapService()
-            .bottomDrawerController!
-            .setContent(content: BottomDrawerItems.maneuvers);
+
+        //     MapService()
+        //         .bottomDrawerController!
+        //         .setContent(content: BottomDrawerItems.maneuvers);
+        updateControllers(
+            items: BottomDrawerItems.group, open: true, dock: true);
         CurrentTripItem().tripActions = TripActions.none;
         setLocationUpdates();
         onUpdate!(MyTripActions.none);
@@ -867,27 +877,26 @@ class CreateTripChips extends StatelessWidget {
     return;
   }
 
-  _saveTrip() async {
+  void _saveTrip() async {
     if (CurrentTripItem().headerComplete() != 7) {
       MapService().createTripStackController?.warn(0);
       MapService().bottomDrawerController?.open();
       _getTripDescriptions();
       return;
     }
-    if (CurrentTripItem().uri.isEmpty) {
-      CurrentTripItem().uri = getUuid();
-    }
     await _createMapImage();
-
-    if (Setup().jwt.isEmpty) {
-      MapService().createTripStackController?.warn(1);
+    try {
+      CurrentTripItem().imageRepository ??= ImageRepository();
+      TripRepository tripRepository = TripRepository();
+      await tripRepository.openBox();
+      tripRepository.saveTrip(CurrentTripItem());
+      CurrentTripItem().tripState = TripState.loaded;
+      CurrentTripItem().tripValues.editing();
+      MapService().createTripStackController?.warn(-1);
+    } catch (e) {
+      developer.log('_saveTro() Error saving trip: ${e.toString()}',
+          name: 'error');
     }
-
-    CurrentTripItem().imageRepository ??= ImageRepository();
-    await CurrentTripItem().savePrivate();
-    CurrentTripItem().tripState = TripState.loaded;
-    CurrentTripItem().tripValues.editing();
-    MapService().createTripStackController?.warn(-1);
   }
 
   void setLocationUpdates() async {

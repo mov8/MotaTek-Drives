@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:math';
 import 'dart:developer' as developer;
+import 'package:drives/main.dart';
 import 'package:image_picker/image_picker.dart';
 // import 'package:drives/helpers/markdown_helpers.dart';
 import 'package:flutter/foundation.dart';
@@ -303,9 +304,12 @@ main() {
       backgroundColor: Colors.blue,
       key: _scaffoldKey,
       drawer: const MainDrawer(),
-      appBar: kIsWeb
-          ? null
-          : AppBar(
+      //    appBar: kIsWeb
+      //        ? null
+      //        : PersistentAppBar(
+      //            controller: MapService().persistentAppBarController!, page: 4),
+
+      /* AppBar(
               automaticallyImplyLeading: false,
               leading: LeadingWidget(
                   controller: _leadingWidgetController,
@@ -343,7 +347,7 @@ main() {
                   ),
                 )
               ],
-            ),
+            ), */
       body: FutureBuilder<bool>(
         //  initialData: false,
         future: _dataLoaded,

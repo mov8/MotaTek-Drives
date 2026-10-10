@@ -1,7 +1,8 @@
 import 'dart:math';
 import 'dart:async';
 import 'dart:developer' as developer;
-import 'package:drives/screens/create_trip_stack.dart';
+import 'package:drives/classes/create_trip_stack.dart';
+import 'package:drives/main.dart';
 import 'package:flutter/foundation.dart';
 import 'package:drives/classes/classes.dart' hide Position, distanceBetween;
 import 'package:flutter/rendering.dart';
@@ -72,7 +73,7 @@ class MapService {
   FabsController? fabsController;
   ZoomFabController? zoomFabController; // = ZoomFabController();
   ScrollController scrollController = ScrollController();
-  CreateTripController createTripController = CreateTripController();
+  CreateTripController? createTripController = CreateTripController();
   LeadingWidgetController leadingWidgetController = LeadingWidgetController();
   RoutesBottomNavController? routesBottomNavController =
       RoutesBottomNavController();
@@ -80,8 +81,10 @@ class MapService {
       CreateTripStackController();
   HomeController? homeController = HomeController();
   ShopController? shopController = ShopController();
-  // AppMasterShellController? appMasterShellController =
-  //     AppMasterShellController();
+  BaseShellController? baseShellController = BaseShellController();
+  BottomNavController? bottomNavController = BottomNavController();
+  PersistentAppBarController? persistentAppBarController =
+      PersistentAppBarController();
 
   final GlobalKey mapKey = GlobalKey();
   // final GlobalKey scrollToKey = GlobalKey();
@@ -188,6 +191,11 @@ class MapService {
     return _page;
   }
 
+  Future<bool> loadStyle2() async {
+    _styleString = await _fetchStyle();
+    return true;
+  }
+
   /// onIdle called after the map has stopped doing something
   /// defined within main.dart where the persistent mapLibreMap
   /// id instantiated - its onCameraIdle gets assigned to this method.
@@ -218,11 +226,13 @@ class MapService {
   Future<bool> loadStyle() async {
     try {
       if (_styleString.isEmpty) {
-        // _styleFuture ??= _fetchStyle();
-        String style = await _fetchStyle();
+        _styleString = await _fetchStyle();
+        developer.log(
+            'MapService().loadStyle() _styleString.isEmpty: ${_styleString.isEmpty}',
+            name: '_map_');
         mlMap = MapLibreMap(
           key: MapService().mapKey,
-          styleString: style,
+          styleString: _styleString,
           compassViewPosition: CompassViewPosition.topLeft,
           onMapCreated: onMapUpdated,
           initialCameraPosition: CameraPosition(
@@ -244,9 +254,7 @@ class MapService {
             ),
         );
 
-        //  await _onMapUpdated;
-
-        return style.isNotEmpty;
+        return _styleString.isNotEmpty;
       } else {
         return true;
       }
@@ -257,9 +265,32 @@ class MapService {
     return false;
   }
 
-  void onMapUpdated(MapLibreMapController mapController) async {
+  Future<void> onMapUpdated(MapLibreMapController mapController) async {
     controller = mapController;
     zoomFabController ??= ZoomFabController();
+
+    if (CurrentTripItem().pointsOfInterest.isNotEmpty) {
+      try {
+        List<Map<String, dynamic>> jsonRoutes =
+            routesToGeoJson(routes: CurrentTripItem().routes);
+        await controller?.setGeoJsonSource("route-data", {
+          "type": "FeatureCollection",
+          "features": jsonRoutes,
+        });
+        List<Map<String, dynamic>> jsonEnds =
+            routeEndsToGeoJson(routes: CurrentTripItem().routes);
+        List coordinates = CurrentTripItem().routes.first.lines.first;
+        LatLng start = LatLng(coordinates[1], coordinates[0]);
+        await controller?.setGeoJsonSource("waypoint-data", {
+          "type": "FeatureCollection",
+          "features": jsonEnds,
+        });
+        controller?.animateCamera(CameraUpdate.newLatLng(start),
+            duration: Duration(seconds: 1));
+      } catch (e) {
+        developer.log('Error showing routes: ${e.toString()}', name: 'error');
+      }
+    }
 
     fabsController?.refresh();
     if (kIsWeb && statusBarController != null) {
@@ -396,7 +427,8 @@ class MapService {
 
   Function(bool)? createTripOnMapIde;
 
-  _tripsOnIdle({required int page, bool force = false}) async {
+  Future<void> _tripsOnIdle({required int page, bool force = false}) async {
+    developer.log('MapLibreService()._tripsOnIdle() called', name: '_map_');
     Map geoJson = {};
     if (force || (_checkUpdates ?? false)) {
       _checkUpdates = false; // <-- Only run this when the map has moved
@@ -413,7 +445,8 @@ class MapService {
               bounds: bounds,
               zoom: zoom,
               force: force); //  _bottomDrawerController.itemsCount() == 0);
-        } else if (page == 2) {
+        } else {
+          //if (page == 2) {
           /// _tripRequests the Published cache _tripRequest keeps track of the data required
           /// as the user moves the map or changes the zoom. It redraws the geoJson features
           /// on the map to correspond to the data.

@@ -576,7 +576,7 @@ class _SignupFormState extends State<SignupForm> {
             Setup().user.newPassword = '';
           }
           getPrivateRepository().saveUser(Setup().user);
-          Setup().setupToDb();
+          Setup().save();
           response = 'Ok';
           break;
 

@@ -7,6 +7,7 @@
 // have to use getPrivateRepository().switchedLocalStorageMethod()
 // to run the appropriate storage method.
 
+export 'archive_service.dart';
 export 'private_storage_local.dart'
     if (dart.library.html) 'private_storage_api.dart';
 // export 'private_storage_api.dart';
@@ -17,4 +18,7 @@ export 'maplibre_service.dart';
 export 'markdown_service.dart';
 export 'navigation_service.dart';
 export 'stream_data.dart';
+export 'import_service.dart';
+
 export 'web_helper.dart';
+export 'wifi_service.dart';

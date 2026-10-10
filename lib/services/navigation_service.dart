@@ -68,20 +68,35 @@ class NavigationService {
   String get heading => headings[_page];
 
   int _page = 0;
+  int _highlight = 0;
   int get page => _page;
 
   int destination(int newPage) {
+    _highlight = newPage;
     _page = newPage;
     if ((kIsWeb & [1, 2, 3, 5].contains(newPage)) ||
         (!kIsWeb && [1, 2].contains(_page))) {
-      MapService().createTripController.update();
-      return 1;
+      MapService().createTripController!.update();
+      return 4; // 1;
     }
     int page = newPage > 0 ? --newPage : newPage;
     return page;
   }
 
-  selected(int num) => _page = num;
+  int setHighlight(int value) {
+    _highlight = value;
+    return _highlight;
+  }
+
+  int highlight() {
+    return _highlight;
+  }
+
+  int selected(int num) {
+    _page = num;
+    MapService().createTripController!.update();
+    return num;
+  }
 /*
   void goBack() {
     return key.currentState!.pop();

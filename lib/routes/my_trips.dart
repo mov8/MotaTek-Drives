@@ -1,4 +1,5 @@
 import 'dart:math';
+import '../main.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import '/models/models.dart';
@@ -6,9 +7,11 @@ import '/classes/classes.dart' hide Route;
 import '/tiles/my_trip_tile.dart';
 import '/screens/screens.dart';
 import '/services/services.dart';
-import '/helpers/edit_helpers.dart';
+import '/helpers/helpers.dart';
+// import '/helpers/edit_helpers.dart';
 import '../constants.dart';
 import 'package:go_router/go_router.dart';
+import 'dart:developer' as developer;
 // import 'package:latlong2/latlong.dart';
 
 class MyTrips extends StatefulWidget {
@@ -25,7 +28,7 @@ class _MyTripsScreenState extends State<MyTrips> {
   late final RoutesBottomNavController _bottomNavController;
   final GlobalKey _scaffoldKey = GlobalKey();
   late Future<bool> _dataLoaded;
-  List<TripItem> _tripItems = [];
+  // List<TripItem> _tripItems = [];
   List<MyTripItem> _myTripItems = [];
   final ImageRepository _imageRepository = ImageRepository();
 
@@ -39,7 +42,14 @@ class _MyTripsScreenState extends State<MyTrips> {
 
   Future<bool> getMyTripItems() async {
     // _tripItems = await getPrivateTrips(); <-- gets saved trips from api
-    _myTripItems = await getPrivateRepository().loadMyTripItems();
+    try {
+      TripRepository tripRepository = TripRepository();
+      await tripRepository.openBox();
+      _myTripItems = await tripRepository.getTrips();
+    } catch (e) {
+      developer.log('Error trying to get items: ${e.toString()}',
+          name: 'error');
+    }
     return true;
   }
 
@@ -91,7 +101,7 @@ class _MyTripsScreenState extends State<MyTrips> {
   }
 
   Future<void> shareTrip(int index) async {
-    TripItem currentTrip = _tripItems[index];
+    MyTripItem currentTrip = _myTripItems[index];
     /*
     currentTrip.showMethods = false;
     Navigator.push(
@@ -175,11 +185,11 @@ import 'package:uuid/rng.dart';
   */
 
   Widget _getPortraitBody() {
-    if (Setup().jwt.isEmpty) {
+    if (_myTripItems.isEmpty && Setup().jwt.isEmpty) {
       return Stack(children: [
         Positioned.fill(
           child: Image.asset(
-            'assets/images/aiaston.png',
+            'assets/images/scenery.png',
             fit: BoxFit.cover,
           ),
         ),
@@ -197,47 +207,96 @@ import 'package:uuid/rng.dart';
             ),
           ),
         ),
-        Padding(
-          padding: EdgeInsetsGeometry.fromLTRB(20, 20, 20, 0),
-          child: Column(
-            children: [
-              Text(
-                  'My Drives allows you to build up a library of trips that you have enjoyed.',
-                  style: TextStyle(fontSize: 22, color: Colors.white)),
-              SizedBox(height: 20),
-              Text(
-                  "If you haven't logged in to Drives then your trip details will only be saved on your device.",
-                  style: TextStyle(fontSize: 22, color: Colors.white)),
-              SizedBox(height: 20),
-              Text(
-                  "Trip information can't be stored on your PC if you are using the Web version.",
-                  style: TextStyle(fontSize: 22, color: Colors.white)),
-              SizedBox(height: 20),
-              Text(
-                  "You can't access data stored on your device for the PC browser version.",
-                  style: TextStyle(fontSize: 22, color: Colors.white)),
-              SizedBox(height: 20),
-              Text(
-                  "If you want to share your trip with other people, or access it with your PC you have to login first.",
-                  style: TextStyle(fontSize: 22, color: Colors.white)),
-              SizedBox(height: 20),
-              Text("Tap the button below to log in.",
-                  style: TextStyle(fontSize: 22, color: Colors.white)),
-              SizedBox(height: 50),
-              ActionChip(
-                label: Text('Login Now',
-                    style: TextStyle(fontSize: 22, color: Colors.white)),
-                onPressed: () => context.push('/login'),
-                backgroundColor: Colors.blue,
+        if (Setup().jwt.isEmpty && _myTripItems.isEmpty) ...[
+          if (Setup().jwt.isEmpty) ...[
+            Padding(
+              padding: EdgeInsetsGeometry.fromLTRB(20, 20, 20, 0),
+              child: Column(
+                children: [
+                  Text(
+                      'My Drives allows you to build up a library of trips that you have enjoyed.',
+                      style: TextStyle(fontSize: 22, color: Colors.white)),
+                  SizedBox(height: 20),
+                  Text(
+                      '''Registering in Drives ensures your saved trip details will be available to all your devices, otherwise trips can only be shared with other devices through the Drives WiFi import export facility.''',
+                      style: TextStyle(fontSize: 22, color: Colors.white)),
+                  SizedBox(height: 20),
+                  Text(
+                      "Registering allows to to publish your trips, for your friends or other people to enjoy.",
+                      style: TextStyle(fontSize: 22, color: Colors.white)),
+                  SizedBox(height: 20),
+                  Text(
+                      "Registering helps when members of a club, or a group of friends want to follow the trip together.",
+                      style: TextStyle(fontSize: 22, color: Colors.white)),
+                  SizedBox(height: 20),
+                  Text(
+                      "Registering gives in-app messaging and real-time group location tracking.",
+                      style: TextStyle(fontSize: 22, color: Colors.white)),
+                  SizedBox(height: 20),
+                  Text("Tap the button below to log in.",
+                      style: TextStyle(fontSize: 22, color: Colors.white)),
+                  SizedBox(height: 50),
+                  Center(
+                    child: ActionChip(
+                      label: Text('Register Now',
+                          style: TextStyle(fontSize: 22, color: Colors.white)),
+                      onPressed: () => context.push('/login'),
+                      backgroundColor: Colors.blue,
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
-        )
+            ),
+          ],
+          if (_myTripItems.isEmpty && Setup().jwt.isNotEmpty) ...[
+            Padding(
+              padding: EdgeInsetsGeometry.fromLTRB(20, 20, 20, 0),
+              child: Column(
+                children: [
+                  Text("You haven't saved any trips yet.",
+                      style: TextStyle(fontSize: 22, color: Colors.white)),
+                  SizedBox(height: 20),
+                  Text(
+                      '''Saving trips allows you to keep your own private library of trips stored on your device.''',
+                      style: TextStyle(fontSize: 22, color: Colors.white)),
+                  SizedBox(height: 20),
+                  Text(
+                      '''To save a trip go to the explore screen, enter the waypoints for the trip and any photos. 
+                      Tap the Save Trip button and it will be saved in this screen as a personal trip.''',
+                      style: TextStyle(fontSize: 22, color: Colors.white)),
+                  SizedBox(height: 20),
+                  if (Setup().jwt.isNotEmpty)
+                    Text(
+                        "Any trips you have saved can be publish, for your friends or other people to enjoy.",
+                        style: TextStyle(fontSize: 22, color: Colors.white)),
+                  SizedBox(height: 20),
+                  Text(
+                      "Saved trips can be edited, new images added, and saved again as a personal trip.",
+                      style: TextStyle(fontSize: 22, color: Colors.white)),
+                  SizedBox(height: 20),
+                  if (Setup().jwt.isNotEmpty) ...[
+                    Text(
+                        "Registering helps when members of a club, or a group of friends want to follow the trip together.",
+                        style: TextStyle(fontSize: 22, color: Colors.white)),
+                    SizedBox(height: 20),
+                    Text(
+                        "Registering gives in-app messaging and real-time group location tracking.",
+                        style: TextStyle(fontSize: 22, color: Colors.white)),
+                    SizedBox(height: 20),
+                  ],
+                  Text("Tap the button below to log in.",
+                      style: TextStyle(fontSize: 22, color: Colors.white)),
+                  SizedBox(height: 50),
+                ],
+              ),
+            ),
+          ]
+        ],
       ]);
     }
 
     if (_myTripItems.isEmpty) {
-      _tripItems.add(TripItem(
+      _myTripItems.add(MyTripItem(
           title: 'No favourite trips saved', subTitle: 'Why not add one now?'));
     }
 
@@ -281,7 +340,10 @@ import 'package:uuid/rng.dart';
       backgroundColor: Colors.blue,
       key: _scaffoldKey,
       drawer: const MainDrawer(),
-      appBar: AppBar(
+      //   appBar: PersistentAppBar(
+      //       controller: MapService().persistentAppBarController!, page: 3),
+
+      /* AppBar(
           automaticallyImplyLeading: false,
           leading: LeadingWidget(
             controller: _leadingWidgetController,
@@ -313,7 +375,7 @@ import 'package:uuid/rng.dart';
                 size: 30,
               ),
             )
-          ]),
+          ]), */
       body: FutureBuilder<bool>(
         future: _dataLoaded,
         builder: (BuildContext context, snapshot) {

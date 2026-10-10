@@ -325,7 +325,7 @@ class CurrentTripItem extends MyTripItem {
     mapUpdates = MapUpdates.updateAll;
 
     // micro-nudge
-    await MapService().controller!.animateCamera(CameraUpdate.zoomBy(0.000001));
+    await MapService().controller?.animateCamera(CameraUpdate.zoomBy(0.000001));
   }
 
   /*
@@ -438,9 +438,9 @@ class CurrentTripItem extends MyTripItem {
     if (tripState == TripState.none) {
       return 7;
     }
-    int result = (title.isNotEmpty ? 1 : 0) |
-        (subTitle.isNotEmpty ? (1 << 1) : 0) |
-        (body.isNotEmpty ? (1 << 2) : 0);
+    int result = (CurrentTripItem().title.isNotEmpty ? 1 : 0) |
+        (CurrentTripItem().subTitle.isNotEmpty ? (1 << 1) : 0) |
+        (CurrentTripItem().body.isNotEmpty ? (1 << 2) : 0);
     return result;
   }
 
@@ -653,7 +653,7 @@ class CurrentTripItem extends MyTripItem {
       //     await savePrivate();
       //     Setup().appState =
       //         '{"route": 2, "id": $driveId, "saved": ${isSaved ? 1 : 0}, "isTracking": ${isTracking ? 1 : 0}, "tripState": ${tripState.index}, "tripActions": ${tripActions.index}}';
-      Setup().setupToDb();
+      Setup().save();
     } catch (e) {
       debugPrint("Can't save CurrentTrip state: ${e.toString}");
       return false;
@@ -682,7 +682,7 @@ class CurrentTripItem extends MyTripItem {
         }
       }
       Setup().appState = '';
-      Setup().setupToDb();
+      Setup().save();
     }
     return true;
   }
@@ -712,7 +712,7 @@ class CurrentTripItem extends MyTripItem {
     mapUpdates = MapUpdates.routesAndWaypoints;
     MapService().updateMapGeoJson(mapUpdates: mapUpdates);
     // Micro-nudge to update MapLibre the nudge causes the onIdle callback to be called
-    MapService().createTripController.update();
+    MapService().createTripController!.update();
     await MapService().controller!.animateCamera(CameraUpdate.zoomBy(0.000001));
     // mapController = null;
     //leadingWidgetController?.changeWidget(0);
@@ -720,6 +720,7 @@ class CurrentTripItem extends MyTripItem {
 
   void requestAddManually() async {
     clearAll(newTripState: TripState.manualStart);
+    uri = uri.isEmpty ? getUuid() : uri;
     // tripValues.startFollowing();
     tripValues.manual(); // <-- Set all the manual flags
     tripState = TripState.manual;
@@ -730,19 +731,20 @@ class CurrentTripItem extends MyTripItem {
     await MapService().controller!.updateMyLocationTrackingMode(
         MyLocationTrackingMode.none); // trackingCompass);
     await MapService().controller!.animateCamera(CameraUpdate.zoomBy(0.000001));
-    MapService().createTripController.update();
+    MapService().createTripController!.update();
     tripActions = TripActions.headingDetail;
   }
 
   void requestAddAutomatically() async {
     clearAll(newTripState: TripState.tracking);
+    uri = uri.isEmpty ? getUuid() : uri;
     tripValues.track();
     if (CurrentTripItem().routes.isEmpty) {
       CurrentTripItem().routes = [Route(lines: [], waypoints: [])];
     }
     await MapService().controller!.updateMyLocationTrackingMode(
         MyLocationTrackingMode.none); // trackingCompass);
-    MapService().createTripController.update();
+    MapService().createTripController!.update();
     tripActions = TripActions.none;
   }
 
@@ -753,7 +755,7 @@ class CurrentTripItem extends MyTripItem {
     loadBackBuffer();
     mapUpdates = MapUpdates.updateAll;
     MapService().updateMapGeoJson(mapUpdates: mapUpdates);
-    MapService().createTripController.update();
+    MapService().createTripController!.update();
     // Micro-nudge to update MapLibre the nudge causes the onIdle callback to be called
     await MapService().controller!.animateCamera(CameraUpdate.zoomBy(0.000001));
   }
@@ -771,7 +773,7 @@ class CurrentTripItem extends MyTripItem {
     }
     tripValues.afterWaypoint();
     // Micro-nudge to update MapLibre the nudge causes the onIdle callback to be called
-    MapService().createTripController.update();
+    MapService().createTripController!.update();
     await MapService().controller!.animateCamera(CameraUpdate.zoomBy(0.000001));
     isSaved = false;
   }
@@ -799,7 +801,7 @@ class CurrentTripItem extends MyTripItem {
     }
     tripValues.afterWaypoint(); // pass flag that we need user to add details
     // Micro-nudge to update MapLibre the nudge causes the onIdle callback to be called
-    MapService().createTripController.update();
+    MapService().createTripController!.update();
     await MapService().controller!.animateCamera(CameraUpdate.zoomBy(0.000001));
     isSaved = false;
   }
@@ -813,7 +815,7 @@ class CurrentTripItem extends MyTripItem {
     tripValues.afterWaypoint();
     isSaved = false;
     // Micro-nudge to update MapLibre the nudge causes the onIdle callback to be called
-    MapService().createTripController.update();
+    MapService().createTripController!.update();
     await MapService().controller!.animateCamera(CameraUpdate.zoomBy(0.000001));
   }
 
@@ -825,7 +827,7 @@ class CurrentTripItem extends MyTripItem {
     await addWaypoint(index: 0, point: tripValues.position);
     tripValues.afterWaypoint();
     // Micro-nudge to update MapLibre the nudge causes the onIdle callback to be called
-    MapService().createTripController.update();
+    MapService().createTripController!.update();
     await MapService().controller!.animateCamera(CameraUpdate.zoomBy(0.000001));
     isSaved = false;
   }
@@ -836,7 +838,7 @@ class CurrentTripItem extends MyTripItem {
       await removeWaypoint(index: waypointIndex);
     }
     // Micro-nudge to update MapLibre the nudge causes the onIdle callback to be called
-    MapService().createTripController.update();
+    MapService().createTripController!.update();
     await MapService().controller!.animateCamera(CameraUpdate.zoomBy(0.000001));
     tripValues.showTarget = true;
     isSaved = false;
@@ -849,7 +851,7 @@ class CurrentTripItem extends MyTripItem {
   void requestPauseTracking() {
     tripState = TripState.pausedTracking;
     tripValues.pauseFollowing();
-    MapService().createTripController.update();
+    MapService().createTripController!.update();
   }
 
   /// requestEndRecording
@@ -862,7 +864,7 @@ class CurrentTripItem extends MyTripItem {
     await MapService()
         .controller!
         .updateMyLocationTrackingMode(MyLocationTrackingMode.none);
-    MapService().createTripController.update();
+    MapService().createTripController!.update();
     await MapService().controller!.animateCamera(CameraUpdate.zoomBy(0.000001));
     tripValues.stopTracking;
   }
@@ -881,7 +883,7 @@ class CurrentTripItem extends MyTripItem {
       goodRoads.last.waypoints
           .add(Waypoint(value: 1, point: tripValues.position));
     }
-    MapService().createTripController.update();
+    MapService().createTripController!.update();
     isSaved = false;
   }
 
@@ -892,7 +894,7 @@ class CurrentTripItem extends MyTripItem {
     isGoodRoad = true;
     isSaved = false;
     tripState = TripState.editing;
-    MapService().createTripController.update();
+    MapService().createTripController!.update();
   }
 
   void requestGreatRoadEnd() {
@@ -903,7 +905,7 @@ class CurrentTripItem extends MyTripItem {
     if (!added && tripState != TripState.tracking) {
       tripState = tripValues.isEditing ? TripState.editing : TripState.manual;
     }
-    MapService().createTripController.update();
+    MapService().createTripController!.update();
   }
 
   void requestPointOfInterest() {
@@ -912,7 +914,7 @@ class CurrentTripItem extends MyTripItem {
     newPointOfInterest();
     //  mapUpdates = mapUpdates.add(MapUpdates.pointsOfInterest);
     tripValues.pointOfInterestIndex = pointsOfInterest.length - 1;
-    MapService().createTripController.update();
+    MapService().createTripController!.update();
     return;
   }
 
@@ -979,7 +981,7 @@ class CurrentTripItem extends MyTripItem {
           ); //cameraPosition.target[0] = LatLng()
       //   await MapService().controller!.animateCamera(CameraUpdate.zoomBy(0.000001));
       tripValues.startFollowing();
-      MapService().createTripController.update();
+      MapService().createTripController!.update();
     }
     return;
   }
@@ -990,7 +992,7 @@ class CurrentTripItem extends MyTripItem {
     await MapService()
         .controller!
         .updateMyLocationTrackingMode(MyLocationTrackingMode.none);
-    MapService().createTripController.update();
+    MapService().createTripController!.update();
     await MapService().controller!.animateCamera(CameraUpdate.zoomBy(0.000001));
   }
 
@@ -1011,7 +1013,7 @@ class CurrentTripItem extends MyTripItem {
       developer.log('Error trying to add point of interest: ${e.toString()}',
           name: 'error');
     }
-    MapService().createTripController.update();
+    MapService().createTripController!.update();
     isSaved = false;
   }
 
@@ -1561,12 +1563,15 @@ class CurrentTripItem extends MyTripItem {
 
   @override
   savePrivate() async {
-    uri = uri.isEmpty ? getUuid() : uri;
-    added = added.isEmpty ? dateFormat.format(DateTime.now()) : added;
-    if (Setup().jwt.isNotEmpty && Setup().loggingIn) {
-      saveTripWeb(this, imageRepository!);
-    } // <-- Debugging restore bit below
-    id = await getPrivateRepository().saveMyTrip(this, imageRepository);
+    try {
+      TripRepository tripRepository = TripRepository();
+      uri = uri.isEmpty ? getUuid() : uri;
+      added = added.isEmpty ? dateFormat.format(DateTime.now()) : added;
+      tripRepository.saveTrip(CurrentTripItem());
+    } catch (e) {
+      developer.log('Error in CurrentTripItem().savePrivate() ${e.toString()}',
+          name: 'error');
+    } //     ? tripRepository;
 
     return;
   }
@@ -1847,7 +1852,8 @@ class MyTripItem extends TripItem {
         pointsOfInterest: pointsOfInterest,
       );
     } catch (e) {
-      debugPrint('Error MyTripItem.toJson(): ${e.toString()}');
+      developer.log('factory MyTripItem.fromJson() error: ${e.toString()}',
+          name: 'error');
     }
 
     return tripItem;

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:markdown/markdown.dart' as md;
+import '../main.dart';
 import '/constants.dart';
 import '/models/other_models.dart';
 import '/classes/classes.dart';
@@ -312,38 +313,10 @@ main() {
       backgroundColor: Colors.blue,
       key: _scaffoldKey,
       drawer: const MainDrawer(),
-      appBar: kIsWeb
-          ? null
-          : AppBar(
-              automaticallyImplyLeading: false,
-              leading: LeadingWidget(
-                  controller: _leadingWidgetController,
-                  onMenuTap: (index) =>
-                      _leadingWidget(_scaffoldKey.currentState)), // IconButton(
-              title: const Text(
-                'Drives Community',
-                style: TextStyle(
-                  fontSize: 24,
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              iconTheme: const IconThemeData(color: Colors.white),
-              backgroundColor: Colors.blue,
-              actions: [
-                IconButton(
-                  onPressed: () => {
-                    if (Setup().jwt.isEmpty) {context.push('/login')},
-                  },
-                  icon: Icon(
-                    Setup().jwt.isEmpty
-                        ? Icons.no_accounts_outlined
-                        : Icons.account_circle_outlined,
-                    size: 35,
-                  ),
-                )
-              ],
-            ),
+      //   appBar: kIsWeb
+      //       ? null
+      //       : PersistentAppBar(
+      //           controller: MapService().persistentAppBarController!, page: 0),
       body: FutureBuilder<bool>(
         //  initialData: false,
         future: _dataLoaded,

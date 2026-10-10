@@ -258,7 +258,7 @@ Future<Map<String, dynamic>> postUser(
     code = response.statusCode;
     if ([200, 201].contains(code)) {
       Setup().jwt = map['token'];
-      Setup().setupToDb();
+      Setup().save();
       return {'msg': 'OK', 'code': code};
     } else {
       map['msg'] = 'error';
@@ -297,7 +297,7 @@ Future<Map<String, dynamic>> postContacts(
     Map<String, dynamic> map = jsonDecode(response.body);
     if ([200, 201].contains(response.statusCode)) {
       Setup().jwt = map['token'];
-      Setup().setupToDb();
+      Setup().save();
       return {'msg': 'OK'};
     } else {
       return map;
@@ -308,23 +308,20 @@ Future<Map<String, dynamic>> postContacts(
   return {'message': 'error'};
 }
 
-Future<bool> refreshToken() async {
+Future<String> refreshToken() async {
   final http.Response response =
       await getWebData(uri: Uri.parse('$urlUser/token'), secure: true);
   if ([200, 201].contains(response.statusCode)) {
     try {
       Map<String, dynamic> data = jsonDecode(response.body);
-      String token = data['token'];
-      if (token.isNotEmpty) {
-        Setup().jwt = data['token'];
-        Setup().setupToDb();
-        return true;
-      }
+      return data['token'] ?? '';
     } catch (e) {
-      return false;
+      developer.log('Error refreshing jwt token: ${e.toString()}',
+          name: 'error');
+      return '';
     }
   }
-  return false;
+  return '';
 }
 
 Future<User> getUserApi() async {
@@ -335,7 +332,7 @@ Future<User> getUserApi() async {
   if ([200, 201].contains(response.statusCode)) {
     try {
       Map<String, dynamic> data = jsonDecode(response.body);
-      // Setup().jwt = data['token'] ?? '';
+      Setup().jwt = data['token'] ?? '';
       user.forename = data['forename'] ?? '';
       user.surname = data['surname'] ?? '';
       user.email = data['email'] ?? '';
@@ -404,10 +401,13 @@ Future<Map<String, dynamic>> tryLogin({required User user}) async {
   var uri = Uri.parse('$urlUser/${register ? "register" : "login"}');
   int code = 500;
   Map<String, dynamic> map = {};
+  developer.log('tryLogin() uri: ${uri.toString()}', name: '_login_');
   try {
     http.Response response =
         await postWebData(uri: uri, body: jsonEncode(user.toMap()));
     code = response.statusCode;
+    developer.log('tryLogin() returned a response code of $code',
+        name: '_login_');
     if (response.body.isNotEmpty) {
       map = jsonDecode(response.body);
       if (code == 200) {
@@ -416,19 +416,22 @@ Future<Map<String, dynamic>> tryLogin({required User user}) async {
         Setup().user.phone = map['phone'];
         Setup().user.type = map['type'];
         Setup().jwt = map['token'];
-        await getPrivateRepository()
-            .saveUser(Setup().user); // <-- Only implemented for mobile
-        await getPrivateRepository().updateSetup();
+        Setup().saveUser();
+        Setup().save();
         return {'msg': 'OK'};
       } else if (map.isNotEmpty) {
         return {'msg': map['msg'] ?? 'error', 'response_status_code': code};
       }
+    } else {
+      return {'msg': 'Data is empty'};
     }
   } catch (e) {
-    debugPrint(
-        'Login error: ${e.toString()} status code: $code uri: $uri map: ${map.toString()}');
+    developer.log(
+        'Login error: ${e.toString()} status code: $code uri: $uri map: ${map.toString()}',
+        name: 'error');
+    return {'msg': map['msg'] ?? 'error', 'response_status_code': code};
   }
-  return {'msg': map['msg'] ?? 'error', 'response_status_code': code};
+  return {'msg': 'Data is empty'};
 }
 
 Future<void> saveSetupApi() async {

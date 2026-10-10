@@ -11,8 +11,7 @@ import '/classes/classes.dart';
 import 'package:flutter/material.dart' hide Route;
 // import 'package:latlong2/latlong.dart';
 import '/classes/route.dart';
-// import 'package:vector_map_tiles/vector_map_tiles.dart';
-// import 'package:path_provider/path_provider.dart';
+import 'package:hive/hive.dart';
 
 // import '/classes/classes.dart';
 
@@ -200,12 +199,16 @@ Future<Directory> getCache() async {
 /// ImageRepository is able to provide all images and keep them in a cache. The images come from
 /// 3 sources:
 /// 1 Assets for displaying images when not on-line.
-/// 2 Local from the documents folder for devices - used in CurrentTRipItem().
+/// 2 Hive LazyBox with a key of the trip id + photo No for CurrentTripItem and MyTrips()
+///   The key is in the form uuid_#
 /// 3 Images from the API for the Web version and API originating data.
 
 class ImageRepository {
   final Map<String, Uint8List> _imageCache = {};
-  ImageRepository();
+  bool openBox;
+  ImageRepository({this.openBox = true});
+  late final LazyBox _imageBox;
+  bool boxOpen = false;
 
   FutureOr<Map<String, Image>> loadImage({
     String? key,
@@ -214,20 +217,33 @@ class ImageRepository {
     double width = 100,
     Uint8List? bytes,
   }) async {
+    if (openBox && !boxOpen) {
+      boxOpen = await openHive();
+    }
+
     key ??= getFileName(url: uri);
     key = key.isNotEmpty ? key : getFileName(url: uri);
 
     if (!_imageCache.containsKey(key)) {
-      if (id >= 0 && !kIsWeb) {
-        Uint8List? imageBytes =
-            await getPrivateRepository().loadImageByIdLocal(id: id);
+      if (key.length == 32) {
+        Uint8List? imageBytes;
+        if (_imageBox.containsKey(key)) {
+          imageBytes = await _imageBox.get(key);
+        } else if ((bytes ?? []).isNotEmpty) {
+          try {
+            _imageBox.put(key, bytes);
+            imageBytes = bytes;
+          } catch (e) {
+            developer.log('Error writing to _imageBox: ${e.toString()}',
+                name: '_trips_');
+          }
+        }
         _imageCache[key] = imageBytes!;
       } else if (uri.isNotEmpty && uri.contains('assets')) {
         final ByteData bytes = await rootBundle.load(uri);
         _imageCache[key] = bytes.buffer.asUint8List();
       } else if (uri.isNotEmpty && bytes == null) {
         _imageCache[key] = await getImageBytes(url: uri);
-        // debugPrint('Image returned from web');
       } else if (bytes != null) {
         // allow the bytes to be held for the Web version - they will be written away later
         _imageCache[key] = bytes;
@@ -235,6 +251,11 @@ class ImageRepository {
     }
 
     return {key: Image.memory(_imageCache[key]!)};
+  }
+
+  Future<bool> openHive() async {
+    _imageBox = await Hive.openLazyBox('images');
+    return true;
   }
 
   Uint8List getBytes({String key = ''}) {
@@ -247,6 +268,20 @@ class ImageRepository {
   }
 }
 
+Widget displayLocalImage(String imageId) {
+  return FutureBuilder(
+    future: Hive.openLazyBox('webImagesBox').then((box) => box.get(imageId)),
+    builder: (context, snapshot) {
+      if (snapshot.connectionState == ConnectionState.done &&
+          snapshot.hasData) {
+        final Uint8List bytes = snapshot.data as Uint8List;
+        return Image.memory(bytes);
+      }
+      return const CircularProgressIndicator(); // Loading placeholder
+    },
+  );
+}
+
 Future<Image> webImageFromBytes({required String url}) async {
   Uint8List imageBytes = await getImageBytes(url: url);
   return Image.memory(imageBytes);
@@ -256,4 +291,14 @@ Future<Image> localImageFromBytes({required int id}) async {
   Uint8List? imageBytes =
       await getPrivateRepository().loadImageByIdLocal(id: id);
   return Image.memory(imageBytes!);
+}
+
+Future<void> saveLocalImage(String imageId, Uint8List image) async {
+  var imageBox = await Hive.openLazyBox('imageBox');
+  imageBox.put(imageId, image);
+}
+
+Future<Uint8List> getLocalImage(String imageId) async {
+  var imageBox = await Hive.openLazyBox('imageBox');
+  return await imageBox.get(imageId);
 }

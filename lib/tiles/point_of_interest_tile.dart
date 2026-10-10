@@ -247,11 +247,6 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
           collapsedBackgroundColor: Colors.white,
           initiallyExpanded: widget.expanded,
           controller: _expandController,
-/*
-          title: DropdownMenu<IconLabel>(
-            dropdownMenuEntries: IconLabel.entries,
-          ),
-*/
           title: DropdownMenu(
             dropdownMenuEntries: getDropdownMenuItems(),
             textStyle:
@@ -277,43 +272,6 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
               color: Color(poiTypes[17]['colourMaterial']),
             ),
           ),
-
-          /* Text('Title',
-                style: TextStyle(fontSize: 22, color: Colors.red)), */
-
-          /* Overlay(
-            initialEntries: [
-              OverlayEntry(
-                  builder: (context) => Material(
-                          child: DropdownMenu<IconLabel>(
-                        dropdownMenuEntries: IconLabel.entries,
-                      ))),
-            ],
-          ), */
-
-          /* Row(
-            children: [
-              //     if (kIsWeb) ...[
-              Row(
-                children: [
-                  Padding(
-                      padding: EdgeInsetsGeometry.fromLTRB(0, 0, 10, 0),
-                      child: Icon(_typeIcon /*getTypeIcon() */,
-                          size: 30, color: Colors.black)),
-                  Text(_typeName, style: TextStyle(fontSize: 20)),
-                  Align(
-                    alignment: Alignment.topRight,
-                    child: IconButton(
-                      key: _menuButtonKey,
-                      icon: Icon(Icons.arrow_drop_down_circle_outlined,
-                          color: Colors.black),
-                      onPressed: () => setState(() => _showCustomMenu(context)),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ), */ //  Text('Test Name'),
           onExpansionChanged: (value) {
             _expanded =
                 value; // <-- Important allows ExpansionController to work
@@ -514,7 +472,7 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
               alignment: AlignmentDirectional.topStart,
               child: Text(widget.pointOfInterest.name,
                   style: const TextStyle(
-                    fontSize: 18,
+                    fontSize: 22,
                     fontWeight: FontWeight.bold,
                   ),
                   textAlign: TextAlign.left),
@@ -536,7 +494,7 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                   alignment: Alignment.bottomLeft,
                   child: Text('N/A',
                       //  'published ${DateFormat("dd MMM yyyy").format(widget.pointOfInterest.published)}',
-                      style: const TextStyle(fontSize: 12)),
+                      style: const TextStyle(fontSize: 14)),
                 ),
               ),
             ]),
@@ -561,7 +519,7 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                           'Description:',
                           style: TextStyle(
                               color: Colors.black,
-                              fontSize: 16,
+                              fontSize: 22,
                               fontWeight: FontWeight.bold,
                               decoration: TextDecoration.underline),
                         ),
@@ -572,30 +530,11 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                         Expanded(
                           child: Padding(
                             padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
-                            child: TextFormField(
-                                readOnly: !canEdit,
-                                maxLines: null,
-                                textInputAction: TextInputAction.done,
-                                controller: _textEditingControllerDescription,
-                                textAlign: TextAlign.start,
-                                keyboardType: TextInputType.streetAddress,
-                                textCapitalization:
-                                    TextCapitalization.sentences,
-                                inputFormatters: [SentenceCaseFormatter()],
-                                decoration: canEdit
-                                    ? const InputDecoration(
-                                        border: OutlineInputBorder(),
-                                        hintText:
-                                            'Describe Point of Interest...',
-                                        labelText:
-                                            'Point of interest description',
-                                      )
-                                    : null,
-                                style: Theme.of(context).textTheme.bodyLarge,
-                                autovalidateMode:
-                                    AutovalidateMode.onUserInteraction,
-                                onFieldSubmitted: (text) =>
-                                    widget.pointOfInterest.description = text),
+                            child: Text(
+                              widget.pointOfInterest.description,
+                              style:
+                                  TextStyle(fontSize: 20, color: Colors.white),
+                            ),
                           ),
                         ),
                       ],

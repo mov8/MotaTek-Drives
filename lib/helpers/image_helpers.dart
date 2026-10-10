@@ -358,7 +358,7 @@ Future<String> loadDeviceImage(
 /// a device
 ///   index is the position in any list of photos
 ///   fileName is the file path/name without the extension
-
+/*
 Future<Photo?> getDeviceImage(
     {int index = 0,
     String folder = '',
@@ -384,7 +384,7 @@ Future<Photo?> getDeviceImage(
   }
   return null;
 }
-
+*/
 String getFileName({required String url}) {
   String uName = url;
   if (uName.contains('/')) {

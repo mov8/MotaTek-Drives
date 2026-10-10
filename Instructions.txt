@@ -124,6 +124,9 @@ git checkout stash -- .  Restores the stash overwriting any changes made since t
 git push origin master
 git branch <-- shows all branches
 git checkout <branch> <-- changes the brunch
+git rm --cached file_to_remove.txt <-- remove a file from Git without deleting It
+git rm --cached -r directory_to_remove <-- remove a directory recursively
+git ls-tree -r master --name-only <-- Show all files in master branch
 
 Todo-Tree: Failed to find vscode-ripgrep - please install ripgrep manually and set 'todo-tree.ripgrep' to point to the executable
 

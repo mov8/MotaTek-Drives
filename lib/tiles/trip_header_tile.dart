@@ -178,9 +178,13 @@ class _TripHeaderTileState extends State<TripHeaderTile> {
   }
 
   void checkComplete() async {
-    if (_textEditingControllerTitle.text.isNotEmpty &&
+    /*   if (_textEditingControllerTitle.text.isNotEmpty &&
         _textEditingControllerSubTitle.text.isNotEmpty &&
-        _textEditingControllerBody.text.isNotEmpty) {
+        _textEditingControllerBody.text.isNotEmpty)
+  */
+    if (CurrentTripItem().title.isNotEmpty &&
+        CurrentTripItem().subTitle.isNotEmpty &&
+        CurrentTripItem().body.isNotEmpty) {
       widget.onUpdate(true);
     }
   }
@@ -193,6 +197,9 @@ class _TripHeaderTileState extends State<TripHeaderTile> {
 
   @override
   Widget build(BuildContext context) {
+    _textEditingControllerTitle.text = CurrentTripItem().title;
+    _textEditingControllerSubTitle.text = CurrentTripItem().subTitle;
+    _textEditingControllerBody.text = CurrentTripItem().body;
     if (CurrentTripItem().title.isEmpty || CurrentTripItem().subTitle.isEmpty) {
       _expandController.expand();
     }
@@ -217,6 +224,7 @@ class _TripHeaderTileState extends State<TripHeaderTile> {
               child: TextFormField(
                 key: Key('tff1'),
                 readOnly: widget.appState == AppState.driveTrip,
+                // initialValue: CurrentTripItem().title,
                 focusNode: fn1,
                 controller: _textEditingControllerTitle,
                 textAlign: TextAlign.start,
@@ -252,6 +260,7 @@ class _TripHeaderTileState extends State<TripHeaderTile> {
               child: TextFormField(
                 focusNode: fn2,
                 key: Key('tff2'),
+                //     initialValue: CurrentTripItem().subTitle,
                 controller: _textEditingControllerSubTitle,
                 // autofocus: true,
                 readOnly: widget.appState == AppState.driveTrip,
@@ -278,6 +287,7 @@ class _TripHeaderTileState extends State<TripHeaderTile> {
                   CurrentTripItem().subTitle =
                       _textEditingControllerSubTitle.text;
                   checkComplete();
+
                   FocusScope.of(context).requestFocus(fn3);
                 },
               ),
@@ -288,6 +298,7 @@ class _TripHeaderTileState extends State<TripHeaderTile> {
                 key: Key('tff3'),
                 readOnly: widget.appState == AppState.driveTrip,
                 controller: _textEditingControllerBody,
+                //        initialValue: CurrentTripItem().body,
                 focusNode: fn3,
                 textAlign: TextAlign.start,
                 maxLines: null,

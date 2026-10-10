@@ -345,7 +345,6 @@ class Setup {
   /// LoginDialog Class.
 
   Future<bool> get loaded async {
-    //  if (kIsWeb) {
     _storage = FlutterSecureStorage(
       webOptions: WebOptions(
         dbName: 'MotatekSecure',
@@ -355,39 +354,30 @@ class Setup {
       iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
     );
     lastPosition = await getPosition();
+
     try {
       jwt = await _storage!.read(key: 'jwt') ?? '';
-
       if (jwt.isNotEmpty) {
-        user = await getPrivateRepository().getUser();
-        return true;
-
-        /// When the server sends the setup data it will refresh the jwt sent back in the map
-        /// this will ensure the security of the site
-        /// await setupFromDb();
-        /// return true;
-      } else {
-        return false;
+        String newJwt = await refreshToken();
+        if (newJwt.isNotEmpty) {
+          jwt = newJwt;
+          hasLoggedIn = true;
+          await _storage!.write(key: 'jwt', value: jwt);
+        }
+        MapService().persistentAppBarController?.update('');
       }
+      UserRepository userRepository = UserRepository();
+      await userRepository.openBox();
+      userRepository.getSetup();
+      user = userRepository.getUser() ?? user;
     } catch (e) {
       developer.log('Error Setup() loaded() retrieving jwt: ${e.toString()}',
           name: 'error');
     }
 
     /// Have to add the get setup data from the api.
-    /* } else {
-      appDocumentDirectory = (await getApplicationDocumentsDirectory()).path;
-      cacheDirectory = Directory('$appDocumentDirectory/cache');
-      if (!await cacheDirectory.exists()) {
-        await Directory('$appDocumentDirectory/cache').create();
-      }
-      soundsDirectory = Directory('$appDocumentDirectory/sounds');
-      if (!await soundsDirectory.exists()) {
-        await Directory('$appDocumentDirectory/sounds').create();
-      }
-    } */
-    hasLoggedIn = await setupFromDb();
-    return _loaded ??= hasLoggedIn;
+
+    return jwt.isEmpty;
   }
 
   fromJson({required Map<String, dynamic> map}) {
@@ -539,10 +529,11 @@ class Setup {
   }
   */
 
-  Future<void> setupToDb() async {
-    // webHelper sets Setup().jwt before calling setupToDb
+  Future<void> save() async {
     await _storage!.write(key: 'jwt', value: jwt);
-    await getPrivateRepository().insertSetup();
+    UserRepository userRepository = UserRepository();
+    userRepository.openBox();
+    userRepository.saveUser(user);
   }
 
 /*
@@ -2251,6 +2242,7 @@ class TripItem {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
+      'uri': uri,
       'title': title,
       'sub_title': subTitle,
       'body': body,
@@ -2271,6 +2263,7 @@ class TripItem {
   Map<String, dynamic> toMapLocal() {
     return {
       'id': id,
+      'uri': uri,
       'title': title,
       'sub_heading': subTitle,
       'body': body,

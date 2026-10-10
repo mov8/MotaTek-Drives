@@ -1399,7 +1399,7 @@ class PrivateStorageLocal implements PrivateDataRepository {
   /// which works for both the web and mobile versions.
 
   @override
-  Future<int> saveMyTripLocal(
+  Future<int> saveMyTripLocalNew(
       CurrentTripItem tripItem, ImageRepository? imageRepository) async {
     Database db = _db ??
         await openDatabase(
@@ -1431,7 +1431,7 @@ class PrivateStorageLocal implements PrivateDataRepository {
     return 1;
   }
 
-  Future<int> saveMyTripLocalOld(
+  Future<int> saveMyTripLocal(
       // <-- Is really saveMyTrip() removed for testing api version
       CurrentTripItem tripItem,
       ImageRepository? imageRepository) async {

@@ -1,3 +1,4 @@
+import 'package:drives/main.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:developer' as developer;
 import '/screens/messages_summary.dart';
@@ -85,8 +86,8 @@ class _MessagesState extends State<Messages> {
     _bottomNavController = RoutesBottomNavController();
     _leadingWidgetController = LeadingWidgetController();
     _tileSelected = widget.index;
-    socket.onConnectError((_) => debugPrint('connect error'));
-    socket.onError((data) => debugPrint('Error: ${data.toString()}'));
+    socket.onError(
+        (data) => developer.log('Error: ${data.toString()}', name: 'error'));
     socket.onConnect((_) {
       socket.emit('user_connect', {'token': Setup().jwt});
     });
@@ -110,8 +111,12 @@ class _MessagesState extends State<Messages> {
         debugPrint('Error: ${e.toString()}');
       }
     });
-
-    socket.connect();
+    try {
+      socket.connect();
+    } catch (e) {
+      developer.log('error connecting to socket.io: ${e.toString()}',
+          name: 'error');
+    }
     _dataLoaded = getMessages();
   }
 
@@ -353,7 +358,10 @@ class _MessagesState extends State<Messages> {
         backgroundColor: Colors.blue,
         key: _scaffoldKey,
         drawer: const MainDrawer(),
-        appBar: AppBar(
+        //     appBar: PersistentAppBar(
+        //         controller: MapService().persistentAppBarController!, page: 5),
+
+        /*AppBar(
           leading: LeadingWidget(
             controller: _leadingWidgetController,
             initialValue: 0,
@@ -414,7 +422,7 @@ class _MessagesState extends State<Messages> {
                       color: Colors.white)),
             ),
           ),
-        ),
+        ), */
         body: FutureBuilder<bool>(
           future: _dataLoaded,
           builder: (BuildContext context, snapshot) {

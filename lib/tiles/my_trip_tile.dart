@@ -7,7 +7,9 @@ import '/helpers/helpers.dart';
 import '/screens/screens.dart';
 import 'point_of_interest_tile.dart';
 import '/constants.dart';
+import '/models/models.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
+import 'package:go_router/go_router.dart';
 
 class MyTripTile extends StatefulWidget {
   final MyTripItem myTripItem;
@@ -35,6 +37,14 @@ class MyTripTile extends StatefulWidget {
 class _MyTripTileState extends State<MyTripTile> {
   Uint8List imageBytes = Uint8List(0);
   @override
+  void initState() {
+    super.initState();
+    if (MapService().controller == null) {
+      MapLibreMap map = MapService().mlMap!;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     // List<PointOfInterest> pointsOfInterest;
     double webPadding = kIsWeb ? 25 : 0;
@@ -46,14 +56,20 @@ class _MyTripTileState extends State<MyTripTile> {
         shape: null,
         title: Column(
           children: [
-            Row(children: [
-              Expanded(
-                flex: 8,
-                child: Text(widget.myTripItem.title,
-                    style: textStyle(
-                        context: context, color: Colors.black, size: 3)),
-              ),
-            ]),
+            Row(
+              children: [
+                Expanded(
+                  flex: 8,
+                  child: Text(
+                    widget.myTripItem.title,
+                    style: TextStyle(
+                        fontSize: 20,
+                        color: Colors.black,
+                        fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
             Padding(
               padding: const EdgeInsets.fromLTRB(5, 0, 5, 15),
               child: Row(
@@ -229,7 +245,7 @@ class _MyTripTileState extends State<MyTripTile> {
                             imageRepository:
                                 widget.imageRepository ?? ImageRepository(),
                             driveId: widget.myTripItem.uri, //    driveUri,
-                            canEdit: true, //false,
+                            canEdit: false,
                             mapController: widget.mapController,
                             backgroundColor:
                                 const Color.fromRGBO(10, 169, 243, 0.158),
@@ -279,25 +295,46 @@ class _MyTripTileState extends State<MyTripTile> {
                               child: Padding(
                                 padding:
                                     EdgeInsets.fromLTRB(webPadding, 0, 5, 10),
-                                child: TextButton(
-                                  onPressed: () async => publishTrip(),
-                                  child: Column(
-                                    children: [
-                                      Icon(
-                                        Icons.cloud_upload_outlined,
-                                        size: 30,
-                                      ),
-                                      Text(
-                                        'Publish Trip',
-                                        style: labelStyle(
-                                          context: context,
-                                          color: Colors.black,
-                                          size: 3,
+                                child: Setup().jwt.isNotEmpty
+                                    ? TextButton(
+                                        onPressed: () async => publishTrip(),
+                                        child: Column(
+                                          children: [
+                                            Icon(
+                                              Icons.cloud_upload_outlined,
+                                              size: 30,
+                                            ),
+                                            Text(
+                                              'Publish Trip',
+                                              style: labelStyle(
+                                                context: context,
+                                                color: Colors.black,
+                                                size: 3,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      )
+                                    : TextButton(
+                                        onPressed: () async =>
+                                            synchroniseTrip(),
+                                        child: Column(
+                                          children: [
+                                            Icon(
+                                              Icons.import_export_outlined,
+                                              size: 30,
+                                            ),
+                                            Text(
+                                              'Synchronise Trip',
+                                              style: labelStyle(
+                                                context: context,
+                                                color: Colors.black,
+                                                size: 3,
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ),
-                                    ],
-                                  ),
-                                ),
                               ),
                             ),
                             Expanded(
@@ -337,26 +374,16 @@ class _MyTripTileState extends State<MyTripTile> {
     );
   }
 
-  expandChange(index, expanded) async {
+  /// expandChange() updates the map in the web version if the tile is expanded
+  Future<void> expandChange(int index, bool expanded) async {
     if (expanded) {
       try {
-        if (widget.myTripItem.pointsOfInterest.isEmpty) {
-          MyTripItem? fullTrip = await getPrivateRepository()
-              .loadMyTripItem(uri: widget.myTripItem.uri);
-          if (fullTrip != null) {
-            setState(() {
-              widget.myTripItem.routes = fullTrip.routes;
-              widget.myTripItem.goodRoads = fullTrip.goodRoads;
-              widget.myTripItem.pointsOfInterest = fullTrip.pointsOfInterest;
-            });
-          }
-        }
         if (MapService().controller != null &&
             widget.myTripItem.routes.isNotEmpty) {
           try {
             List<Map<String, dynamic>> jsonRoutes =
                 routesToGeoJson(routes: widget.myTripItem.routes);
-            await MapService().controller!.setGeoJsonSource("route-data", {
+            await MapService().controller?.setGeoJsonSource("route-data", {
               "type": "FeatureCollection",
               "features": jsonRoutes,
             });
@@ -390,16 +417,9 @@ class _MyTripTileState extends State<MyTripTile> {
     //  });
   }
   Future<void> loadTrip(int index) async {
-    // CurrentTripItem.reset();
-    // CurrentTripItem().clearAll(newTripState: TripState.loaded);
-    // fromMyTripItem({required MyTripItem myTripItem})
-    // /load_private/<uri>
+    // CurrentTripItem().fromMyTripItem(myTripItem: widget.myTripItem);
 
-    // MyTripItem? myTripItem = await PrivateStorageLocal()
-    //     .loadMyTripItem(uri: _myTripItems[index].uri);
-
-    widget.myTripItem; // _myTripItems[index];
-
+    //  widget.myTripItem; // _myTripItems[index];
     CurrentTripItem().id = widget.myTripItem.id;
     CurrentTripItem().uri = widget.myTripItem.uri;
     CurrentTripItem().title = widget.myTripItem.title;
@@ -414,15 +434,26 @@ class _MyTripTileState extends State<MyTripTile> {
     CurrentTripItem().routes = widget.myTripItem.routes;
     CurrentTripItem().goodRoads = widget.myTripItem.goodRoads;
     CurrentTripItem().score = widget.myTripItem.score;
-    CurrentTripItem().tripState = TripState.loaded;
+
+    CurrentTripItem().tripState = TripState.editing;
     CurrentTripItem().tripType = TripType.none;
     CurrentTripItem().updateMap = true;
     CurrentTripItem().mapUpdates = MapUpdates.updateAll;
 
+    expandChange(widget.index, true);
+/*
+    MapService().updateMapGeoJson(
+      mapUpdates: MapUpdates.updateAll,
+      centre: CurrentTripItem().pointsOfInterest[0].point,
+    );
+*/
+    MapService().bottomNavController?.setHighlight(2);
+    // Micro-nudge
+    await MapService().controller?.animateCamera(CameraUpdate.zoomBy(0.000001));
+    // MapService().createTripStackController?.changeRoute();
+
     if (mounted) {
-      Navigator.pushNamedAndRemoveUntil(
-          context, 'createTrip', (Route<dynamic> route) => false, //,
-          arguments: TripArguments(trip: widget.myTripItem, origin: 'db'));
+      context.push('/map');
     }
   }
 
@@ -456,7 +487,6 @@ class _MyTripTileState extends State<MyTripTile> {
 import 'package:uuid/data.dart';
 import 'package:uuid/uuid.dart';
 import 'package:uuid/rng.dart';
-
 */
 
   /// May have a problem having a single method for publishing a drive on
@@ -470,6 +500,11 @@ import 'package:uuid/rng.dart';
     } catch (e) {
       developer.log('Error in my_trip_tile.dart publishTrip()', name: 'error');
     }
+    return;
+  }
+
+  Future<void> synchroniseTrip() async {
+    context.push('/transfer', extra: widget.myTripItem);
     return;
   }
 }

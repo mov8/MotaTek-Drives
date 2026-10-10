@@ -1,5 +1,5 @@
 import 'package:drives/classes/other_classes.dart';
-import 'package:drives/screens/create_trip_stack.dart';
+import 'package:drives/classes/create_trip_stack.dart';
 import 'package:flutter/material.dart';
 import 'dart:developer' as developer;
 import '/constants.dart';
@@ -19,7 +19,7 @@ class RoutesBottomNavController {
 
   bool get isAttached => _routesBottomNavState != null;
 
-  void setValue(int id) {
+  void F(int id) {
     assert(isAttached, 'Controller must be attached to widget');
     try {
       _routesBottomNavState?.setValue(id);

@@ -904,7 +904,7 @@ const String staticImagesFolder =
 const String urlRouter = 'https://drives.motatek.com/router/route/v1/driving/';
 const String urlTiler = 'https://drives.motatek.com/router/route/v1/tile/style';
 const String urlTilerMapLibre =
-    'https://drives.motatek.com/v1/tile/style/map_libre';
+    'https://drives.motatek.com/v1/tile/style/map_libre'; // <-- Gets the MapLibre Style
 // const String urlTestTiler = '${urlBase}v1/tile/test_style';
 const String urlUser = '${urlBase}v1/user';
 
