@@ -235,7 +235,7 @@ class ImageRepository {
             imageBytes = bytes;
           } catch (e) {
             developer.log('Error writing to _imageBox: ${e.toString()}',
-                name: '_trips_');
+                name: 'error');
           }
         }
         _imageCache[key] = imageBytes!;

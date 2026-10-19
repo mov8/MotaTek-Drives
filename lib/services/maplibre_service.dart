@@ -2,7 +2,8 @@ import 'dart:math';
 import 'dart:async';
 import 'dart:developer' as developer;
 import 'package:drives/classes/create_trip_stack.dart';
-import 'package:drives/main.dart';
+import 'package:drives/main.dart' hide Routes;
+import 'package:drives/routes/my_trips.dart';
 import 'package:flutter/foundation.dart';
 import 'package:drives/classes/classes.dart' hide Position, distanceBetween;
 import 'package:flutter/rendering.dart';
@@ -15,6 +16,7 @@ import '../services/services.dart';
 import '../routes/create_trip.dart';
 import '../routes/home.dart';
 import '../routes/shop.dart';
+import '../tiles/tiles.dart';
 import 'package:geolocator/geolocator.dart';
 // import '../main.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
@@ -79,12 +81,16 @@ class MapService {
       RoutesBottomNavController();
   CreateTripStackController? createTripStackController =
       CreateTripStackController();
+
   HomeController? homeController = HomeController();
+  MyTripsController? myTripsController = MyTripsController();
   ShopController? shopController = ShopController();
   BaseShellController? baseShellController = BaseShellController();
   BottomNavController? bottomNavController = BottomNavController();
   PersistentAppBarController? persistentAppBarController =
       PersistentAppBarController();
+  TripHeaderController? tripHeaderController = TripHeaderController();
+  MessageBoxController? messageBoxController = MessageBoxController();
 
   final GlobalKey mapKey = GlobalKey();
   // final GlobalKey scrollToKey = GlobalKey();
@@ -105,6 +111,9 @@ class MapService {
   // Future<bool>? _controllerReady;
   Future<bool>? mapControllerReady;
   MapLibreMap? mlMap;
+
+  UserLocation? useLocation;
+  TripArguments? _tripArguments;
 
   final ValueNotifier<int?> scrollToSideDrawerIndex = ValueNotifier<int?>(null);
 
@@ -200,17 +209,263 @@ class MapService {
   /// defined within main.dart where the persistent mapLibreMap
   /// id instantiated - its onCameraIdle gets assigned to this method.
 
+/* 
+map.on('mousemove', (e) => {
+    const features = map.queryRenderedFeatures(e.point);
+
+    // Limit the number of properties we're displaying for
+    // legibility and performance
+    const displayProperties = [
+        'type',
+        'properties',
+        'id',
+        'layer',
+        'source',
+        'sourceLayer',
+        'state'
+    ];
+
+    const displayFeatures = features.map((feat) => {
+        const displayFeat = {};
+        displayProperties.forEach((prop) => {
+            displayFeat[prop] = feat[prop];
+        });
+        return displayFeat;
+    });
+
+    document.getElementById('features').textContent = JSON.stringify(
+        displayFeatures,
+        null,
+        2
+    );
+});
+*/
+
+  Future<Map<String, dynamic>> waypointTargetted() async {
+    Point point =
+        await controller!.toScreenLocation(controller!.cameraPosition!.target);
+    final rect = Rect.fromCenter(
+        center: Offset(point.x.toDouble(), point.y.toDouble()),
+        width: 10,
+        height: 10);
+    String layer = CurrentTripItem().isGoodRoad
+        ? 'good-road-marker-layer'
+        : 'way-marker-layer';
+
+    // _mapController!.queryRenderedFeaturesInRect(rect, layerIds, filter)
+    var features =
+        await controller!.queryRenderedFeaturesInRect(rect, [layer], null);
+    if (features.isNotEmpty) {
+      for (int i = 0; i < features.length; i++) {
+        if (features[i]['properties']['group'] == 'waypoint') {
+          double x = features[i]['geometry']['coordinates'][0];
+          double y = features[i]['geometry']['coordinates'][1];
+          Point position = Point(x, y);
+          return {'index': int.parse(features[i]['id']), 'point': position};
+        }
+      }
+    }
+    return {'index': -1};
+  }
+
   onIdle() async {
     if (controller != null) {
-      _meters = await getMapWidthMeters();
-      statusBarController!.refresh();
-      //  zoomFabController.update();
-      //  if (_page == 1) {
-      _tripsOnIdle(page: _page);
-      CurrentTripItem().tripValues.position = Point(
-          MapService().controller!.cameraPosition!.target.longitude,
-          MapService().controller!.cameraPosition!.target.latitude);
+// handle Published state
+      /// The following onIdle came from GitHub branch web_with_markdown create_trip.dart
+
+      ///  OnIdle behaves differently depending on whether in Explore or in Published
+      /// In Explore it has to handle the edits of the trip.
+      ///   If the mouse is over a waypoint then it offers to delete the waypoint
+      ///   If the mouse is between two waypoints it offers re-routing
+      ///   If the mouse could extend the start or finish it offers those two options
+      /// InPublished mode
+      ///   It controls the trips cache - looking at the the bounding box and loads the
+      ///   appropriate routes, waypoints and points of interest to minimise API calls
+
+      if (NavigationService().page == 1) {
+        /* try {
+          LatLngBounds bounds =
+              await MapService().controller!.getVisibleRegion();
+          double zoom = MapService().controller!.cameraPosition!.zoom;
+          Map geoJson = await _drivesRequest!
+              .update(bounds: bounds, zoom: zoom, force: !_idleCalled);
+          _idleCalled = true;
+
+          if (geoJson.isNotEmpty) {
+            developer.log('Rendering geoJson for published data',
+                name: '_content_');
+            await MapService().controller!.setGeoJsonSource(
+                'published-data', Map<String, dynamic>.from(geoJson));
+          } else {
+            developer.log('Missing _drivesRequest.geoJson for published data',
+                name: '_content_');
+          }
+
+          List tripItems = _drivesRequest!.getDrivesData();
+          developer.log('Setting bottom drawer items 1498', name: '_drawer_');
+          sideDrawerController!.setContent(
+              content: BottomDrawerItems.drives,
+              drawerItems: tripItems as List<Widget>);
+        } catch (e) {
+          developer.log('Error setting published data: ${e.toString()}',
+              name: 'error');
+        }
+      */
+        // handle Explore and Favourites not going to use the cache as all the data is now in Hive
+      } else
+      // When tracking or following don't need any published or favourites data
+      if (NavigationService().page == 2 &&
+          [TripState.tracking, TripState.following]
+              .contains(CurrentTripItem().tripState)) {
+        createTripStackController!.refresh(); // _positionUpdate.update();
+      } else {
+        LatLngBounds bounds = await MapService().bounds;
+        //  String debugString = '_onIdle() called x ${_onIdleCalled++}';
+        statusBarController!.refresh();
+        double zoom = controller!.cameraPosition!.zoom;
+        //  Point centrePoint = await pointAtCentre();
+        CurrentTripItem().mapController ??= controller;
+        LatLngBounds? bounds2;
+        try {
+          bounds2 = await controller!.getVisibleRegion();
+        } catch (e) {
+          developer.log('Error _onIdle() Bounds: $bounds2', name: 'error');
+        }
+        try {
+          if ([
+            TripState.editing,
+            TripState.manual,
+            TripState.tracking,
+            TripState.loaded,
+            TripState.clearing,
+            TripState.goodRoadStart,
+          ].contains(CurrentTripItem().tripState)) {
+            if (CurrentTripItem().tripState == TripState.editing) {
+              // Handle any highlighted features identified by the user.
+              // Get waypointState() sets insert, delete, extendStart, extendEdd
+              await getWaypointState();
+              await updateMapGeoJson(mapUpdates: MapUpdates.updateAll);
+            }
+          }
+          if (CurrentTripItem().tripState == TripState.clearing) {
+            //  _pointAtCentre = centrePoint;
+            CurrentTripItem().tripState = TripState.none;
+            CurrentTripItem().waypointState = WaypointState.none;
+            CurrentTripItem().tripState == TripState.none;
+            CurrentTripItem().routes = [];
+
+            createTripStackController?.refresh();
+          }
+
+          if (CurrentTripItem().tripActions != TripActions.none) {
+            //  _executeChipActions();
+            //  CurrentTripItem().tripActions = TripActions.none;
+          }
+
+          /// Update the published features that are within the "select fence",
+          /// Shows the highlight background for roads + their shields
+          /// The factor in fenceFilter is the same as used to generate fence box HighlightPainter()
+          /// testFenceFilter(bounds: bounds, jsonData: _geoJson); <-- Very useful
+
+          var filter = fenceFilter(bounds: bounds, proportion: 0.6);
+          controller!.setFilter("good_roads_highlighted", filter);
+          controller!.setFilter("route-marker-layer", filter);
+
+          /// Filter waypoints for TripStates manual, editing or goodRoadStart but only in Explore mode
+          /// which is set when _CreateTripState is built
+          if (NavigationService().page == 2) {
+            filter = tripStateFilter(tripState: CurrentTripItem().tripState);
+            controller!.setFilter("way-marker-layer", filter);
+            controller!.setFilter("good-road-way-marker-layer", filter);
+          }
+        } catch (e) {
+          developer.log('_onIdle() error: ${e.toString()}', name: 'error');
+        }
+        CurrentTripItem().tripValues.position = Point(
+            controller!.cameraPosition!.target.longitude,
+            controller!.cameraPosition!.target.latitude);
+      }
+      createTripStackController?.refresh();
     }
+    return;
+  }
+
+  List<int> closestWaypoints(
+      {required List<Waypoint> waypoints, required Point point}) {
+    List<int> idx = [-1, -1];
+    List<double> distance = [999999999, 999999999];
+    for (int i = 0; i < waypoints.length; i++) {
+      double gap = distanceBetween(startXY: waypoints[i].point, endXY: point);
+      if (gap < distance[0]) {
+        idx[1] = idx[0];
+        idx[0] = i;
+        distance[1] = distance[0];
+        distance[0] = gap;
+      } else if (gap < distance[1]) {
+        idx[1] = i;
+        distance[1] = gap;
+      }
+    }
+    return idx;
+  }
+
+  /// Return 1 of 3 states
+  ///   1 WaypointState.insert
+  ///   2 WaypointState.extendStart
+  ///   3 WaypointState.extendEnd
+  /// Get nearest waypoints
+  /// If nearest waypoints contains start or end
+  ///   if between start and point > length then extendEnd
+  ///   if between end and point > length then extendStart
+  ///
+
+  Future<void> getWaypointState() async {
+    Map<String, dynamic> waypointData = await waypointTargetted();
+    int index = waypointData['index'];
+    CurrentTripItem().waypointIndex = index;
+    LatLng targetLatLng = controller!.cameraPosition!.target;
+    Point position = Point(targetLatLng.longitude, targetLatLng.latitude);
+
+    List<Waypoint> waypoints = CurrentTripItem().routes.first.waypoints;
+    List<int> nearest = closestWaypoints(waypoints: waypoints, point: position);
+    // nearest[0] is closer than nearest[1]
+    WaypointState state = WaypointState.none;
+
+    if (CurrentTripItem().waypointIndex > -1) {
+      state = WaypointState.remove;
+    } else {
+      /// Point near start nearest[0] is closer than nearest[1]
+      /// nearest[0] is the closest waypoint to target
+      if (nearest[0] == 0) {
+        // <- start is the closest
+        double gap = distanceBetween(
+            startXY: waypoints[0].point, endXY: waypoints[1].point);
+
+        /// check if the target is further away than waypoint2
+        if (distanceBetween(startXY: waypoints[1].point, endXY: position) >
+            gap) {
+          state = WaypointState.extendStart;
+        } else {
+          state = WaypointState.insert;
+        }
+      } else if (nearest[0] == waypoints.length - 1) {
+        double gap = distanceBetween(
+            startXY: waypoints[waypoints.length - 1].point,
+            endXY: waypoints[waypoints.length - 2].point);
+        if (distanceBetween(
+                startXY: waypoints[waypoints.length - 2].point,
+                endXY: position) >
+            gap) {
+          state = WaypointState.extendEnd;
+        } else {
+          state = WaypointState.insert;
+        }
+      }
+    }
+    mapUpdates = mapUpdates.add(MapUpdates.waypoints);
+    CurrentTripItem().setWaypointState(state);
+    updateMapGeoJson(mapUpdates: mapUpdates);
+    return;
   }
 
   Future<Position> getCurrentPosition() async {
@@ -227,17 +482,14 @@ class MapService {
     try {
       if (_styleString.isEmpty) {
         _styleString = await _fetchStyle();
-        developer.log(
-            'MapService().loadStyle() _styleString.isEmpty: ${_styleString.isEmpty}',
-            name: '_map_');
         mlMap = MapLibreMap(
-          key: MapService().mapKey,
+          key: mapKey,
           styleString: _styleString,
           compassViewPosition: CompassViewPosition.topLeft,
           onMapCreated: onMapUpdated,
           initialCameraPosition: CameraPosition(
-              target: LatLng(MapService().currentPosition.latitude,
-                  MapService().currentPosition.longitude),
+              target:
+                  LatLng(currentPosition.latitude, currentPosition.longitude),
               zoom: 11),
           trackCameraPosition: true,
           onCameraMove: onCameraMove,
@@ -280,7 +532,10 @@ class MapService {
         List<Map<String, dynamic>> jsonEnds =
             routeEndsToGeoJson(routes: CurrentTripItem().routes);
         List coordinates = CurrentTripItem().routes.first.lines.first;
-        LatLng start = LatLng(coordinates[1], coordinates[0]);
+        // LatLng start = LatLng(coordinates[1], coordinates[0]);
+        LatLng start = LatLng(
+            CurrentTripItem().pointsOfInterest.first.point.y.toDouble(),
+            CurrentTripItem().pointsOfInterest.first.point.x.toDouble());
         await controller?.setGeoJsonSource("waypoint-data", {
           "type": "FeatureCollection",
           "features": jsonEnds,
@@ -300,12 +555,24 @@ class MapService {
 
   Future<void> onStyleLoaded() async {
     if (controller != null) {
-      await controller?.moveCamera(
-        CameraUpdate.newLatLngZoom(
-          currentPosition,
-          12.0,
-        ),
-      );
+      if (CurrentTripItem().pointsOfInterest.isNotEmpty) {
+        LatLng position = LatLng(
+            CurrentTripItem().pointsOfInterest.first.point.y.toDouble(),
+            CurrentTripItem().pointsOfInterest.first.point.x.toDouble());
+        await controller?.moveCamera(
+          CameraUpdate.newLatLngZoom(
+            position,
+            12.0,
+          ),
+        );
+      } else {
+        await controller?.moveCamera(
+          CameraUpdate.newLatLngZoom(
+            currentPosition,
+            12.0,
+          ),
+        );
+      }
     }
   }
 
@@ -373,7 +640,7 @@ class MapService {
   /// https://www.dhiwise.com/post/getting-the-right-size-a-tutorial-on-flutter-get-widget-size
   Size mapSize() {
     Size mapSize = Size(0, 0);
-    final bnKeyContext = MapService().mapKey.currentContext;
+    final bnKeyContext = mapKey.currentContext;
     if (bnKeyContext != null) {
       try {
         RenderBox box = bnKeyContext.findRenderObject() as RenderBox;
@@ -428,7 +695,6 @@ class MapService {
   Function(bool)? createTripOnMapIde;
 
   Future<void> _tripsOnIdle({required int page, bool force = false}) async {
-    developer.log('MapLibreService()._tripsOnIdle() called', name: '_map_');
     Map geoJson = {};
     if (force || (_checkUpdates ?? false)) {
       _checkUpdates = false; // <-- Only run this when the map has moved
@@ -515,7 +781,7 @@ class MapService {
     await clearGeoJson();
     myTripItems.addAll(await getPrivateRepository().loadMyTripItems());
     try {
-      await MapService().sideDrawerController!.setContent(
+      await sideDrawerController!.setContent(
           content: BottomDrawerItems.favourites,
           drawerItems: myTripItems); // as List<Widget>);
       Future.delayed(Duration(milliseconds: 200));
@@ -576,7 +842,7 @@ class MapService {
         }
       }
     }
-    // MapService().createTripController.update();
+    createTripController?.update();
     mapUpdates = exitMapUpdates ?? MapUpdates.none;
   }
 

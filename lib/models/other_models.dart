@@ -369,7 +369,7 @@ class Setup {
       UserRepository userRepository = UserRepository();
       await userRepository.openBox();
       userRepository.getSetup();
-      user = userRepository.getUser() ?? user;
+      user = await userRepository.getUser() ?? user;
     } catch (e) {
       developer.log('Error Setup() loaded() retrieving jwt: ${e.toString()}',
           name: 'error');
@@ -1607,6 +1607,12 @@ class Maneuver {
       "distance": distance,
     };
   }
+}
+
+List<Waypoint> waypointsFromJson({required List<dynamic> jsonList}) {
+  return [
+    for (Map<String, dynamic> json in jsonList) Waypoint.fromMap(map: json)
+  ];
 }
 
 List<Maneuver> maneuversFromJson({required List<dynamic> jsonList}) {

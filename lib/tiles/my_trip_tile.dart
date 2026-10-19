@@ -395,9 +395,11 @@ class _MyTripTileState extends State<MyTripTile> {
               "type": "FeatureCollection",
               "features": jsonEnds,
             });
-            MapService().controller!.animateCamera(
-                CameraUpdate.newLatLng(start),
-                duration: Duration(seconds: 1));
+            if (kIsWeb) {
+              MapService().controller!.animateCamera(
+                  CameraUpdate.newLatLng(start),
+                  duration: Duration(seconds: 1));
+            }
           } catch (e) {
             developer.log('Error showing routes: ${e.toString()}',
                 name: 'error');
@@ -436,22 +438,27 @@ class _MyTripTileState extends State<MyTripTile> {
     CurrentTripItem().score = widget.myTripItem.score;
 
     CurrentTripItem().tripState = TripState.editing;
+    // CurrentTripItem().tripValues.showTarget = true;
     CurrentTripItem().tripType = TripType.none;
     CurrentTripItem().updateMap = true;
     CurrentTripItem().mapUpdates = MapUpdates.updateAll;
+    LatLng startLatLng = LatLng(
+        CurrentTripItem().pointsOfInterest[0].point.y.toDouble(),
+        CurrentTripItem().pointsOfInterest[0].point.x.toDouble());
 
-    expandChange(widget.index, true);
-/*
-    MapService().updateMapGeoJson(
-      mapUpdates: MapUpdates.updateAll,
-      centre: CurrentTripItem().pointsOfInterest[0].point,
-    );
-*/
-    MapService().bottomNavController?.setHighlight(2);
-    // Micro-nudge
-    await MapService().controller?.animateCamera(CameraUpdate.zoomBy(0.000001));
-    // MapService().createTripStackController?.changeRoute();
-
+    try {
+      LatLng position = LatLng(
+          CurrentTripItem().pointsOfInterest.first.point.y.toDouble(),
+          CurrentTripItem().pointsOfInterest.first.point.x.toDouble());
+      MapService().bottomNavController?.setHighlight(2);
+      MapService().controller?.moveCamera(CameraUpdate.newLatLng(position));
+      NavigationService().selected(2);
+      CurrentTripItem().tripValues.editing();
+      CurrentTripItem().waypointState = WaypointState.remove;
+    } catch (e) {
+      developer.log('Error MyTripTile().loadTrip(): ${e.toString()}',
+          name: 'error');
+    }
     if (mounted) {
       context.push('/map');
     }

@@ -19,7 +19,7 @@ class WifiReceiverService {
       final info = NetworkInfo();
       ip = await info.getWifiIP();
     } catch (e) {
-      developer.log('Error getting IP address : ${e.toString}', name: '_WiFi_');
+      developer.log('Error getting IP address : ${e.toString}', name: 'error');
     }
     return ip ?? '';
   }

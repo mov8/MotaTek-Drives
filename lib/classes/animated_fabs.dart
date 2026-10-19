@@ -134,7 +134,7 @@ class _PlaceFinderState extends State<PlaceFinder> {
     );
   }
 
-  getDropdownItems(String query) async {
+  void getDropdownItems(String query) async {
     _places.clear();
     _places.addAll(await getPlaces(value: query));
     setState(() {});
@@ -181,7 +181,7 @@ class FloatingChecklist extends StatefulWidget {
 
 class _FloatingChecklistState extends State<FloatingChecklist> {
   late double _width;
-  late double _maxWidth;
+//late double _maxWidth;
   late double _height;
   late double _maxHeight;
   late bool _expanded;
@@ -191,7 +191,7 @@ class _FloatingChecklistState extends State<FloatingChecklist> {
   void initState() {
     super.initState();
     _width = widget.width;
-    _maxWidth = widget.maxWidth;
+    //  _maxWidth = widget.maxWidth;
     _height = widget.height;
     _maxHeight = widget.maxHeight;
     _choices = widget.choices;

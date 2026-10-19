@@ -165,10 +165,12 @@ class _TripHeaderTileState extends State<TripHeaderTile> {
           fn2.unfocus();
           fn3.unfocus();
           collapse();
-          FocusManager().primaryFocus?.unfocus();
+          FocusManager.instance.primaryFocus?.unfocus();
+          //    FocusManager().primaryFocus?.unfocus();
           // FocusScope.of(context).unfocus();
         });
-        MapService().bottomDrawerController?.close();
+
+        //  MapService().bottomDrawerController?.close();
       } catch (e) {
         developer.log(
             'Error trip_header_tile.dart dismissKeyboard(): ${e.toString}',

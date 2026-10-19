@@ -154,8 +154,6 @@ class CreateTripController {
 
   void changePage(String page) {
     if (_createTripState != null) {
-      developer.log('CreateTrip().changePage() called from controller',
-          name: '_map_');
       _createTripState?.changePage(page);
     }
   }
@@ -518,11 +516,13 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    developer.log('CreateTrip() build called', name: '_map_');
+    WidgetsBinding.instance.addPostFrameCallback(
+        (_) => MapService().createTripStackController?.refresh());
     return Scaffold(
       backgroundColor: Colors.blue,
       key: _scaffoldKey,
       drawer: const MainDrawer(),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endTop,
       floatingActionButton: HandleCTFabs(
         top: 20, //appBar.preferredSize.height + kToolbarHeight,
         controller: MapService().fabsController,
@@ -710,30 +710,6 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   /// the new CurrentTripItem(). This ensures all completed tiles are contracted
   void closeAndUpdateDrawer(bool closed) {
     _bottomDrawerController.close();
-  }
-
-  Future<int> waypointTargetted({required Point point}) async {
-    final rect = Rect.fromCenter(
-        center: Offset(point.x.toDouble(), point.y.toDouble()),
-        width: 10,
-        height: 10);
-    String layer = CurrentTripItem().isGoodRoad
-        ? 'good-road-marker-layer'
-        : 'way-marker-layer';
-
-    // _mapController!.queryRenderedFeaturesInRect(rect, layerIds, filter)
-    var features = await MapService()
-        .controller!
-        .queryRenderedFeaturesInRect(rect, [layer], null);
-    if (features.isNotEmpty) {
-      debugPrint('feature found!');
-      for (int i = 0; i < features.length; i++) {
-        if (features[i]['geometry']['type'] == 'Point') {
-          return int.parse(features[i]['id']);
-        }
-      }
-    }
-    return -1;
   }
 
   Future<String> goodRoadTargetted({required Point point}) async {

@@ -22,6 +22,7 @@ export 'leading_widget.dart';
 export 'login.dart';
 //export 'map_markers.dart';
 export 'map_features.dart';
+export 'message_box.dart';
 //    if (dart.library.html) '/classes/map_features_web.dart';
 export 'my_trip_item.dart';
 export 'network_state.dart';

@@ -81,7 +81,7 @@ class BottomDrawerController {
     return _bottomDrawerState?._tiles.length ?? 0;
   }
 
-  void setHeight(height) {
+  void setHeight(double height) {
     try {
       _bottomDrawerState?.setHeight(height: height);
     } catch (e) {
@@ -150,7 +150,7 @@ class _BottomDrawerState extends State<BottomDrawer>
 
   @override
   void initState() {
-    super.initState;
+    super.initState();
 
     if (widget.controller != null) {
       widget.controller!._addState(this);
@@ -165,13 +165,9 @@ class _BottomDrawerState extends State<BottomDrawer>
 */
 
   void close() async {
+    MapService().tripHeaderController?.dismissKeyboard();
+    await Future.delayed(Duration(milliseconds: 300));
     _isSheetContentExpanded = false;
-    /*  if (mounted) {
-      while (View.of(context).viewInsets.bottom > 0) {
-        await Future.delayed(const Duration(milliseconds: 10));
-      }
-      setState(() => height = 0);
-    } */
   }
 
   void refresh() {
@@ -233,6 +229,8 @@ class _BottomDrawerState extends State<BottomDrawer>
           break;
       }
       refreshList = true;
+      // _toggleSheet();
+      setState(() => _isSheetContentExpanded = true);
       _tiles.add(Container(
           height: 300,
           color: Colors.transparent)); // <-- add spacer for keyboard
@@ -267,10 +265,10 @@ class _BottomDrawerState extends State<BottomDrawer>
   List<Widget> shredGroup({List<Follower>? followers}) {
     followers ??= [];
     List<Widget> tiles = [];
-    bool expanded = false;
+    //  bool expanded = false;
     for (int i = 0; i < followers.length; i++) {
       tiles.add(Padding(
-        key: expanded ? _scrollKey : Key('th1'),
+        //  key: expanded ? _scrollKey : Key('th1'),
         padding: EdgeInsetsGeometry.fromLTRB(5, 5, 5, 5),
         child: FollowerTile(
           follower: followers[i],
@@ -437,7 +435,7 @@ class _BottomDrawerState extends State<BottomDrawer>
     return tiles;
   }
 
-  removePointOfInterest(index, listIndex) {
+  void removePointOfInterest(index, listIndex) {
     try {
       setState(() {
         _pointOfInterestController.dismissKeyboard();
@@ -489,19 +487,7 @@ class _BottomDrawerState extends State<BottomDrawer>
   }
 
   void headingComplete(bool complete) async {
-    //  if (complete) {
-    // _tripHeaderController.collapse();
-    // _tripHeaderController.dismis
-
-    _tripHeaderController.dismissKeyboard();
-    while (View.of(context).viewInsets.bottom > 0) {
-      await Future.delayed(const Duration(milliseconds: 10));
-    }
-    height = 0;
-    if (widget.onUpdate != null) {
-      widget.onUpdate!(true);
-    }
-    setState(() {});
+    setState(() => _isSheetContentExpanded = false);
   }
 
   void pointOfInterestComplete(bool complete) async {
@@ -509,6 +495,7 @@ class _BottomDrawerState extends State<BottomDrawer>
     while (View.of(context).viewInsets.bottom > 0) {
       await Future.delayed(const Duration(milliseconds: 10));
     }
+
     height = 0;
     CurrentTripItem()
         .refreshMap(change: MapUpdates.pointsOfInterest)
@@ -617,79 +604,79 @@ class _BottomDrawerState extends State<BottomDrawer>
   bool _isSheetContentExpanded = false;
 
   void _toggleSheet() {
+    developer.log('BottomDrawer()._toggleSheet()', name: '_keyboard_');
     setState(() {
       _isSheetContentExpanded = !_isSheetContentExpanded;
     });
-    if (!_isSheetContentExpanded) {
-      MapService().fabsController?.show();
-    } else {
-      MapService().fabsController?.hide();
-    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      child: Column(
-        mainAxisSize:
-            MainAxisSize.min, // Prevents taking up full screen unless open
-        children: [
-          // 3. THE TAPPABLE / DRAGGABLE BAR
-          GestureDetector(
-            onTap:
-                _toggleSheet, // Clicking this smoothly opens/closes the drawer
-            onVerticalDragEnd: (details) {
-              // Quick drag gesture checking: swipe up to open, swipe down to close
-              if (details.primaryVelocity! < 0 && !_isSheetContentExpanded) {
-                _toggleSheet();
-              } else if (details.primaryVelocity! > 0 &&
-                  _isSheetContentExpanded) {
-                _toggleSheet();
-              }
-            },
-            child: Container(
-              width: double.infinity,
-              color: Colors.blueGrey,
-              // .transparent, // Ensures the entire bar width is interactive
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              child: Center(
-                child: Container(
-                  width: 40,
-                  height: 5,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[400], // Clean visual pill asset
-                    borderRadius: BorderRadius.circular(10),
-                  ),
+    return Column(
+      mainAxisSize:
+          MainAxisSize.min, // Prevents taking up full screen unless open
+      children: [
+        // 3. THE TAPPABLE / DRAGGABLE BAR
+        GestureDetector(
+          onTap: _toggleSheet, // Clicking this smoothly opens/closes the drawer
+          onVerticalDragEnd: (details) {
+            // Quick drag gesture checking: swipe up to open, swipe down to close
+            if (details.primaryVelocity! < 0 && !_isSheetContentExpanded) {
+              _toggleSheet();
+            } else if (details.primaryVelocity! > 0 &&
+                _isSheetContentExpanded) {
+              _toggleSheet();
+            }
+          },
+          child: Container(
+            width: double.infinity,
+            color: Colors.blueGrey,
+            // .transparent, // Ensures the entire bar width is interactive
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            child: Center(
+              child: Container(
+                width: 40,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: Colors.grey[400], // Clean visual pill asset
+                  borderRadius: BorderRadius.circular(10),
                 ),
               ),
             ),
           ),
+        ),
 
-          // 4. THE DATA CONTENT ZONE
-          // AnimatedCrossFade handles animating your list smoothly out of view
-          // without leaving weird data text fragments visible when closed.
-          AnimatedCrossFade(
-            duration: const Duration(milliseconds: 500),
-            crossFadeState: _isSheetContentExpanded
-                ? CrossFadeState.showFirst
-                : CrossFadeState.showSecond,
-            // WHAT SHOWS WHEN EXPANDED: Your full scrolling API list data
-            firstChild: Container(
-              constraints: BoxConstraints(
-                // Locks the drawer to exactly 45% of whatever screen height they have
-                maxHeight: MediaQuery.of(context).size.height * 0.45,
-              ),
-              child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: _tiles.length,
-                  itemBuilder: (context, index) => _tiles[index]),
+        // 4. THE DATA CONTENT ZONE
+        // AnimatedCrossFade handles animating your list smoothly out of view
+        // without leaving weird data text fragments visible when closed.
+        AnimatedCrossFade(
+          duration: const Duration(milliseconds: 500),
+          crossFadeState: _isSheetContentExpanded
+              ? CrossFadeState.showFirst
+              : CrossFadeState.showSecond,
+          // WHAT SHOWS WHEN EXPANDED: Your full scrolling API list data
+          firstChild: Container(
+            constraints: BoxConstraints(
+              // Locks the drawer to exactly 45% of whatever screen height they have
+              maxHeight: MediaQuery.of(context).size.height * 0.45,
             ),
-            // WHAT SHOWS WHEN CLOSED: Absolutely nothing (SizedBox with 0 height)
-            // This makes the drag bar sit flush right against your bottom navigation bar!
-            secondChild: const SizedBox.shrink(),
+            child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: _tiles.length,
+                itemBuilder: (context, index) => _tiles[index]),
           ),
-        ],
-      ),
+          // WHAT SHOWS WHEN CLOSED: Absolutely nothing (SizedBox with 0 height)
+          // This makes the drag bar sit flush right against your bottom navigation bar!
+          secondChild: const SizedBox.shrink(),
+          onEnd: () {
+            if (!_isSheetContentExpanded) {
+              MapService().fabsController?.show();
+            } else {
+              MapService().fabsController?.hide();
+            }
+          },
+        ),
+      ],
     );
   }
 

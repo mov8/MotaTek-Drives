@@ -17,6 +17,10 @@ IF ^F SEARCH / REPLACE STOPS WORKING - IT'S A BUGGY KEYBOARD!
 TO FIX press Ctrl + Fn + B (Ctrl break) and LET GO OF THE B FIRST
 IT FIXES IT
 
+CAN'T EXIT FULL SCREEN WITH F11
+Type ^P to get the command prompt up
+Type > view:toggle fullscreen 
+
 Creating a splash screen 
 dart run flutter_native_splash:create --path=lib\flutter_native_splash.yaml
 The yaml file holds all the configuration values - works well.
@@ -123,6 +127,7 @@ git stash apply <-- reloads the stashed data - git assumes it'll be the last sta
 git checkout stash -- .  Restores the stash overwriting any changes made since the stash - the . is needed
 git push origin master
 git branch <-- shows all branches
+git show --no-patch --format=%ci <commit> <-- shows the commit date 
 git checkout <branch> <-- changes the brunch
 git rm --cached file_to_remove.txt <-- remove a file from Git without deleting It
 git rm --cached -r directory_to_remove <-- remove a directory recursively

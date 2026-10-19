@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '/classes/classes.dart';
-import '/helpers/edit_helpers.dart';
+// import '/helpers/edit_helpers.dart';
 import 'package:flutter/services.dart';
 
 class AutocompleteWidget extends StatelessWidget {
@@ -206,19 +206,19 @@ class _AutocompleteAsyncState extends State<AutocompleteAsync> {
     );
   }
 
-  setNextAction({TextInputAction nextAction = TextInputAction.next}) {
+  void setNextAction({TextInputAction nextAction = TextInputAction.next}) {
     _nextAction = nextAction;
   }
 
-  clear() {
+  void clear() {
     widget.controller.clear();
   }
 
-  disposeController() {
+  void disposeController() {
     _controller.dispose();
   }
 
-  setFocus() {
+  void setFocus() {
     _focusNode.requestFocus();
   }
 }

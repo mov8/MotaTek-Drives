@@ -1,14 +1,16 @@
 import 'package:latlong2/latlong.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'models/models.dart';
 import 'screens/screens.dart';
+import 'classes/classes.dart';
 
 const appVersion = {'major': 0, 'minor': 0, 'patch': 9, 'suffix': 'beta db'};
 
 const apiAddress = 'https://drives.motatek.com/';
 // const wifiIpAddress = 'http://192.168.1.216:5001/';  // <- Home extendor
-const wifiIpAddress = 'http://192.168.1.168:5001/'; // <- Home fibre
+// const wifiIpAddress = 'http://192.168.1.168:5001/'; // <- Home fibre
 // const wifiIpAddress = 'http://192.168.235.1:5001/'; // <- Home no internet
 // Use the Ethernet adapter VMware Network Adapter VMnet1 IP address at home because of router problems
 
@@ -17,7 +19,7 @@ const wifiIpAddress = 'http://192.168.1.168:5001/'; // <- Home fibre
 // const wifiIpAddress = 'http://10.164.124.105:5001/'; // < Redmi
 // const wifiIpAddress = 'http://192.168.1.111:5001/'; // <- Boston unit
 // const wifiIpAddress = 'http://192.168.68.122:5001/'; // <- Barnet
-// const wifiIpAddress = 'http://192.168.1.211:5001/'; // <- Irby Street
+const wifiIpAddress = 'http://192.168.1.211:5001/'; // <- Irby Street
 // const wifiIpAddress = 'http://192.168.68.112:5001/'; // <- DiasF
 // const wifiIpAddress = 'http://10.249.4.160:5001/'; // <- airport joburg
 // const wifiIpAddress ='http://10.2.222.57:5001/'; // <- Staines library 10.2.222.57:5001
@@ -142,7 +144,15 @@ enum TripState {
   clearing,
 }
 
-enum WaypointState { none, extendStart, extendEnd, insert, revisit, remove }
+enum WaypointState {
+  none,
+  twoPlus,
+  extendStart,
+  extendEnd,
+  insert,
+  revisit,
+  remove
+}
 
 enum TripActions {
   none,
@@ -155,6 +165,7 @@ enum TripActions {
   showGroup,
   showSteps,
   showMessages,
+  editing,
 }
 
 enum HighliteActions {
@@ -190,9 +201,9 @@ enum ChangedFeatures {
 }
 
 /* 
-  11111111 & 10011001 -> 10011001   returns 1 where both are 1 
-  11111111 | 10011001 -> 11111111   returns 1 where either are 1
-  11111111 ^ 10011001 -> 01100110   returns 1 where only one is 1 
+  11111111 & 10011001 -> 10011001   returns 1 where both are 1      binary and
+  11111111 | 10011001 -> 11111111   returns 1 where either are 1    binary or
+  11111111 ^ 10011001 -> 01100110   returns 1 where only one is 1   binary xor
   value    name               purpose                 action
   00000000 none
   00000001 route
@@ -226,6 +237,32 @@ class BottomDrawerData {
   bool none
 }
 */
+
+enum Warning { none, headingIncomplete, tripSaved, tripDownloaded }
+
+List<Map<String, dynamic>> warnings = [
+  {
+    'message':
+        'The trip details are incomplete. before saving please add the missing details',
+    'color': Colors.white,
+    'iconData': Icons.rule_outlined,
+    'iconSize': 40,
+  },
+  {
+    'message':
+        "Your trip ${CurrentTripItem().title} has been saved ${kIsWeb ? 'in your browser' : 'on your device'} in Favourites.",
+    'color': Colors.white,
+    'iconData': Icons.library_add_check_rounded,
+    'iconSize': 40,
+  },
+  {
+    'message':
+        "Published trip ${CurrentTripItem().title} has been downloaded OK for you to edit, follow or save ${kIsWeb ? 'in your browser' : 'on your device'}.",
+    'color': Colors.white,
+    'iconData': Icons.library_add_check_rounded,
+    'iconSize': 40,
+  }
+];
 
 enum BottomDrawerData {
   none(0),

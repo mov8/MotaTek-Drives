@@ -60,9 +60,6 @@ class MyApp extends StatelessWidget {
 ///   2 context.push('/screen') Pushes onto the stack - can then use pop to go back
 ///   3 context.pushReplacement('/screen') for one-off transition ie. from login screen to home screen
 ///
-///  TODO:  In reality the whole app should be restructured as a single map screem with a persistant appBar
-///         and bottomNav. The only thing that needs to change is the body. It would simplify the whole app.
-///
 
 final GoRouter appRouter = GoRouter(
   navigatorKey: rootNavigatorKey,
@@ -205,12 +202,14 @@ class _BaseShellScreen extends State<BaseShellScreen> {
     MapService().routesBottomNavController ??= RoutesBottomNavController();
     MapService().createTripStackController ??= CreateTripStackController();
     MapService().homeController ??= HomeController();
+    MapService().myTripsController ??= MyTripsController();
     MapService().shopController ??= ShopController();
     MapService().fabsController ??= FabsController();
     MapService().baseShellController ??= BaseShellController();
     MapService().bottomNavController ??= BottomNavController();
     MapService().createTripController ??= CreateTripController();
     MapService().persistentAppBarController ??= PersistentAppBarController();
+    MapService().messageBoxController ??= MessageBoxController();
     initialised = initialise();
   }
 
@@ -246,6 +245,7 @@ class _BaseShellScreen extends State<BaseShellScreen> {
       bottomNavigationBar: BottomNav(
           controller: MapService().bottomNavController,
           navigationShell: widget.navigationShell),
+      // resizeToAvoidBottomInset: false,
     );
   }
 

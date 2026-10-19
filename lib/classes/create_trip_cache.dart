@@ -74,7 +74,7 @@ class TripRequest {
   List<TripItem> trips = [];
   List<Maneuver> maneuvers = [];
   List<PointOfInterest> pointsOfInterest = [];
-  TripHeaderController _tripHeaderController = TripHeaderController();
+  // TripHeaderController _tripHeaderController = TripHeaderController();
 
   String requestId = '';
 

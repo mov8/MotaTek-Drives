@@ -14,11 +14,34 @@ import 'package:go_router/go_router.dart';
 import 'dart:developer' as developer;
 // import 'package:latlong2/latlong.dart';
 
+class MyTripsController {
+  _MyTripsScreenState? _myTripsScreenState;
+
+  void _addState(_MyTripsScreenState myTripsScreenState) {
+    _myTripsScreenState = myTripsScreenState;
+  }
+
+  bool get isAttached => _myTripsScreenState != null;
+
+  void refresh() {
+    if (isAttached) {
+      _myTripsScreenState?.refresh();
+    }
+  }
+
+  void addCurrentTripItem() {
+    if (isAttached) {
+      _myTripsScreenState?.addCurrentTripItem();
+    }
+  }
+}
+
 class MyTrips extends StatefulWidget {
+  final MyTripsController? controller;
   const MyTrips({
     super.key,
+    this.controller,
   });
-
   @override
   State<MyTrips> createState() => _MyTripsScreenState();
 }
@@ -35,6 +58,13 @@ class _MyTripsScreenState extends State<MyTrips> {
   @override
   void initState() {
     super.initState();
+    developer.log(
+        '_MyTripsScreen().initState() MapService().myTripsController is null: ${MapService().myTripsController == null}',
+        name: 'error');
+    if (MapService().myTripsController != null) {
+      MapService().myTripsController?._addState(this);
+    }
+//    widget.controller?._addState(this);
     _leadingWidgetController = LeadingWidgetController();
     _bottomNavController = RoutesBottomNavController();
     _dataLoaded = getMyTripItems();
@@ -55,6 +85,15 @@ class _MyTripsScreenState extends State<MyTrips> {
 
   _leadingWidget(context) {
     return context?.openDrawer();
+  }
+
+  void refresh() async {
+    await getMyTripItems();
+    setState(() {});
+  }
+
+  void addCurrentTripItem() {
+    _myTripItems.add(CurrentTripItem());
   }
 
   Future<void> onGetTrip(int index) async {}
@@ -222,7 +261,7 @@ import 'package:uuid/rng.dart';
                       style: TextStyle(fontSize: 22, color: Colors.white)),
                   SizedBox(height: 20),
                   Text(
-                      "Registering allows to to publish your trips, for your friends or other people to enjoy.",
+                      "Registering allows you to publish your trips, for your friends or other people to enjoy.",
                       style: TextStyle(fontSize: 22, color: Colors.white)),
                   SizedBox(height: 20),
                   Text(

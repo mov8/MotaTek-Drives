@@ -405,14 +405,9 @@ class _LoginScreen extends State<LoginScreen> {
                           Setup().user = user;
                           context.pop();
                         } else {
-                          developer.log('ActionChip Login onPressed()',
-                              name: '_login_');
                           Map<String, dynamic> response =
                               await tryLogin(user: Setup().user);
                           String status = response['msg'] ?? '';
-                          developer.log(
-                              'ActionChip Login onPressed() tryLogin returned ${response['msg'] ?? 'no message'}',
-                              name: '_login_');
                           if (context.mounted && status == 'OK') {
                             MapService().persistentAppBarController?.update('');
                             Navigator.pop(context, LoginState.login);

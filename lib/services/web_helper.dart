@@ -401,13 +401,12 @@ Future<Map<String, dynamic>> tryLogin({required User user}) async {
   var uri = Uri.parse('$urlUser/${register ? "register" : "login"}');
   int code = 500;
   Map<String, dynamic> map = {};
-  developer.log('tryLogin() uri: ${uri.toString()}', name: '_login_');
+
   try {
     http.Response response =
         await postWebData(uri: uri, body: jsonEncode(user.toMap()));
     code = response.statusCode;
-    developer.log('tryLogin() returned a response code of $code',
-        name: '_login_');
+
     if (response.body.isNotEmpty) {
       map = jsonDecode(response.body);
       if (code == 200) {
@@ -615,7 +614,7 @@ Future<dynamic> saveTripWeb(
           } catch (e) {
             developer.log(
                 'Error WebHelper saveTripWeb() j:$j -> ${e.toString()}',
-                name: '_actionChips_');
+                name: 'error');
           }
         }
       }
@@ -631,7 +630,7 @@ Future<dynamic> saveTripWeb(
     response = await request.send().timeout(const Duration(seconds: 30));
   } catch (e) {
     developer.log('saveTripWeb() error: ${e.toString()} ${response.statusCode}',
-        name: '_actionChips_');
+        name: 'error');
   }
   return ' ';
 }

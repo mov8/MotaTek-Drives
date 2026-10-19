@@ -40,6 +40,8 @@ class CreateTripStackController {
 
   void warn(int index) {
     if (isAttached) {
+      //   _createTripStackState?.showTopSnackBar(
+      //       _createTripStackState!.context, index);
       _createTripStackState?.warn(index);
     }
   }
@@ -82,6 +84,11 @@ class _CreateTripStackState extends State<CreateTripStack>
 
   int positionUpdates = 0;
 
+  late int _warningIndex;
+
+  final MessageBox _messageBox =
+      MessageBox(controller: MapService().messageBoxController);
+
   StreamSocket streamSocket = StreamSocket();
   sio.Socket socket = sio.io(urlBase, <String, dynamic>{
     // sio.Socket socket = sio.io('http://192.168.1.10:5000', <String, dynamic>{
@@ -107,26 +114,56 @@ class _CreateTripStackState extends State<CreateTripStack>
     super.dispose();
   }
 
-  void refresh() => setState(() => {});
-
-  void warn(int index) async {
-    if (index < 0) {
-      MapService().fabsController?.show();
-    } else {
-      _warningIndex = index;
-      setState(() => MapService().fabsController?.hide());
-      await Future.delayed(const Duration(seconds: 15));
-      _warningIndex = -1;
-      setState(() => MapService().fabsController?.show);
-    }
+  void refresh() {
+    setState(() => {});
   }
 
-  final List<String> _warnings = [
-    'The trip details are incomplete. before saving please add the missing details',
-    "You haven't yet registered. To share this trip register now. Tap the icon at the top right of this screen",
-  ];
-  int _warningIndex = -1;
+  void warn(int index) async {
+    //if (index < 0) {
+    //  MapService().fabsController?.show();
+    //} else {
+    setState(() => _warningIndex = index);
+    //  setState(() => MapService().fabsController?.hide());
+    await Future.delayed(const Duration(seconds: 15));
+    setState(() => _warningIndex = -1);
+    //  setState(() => MapService().fabsController?.show);
+    //}
+  }
 
+/*
+  void showTopSnackBar(
+    BuildContext context,
+    int index, {
+    Duration? duration,
+  }) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        dismissDirection: DismissDirection.up,
+        duration: duration ?? const Duration(milliseconds: 1000),
+        backgroundColor: Colors.grey,
+        margin: EdgeInsets.only(
+            bottom: MediaQuery.of(context).size.height - 120,
+            left: 10,
+            right: 10),
+        behavior: SnackBarBehavior.floating,
+        content: Row(
+          children: [
+            Expanded(flex: 2, child: warnings[index]['icon']),
+            Expanded(
+              flex: 10,
+              child: Text(
+                warnings[index]['message'],
+                style: const TextStyle(
+                  fontSize: 20,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+*/
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<bool>(
@@ -155,15 +192,16 @@ class _CreateTripStackState extends State<CreateTripStack>
           );
         }
 
-        return const SizedBox(
-          width: double.infinity,
+        return const SizedBox.shrink();
+        /*  width: double.infinity,
           height: double.infinity,
           child: Align(
             alignment: Alignment.center,
             child: Text('Error getting data -\nCheck your Internet connection',
                 style: TextStyle(fontSize: 22, color: Colors.white)),
           ),
-        );
+          */
+
         // throw ('Error - FutureBuilder in create_trips.dart');
       },
     );
@@ -171,6 +209,9 @@ class _CreateTripStackState extends State<CreateTripStack>
 
   Widget _getPortraitBody() {
     Future<bool>;
+    developer.log(
+        'TripState: ${TripState.editing} CurrentTripItem().tripValues.showTarget: ${CurrentTripItem().tripValues.showTarget} CurrentTripItem().tripValues.showProgress: ${CurrentTripItem().tripValues.showProgress}',
+        name: 'error');
     return Stack(
       children: [
         //   if (MapService().controller != null)
@@ -200,40 +241,14 @@ class _CreateTripStackState extends State<CreateTripStack>
           ),
         ),
 
-        if (_warningIndex > -1)
+        // if (_warningIndex > -1) MessageBox(index: 1), //_warningIndex),
+        if (NavigationService().page == 2) ...[
           Positioned(
+            top: 0,
             left: 0,
             right: 0,
-            top: 0,
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.black.withValues(alpha: 0.4), // // Light shadow top
-                    Colors.black.withValues(alpha: 0.6), // Dark contrast bottom
-                  ],
-                ),
-              ),
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              child: Row(
-                children: [
-                  Expanded(
-                      flex: 1,
-                      child: Icon(Icons.error_outline_outlined,
-                          size: 34, color: Colors.red)),
-                  Expanded(
-                      flex: 10,
-                      child: Text(_warnings[_warningIndex],
-                          style: TextStyle(fontSize: 20, color: Colors.white)))
-                ],
-              ),
-            ),
+            child: _messageBox,
           ),
-
-        if (NavigationService().page == 2) ...[
           Positioned(
             left: 0,
             right: 0,
@@ -257,7 +272,8 @@ class _CreateTripStackState extends State<CreateTripStack>
               ),
             ),
           ),
-          if (CurrentTripItem().tripValues.showTarget &&
+          if ((CurrentTripItem().tripState == TripState.editing ||
+                  CurrentTripItem().tripValues.showTarget) &&
               !CurrentTripItem().tripValues.showProgress) ...[
             CustomPaint(
               painter: TargetPainter(
@@ -320,12 +336,15 @@ class _CreateTripStackState extends State<CreateTripStack>
 
         /// getDirections shows the turn-by-turn navigation details
         getDirections(_directionsIndex),
-
+        //   MessageBox(
+        //     index: _warningIndex,
+        //   ),
         if (kIsWeb) ...[]
       ],
     );
   }
 
+/*
   void setLocationUpdates2() async {
     try {
       if (CurrentTripItem().tripValues.pauseStream) {
@@ -413,7 +432,7 @@ class _CreateTripStackState extends State<CreateTripStack>
       developer.log('Error Stream error: ${e.toString()}', name: 'error');
     }
   }
-
+*/
   Point chipPosition() {
     try {
       return Point(MapService().controller!.cameraPosition!.target.latitude,

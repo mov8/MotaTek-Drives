@@ -57,7 +57,8 @@ class _CompactDropdownState<T> extends State<CompactDropdown<T>> {
                   : Align(
                       alignment: Alignment.bottomLeft,
                       child: Text(
-                          "${item.toString().split('.').last}${widget.suffix}")),
+                          "${item.toString().split('.').last}${widget.suffix}"),
+                    ),
             );
           }).toList(),
         ),
@@ -65,7 +66,7 @@ class _CompactDropdownState<T> extends State<CompactDropdown<T>> {
     );
   }
 
-  void changed(value) {
+  void changed(dynamic value) {
     setState(() => _value = value);
     widget.onChanged(value, widget.styleKey);
   }

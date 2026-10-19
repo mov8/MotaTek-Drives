@@ -1,0 +1,111 @@
+// import 'package:drives/models/other_models.dart' hide Message;
+import 'package:flutter/material.dart';
+import '/services/services.dart';
+import '../constants.dart';
+import 'dart:developer' as developer;
+
+class MessageBoxController {
+  _MessageBoxState? _messageBoxState;
+
+  void _addState(_MessageBoxState messageBoxState) {
+    _messageBoxState = messageBoxState;
+  }
+
+  bool isAttached() => _messageBoxState != null;
+
+  void setIndex({int index = -1}) {
+    if (isAttached()) {
+      _messageBoxState?.setIndex(index);
+    }
+  }
+
+  void message({Warning message = Warning.none}) {
+    if (isAttached()) {
+      _messageBoxState?.setIndex(message.index - 1);
+    }
+  }
+}
+
+class MessageBox extends StatefulWidget {
+  int index = -1;
+  MessageBoxController? controller;
+  MessageBox({super.key, this.index = -1, this.controller});
+  @override
+  State<MessageBox> createState() => _MessageBoxState();
+}
+
+class _MessageBoxState extends State<MessageBox> {
+  late int index;
+  @override
+  void initState() {
+    super.initState();
+    if (widget.controller != null) {
+      widget.controller!._addState(this);
+    }
+    index = widget.index;
+  }
+
+  setIndex(int boxIndex) {
+    if (boxIndex > -1) {
+      MapService().fabsController?.drop(height: 80);
+    }
+    setState(() => index = boxIndex);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // index = 1;
+    developer.log('MessageBox().build() called index: $index',
+        name: '_keyboard_');
+    return AnimatedCrossFade(
+      duration: const Duration(milliseconds: 500),
+      crossFadeState:
+          index > -1 ? CrossFadeState.showFirst : CrossFadeState.showSecond,
+      firstChild: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.black.withValues(alpha: 0.4), // // Light shadow top
+              Colors.black.withValues(alpha: 0.6), // Dark contrast bottom
+            ],
+          ),
+        ),
+        width: double.infinity,
+        height: 80,
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        child: Row(
+          children: [
+            Expanded(
+                flex: 2,
+                child: Icon(warnings[index < 0 ? 0 : index]['iconData'],
+                    color: warnings[index < 0 ? 0 : index]['color'],
+                    size: warnings[index < 0 ? 0 : index]['size'])
+                // child: warnings[index < 0 ? 0 : index]['icon'],
+                ),
+            Expanded(
+              flex: 12,
+              child: Text(
+                warnings[index < 0 ? 0 : index]['message'],
+                style: TextStyle(
+                    fontSize: 20,
+                    color: warnings[index < 0 ? 0 : index]['color']),
+              ),
+            ),
+          ],
+          //    ),
+        ),
+      ),
+      secondChild: const SizedBox.shrink(),
+      onEnd: () async {
+        if (index > -1) {
+          await Future.delayed(Duration(seconds: 2));
+          setState(() => index = -1);
+          MapService().fabsController?.drop(height: 0);
+        }
+        // index = -1;
+      },
+    );
+  }
+}

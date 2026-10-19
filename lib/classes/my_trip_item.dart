@@ -63,7 +63,7 @@ class CreateTripValues {
   void manual() {
     showMask = false;
     isManual = true;
-    showTarget = true; // false;
+    showTarget = true;
     autoCentre = false;
     title = 'Plan a new trip manually';
     leadingWidget = 1;
@@ -374,6 +374,7 @@ class CurrentTripItem extends MyTripItem {
     tripValues.title = 'Create a new trip';
     mapUpdates = MapUpdates.updateAll;
     tripValues.autoCentre = false;
+    tripState = TripState.none;
     MapService().webAppBarController?.update();
     tripHeaderController.clear();
   }
@@ -417,6 +418,10 @@ class CurrentTripItem extends MyTripItem {
       }
     }
   }
+
+  List<Waypoint> get waypoints => backBuffer.last;
+
+  WaypointState setWaypointState(WaypointState state) => waypointState = state;
 
   /// headerComplete returns:
   /// [title, subTitle & body described  -> 7  (All               OK)]
@@ -486,44 +491,6 @@ class CurrentTripItem extends MyTripItem {
           value: goodRoads.last.waypoints.length + 1,
           isGoodRoad: true));
     }
-  }
-
-  void highlightWaypoints({required Point targetCentre}) {
-    List<int> waypoints = [];
-    try {
-      waypoints = closestWaypoints(target: targetCentre, routes: routes);
-    } catch (e) {
-      developer.log('ERROR updateMapGeoJson() :${e.toString()}', name: 'error');
-    }
-    bool waypointsChanged = false;
-
-    if (waypoints.isEmpty) {
-      waypointState = WaypointState.none;
-    } else if (waypointIndex > -1) {
-      waypointState = WaypointState.remove;
-    } else if (waypoints.length == 2) {
-      waypointState = WaypointState.insert;
-    } else if (waypoints[0] == 0) {
-      waypointState = WaypointState.extendStart;
-    } else {
-      waypointState = WaypointState.extendEnd;
-    }
-
-    /// Want to avoid unnecessary update of MapLibre so make sure something really has changed
-    if (routes.isNotEmpty) {
-      for (int i = 0; i < routes[0].waypoints.length; i++) {
-        bool state = routes[0].waypoints[i].selected ?? false;
-        routes[0].waypoints[i].selected =
-            waypoints.isNotEmpty && waypoints.contains(i);
-        waypointsChanged =
-            state != routes[0].waypoints[i].selected! ? true : waypointsChanged;
-      }
-    }
-    if (waypointsChanged) {
-      mapUpdates = mapUpdates.add(MapUpdates.waypoints);
-      MapService().updateMapGeoJson(mapUpdates: mapUpdates);
-    }
-    return;
   }
 
   String getTripTitle() {
@@ -708,10 +675,11 @@ class CurrentTripItem extends MyTripItem {
 
     /// clearAll sets tripState to TripState.clearing making sure that the geoJson is updated on next _onIdle
     clearAll(newTripState: TripState.clearing);
-    tripState = TripState.clearing;
+    // tripState = TripState.clearing;
     mapUpdates = MapUpdates.routesAndWaypoints;
     MapService().updateMapGeoJson(mapUpdates: mapUpdates);
     // Micro-nudge to update MapLibre the nudge causes the onIdle callback to be called
+
     MapService().createTripController!.update();
     await MapService().controller!.animateCamera(CameraUpdate.zoomBy(0.000001));
     // mapController = null;
@@ -1508,6 +1476,7 @@ class CurrentTripItem extends MyTripItem {
   @override
   Map<String, dynamic> toJson() {
     int pois = pointsOfInterest.length;
+
     List<Map<String, dynamic>> maneuversJSON = [];
     for (int i = 0; i < maneuvers.length; i++) {
       maneuversJSON.add(maneuvers[i].toMap());
@@ -1580,6 +1549,7 @@ class CurrentTripItem extends MyTripItem {
     if (id == -1) {}
   }
 
+  /// Current version
   updateWaypoints({
     required Point point,
     List<Route>? features,
@@ -1635,7 +1605,8 @@ class CurrentTripItem extends MyTripItem {
     MapService().webAppBarController?.update();
   }
 
-  /// Recalculate route
+  /// changeRoute
+  /// Recalculates route
   /// aims:
   ///   1 maintain all the maneuvers already passed
   ///   3 rejoin the route at the nearest sensible waypoint - type arrive

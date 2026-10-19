@@ -1,6 +1,7 @@
 import 'dart:convert';
 import '/models/models.dart';
 import '/classes/classes.dart';
+import '/services/services.dart';
 import 'package:hive/hive.dart';
 import 'dart:developer' as developer;
 
@@ -22,36 +23,59 @@ class UserRepository {
   // void openBox() => Hive.openBox('userBox');
   // Save the model as a JSON string
   Future<void> saveUser(User user) async {
+    if (!_userBox.isOpen) {
+      await openBox();
+    }
     final String jsonString = jsonEncode(user.toMap());
     await _userBox.put('user', jsonString);
+    _userBox.close();
   }
 
   Future<void> saveJwt(String jwt) async {
+    if (!_userBox.isOpen) {
+      await openBox();
+    }
     await _userBox.put('jwt', jwt);
+    _userBox.close;
   }
 
   Future<void> saveSetup() async {
+    if (!_userBox.isOpen) {
+      await openBox();
+    }
     final String jsonString = jsonEncode(Setup().toMap());
     await _userBox.put('setup', jsonString);
+    _userBox.close;
   }
 
   // Retrieve and decode the model safely
-  User? getUser() {
+  Future<User?> getUser() async {
+    if (!_userBox.isOpen) {
+      await openBox();
+    }
     final String? jsonString = _userBox.get('user');
     if (jsonString == null) return null;
     final Map<String, dynamic> jsonMap = jsonDecode(jsonString);
+    _userBox.close;
     return User.fromJson(jsonMap);
   }
 
-  String getJwt() {
+  Future<String> getJwt() async {
+    if (!_userBox.isOpen) {
+      await openBox();
+    }
     return _userBox.get('jwt') ?? '';
   }
 
-  bool getSetup() {
+  Future<bool> getSetup() async {
+    if (!_userBox.isOpen) {
+      await openBox();
+    }
     final String? jsonString = _userBox.get('setup');
     if (jsonString == null) return false;
     final Map<String, dynamic> jsonMap = jsonDecode(jsonString);
     Setup().fromJson(map: jsonMap);
+    _userBox.close;
     return true;
   }
 }
@@ -65,34 +89,43 @@ class TripRepository {
   }
 
   Future<void> saveTrip(CurrentTripItem trip) async {
+    developer.log('TripRepository().savedTrip() called ', name: '_hive_');
     try {
+      if (!_tripsBox.isOpen) {
+        await openBox();
+      }
+
       final String jsonString =
           jsonEncode(trip.toJson()); // <-- toJson is a MyTripIem method
       //  await Hive.openBox('tripsBox');
       await _tripsBox.put(trip.uri, jsonString);
+      _tripsBox.close();
+      developer.log('Saved trip to Hive OK ', name: '_hive_');
     } catch (e) {
       developer.log('Error saving trip to Hive ${e.toString()}',
-          name: '_trip_');
+          name: '_hive_');
     }
   }
 
   // Retrieve and decode the model
   Future<MyTripItem?> getTrip(String id) async {
+    if (!_tripsBox.isOpen) {
+      await openBox();
+    }
     final String? jsonString = _tripsBox.get(id);
     if (jsonString == null) return null;
     final Map<String, dynamic> jsonMap = jsonDecode(jsonString);
+    _tripsBox.close();
     return MyTripItem.fromJson(jsonObject: jsonMap);
   }
 
   Future<List<MyTripItem>> getTrips() async {
     List<MyTripItem> tripItems = [];
-    developer.log('Executing hive_helper TripRepository().getTrips()',
-        name: '_trips_');
+    if (!_tripsBox.isOpen) {
+      await openBox();
+    }
     if (_tripsBox.isNotEmpty) {
       try {
-        developer.log(
-            'Executing hive_helper TripRepository().getTrips() _tripsBox.isNotEmpty',
-            name: '_trips_');
         final boxValues = _tripsBox.values;
         for (var tripValue in boxValues) {
           Map<String, dynamic> tripMap = jsonDecode(tripValue);
@@ -101,9 +134,10 @@ class TripRepository {
         }
       } catch (e) {
         developer.log('Error getting tripItems from Hive: ${e.toString()}',
-            name: '_trips_');
+            name: 'error');
       }
     }
+    _tripsBox.close();
     return tripItems;
   }
 }

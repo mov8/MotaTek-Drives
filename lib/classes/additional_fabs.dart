@@ -2,7 +2,7 @@ import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:flutter/material.dart';
 // import 'package:pointer_interceptor/pointer_interceptor.dart';
 // import 'maplibre_map.dart';
-import 'dart:developer' as developer;
+// import 'dart:developer' as developer;
 
 class ZoomFabController {
   _ZoomFabState? _zoomFabState;
@@ -16,11 +16,11 @@ class ZoomFabController {
 }
 
 class ZoomFab extends StatefulWidget {
-  double width;
-  double height;
+  final double width;
+  final double height;
 
-  MapLibreMapController controller;
-  ZoomFabController zfController;
+  final MapLibreMapController controller;
+  final ZoomFabController zfController;
   int zoom = 0;
 
   ZoomFab(
@@ -35,7 +35,7 @@ class ZoomFab extends StatefulWidget {
 }
 
 class _ZoomFabState extends State<ZoomFab> {
-  String _zoom = '';
+  // String _zoom = '';
 
   @override
   void initState() {
@@ -43,7 +43,7 @@ class _ZoomFabState extends State<ZoomFab> {
     widget.zfController._addState(this);
   }
 
-  update() {
+  void update() {
     if (mounted) {
       setState(() {});
     }

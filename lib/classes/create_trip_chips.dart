@@ -62,8 +62,17 @@ class CreateTripChips extends StatelessWidget {
         CurrentTripItem().isTracking = false;
         CurrentTripItem().highliteActions = HighliteActions.none;
       }
+
+      WaypointState waypointState = CurrentTripItem().waypointState;
+      TripActions? tripAction;
+      if (CurrentTripItem().routes.isNotEmpty) {
+        tripAction = CurrentTripItem().routes.first.waypoints.length > 1
+            ? TripActions.editing
+            : null;
+      }
       final List<Map> chipDetails = [
         {
+          // [0]
           'label': 'Extend start',
           'method': extendStart, //extendStart,
           'icon': Icons.pin_drop,
@@ -77,6 +86,7 @@ class CreateTripChips extends StatelessWidget {
           'goodRoad': false,
         },
         {
+          // [1]
           'label': 'Waypoint',
           'method': waypoint,
           'icon': Icons.pin_drop,
@@ -98,6 +108,7 @@ class CreateTripChips extends StatelessWidget {
           'group': false
         },
         {
+          // [2]
           'label': 'Insert waypoint',
           'method': waypoint,
           'icon': Icons.pin_drop,
@@ -114,6 +125,7 @@ class CreateTripChips extends StatelessWidget {
           'goodRoad': false,
         },
         {
+          // [3]
           'label': 'Extend end',
           'method': extendEnd, // extendEnd,
           'icon': Icons.pin_drop,
@@ -127,6 +139,7 @@ class CreateTripChips extends StatelessWidget {
           'goodRoad': false,
         },
         {
+          // [4]
           'label': 'Remove waypoint',
           'method': removeWaypoint,
           'icon': Icons.wrong_location,
@@ -142,6 +155,7 @@ class CreateTripChips extends StatelessWidget {
           'group': false
         },
         {
+          //[5]
           'label': 'Revisit waypoint',
           'method': revisitWaypoint,
           'icon': Icons.wrong_location,
@@ -157,6 +171,7 @@ class CreateTripChips extends StatelessWidget {
           'group': false
         },
         {
+          // [6]
           'label': 'Reverse trip',
           'method': reverseTrip,
           'icon': Icons.autorenew_outlined,
@@ -169,17 +184,19 @@ class CreateTripChips extends StatelessWidget {
           'goodRoad': false,
         },
         {
+          // [7]
           'label': 'Point of interest',
           'method': pointOfInterest,
           'icon': Icons.add_photo_alternate,
           'states': [
             TripState.manual,
             TripState.editing,
+
             //   TripState.tracking,
             //   TripState.pausedTracking,
             //   TripState.stoppedTracking
           ],
-          'actions': [],
+          'actions': [TripActions.editing],
           'highlight': [HighliteActions.none, HighliteActions.routeHighlited],
           'loaded': null, //true,
           'saved': null,
@@ -187,6 +204,7 @@ class CreateTripChips extends StatelessWidget {
           'goodRoad': false,
         },
         {
+          // [8]
           'label': 'Create manually',
           'method': addManually,
           'icon': Icons.touch_app,
@@ -198,6 +216,7 @@ class CreateTripChips extends StatelessWidget {
           'group': false
         },
         {
+          // [9]
           'label': 'Edit route',
           'method': editing,
           'icon': Icons.edit,
@@ -209,6 +228,7 @@ class CreateTripChips extends StatelessWidget {
           'group': false
         },
         {
+          //[10]
           'label': 'Save trip',
           'method': saveTrip,
           'icon': Icons.save,
@@ -217,7 +237,7 @@ class CreateTripChips extends StatelessWidget {
             TripState.stoppedTracking,
             TripState.editing
           ],
-          'actions': [],
+          'actions': [TripActions.editing],
           'highlight': [HighliteActions.none],
           'loaded': true,
           'saved': false,
@@ -225,6 +245,7 @@ class CreateTripChips extends StatelessWidget {
           'goodRoad': false,
         },
         {
+          // [11]
           'label': 'Clear route',
           'method': clear,
           'icon': Icons.delete,
@@ -238,7 +259,7 @@ class CreateTripChips extends StatelessWidget {
             TripState.manual,
             TripState.manualStart,
           ],
-          'actions': [],
+          'actions': [TripActions.editing],
           'highlight': [HighliteActions.none],
           'loaded': true,
           'saved': null,
@@ -246,6 +267,7 @@ class CreateTripChips extends StatelessWidget {
           'goodRoad': false,
         },
         {
+          // [12]
           'label': 'Add great road',
           'method': greatRoad,
           'icon': Icons.add_road,
@@ -254,7 +276,7 @@ class CreateTripChips extends StatelessWidget {
             TripState.manual,
             TripState.editing,
           ],
-          'actions': [],
+          'actions': [TripActions.editing],
           'highlight': [HighliteActions.none],
           'loaded': null,
           'saved': null,
@@ -265,6 +287,7 @@ class CreateTripChips extends StatelessWidget {
           'goodRoad': false,
         },
         {
+          // [13]
           'label': 'Edit great road',
           'method': editGreatRoad,
           'icon': Icons.edit,
@@ -280,6 +303,7 @@ class CreateTripChips extends StatelessWidget {
           'goodRoad': false,
         },
         {
+          // [14]
           'label': 'Plan drive',
           'method': greatRoadEnd,
           'icon': Icons.add_road,
@@ -295,6 +319,7 @@ class CreateTripChips extends StatelessWidget {
           'goodRoad': true
         },
         {
+          // [15]
           'label': 'Great road end',
           'method': greatRoadEnd,
           'icon': Icons.add_road,
@@ -308,6 +333,7 @@ class CreateTripChips extends StatelessWidget {
           'goodRoad': true
         },
         {
+          // [16]
           'label': 'Track drive',
           'method': addAutomatically,
           'icon': Icons.directions_car,
@@ -319,6 +345,7 @@ class CreateTripChips extends StatelessWidget {
           'group': false
         },
         {
+          // [17]
           'label': 'Continue tracking',
           'method': trackRoute,
           'icon': Icons.play_arrow,
@@ -330,6 +357,7 @@ class CreateTripChips extends StatelessWidget {
           'group': false
         },
         {
+          // [18]
           'label': 'Pause tracking',
           'method': pauseTracking,
           'icon': Icons.pause,
@@ -341,6 +369,7 @@ class CreateTripChips extends StatelessWidget {
           'group': false
         },
         {
+          // [19]
           'label': 'End tracking',
           'method': endTracking,
           'icon': Icons.stop,
@@ -352,6 +381,7 @@ class CreateTripChips extends StatelessWidget {
           'group': false
         },
         {
+          // [20]
           'label': 'Follow drive',
           'method': followRoute,
           'icon': Icons.play_arrow,
@@ -367,10 +397,12 @@ class CreateTripChips extends StatelessWidget {
           'group': null
         },
         {
+          // [21]
           'label': 'Stop following',
           'method': stopFollowing,
           'icon': Icons.stop,
           'states': [TripState.following],
+          'waypointState': [WaypointState.twoPlus],
           'actions': [],
           'highlight': [],
           'loaded': true,
@@ -378,6 +410,7 @@ class CreateTripChips extends StatelessWidget {
           'group': null
         },
         {
+          // [22]
           'label': 'Steps',
           'method': steps,
           'icon': Icons.timeline,
@@ -389,7 +422,7 @@ class CreateTripChips extends StatelessWidget {
             TripState.manual,
             TripState.editing
           ],
-          'actions': [], // [TripActions.none],
+          'actions': [TripActions.editing], // [TripActions.none],
           'highlight': [],
           'loaded': true,
           'saved': null,
@@ -397,6 +430,7 @@ class CreateTripChips extends StatelessWidget {
           'goodRoad': false,
         },
         {
+          // [23]
           'label': 'Group',
           'method': group,
           'icon': Icons.directions_car,
@@ -430,6 +464,7 @@ class CreateTripChips extends StatelessWidget {
       },
     */
         {
+          // [24]
           'label': 'Messages',
           'method': messages,
           'icon': Icons.chat_outlined,
@@ -450,13 +485,12 @@ class CreateTripChips extends StatelessWidget {
       String failure = '';
       bool actionsOk(int i) {
         bool ok = chipDetails[i]['actions'].isEmpty ||
-            chipDetails[i]['actions'].contains(CurrentTripItem().tripActions);
+            chipDetails[i]['actions'].contains(tripAction);
         failure = ok ? failure : '$failure, ACTIONS';
         return ok;
       }
 
       bool statesOk(int i) {
-        /// CurrentTripItem().tripState is an Enum
         bool ok = (chipDetails[i]['states'].isEmpty ||
             chipDetails[i]['states'].contains(CurrentTripItem().tripState));
         failure = ok ? failure : '$failure, STATES';
@@ -469,7 +503,7 @@ class CreateTripChips extends StatelessWidget {
 
       bool waypointOk(int i) {
         return chipDetails[i]['waypointState'] == null ||
-            chipDetails[i]['waypointState'] == CurrentTripItem().waypointState;
+            chipDetails[i]['waypointState'] == waypointState;
       }
 
       bool highlightsOk(int i) {
@@ -493,8 +527,9 @@ class CreateTripChips extends StatelessWidget {
       }
 
       bool savedOk(int i) {
-        bool ok = chipDetails[i]['saved'] == null ||
-            CurrentTripItem().isSaved == chipDetails[i]['saved'];
+        bool ok = (chipDetails[i]['saved'] == null ||
+            CurrentTripItem().isSaved == chipDetails[i]['saved']); //&&
+        // CurrentTripItem().routes.isNotEmpty;
         failure = ok ? failure : '$failure, SAVED';
         return ok;
       }
@@ -522,7 +557,9 @@ class CreateTripChips extends StatelessWidget {
             loadedOk(i) &&
             savedOk(i) &&
             groupOk(i) &&
-            goodRoadOk(i);
+            goodRoadOk(i); // &&
+        // ([7, 10, 11, 12, 22].contains(i) &&
+        //     CurrentTripItem().routes.isNotEmpty);
       }
 
       try {
@@ -567,10 +604,9 @@ class CreateTripChips extends StatelessWidget {
             }
           } else {
             //  Code below very useful - don't remove
-
-            developer.log(
-                '$i - [${chipDetails[i]['label']}] failed => ${actionsOk(i) ? '' : 'actions '}${statesOk(i) ? '' : 'states '}${highlightsOk(i) ? '' : 'highlights '}${waypointOk(i) ? '' : 'waypoints '}${loadedOk(i) ? '' : 'loaded '}${savedOk(i) ? '' : 'saved '}${groupOk(i) ? '' : 'group '}${goodRoadOk(i) ? '' : 'goodRoad'}',
-                name: '_actionChips_');
+            //    developer.log(
+            //        '$i - [${chipDetails[i]['label']}] failed => ${actionsOk(i) ? '' : 'actions '}${statesOk(i) ? '' : 'states '}${highlightsOk(i) ? '' : 'highlights '}${waypointOk(i) ? '' : 'waypoints '}${loadedOk(i) ? '' : 'loaded '}${savedOk(i) ? '' : 'saved '}${groupOk(i) ? '' : 'group '}${goodRoadOk(i) ? '' : 'goodRoad'}',
+            //        name: '_map_');
           }
         }
       } catch (e) {
@@ -607,9 +643,10 @@ class CreateTripChips extends StatelessWidget {
   void clear() {
     // CurrentTripItem().requestClear();
     CurrentTripItem().requestClear();
+    CurrentTripItem().waypointState = WaypointState.none;
     MapService().leadingWidgetController.changeWidget(0);
-    CurrentTripItem().tripState = TripState.none;
-    CurrentTripItem().mapUpdates = MapUpdates.updateAll;
+    // CurrentTripItem().tripState = TripState.none;
+    // CurrentTripItem().mapUpdates = MapUpdates.updateAll;
     _executeChipActions(tripActions: MyTripActions.clearTrip);
   }
 
@@ -754,9 +791,16 @@ class CreateTripChips extends StatelessWidget {
         _saveTrip();
         _createTripStackController.refresh();
         onUpdate!(MyTripActions.none);
+        MapService().myTripsController?.refresh();
         return;
 
       case MyTripActions.clearTrip:
+        // CurrentTripItem().tripState = TripState.manualStart;
+        CurrentTripItem().clearAll();
+        CurrentTripItem().tripValues.manual();
+        CurrentTripItem().tripValues.showTarget = false;
+        CurrentTripItem().tripState = TripState.none;
+        CurrentTripItem().routes = [];
         _createTripStackController.refresh();
         onUpdate!(MyTripActions.none);
         return;
@@ -765,11 +809,11 @@ class CreateTripChips extends StatelessWidget {
         try {
           updateControllers(
               items: BottomDrawerItems.trip, open: true, dock: true);
-          CurrentTripItem().tripActions = TripActions.none;
-          CurrentTripItem().tripState = TripState.manualStart;
-          CurrentTripItem().tripValues.showTarget = true;
-          CurrentTripItem().tripValues.showProgress = false;
-          // CurrentTripItem().tripValues.manual();
+          // CurrentTripItem().tripActions = TripActions.none;
+          //  CurrentTripItem().tripState = TripState.manualStart;
+          //  CurrentTripItem().tripValues.showTarget = true;
+          //  CurrentTripItem().tripValues.showProgress = false;
+          CurrentTripItem().tripValues.manual();
           MapService().createTripStackController?.refresh();
           if (onUpdate != null) {
             onUpdate!(MyTripActions.none);
@@ -879,7 +923,10 @@ class CreateTripChips extends StatelessWidget {
 
   void _saveTrip() async {
     if (CurrentTripItem().headerComplete() != 7) {
-      MapService().createTripStackController?.warn(0);
+      // MapService().createTripStackController?.warn(0);
+      MapService()
+          .messageBoxController
+          ?.message(message: Warning.headingIncomplete);
       MapService().bottomDrawerController?.open();
       _getTripDescriptions();
       return;
@@ -892,7 +939,9 @@ class CreateTripChips extends StatelessWidget {
       tripRepository.saveTrip(CurrentTripItem());
       CurrentTripItem().tripState = TripState.loaded;
       CurrentTripItem().tripValues.editing();
-      MapService().createTripStackController?.warn(-1);
+      // MapService().createTripStackController?.warn(1);
+      MapService().messageBoxController?.message(message: Warning.tripSaved);
+      MapService().myTripsController?.refresh();
     } catch (e) {
       developer.log('_saveTro() Error saving trip: ${e.toString()}',
           name: 'error');
