@@ -102,6 +102,7 @@ const Map<PlanPhase, List<TripChip>> chipsForPhase = {
   PlanPhase.awaitingFirstWp: [TripChip.waypoint, TripChip.clear],
   PlanPhase.oneWp: [
     TripChip.waypoint,
+    TripChip.pointOfInterest,
     TripChip.clear,
   ],
   PlanPhase.routed: [
@@ -149,7 +150,10 @@ const Map<PlanPhase, List<TripChip>> chipsForPhase = {
 ///   highlight, saved and group-drive conditions hide or swap a chip
 List<TripChip> resolveChip(TripChip chip, CurrentTripItem trip) =>
     switch (chip) {
-      TripChip.waypoint when trip.isGoodRoad => [TripChip.waypoint],
+      // With 1 waypoint the crosshair is still over it - nothing to revisit
+      TripChip.waypoint when trip.isGoodRoad || _waypointCount(trip) < 2 => [
+          TripChip.waypoint
+        ],
       TripChip.waypoint => switch (trip.waypointState) {
           WaypointState.insert => [TripChip.insertWaypoint],
           WaypointState.extendStart => [TripChip.extendStart],
