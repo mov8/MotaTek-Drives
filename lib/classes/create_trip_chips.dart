@@ -30,6 +30,10 @@ enum PlanPhase {
 int _waypointCount(CurrentTripItem trip) =>
     trip.routes.isEmpty ? 0 : trip.routes.first.waypoints.length;
 
+/// waypointIndex is set by MapService().getWaypointState() on each onIdle
+bool _overLastWaypoint(CurrentTripItem trip) =>
+    trip.waypointIndex == _waypointCount(trip) - 1;
+
 PlanPhase phaseOf(CurrentTripItem trip) {
   switch (trip.tripState) {
     case TripState.tracking:
@@ -158,14 +162,16 @@ List<TripChip> resolveChip(TripChip chip, CurrentTripItem trip) =>
           WaypointState.insert => [TripChip.insertWaypoint],
           WaypointState.extendStart => [TripChip.extendStart],
           WaypointState.extendEnd => [TripChip.extendEnd],
+          // Revisiting the last waypoint makes no sense - it's under the
+          // crosshair straight after it's added.
           // Manual mode removes the last waypoint with the ActionBar undo
-          WaypointState.remove when trip.tripState != TripState.editing => [
-              TripChip.revisitWaypoint
-            ],
-          WaypointState.remove => [
-              TripChip.removeWaypoint,
-              TripChip.revisitWaypoint
-            ],
+          WaypointState.remove when trip.tripState != TripState.editing =>
+            _overLastWaypoint(trip)
+                ? [TripChip.waypoint]
+                : [TripChip.revisitWaypoint],
+          WaypointState.remove => _overLastWaypoint(trip)
+              ? [TripChip.removeWaypoint]
+              : [TripChip.removeWaypoint, TripChip.revisitWaypoint],
           _ => [TripChip.waypoint],
         },
       TripChip.addGreatRoad
