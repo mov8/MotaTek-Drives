@@ -609,6 +609,7 @@ class CreateTripChips extends StatelessWidget {
       TripRepository tripRepository = TripRepository();
       await tripRepository.openBox();
       tripRepository.saveTrip(CurrentTripItem());
+      CurrentTripItem().isSaved = true;
       CurrentTripItem().tripState = TripState.loaded;
       CurrentTripItem().tripValues.editing();
       // MapService().createTripStackController?.warn(1);

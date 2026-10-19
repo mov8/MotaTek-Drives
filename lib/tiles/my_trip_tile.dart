@@ -418,10 +418,33 @@ class _MyTripTileState extends State<MyTripTile> {
     //    widget.tripItem.score = value;
     //  });
   }
-  Future<void> loadTrip(int index) async {
-    // CurrentTripItem().fromMyTripItem(myTripItem: widget.myTripItem);
 
-    //  widget.myTripItem; // _myTripItems[index];
+  /// Warns the user before an unsaved trip in CurrentTripItem() is replaced
+  /// by the saved one.
+  Future<void> loadTrip(int index) async {
+    if (CurrentTripItem().hasUnsavedChanges) {
+      String current = CurrentTripItem().title.isEmpty
+          ? 'The trip you are working on'
+          : '"${CurrentTripItem().title}"';
+      Utility().showOkCancelDialog(
+          context: context,
+          alertTitle: 'Discard unsaved trip?',
+          alertMessage:
+              "$current hasn't been saved. Loading \"${widget.myTripItem.title}\" will clear it.",
+          okValue: index,
+          callback: (value) {
+            // The dialog pops itself after the callback, so load afterwards
+            // or the pop would close the map instead of the dialog
+            if (value > -1) Future.microtask(_loadTrip);
+          });
+    } else {
+      await _loadTrip();
+    }
+  }
+
+  Future<void> _loadTrip() async {
+    // Clear everything left from the previous trip before loading
+    CurrentTripItem().clearAll();
     CurrentTripItem().id = widget.myTripItem.id;
     CurrentTripItem().uri = widget.myTripItem.uri;
     CurrentTripItem().title = widget.myTripItem.title;
@@ -440,6 +463,7 @@ class _MyTripTileState extends State<MyTripTile> {
     CurrentTripItem().tripState = TripState.editing;
     // Undo should only apply to changes made after the trip is loaded
     CurrentTripItem().loadBackBuffer();
+    CurrentTripItem().isSaved = true;
     // CurrentTripItem().tripValues.showTarget = true;
     CurrentTripItem().tripType = TripType.none;
     CurrentTripItem().updateMap = true;

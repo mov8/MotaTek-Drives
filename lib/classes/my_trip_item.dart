@@ -172,6 +172,15 @@ class Progress {
 class CurrentTripItem extends MyTripItem {
   CurrentTripItem._privateConstructor();
   bool isSaved = false;
+
+  /// True when there's trip data that hasn't been saved - loading another
+  /// trip would lose it.
+  bool get hasUnsavedChanges =>
+      !isSaved &&
+      (routes.any((route) =>
+              route.waypoints.isNotEmpty || route.lines.isNotEmpty) ||
+          goodRoads.any((route) => route.waypoints.isNotEmpty) ||
+          pointsOfInterest.isNotEmpty);
   bool isTracking = false;
   TripState tripState = TripState.none;
   AppState appState = AppState.createTrip;
@@ -354,11 +363,13 @@ class CurrentTripItem extends MyTripItem {
     subTitle = '';
     body = '';
     images = '';
-    backBuffer.clear();
-    maneuvers.clear();
-    routes.clear();
-    goodRoads.clear();
-    pointsOfInterest.clear();
+    // New lists rather than clear() - after a trip is loaded these are the
+    // My Trips item's own lists, and clear() would empty that too
+    backBuffer = [];
+    maneuvers = [];
+    routes = [];
+    goodRoads = [];
+    pointsOfInterest = [];
     isTracking = false;
     tripType = TripType.none;
     tripState = newTripState;
