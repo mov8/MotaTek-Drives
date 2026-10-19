@@ -30,9 +30,17 @@ enum PlanPhase {
 int _waypointCount(CurrentTripItem trip) =>
     trip.routes.isEmpty ? 0 : trip.routes.first.waypoints.length;
 
-/// waypointIndex is set by MapService().getWaypointState() on each onIdle
-bool _overLastWaypoint(CurrentTripItem trip) =>
-    trip.waypointIndex == _waypointCount(trip) - 1;
+/// waypointIndex is set by MapService().getWaypointState() on each onIdle.
+/// Also true when the route already ends at that waypoint's point, e.g. it
+/// has just been revisited - revisiting it again would add a zero length leg.
+bool _overLastWaypoint(CurrentTripItem trip) {
+  List<Waypoint> waypoints =
+      trip.routes.isEmpty ? [] : trip.routes.first.waypoints;
+  int index = trip.waypointIndex;
+  if (index < 0 || index >= waypoints.length) return false;
+  return index == waypoints.length - 1 ||
+      waypoints.last.point == waypoints[index].point;
+}
 
 PlanPhase phaseOf(CurrentTripItem trip) {
   switch (trip.tripState) {

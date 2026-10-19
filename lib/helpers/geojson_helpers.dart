@@ -376,8 +376,13 @@ List<Map<String, dynamic>> waypointsToGeoJson(
     if (CurrentTripItem().routes.isNotEmpty) {
       for (int h = 0; h < CurrentTripItem().routes.length; h++) {
         waypoints = CurrentTripItem().routes[h].waypoints;
-
+        // Revisits share an earlier waypoint's point and number, so they have
+        // no marker and aren't counted. "id" stays the list index so tapping a
+        // marker identifies the right waypoint.
+        int number = 0;
         for (int i = 0; i < waypoints.length; i++) {
+          if (waypoints[i].revisit) continue;
+          number++;
           features.add({
             "type": "Feature",
             "geometry": {
@@ -393,7 +398,7 @@ List<Map<String, dynamic>> waypointsToGeoJson(
               "trip-state-2": "editing",
               "trip-state-3": "goodRoadStart",
               "trip-state-4": "loaded",
-              "number": i + 1,
+              "number": number,
               "color": waypoints[i].selected ?? false ? indexColour : colour,
             }
           });

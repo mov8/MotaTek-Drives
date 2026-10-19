@@ -153,12 +153,18 @@ class Waypoint {
   final Point point;
   bool? selected;
   final bool isGoodRoad;
+
+  /// A revisit tells the router to go through an earlier waypoint's point
+  /// again - completing a circular or figure of eight route. It has no marker
+  /// of its own; the earlier waypoint's marker and number represent both.
+  final bool revisit;
   String colour;
   Waypoint(
       {this.value = 0,
       Point? point,
       bool? selected,
       this.isGoodRoad = false,
+      this.revisit = false,
       String? colour})
       : point = point ?? Point(0, 0),
         colour = colour ?? Setup().routeColourHex(),
@@ -171,6 +177,7 @@ class Waypoint {
       "colour":
           isGoodRoad ? Setup().goodRouteColourHex : Setup().routeColourHex(),
       "is_good_road": isGoodRoad,
+      "revisit": revisit,
     };
   }
 
@@ -179,7 +186,8 @@ class Waypoint {
         colour: map["colour"],
         point: Point((map["point"] ?? [0, 0])[0], (map["point"] ?? [0, 0])[1]),
         selected: false,
-        isGoodRoad: map["is_good_road"] ?? false);
+        isGoodRoad: map["is_good_road"] ?? false,
+        revisit: map["revisit"] ?? false);
   }
 
   factory Waypoint.clone({required Waypoint waypoint}) {
@@ -188,6 +196,7 @@ class Waypoint {
       point: waypoint.point,
       selected: false,
       isGoodRoad: waypoint.isGoodRoad,
+      revisit: waypoint.revisit,
     );
   }
 }

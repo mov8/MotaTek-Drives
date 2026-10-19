@@ -765,9 +765,13 @@ class CurrentTripItem extends MyTripItem {
   Future<void> requestRevisitWaypoint() async {
     tripActions = TripActions.none;
     tripValues.beforeWaypoint();
-
-    await addWaypoint(index: 0, point: tripValues.position, revisit: true);
-
+    List<Waypoint> waypoints = routes.isEmpty ? [] : routes.first.waypoints;
+    if (waypointIndex > -1 && waypointIndex < waypoints.length) {
+      // Use the earlier waypoint's exact point, not the crosshair's, so the
+      // router goes through the same point. It's appended to the route with
+      // no marker of its own - the earlier waypoint keeps the lower number.
+      await addWaypoint(point: waypoints[waypointIndex].point, revisit: true);
+    }
     tripValues.afterWaypoint();
     isSaved = false;
     // Micro-nudge to update MapLibre the nudge causes the onIdle callback to be called
@@ -1160,7 +1164,7 @@ class CurrentTripItem extends MyTripItem {
           ? Point(target.longitude, target.latitude)
           : point;
       // routeFeatures.clear();
-      Waypoint waypoint = Waypoint(point: point);
+      Waypoint waypoint = Waypoint(point: point, revisit: revisit);
       // Set the mapUpdates flag
       routes.last.waypoints.insert(insertAt, waypoint);
       // Start / Waypoint / End points of interest follow the new order -
@@ -1271,7 +1275,13 @@ class CurrentTripItem extends MyTripItem {
         index >= routes[routeIndex].waypoints.length) {
       return;
     }
-    routes[routeIndex].waypoints.removeAt(index);
+    Waypoint removed = routes[routeIndex].waypoints.removeAt(index);
+    if (!removed.revisit) {
+      // Its revisits have no markers, so they'd be left invisible but routed
+      routes[routeIndex]
+          .waypoints
+          .removeWhere((w) => w.revisit && w.point == removed.point);
+    }
     syncWaypointPointsOfInterest(waypoints: routes[routeIndex].waypoints);
     if (routes[routeIndex].waypoints.length > 1) {
       // Keep the waypoints if the router fails rather than losing the trip
