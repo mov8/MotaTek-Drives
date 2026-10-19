@@ -800,14 +800,6 @@ class CurrentTripItem extends MyTripItem {
     isSaved = false;
   }
 
-  /// Manual mode removes the last waypoint, no need for it to be under the crosshair
-  Future<void> requestRemoveLastWaypoint() async {
-    if (routes.isNotEmpty && routes.first.waypoints.isNotEmpty) {
-      waypointIndex = routes.first.waypoints.length - 1;
-      await requestRemoveWaypoint();
-    }
-  }
-
   Future<void> requestRemoveWaypoint() async {
     tripValues.setState = true;
     if (waypointIndex > -1) {
@@ -1250,7 +1242,8 @@ class CurrentTripItem extends MyTripItem {
         removedIndex: index, waypoints: routes[routeIndex].waypoints);
     if (routes[routeIndex].waypoints.length > 1) {
       // Keep the waypoints if the router fails rather than losing the trip
-      List<Route> rerouted = await replaceRoutes(routes: routes);
+      List<Route> rerouted =
+          await replaceRoutes(routes: routes, updateBuffer: false);
       if (rerouted.isNotEmpty) {
         routes = rerouted;
       }
