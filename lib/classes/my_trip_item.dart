@@ -546,31 +546,14 @@ class CurrentTripItem extends MyTripItem {
         actions.add(
           IconButton(
             onPressed: () async {
-              if (backBufferIndex < backBuffer.length) {
-                routes.last.waypoints = backBuffer[++backBufferIndex];
-                if (routes.last.waypoints.length < 2) {
-                  routes.last.lines.clear();
-                } else {
-                  routes = await replaceRoutes(
-                    routes: routes,
-                    updateBuffer: false,
-                  );
-                }
-                mapUpdates = MapUpdates.routesAndWaypoints;
-                MapService().updateMapGeoJson(mapUpdates: mapUpdates);
-                MapService().webAppBarController?.update();
-                MapService().persistentAppBarController?.refresh();
-                await MapService()
-                    .controller!
-                    .animateCamera(CameraUpdate.zoomBy(0.000001));
-                onUpdate!(true);
+              if (canUndo) {
+                await undo();
+                onUpdate?.call(true);
               }
             },
             icon: Icon(
               Icons.undo_outlined,
-              color: backBufferIndex == backBuffer.length - 1
-                  ? Colors.grey
-                  : Colors.white,
+              color: canUndo ? Colors.white : Colors.grey,
             ),
           ),
         );
@@ -578,23 +561,14 @@ class CurrentTripItem extends MyTripItem {
         actions.add(
           IconButton(
             onPressed: () async {
-              if (backBufferIndex > 0) {
-                routes.last.waypoints = backBuffer[--backBufferIndex];
-                routes = await replaceRoutes(
-                  routes: routes,
-                  updateBuffer: false,
-                );
-                mapUpdates = MapUpdates.routesAndWaypoints;
-                MapService().updateMapGeoJson(mapUpdates: mapUpdates);
-                await MapService()
-                    .controller!
-                    .animateCamera(CameraUpdate.zoomBy(0.000001));
-                onUpdate!(true);
+              if (canRedo) {
+                await redo();
+                onUpdate?.call(true);
               }
             },
             icon: Icon(
               Icons.redo_outlined,
-              color: backBufferIndex == 0 ? Colors.grey : Colors.white,
+              color: canRedo ? Colors.white : Colors.grey,
             ),
           ),
         );
@@ -1214,7 +1188,8 @@ class CurrentTripItem extends MyTripItem {
   addToBackBuffer({Route? route}) {
     route ??= routes.last;
     if (backBufferIndex > 0) {
-      backBuffer.removeRange(0, backBufferIndex - 1);
+      // Ditch the undone states - removeRange's end is exclusive
+      backBuffer.removeRange(0, backBufferIndex);
     }
     List<Waypoint> waypoints = [];
     for (int i = 0; i < route.waypoints.length; i++) {
@@ -1225,10 +1200,62 @@ class CurrentTripItem extends MyTripItem {
     backBuffer.insert(0, waypoints);
     backBufferIndex = 0;
     if (backBuffer.length > 10) {
-      backBuffer.removeRange(10, backBuffer.length - 1);
+      backBuffer.removeRange(10, backBuffer.length);
     }
     MapService().webAppBarController?.update();
     MapService().persistentAppBarController?.refresh();
+  }
+
+  /// backBuffer[0] is the latest state, so undo moves backBufferIndex up
+  /// and redo moves it back down.
+  bool get canUndo => backBufferIndex < backBuffer.length - 1;
+
+  bool get canRedo => backBufferIndex > 0;
+
+  Future<void> undo() async {
+    if (canUndo) {
+      await _restoreBackBuffer(++backBufferIndex);
+    }
+  }
+
+  Future<void> redo() async {
+    if (canRedo) {
+      await _restoreBackBuffer(--backBufferIndex);
+    }
+  }
+
+  /// Restores a copy of backBuffer[index] - a copy so later changes to the
+  /// route don't alter the buffer.
+  Future<void> _restoreBackBuffer(int index) async {
+    if (routes.isEmpty) {
+      routes = [Route()];
+    }
+    routes.last.waypoints = [
+      for (Waypoint waypoint in backBuffer[index])
+        Waypoint.clone(waypoint: waypoint)
+    ];
+    syncWaypointPointsOfInterest(waypoints: routes.last.waypoints);
+    if (routes.last.waypoints.length > 1) {
+      List<Route> rerouted =
+          await replaceRoutes(routes: routes, updateBuffer: false);
+      if (rerouted.isNotEmpty) {
+        routes = rerouted;
+      }
+    } else {
+      // Too few waypoints to route - remove the old line and maneuvers
+      routes.last.lines = [];
+      maneuvers.clear();
+      distance = 0;
+    }
+    waypointIndex = -1;
+    waypointState = WaypointState.none;
+    isSaved = false;
+    mapUpdates = MapUpdates.routesAndWaypoints;
+    MapService().updateMapGeoJson(mapUpdates: mapUpdates);
+    MapService().webAppBarController?.update();
+    MapService().persistentAppBarController?.refresh();
+    // Micro-nudge to update MapLibre the nudge causes the onIdle callback to be called
+    await MapService().controller!.animateCamera(CameraUpdate.zoomBy(0.000001));
   }
 
   /// removeWaypoint() works in both manual and editing modes.
@@ -1242,8 +1269,7 @@ class CurrentTripItem extends MyTripItem {
       return;
     }
     routes[routeIndex].waypoints.removeAt(index);
-    _renumberWaypointPointsOfInterest(
-        removedIndex: index, waypoints: routes[routeIndex].waypoints);
+    syncWaypointPointsOfInterest(waypoints: routes[routeIndex].waypoints);
     if (routes[routeIndex].waypoints.length > 1) {
       // Keep the waypoints if the router fails rather than losing the trip
       List<Route> rerouted =
@@ -1267,21 +1293,24 @@ class CurrentTripItem extends MyTripItem {
   }
 
   /// Each waypoint is mirrored by a Start (17), Waypoint (12) or End (18)
-  /// point of interest. Drop the removed waypoint's one and re-type and
-  /// re-position the rest to match the remaining waypoints, keeping Start
-  /// at pointsOfInterest[0].
-  void _renumberWaypointPointsOfInterest(
-      {required int removedIndex, required List<Waypoint> waypoints}) {
+  /// point of interest. Re-use, add or remove them so there's one per
+  /// waypoint, re-typed and re-positioned to match, keeping Start at
+  /// pointsOfInterest[0]. Used after a waypoint is removed, undone or redone.
+  void syncWaypointPointsOfInterest({required List<Waypoint> waypoints}) {
     final List<PointOfInterest> markers = [
       ...pointsOfInterest.where((poi) => poi.type == 17),
       ...pointsOfInterest.where((poi) => poi.type == 12),
       ...pointsOfInterest.where((poi) => poi.type == 18),
     ];
-    // Only renumber if they mirror the waypoints as addWaypoint() creates them
-    if (markers.length != waypoints.length + 1) {
-      return;
+    while (markers.length > waypoints.length) {
+      pointsOfInterest.remove(markers.removeLast());
     }
-    pointsOfInterest.remove(markers.removeAt(removedIndex));
+    while (markers.length < waypoints.length) {
+      PointOfInterest marker = PointOfInterest(
+          point: waypoints[markers.length].point, name: 'Waypoint', type: 12);
+      pointsOfInterest.add(marker);
+      markers.add(marker);
+    }
     for (int i = 0; i < markers.length; i++) {
       bool last = i == markers.length - 1;
       markers[i].type = i == 0 ? 17 : (last ? 18 : 12);

@@ -180,6 +180,9 @@ List<Map<String, dynamic>> routesToGeoJson(
   List<Map<String, dynamic>> features = [];
   if (routes.isNotEmpty) {
     for (int i = 0; i < routes.length; i++) {
+      // A LineString needs 2+ points - an invalid one makes MapLibre reject
+      // the whole source and keep drawing the previous route
+      if (routes[i].lines.length < 2) continue;
       features.add({
         "type": "Feature",
         "geometry": {"type": "LineString", "coordinates": routes[i].lines},
@@ -208,6 +211,9 @@ List<Map<String, dynamic>> goodRoadsToGeoJson(
   List<Map<String, dynamic>> features = [];
   if (routes.isNotEmpty) {
     for (int i = 0; i < routes.length; i++) {
+      // A LineString needs 2+ points - an invalid one makes MapLibre reject
+      // the whole source and keep drawing the previous route
+      if (routes[i].lines.length < 2) continue;
       features.add({
         "type": "Feature",
         "geometry": {"type": "LineString", "coordinates": routes[i].lines},
