@@ -376,6 +376,7 @@ class CurrentTripItem extends MyTripItem {
     tripValues.autoCentre = false;
     tripState = TripState.none;
     MapService().webAppBarController?.update();
+    MapService().persistentAppBarController?.refresh();
     tripHeaderController.clear();
   }
 
@@ -558,6 +559,7 @@ class CurrentTripItem extends MyTripItem {
                 mapUpdates = MapUpdates.routesAndWaypoints;
                 MapService().updateMapGeoJson(mapUpdates: mapUpdates);
                 MapService().webAppBarController?.update();
+                MapService().persistentAppBarController?.refresh();
                 await MapService()
                     .controller!
                     .animateCamera(CameraUpdate.zoomBy(0.000001));
@@ -992,6 +994,7 @@ class CurrentTripItem extends MyTripItem {
       backBuffer.add(route.waypoints);
     }
     MapService().webAppBarController?.update();
+    MapService().persistentAppBarController?.refresh();
     backBufferIndex = 0;
   }
 
@@ -1225,6 +1228,7 @@ class CurrentTripItem extends MyTripItem {
       backBuffer.removeRange(10, backBuffer.length - 1);
     }
     MapService().webAppBarController?.update();
+    MapService().persistentAppBarController?.refresh();
   }
 
   /// removeWaypoint() works in both manual and editing modes.
@@ -1657,6 +1661,7 @@ class CurrentTripItem extends MyTripItem {
     mapUpdates = MapUpdates.routesAndWaypoints;
     MapService().updateMapGeoJson(mapUpdates: mapUpdates);
     MapService().webAppBarController?.update();
+    MapService().persistentAppBarController?.refresh();
   }
 
   /// changeRoute

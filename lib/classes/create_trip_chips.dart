@@ -158,17 +158,18 @@ List<TripChip> resolveChip(TripChip chip, CurrentTripItem trip) =>
       TripChip.waypoint when trip.isGoodRoad || _waypointCount(trip) < 2 => [
           TripChip.waypoint
         ],
+      // Create trip mode only adds waypoints at the end (removed with the
+      // ActionBar undo). Revisiting the last waypoint makes no sense - it's
+      // under the crosshair straight after it's added.
+      TripChip.waypoint when trip.tripState != TripState.editing =>
+        trip.waypointState == WaypointState.remove && !_overLastWaypoint(trip)
+            ? [TripChip.revisitWaypoint]
+            : [TripChip.waypoint],
+      // Edit mode
       TripChip.waypoint => switch (trip.waypointState) {
           WaypointState.insert => [TripChip.insertWaypoint],
           WaypointState.extendStart => [TripChip.extendStart],
           WaypointState.extendEnd => [TripChip.extendEnd],
-          // Revisiting the last waypoint makes no sense - it's under the
-          // crosshair straight after it's added.
-          // Manual mode removes the last waypoint with the ActionBar undo
-          WaypointState.remove when trip.tripState != TripState.editing =>
-            _overLastWaypoint(trip)
-                ? [TripChip.waypoint]
-                : [TripChip.revisitWaypoint],
           WaypointState.remove => _overLastWaypoint(trip)
               ? [TripChip.removeWaypoint]
               : [TripChip.removeWaypoint, TripChip.revisitWaypoint],

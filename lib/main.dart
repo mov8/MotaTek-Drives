@@ -3,6 +3,7 @@ import 'package:drives/helpers/edit_helpers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:hive_flutter/adapters.dart';
 import 'dart:developer' as developer;
 import 'package:maplibre_gl/maplibre_gl.dart';
@@ -297,6 +298,13 @@ class PersistentAppBarController {
       _persistentAppBarState?.update(title);
     }
   }
+
+  /// refresh() rebuilds the actions - e.g. the undo / redo buttons
+  void refresh() {
+    if (_isAttached()) {
+      _persistentAppBarState?.refresh();
+    }
+  }
 }
 
 class PersistentAppBar extends StatefulWidget implements PreferredSizeWidget {
@@ -340,6 +348,20 @@ class _PersistentAppBarState extends State<PersistentAppBar> {
     setState(() => _title = title.isNotEmpty ? title : _title);
   }
 
+  /// Can be called by CurrentTripItem() while a frame is being built,
+  /// so defer the rebuild to after the frame if necessary
+  void refresh() {
+    if (!mounted) return;
+    if (SchedulerBinding.instance.schedulerPhase ==
+        SchedulerPhase.persistentCallbacks) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() {});
+      });
+    } else {
+      setState(() {});
+    }
+  }
+
   /// 0 = none
   @override
   Widget build(BuildContext context) {
@@ -361,6 +383,15 @@ class _PersistentAppBarState extends State<PersistentAppBar> {
       ),
       iconTheme: const IconThemeData(color: Colors.white),
       actions: [
+        // Undo / redo waypoints when creating or editing a trip on the map
+        if (NavigationService().page == 2)
+          ...CurrentTripItem().getActions(
+            context: context,
+            onUpdate: (_) {
+              MapService().createTripStackController?.refresh();
+              refresh();
+            },
+          ),
         if (widget.page == 2)
           IconButton(
             onPressed: () {
