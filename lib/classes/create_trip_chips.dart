@@ -126,13 +126,13 @@ const Map<PlanPhase, List<TripChip>> chipsForPhase = {
     TripChip.saveTrip,
     TripChip.clear,
   ],
+  // A saved trip, e.g. loaded from My Trips. Group / Messages only show for a
+  // group drive (resolveChip)
   PlanPhase.loaded: [
-    TripChip.editRoute,
     TripChip.follow,
-    TripChip.steps,
+    TripChip.editRoute,
     TripChip.group,
     TripChip.messages,
-    TripChip.clear,
   ],
   PlanPhase.following: [
     TripChip.stopFollowing,

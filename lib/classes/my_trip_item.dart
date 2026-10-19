@@ -663,7 +663,9 @@ class CurrentTripItem extends MyTripItem {
     /// clearAll sets tripState to TripState.clearing making sure that the geoJson is updated on next _onIdle
     clearAll(newTripState: TripState.clearing);
     // tripState = TripState.clearing;
-    mapUpdates = MapUpdates.routesAndWaypoints;
+    // Everything has been cleared, so redraw every source - routesAndWaypoints
+    // left the points of interest and great roads on the map
+    mapUpdates = MapUpdates.updateAll;
     MapService().updateMapGeoJson(mapUpdates: mapUpdates);
     // Micro-nudge to update MapLibre the nudge causes the onIdle callback to be called
 

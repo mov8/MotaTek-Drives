@@ -458,7 +458,8 @@ class _MyTripTileState extends State<MyTripTile> {
     CurrentTripItem().goodRoads = widget.myTripItem.goodRoads;
     CurrentTripItem().score = widget.myTripItem.score;
 
-    CurrentTripItem().tripState = TripState.editing;
+    // Loaded, not editing - the chips offer Follow drive and Edit route
+    CurrentTripItem().tripState = TripState.loaded;
     // Undo should only apply to changes made after the trip is loaded
     CurrentTripItem().loadBackBuffer();
     CurrentTripItem().isSaved = true;
@@ -476,6 +477,8 @@ class _MyTripTileState extends State<MyTripTile> {
           CurrentTripItem().pointsOfInterest.first.point.x.toDouble());
       MapService().controller?.moveCamera(CameraUpdate.newLatLng(position));
       CurrentTripItem().tripValues.editing();
+      // No crosshair until the user taps Edit route
+      CurrentTripItem().tripValues.showTarget = false;
       // The map's onIdle works out what's under the crosshair
       CurrentTripItem().waypointIndex = -1;
       CurrentTripItem().waypointState = WaypointState.none;
