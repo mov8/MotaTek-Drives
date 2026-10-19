@@ -438,6 +438,8 @@ class _MyTripTileState extends State<MyTripTile> {
     CurrentTripItem().score = widget.myTripItem.score;
 
     CurrentTripItem().tripState = TripState.editing;
+    // Undo should only apply to changes made after the trip is loaded
+    CurrentTripItem().loadBackBuffer();
     // CurrentTripItem().tripValues.showTarget = true;
     CurrentTripItem().tripType = TripType.none;
     CurrentTripItem().updateMap = true;
@@ -454,7 +456,9 @@ class _MyTripTileState extends State<MyTripTile> {
       MapService().controller?.moveCamera(CameraUpdate.newLatLng(position));
       NavigationService().selected(2);
       CurrentTripItem().tripValues.editing();
-      CurrentTripItem().waypointState = WaypointState.remove;
+      // The map's onIdle works out what's under the crosshair
+      CurrentTripItem().waypointIndex = -1;
+      CurrentTripItem().waypointState = WaypointState.none;
     } catch (e) {
       developer.log('Error MyTripTile().loadTrip(): ${e.toString()}',
           name: 'error');

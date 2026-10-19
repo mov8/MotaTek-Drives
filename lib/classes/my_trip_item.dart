@@ -961,15 +961,20 @@ class CurrentTripItem extends MyTripItem {
     isSaved = false;
   }
 
-  loadBackBuffer({Route? route}) {
-    route ??= routes.last;
-    backBuffer.clear();
-    if (route.waypoints.isNotEmpty) {
-      backBuffer.add(route.waypoints);
-    }
+  /// Starts the undo history with just the current waypoints, so undo only
+  /// applies to changes made after this - e.g. after a trip is loaded.
+  /// Stores a copy so later changes to the route don't alter the buffer.
+  void loadBackBuffer({Route? route}) {
+    route ??= routes.isEmpty ? Route() : routes.last;
+    backBuffer = [
+      [
+        for (Waypoint waypoint in route.waypoints)
+          Waypoint.clone(waypoint: waypoint)
+      ]
+    ];
+    backBufferIndex = 0;
     MapService().webAppBarController?.update();
     MapService().persistentAppBarController?.refresh();
-    backBufferIndex = 0;
   }
 
   /// nearestTwoWaypoints() returns the nearest two waypoints in route.waypoints[]
