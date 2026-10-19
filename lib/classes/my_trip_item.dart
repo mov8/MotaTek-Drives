@@ -1227,13 +1227,66 @@ class CurrentTripItem extends MyTripItem {
     MapService().webAppBarController?.update();
   }
 
-  removeWaypoint({int index = 0, int routeIndex = 0}) async {
+  /// removeWaypoint() works in both manual and editing modes.
+  /// The numbers shown on the map come from each waypoint's position in the
+  /// list, so they renumber themselves when the geoJson is regenerated.
+  /// The Start / Waypoint / End points of interest are renumbered here.
+  Future<void> removeWaypoint({int index = 0, int routeIndex = 0}) async {
+    if (routeIndex >= routes.length ||
+        index < 0 ||
+        index >= routes[routeIndex].waypoints.length) {
+      return;
+    }
     routes[routeIndex].waypoints.removeAt(index);
-    routes = await replaceRoutes(routes: routes);
-    addToBackBuffer(route: routes[routeIndex]);
+    _renumberWaypointPointsOfInterest(
+        removedIndex: index, waypoints: routes[routeIndex].waypoints);
+    if (routes[routeIndex].waypoints.length > 1) {
+      // Keep the waypoints if the router fails rather than losing the trip
+      List<Route> rerouted = await replaceRoutes(routes: routes);
+      if (rerouted.isNotEmpty) {
+        routes = rerouted;
+      }
+    } else {
+      // Too few waypoints to route - remove the old line and maneuvers
+      routes[routeIndex].lines = [];
+      maneuvers.clear();
+      distance = 0;
+    }
+    // The removed waypoint was under the crosshair - onIdle will recalculate
+    waypointIndex = -1;
+    waypointState = WaypointState.none;
+    addToBackBuffer(route: routes[min(routeIndex, routes.length - 1)]);
     mapUpdates = MapUpdates.routesAndWaypoints;
     MapService().updateMapGeoJson(mapUpdates: mapUpdates);
     isSaved = false;
+  }
+
+  /// Each waypoint is mirrored by a Start (17), Waypoint (12) or End (18)
+  /// point of interest. Drop the removed waypoint's one and re-type and
+  /// re-position the rest to match the remaining waypoints, keeping Start
+  /// at pointsOfInterest[0].
+  void _renumberWaypointPointsOfInterest(
+      {required int removedIndex, required List<Waypoint> waypoints}) {
+    final List<PointOfInterest> markers = [
+      ...pointsOfInterest.where((poi) => poi.type == 17),
+      ...pointsOfInterest.where((poi) => poi.type == 12),
+      ...pointsOfInterest.where((poi) => poi.type == 18),
+    ];
+    // Only renumber if they mirror the waypoints as addWaypoint() creates them
+    if (markers.length != waypoints.length + 1) {
+      return;
+    }
+    pointsOfInterest.remove(markers.removeAt(removedIndex));
+    for (int i = 0; i < markers.length; i++) {
+      bool last = i == markers.length - 1;
+      markers[i].type = i == 0 ? 17 : (last ? 18 : 12);
+      markers[i].name = i == 0 ? 'Start' : (last ? 'End' : 'Waypoint');
+      markers[i].point = waypoints[i].point;
+    }
+    if (markers.isNotEmpty) {
+      pointsOfInterest.remove(markers.first);
+      pointsOfInterest.insert(0, markers.first);
+    }
   }
 
   /// addGoodWaypoint() adds a new GoodRoads.waypoint under the cross-hairs.
