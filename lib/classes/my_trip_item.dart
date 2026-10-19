@@ -1694,16 +1694,49 @@ class CurrentTripItem extends MyTripItem {
     await MapService().controller!.animateCamera(CameraUpdate.zoomBy(0.000001));
   }
 
+  /// reverseRoute() reverses the waypoints and feeds the new order to the
+  /// router, so the maneuvers describe the trip driven the other way. The
+  /// waypoint numbers follow the new order. Reverses the route on screen, not
+  /// backBuffer[0], which isn't the current state after an undo.
   Future<void> reverseRoute({List<Map<String, dynamic>>? features}) async {
-    // features = features ?? routeFeatures;
-    List<Waypoint> points = backBuffer[0];
-    backBuffer.insert(0, points.reversed.toList());
-    routes.last.waypoints = backBuffer[0];
-    routes = await replaceRoutes(routes: routes);
+    if (routes.isEmpty || routes.last.waypoints.length < 2) {
+      return;
+    }
+    routes.last.waypoints =
+        markRevisits(waypoints: routes.last.waypoints.reversed.toList());
+    syncWaypointPointsOfInterest(waypoints: routes.last.waypoints);
+    List<Route> rerouted =
+        await replaceRoutes(routes: routes, updateBuffer: false);
+    if (rerouted.isNotEmpty) {
+      routes = rerouted;
+    }
+    waypointIndex = -1;
+    waypointState = WaypointState.none;
+    isSaved = false;
+    addToBackBuffer(); // also refreshes the app bars' undo / redo
     mapUpdates = MapUpdates.routesAndWaypoints;
     MapService().updateMapGeoJson(mapUpdates: mapUpdates);
-    MapService().webAppBarController?.update();
-    MapService().persistentAppBarController?.refresh();
+  }
+
+  /// The first visit to a point is the waypoint and any later visit a revisit.
+  /// After reversing, the revisit that was at the end is now first, so the
+  /// flags have to move to keep the start's marker and the lower number.
+  List<Waypoint> markRevisits({required List<Waypoint> waypoints}) {
+    List<Point> visited = [];
+    List<Waypoint> marked = [];
+    for (Waypoint waypoint in waypoints) {
+      bool revisit = visited.contains(waypoint.point);
+      if (!revisit) {
+        visited.add(waypoint.point);
+      }
+      marked.add(Waypoint(
+        colour: waypoint.colour,
+        point: waypoint.point,
+        isGoodRoad: waypoint.isGoodRoad,
+        revisit: revisit,
+      ));
+    }
+    return marked;
   }
 
   /// changeRoute
