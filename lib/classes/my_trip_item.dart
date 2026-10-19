@@ -721,12 +721,11 @@ class CurrentTripItem extends MyTripItem {
     tripActions = TripActions.none;
     tripValues.beforeWaypoint();
     // addWaypoints methods set the appropriate mapUpdate enum values
-    await addWaypoint(index: 0, point: tripValues.position);
-
+    // The new waypoint becomes waypoint 1 and the rest move up one
     if (isGoodRoad) {
       await addGoodRoadWaypoint(point: tripValues.position);
     } else {
-      await addWaypoint(index: -1, point: tripValues.position);
+      await addWaypoint(atStart: true, point: tripValues.position);
     }
     tripValues.afterWaypoint();
     // Micro-nudge to update MapLibre the nudge causes the onIdle callback to be called
@@ -1129,7 +1128,9 @@ class CurrentTripItem extends MyTripItem {
     pointsOfInterest.last.name = 'End';
   }
 
-  /// addWaypoint() adds a new waypoint under the crosshairs.
+  /// addWaypoint() adds a new waypoint under the crosshairs - at the end, or
+  /// at the start when atStart (Extend start), or after the selected waypoint
+  /// when waypointState is insert.
   /// the call to replaceRoutes() ensures that everything is in
   /// the correct sequence.
   /// It generates the geoJSON data for the routes, waypoints and points of interest.
@@ -1139,11 +1140,14 @@ class CurrentTripItem extends MyTripItem {
     Point? point,
     bool revisit = false,
     bool insert = false,
+    bool atStart = false,
   }) async {
     try {
       routes = routes.isEmpty ? [Route(waypoints: [])] : routes;
       int insertAt = routes.last.waypoints.length;
-      if (waypointState == WaypointState.insert) {
+      if (atStart) {
+        insertAt = 0;
+      } else if (waypointState == WaypointState.insert) {
         for (int i = 0; i < routes.last.waypoints.length; i++) {
           if (routes.last.waypoints[i].selected!) {
             insertAt = i + 1;
@@ -1159,28 +1163,9 @@ class CurrentTripItem extends MyTripItem {
       Waypoint waypoint = Waypoint(point: point);
       // Set the mapUpdates flag
       routes.last.waypoints.insert(insertAt, waypoint);
-      if (routes.last.waypoints.length == 1) {
-        pointsOfInterest.add(
-          PointOfInterest(
-            point: Point(target.longitude, target.latitude),
-            name: 'Start',
-            type: 17,
-          ),
-        );
-      } else {
-        final lstIdx = pointsOfInterest.indexWhere((poi) => poi.type == 18);
-        if (lstIdx >= 0) {
-          pointsOfInterest[lstIdx].type = 12;
-          pointsOfInterest[lstIdx].name = 'Waypoint';
-        }
-        pointsOfInterest.add(
-          PointOfInterest(
-            point: Point(target.longitude, target.latitude),
-            name: 'End',
-            type: 18,
-          ),
-        );
-      }
+      // Start / Waypoint / End points of interest follow the new order -
+      // previously a new End was always added, wrong for Extend start / Insert
+      syncWaypointPointsOfInterest(waypoints: routes.last.waypoints);
 
       routes = await replaceRoutes(routes: routes, updateBuffer: false);
       addToBackBuffer();
