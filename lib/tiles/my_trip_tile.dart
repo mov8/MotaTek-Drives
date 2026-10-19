@@ -433,9 +433,7 @@ class _MyTripTileState extends State<MyTripTile> {
               "$current hasn't been saved. Loading \"${widget.myTripItem.title}\" will clear it.",
           okValue: index,
           callback: (value) {
-            // The dialog pops itself after the callback, so load afterwards
-            // or the pop would close the map instead of the dialog
-            if (value > -1) Future.microtask(_loadTrip);
+            if (value > -1) _loadTrip();
           });
     } else {
       await _loadTrip();

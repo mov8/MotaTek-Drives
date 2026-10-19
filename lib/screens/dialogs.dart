@@ -595,54 +595,60 @@ class Utility {
       required String alertMessage,
       required int okValue,
       required Function callback}) {
-    // set up the buttons
-    Widget okButton = TextButton(
-      child: const Text(
-        "Ok",
-        style: TextStyle(fontSize: 24),
-      ),
-      onPressed: () {
-        callback(okValue);
-        Navigator.pop(context);
-      },
-    );
-    Widget cancelButton = TextButton(
-      child: const Text(
-        "Cancel",
-        style: TextStyle(fontSize: 24),
-      ),
-      onPressed: () {
-        callback(-1);
-        Navigator.pop(context);
-      },
-    );
+    // showDialog() puts the dialog on the root navigator, but with go_router's
+    // StatefulShellRoute the caller's context belongs to a branch navigator.
+    // Popping with that context removed the branch's page, not the dialog, so
+    // pop with the dialog's own context - and before the callback, so the
+    // callback is free to navigate.
+    Widget okButton(BuildContext dialogContext) => TextButton(
+          child: const Text(
+            "Ok",
+            style: TextStyle(fontSize: 24),
+          ),
+          onPressed: () {
+            Navigator.of(dialogContext).pop();
+            callback(okValue);
+          },
+        );
+    Widget cancelButton(BuildContext dialogContext) => TextButton(
+          child: const Text(
+            "Cancel",
+            style: TextStyle(fontSize: 24),
+          ),
+          onPressed: () {
+            Navigator.of(dialogContext).pop();
+            callback(-1);
+          },
+        );
     // set up the AlertDialog
-    AlertDialog alert = AlertDialog(
-      title: Text(
-        alertTitle,
-        style: headlineStyle(context: context, size: 1, color: Colors.black),
-      ),
-      content: SingleChildScrollView(
-        child: ListBody(
-          children: <Widget>[
-            Text(
-              alertMessage,
-              style: textStyle(context: context, size: 2, color: Colors.black),
-            )
+    AlertDialog alert(BuildContext dialogContext) => AlertDialog(
+          title: Text(
+            alertTitle,
+            style:
+                headlineStyle(context: context, size: 1, color: Colors.black),
+          ),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: <Widget>[
+                Text(
+                  alertMessage,
+                  style:
+                      textStyle(context: context, size: 2, color: Colors.black),
+                )
+              ],
+            ),
+          ),
+          actions: [
+            okButton(dialogContext),
+            cancelButton(dialogContext),
           ],
-        ),
-      ),
-      actions: [
-        okButton,
-        cancelButton,
-      ],
-    );
+        );
 
     // show the dialog
     showDialog(
       context: context,
-      builder: (BuildContext context) {
-        return alert;
+      builder: (BuildContext dialogContext) {
+        return alert(dialogContext);
       },
     );
   }

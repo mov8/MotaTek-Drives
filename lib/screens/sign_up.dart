@@ -86,7 +86,7 @@ class _SignupFormState extends State<SignupForm> {
               alertMessage:
                   'Error getting user data email: ${Setup().user.email}',
               okValue: 1,
-              callback: () => {});
+              callback: (_) {});
         }
       }
     }
