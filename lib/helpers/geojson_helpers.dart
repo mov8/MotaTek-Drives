@@ -141,7 +141,7 @@ testFenceFilter(
 }
 
 /// stateFilter() is to allow features to be hidden if the TripState is inappropriate
-/// The geoJson has 3 possible state properties that matches a TripState.name where
+/// The geoJson has 4 possible state properties that matches a TripState.name where
 /// the filtered item should be exposed.
 
 List tripStateFilter({TripState tripState = TripState.none}) {
@@ -160,6 +160,11 @@ List tripStateFilter({TripState tripState = TripState.none}) {
     [
       "==",
       ["get", "trip-state-3"], // <- option 3
+      tripState.name
+    ],
+    [
+      "==",
+      ["get", "trip-state-4"], // <- option 4 - a saved trip, e.g. from My Trips
       tripState.name
     ]
   ];
@@ -387,6 +392,7 @@ List<Map<String, dynamic>> waypointsToGeoJson(
               "trip-state-1": "manual",
               "trip-state-2": "editing",
               "trip-state-3": "goodRoadStart",
+              "trip-state-4": "loaded",
               "number": i + 1,
               "color": waypoints[i].selected ?? false ? indexColour : colour,
             }
@@ -427,6 +433,7 @@ List<Map<String, dynamic>> routeEndsToGeoJson({
             "trip-state-1": "manual",
             "trip-state-2": "editing",
             "trip-state-3": "goodRoadStart",
+            "trip-state-4": "loaded",
             "number": i + 1,
             "color": colour, //"#673ab7", //colour,
           }
@@ -472,6 +479,7 @@ List<Map<String, dynamic>> goodRoadWaypointsToGeoJson(
               "trip-state-1": "manual",
               "trip-state-2": "editing",
               "trip-state-3": "goodRoadStart",
+              "trip-state-4": "loaded",
               "number": i + 1,
               "color": i == index ? indexColour : colour,
             }

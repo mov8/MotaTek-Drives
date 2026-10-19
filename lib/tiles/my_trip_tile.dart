@@ -489,6 +489,10 @@ class _MyTripTileState extends State<MyTripTile> {
     // Switch to the existing map page (Explore). context.push('/map') built a
     // second CreateTrip, duplicating the map's GlobalKey.
     MapService().bottomNavController?.selectPage(2);
+    // Draw the loaded trip. _onIdle only redraws everything while editing, so
+    // a loaded trip has to be drawn here. The nudge's onIdle then applies the
+    // loaded waypoint filter.
+    await CurrentTripItem().refreshMap(change: MapUpdates.updateAll);
   }
 
   Future<void> deleteTrip(int index) async {
