@@ -72,6 +72,7 @@ enum TripChip {
   extendStart('Extend start', Icons.pin_drop),
   extendEnd('Extend end', Icons.pin_drop),
   removeWaypoint('Remove waypoint', Icons.wrong_location),
+  removeLastWaypoint('Remove last waypoint', Icons.wrong_location),
   revisitWaypoint('Revisit waypoint', Icons.wrong_location),
   pointOfInterest('Point of interest', Icons.add_photo_alternate),
   addGreatRoad('Add great road', Icons.add_road),
@@ -100,9 +101,14 @@ enum TripChip {
 const Map<PlanPhase, List<TripChip>> chipsForPhase = {
   PlanPhase.idle: [TripChip.createManually, TripChip.trackDrive],
   PlanPhase.awaitingFirstWp: [TripChip.waypoint, TripChip.clear],
-  PlanPhase.oneWp: [TripChip.waypoint, TripChip.clear],
+  PlanPhase.oneWp: [
+    TripChip.waypoint,
+    TripChip.removeLastWaypoint,
+    TripChip.clear,
+  ],
   PlanPhase.routed: [
     TripChip.waypoint,
+    TripChip.removeLastWaypoint,
     TripChip.pointOfInterest,
     TripChip.addGreatRoad,
     TripChip.reverseTrip,
@@ -151,12 +157,18 @@ List<TripChip> resolveChip(TripChip chip, CurrentTripItem trip) =>
           WaypointState.insert => [TripChip.insertWaypoint],
           WaypointState.extendStart => [TripChip.extendStart],
           WaypointState.extendEnd => [TripChip.extendEnd],
+          // Manual mode only removes the last waypoint - removeLastWaypoint
+          WaypointState.remove when trip.tripState != TripState.editing => [
+              TripChip.revisitWaypoint
+            ],
           WaypointState.remove => [
               TripChip.removeWaypoint,
               TripChip.revisitWaypoint
             ],
           _ => [TripChip.waypoint],
         },
+      TripChip.removeLastWaypoint when trip.tripState == TripState.editing =>
+        [],
       TripChip.addGreatRoad
           when trip.highliteActions == HighliteActions.greatRoadHighlighted =>
         [TripChip.editGreatRoad],
@@ -245,6 +257,7 @@ class CreateTripChips extends StatelessWidget {
       TripChip.waypoint ||
       TripChip.insertWaypoint ||
       TripChip.removeWaypoint ||
+      TripChip.removeLastWaypoint ||
       TripChip.revisitWaypoint =>
         colourList[goodRoad ? Setup().goodRouteColour : Setup().routeColour],
       TripChip.addGreatRoad ||
@@ -263,6 +276,7 @@ class CreateTripChips extends StatelessWidget {
         TripChip.extendStart => extendStart,
         TripChip.extendEnd => extendEnd,
         TripChip.removeWaypoint => removeWaypoint,
+        TripChip.removeLastWaypoint => removeLastWaypoint,
         TripChip.revisitWaypoint => revisitWaypoint,
         TripChip.pointOfInterest => pointOfInterest,
         TripChip.addGreatRoad => greatRoad,
@@ -347,6 +361,11 @@ class CreateTripChips extends StatelessWidget {
 
   Future<void> removeWaypoint() async {
     await CurrentTripItem().requestRemoveWaypoint();
+    await _executeChipActions(tripActions: MyTripActions.deleteWaypoint);
+  }
+
+  Future<void> removeLastWaypoint() async {
+    await CurrentTripItem().requestRemoveLastWaypoint();
     await _executeChipActions(tripActions: MyTripActions.deleteWaypoint);
   }
 
