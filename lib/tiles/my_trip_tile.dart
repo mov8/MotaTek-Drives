@@ -474,9 +474,7 @@ class _MyTripTileState extends State<MyTripTile> {
       LatLng position = LatLng(
           CurrentTripItem().pointsOfInterest.first.point.y.toDouble(),
           CurrentTripItem().pointsOfInterest.first.point.x.toDouble());
-      MapService().bottomNavController?.setHighlight(2);
       MapService().controller?.moveCamera(CameraUpdate.newLatLng(position));
-      NavigationService().selected(2);
       CurrentTripItem().tripValues.editing();
       // The map's onIdle works out what's under the crosshair
       CurrentTripItem().waypointIndex = -1;
@@ -485,9 +483,9 @@ class _MyTripTileState extends State<MyTripTile> {
       developer.log('Error MyTripTile().loadTrip(): ${e.toString()}',
           name: 'error');
     }
-    if (mounted) {
-      context.push('/map');
-    }
+    // Switch to the existing map page (Explore). context.push('/map') built a
+    // second CreateTrip, duplicating the map's GlobalKey.
+    MapService().bottomNavController?.selectPage(2);
   }
 
   Future<void> deleteTrip(int index) async {

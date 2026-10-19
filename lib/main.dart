@@ -454,6 +454,13 @@ class BottomNavController {
       _bottomNavState!.setHighlight(value);
     }
   }
+
+  /// Switch to a bottom nav page from code, e.g. to the map after loading a trip
+  void selectPage(int index) {
+    if (_isAttached()) {
+      _bottomNavState!.selectPage(index);
+    }
+  }
 }
 
 class BottomNav extends StatefulWidget {
@@ -485,6 +492,18 @@ class _BottomNavState extends State<BottomNav> {
     currentPageIndex = value;
   }
 
+  /// Switches to a branch's existing page, as tapping its destination does.
+  /// Don't context.push() a branch's route instead - that builds a second
+  /// copy of the page, and the map page's MapLibreMap has a GlobalKey.
+  void selectPage(int index) {
+    widget.navigationShell.goBranch(index,
+        initialLocation: index == widget.navigationShell.currentIndex);
+    int titleIndex = index; // > 1 ? ++index : index;
+    MapService().persistentAppBarController?.update(_titles[titleIndex]);
+    NavigationService().selected(index);
+    setState(() => currentPageIndex = index);
+  }
+
   final List<String> _titles = [
     'Drives community',
     'Published trips',
@@ -498,14 +517,7 @@ class _BottomNavState extends State<BottomNav> {
   Widget build(BuildContext context) {
     return NavigationBar(
       selectedIndex: currentPageIndex,
-      onDestinationSelected: (int index) {
-        widget.navigationShell.goBranch(index,
-            initialLocation: index == widget.navigationShell.currentIndex);
-        int titleIndex = index; // > 1 ? ++index : index;
-        MapService().persistentAppBarController?.update(_titles[titleIndex]);
-        NavigationService().selected(index);
-        setState(() => currentPageIndex = index);
-      },
+      onDestinationSelected: (int index) => selectPage(index),
       surfaceTintColor: Colors.blue,
       indicatorColor: Colors.lightBlue,
       labelTextStyle: WidgetStateProperty.resolveWith<TextStyle>(
