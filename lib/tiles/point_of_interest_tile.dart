@@ -150,6 +150,8 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
   bool isExpanded = false;
   bool _memoPlaying = false;
   bool _isNew = true;
+  // Opened incomplete - stays expanded until the drawer is closed and re-opened
+  bool _editing = false;
   late FocusNode fn1;
   late FocusNode fn2;
   final player = AudioPlayer()..setReleaseMode(ReleaseMode.stop);
@@ -188,6 +190,7 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
     index = widget.index;
     _expanded = false;
     _isNew = widget.pointOfInterest.name.isEmpty;
+    _editing = canEdit && widget.pointOfInterest.complete() != 3;
     if (_isNew && canEdit) {
       // After the first frame so the TextFormField is attached to fn1
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -199,6 +202,14 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
     _expandController = ExpansibleController();
     _typeIcon = getTypeIcon();
     _typeName = getTitle();
+  }
+
+  /// The BottomDrawer creates new tile widgets when its content is set, i.e.
+  /// when it's re-opened, so only then let a completed tile collapse.
+  @override
+  void didUpdateWidget(covariant PointOfInterestTile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _editing = widget.canEdit && widget.pointOfInterest.complete() != 3;
   }
 
   @override
@@ -215,7 +226,8 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.pointOfInterest.name.isEmpty ||
+    if (_editing ||
+        widget.pointOfInterest.name.isEmpty ||
         widget.pointOfInterest.description.isEmpty) {
       _expandController.expand();
     } else if (_expanded == false) {
@@ -594,11 +606,18 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
               url: name, caption: 'image $imageCount', rotation: 0, key: key);
           widget.pointOfInterest.addPhoto(photo: newPhoto);
           _expandController.expand(); // <-- Stop keyboard closing
-          setState(() => fn2.requestFocus());
+          setState(() {});
         } catch (e) {
           debugPrint('Error saving temporary image: ${e.toString()}');
         }
       }
+      // The gallery closes the keyboard but fn2 can still think it has focus,
+      // so requestFocus() alone won't re-show it. Keeping the keyboard means
+      // done can always close the drawer.
+      fn2.unfocus();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) fn2.requestFocus();
+      });
     }
   }
 

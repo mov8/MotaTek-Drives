@@ -382,7 +382,7 @@ enum MapUpdates {
   final int value;
 
   MapUpdates add(MapUpdates added) {
-    return _fromValue(added.value | value);
+    return _atLeast(added.value | value);
   }
 
   MapUpdates remove(MapUpdates removed) {
@@ -427,6 +427,21 @@ enum MapUpdates {
   }
 
   // route-data, waypoint-data, user-data, good-road-data, point-of-interest-data
+
+  /// Not every combination of bits has an enum value - e.g. waypoints (4) +
+  /// pointsOfInterest (16) = 20. _fromValue() returns none for those, which
+  /// silently skips the update. _atLeast() returns the exact value, or the
+  /// smallest one that includes all the bits - redrawing an extra source is
+  /// harmless.
+  static MapUpdates _atLeast(int value) {
+    MapUpdates best = MapUpdates.updatingAll;
+    for (MapUpdates mapUpdate in MapUpdates.values) {
+      if (mapUpdate.value & value == value && mapUpdate.value < best.value) {
+        best = mapUpdate;
+      }
+    }
+    return best;
+  }
 
   static MapUpdates _fromValue(int value) {
     return MapUpdates.values
