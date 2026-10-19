@@ -413,14 +413,26 @@ map.on('mousemove', (e) => {
     return idx;
   }
 
-  /// Return 1 of 3 states
-  ///   1 WaypointState.insert
-  ///   2 WaypointState.extendStart
-  ///   3 WaypointState.extendEnd
-  /// Get nearest waypoints
-  /// If nearest waypoints contains start or end
-  ///   if between start and point > length then extendEnd
-  ///   if between end and point > length then extendStart
+  /// getWaypointState() works out what's under the crosshair on each onIdle:
+  ///   WaypointState.remove       crosshair is over an existing waypoint
+  ///   WaypointState.extendStart  crosshair is beyond the start
+  ///   WaypointState.extendEnd    crosshair is beyond the end
+  ///   WaypointState.insert       crosshair is near the start or end, but
+  ///                              within the route
+  ///   WaypointState.none         anywhere else
+  ///
+  /// Each end is only judged against its neighbouring waypoint, not the other
+  /// end of the route. Comparing with the other end fails on a circular route,
+  /// where the start and end are close together:
+  ///   beyond the start: distance(crosshair, waypoint 2) >
+  ///                     distance(start, waypoint 2)
+  ///   beyond the end:   distance(crosshair, last but one) >
+  ///                     distance(end, last but one)
+  /// An end is considered when it's the waypoint nearest the crosshair, or
+  /// when the other end is nearest and it's next nearest. On a circular route
+  /// both ends are close together, so checking only the nearest would let the
+  /// start always win - if both tests pass the nearer end decides.
+  /// It won't be right every time, but undo lets the user try again.
   ///
 
   Future<void> getWaypointState() async {
@@ -440,32 +452,39 @@ map.on('mousemove', (e) => {
     if (CurrentTripItem().waypointIndex > -1) {
       state = WaypointState.remove;
     } else if (waypoints.length > 1) {
-      /// Point near start nearest[0] is closer than nearest[1]
-      /// nearest[0] is the closest waypoint to target
-      if (nearest[0] == 0) {
-        // <- start is the closest
-        double gap = distanceBetween(
-            startXY: waypoints[0].point, endXY: waypoints[1].point);
+      int last = waypoints.length - 1;
+      // nearest[0] is the closest waypoint to target, nearest[1] the next.
+      // An end counts if it's the closest, or the other end is closest and
+      // it's next - the ends are close together, as on a circular route
+      bool nearStart =
+          nearest[0] == 0 || (nearest[0] == last && nearest[1] == 0);
+      bool nearEnd =
+          nearest[0] == last || (nearest[0] == 0 && nearest[1] == last);
 
-        /// check if the target is further away than waypoint2
-        if (distanceBetween(startXY: waypoints[1].point, endXY: position) >
-            gap) {
-          state = WaypointState.extendStart;
-        } else {
-          state = WaypointState.insert;
-        }
-      } else if (nearest[0] == waypoints.length - 1) {
-        double gap = distanceBetween(
-            startXY: waypoints[waypoints.length - 1].point,
-            endXY: waypoints[waypoints.length - 2].point);
-        if (distanceBetween(
-                startXY: waypoints[waypoints.length - 2].point,
-                endXY: position) >
-            gap) {
-          state = WaypointState.extendEnd;
-        } else {
-          state = WaypointState.insert;
-        }
+      /// Further from waypoint 2 than the start is
+      bool beyondStart = nearStart &&
+          distanceBetween(startXY: waypoints[1].point, endXY: position) >
+              distanceBetween(
+                  startXY: waypoints[0].point, endXY: waypoints[1].point);
+
+      /// Further from the last but one waypoint than the end is
+      bool beyondEnd = nearEnd &&
+          distanceBetween(startXY: waypoints[last - 1].point, endXY: position) >
+              distanceBetween(
+                  startXY: waypoints[last].point,
+                  endXY: waypoints[last - 1].point);
+
+      if (beyondStart && beyondEnd) {
+        // Circular route - the nearer end decides
+        state = nearest[0] == last
+            ? WaypointState.extendEnd
+            : WaypointState.extendStart;
+      } else if (beyondStart) {
+        state = WaypointState.extendStart;
+      } else if (beyondEnd) {
+        state = WaypointState.extendEnd;
+      } else if (nearest[0] == 0 || nearest[0] == last) {
+        state = WaypointState.insert;
       }
     }
     mapUpdates = mapUpdates.add(MapUpdates.waypoints);
