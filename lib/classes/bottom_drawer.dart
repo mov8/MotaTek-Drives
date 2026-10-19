@@ -164,10 +164,24 @@ class _BottomDrawerState extends State<BottomDrawer>
   }
 */
 
-  void close() async {
+  Future<void> close() async {
     MapService().tripHeaderController?.dismissKeyboard();
-    await Future.delayed(Duration(milliseconds: 300));
-    _isSheetContentExpanded = false;
+    _pointOfInterestController.dismissKeyboard();
+    FocusManager.instance.primaryFocus?.unfocus();
+    await _keyboardClosed();
+    if (mounted) {
+      setState(() => _isSheetContentExpanded = false);
+    }
+  }
+
+  /// Waits for the keyboard to finish closing so the keyboard and the drawer
+  /// don't animate at the same time. Gives up after a second.
+  Future<void> _keyboardClosed() async {
+    for (int i = 0;
+        i < 50 && mounted && View.of(context).viewInsets.bottom > 0;
+        i++) {
+      await Future.delayed(const Duration(milliseconds: 20));
+    }
   }
 
   void refresh() {
@@ -491,15 +505,10 @@ class _BottomDrawerState extends State<BottomDrawer>
   }
 
   void pointOfInterestComplete(bool complete) async {
-    _pointOfInterestController.dismissKeyboard();
-    while (View.of(context).viewInsets.bottom > 0) {
-      await Future.delayed(const Duration(milliseconds: 10));
-    }
-
     height = 0;
-    CurrentTripItem()
-        .refreshMap(change: MapUpdates.pointsOfInterest)
-        .then((_) => close());
+    // Close first so the map update doesn't compete with the drawer animation
+    await close();
+    await CurrentTripItem().refreshMap(change: MapUpdates.pointsOfInterest);
   }
 
   void open() async {

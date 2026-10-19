@@ -12,6 +12,7 @@ import '/helpers/helpers.dart';
 class ImageArranger extends StatefulWidget {
   final Function(String) urlChange;
   final Function(int)? onChange;
+  final Function()? onCaptionDone; // keyboard done tapped on a caption
   final bool showCaptions;
   final String endPoint;
   final String imageUrl;
@@ -29,6 +30,7 @@ class ImageArranger extends StatefulWidget {
     this.showCaptions = false,
     this.height = 125, //175,
     this.onChange,
+    this.onCaptionDone,
   });
 
   @override
@@ -182,6 +184,7 @@ class _ImageArrangerState extends State<ImageArranger> {
                       debugPrint(
                           'index: $imageIndex caption is: ${widget.photos[imageIndex].caption}');
                     },
+                    onFieldSubmitted: (_) => widget.onCaptionDone?.call(),
                   ),
                   //body = text
                 ),

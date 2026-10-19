@@ -185,10 +185,15 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
     fn1 = FocusNode();
     fn2 = FocusNode();
     canEdit = widget.canEdit;
-    fn1.requestFocus();
     index = widget.index;
     _expanded = false;
     _isNew = widget.pointOfInterest.name.isEmpty;
+    if (_isNew && canEdit) {
+      // After the first frame so the TextFormField is attached to fn1
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) fn1.requestFocus();
+      });
+    }
     _textEditingControllerName.text = widget.pointOfInterest.name;
     _textEditingControllerDescription.text = widget.pointOfInterest.description;
     _expandController = ExpansibleController();
@@ -225,7 +230,8 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
           endPoint: '$staticImagesFolder/${widget.driveId}/');
       widget.pointOfInterest.photos = photos;
     }
-    fn1.requestFocus();
+    // Don't requestFocus() here - build() runs when the keyboard closes and
+    // would re-open it. A new point of interest gets focus in initState().
     // return editableTile();
     /*Card(
       child: Text(
@@ -380,6 +386,7 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                       padding: const EdgeInsets.fromLTRB(10, 0, 0, 0),
                       child: ImageArranger(
                         urlChange: (url) => updateImages(url),
+                        onCaptionDone: () => checkComplete(),
                         photos: widget.pointOfInterest.photos, //getPhotos(
                         // driveId: widget.driveId ?? CurrentTripItem().uri,
                         //   ),
