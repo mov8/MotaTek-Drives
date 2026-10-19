@@ -670,7 +670,7 @@ class CurrentTripItem extends MyTripItem {
   /// the state of the CurrentTripItem()
   ///
 
-  void requestClear() async {
+  Future<void> requestClear() async {
     tripValues.setState = true;
 
     /// clearAll sets tripState to TripState.clearing making sure that the geoJson is updated on next _onIdle
@@ -686,7 +686,7 @@ class CurrentTripItem extends MyTripItem {
     //leadingWidgetController?.changeWidget(0);
   }
 
-  void requestAddManually() async {
+  Future<void> requestAddManually() async {
     clearAll(newTripState: TripState.manualStart);
     uri = uri.isEmpty ? getUuid() : uri;
     // tripValues.startFollowing();
@@ -703,7 +703,7 @@ class CurrentTripItem extends MyTripItem {
     tripActions = TripActions.headingDetail;
   }
 
-  void requestAddAutomatically() async {
+  Future<void> requestAddAutomatically() async {
     clearAll(newTripState: TripState.tracking);
     uri = uri.isEmpty ? getUuid() : uri;
     tripValues.track();
@@ -716,7 +716,7 @@ class CurrentTripItem extends MyTripItem {
     tripActions = TripActions.none;
   }
 
-  void requestEditing() async {
+  Future<void> requestEditing() async {
     tripState = TripState.editing;
     tripActions = TripActions.none;
     tripValues.editing();
@@ -728,7 +728,7 @@ class CurrentTripItem extends MyTripItem {
     await MapService().controller!.animateCamera(CameraUpdate.zoomBy(0.000001));
   }
 
-  void requestExtendStart() async {
+  Future<void> requestExtendStart() async {
     tripActions = TripActions.none;
     tripValues.beforeWaypoint();
     // addWaypoints methods set the appropriate mapUpdate enum values
@@ -746,7 +746,7 @@ class CurrentTripItem extends MyTripItem {
     isSaved = false;
   }
 
-  void requestWaypoint() async {
+  Future<void> requestWaypoint() async {
 // addWaypoints methods set the appropriate mapUpdate enum values
 
     tripValues.beforeWaypoint();
@@ -774,7 +774,7 @@ class CurrentTripItem extends MyTripItem {
     isSaved = false;
   }
 
-  void requestRevisitWaypoint() async {
+  Future<void> requestRevisitWaypoint() async {
     tripActions = TripActions.none;
     tripValues.beforeWaypoint();
 
@@ -787,7 +787,7 @@ class CurrentTripItem extends MyTripItem {
     await MapService().controller!.animateCamera(CameraUpdate.zoomBy(0.000001));
   }
 
-  void requestExtendEnd() async {
+  Future<void> requestExtendEnd() async {
     tripActions = TripActions.none;
     tripValues.beforeWaypoint();
 // addWaypoints methods set the appropriate mapUpdate enum values
@@ -800,7 +800,7 @@ class CurrentTripItem extends MyTripItem {
     isSaved = false;
   }
 
-  void requestRemoveWaypoint() async {
+  Future<void> requestRemoveWaypoint() async {
     tripValues.setState = true;
     if (waypointIndex > -1) {
       await removeWaypoint(index: waypointIndex);
@@ -827,7 +827,7 @@ class CurrentTripItem extends MyTripItem {
   /// 2 Change the tripState to TripState.stoppedRecording,
   /// ActionChips Save Trip & Clear Trip
 
-  void requestEndTracking() async {
+  Future<void> requestEndTracking() async {
     tripState = TripState.stoppedTracking;
     await MapService()
         .controller!
@@ -895,7 +895,7 @@ class CurrentTripItem extends MyTripItem {
     CurrentTripItem().tripActions = TripActions.showMessages;
   }
 
-  void requestTrackRoute() async {
+  Future<void> requestTrackRoute() async {
     tripState = TripState.tracking;
     if (tripValues.pauseStream) {
       tripValues.resumeTracking();
@@ -927,7 +927,7 @@ class CurrentTripItem extends MyTripItem {
     return;
   }
 
-  void requestFollowRoute() async {
+  Future<void> requestFollowRoute() async {
     tripState = TripState.following;
     if (tripValues.pauseStream) {
       await MapService()
@@ -954,7 +954,7 @@ class CurrentTripItem extends MyTripItem {
     return;
   }
 
-  void requestStopFollowing() async {
+  Future<void> requestStopFollowing() async {
     tripState = TripState.stoppedFollowing;
     tripValues.pauseFollowing();
     await MapService()

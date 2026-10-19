@@ -345,6 +345,10 @@ map.on('mousemove', (e) => {
               // Get waypointState() sets insert, delete, extendStart, extendEdd
               await getWaypointState();
               await updateMapGeoJson(mapUpdates: MapUpdates.updateAll);
+            } else if (CurrentTripItem().tripState == TripState.manual) {
+              // Waypoint under the crosshair offers Remove / Revisit waypoint
+              await getWaypointState();
+              createTripStackController?.refresh();
             }
           }
           if (CurrentTripItem().tripState == TripState.clearing) {
@@ -426,14 +430,16 @@ map.on('mousemove', (e) => {
     LatLng targetLatLng = controller!.cameraPosition!.target;
     Point position = Point(targetLatLng.longitude, targetLatLng.latitude);
 
-    List<Waypoint> waypoints = CurrentTripItem().routes.first.waypoints;
+    List<Waypoint> waypoints = CurrentTripItem().routes.isEmpty
+        ? []
+        : CurrentTripItem().routes.first.waypoints;
     List<int> nearest = closestWaypoints(waypoints: waypoints, point: position);
     // nearest[0] is closer than nearest[1]
     WaypointState state = WaypointState.none;
 
     if (CurrentTripItem().waypointIndex > -1) {
       state = WaypointState.remove;
-    } else {
+    } else if (waypoints.length > 1) {
       /// Point near start nearest[0] is closer than nearest[1]
       /// nearest[0] is the closest waypoint to target
       if (nearest[0] == 0) {
