@@ -228,7 +228,6 @@ class CreateTripChips extends StatelessWidget {
   }
 
   final List<Follower> _following = [];
-  late final FollowRoute _debugRoute;
 
   List<Widget> getChips() {
     final CurrentTripItem trip = CurrentTripItem();
@@ -643,16 +642,20 @@ class CreateTripChips extends StatelessWidget {
           PositionService().cancel();
         }
         if (CurrentTripItem().debugging) {
+          // Replays a route as positions instead of reading the GPS:
+          // debuggingRoute names a saved trip to replay - needed for tracking,
+          // which starts with no route. Empty replays the current trip, e.g.
+          // the one being followed.
           if (CurrentTripItem().debuggingRoute.isEmpty) {
-            _debugRoute.follow(routes: CurrentTripItem().routes);
-            PositionService().InitialiseDebugging();
+            PositionService()
+                .InitialiseDebugging(routes: CurrentTripItem().routes);
           } else {
             MyTripItem debugMyTripItem = await getPrivateRepository()
                     .loadMyTripItem(name: CurrentTripItem().debuggingRoute) ??
                 MyTripItem();
             if (debugMyTripItem.routes.isNotEmpty) {
-              _debugRoute.follow(routes: debugMyTripItem.routes);
-              PositionService().InitialiseDebugging();
+              PositionService()
+                  .InitialiseDebugging(routes: debugMyTripItem.routes);
             }
           }
           if (CurrentTripItem().tripState == TripState.following) {
@@ -727,7 +730,7 @@ class CreateTripChips extends StatelessWidget {
     }
   }
 
-  _getTripDescriptions() async {
+  void _getTripDescriptions() {
     MapService()
         .bottomDrawerController!
         .setContent(content: BottomDrawerItems.trip);

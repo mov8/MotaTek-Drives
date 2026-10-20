@@ -55,6 +55,8 @@ class PositionService {
     distanceFilter: 5, // 10 meters
   );
   void Initialise() {
+    // Don't leave a previous subscription running alongside the new one
+    _positionStream?.cancel();
     _positionStream =
         Geolocator.getPositionStream(locationSettings: locationSettings)
             .listen((position) {
@@ -70,52 +72,54 @@ class PositionService {
     });
   }
 
-  void InitialiseDebugging() {
-    _debuggingStream =
-        Geolocator.getPositionStream(locationSettings: locationSettings)
-            .listen((position) {
+  FollowRoute? _debugRoute;
+
+  /// For CurrentTripItem().debugging - replays the routes' points as positions
+  /// instead of reading the GPS, through the same updateUserPosition(), so
+  /// tracking, following and the map orientation can be tested without
+  /// driving.
+  void InitialiseDebugging({required List<mt.Route> routes}) {
+    cancelDebugging();
+    StreamController<Position> controller = StreamController<Position>();
+    _debugRoute = FollowRoute(controller: controller);
+    _debuggingStream = controller.stream.listen((position) {
       _currentPosition = position;
       _speed = _currentPosition!.speed * 3.6 / 8 * 5; // M/S -> MPH
       if (_movingStates.contains(CurrentTripItem().tripState)) {
         updateUserPosition(CurrentPosition(position: position));
       }
     });
+    _debugRoute!.follow(routes: routes);
   }
 
+  // pause / resume / cancel apply to whichever of the GPS or the debugging
+  // replay is running
+
   void pause() {
-    if (_positionStream != null) {
-      _positionStream!.pause();
-    }
+    _positionStream?.pause();
+    pauseDebugging();
   }
 
   void resume() {
-    if (_positionStream != null) {
-      _positionStream!.resume();
-    }
+    _positionStream?.resume();
+    resumeDebugging();
   }
 
   void cancel() {
-    if (_positionStream != null) {
-      _positionStream!.cancel();
-    }
+    _positionStream?.cancel();
+    _positionStream = null;
+    cancelDebugging();
   }
 
-  void pauseDebugging() {
-    if (_positionStream != null) {
-      _debuggingStream!.pause();
-    }
-  }
+  void pauseDebugging() => _debugRoute?.paused = true;
 
-  void resumeDebugging() {
-    if (_positionStream != null) {
-      _debuggingStream!.resume();
-    }
-  }
+  void resumeDebugging() => _debugRoute?.paused = false;
 
   void cancelDebugging() {
-    if (_positionStream != null) {
-      _debuggingStream!.cancel();
-    }
+    _debugRoute?.stop();
+    _debugRoute = null;
+    _debuggingStream?.cancel();
+    _debuggingStream = null;
   }
 
   /// The states where the map follows the user's position
@@ -242,41 +246,73 @@ class FollowRoute<T> {
 
   FollowRoute({required this.controller});
 
+  /// Stops the replay waiting rather than ending it - see PositionService
+  bool paused = false;
+
+  /// Replays the routes' line points as positions, one every delay seconds.
+  /// The routes are copied, so a route being tracked can't grow under it.
   void follow({required List<mt.Route> routes, index = 0, delay = 1}) {
     run = true;
-    _routes = routes; //routes;
+    paused = false;
+    _routes = [
+      for (mt.Route route in routes)
+        mt.Route(lines: [
+          for (List<double> point in route.lines) [point[0], point[1]]
+        ])
+    ];
     _index = index;
     _delay = delay;
     move();
   }
+
+  void stop() => run = false;
 
   Position? get getPosition => position;
 
   int get getIndex => _currentIndex;
   List<double> getPositionAt(int index) => _routes[_route].lines[index];
 
+  /// Each position's heading and speed come from the previous point, like a
+  /// real GPS fix, so the marker and map orientation can be tested.
   void move() async {
-    if (run) {
-      for (int r = 0; r < _routes.length; r++) {
-        mt.Route route = _routes[r];
-        _route = r;
-        for (int i = _index; i < route.lines.length; i++) {
-          _currentIndex = i;
-          await Future.delayed(Duration(seconds: _delay), () {
-            position = Position(
-                longitude: route.lines[i][0],
-                latitude: route.lines[i][1],
-                timestamp: DateTime.now(),
-                accuracy: 1,
-                altitude: 0,
-                altitudeAccuracy: 0,
-                heading: 0,
-                headingAccuracy: 0,
-                speed: 0,
-                speedAccuracy: 0);
-            controller.add(position!);
-          });
+    List<double>? previous;
+    for (int r = 0; r < _routes.length && run; r++) {
+      mt.Route route = _routes[r];
+      _route = r;
+      for (int i = r == 0 ? _index : 0; i < route.lines.length && run; i++) {
+        _currentIndex = i;
+        await Future.delayed(Duration(seconds: _delay));
+        while (paused && run) {
+          await Future.delayed(const Duration(milliseconds: 250));
         }
+        if (!run) break;
+        List<double> point = route.lines[i];
+        double heading = 0;
+        double speed = 0;
+        if (previous != null) {
+          double metres = Geolocator.distanceBetween(
+              previous[1], previous[0], point[1], point[0]);
+          if (metres > 0) {
+            heading = (Geolocator.bearingBetween(
+                        previous[1], previous[0], point[1], point[0]) +
+                    360) %
+                360;
+            speed = metres / _delay; // metres per second, as Geolocator
+          }
+        }
+        previous = point;
+        position = Position(
+            longitude: point[0],
+            latitude: point[1],
+            timestamp: DateTime.now(),
+            accuracy: 1,
+            altitude: 0,
+            altitudeAccuracy: 0,
+            heading: heading,
+            headingAccuracy: 0,
+            speed: speed,
+            speedAccuracy: 0);
+        controller.add(position!);
       }
     }
   }
