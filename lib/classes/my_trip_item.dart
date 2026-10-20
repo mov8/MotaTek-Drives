@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'dart:convert';
+import 'package:universal_io/universal_io.dart' show File;
 import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
@@ -196,8 +197,81 @@ class CurrentTripItem extends MyTripItem {
 
   /// Call after the trip is saved or loaded
   void markSaved() {
+    // Saved without the removed points of interest - their media can go now
+    for (String media in _pendingMediaDeletes) {
+      _deleteMedia(media);
+    }
+    _pendingMediaDeletes.clear();
     isSaved = true;
     _savedSnapshot = _snapshot();
+    _savedMedia = {
+      for (PointOfInterest poi in pointsOfInterest) ..._mediaOf(poi)
+    };
+  }
+
+  /// The voice memos and images of the trip as last saved or loaded
+  Set<String> _savedMedia = {};
+
+  /// Media of removed points of interest that the saved trip still uses.
+  /// Deleted when the trip is next saved; kept if the changes are discarded
+  /// (clearAll()) so the saved trip stays complete.
+  final Set<String> _pendingMediaDeletes = {};
+
+  /// Deletes a point of interest and its voice memo and images - straight
+  /// away, unless the saved trip still uses them (see _pendingMediaDeletes).
+  Future<void> removePointOfInterest(int index) async {
+    if (index < 0 || index >= pointsOfInterest.length) return;
+    PointOfInterest poi = pointsOfInterest.removeAt(index);
+    isSaved = false;
+    for (String media in _mediaOf(poi)) {
+      if (_savedMedia.contains(media)) {
+        _pendingMediaDeletes.add(media);
+      } else {
+        await _deleteMedia(media);
+      }
+    }
+  }
+
+  /// A point of interest's media as 'sound:key', 'image:key' or 'file:path'
+  /// (memos and images stored as files before Hive)
+  List<String> _mediaOf(PointOfInterest poi) {
+    List<String> media = [];
+    if (poi.sounds.isNotEmpty) {
+      media.add(SoundRepository.isKey(poi.sounds)
+          ? 'sound:${poi.sounds}'
+          : 'file:${poi.sounds}');
+    }
+    List<Photo> photos = poi.photos.isNotEmpty || poi.images.isEmpty
+        ? poi.photos
+        : photosFromJson(photoString: poi.images);
+    for (Photo photo in photos) {
+      String key =
+          photo.key.isNotEmpty ? photo.key : getFileName(url: photo.url);
+      if (key.length == 32) {
+        media.add('image:$key');
+      } else if (!kIsWeb &&
+          Setup().appDocumentDirectory.isNotEmpty &&
+          photo.url.startsWith(Setup().appDocumentDirectory)) {
+        media.add('file:${photo.url}');
+      }
+    }
+    return media;
+  }
+
+  Future<void> _deleteMedia(String media) async {
+    try {
+      String value = media.substring(media.indexOf(':') + 1);
+      if (media.startsWith('sound:')) {
+        await SoundRepository().delete(value);
+      } else if (media.startsWith('image:')) {
+        await ImageRepository().deleteImage(value);
+      } else if (!kIsWeb && await File(value).exists()) {
+        await File(value).delete();
+      }
+    } catch (e) {
+      developer.log('Error deleting point of interest media $media: $e',
+          name: 'error');
+    }
   }
 
   /// The parts of the trip a user can change. The Start / Waypoint / End
@@ -411,6 +485,10 @@ class CurrentTripItem extends MyTripItem {
   void clearAll({TripState newTripState = TripState.clearing}) async {
     isSaved = false;
     _savedSnapshot = '';
+    // Changes discarded - the saved trip keeps the media of any points of
+    // interest removed since it was saved
+    _savedMedia = {};
+    _pendingMediaDeletes.clear();
     id = -1;
     imageUrls = "";
     driveUri = '';

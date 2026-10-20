@@ -258,6 +258,17 @@ class ImageRepository {
     return true;
   }
 
+  /// Removes an image from Hive, e.g. when its point of interest is deleted.
+  /// Only Hive keys (32 characters) are stored there.
+  Future<void> deleteImage(String key) async {
+    if (key.length != 32) return;
+    if (!boxOpen) {
+      boxOpen = await openHive();
+    }
+    _imageCache.remove(key);
+    await _imageBox.delete(key);
+  }
+
   Uint8List getBytes({String key = ''}) {
     Uint8List? bytes = _imageCache[key];
     return bytes ?? Uint8List(0);

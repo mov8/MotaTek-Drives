@@ -791,7 +791,7 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
   }
 
   void pointOfInterestDelete(int index, int lIndex) {
-    CurrentTripItem().pointsOfInterest.removeAt(index);
+    CurrentTripItem().removePointOfInterest(index);
     setState(() => _tiles.removeAt(lIndex));
   }
 

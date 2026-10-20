@@ -270,11 +270,11 @@ class _BottomDrawerState extends State<BottomDrawer>
     return tiles;
   }
 
-  loadWebTrip(int index) async {}
+  void loadWebTrip(int index) async {}
 
-  shareWebTrip(int index) async {}
+  void shareWebTrip(int index) async {}
 
-  deleteWebTrip(int index) async {}
+  void deleteWebTrip(int index) async {}
 
   List<Widget> shredGroup({List<Follower>? followers}) {
     followers ??= [];
@@ -449,11 +449,11 @@ class _BottomDrawerState extends State<BottomDrawer>
     return tiles;
   }
 
-  void removePointOfInterest(index, listIndex) {
+  void removePointOfInterest(int index, int listIndex) {
     try {
       setState(() {
         _pointOfInterestController.dismissKeyboard();
-        CurrentTripItem().pointsOfInterest.removeAt(index);
+        CurrentTripItem().removePointOfInterest(index);
         _tiles.removeAt(listIndex);
       });
       if (_tiles.length < 2) {
