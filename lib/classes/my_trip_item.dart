@@ -1452,7 +1452,9 @@ class CurrentTripItem extends MyTripItem {
 
       mapUpdates = _routeMapUpdates;
 
-      MapService().updateMapGeoJson(mapUpdates: mapUpdates);
+      // Awaited so the micro-nudge that follows comes after every source is
+      // set - otherwise e.g. the great road could miss the redraw
+      await MapService().updateMapGeoJson(mapUpdates: mapUpdates);
 
       isSaved = false;
     } catch (e) {
@@ -1535,7 +1537,9 @@ class CurrentTripItem extends MyTripItem {
     isSaved = false;
     await syncGoodRoads();
     mapUpdates = _routeMapUpdates;
-    MapService().updateMapGeoJson(mapUpdates: mapUpdates);
+    // Awaited so the micro-nudge that follows comes after every source is
+    // set - otherwise e.g. the great road could miss the redraw
+    await MapService().updateMapGeoJson(mapUpdates: mapUpdates);
     MapService().webAppBarController?.update();
     MapService().persistentAppBarController?.refresh();
     // Micro-nudge to update MapLibre the nudge causes the onIdle callback to be called
@@ -1579,7 +1583,9 @@ class CurrentTripItem extends MyTripItem {
     await syncGoodRoads();
     addToBackBuffer(route: routes[min(routeIndex, routes.length - 1)]);
     mapUpdates = _routeMapUpdates;
-    MapService().updateMapGeoJson(mapUpdates: mapUpdates);
+    // Awaited so the micro-nudge that follows comes after every source is
+    // set - otherwise e.g. the great road could miss the redraw
+    await MapService().updateMapGeoJson(mapUpdates: mapUpdates);
     isSaved = false;
   }
 
@@ -1994,7 +2000,11 @@ class CurrentTripItem extends MyTripItem {
     await syncGoodRoads();
     addToBackBuffer(); // also refreshes the app bars' undo / redo
     mapUpdates = _routeMapUpdates;
-    MapService().updateMapGeoJson(mapUpdates: mapUpdates);
+    // Awaited so the micro-nudge that follows comes after every source is
+    // set - otherwise e.g. the great road could miss the redraw
+    await MapService().updateMapGeoJson(mapUpdates: mapUpdates);
+    // Micro-nudge to update MapLibre the nudge causes the onIdle callback to be called
+    await MapService().controller?.animateCamera(CameraUpdate.zoomBy(0.000001));
   }
 
   /// Reverses the waypoints keeping the same stretches as great roads.
