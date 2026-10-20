@@ -710,7 +710,7 @@ map.on('mousemove', (e) => {
   /// A navigation arrow pointing up (north), outlined in white so it shows on
   /// any map style.
   Future<Uint8List> locationArrowImage(
-      {Color colour = const Color(0xFF1E88E5), double size = 64}) async {
+      {Color colour = const Color(0xFF1E88E5), double size = 96}) async {
     ui.PictureRecorder recorder = ui.PictureRecorder();
     Canvas canvas = Canvas(recorder);
     Path arrow = Path()
