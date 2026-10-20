@@ -18,7 +18,6 @@ enum PlanPhase {
   awaitingFirstWp,
   oneWp,
   routed,
-  greatRoad,
   tracking,
   pausedTracking,
   stoppedTracking,
@@ -62,7 +61,7 @@ PlanPhase phaseOf(CurrentTripItem trip) {
     case TripState.manualStart:
     case TripState.goodRoadStart:
     case TripState.editing:
-      if (trip.isGoodRoad) return PlanPhase.greatRoad;
+      // Great road mode isn't a phase of its own - see resolveChip()
       return switch (_waypointCount(trip)) {
         0 => PlanPhase.awaitingFirstWp,
         1 => PlanPhase.oneWp,
@@ -112,9 +111,16 @@ enum TripChip {
 /// resolveChip() then swaps or hides the few that depend on more than the phase.
 const Map<PlanPhase, List<TripChip>> chipsForPhase = {
   PlanPhase.idle: [TripChip.createManually, TripChip.trackDrive],
-  PlanPhase.awaitingFirstWp: [TripChip.waypoint, TripChip.clear],
+  // greatRoadEnd only shows in great road mode - e.g. after undoing back to
+  // fewer than 2 waypoints, so the user can still switch back
+  PlanPhase.awaitingFirstWp: [
+    TripChip.waypoint,
+    TripChip.greatRoadEnd,
+    TripChip.clear,
+  ],
   PlanPhase.oneWp: [
     TripChip.waypoint,
+    TripChip.greatRoadEnd,
     TripChip.pointOfInterest,
     TripChip.clear,
   ],
@@ -127,7 +133,6 @@ const Map<PlanPhase, List<TripChip>> chipsForPhase = {
     TripChip.saveTrip,
     TripChip.clear,
   ],
-  PlanPhase.greatRoad: [TripChip.waypoint, TripChip.greatRoadEnd],
   PlanPhase.tracking: [TripChip.pauseTracking, TripChip.endTracking],
   PlanPhase.pausedTracking: [TripChip.continueTracking, TripChip.endTracking],
   PlanPhase.stoppedTracking: [
@@ -184,6 +189,10 @@ List<TripChip> resolveChip(TripChip chip, CurrentTripItem trip) =>
               : [TripChip.removeWaypoint, TripChip.revisitWaypoint],
           _ => [TripChip.waypoint],
         },
+      // In great road mode the mode chip switches back - every other chip
+      // stays as in normal road mode
+      TripChip.addGreatRoad when trip.isGoodRoad => [TripChip.greatRoadEnd],
+      TripChip.greatRoadEnd when !trip.isGoodRoad => [],
       TripChip.addGreatRoad
           when trip.highliteActions == HighliteActions.greatRoadHighlighted =>
         [TripChip.editGreatRoad],
