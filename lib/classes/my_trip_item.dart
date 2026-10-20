@@ -1043,6 +1043,14 @@ class CurrentTripItem extends MyTripItem {
       i = end + 1;
     }
     goodRoads = [...kept, ...rebuilt];
+    developer.log(
+        'syncGoodRoads(): ${rebuilt.length} from the route '
+        '(waypoints ${[
+          for (Route r in rebuilt) r.waypoints.length
+        ]}, line points ${[
+          for (Route r in rebuilt) r.lines.length
+        ]}), ${kept.length} off the route',
+        name: '_goodroad_');
   }
 
   /// A great road for the stretch, reusing a previous one's line if the

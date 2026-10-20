@@ -174,8 +174,10 @@ class Waypoint {
     return {
       "point": [point.x, point.y],
       "selected": false,
+      // goodRouteColourHex needs calling - the method itself can't be
+      // encoded, which stopped trips with great road waypoints saving
       "colour":
-          isGoodRoad ? Setup().goodRouteColourHex : Setup().routeColourHex(),
+          isGoodRoad ? Setup().goodRouteColourHex() : Setup().routeColourHex(),
       "is_good_road": isGoodRoad,
       "revisit": revisit,
     };

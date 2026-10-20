@@ -225,7 +225,9 @@ List<Map<String, dynamic>> goodRoadsToGeoJson(
         "id": i,
         "properties": {
           "group": 'route',
-          "width": 2,
+          // Wider than the route (planned_routes draws width x2, good_roads_user
+          // x1.5) so a great road stretch shows fully in its colour
+          "width": 3,
           "highlighted": true,
           "color": i == index ? indexColour : colour,
         }
