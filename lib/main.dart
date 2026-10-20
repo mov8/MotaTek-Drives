@@ -22,6 +22,7 @@ import 'package:path_provider/path_provider.dart';
 import '/screens/login_screen.dart';
 import '/screens/import_export.dart';
 import '/screens/main_drawer.dart';
+import '/screens/dialogs.dart' show Utility;
 import '/helpers/helpers.dart';
 
 /// Don't want these to be recreated on every build
@@ -312,6 +313,21 @@ class PersistentAppBarController {
       _persistentAppBarState?.refresh();
     }
   }
+
+  /// Back handlers keyed by page (NavigationService().page)
+  final Map<int, VoidCallback> _backHandlers = {};
+
+  /// A summary page showing a detail page - e.g. a Messages thread - calls
+  /// this so the app bar shows Back while that page is showing. Tapping Back
+  /// calls onBack and returns to the burger. onBack null clears it.
+  void setBack({required int page, VoidCallback? onBack}) {
+    if (onBack == null) {
+      _backHandlers.remove(page);
+    } else {
+      _backHandlers[page] = onBack;
+    }
+    refresh();
+  }
 }
 
 class PersistentAppBar extends StatefulWidget implements PreferredSizeWidget {
@@ -362,27 +378,68 @@ class _PersistentAppBarState extends State<PersistentAppBar> {
   }
 
   /// The leading button is the burger (0), which opens the main drawer, or
-  /// Back (1) while a trip is being created, edited, tracked or viewed on the
-  /// map. The chips switch it through MapService().leadingWidgetController;
-  /// this keeps it right when the page or trip changes.
-  int _wantedLeadingWidget() => NavigationService().page == 2 &&
-          CurrentTripItem().tripState != TripState.none &&
-          CurrentTripItem().tripValues.leadingWidget == 1
-      ? 1
-      : 0;
+  /// Back (1) when:
+  ///   a page has set a back handler - a summary page showing a detail page
+  ///   a trip is being created, edited, tracked or viewed on the map. The
+  ///   chips switch it through MapService().leadingWidgetController
+  /// This keeps it right when the page or trip changes.
+  int _wantedLeadingWidget() {
+    if (widget.controller._backHandlers.containsKey(NavigationService().page)) {
+      return 1;
+    }
+    return NavigationService().page == 2 &&
+            CurrentTripItem().tripState != TripState.none &&
+            CurrentTripItem().tripValues.leadingWidget == 1
+        ? 1
+        : 0;
+  }
 
   void _onLeadingTap(BuildContext context, int widgetId) {
     if (widgetId == 0) {
       Scaffold.of(context).openDrawer();
-    } else {
-      CurrentTripItem().onBackPressed();
-      MapService().leadingWidgetController.changeWidget(0);
-      MapService().bottomDrawerController?.setContent(
-          content: BottomDrawerItems.none); // <-- closes the drawer
-      CurrentTripItem().refreshMap(change: MapUpdates.updateAll);
-      MapService().createTripStackController?.refresh();
-      refresh();
+      return;
     }
+    VoidCallback? onBack =
+        widget.controller._backHandlers.remove(NavigationService().page);
+    if (onBack != null) {
+      onBack();
+      MapService().leadingWidgetController.changeWidget(0);
+      refresh();
+    } else {
+      _tripBack(context);
+    }
+  }
+
+  /// Back from editing returns to viewing the trip, otherwise it clears the
+  /// trip - so check first if that would lose an unsaved trip
+  void _tripBack(BuildContext context) {
+    CurrentTripItem trip = CurrentTripItem();
+    if (trip.tripState != TripState.editing && trip.hasUnsavedChanges) {
+      String current = trip.title.isEmpty
+          ? 'The trip you are working on'
+          : '"${trip.title}"';
+      Utility().showOkCancelDialog(
+          context: context,
+          alertTitle: 'Discard unsaved trip?',
+          alertMessage: "$current hasn't been saved. Going back will clear it.",
+          okValue: 1,
+          callback: (value) {
+            if (value > -1) _leaveTrip();
+          });
+    } else {
+      _leaveTrip();
+    }
+  }
+
+  void _leaveTrip() {
+    CurrentTripItem().onBackPressed();
+    MapService().leadingWidgetController.changeWidget(0);
+    MapService()
+        .bottomDrawerController
+        ?.setContent(content: BottomDrawerItems.none); // <-- closes the drawer
+    CurrentTripItem().refreshMap(change: MapUpdates.updateAll);
+    MapService().createTripStackController?.refresh();
+    refresh();
   }
 
   /// 0 = none

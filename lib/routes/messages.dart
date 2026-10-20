@@ -259,7 +259,13 @@ class _MessagesState extends State<Messages> {
       /// The next line resets the Future<bool> and should ensure the data is read for the message details
       setState(() => _dataLoaded = getMessages());
     } else {
-      _leadingWidgetController.changeWidget(1);
+      // The app bar shows Back while the thread is showing
+      MapService().persistentAppBarController?.setBack(
+            page: NavigationService().page,
+            onBack: () {
+              if (mounted) setState(() => _tileSelected = -1);
+            },
+          );
       setState(() => _tileSelected = index);
     }
   }
