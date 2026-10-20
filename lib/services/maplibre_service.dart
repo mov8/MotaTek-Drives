@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:developer' as developer;
 import 'package:drives/classes/create_trip_stack.dart';
 import 'package:drives/main.dart' hide Routes;
+import 'package:drives/models/models.dart';
 import 'package:drives/routes/my_trips.dart';
 import 'package:flutter/foundation.dart';
 import 'package:drives/classes/classes.dart' hide Position, distanceBetween;
@@ -105,6 +106,7 @@ class MapService {
   DrivesRequest? _drivesRequest;
   TripRequest? _tripRequest;
   bool? _checkUpdates = false;
+  bool _idleCalled = false;
   CameraPosition? _cameraPosition;
   MapUpdates mapUpdates = MapUpdates.updateAll; // <-- What geoJson to update
   MapUpdates onExitUpdate = MapUpdates.none;
@@ -283,14 +285,20 @@ map.on('mousemove', (e) => {
       ///   appropriate routes, waypoints and points of interest to minimise API calls
 
       if (NavigationService().page == 1) {
-        /* try {
+        try {
           LatLngBounds bounds =
               await MapService().controller!.getVisibleRegion();
           double zoom = MapService().controller!.cameraPosition!.zoom;
-          Map geoJson = await _drivesRequest!
+          //     Map geoJson =
+          _drivesRequest ??= DrivesRequest(
+              onUpdated: (_) => {},
+              onGetDetails: (_) => {},
+              onGetDownload: (index, name) => {},
+              imageRepository: _tripImageRepository);
+          await _drivesRequest!
               .update(bounds: bounds, zoom: zoom, force: !_idleCalled);
           _idleCalled = true;
-
+/*
           if (geoJson.isNotEmpty) {
             developer.log('Rendering geoJson for published data',
                 name: '_content_');
@@ -301,16 +309,17 @@ map.on('mousemove', (e) => {
                 name: '_content_');
           }
 
-          List tripItems = _drivesRequest!.getDrivesData();
+          List<TripItem> tripItems = _drivesRequest!.getDrivesData();
           developer.log('Setting bottom drawer items 1498', name: '_drawer_');
           sideDrawerController!.setContent(
               content: BottomDrawerItems.drives,
               drawerItems: tripItems as List<Widget>);
+*/
         } catch (e) {
           developer.log('Error setting published data: ${e.toString()}',
               name: 'error');
         }
-      */
+
         // handle Explore and Favourites not going to use the cache as all the data is now in Hive
       } else
       // When tracking or following don't need any published or favourites data
@@ -486,6 +495,23 @@ map.on('mousemove', (e) => {
       } else if (nearest[0] == 0 || nearest[0] == last) {
         state = WaypointState.insert;
       }
+    }
+    // Edit mode highlights (in the user's highlight colour):
+    //   remove - the waypoint under the crosshair
+    //   insert - the two anchors the new waypoint goes between, which stay in
+    //            the re-calculated route. addWaypoint() inserts after the
+    //            first selected waypoint, so Insert waypoint depends on this.
+    List<int> highlighted = [];
+    if (CurrentTripItem().tripState == TripState.editing) {
+      if (state == WaypointState.remove) {
+        highlighted = [CurrentTripItem().waypointIndex];
+      } else if (state == WaypointState.insert) {
+        int last = waypoints.length - 1;
+        highlighted = nearest[0] == 0 ? [0, 1] : [last - 1, last];
+      }
+    }
+    for (int i = 0; i < waypoints.length; i++) {
+      waypoints[i].selected = highlighted.contains(i);
     }
     mapUpdates = mapUpdates.add(MapUpdates.waypoints);
     CurrentTripItem().setWaypointState(state);

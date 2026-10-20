@@ -95,7 +95,7 @@ class CreateTripValues {
     startFollowing();
   }
 
-  stopFollowing() {
+  void stopFollowing() {
     stopStream = true;
     startStream = false;
     pauseStream = true;
@@ -104,7 +104,7 @@ class CreateTripValues {
     lastPosition = position;
   }
 
-  startFollowing() {
+  void startFollowing() {
     stopStream = false;
     startStream = true;
     pauseStream = false;
@@ -112,17 +112,16 @@ class CreateTripValues {
     showTarget = false;
   }
 
-  pauseFollowing() {
+  void pauseFollowing() {
     stopStream = false;
     startStream = false;
     pauseStream = true;
     resumeStream = false;
     //  lastLatLng = position;
-    lastPosition = position;
     mapHeight = MapHeights.full;
   }
 
-  startTracking() {
+  void startTracking() {
     stopStream = true;
     startStream = false;
     pauseStream = true;
@@ -130,7 +129,7 @@ class CreateTripValues {
     lastPosition = position;
   }
 
-  stopTracking() {
+  void stopTracking() {
     stopStream = true;
     startStream = false;
     pauseStream = false;
@@ -138,23 +137,23 @@ class CreateTripValues {
     mapHeight = MapHeights.full;
   }
 
-  resumeTracking() {
+  void resumeTracking() {
     resumeFollowing();
   }
 
-  resumeFollowing() {
+  void resumeFollowing() {
     stopStream = false;
     startStream = false;
     pauseStream = false;
     resumeStream = true;
   }
 
-  beforeWaypoint() {
+  void beforeWaypoint() {
     showMask = true;
     setState = true;
   }
 
-  afterWaypoint({bool goodRoadDetails = false}) {
+  void afterWaypoint({bool goodRoadDetails = false}) {
     showMask = false;
     setState = true;
     showTarget = true;
@@ -315,7 +314,7 @@ class CurrentTripItem extends MyTripItem {
     _instance = null;
   }
 
-  fromMyTripItem({required MyTripItem myTripItem}) async {
+  void fromMyTripItem({required MyTripItem myTripItem}) async {
     title = myTripItem.title;
     subTitle = myTripItem.subTitle;
     author = myTripItem.author;
@@ -354,7 +353,7 @@ class CurrentTripItem extends MyTripItem {
   }
 */
   @override
-  clearAll({TripState newTripState = TripState.clearing}) async {
+  void clearAll({TripState newTripState = TripState.clearing}) async {
     isSaved = false;
     id = -1;
     imageUrls = "";
@@ -465,7 +464,7 @@ class CurrentTripItem extends MyTripItem {
   /// have to ensure that the map is updated for PointsOfInterest
   /// by setting the mapUpdates flag for points of interest
 
-  drawerClosed() {
+  void drawerClosed() {
     if (bottomDrawerData.isPointOfInterest) {
       mapUpdates = mapUpdates.add(MapUpdates.pointsOfInterest);
       MapService().updateMapGeoJson(mapUpdates: mapUpdates);
@@ -641,7 +640,7 @@ class CurrentTripItem extends MyTripItem {
     return true;
   }
 
-  onBackPressed() {
+  void onBackPressed() {
     if (tripState == TripState.editing) {
       tripState = TripState.notFollowing;
       tripValues.title = ' '; //heading;
@@ -723,7 +722,7 @@ class CurrentTripItem extends MyTripItem {
     // addWaypoints methods set the appropriate mapUpdate enum values
     // The new waypoint becomes waypoint 1 and the rest move up one
     if (isGoodRoad) {
-      await addGoodRoadWaypoint(point: tripValues.position);
+      addGoodRoadWaypoint(point: tripValues.position);
     } else {
       await addWaypoint(atStart: true, point: tripValues.position);
     }
@@ -741,7 +740,7 @@ class CurrentTripItem extends MyTripItem {
     tripState = tripState =
         tripState == TripState.manualStart ? TripState.manual : tripState;
     if (isGoodRoad) {
-      await addGoodRoadWaypoint(
+      addGoodRoadWaypoint(
         index: 0,
         point: CurrentTripItem().tripValues.position,
       );
@@ -1116,7 +1115,7 @@ class CurrentTripItem extends MyTripItem {
     return closest;
   }
 
-  setPointOfInterestType() {
+  void setPointOfInterestType() {
     if (pointsOfInterest.length == 1) {
       pointsOfInterest[0].type = 17;
       pointsOfInterest[0].name = 'Start';
@@ -1139,7 +1138,7 @@ class CurrentTripItem extends MyTripItem {
   /// the correct sequence.
   /// It generates the geoJSON data for the routes, waypoints and points of interest.
 
-  addWaypoint({
+  Future<void> addWaypoint({
     int index = 1,
     Point? point,
     bool revisit = false,
@@ -1151,7 +1150,9 @@ class CurrentTripItem extends MyTripItem {
       int insertAt = routes.last.waypoints.length;
       if (atStart) {
         insertAt = 0;
-      } else if (waypointState == WaypointState.insert) {
+      } else if (waypointState == WaypointState.insert &&
+          tripState == TripState.editing) {
+        // Insert after the first highlighted anchor - see getWaypointState()
         for (int i = 0; i < routes.last.waypoints.length; i++) {
           if (routes.last.waypoints[i].selected!) {
             insertAt = i + 1;
@@ -1192,7 +1193,7 @@ class CurrentTripItem extends MyTripItem {
   /// then all the backBuffer values up to backBufferIndex is ditched.
   /// backBuffer.length is restricted to 10
 
-  addToBackBuffer({Route? route}) {
+  void addToBackBuffer({Route? route}) {
     route ??= routes.last;
     if (backBufferIndex > 0) {
       // Ditch the undone states - removeRange's end is exclusive
@@ -1341,7 +1342,7 @@ class CurrentTripItem extends MyTripItem {
   /// for the user to enter the description as a PointOfInterest. The PointOfInterest uri
   /// is generated and updates the GoodRoad.pointOfInterestUri too.
 
-  addGoodRoadWaypoint({
+  void addGoodRoadWaypoint({
     int index = 1,
     required Point point,
     bool revisit = false,

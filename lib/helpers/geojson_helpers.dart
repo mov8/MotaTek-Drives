@@ -399,7 +399,12 @@ List<Map<String, dynamic>> waypointsToGeoJson(
               "trip-state-3": "goodRoadStart",
               "trip-state-4": "loaded",
               "number": number,
-              "color": waypoints[i].selected ?? false ? indexColour : colour,
+              // Highlights only mean something while editing - stops them
+              // lingering after e.g. a save switches to TripState.loaded
+              "color": (waypoints[i].selected ?? false) &&
+                      CurrentTripItem().tripState == TripState.editing
+                  ? indexColour
+                  : colour,
             }
           });
         }
