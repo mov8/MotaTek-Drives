@@ -5,6 +5,7 @@ export 'bottom_drawer.dart';
 export 'bottom_sheet.dart';
 export 'drives_classes.dart';
 export 'caches.dart';
+export 'sound_repository.dart';
 export 'compact_dropdown.dart';
 export 'create_trip_chips.dart';
 export 'create_trip_cache.dart';

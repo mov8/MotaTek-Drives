@@ -807,13 +807,15 @@ class PointOfInterest {
     return photos;
   }
 
+  /// Adds a photo and rebuilds images as one flat JSON list. Wrapping the old
+  /// string ('[$images, $photo]') nested a third photo as [[a, b], c], which
+  /// photosFromJson() couldn't read, losing the photos.
   void addPhoto({required Photo photo}) {
-    photos.add(photo);
-    if (images.isEmpty) {
-      images = photo.toString();
-    } else {
-      images = '[$images, ${photo.toString()}]';
+    if (photos.isEmpty && images.isNotEmpty) {
+      photos.addAll(photosFromJson(photoString: images));
     }
+    photos.add(photo);
+    images = '[${photos.map((p) => p.toString()).join(', ')}]';
   }
 
   /// complete returns the data state of the PointOfInterest:

@@ -13,6 +13,9 @@ import '/helpers/edit_helpers.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:http/http.dart' as http;
+import '/classes/sound_repository.dart';
 // import 'package:pointer_interceptor/pointer_interceptor.dart';
 
 //import '/classes/classes.dart';
@@ -359,7 +362,11 @@ class FloatingTextEdit extends StatefulWidget {
   final InputBorder? inputBorder;
   final Color fillColor;
   final Function(String)? onChange;
-  final Function(String, String)? onClose;
+
+  /// Called when closed with the text, the voice memo's SoundRepository key
+  /// ('' if none) and any photos taken
+  final Function(String description, String audio, List<Uint8List> images)?
+      onClose;
   final Function(bool)? onOpen;
   final FloatingTextEditController? controller;
   const FloatingTextEdit({
@@ -398,7 +405,9 @@ class _FloatingTextEditState extends State<FloatingTextEdit> {
   late final AudioRecorder _recorder;
   final player = AudioPlayer()..setReleaseMode(ReleaseMode.stop);
   final _picker = ImagePicker();
-  // XFile? _image;
+  // Photos taken while open - handed to onClose
+  List<Uint8List> _images = [];
+  // The voice memo's SoundRepository key
   String _audioPath = '';
 
   late bool _recording;
@@ -510,32 +519,50 @@ class _FloatingTextEditState extends State<FloatingTextEdit> {
                       IconButton(
                         onPressed: () async {
                           try {
-                            // was _image = await...
-                            await _picker.pickImage(
+                            XFile? image = await _picker.pickImage(
                                 source: ImageSource.camera, imageQuality: 10);
-                            setState(() {});
+                            if (image != null) {
+                              Uint8List bytes = await image.readAsBytes();
+                              setState(() => _images.add(bytes));
+                            }
                           } catch (e) {
                             debugPrint('Image error: ${e.toString()}');
                           }
                         },
-                        icon: Icon(
-                          Icons.add_a_photo_outlined,
-                          size: 30,
-                          color: Colors.white,
+                        // The badge shows how many photos have been taken
+                        icon: Badge(
+                          isLabelVisible: _images.isNotEmpty,
+                          label: Text('${_images.length}'),
+                          child: Icon(
+                            Icons.add_a_photo_outlined,
+                            size: 30,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                       Padding(
                         padding: EdgeInsets.fromLTRB(4, 4, 0, 0),
                         child: IconButton(
-                          onPressed: () {
+                          onPressed: () async {
+                            if (_recording) {
+                              // Closed while recording - keep what was said
+                              _audioPath = await _stop();
+                              _recording = false;
+                            }
+                            String memo = _audioPath;
+                            if (widget.onClose != null) {
+                              widget.onClose!(
+                                  _controller.text, memo, List.of(_images));
+                            }
+                            // Ready for the next point of interest
                             setState(() {
-                              if (widget.onClose != null) {
-                                widget.onClose!(_controller.text, _audioPath);
-                              }
                               _width = _height;
+                              _expanded = false;
+                              _controller.clear();
+                              _audioPath = '';
+                              _images = [];
                             });
-                            _play();
-                            _expanded = false;
+                            SoundRepository().play(player, memo);
                           },
                           icon: Icon(
                             _width > _height
@@ -575,40 +602,50 @@ class _FloatingTextEditState extends State<FloatingTextEdit> {
     );
   }
 
+  /// Records to a temporary file on a phone; in a browser, which has no
+  /// files, to a blob. _stop() moves the memo into Hive either way.
   Future<bool> _record() async {
-    if (await _recorder.hasPermission()) {
-      String uuidString = Uuid().v7();
-      try {
-        String folder = '${Setup().appDocumentDirectory}/sounds';
-        await Directory(folder).create(recursive: true);
-        await _recorder.start(const RecordConfig(encoder: AudioEncoder.wav),
-            path: '$folder/$uuidString.wav');
-      } catch (e) {
-        debugPrint('Error recorditng sound ${e.toString()}');
-        return false;
+    if (!await _recorder.hasPermission()) {
+      return false;
+    }
+    try {
+      String path = '';
+      AudioEncoder encoder = AudioEncoder.wav;
+      if (kIsWeb) {
+        if (!await _recorder.isEncoderSupported(encoder)) {
+          encoder = AudioEncoder.opus;
+        }
+      } else {
+        path = '${(await getTemporaryDirectory()).path}/${Uuid().v7()}.wav';
       }
+      await _recorder.start(RecordConfig(encoder: encoder), path: path);
       return true;
-    } else {
+    } catch (e) {
+      debugPrint('Error recording sound ${e.toString()}');
       return false;
     }
   }
 
+  /// Stops recording and stores the memo in Hive - returns its
+  /// SoundRepository key, or '' if nothing was recorded
   Future<String> _stop() async {
     try {
-      String path = '';
-      path = await _recorder.stop() ?? "didn't stop";
-      // debugPrint('Stop path: $path');
-      return path;
+      String? path = await _recorder.stop();
+      if (path == null || path.isEmpty) {
+        return '';
+      }
+      Uint8List bytes;
+      if (kIsWeb) {
+        bytes = (await http.get(Uri.parse(path))).bodyBytes; // a blob: url
+      } else {
+        File file = File(path);
+        bytes = await file.readAsBytes();
+        await file.delete();
+      }
+      return bytes.isEmpty ? '' : await SoundRepository().save(bytes);
     } catch (e) {
       debugPrint("Can't stop: ${e.toString()}");
       return '';
-    }
-  }
-
-  Future<void> _play() async {
-    if (await File(_audioPath).exists()) {
-      DeviceFileSource source = DeviceFileSource(_audioPath);
-      player.play(source);
     }
   }
 }

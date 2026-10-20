@@ -453,11 +453,10 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
     }
   }
 
+  /// The memo is in Hive (SoundRepository), or a file for older points of
+  /// interest
   Future<void> _play() async {
-    if (await File(widget.pointOfInterest.sounds).exists()) {
-      DeviceFileSource source = DeviceFileSource(widget.pointOfInterest.sounds);
-      player.play(source);
-    }
+    await SoundRepository().play(player, widget.pointOfInterest.sounds);
   }
 
   void collapse() {

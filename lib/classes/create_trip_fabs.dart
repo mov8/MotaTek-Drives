@@ -1,4 +1,6 @@
 import 'dart:math';
+import 'dart:typed_data';
+import '../helpers/create_trip_helpers.dart' show getUuid;
 import '../classes/classes.dart' hide Position;
 import '../models/models.dart' hide Message;
 import '../services/services.dart';
@@ -264,16 +266,11 @@ class _HandleCTFabsState extends State<HandleCTFabs> {
                                   closedIcon: Icons.add_location_alt_outlined,
                                   openIcon: Icons.add_task_outlined,
                                   onOpen: (_) => CurrentTripItem().saveState(),
-                                  onClose: (description, audio) =>
-                                      CurrentTripItem().pointsOfInterest.add(
-                                            PointOfInterest(
-                                              point: CurrentTripItem()
-                                                  .tripValues
-                                                  .position,
-                                              description: description,
-                                              sounds: audio,
-                                            ),
-                                          ),
+                                  onClose: (description, audio, images) =>
+                                      addPointOfInterest(
+                                          description: description,
+                                          audio: audio,
+                                          images: images),
                                   fillColor: Colors.white,
                                   inputBorder: _width > _height
                                       ? OutlineInputBorder()
@@ -301,7 +298,7 @@ class _HandleCTFabsState extends State<HandleCTFabs> {
                                   closedIcon: Icons.remove_road,
                                   openIcon: Icons.add_task_outlined,
                                   onOpen: (_) => CurrentTripItem().saveState(),
-                                  onClose: (description, audio) =>
+                                  onClose: (description, audio, images) =>
                                       updateRouteType(
                                           description: description,
                                           sound: audio),
@@ -415,11 +412,36 @@ class _HandleCTFabsState extends State<HandleCTFabs> {
     );
   }
 
-  void fteUpdate({String description = '', String audio = ''}) {
-    CurrentTripItem().pointsOfInterest.add(PointOfInterest(
+  /// A point of interest recorded with the FloatingTextEdit while tracking or
+  /// following, where the user is. audio is the voice memo's SoundRepository
+  /// key; the photos go into the ImageRepository's Hive box, the same as
+  /// those added in the PointOfInterestTile.
+  Future<void> addPointOfInterest(
+      {String description = '',
+      String audio = '',
+      List<Uint8List> images = const []}) async {
+    PointOfInterest pointOfInterest = PointOfInterest(
         point: CurrentTripItem().tripValues.position,
         description: description,
-        sounds: audio));
+        sounds: audio);
+    ImageRepository imageRepository = ImageRepository();
+    for (Uint8List bytes in images) {
+      try {
+        String name = '${getUuid()}.jpg';
+        var imageMap = await imageRepository.loadImage(bytes: bytes, uri: name);
+        pointOfInterest.addPhoto(
+            photo: Photo(
+                url: name,
+                caption: 'image ${pointOfInterest.photos.length + 1}',
+                rotation: 0,
+                key: imageMap.keys.first));
+      } catch (e) {
+        debugPrint('Error saving point of interest image: ${e.toString()}');
+      }
+    }
+    CurrentTripItem().pointsOfInterest.add(pointOfInterest);
+    CurrentTripItem().isSaved = false;
+    MapService().updateMapGeoJson(mapUpdates: MapUpdates.pointsOfInterest);
   }
 
   void updateToolTips(bool enter, int i) {
