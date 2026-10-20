@@ -1449,13 +1449,20 @@ class CurrentTripItem extends MyTripItem {
   /// at backBuffer[0] - the latest state.
   /// If a waypoint is added when the backBuffer has been rolled-back backBufferIndex > 0
   /// then all the backBuffer values up to backBufferIndex is ditched.
-  /// backBuffer.length is restricted to 10
+  /// Undo steps back through every waypoint - great road or not - so the
+  /// history isn't limited (it was 10, which stopped undo part way back).
+  /// Each state is only a list of waypoints.
 
   void addToBackBuffer({Route? route}) {
     route ??= routes.last;
     if (backBufferIndex > 0) {
       // Ditch the undone states - removeRange's end is exclusive
       backBuffer.removeRange(0, backBufferIndex);
+    }
+    if (backBuffer.isEmpty) {
+      // A new trip - start from no waypoints so the first can be undone too.
+      // (A loaded trip starts from its saved waypoints - loadBackBuffer())
+      backBuffer.add([]);
     }
     List<Waypoint> waypoints = [];
     for (int i = 0; i < route.waypoints.length; i++) {
@@ -1465,9 +1472,6 @@ class CurrentTripItem extends MyTripItem {
     }
     backBuffer.insert(0, waypoints);
     backBufferIndex = 0;
-    if (backBuffer.length > 10) {
-      backBuffer.removeRange(10, backBuffer.length);
-    }
     MapService().webAppBarController?.update();
     MapService().persistentAppBarController?.refresh();
   }
@@ -1654,7 +1658,8 @@ class CurrentTripItem extends MyTripItem {
 
       mapUpdates = mapUpdates.add(MapUpdates.goodRoadsAndGoodRoadWaypoints);
       MapService().updateMapGeoJson(mapUpdates: mapUpdates);
-      goodRoads = await replaceRoutes(routes: goodRoads);
+      // Great roads aren't in the route's undo history
+      goodRoads = await replaceRoutes(routes: goodRoads, updateBuffer: false);
       List? lastPoint;
       if (goodRoads.isNotEmpty) {
         if (goodRoads.last.lines.isNotEmpty) {
