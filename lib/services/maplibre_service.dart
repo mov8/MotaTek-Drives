@@ -426,9 +426,14 @@ map.on('mousemove', (e) => {
   ///   WaypointState.remove       crosshair is over an existing waypoint
   ///   WaypointState.extendStart  crosshair is beyond the start
   ///   WaypointState.extendEnd    crosshair is beyond the end
-  ///   WaypointState.insert       crosshair is near the start or end, but
-  ///                              within the route
-  ///   WaypointState.none         anywhere else
+  ///   WaypointState.insert       anywhere else on a route of 2+ waypoints
+  ///   WaypointState.none         fewer than 2 waypoints
+  ///
+  /// Insert always goes between two anchors - consecutive waypoints that stay
+  /// in the re-calculated route - so the router can't miss a waypoint the user
+  /// has placed, avoiding the random re-routing of other route planners. To
+  /// free the router the user deletes an anchor. The anchors are the leg where
+  /// the new waypoint adds the least distance (see _insertionLeg()).
   ///
   /// Each end is only judged against its neighbouring waypoint, not the other
   /// end of the route. Comparing with the other end fails on a circular route,
@@ -443,6 +448,27 @@ map.on('mousemove', (e) => {
   /// start always win - if both tests pass the nearer end decides.
   /// It won't be right every time, but undo lets the user try again.
   ///
+
+  /// The leg - waypoints i and i + 1 - where adding point makes the least
+  /// detour: distance(i, point) + distance(point, i + 1) - distance(i, i + 1).
+  /// More reliable than the two nearest waypoints, which on a circular or
+  /// figure of eight route needn't be consecutive. Returns i.
+  int _insertionLeg({required List<Waypoint> waypoints, required Point point}) {
+    int leg = 0;
+    double leastDetour = double.infinity;
+    for (int i = 0; i < waypoints.length - 1; i++) {
+      double detour =
+          distanceBetween(startXY: waypoints[i].point, endXY: point) +
+              distanceBetween(startXY: point, endXY: waypoints[i + 1].point) -
+              distanceBetween(
+                  startXY: waypoints[i].point, endXY: waypoints[i + 1].point);
+      if (detour < leastDetour) {
+        leastDetour = detour;
+        leg = i;
+      }
+    }
+    return leg;
+  }
 
   Future<void> getWaypointState() async {
     Map<String, dynamic> waypointData = await waypointTargetted();
@@ -492,7 +518,7 @@ map.on('mousemove', (e) => {
         state = WaypointState.extendStart;
       } else if (beyondEnd) {
         state = WaypointState.extendEnd;
-      } else if (nearest[0] == 0 || nearest[0] == last) {
+      } else {
         state = WaypointState.insert;
       }
     }
@@ -506,8 +532,8 @@ map.on('mousemove', (e) => {
       if (state == WaypointState.remove) {
         highlighted = [CurrentTripItem().waypointIndex];
       } else if (state == WaypointState.insert) {
-        int last = waypoints.length - 1;
-        highlighted = nearest[0] == 0 ? [0, 1] : [last - 1, last];
+        int leg = _insertionLeg(waypoints: waypoints, point: position);
+        highlighted = [leg, leg + 1];
       }
     }
     for (int i = 0; i < waypoints.length; i++) {
