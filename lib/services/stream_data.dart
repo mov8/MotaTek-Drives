@@ -6,6 +6,7 @@ import '/routes/routes.dart';
 import '/helpers/helpers.dart';
 import '/services/services.dart';
 import '/classes/classes.dart' hide Position;
+import '/models/other_models.dart' show Setup;
 import '../constants.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 
@@ -53,7 +54,6 @@ class PositionService {
     accuracy: LocationAccuracy.best,
     distanceFilter: 5, // 10 meters
   );
-  PositionUpdate _positionUpdate = PositionUpdate();
   void Initialise() {
     _positionStream =
         Geolocator.getPositionStream(locationSettings: locationSettings)
@@ -118,26 +118,56 @@ class PositionService {
     }
   }
 
+  /// Called for each position while tracking (every 5m - distanceFilter).
+  /// The tracked route is extended and redrawn straight away. It used to wait
+  /// for the map's onIdle, which rarely fires while the camera follows the
+  /// user, so the line lagged behind the position marker.
   void updateUserPosition(CurrentPosition position) async {
-    if (_userPosition!.point.y > 0 &&
-        position.point.y > 0 &&
-        CurrentTripItem().tripState == TripState.tracking) {
-      double travelled = getDistanceBetween(
-          startXY: _userPosition!.point, endXY: position.point);
-      _speed = position.speed.toDouble();
-      _positionUpdate = PositionUpdate(
-        controller: MapService().controller!, // as MapLibreMapController,
-        routePoint: position.list,
-      );
-      if (travelled > 1000) {
-        CurrentTripItem().newWaypoint(point: position.point);
-      }
+    if (position.point.y == 0 ||
+        CurrentTripItem().tripState != TripState.tracking) {
+      return;
+    }
+    CurrentTripItem trip = CurrentTripItem();
+    _speed = position.speed.toDouble();
+    trip.tripValues.position = position.point;
+    trip.tripValues.heading = position.heading;
+    if (trip.routes.isEmpty) {
+      trip.routes = [mt.Route()];
+    }
+    MapUpdates changes = MapUpdates.routes;
+
+    // A waypoint where tracking starts and then every kilometre - measured
+    // from the last waypoint, not the last position which is only 5m back
+    List<Waypoint> waypoints = trip.routes.last.waypoints;
+    if (waypoints.isEmpty ||
+        getDistanceBetween(
+                startXY: waypoints.last.point, endXY: position.point) >
+            1000) {
+      trip.newWaypoint(point: position.point);
+      changes = changes.add(MapUpdates.waypoints);
     }
 
-    /// Update the map without animation
-    MapService()
-        .controller!
-        .moveCamera(CameraUpdate.newLatLng(position.latLng));
+    trip.routes.last.lines.add(position.list);
+    if (trip.isGoodRoad && trip.goodRoads.isNotEmpty) {
+      trip.goodRoads.last.lines.add(position.list);
+      changes = changes.add(MapUpdates.goodRoads);
+    }
+    await MapService().updateMapGeoJson(mapUpdates: changes);
+
+    /// Update the map without animation, rotating it to the direction of
+    /// travel if the user has chosen that in setup (heading is only reliable
+    /// when moving)
+    MapLibreMapController? controller = MapService().controller;
+    if (controller != null) {
+      if (Setup().rotateMap && position.speed > 0) {
+        controller.moveCamera(CameraUpdate.newCameraPosition(CameraPosition(
+            target: position.latLng,
+            zoom: controller.cameraPosition?.zoom ?? 14,
+            bearing: position.heading)));
+      } else {
+        controller.moveCamera(CameraUpdate.newLatLng(position.latLng));
+      }
+    }
     _userPosition = position;
   }
 }
