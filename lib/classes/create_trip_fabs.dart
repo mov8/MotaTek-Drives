@@ -5,10 +5,10 @@ import '../services/services.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import '../constants.dart';
-import 'dart:developer' as developer;
+// import 'dart:developer' as developer;
 // import 'package:http/http.dart' as http;
 import 'package:maplibre_gl/maplibre_gl.dart';
-import 'package:flutter/foundation.dart';
+// import 'package:flutter/foundation.dart';
 
 // List<String> ['jj'];
 const List<String> fabHints = [
@@ -129,6 +129,9 @@ class _HandleCTFabsState extends State<HandleCTFabs> {
                   Padding(
                     padding: EdgeInsetsGeometry.fromLTRB(0, widget.top, 10, 0),
                     child: Column(
+                      // Keep the FABs on the right edge when one expands -
+                      // centred, they moved left as a FloatingTextEdit opened
+                      crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         AnimatedCrossFade(
                           duration: const Duration(milliseconds: 500),
@@ -400,7 +403,7 @@ class _HandleCTFabsState extends State<HandleCTFabs> {
     );
   }
 
-  fteUpdate({String description = '', String audio = ''}) {
+  void fteUpdate({String description = '', String audio = ''}) {
     CurrentTripItem().pointsOfInterest.add(PointOfInterest(
         point: CurrentTripItem().tripValues.position,
         description: description,
@@ -421,7 +424,7 @@ class _HandleCTFabsState extends State<HandleCTFabs> {
     }
   }
 
-  updatePosition() async {
+  void updatePosition() async {
     CurrentTripItem().tripValues.autoCentre =
         !CurrentTripItem().tripValues.autoCentre;
     Position position = await Geolocator.getCurrentPosition();
@@ -435,7 +438,7 @@ class _HandleCTFabsState extends State<HandleCTFabs> {
         CameraUpdate.newLatLng(LatLng(position.latitude, position.longitude)));
   }
 
-  updateRouteType({String description = '', String sound = ''}) {
+  void updateRouteType({String description = '', String sound = ''}) {
     if (CurrentTripItem().isGoodRoad) {
       CurrentTripItem().goodRoadEnd(description: description, sounds: sound);
     } else {

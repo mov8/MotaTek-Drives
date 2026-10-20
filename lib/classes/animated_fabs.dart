@@ -406,7 +406,8 @@ class _FloatingTextEditState extends State<FloatingTextEdit> {
   @override
   void initState() {
     super.initState();
-    _width = widget.maxWidth;
+    // Start closed - starting at maxWidth showed a part opened pill
+    _width = widget.width;
     _height = widget.height;
     _expanded = false;
     _recording = false;
