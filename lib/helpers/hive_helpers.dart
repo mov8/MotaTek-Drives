@@ -107,6 +107,28 @@ class TripRepository {
     }
   }
 
+  /// Deletes a saved trip and its stored media - its points of interest's
+  /// voice memos and images, and the trip's own images
+  Future<void> deleteTrip(MyTripItem trip) async {
+    List<String> media = [
+      for (PointOfInterest poi in trip.pointsOfInterest)
+        ...CurrentTripItem.mediaOf(poi),
+      ...CurrentTripItem.mediaOfImages(trip.images),
+    ];
+    for (String item in media) {
+      await CurrentTripItem.deleteMedia(item);
+    }
+    try {
+      Box box = Hive.isBoxOpen('trips')
+          ? Hive.box('trips')
+          : await Hive.openBox('trips');
+      await box.delete(trip.uri);
+    } catch (e) {
+      developer.log('Error deleting trip from Hive ${e.toString()}',
+          name: 'error');
+    }
+  }
+
   // Retrieve and decode the model
   Future<MyTripItem?> getTrip(String id) async {
     if (!_tripsBox.isOpen) {

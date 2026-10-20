@@ -504,13 +504,20 @@ class _MyTripTileState extends State<MyTripTile> {
         callback: onConfirmDeleteTrip);
   }
 
+  /// Trips are stored in Hive - the old SQLite deleteDriveLocal() left them
+  /// there, so they came back the next time My Trips loaded
   void onConfirmDeleteTrip(int value) async {
     if (value > -1) {
-      getPrivateRepository().deleteDriveLocal(tripItem: widget.myTripItem).then(
-            (_) => setState(
-              () => widget.onDeleteTrip(value),
-            ),
-          );
+      // Don't leave the deleted trip on the map, where saving would bring
+      // it back without its media
+      if (CurrentTripItem().uri.isNotEmpty &&
+          CurrentTripItem().uri == widget.myTripItem.uri) {
+        await CurrentTripItem().requestClear();
+      }
+      await TripRepository().deleteTrip(widget.myTripItem);
+      if (mounted) {
+        setState(() => widget.onDeleteTrip(value));
+      }
     }
   }
 

@@ -200,13 +200,13 @@ class CurrentTripItem extends MyTripItem {
   void markSaved() {
     // Saved without the removed points of interest - their media can go now
     for (String media in _pendingMediaDeletes) {
-      _deleteMedia(media);
+      deleteMedia(media);
     }
     _pendingMediaDeletes.clear();
     isSaved = true;
     _savedSnapshot = _snapshot();
     _savedMedia = {
-      for (PointOfInterest poi in pointsOfInterest) ..._mediaOf(poi)
+      for (PointOfInterest poi in pointsOfInterest) ...mediaOf(poi)
     };
   }
 
@@ -224,7 +224,7 @@ class CurrentTripItem extends MyTripItem {
     if (index < 0 || index >= pointsOfInterest.length) return;
     PointOfInterest poi = pointsOfInterest.removeAt(index);
     isSaved = false;
-    await _discardMedia(_mediaOf(poi));
+    await _discardMedia(mediaOf(poi));
   }
 
   /// A single photo removed from a point of interest (ImageArranger) - the
@@ -240,14 +240,14 @@ class CurrentTripItem extends MyTripItem {
       if (_savedMedia.contains(item)) {
         _pendingMediaDeletes.add(item);
       } else {
-        await _deleteMedia(item);
+        await deleteMedia(item);
       }
     }
   }
 
   /// A point of interest's media as 'sound:key', 'image:key' or 'file:path'
   /// (memos and images stored as files before Hive)
-  List<String> _mediaOf(PointOfInterest poi) {
+  static List<String> mediaOf(PointOfInterest poi) {
     List<String> media = [];
     if (poi.sounds.isNotEmpty) {
       media.add(SoundRepository.isKey(poi.sounds)
@@ -263,7 +263,15 @@ class CurrentTripItem extends MyTripItem {
     return media;
   }
 
-  List<String> _mediaOfPhoto(Photo photo) {
+  /// A trip's own images (MyTripItem.images) as media
+  static List<String> mediaOfImages(String images) => images.isEmpty
+      ? []
+      : [
+          for (Photo photo in photosFromJson(photoString: images))
+            ..._mediaOfPhoto(photo)
+        ];
+
+  static List<String> _mediaOfPhoto(Photo photo) {
     String key = photo.key.isNotEmpty ? photo.key : getFileName(url: photo.url);
     if (key.length == 32) {
       return ['image:$key'];
@@ -276,7 +284,7 @@ class CurrentTripItem extends MyTripItem {
     return [];
   }
 
-  Future<void> _deleteMedia(String media) async {
+  static Future<void> deleteMedia(String media) async {
     try {
       String value = media.substring(media.indexOf(':') + 1);
       if (media.startsWith('sound:')) {
