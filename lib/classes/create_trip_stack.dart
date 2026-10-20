@@ -284,8 +284,10 @@ class _CreateTripStackState extends State<CreateTripStack>
                       .mapMiddle
                       .x
                       .toDouble(), //mapMiddle().x.toDouble(),
-                  color:
-                      CurrentTripItem().isGoodRoad ? Colors.red : Colors.black),
+                  color: CurrentTripItem().isGoodRoad
+                      // The user's great road colour, like the route
+                      ? colourList[Setup().goodRouteColour]
+                      : Colors.black),
             )
           ],
           // The position marker is a map layer - MapService().showLocation()

@@ -182,25 +182,101 @@ List<Map<String, dynamic>> routesToGeoJson(
   highlighted ??= false;
   indexColour = indexColour ?? Setup().highlightedColourHex();
 
+  String goodRoadColour = Setup().goodRouteColourHex();
   List<Map<String, dynamic>> features = [];
   if (routes.isNotEmpty) {
     for (int i = 0; i < routes.length; i++) {
       // A LineString needs 2+ points - an invalid one makes MapLibre reject
       // the whole source and keep drawing the previous route
       if (routes[i].lines.length < 2) continue;
-      features.add({
-        "type": "Feature",
-        "geometry": {"type": "LineString", "coordinates": routes[i].lines},
-        "id": i,
-        "properties": {
-          "group": 'route',
-          "width": 2,
-          "color": i == index ? indexColour : colour,
-        }
-      });
+      // Great road legs (arriving at waypoints flagged isGoodRoad) are drawn
+      // in the great road colour as part of the route
+      for (({List<List<double>> lines, bool goodRoad}) segment
+          in routeSegments(routes[i])) {
+        if (segment.lines.length < 2) continue;
+        features.add({
+          "type": "Feature",
+          "geometry": {"type": "LineString", "coordinates": segment.lines},
+          "id": i,
+          "properties": {
+            "group": 'route',
+            "width": 2,
+            "color": i == index
+                ? indexColour
+                : segment.goodRoad
+                    ? goodRoadColour
+                    : colour,
+          }
+        });
+      }
     }
   }
   return features;
+}
+
+/// Splits a route's line into stretches of ordinary and great road. A
+/// waypoint flagged isGoodRoad makes the leg arriving at it great road.
+/// Consecutive legs of the same kind are joined.
+List<({List<List<double>> lines, bool goodRoad})> routeSegments(Route route) {
+  List<Waypoint> waypoints = route.waypoints;
+  if (waypoints.length < 2 || !waypoints.any((w) => w.isGoodRoad)) {
+    return [(lines: route.lines, goodRoad: false)];
+  }
+  List<int> indices = waypointLineIndices(route);
+  List<({List<List<double>> lines, bool goodRoad})> segments = [];
+  int start = 0;
+  bool goodRoad = waypoints[1].isGoodRoad;
+  for (int k = 2; k < waypoints.length; k++) {
+    if (waypoints[k].isGoodRoad != goodRoad) {
+      segments.add((
+        lines: route.lines.sublist(start, indices[k - 1] + 1),
+        goodRoad: goodRoad
+      ));
+      start = indices[k - 1];
+      goodRoad = waypoints[k].isGoodRoad;
+    }
+  }
+  segments.add((lines: route.lines.sublist(start), goodRoad: goodRoad));
+  return segments;
+}
+
+/// The index in route.lines nearest each waypoint, searching forwards from
+/// the previous waypoint. It takes the first pass that comes close (within
+/// 30m) rather than the closest overall, so a point visited twice - a
+/// revisit, or the crossing of a figure of eight - splits at the right pass.
+List<int> waypointLineIndices(Route route) {
+  List<int> indices = [];
+  int from = 0;
+  double metres(Point p, List<double> q) {
+    double dx = (q[0] - p.x) * cos(p.y * pi / 180) * 111320;
+    double dy = (q[1] - p.y) * 110540;
+    return sqrt(dx * dx + dy * dy);
+  }
+
+  for (Waypoint waypoint in route.waypoints) {
+    int index = from;
+    double closest = double.infinity;
+    for (int j = from; j < route.lines.length; j++) {
+      double distance = metres(waypoint.point, route.lines[j]);
+      if (distance < 30) {
+        // Follow the pass to its nearest point
+        index = j;
+        while (index + 1 < route.lines.length &&
+            metres(waypoint.point, route.lines[index + 1]) <=
+                metres(waypoint.point, route.lines[index])) {
+          index++;
+        }
+        break;
+      }
+      if (distance < closest) {
+        closest = distance;
+        index = j;
+      }
+    }
+    indices.add(index);
+    from = index;
+  }
+  return indices;
 }
 
 List<Map<String, dynamic>> goodRoadsToGeoJson(
@@ -210,6 +286,9 @@ List<Map<String, dynamic>> goodRoadsToGeoJson(
     String? indexColour,
     bool? highlighted}) {
   colour ??= Setup().goodRouteColourHex();
+  // The current trip's great roads made from its route are drawn by the
+  // route itself (routesToGeoJson()) - only those off the route need drawing
+  bool currentTrip = routes == null;
   routes ??= CurrentTripItem().goodRoads;
   highlighted ??= false;
   indexColour = indexColour ?? Setup().highlightedColourHex();
@@ -219,6 +298,11 @@ List<Map<String, dynamic>> goodRoadsToGeoJson(
       // A LineString needs 2+ points - an invalid one makes MapLibre reject
       // the whole source and keep drawing the previous route
       if (routes[i].lines.length < 2) continue;
+      if (currentTrip &&
+          routes[i].waypoints.isNotEmpty &&
+          routes[i].waypoints.every((w) => routeWaypointNumber(w.point) > 0)) {
+        continue;
+      }
       features.add({
         "type": "Feature",
         "geometry": {"type": "LineString", "coordinates": routes[i].lines},

@@ -992,8 +992,9 @@ class CurrentTripItem extends MyTripItem {
   /// as they are.
   Future<void> syncGoodRoads() async {
     if (tripState == TripState.tracking) return;
-    List<Waypoint> route = routes.isEmpty ? [] : routes.last.waypoints;
-    bool onRoute(Waypoint w) => route.any((r) => r.point == w.point);
+    Route? route = routes.isEmpty ? null : routes.last;
+    List<Waypoint> waypoints = route?.waypoints ?? [];
+    bool onRoute(Waypoint w) => waypoints.any((r) => r.point == w.point);
     List<Route> kept = [];
     List<Route> previous = [];
     for (Route goodRoad in goodRoads) {
@@ -1004,25 +1005,38 @@ class CurrentTripItem extends MyTripItem {
         kept.add(goodRoad);
       }
     }
+    // Where each waypoint is on the route's line - a great road's line is
+    // cut from the route's, so it's ready as soon as the route is
+    List<int> indices = route == null || route.lines.length < 2
+        ? []
+        : waypointLineIndices(route);
     List<Route> rebuilt = [];
     int i = 0;
-    while (i < route.length) {
-      if (!route[i].isGoodRoad) {
+    while (i < waypoints.length) {
+      if (!waypoints[i].isGoodRoad) {
         i++;
         continue;
       }
       int end = i;
-      while (end + 1 < route.length && route[end + 1].isGoodRoad) {
+      while (end + 1 < waypoints.length && waypoints[end + 1].isGoodRoad) {
         end++;
       }
+      int start = i > 0 ? i - 1 : i;
       List<Waypoint> stretch = [
-        for (int k = i > 0 ? i - 1 : i; k <= end; k++)
+        for (int k = start; k <= end; k++)
           Waypoint(
-              point: route[k].point,
+              point: waypoints[k].point,
               isGoodRoad: true,
               colour: Setup().goodRouteColourHex())
       ];
-      Route goodRoad = await _goodRoadFor(stretch, previous);
+      Route goodRoad = _goodRoadFor(stretch, previous);
+      if (indices.length == waypoints.length && indices[end] > indices[start]) {
+        goodRoad.lines = [
+          for (List<double> point
+              in route!.lines.sublist(indices[start], indices[end] + 1))
+            [point[0], point[1]]
+        ];
+      }
       if (goodRoad.pointOfInterestUri.isEmpty) {
         // e.g. undone then redone - reconnect its description, which is
         // still in the trip at the great road's start
@@ -1043,57 +1057,24 @@ class CurrentTripItem extends MyTripItem {
       i = end + 1;
     }
     goodRoads = [...kept, ...rebuilt];
-    developer.log(
-        'syncGoodRoads(): ${rebuilt.length} from the route '
-        '(waypoints ${[
-          for (Route r in rebuilt) r.waypoints.length
-        ]}, line points ${[
-          for (Route r in rebuilt) r.lines.length
-        ]}), ${kept.length} off the route',
-        name: '_goodroad_');
   }
 
-  /// A great road for the stretch, reusing a previous one's line if the
-  /// stretch hasn't changed, and its description (pointOfInterestUri) if
-  /// it's the same great road - same start, or same points (reversed)
-  Future<Route> _goodRoadFor(
-      List<Waypoint> stretch, List<Route> previous) async {
-    bool same(Route r) =>
-        r.waypoints.length == stretch.length &&
-        [
-          for (int k = 0; k < stretch.length; k++)
-            r.waypoints[k].point == stretch[k].point
-        ].every((equal) => equal);
+  /// A great road for the stretch, keeping a previous one's description
+  /// (pointOfInterestUri) if it's the same great road - same start, or the
+  /// same points (reversed)
+  Route _goodRoadFor(List<Waypoint> stretch, List<Route> previous) {
     bool related(Route r) =>
         r.waypoints.first.point == stretch.first.point ||
         (r.waypoints.length == stretch.length &&
             stretch.every((w) => r.waypoints.any((p) => p.point == w.point)));
-    Route? match =
-        previous.where(same).firstOrNull ?? previous.where(related).firstOrNull;
-    Route goodRoad = Route(
+    Route? match = previous.where(related).firstOrNull;
+    return Route(
       id: match?.id ?? -1,
       uri: match?.uri ?? '',
       waypoints: stretch,
       colour: Setup().goodRouteColourHex(),
       pointOfInterestUri: match?.pointOfInterestUri ?? '',
     );
-    if (match != null && same(match) && match.lines.length > 1) {
-      goodRoad.lines = match.lines;
-    } else if (stretch.length > 1) {
-      try {
-        RouterData routeData = await getRouterData(
-            route: Route(waypoints: List.of(stretch)), goodRoad: true);
-        if (routeData.message == 'OK' && routeData.routes.isNotEmpty) {
-          goodRoad.lines = [
-            for (Route routed in routeData.routes) ...routed.lines
-          ];
-        }
-      } catch (e) {
-        developer.log('Error routing great road: ${e.toString()}',
-            name: 'error');
-      }
-    }
-    return goodRoad;
   }
 
   /// The map sources to redraw after the route changes
