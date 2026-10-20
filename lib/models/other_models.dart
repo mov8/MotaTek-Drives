@@ -353,6 +353,20 @@ class Setup {
       // iOS-specific configuration
       iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
     );
+    // Images, the cache and voice memos are stored under the documents
+    // directory - this was lost in the move from SQLite to Hive
+    if (!kIsWeb) {
+      try {
+        appDocumentDirectory = (await getApplicationDocumentsDirectory()).path;
+        for (String folder in ['cache', 'sounds']) {
+          await Directory('$appDocumentDirectory/$folder')
+              .create(recursive: true);
+        }
+      } catch (e) {
+        developer.log('Error Setup() loaded() directories: ${e.toString()}',
+            name: 'error');
+      }
+    }
     lastPosition = await getPosition();
 
     try {

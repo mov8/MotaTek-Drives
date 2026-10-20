@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import '/models/other_models.dart';
 import '/classes/classes.dart';
 import '/helpers/edit_helpers.dart';
+import '/helpers/hive_helpers.dart' show UserRepository;
 
 class SetupForm extends StatefulWidget {
   // var setup;
@@ -18,6 +19,26 @@ class _SetupFormState extends State<SetupForm> {
   final iconFlyover = SymbolsGet.get('flyover', SymbolStyle.sharp);
   final iconRoad = SymbolsGet.get('road', SymbolStyle.sharp);
   // bool _hasChanged = false;
+
+  /// The settings when the screen opened. The switches change Setup()
+  /// directly, so this detects changes and puts the settings back if the
+  /// user ignores them.
+  late final Map<String, dynamic> _original;
+  bool _saved = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _original = Setup().toMap();
+  }
+
+  @override
+  void dispose() {
+    if (!_saved && _hasChanged()) {
+      Setup().fromJson(map: _original); // ignored - put the settings back
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,13 +58,23 @@ class _SetupFormState extends State<SetupForm> {
     );
   }
 
-  void _update({bool update = false}) {
+  /// Called by Save (the app bar tick, or Save in the dialog shown by Back).
+  /// Saves the settings to Hive and closes the screen.
+  Future<void> _update({bool update = false}) async {
     if (update) {
-      // insertSetup(Setup());
+      try {
+        UserRepository userRepository = UserRepository();
+        await userRepository.openBox();
+        await userRepository.saveSetup();
+        _saved = true;
+      } catch (e) {
+        debugPrint('Error saving setup: ${e.toString()}');
+      }
     }
     // saveSetupToApi(); <-- to debug api only
-    setState(() => !_hasChanged());
-    return;
+    if (mounted) {
+      Navigator.pop(context);
+    }
   }
 
   Widget portraitView() {
@@ -436,11 +467,20 @@ class _SetupFormState extends State<SetupForm> {
     );
   }
 
-  bool _hasChanged({bool value = true}) {
-    if (widget.onChange != null) {
-      widget.onChange;
-    }
-    return value;
+  /// True when a setting differs from when the screen opened. jwt etc. aren't
+  /// settings and can change underneath (a token refresh).
+  bool _hasChanged() {
+    const List<String> notSettings = [
+      'id',
+      'jwt',
+      'bottom_nav_index',
+      'app_state'
+    ];
+    Map<String, dynamic> now = Setup().toMap();
+    bool changed = now.keys
+        .any((key) => !notSettings.contains(key) && now[key] != _original[key]);
+    widget.onChange?.call(changed);
+    return changed;
   }
 }
 

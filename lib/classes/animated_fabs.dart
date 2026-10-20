@@ -484,10 +484,12 @@ class _FloatingTextEditState extends State<FloatingTextEdit> {
                             onPressed: () async {
                               if (_recording) {
                                 _audioPath = await _stop();
+                                setState(() => _recording = false);
                               } else {
-                                _record();
+                                // Only show recording if it really started
+                                bool started = await _record();
+                                setState(() => _recording = started);
                               }
-                              setState(() => (_recording = !_recording));
                             },
                             icon: Icon(
                                 _recording
@@ -577,12 +579,13 @@ class _FloatingTextEditState extends State<FloatingTextEdit> {
     if (await _recorder.hasPermission()) {
       String uuidString = Uuid().v7();
       try {
-        String filePath =
-            '${Setup().appDocumentDirectory}/sounds/$uuidString.wav';
+        String folder = '${Setup().appDocumentDirectory}/sounds';
+        await Directory(folder).create(recursive: true);
         await _recorder.start(const RecordConfig(encoder: AudioEncoder.wav),
-            path: filePath);
+            path: '$folder/$uuidString.wav');
       } catch (e) {
         debugPrint('Error recorditng sound ${e.toString()}');
+        return false;
       }
       return true;
     } else {

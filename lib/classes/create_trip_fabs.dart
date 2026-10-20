@@ -122,257 +122,268 @@ class _HandleCTFabsState extends State<HandleCTFabs> {
               constraints: BoxConstraints(
                   maxWidth: MediaQuery.of(context).size.width,
                   maxHeight: MediaQuery.of(context).size.height),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.start,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Padding(
-                    padding: EdgeInsetsGeometry.fromLTRB(0, widget.top, 10, 0),
-                    child: Column(
-                      // Keep the FABs on the right edge when one expands -
-                      // centred, they moved left as a FloatingTextEdit opened
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        AnimatedCrossFade(
-                          duration: const Duration(milliseconds: 500),
-                          crossFadeState: _drop
-                              ? CrossFadeState.showFirst
-                              : CrossFadeState.showSecond,
-                          firstChild: SizedBox(height: 80),
-                          secondChild: const SizedBox.shrink(),
-                          onEnd: () {
-                            _dropped = true;
-                            /*    if (_drop) {
+              // When the keyboard is up (e.g. typing in a FloatingTextEdit)
+              // the Scaffold has less room than the FABs need - scroll
+              // rather than overflow
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Padding(
+                      padding:
+                          EdgeInsetsGeometry.fromLTRB(0, widget.top, 10, 0),
+                      child: Column(
+                        // Keep the FABs on the right edge when one expands -
+                        // centred, they moved left as a FloatingTextEdit opened
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          AnimatedCrossFade(
+                            duration: const Duration(milliseconds: 500),
+                            crossFadeState: _drop
+                                ? CrossFadeState.showFirst
+                                : CrossFadeState.showSecond,
+                            firstChild: SizedBox(height: 80),
+                            secondChild: const SizedBox.shrink(),
+                            onEnd: () {
+                              _dropped = true;
+                              /*    if (_drop) {
                               //  Future.delayed(Duration(milliseconds: 100));
                               MapService()
                                   .messageBoxController
                                   ?.setIndex(index: 1);
                             }
                           */
-                          },
-                        ),
-                        if (CurrentTripItem().tripState == TripState.following)
-                          const SizedBox(height: 120),
-                        if (MapService().controller != null)
-                          MouseRegion(
-                            onEnter: (_) => updateToolTips(true, 0),
-                            onExit: (_) => updateToolTips(false, 0),
-                            //   child: PointerInterceptor(
-                            child: PlaceFinder(
-                              height: _height,
-                              width: _width,
-                              onSelect: (position) =>
-                                  MapService().controller!.animateCamera(
-                                        CameraUpdate.newLatLng(
-                                          LatLng(position.latitude,
-                                              position.longitude),
+                            },
+                          ),
+                          if (CurrentTripItem().tripState ==
+                              TripState.following)
+                            const SizedBox(height: 120),
+                          if (MapService().controller != null)
+                            MouseRegion(
+                              onEnter: (_) => updateToolTips(true, 0),
+                              onExit: (_) => updateToolTips(false, 0),
+                              //   child: PointerInterceptor(
+                              child: PlaceFinder(
+                                height: _height,
+                                width: _width,
+                                onSelect: (position) =>
+                                    MapService().controller!.animateCamera(
+                                          CameraUpdate.newLatLng(
+                                            LatLng(position.latitude,
+                                                position.longitude),
+                                          ),
                                         ),
-                                      ),
+                              ),
+                              //   ),
+                            ),
+                          const SizedBox(
+                            height: 10,
+                          ),
+                          MouseRegion(
+                            onEnter: (_) => updateToolTips(true, 1),
+                            onExit: (_) => updateToolTips(false, 1),
+                            //  child: PointerInterceptor(
+                            child: FloatingChecklist(
+                              choices: [
+                                {'Avoid motorways': Setup().avoidMotorways},
+                                {'Avoid main roads': Setup().avoidAroads},
+                                {'Avoid ferries': Setup().avoidFerries},
+                                {'Avoid toll roads': Setup().avoidTollRoads},
+                                {'Show pubs and bars': Setup().osmPubs},
+                                {
+                                  'Show cafes and restaurants':
+                                      Setup().osmRestaurants
+                                },
+                                {
+                                  'Show fuel and charging stations':
+                                      Setup().osmFuel
+                                },
+                                {'Show toilets': Setup().osmToilets},
+                                {'Show ATMs': Setup().osmAtms},
+                                {'Show historic sites': Setup().osmHistorical}
+                              ],
+                              maxWidth: MediaQuery.of(context).size.width - 40,
+                              onCheck: (index, value) {
+                                switch (index) {
+                                  case 0:
+                                    Setup().avoidMotorways = value;
+                                    break;
+                                  case 1:
+                                    Setup().avoidAroads = value;
+                                    break;
+                                  case 2:
+                                    Setup().avoidFerries = value;
+                                    break;
+                                  case 3:
+                                    Setup().avoidTollRoads = value;
+                                    break;
+                                  case 4:
+                                    Setup().osmPubs = value;
+                                    break;
+                                  case 5:
+                                    Setup().osmRestaurants = value;
+                                    break;
+                                  case 6:
+                                    Setup().osmFuel = value;
+                                    break;
+                                  case 7:
+                                    Setup().osmToilets = value;
+                                    break;
+                                  case 8:
+                                    Setup().osmAtms = value;
+                                    break;
+                                  case 9:
+                                    Setup().osmHistorical = value;
+                                    break;
+                                }
+                                osmIncludingChange = true;
+                              },
+                              onClose: (_) async {
+                                if (osmIncludingChange) {
+                                  osmIncludingChange = false;
+                                }
+                              },
                             ),
                             //   ),
                           ),
-                        const SizedBox(
-                          height: 10,
-                        ),
-                        MouseRegion(
-                          onEnter: (_) => updateToolTips(true, 1),
-                          onExit: (_) => updateToolTips(false, 1),
-                          //  child: PointerInterceptor(
-                          child: FloatingChecklist(
-                            choices: [
-                              {'Avoid motorways': Setup().avoidMotorways},
-                              {'Avoid main roads': Setup().avoidAroads},
-                              {'Avoid ferries': Setup().avoidFerries},
-                              {'Avoid toll roads': Setup().avoidTollRoads},
-                              {'Show pubs and bars': Setup().osmPubs},
-                              {
-                                'Show cafes and restaurants':
-                                    Setup().osmRestaurants
-                              },
-                              {
-                                'Show fuel and charging stations':
-                                    Setup().osmFuel
-                              },
-                              {'Show toilets': Setup().osmToilets},
-                              {'Show ATMs': Setup().osmAtms},
-                              {'Show historic sites': Setup().osmHistorical}
-                            ],
-                            maxWidth: MediaQuery.of(context).size.width - 40,
-                            onCheck: (index, value) {
-                              switch (index) {
-                                case 0:
-                                  Setup().avoidMotorways = value;
-                                  break;
-                                case 1:
-                                  Setup().avoidAroads = value;
-                                  break;
-                                case 2:
-                                  Setup().avoidFerries = value;
-                                  break;
-                                case 3:
-                                  Setup().avoidTollRoads = value;
-                                  break;
-                                case 4:
-                                  Setup().osmPubs = value;
-                                  break;
-                                case 5:
-                                  Setup().osmRestaurants = value;
-                                  break;
-                                case 6:
-                                  Setup().osmFuel = value;
-                                  break;
-                                case 7:
-                                  Setup().osmToilets = value;
-                                  break;
-                                case 8:
-                                  Setup().osmAtms = value;
-                                  break;
-                                case 9:
-                                  Setup().osmHistorical = value;
-                                  break;
-                              }
-                              osmIncludingChange = true;
-                            },
-                            onClose: (_) async {
-                              if (osmIncludingChange) {
-                                osmIncludingChange = false;
-                              }
-                            },
-                          ),
-                          //   ),
-                        ),
-                        const SizedBox(height: 10),
-                        if ([TripState.tracking, TripState.following]
-                            .contains(CurrentTripItem().tripState)) ...[
-                          MouseRegion(
-                            onEnter: (_) => updateToolTips(true, 2),
-                            onExit: (_) => updateToolTips(false, 2),
-                            //   child: PointerInterceptor(
-                            child: Material(
-                              child: FloatingTextEdit(
-                                key: Key('ftepoi'),
-                                focusNode: FocusNode(),
-                                keyboardType: TextInputType.name,
-                                controller: teController,
-                                closedIcon: Icons.add_location_alt_outlined,
-                                openIcon: Icons.add_task_outlined,
-                                onOpen: (_) => CurrentTripItem().saveState(),
-                                onClose: (description, audio) =>
-                                    CurrentTripItem().pointsOfInterest.add(
-                                          PointOfInterest(
-                                            point: CurrentTripItem()
-                                                .tripValues
-                                                .position,
-                                            description: description,
-                                            sounds: audio,
-                                          ),
-                                        ),
-                                fillColor: Colors.white,
-                                inputBorder: _width > _height
-                                    ? OutlineInputBorder()
-                                    : null,
-                                hint: 'Description to edit later...',
-                                suffix: IconButton(
-                                    onPressed: (() {}), icon: Icon(Icons.mic)),
-                              ),
-                            ),
-                            //     ),
-                          ),
-                          if (CurrentTripItem().isGoodRoad) ...[
-                            const SizedBox(height: 10),
+                          const SizedBox(height: 10),
+                          if ([TripState.tracking, TripState.following]
+                              .contains(CurrentTripItem().tripState)) ...[
                             MouseRegion(
-                              onEnter: (_) => updateToolTips(true, 3),
-                              onExit: (_) => updateToolTips(false, 3),
+                              onEnter: (_) => updateToolTips(true, 2),
+                              onExit: (_) => updateToolTips(false, 2),
                               //   child: PointerInterceptor(
-                              child: FloatingTextEdit(
-                                key: Key('ftegr'),
-                                maxWidth: 200,
-                                focusNode: FocusNode(),
-                                keyboardType: TextInputType.name,
-                                controller: teController,
-                                closedIcon: Icons.remove_road,
-                                openIcon: Icons.add_task_outlined,
-                                onOpen: (_) => CurrentTripItem().saveState(),
-                                onClose: (description, audio) =>
-                                    updateRouteType(
-                                        description: description, sound: audio),
-                                fillColor: Colors.white,
-                                inputBorder: _width > _height
-                                    ? OutlineInputBorder()
-                                    : null,
-                                hint: 'Description to edit later...',
-                                suffix: IconButton(
-                                  onPressed: (() => (widget.update!(true))),
-                                  icon: Icon(
-                                    Icons.mic,
-                                    color: Colors.red,
+                              child: Material(
+                                child: FloatingTextEdit(
+                                  key: Key('ftepoi'),
+                                  focusNode: FocusNode(),
+                                  keyboardType: TextInputType.name,
+                                  controller: teController,
+                                  closedIcon: Icons.add_location_alt_outlined,
+                                  openIcon: Icons.add_task_outlined,
+                                  onOpen: (_) => CurrentTripItem().saveState(),
+                                  onClose: (description, audio) =>
+                                      CurrentTripItem().pointsOfInterest.add(
+                                            PointOfInterest(
+                                              point: CurrentTripItem()
+                                                  .tripValues
+                                                  .position,
+                                              description: description,
+                                              sounds: audio,
+                                            ),
+                                          ),
+                                  fillColor: Colors.white,
+                                  inputBorder: _width > _height
+                                      ? OutlineInputBorder()
+                                      : null,
+                                  hint: 'Description to edit later...',
+                                  suffix: IconButton(
+                                      onPressed: (() {}),
+                                      icon: Icon(Icons.mic)),
+                                ),
+                              ),
+                              //     ),
+                            ),
+                            if (CurrentTripItem().isGoodRoad) ...[
+                              const SizedBox(height: 10),
+                              MouseRegion(
+                                onEnter: (_) => updateToolTips(true, 3),
+                                onExit: (_) => updateToolTips(false, 3),
+                                //   child: PointerInterceptor(
+                                child: FloatingTextEdit(
+                                  key: Key('ftegr'),
+                                  maxWidth: 200,
+                                  focusNode: FocusNode(),
+                                  keyboardType: TextInputType.name,
+                                  controller: teController,
+                                  closedIcon: Icons.remove_road,
+                                  openIcon: Icons.add_task_outlined,
+                                  onOpen: (_) => CurrentTripItem().saveState(),
+                                  onClose: (description, audio) =>
+                                      updateRouteType(
+                                          description: description,
+                                          sound: audio),
+                                  fillColor: Colors.white,
+                                  inputBorder: _width > _height
+                                      ? OutlineInputBorder()
+                                      : null,
+                                  hint: 'Description to edit later...',
+                                  suffix: IconButton(
+                                    onPressed: (() => (widget.update!(true))),
+                                    icon: Icon(
+                                      Icons.mic,
+                                      color: Colors.red,
+                                    ),
+                                  ),
+                                ),
+                                //  ),
+                              ),
+                              const SizedBox(
+                                height: 10,
+                              ),
+                            ],
+                            if (!CurrentTripItem().isGoodRoad) ...[
+                              const SizedBox(height: 10),
+                              MouseRegion(
+                                onEnter: (_) => updateToolTips(true, 3),
+                                onExit: (_) => updateToolTips(false, 3),
+                                child: FloatingActionButton(
+                                  onPressed: () => updateRouteType(),
+                                  heroTag: 'goodRoadOn',
+                                  backgroundColor: Colors.blue,
+                                  shape: const CircleBorder(),
+                                  child: Icon(
+                                    Icons.add_road,
+                                    color: CurrentTripItem().isTracking
+                                        ? CurrentTripItem()
+                                                .tripValues
+                                                .autoCentre
+                                            ? Colors.white
+                                            : Colors.grey
+                                        : Colors.white,
                                   ),
                                 ),
                               ),
-                              //  ),
-                            ),
-                            const SizedBox(
-                              height: 10,
-                            ),
+                              const SizedBox(
+                                height: 10,
+                              ),
+                            ],
                           ],
-                          if (!CurrentTripItem().isGoodRoad) ...[
-                            const SizedBox(height: 10),
-                            MouseRegion(
-                              onEnter: (_) => updateToolTips(true, 3),
-                              onExit: (_) => updateToolTips(false, 3),
-                              child: FloatingActionButton(
-                                onPressed: () => updateRouteType(),
-                                heroTag: 'goodRoadOn',
-                                backgroundColor: Colors.blue,
-                                shape: const CircleBorder(),
-                                child: Icon(
-                                  Icons.add_road,
-                                  color: CurrentTripItem().isTracking
-                                      ? CurrentTripItem().tripValues.autoCentre
-                                          ? Colors.white
-                                          : Colors.grey
-                                      : Colors.white,
-                                ),
+                          MouseRegion(
+                            onEnter: (_) => updateToolTips(true, 4),
+                            onExit: (_) => updateToolTips(false, 4),
+                            //    child: PointerInterceptor(
+                            child: FloatingActionButton(
+                              onPressed: () => updatePosition(),
+                              heroTag: 'mapCentre',
+                              backgroundColor: Colors.blue,
+                              shape: const CircleBorder(),
+                              child: Icon(
+                                Icons.my_location,
+                                color: CurrentTripItem().isTracking
+                                    ? CurrentTripItem().tripValues.autoCentre
+                                        ? Colors.white
+                                        : Colors.grey
+                                    : Colors.white,
                               ),
                             ),
-                            const SizedBox(
-                              height: 10,
-                            ),
-                          ],
-                        ],
-                        MouseRegion(
-                          onEnter: (_) => updateToolTips(true, 4),
-                          onExit: (_) => updateToolTips(false, 4),
-                          //    child: PointerInterceptor(
-                          child: FloatingActionButton(
-                            onPressed: () => updatePosition(),
-                            heroTag: 'mapCentre',
-                            backgroundColor: Colors.blue,
-                            shape: const CircleBorder(),
-                            child: Icon(
-                              Icons.my_location,
-                              color: CurrentTripItem().isTracking
-                                  ? CurrentTripItem().tripValues.autoCentre
-                                      ? Colors.white
-                                      : Colors.grey
-                                  : Colors.white,
-                            ),
+                            //       ),
                           ),
-                          //       ),
-                        ),
-                        const SizedBox(height: 10),
-                        if (MapService().controller != null)
-                          MouseRegion(
-                            onEnter: (_) => updateToolTips(true, 5),
-                            onExit: (_) => updateToolTips(false, 5),
-                            child: ZoomFab(
-                              controller: MapService().controller!,
-                              zfController: MapService().zoomFabController!,
-                              width: 55,
-                              height: 125,
+                          const SizedBox(height: 10),
+                          if (MapService().controller != null)
+                            MouseRegion(
+                              onEnter: (_) => updateToolTips(true, 5),
+                              onExit: (_) => updateToolTips(false, 5),
+                              child: ZoomFab(
+                                controller: MapService().controller!,
+                                zfController: MapService().zoomFabController!,
+                                width: 55,
+                                height: 125,
+                              ),
                             ),
-                          ),
-                        /*   
+                          /*   
                     const SizedBox(height: 10),
                         FloatingActionButton(
                           onPressed: () {
@@ -393,10 +404,11 @@ class _HandleCTFabsState extends State<HandleCTFabs> {
                           ),
                         ), 
                 */
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             )
           : SizedBox.shrink(),
