@@ -86,9 +86,10 @@ enum TripChip {
   removeWaypoint('Remove waypoint', Icons.wrong_location),
   revisitWaypoint('Revisit waypoint', Icons.wrong_location),
   pointOfInterest('Point of interest', Icons.add_photo_alternate),
-  addGreatRoad('Add great road', Icons.add_road),
+  // Switches great road mode on - the waypoints added next are great road
+  addGreatRoad('Start great road', Icons.add_road),
   editGreatRoad('Edit great road', Icons.edit),
-  greatRoadEnd('Great road end', Icons.add_road),
+  greatRoadEnd('End great road', Icons.add_road),
   reverseTrip('Reverse trip', Icons.autorenew_outlined),
   saveTrip('Save trip', Icons.save),
   clear('Clear route', Icons.delete),
@@ -255,14 +256,20 @@ class CreateTripChips extends StatelessWidget {
       visualDensity: const VisualDensity(horizontal: 0.0, vertical: 0.5),
       backgroundColor: Colors.blueAccent,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      label:
-          Text(chip.label, style: TextStyle(fontSize: 16, color: Colors.white)),
+      label: Text(_label(chip),
+          style: TextStyle(fontSize: 16, color: Colors.white)),
       elevation: 10,
       shadowColor: Colors.black,
       onPressed: () => _handlerFor(chip)(),
       avatar: Icon(chip.icon, size: 20, color: _iconColour(chip)),
     );
   }
+
+  /// In great road mode the Waypoint chip says the waypoint is great road
+  String _label(TripChip chip) =>
+      chip == TripChip.waypoint && CurrentTripItem().isGoodRoad
+          ? 'Great road waypoint'
+          : chip.label;
 
   Color _iconColour(TripChip chip) {
     bool goodRoad = CurrentTripItem().isGoodRoad;
