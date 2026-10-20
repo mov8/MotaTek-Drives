@@ -26,7 +26,10 @@ import '/screens/dialogs.dart' show Utility;
 import '/helpers/helpers.dart';
 
 /// Don't want these to be recreated on every build
-final rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
+/// The router's root navigator uses NavigationService().key, which screens
+/// such as ScreensAppBarBottom and NavigationService().goBack() rely on. A
+/// separate key here left that one unattached (currentContext null).
+final GlobalKey<NavigatorState> rootNavigatorKey = NavigationService().key;
 final splashBranchKey = GlobalKey<NavigatorState>(debugLabel: 'splash');
 final homeBranchKey = GlobalKey<NavigatorState>(debugLabel: 'home');
 final publishedBranchKey = GlobalKey<NavigatorState>(debugLabel: 'published');
