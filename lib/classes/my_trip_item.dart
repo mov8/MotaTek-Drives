@@ -182,8 +182,13 @@ class CurrentTripItem extends MyTripItem {
   /// waypoint, an abandoned great road). A trip never saved only has
   /// something to lose if it has any content.
   bool get hasUnsavedChanges => _savedSnapshot.isEmpty
+      // A route counts once its line has 2+ points, or it has waypoints but no
+      // line yet (Create manually). Tracking records the starting position as
+      // a waypoint and line point straight away - nothing to lose until the
+      // user has moved.
       ? routes.any((route) =>
-              route.waypoints.isNotEmpty || route.lines.isNotEmpty) ||
+              route.lines.length > 1 ||
+              (route.waypoints.isNotEmpty && route.lines.isEmpty)) ||
           goodRoads.any((route) => route.waypoints.isNotEmpty) ||
           pointsOfInterest.any((poi) => ![12, 17, 18].contains(poi.type)) ||
           title.isNotEmpty
