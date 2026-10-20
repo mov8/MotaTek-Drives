@@ -58,6 +58,7 @@ class CreateTripValues {
   Point lastPosition = Point(0, 0);
   Point position = Point(0, 0);
   double heading = 0;
+  int speed = 0; // mph - set by PositionService while tracking or following
   int pointOfInterestIndex = 0;
   bool setState = true;
   CreateTripValues();
@@ -223,11 +224,23 @@ class CurrentTripItem extends MyTripItem {
     if (index < 0 || index >= pointsOfInterest.length) return;
     PointOfInterest poi = pointsOfInterest.removeAt(index);
     isSaved = false;
-    for (String media in _mediaOf(poi)) {
-      if (_savedMedia.contains(media)) {
-        _pendingMediaDeletes.add(media);
+    await _discardMedia(_mediaOf(poi));
+  }
+
+  /// A single photo removed from a point of interest (ImageArranger) - the
+  /// same rule as removing a point of interest
+  Future<void> discardPhoto(Photo photo) async {
+    isSaved = false;
+    await _discardMedia(_mediaOfPhoto(photo));
+  }
+
+  /// Deletes media now, or when the trip is saved if the saved trip uses it
+  Future<void> _discardMedia(List<String> media) async {
+    for (String item in media) {
+      if (_savedMedia.contains(item)) {
+        _pendingMediaDeletes.add(item);
       } else {
-        await _deleteMedia(media);
+        await _deleteMedia(item);
       }
     }
   }
@@ -245,17 +258,22 @@ class CurrentTripItem extends MyTripItem {
         ? poi.photos
         : photosFromJson(photoString: poi.images);
     for (Photo photo in photos) {
-      String key =
-          photo.key.isNotEmpty ? photo.key : getFileName(url: photo.url);
-      if (key.length == 32) {
-        media.add('image:$key');
-      } else if (!kIsWeb &&
-          Setup().appDocumentDirectory.isNotEmpty &&
-          photo.url.startsWith(Setup().appDocumentDirectory)) {
-        media.add('file:${photo.url}');
-      }
+      media.addAll(_mediaOfPhoto(photo));
     }
     return media;
+  }
+
+  List<String> _mediaOfPhoto(Photo photo) {
+    String key = photo.key.isNotEmpty ? photo.key : getFileName(url: photo.url);
+    if (key.length == 32) {
+      return ['image:$key'];
+    }
+    if (!kIsWeb &&
+        Setup().appDocumentDirectory.isNotEmpty &&
+        photo.url.startsWith(Setup().appDocumentDirectory)) {
+      return ['file:${photo.url}'];
+    }
+    return [];
   }
 
   Future<void> _deleteMedia(String media) async {

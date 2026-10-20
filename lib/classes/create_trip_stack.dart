@@ -289,7 +289,11 @@ class _CreateTripStackState extends State<CreateTripStack>
             )
           ],
           // The position marker is a map layer - MapService().showLocation()
-          if (_userPosition.speed > 0.01) ...[
+          // Speed while moving when tracking or following - PositionService
+          // sets it, and the stack is rebuilt on each position
+          if ([TripState.tracking, TripState.following]
+                  .contains(CurrentTripItem().tripState) &&
+              CurrentTripItem().tripValues.speed > 0) ...[
             Padding(
               padding: const EdgeInsets.fromLTRB(15, 10, 0, 150),
               child: Align(
@@ -300,7 +304,7 @@ class _CreateTripStackState extends State<CreateTripStack>
                   child: CircleAvatar(
                     radius: 25,
                     backgroundColor: Colors.black,
-                    child: Text(_userPosition.speed.toString(),
+                    child: Text(CurrentTripItem().tripValues.speed.toString(),
                         style:
                             const TextStyle(fontSize: 20, color: Colors.white)),
                   ),

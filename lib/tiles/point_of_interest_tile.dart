@@ -399,6 +399,9 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                       child: ImageArranger(
                         urlChange: (url) => updateImages(url),
                         onCaptionDone: () => checkComplete(),
+                        // Hive image deleted now, or when the trip is saved
+                        onPhotoDeleted: (photo) =>
+                            CurrentTripItem().discardPhoto(photo),
                         photos: widget.pointOfInterest.photos, //getPhotos(
                         // driveId: widget.driveId ?? CurrentTripItem().uri,
                         //   ),

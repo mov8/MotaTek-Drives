@@ -147,13 +147,14 @@ class PositionService {
     }
     trip.tripValues.position = position.point;
     trip.tripValues.heading = _heading;
+    trip.tripValues.speed = position.speed; // mph, shown by CreateTripStack
 
     if (tripState == TripState.tracking) {
       await _extendTrackedRoute(position);
-    } else {
-      // Following - the directions work from tripValues.position
-      MapService().createTripStackController?.refresh();
     }
+    // Redraws the speed and, when following, the directions, which work
+    // from tripValues.position
+    MapService().createTripStackController?.refresh();
     await MapService()
         .showLocation(position: position.point, bearing: _heading);
     _followCamera(position);

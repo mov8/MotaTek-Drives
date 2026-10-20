@@ -13,6 +13,9 @@ class ImageArranger extends StatefulWidget {
   final Function(String) urlChange;
   final Function(int)? onChange;
   final Function()? onCaptionDone; // keyboard done tapped on a caption
+  /// Called with a photo the user has deleted, to delete its stored image.
+  /// Without it only an image stored as a file is deleted.
+  final Function(Photo)? onPhotoDeleted;
   final bool showCaptions;
   final String endPoint;
   final String imageUrl;
@@ -31,6 +34,7 @@ class ImageArranger extends StatefulWidget {
     this.height = 125, //175,
     this.onChange,
     this.onCaptionDone,
+    this.onPhotoDeleted,
   });
 
   @override
@@ -164,14 +168,7 @@ class _ImageArrangerState extends State<ImageArranger> {
                       suffixIcon: IconButton(
                         onPressed: () {
                           if (widget.photos.isNotEmpty) {
-                            if (!kIsWeb) {
-                              if (File(widget.photos[imageIndex].url)
-                                  .existsSync()) {
-                                File(widget.photos[imageIndex].url)
-                                    .deleteSync();
-                              }
-                            }
-                            widget.photos.removeAt(imageIndex);
+                            _deleted(widget.photos.removeAt(imageIndex));
                             updateWidgetUris();
                           }
                         },
@@ -209,8 +206,18 @@ class _ImageArrangerState extends State<ImageArranger> {
   }
 
   onDeleteImage(int idx) {
-    widget.photos.removeAt(idx);
+    _deleted(widget.photos.removeAt(idx));
     setState(() => updateWidgetUris());
+  }
+
+  /// Deletes a removed photo's stored image - through onPhotoDeleted (e.g.
+  /// from Hive), or if there's none, its file
+  void _deleted(Photo photo) {
+    if (widget.onPhotoDeleted != null) {
+      widget.onPhotoDeleted!(photo);
+    } else if (!kIsWeb && File(photo.url).existsSync()) {
+      File(photo.url).deleteSync();
+    }
   }
 
   Future<Image> getImage({String url = '', String? cacheKey}) async {
