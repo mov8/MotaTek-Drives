@@ -464,6 +464,20 @@ List<Map<String, dynamic>> routeEndsToGeoJson({
   return features;
 }
 
+/// The marker number of the route waypoint at point (revisits aren't
+/// counted), or 0 if no route waypoint is there
+int routeWaypointNumber(Point point) {
+  int number = 0;
+  for (Route route in CurrentTripItem().routes) {
+    for (Waypoint waypoint in route.waypoints) {
+      if (waypoint.revisit) continue;
+      number++;
+      if (waypoint.point == point) return number;
+    }
+  }
+  return 0;
+}
+
 List<Map<String, dynamic>> goodRoadWaypointsToGeoJson(
     {List<Waypoint>? waypoints,
     int index = -1,
@@ -497,7 +511,11 @@ List<Map<String, dynamic>> goodRoadWaypointsToGeoJson(
               "trip-state-2": "editing",
               "trip-state-3": "goodRoadStart",
               "trip-state-4": "loaded",
-              "number": i + 1,
+              // A great road waypoint is also a route waypoint, so it shares
+              // that number (tracked great roads aren't, so number their own)
+              "number": routeWaypointNumber(waypoints[i].point) > 0
+                  ? routeWaypointNumber(waypoints[i].point)
+                  : i + 1,
               "color": i == index ? indexColour : colour,
             }
           });

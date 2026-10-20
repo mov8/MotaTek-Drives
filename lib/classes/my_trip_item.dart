@@ -901,14 +901,12 @@ class CurrentTripItem extends MyTripItem {
     tripState = tripState =
         tripState == TripState.manualStart ? TripState.manual : tripState;
     if (isGoodRoad) {
-      addGoodRoadWaypoint(
-        index: 0,
-        point: CurrentTripItem().tripValues.position,
-      );
-      mapUpdates = mapUpdates.add(MapUpdates.goodRoadsAndGoodRoadWaypoints);
-      if (goodRoads.last.waypoints.length == 2) {
-        // mapUpdates = mapUpdates.add(MapUpdates.pointsOfInterest);
-      }
+      // The route carries on through a great road - its waypoints are route
+      // waypoints too, numbered with the rest
+      await addWaypoint(index: 0, point: tripValues.position);
+      await _extendGoodRoad();
+      // Drawn after the great road has been routed
+      mapUpdates = MapUpdates.updateAll;
       MapService().updateMapGeoJson(mapUpdates: mapUpdates);
     } else {
       await addWaypoint(index: 0, point: tripValues.position);
@@ -992,6 +990,48 @@ class CurrentTripItem extends MyTripItem {
   /// The point of interest that describes the good road is added when the good road is ended
   /// goodRoadEnd() - this eliminates problems when icon is tapped accidentally.
   ///
+  /// In Create manually and Edit modes a great road is a stretch of the
+  /// route: it starts at the route waypoint before its first waypoint, and
+  /// each of its waypoints is also a route waypoint (added by
+  /// requestWaypoint()). Its waypoints are routed on their own so it can be
+  /// drawn in the great road colour along the route. Great roads are kept
+  /// separately to show nice stretches of road, and so users can join up with
+  /// ones others have published.
+  Future<void> _extendGoodRoad() async {
+    List<Waypoint> route = routes.isEmpty ? [] : routes.last.waypoints;
+    if (route.isEmpty) return;
+    if (goodRoads.isEmpty) {
+      goodRoads = [Route()];
+    }
+    Route goodRoad = goodRoads.last;
+    String colour = Setup().goodRouteColourHex();
+    if (goodRoad.waypoints.isEmpty && route.length > 1) {
+      // Starts from the waypoint before the great road
+      goodRoad.waypoints.add(Waypoint(
+          point: route[route.length - 2].point,
+          isGoodRoad: true,
+          colour: colour));
+    }
+    goodRoad.waypoints.add(
+        Waypoint(point: route.last.point, isGoodRoad: true, colour: colour));
+    if (goodRoad.waypoints.length > 1) {
+      try {
+        RouterData routeData = await getRouterData(
+            route: Route(waypoints: List.of(goodRoad.waypoints)),
+            goodRoad: true);
+        if (routeData.message == 'OK' && routeData.routes.isNotEmpty) {
+          goodRoad.lines = [
+            for (Route routed in routeData.routes) ...routed.lines
+          ];
+        }
+      } catch (e) {
+        developer.log('Error routing great road: ${e.toString()}',
+            name: 'error');
+      }
+    }
+    isSaved = false;
+  }
+
   void requestGreatRoad({String description = '', String sounds = ''}) {
     isGoodRoad = true;
     tripValues.isEditing = tripState == TripState.editing;
@@ -1309,7 +1349,9 @@ class CurrentTripItem extends MyTripItem {
       if (atStart) {
         insertAt = 0;
       } else if (waypointState == WaypointState.insert &&
-          tripState == TripState.editing) {
+          tripState == TripState.editing &&
+          !isGoodRoad) {
+        // (A great road carries on from the last waypoint, so it appends)
         // Insert after the first highlighted anchor - see getWaypointState()
         for (int i = 0; i < routes.last.waypoints.length; i++) {
           if (routes.last.waypoints[i].selected!) {
