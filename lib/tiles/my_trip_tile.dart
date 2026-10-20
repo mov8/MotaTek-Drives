@@ -462,7 +462,7 @@ class _MyTripTileState extends State<MyTripTile> {
     CurrentTripItem().tripState = TripState.loaded;
     // Undo should only apply to changes made after the trip is loaded
     CurrentTripItem().loadBackBuffer();
-    CurrentTripItem().isSaved = true;
+    CurrentTripItem().markSaved();
     // CurrentTripItem().tripValues.showTarget = true;
     CurrentTripItem().tripType = TripType.none;
     CurrentTripItem().updateMap = true;

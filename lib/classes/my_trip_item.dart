@@ -172,14 +172,64 @@ class CurrentTripItem extends MyTripItem {
   CurrentTripItem._privateConstructor();
   bool isSaved = false;
 
-  /// True when there's trip data that hasn't been saved - loading another
-  /// trip would lose it.
-  bool get hasUnsavedChanges =>
-      !isSaved &&
-      (routes.any((route) =>
+  /// The trip as it was when last saved or loaded - see markSaved()
+  String _savedSnapshot = '';
+
+  /// True when clearing or replacing the trip would lose something - used to
+  /// warn before Back or loading another trip. It compares the trip with its
+  /// state when last saved or loaded, rather than relying on isSaved, which
+  /// many actions clear even when nothing ends up different (e.g. an undone
+  /// waypoint, an abandoned great road). A trip never saved only has
+  /// something to lose if it has any content.
+  bool get hasUnsavedChanges => _savedSnapshot.isEmpty
+      ? routes.any((route) =>
               route.waypoints.isNotEmpty || route.lines.isNotEmpty) ||
           goodRoads.any((route) => route.waypoints.isNotEmpty) ||
-          pointsOfInterest.isNotEmpty);
+          pointsOfInterest.any((poi) => ![12, 17, 18].contains(poi.type)) ||
+          title.isNotEmpty
+      : _snapshot() != _savedSnapshot;
+
+  /// Call after the trip is saved or loaded
+  void markSaved() {
+    isSaved = true;
+    _savedSnapshot = _snapshot();
+  }
+
+  /// The parts of the trip a user can change. The Start / Waypoint / End
+  /// points of interest (12, 17, 18) just mirror the waypoints.
+  String _snapshot() => jsonEncode({
+        'title': title,
+        'subTitle': subTitle,
+        'body': body,
+        'waypoints': [
+          for (Route route in routes)
+            [
+              for (Waypoint w in route.waypoints)
+                [w.point.x, w.point.y, w.revisit]
+            ]
+        ],
+        // A tracked route grows between waypoints
+        'lines': [for (Route route in routes) route.lines.length],
+        'goodRoads': [
+          for (Route route in goodRoads)
+            [
+              for (Waypoint w in route.waypoints) [w.point.x, w.point.y]
+            ]
+        ],
+        'pointsOfInterest': [
+          for (PointOfInterest poi in pointsOfInterest)
+            if (![12, 17, 18].contains(poi.type))
+              [
+                poi.type,
+                poi.name,
+                poi.description,
+                poi.point.x,
+                poi.point.y,
+                poi.images,
+                poi.sounds
+              ]
+        ],
+      });
   bool isTracking = false;
   TripState tripState = TripState.none;
   AppState appState = AppState.createTrip;
@@ -355,6 +405,7 @@ class CurrentTripItem extends MyTripItem {
   @override
   void clearAll({TripState newTripState = TripState.clearing}) async {
     isSaved = false;
+    _savedSnapshot = '';
     id = -1;
     imageUrls = "";
     driveUri = '';
