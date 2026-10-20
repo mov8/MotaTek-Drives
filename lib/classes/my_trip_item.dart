@@ -387,6 +387,7 @@ class CurrentTripItem extends MyTripItem {
     tripState = TripState.none;
     MapService().webAppBarController?.update();
     MapService().persistentAppBarController?.refresh();
+    MapService().showLocation(); // hide the position marker
     tripHeaderController.clear();
   }
 
@@ -908,9 +909,8 @@ class CurrentTripItem extends MyTripItem {
           ])
         ];
       }
-      await MapService()
-          .controller!
-          .updateMyLocationTrackingMode(MyLocationTrackingMode.trackingCompass);
+      await MapService().controller!.updateMyLocationTrackingMode(
+          MyLocationTrackingMode.none); // PositionService moves the camera
       await MapService()
           .controller!
           .animateCamera(CameraUpdate.zoomBy(0.000001));
@@ -921,17 +921,15 @@ class CurrentTripItem extends MyTripItem {
   Future<void> requestFollowRoute() async {
     tripState = TripState.following;
     if (tripValues.pauseStream) {
-      await MapService()
-          .controller!
-          .updateMyLocationTrackingMode(MyLocationTrackingMode.trackingCompass);
+      await MapService().controller!.updateMyLocationTrackingMode(
+          MyLocationTrackingMode.none); // PositionService moves the camera
       await MapService()
           .controller!
           .animateCamera(CameraUpdate.zoomBy(0.000001));
       tripValues.resumeFollowing();
     } else {
-      await MapService()
-          .controller!
-          .updateMyLocationTrackingMode(MyLocationTrackingMode.trackingCompass);
+      await MapService().controller!.updateMyLocationTrackingMode(
+          MyLocationTrackingMode.none); // PositionService moves the camera
       await MapService().controller!.animateCamera(CameraUpdate.zoomTo(12.1));
       await MapService().controller!.animateCamera(
             CameraUpdate.newLatLng(

@@ -69,7 +69,6 @@ class _CreateTripStackState extends State<CreateTripStack>
   final ImageRepository _imageRepository = ImageRepository();
   StreamSubscription<Position>? _positionStream;
   late final FollowRoute _debugRoute;
-  Point _pointAtCentre = Point(0, 0);
   CurrentPosition _userPosition = CurrentPosition();
   late final StreamController<Position> _debugPositionController;
   late Position _currentPosition;
@@ -289,21 +288,7 @@ class _CreateTripStackState extends State<CreateTripStack>
                       CurrentTripItem().isGoodRoad ? Colors.red : Colors.black),
             )
           ],
-          if (CurrentTripItem().tripState == TripState.following) ...[
-            Positioned(
-              top: _pointAtCentre.y.toDouble() - 20,
-              left: _pointAtCentre.x.toDouble() - 20,
-              child: RotationTransition(
-                turns: AlwaysStoppedAnimation(0 / 360),
-                child: Icon(
-                  size: 40,
-                  Icons.navigation,
-                  // Icons.assistant_navigation,
-                  color: Colors.blueAccent,
-                ),
-              ),
-            )
-          ],
+          // The position marker is a map layer - MapService().showLocation()
           if (_userPosition.speed > 0.01) ...[
             Padding(
               padding: const EdgeInsets.fromLTRB(15, 10, 0, 150),

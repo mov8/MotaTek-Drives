@@ -1,5 +1,7 @@
 import 'dart:math';
 import 'dart:async';
+import 'dart:typed_data';
+import 'dart:ui' as ui;
 import 'dart:developer' as developer;
 import 'package:drives/classes/create_trip_stack.dart';
 import 'package:drives/main.dart' hide Routes;
@@ -631,6 +633,8 @@ map.on('mousemove', (e) => {
   }
 
   Future<void> onStyleLoaded() async {
+    // A new style drops runtime layers, so add the marker every time
+    await addLocationMarker();
     if (controller != null) {
       if (CurrentTripItem().pointsOfInterest.isNotEmpty) {
         LatLng position = LatLng(
@@ -651,6 +655,82 @@ map.on('mousemove', (e) => {
         );
       }
     }
+  }
+
+  static const String locationSource = 'location-data';
+  static const String locationLayer = 'location-layer';
+  static const String locationIcon = 'location-arrow';
+
+  /// The user's position marker is added by the app, not the style sheet. The
+  /// style is downloaded once at the start of a session so the app works
+  /// offline, and may become per-user, so it can't be relied on to have it.
+  /// The arrow is drawn in code (no asset or network) and the layer rotates
+  /// it by the feature's bearing, aligned to the map.
+  Future<void> addLocationMarker() async {
+    if (controller == null) return;
+    try {
+      await controller!.addImage(locationIcon, await locationArrowImage());
+      await controller!.addGeoJsonSource(
+          locationSource, {"type": "FeatureCollection", "features": []});
+      await controller!.addSymbolLayer(
+        locationSource,
+        locationLayer,
+        const SymbolLayerProperties(
+          iconImage: locationIcon,
+          iconRotate: [Expressions.get, 'bearing'],
+          iconRotationAlignment: 'map',
+          iconPitchAlignment: 'map',
+          iconAllowOverlap: true,
+          iconIgnorePlacement: true,
+        ),
+        enableInteraction: false,
+      );
+    } catch (e) {
+      developer.log('Error MapService().addLocationMarker(): ${e.toString()}',
+          name: 'error');
+    }
+  }
+
+  /// Moves the position marker, or hides it when position is null
+  Future<void> showLocation({Point? position, double bearing = 0}) async {
+    if (controller == null) return;
+    try {
+      await controller!.setGeoJsonSource(locationSource, {
+        "type": "FeatureCollection",
+        "features": position == null
+            ? []
+            : locationMarkerToGeoJson(location: position, bearing: bearing),
+      });
+    } catch (e) {
+      developer.log('Error MapService().showLocation(): ${e.toString()}',
+          name: 'error');
+    }
+  }
+
+  /// A navigation arrow pointing up (north), outlined in white so it shows on
+  /// any map style.
+  Future<Uint8List> locationArrowImage(
+      {Color colour = const Color(0xFF1E88E5), double size = 64}) async {
+    ui.PictureRecorder recorder = ui.PictureRecorder();
+    Canvas canvas = Canvas(recorder);
+    Path arrow = Path()
+      ..moveTo(size * 0.5, size * 0.1)
+      ..lineTo(size * 0.85, size * 0.88)
+      ..lineTo(size * 0.5, size * 0.68)
+      ..lineTo(size * 0.15, size * 0.88)
+      ..close();
+    canvas.drawPath(
+        arrow,
+        Paint()
+          ..color = Colors.white
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = size * 0.1
+          ..strokeJoin = StrokeJoin.round);
+    canvas.drawPath(arrow, Paint()..color = colour);
+    ui.Image image =
+        await recorder.endRecording().toImage(size.toInt(), size.toInt());
+    ByteData? bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+    return bytes!.buffer.asUint8List();
   }
 
   LatLng get currentPosition =>

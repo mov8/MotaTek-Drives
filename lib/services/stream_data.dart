@@ -60,7 +60,7 @@ class PositionService {
             .listen((position) {
       _currentPosition = position;
       _speed = _currentPosition!.speed * 3.6 / 8 * 5; // M/S -> MPH
-      if (CurrentTripItem().tripState == TripState.tracking) {
+      if (_movingStates.contains(CurrentTripItem().tripState)) {
         updateUserPosition(CurrentPosition(position: position));
       }
       if (_positionStream != null) {
@@ -76,7 +76,7 @@ class PositionService {
             .listen((position) {
       _currentPosition = position;
       _speed = _currentPosition!.speed * 3.6 / 8 * 5; // M/S -> MPH
-      if (CurrentTripItem().tripState == TripState.tracking) {
+      if (_movingStates.contains(CurrentTripItem().tripState)) {
         updateUserPosition(CurrentPosition(position: position));
       }
     });
@@ -118,19 +118,64 @@ class PositionService {
     }
   }
 
-  /// Called for each position while tracking (every 5m - distanceFilter).
-  /// The tracked route is extended and redrawn straight away. It used to wait
-  /// for the map's onIdle, which rarely fires while the camera follows the
-  /// user, so the line lagged behind the position marker.
+  /// The states where the map follows the user's position
+  static const List<TripState> _movingStates = [
+    TripState.tracking,
+    TripState.following,
+  ];
+
+  /// Direction of travel - kept from the last fix while moving, as GPS
+  /// heading is meaningless when stationary
+  double _heading = 0;
+
+  /// Called for each position while tracking or following (every 5m -
+  /// distanceFilter). Moves the position marker and the camera; when
+  /// tracking it also extends the tracked route.
   void updateUserPosition(CurrentPosition position) async {
-    if (position.point.y == 0 ||
-        CurrentTripItem().tripState != TripState.tracking) {
+    TripState tripState = CurrentTripItem().tripState;
+    if (position.point.y == 0 || !_movingStates.contains(tripState)) {
       return;
     }
     CurrentTripItem trip = CurrentTripItem();
     _speed = position.speed.toDouble();
+    if (position.speed > 0 && position.heading >= 0) {
+      _heading = position.heading;
+    }
     trip.tripValues.position = position.point;
-    trip.tripValues.heading = position.heading;
+    trip.tripValues.heading = _heading;
+
+    if (tripState == TripState.tracking) {
+      await _extendTrackedRoute(position);
+    } else {
+      // Following - the directions work from tripValues.position
+      MapService().createTripStackController?.refresh();
+    }
+    await MapService()
+        .showLocation(position: position.point, bearing: _heading);
+    _followCamera(position);
+    _userPosition = position;
+  }
+
+  /// Setup().rotateMap chooses the orientation:
+  ///   false - "always points north": bearing 0, the marker turns
+  ///   true  - "marker points up": the map turns to the direction of travel
+  /// Moved without animation - fixes arrive every few hundred milliseconds.
+  void _followCamera(CurrentPosition position) {
+    MapLibreMapController? controller = MapService().controller;
+    if (controller == null) return;
+    controller.moveCamera(CameraUpdate.newCameraPosition(CameraPosition(
+      target: position.latLng,
+      zoom: controller.cameraPosition?.zoom ?? 14,
+      tilt: controller.cameraPosition?.tilt ?? 0,
+      bearing: Setup().rotateMap ? _heading : 0,
+    )));
+  }
+
+  /// The tracked route is extended and redrawn straight away. It used to wait
+  /// for the map's onIdle, which rarely fires while the camera follows the
+  /// user, so the line lagged behind the position marker.
+  Future<void> _extendTrackedRoute(CurrentPosition position) async {
+    CurrentTripItem trip = CurrentTripItem();
     if (trip.routes.isEmpty) {
       trip.routes = [mt.Route()];
     }
@@ -153,22 +198,6 @@ class PositionService {
       changes = changes.add(MapUpdates.goodRoads);
     }
     await MapService().updateMapGeoJson(mapUpdates: changes);
-
-    /// Update the map without animation, rotating it to the direction of
-    /// travel if the user has chosen that in setup (heading is only reliable
-    /// when moving)
-    MapLibreMapController? controller = MapService().controller;
-    if (controller != null) {
-      if (Setup().rotateMap && position.speed > 0) {
-        controller.moveCamera(CameraUpdate.newCameraPosition(CameraPosition(
-            target: position.latLng,
-            zoom: controller.cameraPosition?.zoom ?? 14,
-            bearing: position.heading)));
-      } else {
-        controller.moveCamera(CameraUpdate.newLatLng(position.latLng));
-      }
-    }
-    _userPosition = position;
   }
 }
 

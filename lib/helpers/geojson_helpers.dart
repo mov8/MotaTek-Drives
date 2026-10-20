@@ -274,8 +274,15 @@ List<Map<String, dynamic>> pointsOfInterestToGeoJson(
   return geoJson;
 }
 
-List<Map<String, dynamic>> locationMarkerToGeoJson({Point? location}) {
+/// The user's position marker for MapService().showLocation(). bearing is the
+/// direction of travel in degrees from north - the location layer rotates the
+/// arrow by it.
+List<Map<String, dynamic>> locationMarkerToGeoJson(
+    {Point? location, double bearing = 0}) {
   location ??= CurrentTripItem().tripValues.position;
+  if (location.x == 0 && location.y == 0) {
+    return [];
+  }
   List<Map<String, dynamic>> features = [
     {
       "type": "Feature",
@@ -287,7 +294,7 @@ List<Map<String, dynamic>> locationMarkerToGeoJson({Point? location}) {
       "id": 1,
       "properties": {
         "group": 'location',
-        "bearing": 0,
+        "bearing": bearing,
         "item_type": "location_icon",
         "color": "#1e88e5"
       }
