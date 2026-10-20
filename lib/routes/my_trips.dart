@@ -378,7 +378,7 @@ import 'package:uuid/rng.dart';
     return Scaffold(
       backgroundColor: Colors.blue,
       key: _scaffoldKey,
-      drawer: const MainDrawer(),
+      // The main drawer is on the shell Scaffold in main.dart
       //   appBar: PersistentAppBar(
       //       controller: MapService().persistentAppBarController!, page: 3),
 

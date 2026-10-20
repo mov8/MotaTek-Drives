@@ -312,11 +312,11 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   });
 
   late String _title;
-  TripRequest? _tripRequest;
-  Point _mapMiddle = Point(0, 0);
-  Size _mapSize = Size(0, 0);
+  // TripRequest? _tripRequest;
+  // Point _mapMiddle = Point(0, 0);
+  // Size _mapSize = Size(0, 0);
   bool _idleCalled = false;
-  Point _pointAtCentre = Point(0, 0);
+  //  Point _pointAtCentre = Point(0, 0);
   // late MapLibreMap mlMap;
   final ImageRepository _imageRepository = ImageRepository();
   late final Future<bool> _dataLoaded;
@@ -521,7 +521,7 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
     return Scaffold(
       backgroundColor: Colors.blue,
       key: _scaffoldKey,
-      drawer: const MainDrawer(),
+      // The main drawer is on the shell Scaffold in main.dart
       floatingActionButtonLocation: FloatingActionButtonLocation.endTop,
       floatingActionButton: HandleCTFabs(
         top: 20, //appBar.preferredSize.height + kToolbarHeight,

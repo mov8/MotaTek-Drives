@@ -21,6 +21,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:path_provider/path_provider.dart';
 import '/screens/login_screen.dart';
 import '/screens/import_export.dart';
+import '/screens/main_drawer.dart';
 import '/helpers/helpers.dart';
 
 /// Don't want these to be recreated on every build
@@ -220,6 +221,12 @@ class _BaseShellScreen extends State<BaseShellScreen> {
     return Scaffold(
       appBar: PersistentAppBar(
           controller: MapService().persistentAppBarController!),
+      // The one main drawer, opened by the app bar's burger. An edge swipe
+      // mustn't open it over the maps (Published 1, Explore 2), where the
+      // gesture belongs to the map.
+      drawer: const MainDrawer(),
+      drawerEnableOpenDragGesture:
+          ![1, 2].contains(widget.navigationShell.currentIndex),
       body: FutureBuilder<bool>(
           future: initialised,
           builder: (BuildContext context, snapshot) {
@@ -327,14 +334,6 @@ class PersistentAppBar extends StatefulWidget implements PreferredSizeWidget {
 }
 
 class _PersistentAppBarState extends State<PersistentAppBar> {
-  final LeadingWidgetController _leadingWidgetController =
-      LeadingWidgetController();
-
-  void _leadingWidget(context) {
-    context?.openDrawer();
-    return;
-  }
-
   late int _tileSelected;
   String _title = 'Drives community';
   @override
@@ -362,16 +361,49 @@ class _PersistentAppBarState extends State<PersistentAppBar> {
     }
   }
 
+  /// The leading button is the burger (0), which opens the main drawer, or
+  /// Back (1) while a trip is being created, edited, tracked or viewed on the
+  /// map. The chips switch it through MapService().leadingWidgetController;
+  /// this keeps it right when the page or trip changes.
+  int _wantedLeadingWidget() => NavigationService().page == 2 &&
+          CurrentTripItem().tripState != TripState.none &&
+          CurrentTripItem().tripValues.leadingWidget == 1
+      ? 1
+      : 0;
+
+  void _onLeadingTap(BuildContext context, int widgetId) {
+    if (widgetId == 0) {
+      Scaffold.of(context).openDrawer();
+    } else {
+      CurrentTripItem().onBackPressed();
+      MapService().leadingWidgetController.changeWidget(0);
+      MapService().bottomDrawerController?.setContent(
+          content: BottomDrawerItems.none); // <-- closes the drawer
+      CurrentTripItem().refreshMap(change: MapUpdates.updateAll);
+      MapService().createTripStackController?.refresh();
+      refresh();
+    }
+  }
+
   /// 0 = none
   @override
   Widget build(BuildContext context) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      LeadingWidgetController leading = MapService().leadingWidgetController;
+      int wanted = _wantedLeadingWidget();
+      if (leading.isAttached && leading.widgetId != wanted) {
+        leading.changeWidget(wanted);
+      }
+    });
     return AppBar(
       backgroundColor: Colors.blue,
       automaticallyImplyLeading: false,
-      leading: LeadingWidget(
-        controller: _leadingWidgetController,
-        onMenuTap: (index) =>
-            _leadingWidget(context), //_scaffoldKey.currentState),
+      // Builder gives a context below the shell Scaffold for openDrawer()
+      leading: Builder(
+        builder: (context) => LeadingWidget(
+          controller: MapService().leadingWidgetController,
+          onMenuTap: (widgetId) => _onLeadingTap(context, widgetId),
+        ),
       ), // IconButton(
       title: Text(
         _title, //NavigationService().heading,

@@ -12,6 +12,9 @@ class LeadingWidgetController {
 
   bool get isAttached => _leadingWidgetState != null;
 
+  /// 0 = hamburger 1 = back
+  int get widgetId => _leadingWidgetState?._widgetId ?? 0;
+
   void changeWidget(int id) {
     if (_leadingWidgetState != null) {
       _leadingWidgetState?.changeWidget(id);

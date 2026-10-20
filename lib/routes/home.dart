@@ -312,7 +312,7 @@ main() {
     return Scaffold(
       backgroundColor: Colors.blue,
       key: _scaffoldKey,
-      drawer: const MainDrawer(),
+      // The main drawer is on the shell Scaffold in main.dart
       //   appBar: kIsWeb
       //       ? null
       //       : PersistentAppBar(
