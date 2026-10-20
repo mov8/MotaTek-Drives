@@ -411,7 +411,10 @@ List<Map<String, dynamic>> waypointsToGeoJson(
               "color": (waypoints[i].selected ?? false) &&
                       CurrentTripItem().tripState == TripState.editing
                   ? indexColour
-                  : colour,
+                  // Great road waypoints are route waypoints in its colour
+                  : waypoints[i].isGoodRoad
+                      ? Setup().goodRouteColourHex()
+                      : colour,
             }
           });
         }
@@ -495,6 +498,10 @@ List<Map<String, dynamic>> goodRoadWaypointsToGeoJson(
       for (int h = 0; h < CurrentTripItem().goodRoads.length; h++) {
         waypoints = CurrentTripItem().goodRoads[h].waypoints;
         for (int i = 0; i < waypoints.length; i++) {
+          // Great roads made from the route are drawn by the route's own
+          // markers (waypointsToGeoJson()) - only those off the route
+          // (tracked, or saved before) need markers of their own
+          if (routeWaypointNumber(waypoints[i].point) > 0) continue;
           features.add({
             "type": "Feature",
             "geometry": {
@@ -511,11 +518,7 @@ List<Map<String, dynamic>> goodRoadWaypointsToGeoJson(
               "trip-state-2": "editing",
               "trip-state-3": "goodRoadStart",
               "trip-state-4": "loaded",
-              // A great road waypoint is also a route waypoint, so it shares
-              // that number (tracked great roads aren't, so number their own)
-              "number": routeWaypointNumber(waypoints[i].point) > 0
-                  ? routeWaypointNumber(waypoints[i].point)
-                  : i + 1,
+              "number": i + 1,
               "color": i == index ? indexColour : colour,
             }
           });

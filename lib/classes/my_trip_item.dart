@@ -310,7 +310,7 @@ class CurrentTripItem extends MyTripItem {
           for (Route route in routes)
             [
               for (Waypoint w in route.waypoints)
-                [w.point.x, w.point.y, w.revisit]
+                [w.point.x, w.point.y, w.revisit, w.isGoodRoad]
             ]
         ],
         // A tracked route grows between waypoints
@@ -900,19 +900,9 @@ class CurrentTripItem extends MyTripItem {
     tripValues.beforeWaypoint();
     tripState = tripState =
         tripState == TripState.manualStart ? TripState.manual : tripState;
-    if (isGoodRoad) {
-      // The route carries on through a great road - its waypoints are route
-      // waypoints too, numbered with the rest
-      await addWaypoint(index: 0, point: tripValues.position);
-      await _extendGoodRoad();
-      // Drawn after the great road has been routed
-      mapUpdates = MapUpdates.updateAll;
-      MapService().updateMapGeoJson(mapUpdates: mapUpdates);
-    } else {
-      await addWaypoint(index: 0, point: tripValues.position);
-      mapUpdates = MapUpdates.routesAndWaypoints;
-      MapService().updateMapGeoJson(mapUpdates: mapUpdates);
-    }
+    // During a great road addWaypoint() flags the waypoint isGoodRoad and
+    // the great roads are rebuilt from the route (syncGoodRoads())
+    await addWaypoint(index: 0, point: tripValues.position);
     tripValues.afterWaypoint(); // pass flag that we need user to add details
     // Micro-nudge to update MapLibre the nudge causes the onIdle callback to be called
     MapService().createTripController!.update();
@@ -990,35 +980,101 @@ class CurrentTripItem extends MyTripItem {
   /// The point of interest that describes the good road is added when the good road is ended
   /// goodRoadEnd() - this eliminates problems when icon is tapped accidentally.
   ///
-  /// In Create manually and Edit modes a great road is a stretch of the
-  /// route: it starts at the route waypoint before its first waypoint, and
-  /// each of its waypoints is also a route waypoint (added by
-  /// requestWaypoint()). Its waypoints are routed on their own so it can be
-  /// drawn in the great road colour along the route. Great roads are kept
-  /// separately to show nice stretches of road, and so users can join up with
-  /// ones others have published.
-  Future<void> _extendGoodRoad() async {
+  /// In Create manually and Edit modes great roads are made from the route:
+  /// a waypoint added during a great road is a route waypoint flagged
+  /// isGoodRoad (the leg arriving at it is great road). Each run of flagged
+  /// waypoints, with the waypoint before it, is a great road. goodRoads is
+  /// rebuilt from the route whenever it changes - waypoints added, removed,
+  /// undone, redone or reversed - and is still saved separately, to show
+  /// nice stretches of road and so users can join up with ones others have
+  /// published. Great roads recorded while tracking, or saved before great
+  /// roads were route waypoints, have waypoints off the route and are left
+  /// as they are.
+  Future<void> syncGoodRoads() async {
+    if (tripState == TripState.tracking) return;
     List<Waypoint> route = routes.isEmpty ? [] : routes.last.waypoints;
-    if (route.isEmpty) return;
-    if (goodRoads.isEmpty) {
-      goodRoads = [Route()];
+    bool onRoute(Waypoint w) => route.any((r) => r.point == w.point);
+    List<Route> kept = [];
+    List<Route> previous = [];
+    for (Route goodRoad in goodRoads) {
+      if (goodRoad.waypoints.isEmpty) continue; // placeholder
+      if (goodRoad.waypoints.every(onRoute)) {
+        previous.add(goodRoad);
+      } else {
+        kept.add(goodRoad);
+      }
     }
-    Route goodRoad = goodRoads.last;
-    String colour = Setup().goodRouteColourHex();
-    if (goodRoad.waypoints.isEmpty && route.length > 1) {
-      // Starts from the waypoint before the great road
-      goodRoad.waypoints.add(Waypoint(
-          point: route[route.length - 2].point,
-          isGoodRoad: true,
-          colour: colour));
+    List<Route> rebuilt = [];
+    int i = 0;
+    while (i < route.length) {
+      if (!route[i].isGoodRoad) {
+        i++;
+        continue;
+      }
+      int end = i;
+      while (end + 1 < route.length && route[end + 1].isGoodRoad) {
+        end++;
+      }
+      List<Waypoint> stretch = [
+        for (int k = i > 0 ? i - 1 : i; k <= end; k++)
+          Waypoint(
+              point: route[k].point,
+              isGoodRoad: true,
+              colour: Setup().goodRouteColourHex())
+      ];
+      Route goodRoad = await _goodRoadFor(stretch, previous);
+      if (goodRoad.pointOfInterestUri.isEmpty) {
+        // e.g. undone then redone - reconnect its description, which is
+        // still in the trip at the great road's start
+        Set<String> used = {
+          for (Route r in [...kept, ...rebuilt]) r.pointOfInterestUri
+        };
+        PointOfInterest? description = pointsOfInterest
+            .where((poi) =>
+                poi.type == 13 &&
+                poi.point == stretch.first.point &&
+                !used.contains(poi.uuid))
+            .firstOrNull;
+        if (description != null) {
+          goodRoad.pointOfInterestUri = description.uuid;
+        }
+      }
+      rebuilt.add(goodRoad);
+      i = end + 1;
     }
-    goodRoad.waypoints.add(
-        Waypoint(point: route.last.point, isGoodRoad: true, colour: colour));
-    if (goodRoad.waypoints.length > 1) {
+    goodRoads = [...kept, ...rebuilt];
+  }
+
+  /// A great road for the stretch, reusing a previous one's line if the
+  /// stretch hasn't changed, and its description (pointOfInterestUri) if
+  /// it's the same great road - same start, or same points (reversed)
+  Future<Route> _goodRoadFor(
+      List<Waypoint> stretch, List<Route> previous) async {
+    bool same(Route r) =>
+        r.waypoints.length == stretch.length &&
+        [
+          for (int k = 0; k < stretch.length; k++)
+            r.waypoints[k].point == stretch[k].point
+        ].every((equal) => equal);
+    bool related(Route r) =>
+        r.waypoints.first.point == stretch.first.point ||
+        (r.waypoints.length == stretch.length &&
+            stretch.every((w) => r.waypoints.any((p) => p.point == w.point)));
+    Route? match =
+        previous.where(same).firstOrNull ?? previous.where(related).firstOrNull;
+    Route goodRoad = Route(
+      id: match?.id ?? -1,
+      uri: match?.uri ?? '',
+      waypoints: stretch,
+      colour: Setup().goodRouteColourHex(),
+      pointOfInterestUri: match?.pointOfInterestUri ?? '',
+    );
+    if (match != null && same(match) && match.lines.length > 1) {
+      goodRoad.lines = match.lines;
+    } else if (stretch.length > 1) {
       try {
         RouterData routeData = await getRouterData(
-            route: Route(waypoints: List.of(goodRoad.waypoints)),
-            goodRoad: true);
+            route: Route(waypoints: List.of(stretch)), goodRoad: true);
         if (routeData.message == 'OK' && routeData.routes.isNotEmpty) {
           goodRoad.lines = [
             for (Route routed in routeData.routes) ...routed.lines
@@ -1029,17 +1085,23 @@ class CurrentTripItem extends MyTripItem {
             name: 'error');
       }
     }
-    isSaved = false;
+    return goodRoad;
   }
+
+  /// The map sources to redraw after the route changes
+  MapUpdates get _routeMapUpdates =>
+      goodRoads.isEmpty ? MapUpdates.routesAndWaypoints : MapUpdates.updateAll;
 
   void requestGreatRoad({String description = '', String sounds = ''}) {
     isGoodRoad = true;
     tripValues.isEditing = tripState == TripState.editing;
-    if (CurrentTripItem().goodRoads.isEmpty) {
-      goodRoads = [Route(lines: [], waypoints: [])];
-    }
-    goodRoads.add(Route(id: -1, uri: ''));
+    // When tracking or following a great road is recorded from positions.
+    // Otherwise the waypoints added next are flagged (see syncGoodRoads()).
     if ([TripState.tracking, TripState.following].contains(tripState)) {
+      if (CurrentTripItem().goodRoads.isEmpty) {
+        goodRoads = [Route(lines: [], waypoints: [])];
+      }
+      goodRoads.add(Route(id: -1, uri: ''));
       goodRoads.last.waypoints
           .add(Waypoint(value: 1, point: tripValues.position));
     }
@@ -1365,7 +1427,11 @@ class CurrentTripItem extends MyTripItem {
           ? Point(target.longitude, target.latitude)
           : point;
       // routeFeatures.clear();
-      Waypoint waypoint = Waypoint(point: point, revisit: revisit);
+      // A waypoint added during a great road is flagged as part of it
+      Waypoint waypoint = Waypoint(
+          point: point,
+          revisit: revisit,
+          isGoodRoad: isGoodRoad && tripState != TripState.tracking);
       // Set the mapUpdates flag
       routes.last.waypoints.insert(insertAt, waypoint);
       // Start / Waypoint / End points of interest follow the new order -
@@ -1373,9 +1439,10 @@ class CurrentTripItem extends MyTripItem {
       syncWaypointPointsOfInterest(waypoints: routes.last.waypoints);
 
       routes = await replaceRoutes(routes: routes, updateBuffer: false);
+      await syncGoodRoads();
       addToBackBuffer();
 
-      mapUpdates = MapUpdates.routesAndWaypoints;
+      mapUpdates = _routeMapUpdates;
 
       MapService().updateMapGeoJson(mapUpdates: mapUpdates);
 
@@ -1458,7 +1525,8 @@ class CurrentTripItem extends MyTripItem {
     waypointIndex = -1;
     waypointState = WaypointState.none;
     isSaved = false;
-    mapUpdates = MapUpdates.routesAndWaypoints;
+    await syncGoodRoads();
+    mapUpdates = _routeMapUpdates;
     MapService().updateMapGeoJson(mapUpdates: mapUpdates);
     MapService().webAppBarController?.update();
     MapService().persistentAppBarController?.refresh();
@@ -1500,8 +1568,9 @@ class CurrentTripItem extends MyTripItem {
     // The removed waypoint was under the crosshair - onIdle will recalculate
     waypointIndex = -1;
     waypointState = WaypointState.none;
+    await syncGoodRoads();
     addToBackBuffer(route: routes[min(routeIndex, routes.length - 1)]);
-    mapUpdates = MapUpdates.routesAndWaypoints;
+    mapUpdates = _routeMapUpdates;
     MapService().updateMapGeoJson(mapUpdates: mapUpdates);
     isSaved = false;
   }
@@ -1904,7 +1973,7 @@ class CurrentTripItem extends MyTripItem {
       return;
     }
     routes.last.waypoints =
-        markRevisits(waypoints: routes.last.waypoints.reversed.toList());
+        markRevisits(waypoints: _reverseGoodRoadFlags(routes.last.waypoints));
     syncWaypointPointsOfInterest(waypoints: routes.last.waypoints);
     List<Route> rerouted =
         await replaceRoutes(routes: routes, updateBuffer: false);
@@ -1914,9 +1983,27 @@ class CurrentTripItem extends MyTripItem {
     waypointIndex = -1;
     waypointState = WaypointState.none;
     isSaved = false;
+    await syncGoodRoads();
     addToBackBuffer(); // also refreshes the app bars' undo / redo
-    mapUpdates = MapUpdates.routesAndWaypoints;
+    mapUpdates = _routeMapUpdates;
     MapService().updateMapGeoJson(mapUpdates: mapUpdates);
+  }
+
+  /// Reverses the waypoints keeping the same stretches as great roads.
+  /// isGoodRoad marks the leg arriving at a waypoint, so when reversed it
+  /// moves to the waypoint at the other end of that leg.
+  List<Waypoint> _reverseGoodRoadFlags(List<Waypoint> waypoints) {
+    int n = waypoints.length;
+    List<Waypoint> reversed = waypoints.reversed.toList();
+    return [
+      for (int j = 0; j < n; j++)
+        Waypoint(
+          colour: reversed[j].colour,
+          point: reversed[j].point,
+          revisit: reversed[j].revisit,
+          isGoodRoad: j > 0 && waypoints[n - j].isGoodRoad,
+        )
+    ];
   }
 
   /// The first visit to a point is the waypoint and any later visit a revisit.
@@ -2013,6 +2100,32 @@ class CurrentTripItem extends MyTripItem {
 
   bool goodRoadEnd(
       {String name = '', String description = '', String sounds = ''}) {
+    if (![TripState.tracking, TripState.following].contains(tripState)) {
+      // Made from the route (syncGoodRoads()) - add the description to the
+      // great road just finished, if any waypoints were added to it
+      isGoodRoad = false;
+      isSaved = false;
+      List<Waypoint> route = routes.isEmpty ? [] : routes.last.waypoints;
+      Route? goodRoad = goodRoads
+          .where((g) =>
+              g.pointOfInterestUri.isEmpty &&
+              g.waypoints.length > 1 &&
+              route.isNotEmpty &&
+              g.waypoints.last.point == route.last.point)
+          .lastOrNull;
+      if (goodRoad == null) return false;
+      String uuid = getUuid();
+      pointsOfInterest.add(PointOfInterest(
+        point: goodRoad.waypoints.first.point,
+        uuid: uuid,
+        type: 13,
+        name: name,
+        description: description,
+        sounds: sounds,
+      ));
+      goodRoad.pointOfInterestUri = uuid;
+      return true;
+    }
     if (tripState == TripState.tracking) {
       goodRoads.last.waypoints.add(
         Waypoint(
