@@ -87,9 +87,9 @@ enum TripChip {
   revisitWaypoint('Revisit waypoint', Icons.wrong_location),
   pointOfInterest('Point of interest', Icons.add_photo_alternate),
   // Switches great road mode on - the waypoints added next are great road
-  addGreatRoad('Start great road', Icons.add_road),
+  addGreatRoad('Great road mode', Icons.add_road),
   editGreatRoad('Edit great road', Icons.edit),
-  greatRoadEnd('End great road', Icons.add_road),
+  greatRoadEnd('Normal road mode', Icons.add_road),
   reverseTrip('Reverse trip', Icons.autorenew_outlined),
   saveTrip('Save trip', Icons.save),
   clear('Clear route', Icons.delete),
