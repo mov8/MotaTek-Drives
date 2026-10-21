@@ -2396,6 +2396,11 @@ class MyTripItem extends TripItem {
         maneuvers: maneuvers,
         goodRoads: goodRoads,
         pointsOfInterest: pointsOfInterest,
+        // MyTripTile shows photos (e.g. the map image) - only images was set,
+        // so a saved trip's map never showed in My Trips
+        photos: (jsonObject['images'] ?? '').isEmpty
+            ? []
+            : photosFromJson(photoString: jsonObject['images']),
       );
     } catch (e) {
       developer.log('factory MyTripItem.fromJson() error: ${e.toString()}',
