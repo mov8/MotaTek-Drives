@@ -105,8 +105,7 @@ class _MyTripsScreenState extends State<MyTrips> {
     // fromMyTripItem({required MyTripItem myTripItem})
     // /load_private/<uri>
 
-    MyTripItem? myTripItem = await PrivateStorageLocal()
-        .loadMyTripItem(uri: _myTripItems[index].uri);
+    MyTripItem? myTripItem = await loadSavedTripByUri(_myTripItems[index].uri);
 
     myTripItem ??= _myTripItems[index];
 

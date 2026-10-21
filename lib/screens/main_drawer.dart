@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import '/screens/screens.dart';
 import '/services/services.dart';
 import '/models/other_models.dart';
+import '/helpers/hive_helpers.dart';
 
 class MainDrawer extends StatefulWidget {
   const MainDrawer({super.key});
@@ -239,7 +240,7 @@ class _MainDrawerState extends State<MainDrawer> {
             ),
             onTap: () async {
               //   login(context);
-              await getPrivateRepository().getUser();
+              await loadUserLocally();
 
               // 'test@test.com';
               //  user.password = '';
@@ -265,7 +266,7 @@ class _MainDrawerState extends State<MainDrawer> {
                     );
                   }
                 } else if (loginState == LoginState.login) {
-                  await getPrivateRepository().saveUser(Setup().user);
+                  await saveUserLocally(Setup().user);
                   Setup().save();
                 }
               }
@@ -321,13 +322,6 @@ class _MainDrawerState extends State<MainDrawer> {
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) => const DeleteUserForm(),
-                                ),
-                              );
-                            } else if (e['value'] == 'survey') {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const SurveyForm(),
                                 ),
                               );
                             } else if (e['value'] == 'invite') {
@@ -391,11 +385,6 @@ class _MainDrawerState extends State<MainDrawer> {
       'text': 'Remove User',
       'iconData': const Icon(Icons.person_off_outlined),
       'value': 'user'
-    },
-    {
-      'text': 'Survey',
-      'iconData': const Icon(Icons.sick_outlined),
-      'value': 'survey'
     },
     {
       'text': 'Invite user',

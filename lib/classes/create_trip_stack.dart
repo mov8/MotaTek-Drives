@@ -358,9 +358,7 @@ class _CreateTripStackState extends State<CreateTripStack>
               },
             );
           } else {
-            MyTripItem debugMyTripItem = await getPrivateRepository()
-                    .loadMyTripItem(name: _debuggingRoute) ??
-                MyTripItem();
+            MyTripItem debugMyTripItem = await loadSavedTrip(title: _debuggingRoute) ?? MyTripItem();
             if (debugMyTripItem.routes.isNotEmpty) {
               _debugRoute.follow(routes: debugMyTripItem.routes);
               _positionStream = _debugPositionController.stream
@@ -435,20 +433,7 @@ class _CreateTripStackState extends State<CreateTripStack>
   }
 
   Future<bool> dataFromDatabase() async {
-    try {
-      if (Setup().hasLoggedIn) {
-        var setupRecords = await getPrivateRepository().recordCount('setup');
-        if (setupRecords > 0) {
-          try {
-            Setup().loaded;
-          } catch (e) {
-            debugPrint('Error starting local database: ${e.toString()}');
-          }
-        }
-      }
-    } catch (e) {
-      debugPrint('Error getting features data: ${e.toString()}');
-    }
+    // Setup is loaded from Hive at startup (main.dart initialise())
     return true;
   }
 

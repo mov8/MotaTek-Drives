@@ -40,10 +40,7 @@ class TripItemRepository {
       required String uri,
       zoom = 30}) async {
     if (!_tripItemCache.containsKey(key)) {
-      if (!kIsWeb && id >= 0) {
-        _tripItemCache[key] =
-            await getPrivateRepository().loadTripItemLocal(id: id);
-      } else if (uri.isNotEmpty) {
+      if (uri.isNotEmpty) {
         _tripItemCache[key] = await getTrip(tripId: uri);
       } else {
         _tripItemCache[key] = TripItem(title: '');
@@ -68,10 +65,7 @@ class PointOfInterestRepository {
       zoom = 30}) async {
     // PointOfInterest pointOfIntest = PointOfInterest(markerPoint: MarkerPoint(), marker: marker)
     if (!_pointOfInterestCache.containsKey(key)) {
-      if (id >= 0) {
-        _pointOfInterestCache[key] =
-            await getPrivateRepository().loadPointOfInterestLocal(id: id);
-      } else if (uri.isNotEmpty) {
+      if (uri.isNotEmpty) {
         _pointOfInterestCache[key] = await getPointOfInterest(uri: uri);
       } else {
         _pointOfInterestCache[key] = PointOfInterest(
@@ -100,10 +94,7 @@ class OsmDataRepository {
     // PointOfInterest pointOfIntest = PointOfInterest(markerPoint: MarkerPoint(), marker: marker)
     if (!_osmAmenityCache.containsKey(key)) {
       //  try {
-      if (id >= 0) {
-        _osmAmenityCache[key] =
-            await getPrivateRepository().loadOsmAmenityLocal(id: id);
-      } else if (osmId >= 0) {
+      if (osmId >= 0) {
         _osmAmenityCache[key] = await getOsmAmenity(osmId: osmId);
       } else {
         _osmAmenityCache[key] = OsmAmenity(
@@ -136,10 +127,7 @@ class RouteRepository {
     required String uri,
   }) async {
     if (!_routeCache.containsKey(key)) {
-      if (id >= 0 && !kIsWeb) {
-        _routeCache[key] = await getPrivateRepository()
-            .loadRoutesLocal(id, type: 0, driveKey: key);
-      } else if (uri.isNotEmpty) {
+      if (uri.isNotEmpty) {
         _routeCache[key] = await getDriveRoutes(driveUri: uri);
       } else {
         _routeCache[key] = [
@@ -167,10 +155,7 @@ class GoodRoadRepository {
     required String uri,
   }) async {
     if (!_goodRoadCache.containsKey(key)) {
-      if (id >= 0) {
-        _goodRoadCache[key] =
-            await getPrivateRepository().loadPolyLineLocal(id, type: 1);
-      } else if (uri.isNotEmpty) {
+      if (uri.isNotEmpty) {
         _goodRoadCache[key] = await getRoute(uriString: uri, goodRoad: true);
       } else {
         //     _goodRoadCache[key] = Route(points: [
@@ -328,11 +313,7 @@ Future<Image> webImageFromBytes({required String url}) async {
   return Image.memory(imageBytes);
 }
 
-Future<Image> localImageFromBytes({required int id}) async {
-  Uint8List? imageBytes =
-      await getPrivateRepository().loadImageByIdLocal(id: id);
-  return Image.memory(imageBytes!);
-}
+
 
 Future<void> saveLocalImage(String imageId, Uint8List image) async {
   var imageBox = await Hive.openLazyBox('imageBox');

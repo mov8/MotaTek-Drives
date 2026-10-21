@@ -24,5 +24,4 @@ export 'home.dart';
 export 'shop.dart';
 export 'sign_up.dart';
 // export 'star_ratings.dart';
-export 'survey.dart';
 export 'user_messages.dart';

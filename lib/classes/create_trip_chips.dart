@@ -666,9 +666,9 @@ class CreateTripChips extends StatelessWidget {
             PositionService()
                 .InitialiseDebugging(routes: CurrentTripItem().routes);
           } else {
-            MyTripItem debugMyTripItem = await getPrivateRepository()
-                    .loadMyTripItem(name: CurrentTripItem().debuggingRoute) ??
-                MyTripItem();
+            MyTripItem debugMyTripItem =
+                await loadSavedTrip(title: CurrentTripItem().debuggingRoute) ??
+                    MyTripItem();
             if (debugMyTripItem.routes.isNotEmpty) {
               PositionService()
                   .InitialiseDebugging(routes: debugMyTripItem.routes);

@@ -8,6 +8,7 @@ import '/screens/dialogs.dart';
 import '/classes/classes.dart';
 import '/constants.dart';
 import '/helpers/edit_helpers.dart';
+import '/helpers/hive_helpers.dart';
 
 class SignupForm extends StatefulWidget {
   final LoginState loginState;
@@ -575,7 +576,7 @@ class _SignupFormState extends State<SignupForm> {
             Setup().user.password = Setup().user.newPassword;
             Setup().user.newPassword = '';
           }
-          getPrivateRepository().saveUser(Setup().user);
+          saveUserLocally(Setup().user);
           Setup().save();
           response = 'Ok';
           break;

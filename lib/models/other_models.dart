@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:math';
 import 'dart:developer' as developer;
-import 'package:drives/services/db_helper.dart';
 
 import '/helpers/helpers.dart';
 import 'package:flutter/foundation.dart';
@@ -451,50 +450,6 @@ class Setup {
     };
   }
 
-  Future<bool> setupFromDb() async {
-    ///  var setupRecords = await recordCount('setup');
-    ///  debugPrint('Setup contains $setupRecords records');
-    //  TODO: put the user in the setup json to avoid a separate call to the api
-    Map<String, dynamic> map = await getPrivateRepository().getSetup(0);
-    if (map.isNotEmpty) {
-      try {
-        id = map['id'];
-        routeColour = map['route_colour'];
-        goodRouteColour = map['good_route_colour'];
-        waypointColour = map['waypoint_colour'];
-        pointOfInterestColour = map['point_of_interest_colour'];
-        waypointColour2 = map['waypoint_colour_2'];
-        pointOfInterestColour2 = map['point_of_interest_colour_2'];
-        selectedColour = map['selected_colour'];
-        highlightedColour = map['highlighted_colour'];
-        publishedTripColour = map['published_trip_colour'] ?? 10;
-        recordDetail = map['record_detail'];
-        allowNotifications = map['allow_notifications'] == 1;
-        // jwt = map['jwt'];  /// <-- The setup jwt will be out of date
-        dark = map['dark'] == 1;
-        rotateMap = map['rotate_map'] == 1;
-        avoidMotorways = map['avoid_motorways'] == 1;
-        avoidAroads = map['avoid_a_roads'] == 1;
-        avoidBroads = map['avoid_b_roads'] == 1;
-        avoidTollRoads = map['avoid_toll_roads'] == 1;
-        avoidFerries = map['avoid_ferries'] == 1;
-        osmPubs = map['osm_pubs'] == 1;
-        osmRestaurants = map['osm_restaurants'] == 1;
-        osmFuel = map['osm_fuel'] == 1;
-        osmToilets = map['osm_toilets'] == 1;
-        osmAtms = map['osm_atms'] == 1;
-        osmHistorical = map['osm_historical'] == 1;
-        bottomNavIndex = map['bottom_nav_index'];
-        appState = map['app_state'];
-        maleVoice = (map['male_voice'] ?? 0) == 1;
-      } catch (e) {
-        debugPrint('Failed to load Setup() from db: ${e.toString()}');
-      }
-    }
-
-    await getPrivateRepository().getUser();
-    return true;
-  }
 
 /*
   Future<bool> setupFromStorage() async {
@@ -566,7 +521,7 @@ class Setup {
     //   if (kIsWeb) {
     await _storage!.write(key: 'jwt', value: jwt);
     //   } else {
-    getPrivateRepository().saveUser(user);
+    saveUserLocally(user);
     //  }
   }
 
@@ -2421,15 +2376,6 @@ class Drive {
     this.distance = 0,
     this.pois = 0,
   });
-
-  Future<bool> saveLocally() async {
-    try {
-      id = await getPrivateRepository().saveDrive(drive: this);
-    } catch (e) {
-      debugPrint('Error saving trip: ${e.toString()}');
-    }
-    return true;
-  }
 
   Future<bool> publish() async {
     return false;

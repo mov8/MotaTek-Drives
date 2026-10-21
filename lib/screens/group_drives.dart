@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '/classes/classes.dart';
 import '/models/models.dart';
 import '/services/services.dart';
+import '/helpers/hive_helpers.dart';
 
 class GroupDriveForm extends StatefulWidget {
   const GroupDriveForm({super.key, setup});
@@ -53,7 +54,7 @@ class _GroupDriveFormState extends State<GroupDriveForm>
 
   Future<bool> loadData() async {
     DateTime today = DateTime.now();
-    _myTripItems = await getPrivateRepository().tripItemFromDb();
+    _myTripItems = await loadSavedTrips();
     _trips = await getMembersByDrive(
         startDate: DateTime(today.year, today.month, today.day - 2));
     _groups = await getMembersByGroup();
@@ -363,7 +364,7 @@ class _GroupDriveFormState extends State<GroupDriveForm>
   }
 
   Future<bool> loadMyTrips() async {
-    _myTripItems = await getPrivateRepository().tripItemFromDb();
+    _myTripItems = await loadSavedTrips();
     return true;
   }
 

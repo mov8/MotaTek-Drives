@@ -76,7 +76,8 @@ class _MessageItemsState extends State<MessageItems> {
   }
 
   Future<bool> dataFromDatabase() async {
-    mailItems = await getPrivateRepository().loadMailItems();
+    // From the API - the local SQLite copy has gone
+    mailItems = await getMessagesByGroup();
     if (mailItems.isEmpty) {
       mailItems.add(MailItem(id: '', name: '', isGroup: false));
       itemIndex = 0;

@@ -227,27 +227,6 @@ class _SearchLocationState extends State<SearchLocation> {
   }
 }
 
-Future<void> saveSetupToApi() async {
-  Map<String, dynamic> map = Setup().toMap();
-  map['jwt'] = '';
-
-  Map<String, dynamic> rMap = {};
-  try {
-    var uri = Uri.parse('$urlUser/settings');
-
-    http.Response response = await postWebData(
-      uri: uri,
-      body: jsonEncode(map),
-    );
-
-    rMap = jsonDecode(response.body);
-  } catch (e) {
-    developer.log(
-        'webhelper.dart saveSetupToApi() error saved data: ${e.toString()} - ${rMap.toString()}',
-        name: 'error');
-  }
-}
-
 Future<Map<String, dynamic>> postUser(
     {required User user, bool register = false}) async {
   int code = 500;
@@ -325,29 +304,6 @@ Future<String> refreshToken() async {
   return '';
 }
 
-Future<User> getUserApi() async {
-  /// Get user details from the api using the jwt
-  User user = User();
-  final http.Response response =
-      await getWebData(uri: Uri.parse('$urlUser'), secure: true);
-  if ([200, 201].contains(response.statusCode)) {
-    try {
-      Map<String, dynamic> data = jsonDecode(response.body);
-      Setup().jwt = data['token'] ?? '';
-      user.forename = data['forename'] ?? '';
-      user.surname = data['surname'] ?? '';
-      user.email = data['email'] ?? '';
-      user.phone = data['phone'] ?? '';
-      user.type = data['type'] ?? 1;
-    } catch (e) {
-      developer.log(
-          'Error WebHelpers getUserApi() retrieving user data: ${e.toString()}',
-          name: 'error');
-    }
-  }
-  return user;
-}
-
 Future<void> getUserDetails({required String email}) async {
   final http.Response response =
       await getWebData(uri: Uri.parse('$urlUser/user/$email'));
@@ -364,22 +320,6 @@ Future<void> getUserDetails({required String email}) async {
       debugPrint('Error retrieving user data: ${e.toString()}');
     }
   }
-}
-
-Future<Map<String, dynamic>> getWebSetup() async {
-  Map<String, dynamic> map = {};
-  final http.Response response =
-      await getWebData(uri: Uri.parse('$urlUser/settings'), secure: true);
-  if ([200, 201].contains(response.statusCode)) {
-    try {
-      map = jsonDecode(response.body);
-    } catch (e) {
-      developer.log(
-          'Error WebHelpers getWebSetup() retrieving settings data from api: ${e.toString()}',
-          name: 'error');
-    }
-  }
-  return map;
 }
 
 Future<void> getStats() async {
@@ -432,23 +372,6 @@ Future<Map<String, dynamic>> tryLogin({required User user}) async {
     return {'msg': map['msg'] ?? 'error', 'response_status_code': code};
   }
   return {'msg': 'Data is empty'};
-}
-
-Future<void> saveSetupApi() async {
-  var uri = Uri.parse('$urlUser/settings');
-  try {
-    http.Response response =
-        await postWebData(uri: uri, body: jsonEncode(Setup().toMap()));
-    if (response.statusCode != 200) {
-      developer.log(
-          'Server error updating user settings on api code: ${response.statusCode}',
-          name: 'error');
-    }
-  } catch (e) {
-    developer.log(
-        'Error WebHelpers saveSetupApi() updating user settings: ${e.toString()}',
-        name: 'error');
-  }
 }
 
 Future<Map<String, dynamic>> getSetup(int id) async {
@@ -577,105 +500,6 @@ Future<Uint8List?> _photoBytes(
     return await File(photo.url).readAsBytes();
   }
   return null;
-}
-
-Future<dynamic> saveTripWeb(
-    MyTripItem tripItem, ImageRepository imageRepository) async {
-  dynamic response;
-  try {
-    /// The MyTripItem List<Image> images contains all the images for the whole drive including
-    /// the points of interest. This is so that all images can be displayed in the MyTripTile
-    /// As the whole trip is being published as a single Json object it makes sense to upload all
-    /// the images in a single MultiPart.
-    /// On the API as Drives are now downloaded as a single Json Object too it makes sense to again to
-    /// down load the images in a single MultiPart.
-    /// To make life easier, and ensure that the order of the PointOfInterest images is correct they are to be named
-    /// as {pointOfInterest.uri}_{imageNumber}.jpg. The pointOfInterest.uri will be generated on creation.
-    /// On the API the POI files should have a new safe name generated, and both the
-    /// The PointsOfInterest.Images can still hold the references to their own images to help reduce the
-    /// work done by the app.
-    /// Start the images list with the Drive map
-    /// request.files.add(await http.MultipartFile.fromPath('map', photos[0].url));
-    var apiData = {};
-    try {
-      apiData = tripItem.toJson();
-    } catch (e) {
-      debugPrint('error: ${e.toString()}');
-    }
-
-    List<http.MultipartFile> files = [];
-    List<Map<String, dynamic>> images = [];
-    // The map is the trip's first image, kept in Hive - or the one in memory
-    List<Photo> tripPhotos = tripItem.images.isEmpty
-        ? []
-        : photosFromJson(photoString: tripItem.images);
-    Uint8List? mapBytes = tripPhotos.isEmpty
-        ? null
-        : await _photoBytes(tripPhotos.first, imageRepository);
-    mapBytes ??= CurrentTripItem().mapImage?.imageBytes;
-    if (mapBytes != null) {
-      files.add(
-        http.MultipartFile.fromBytes(
-          'files', // <-- Must have this as it is used on api request.files.getlist('files')
-          mapBytes,
-          filename: 'map.png',
-        ),
-      );
-      images.add({'url': 'map.png', 'caption': 'map', 'rotation': 0});
-    }
-
-    // int pois = tripItem.pointsOfInterest.length;
-    for (int i = 0; i < tripItem.pointsOfInterest.length; i++) {
-      PointOfInterest pointOfInterest = tripItem.pointsOfInterest[i];
-      List<Photo> photos = pointOfInterest.photos.isNotEmpty
-          ? pointOfInterest.photos
-          : pointOfInterest.images.isEmpty
-              ? []
-              : photosFromJson(photoString: pointOfInterest.images);
-      if (photos.isNotEmpty) {
-        for (int j = 0; j < photos.length; j++) {
-          try {
-            // From Hive (or a file for older trips) - getBytes() only had
-            // images already loaded into memory
-            Uint8List? bytes = await _photoBytes(photos[j], imageRepository);
-            if (bytes != null) {
-              files.add(
-                http.MultipartFile.fromBytes(
-                  'files',
-                  bytes,
-                  filename: photos[j].url,
-                ),
-              );
-              images.add({
-                'url': '/${photos[j].url}',
-                'caption': photos[j].caption,
-                'rotation': photos[j].rotation,
-                'key': ''
-              });
-            }
-          } catch (e) {
-            developer.log(
-                'Error WebHelper saveTripWeb() j:$j -> ${e.toString()}',
-                name: 'error');
-          }
-        }
-      }
-    }
-
-    /// Ensure the images actually sent are recorded
-    apiData['images'] = jsonEncode(images);
-    var request =
-        http.MultipartRequest('POST', Uri.parse('$urlDrive/save_private'));
-    request.headers['Authorization'] = 'Bearer ${Setup().jwt}';
-    request.fields['data'] = jsonEncode(apiData);
-    request.files.addAll(files);
-    response = await request.send().timeout(const Duration(seconds: 30));
-  } catch (e) {
-    developer.log(
-        'saveTripWeb() error: ${e.toString()} ${response?.statusCode}',
-        name: 'error');
-  }
-  return ' ';
 }
 
 /*
@@ -1344,18 +1168,6 @@ Future<TripItem?> getTrip(
   return null;
 }
 
-/// Downloads a trip from the api that hasn't been published
-/// for users using the Web version
-Future<MyTripItem?> loadPrivateTrip({required String uri}) async {
-  http.Response response = await getWebData(
-      uri: Uri.parse('$urlDrive/load_private/$uri'), secure: true);
-  if (response.statusCode == 200) {
-    var trip = jsonDecode(response.body);
-    return (MyTripItem.fromJson(jsonObject: trip));
-  }
-  return null;
-}
-
 Future<bool> deletePrivateDrive({required String uri}) async {
   Map<String, String> headers = {
     'Authorization': 'Bearer ${Setup().jwt}',
@@ -1367,36 +1179,6 @@ Future<bool> deletePrivateDrive({required String uri}) async {
       .post(Uri.parse('$urlDrive/delete_private'), headers: headers, body: body)
       .timeout(const Duration(seconds: 20));
   return response.statusCode == 200;
-}
-
-/// Downloads a list of trips that the user has uploaded to the api
-/// as private - for Web users.
-Future<List<MyTripItem>> getPrivateTrips() async {
-  try {
-    http.Response response =
-        await getWebData(uri: Uri.parse('$urlDrive/get_private'), secure: true);
-
-    if (response.statusCode == 200) {
-      List<MyTripItem> privateTrips = [];
-
-      var tripsMap = jsonDecode(response.body);
-      tripsMap = tripsMap is String ? [tripsMap] : tripsMap;
-      for (int i = 0; i < tripsMap.length; i++) {
-        //   var tripMap = jsonDecode(tripsMap[i]['trip']);
-        privateTrips.add(
-          MyTripItem.summaryFromJson(
-            jsonObject: tripsMap[i],
-          ),
-        ); //  trips[i]['trip'] as Map<String, dynamic>));
-      }
-      return privateTrips;
-    }
-  } catch (e) {
-    developer.log(
-        'Error WebHelpers getPrivateTrips() failed: error: ${e.toString()}',
-        name: 'error');
-  }
-  return [];
 }
 
 String imageListToString({required imageList}) {

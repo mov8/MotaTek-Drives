@@ -10,7 +10,7 @@ const appVersion = {'major': 0, 'minor': 0, 'patch': 9, 'suffix': 'beta db'};
 
 const apiAddress = 'https://drives.motatek.com/';
 // const wifiIpAddress = 'http://192.168.1.216:5001/';  // <- Home extendor
-// const wifiIpAddress = 'http://192.168.1.168:5001/'; // <- Home fibre
+const wifiIpAddress = 'http://192.168.1.168:5001/'; // <- Home fibre
 // const wifiIpAddress = 'http://192.168.235.1:5001/'; // <- Home no internet
 // Use the Ethernet adapter VMware Network Adapter VMnet1 IP address at home because of router problems
 
@@ -19,7 +19,7 @@ const apiAddress = 'https://drives.motatek.com/';
 // const wifiIpAddress = 'http://10.164.124.105:5001/'; // < Redmi
 // const wifiIpAddress = 'http://192.168.1.111:5001/'; // <- Boston unit
 // const wifiIpAddress = 'http://192.168.68.122:5001/'; // <- Barnet
-const wifiIpAddress = 'http://192.168.1.211:5001/'; // <- Irby Street
+// const wifiIpAddress = 'http://192.168.1.211:5001/'; // <- Irby Street
 // const wifiIpAddress = 'http://192.168.68.112:5001/'; // <- DiasF
 // const wifiIpAddress = 'http://10.249.4.160:5001/'; // <- airport joburg
 // const wifiIpAddress ='http://10.2.222.57:5001/'; // <- Staines library 10.2.222.57:5001
@@ -792,8 +792,6 @@ RegExp emailRegex = RegExp(r'[a-zA-Z0-9.]+@[a-zA-Z0-9]+\.[a-zA-Z]+');
 const List<int> responseOk = [200, 201, 202, 204];
 const List<int> responseError = [400, 401, 403, 408, 410];
 
-const int dbVersion = 1;
-
 // String stadiaMapsApiKey = 'ea533710-31bd-4144-b31b-5cc0578c74d7';
 
 const LatLng ukNorthEast = LatLng(61, 2);
@@ -808,119 +806,6 @@ const double metersPerTenths = 160.934;
 const double yardsToMeters = 1.0936133;
 const double yardsPerMile = 1760;
 const double yardsToMiles = 0.000568182;
-const List<String> tableDefs = [
-  /// CACHES
-
-  /// '''CREATE TABLE caches(id INTEGER PRIMARY KEY AUTOINCREMENT, uri TEXT,
-  /// feature_id INTEGER, type INTEGER, added DATETIME)''',
-
-  /// DRIVES - 19/02/26 modified to hold drives as a JSON string in column 'trip' rather than shredding it
-  '''CREATE TABLE drives(id INTEGER PRIMARY KEY AUTOINCREMENT, uri TEXT, title TEXT, sub_title TEXT, trip TEXT, 
-  distance INTEGER, points_of_interest INTEGER, added TEXT)''',
-
-  /// FEATURES
-  '''CREATE TABLE features(id INTEGER PRIMARY KEY AUTOINCREMENT, uri TEXT, feature_id INTEGER, 
- latitude REAL, longitude REAL, type INTEGER)''',
-
-  /// FOLLOWERS
-  '''CREATE TABLE followers(id INTEGER PRIMARY KEY AUTOINCREMENT, uri TEXT, drive_id INTEGER, forename TEXT, 
-  surname TEXT, phone_number TEXT, car TEXT, registration TEXT, icon_colour INTEGER, position TEXT, 
-  reported DATETIME)''',
-
-  /// GROUPS
-  '''CREATE TABLE groups(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, description TEXT, 
-  created DATETIME)''',
-
-  /// GROUP_MEMBERS
-  '''CREATE TABLE group_members(id INTEGER PRIMARY KEY AUTOINCREMENT, group_ids STRING, forename TEXT, surname TEXT, 
-  email TEXT, phone TEXT, status Integer, joined DATETIME, note TEXT, uri TEXT)''',
-
-  /// HOME_ITEMS
-  '''CREATE TABLE home_items(id INTEGER PRIMARY KEY AUTOINCREMENT, 
-  uri TEXT, heading TEXT, sub_heading TEXT, body TEXT, image_urls TEXT, 
-  added DATETIME, score INTEGER, coverage TEXT)''',
-
-  /// IMAGES
-  '''CREATE TABLE images(id INTEGER PRIMARY KEY AUTOINCREMENT, 
-  drive_id INTEGER, point_of_interest_id INTEGER, caption TEXT, image BLOB, added DATETIME)''',
-
-  /// LOG
-  '''CREATE TABLE log(id INTEGER PRIMARY KEY AUTOINCREMENT, monitor INTEGER, dateTime DATETIME, portNumber INTEGER, 
-  value REAL, alarm INTEGER)''',
-
-  /// MANEUVERS
-  '''CREATE TABLE maneuvers(id INTEGER PRIMARY KEY AUTOINCREMENT, drive_id INTEGER, road_from TEXT, 
-  road_to TEXT, bearing_before INTEGER, bearing_after INTEGER, exit INTEGER, location TEXT, 
-  modifier TEXT, type TEXT, distance REAL)''',
-
-  /// MAPCACHE
-  '''CREATE TABLE map_cache(id INTEGER PRIMARY KEY AUTOINCREMENT, 
-  key TEXT, value BLOB, added DATETIME)''',
-
-  /// MESSAGES
-  '''CREATE TABLE messages(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, target_id INTEGER, message TEXT, 
-  read INTEGER, received DATETIME)''',
-
-  /// NOTIFICATIONS
-  '''CREATE TABLE notifications(id INTEGER PRIMARY KEY AUTOINCREMENT, sentBy TEXT, message TEXT, 
-  received DATETIME)''',
-
-  /// OSM_DATA
-  '''CREATE TABLE osm_data(id INTEGER PRIMARY KEY AUTOINCREMENT, osm_id INTEGER, 
-  name TEXT, amenity TEXT, postcode TEXT, lat FLOAT, lng FLOAT)''',
-
-  /// POINTS_OF_INTEREST
-  '''CREATE TABLE points_of_interest(id INTEGER PRIMARY KEY AUTOINCREMENT, drive_id INTEGER, type INTEGER, 
-  waypoint INTEGER, name TEXT, description TEXT, images TEXT, sounds TEXT, latitude REAL, longitude REAL)''',
-
-  /// POLYLINES
-  '''CREATE TABLE polylines(id INTEGER PRIMARY KEY AUTOINCREMENT, drive_id INTEGER, 
-  type INTEGER, point_of_interest_id INTEGER, points TEXT, colour Integer, stroke INTEGER)''',
-
-  /// SETUP
-  '''CREATE TABLE setup(id INTEGER PRIMARY KEY AUTOINCREMENT, route_colour INTEGER, good_route_colour INTEGER, 
-  waypoint_colour INTEGER, waypoint_colour_2 INTEGER, point_of_interest_colour INTEGER, rotate_map INTEGER, 
-  point_of_interest_colour_2 INTEGER, selected_colour INTEGER, highlighted_colour INTEGER, published_trip_colour INTEGER, 
-  record_detail INTEGER, allow_notifications INTEGER, jwt TEXT, dark INTEGER, avoid_motorways INTEGER, 
-  avoid_a_roads INTEGER, avoid_b_roads INTEGER, avoid_toll_roads INTEGER, avoid_ferries INTEGER, 
-  osm_pubs INTEGER, osm_restaurants INTEGER, osm_fuel INTEGER, osm_toilets INTEGER, 
-  osm_atms INTEGER, osm_historical INTEGER, bottom_nav_index INTEGER, route TEXT, app_state TEXT, male_voice INTEGER)''',
-
-  /// SHOP_ITEMS
-  '''CREATE TABLE shop_items(id INTEGER PRIMARY KEY AUTOINCREMENT, 
-  uri TEXT, heading TEXT, sub_heading TEXT, body TEXT, image_urls TEXT, 
-  added DATETIME, score INTEGER, coverage TEXT, url_1 TEXT, button_text_1, TEXT, url_2 TEXT, button_text_2 TEXT)''',
-
-  /// TRIP_ITEMS
-  '''CREATE TABLE trip_items(id INTEGER PRIMARY KEY AUTOINCREMENT, heading TEXT, uri TEXT, sub_heading TEXT, 
-  body TEXT, author TEXT, author_url TEXT, published DATETIME, image_urls TEXT, score REAL, 
-  scored INTEGER, distance REAL, points_of_interest INTEGER, closest INTEGER, downloads INTEGER)''',
-
-  '''CREATE TABLE saved_trips(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT, added DATETIME, title TEXT,
-  sub_title TEXT, body TEXT, images TEXT, pois INTEGER, distance REAL, trip TEXT)''',
-
-  /// USERS
-  '''CREATE TABLE users(id INTEGER PRIMARY KEY AUTOINCREMENT, forename TEXT, surname TEXT, email TEXT, 
-  phone TEXT, password TEXT, imageUrl Text)''',
-
-  /// VERSIONS
-  '''CREATE TABLE versions(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, downloaded DATETIME, major INTEGER, 
-  minor INTEGER, patch INTEGER, status INTEGER )''',
-
-  /// CONTACT
-  '''CREATE TABLE contacts(id INTEGER PRIMARY KEY AUTOINCREMENT,
-           stand_id INTEGER, forename TEXT, surname TEXT, position TEXT, 
-           email TEXT, phone TEXT, ratings TEXT, contact TEXT, 
-           feedback TEXT)''',
-
-  /// SHOW
-  '''CREATE TABLE shows(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, location TEXT, date DATETIME)''',
-
-  /// STANDS
-  '''CREATE TABLE stands(id INTEGER PRIMARY KEY AUTOINCREMENT, 
-          show_id INTEGER, stand TEXT, name TEXT, seen INTEGER, 
-          comments TEXT, action TEXT, interviewer TEXT)''',
-];
 
 /// User Api endpoints:
 ///

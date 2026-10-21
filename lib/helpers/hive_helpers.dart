@@ -163,3 +163,51 @@ class TripRepository {
     return tripItems;
   }
 }
+
+/// Local storage - SQLite has gone; the user, settings and trips are kept
+/// in Hive on phones and the web alike. The repositories need their box
+/// opening first, which these do.
+
+Future<void> saveUserLocally(User user) async {
+  UserRepository repository = UserRepository();
+  await repository.openBox();
+  await repository.saveUser(user);
+}
+
+/// Loads the user saved on the device into Setup().user, if there is one
+Future<void> loadUserLocally() async {
+  UserRepository repository = UserRepository();
+  await repository.openBox();
+  User? user = await repository.getUser();
+  if (user != null) {
+    Setup().user = user;
+  }
+}
+
+Future<void> saveSetupLocally() async {
+  UserRepository repository = UserRepository();
+  await repository.openBox();
+  await repository.saveSetup();
+}
+
+/// The trips saved on the device (My Trips)
+Future<List<MyTripItem>> loadSavedTrips() async {
+  TripRepository repository = TripRepository();
+  await repository.openBox();
+  return repository.getTrips();
+}
+
+/// A saved trip by its title - e.g. the debugging route to replay
+Future<MyTripItem?> loadSavedTrip({required String title}) async {
+  for (MyTripItem trip in await loadSavedTrips()) {
+    if (trip.title == title) return trip;
+  }
+  return null;
+}
+
+/// A saved trip by its uri (its Hive key)
+Future<MyTripItem?> loadSavedTripByUri(String uri) async {
+  TripRepository repository = TripRepository();
+  await repository.openBox();
+  return repository.getTrip(uri);
+}

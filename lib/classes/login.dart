@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import '../classes/classes.dart';
+// import '../classes/classes.dart';
 import '../models/models.dart';
 import '../services/services.dart';
 import '../screens/screens.dart';
 import '../constants.dart';
 import 'package:flutter/foundation.dart';
-import 'dart:developer' as developer;
+import '/helpers/hive_helpers.dart';
+// import 'dart:developer' as developer;
 
 class Login extends StatelessWidget {
   BuildContext context;
@@ -33,7 +34,7 @@ class Login extends StatelessWidget {
 
       if ((!kIsWeb && Setup().user.password.isEmpty) ||
           (kIsWeb && Setup().jwt.isNotEmpty)) {
-        await getPrivateRepository().getUser();
+        await loadUserLocally();
       }
 
       LoginState loginState = LoginState.notLoggedin;
@@ -56,7 +57,7 @@ class Login extends StatelessWidget {
           //    code = response['response_status_code'] ?? 0;
 
           if (status == 'OK') {
-            await getPrivateRepository().saveUser(Setup().user);
+            await saveUserLocally(Setup().user);
             Setup().hasLoggedIn = true;
             return status == 'OK';
           }
@@ -77,7 +78,7 @@ class Login extends StatelessWidget {
             Map<String, dynamic> response = await tryLogin(user: user);
             if (response['msg'] == 'OK') {
               Setup().hasLoggedIn = true;
-              await getPrivateRepository().saveUser(user);
+              await saveUserLocally(user);
               Setup().user = user;
               return true;
             }

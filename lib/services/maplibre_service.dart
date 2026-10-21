@@ -936,7 +936,7 @@ map.on('mousemove', (e) => {
   Future<bool> initialiseFavourites() async {
     List myTripItems = [];
     await clearGeoJson();
-    myTripItems.addAll(await getPrivateRepository().loadMyTripItems());
+    myTripItems.addAll(await loadSavedTrips());
     try {
       await sideDrawerController!.setContent(
           content: BottomDrawerItems.favourites,

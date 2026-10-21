@@ -5,6 +5,7 @@ import '/models/models.dart';
 // import '/tiles/my_trip_tile.dart';
 import '/classes/classes.dart';
 import '/services/services.dart';
+import '/helpers/hive_helpers.dart';
 
 class ShareForm extends StatefulWidget {
   // var setup;
@@ -69,7 +70,7 @@ class _ShareFormState extends State<ShareForm> {
         leading: BackButton(
           onPressed: () {
             try {
-              getPrivateRepository().insertSetup();
+              saveSetupLocally();
               Navigator.pop(context);
             } catch (e) {
               debugPrint('Setup error: ${e.toString()}');

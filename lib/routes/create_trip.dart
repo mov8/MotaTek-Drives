@@ -571,18 +571,11 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
       _currentPosition = await Geolocator.getCurrentPosition();
       // mapStyle = await getStyle(url: urlTilerMapLibre);
       // mapStyle = await MapService().style;
+      // Setup is loaded from Hive at startup (main.dart initialise())
       if (Setup().hasLoggedIn) {
-        var setupRecords = await getPrivateRepository().recordCount('setup');
         _preferences.avoidMotorways = Setup().avoidMotorways;
         _preferences.avoidFerries = Setup().avoidFerries;
         _preferences.avoidTollRoads = Setup().avoidTollRoads;
-        if (setupRecords > 0) {
-          try {
-            Setup().loaded;
-          } catch (e) {
-            debugPrint('Error starting local database: ${e.toString()}');
-          }
-        }
       }
       return true;
       // mapStyle = await MapService().style;
@@ -617,7 +610,7 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
           {
             // _onIdle();
             _myTripItems.clear();
-            _myTripItems.addAll(await getPrivateRepository().loadMyTripItems());
+            _myTripItems.addAll(await loadSavedTrips());
             try {
               await MapService().sideDrawerController!.setContent(
                   content: BottomDrawerItems.favourites,
@@ -640,18 +633,9 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
         default:
           {
             if (Setup().hasLoggedIn) {
-              var setupRecords =
-                  await getPrivateRepository().recordCount('setup');
               _preferences.avoidMotorways = Setup().avoidMotorways;
               _preferences.avoidFerries = Setup().avoidFerries;
               _preferences.avoidTollRoads = Setup().avoidTollRoads;
-              if (setupRecords > 0) {
-                try {
-                  Setup().loaded;
-                } catch (e) {
-                  debugPrint('Error starting local database: ${e.toString()}');
-                }
-              }
             }
           }
       }
@@ -1227,9 +1211,7 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
               },
             );
           } else {
-            MyTripItem debugMyTripItem = await getPrivateRepository()
-                    .loadMyTripItem(name: _debuggingRoute) ??
-                MyTripItem();
+            MyTripItem debugMyTripItem = await loadSavedTrip(title: _debuggingRoute) ?? MyTripItem();
             if (debugMyTripItem.routes.isNotEmpty) {
               _debugRoute.follow(routes: debugMyTripItem.routes);
               _positionStream = _debugPositionController.stream
