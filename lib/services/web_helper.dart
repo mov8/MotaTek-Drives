@@ -7,6 +7,7 @@ import 'dart:typed_data';
 import '/constants.dart';
 import '/classes/classes.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 import '/models/models.dart';
@@ -505,39 +506,48 @@ Future<dynamic> publish(MyTripItem tripItem) async {
     /// Start the images list with the Drive map
     /// request.files.add(await http.MultipartFile.fromPath('map', photos[0].url));
 
-    List images = jsonDecode(tripItem.images);
+    /// Images are stored in Hive (ImageRepository) - only trips saved before
+    /// that have them as files - so each is read by its key.
+    ImageRepository imageRepository = ImageRepository();
     List<http.MultipartFile> files = [];
-    if (File(images[0]['url']).existsSync()) {
-      files.add(
-        http.MultipartFile.fromBytes(
-            'files', // <-- Must have this as it is used on api request.files.getlist('files')
-            File(images[0]['url']).readAsBytesSync(),
-            filename: 'map.png'),
-      );
+
+    // The trip's first image is its map
+    List<Photo> tripPhotos = tripItem.images.isEmpty
+        ? []
+        : photosFromJson(photoString: tripItem.images);
+    if (tripPhotos.isNotEmpty) {
+      Uint8List? bytes = await _photoBytes(tripPhotos.first, imageRepository);
+      if (bytes != null) {
+        files.add(
+          http.MultipartFile.fromBytes(
+              'files', // <-- Must have this as it is used on api request.files.getlist('files')
+              bytes,
+              filename: 'map.png'),
+        );
+      }
     }
 
-    for (int i = 0; i < tripItem.pointsOfInterest.length; i++) {
-      if (tripItem.pointsOfInterest[i].images.isNotEmpty) {
-        images = jsonDecode(tripItem.pointsOfInterest[i].images);
-        if (images.isNotEmpty) {
-          for (int j = 0; j < images.length; j++) {
-            try {
-              if (File(images[j]['url']).existsSync()) {
-                String fileName =
-                    '${tripItem.pointsOfInterest[i].uuid}_${j + 1}.jpg';
-                files.add(
-                  http.MultipartFile.fromBytes(
-                    'files',
-                    File(images[j]['url']).readAsBytesSync(),
-                    filename: fileName,
-                  ),
-                );
-              }
-            } catch (e) {
-              developer.log('Error WebHelper publish() ${e.toString()}',
-                  name: 'error');
-            }
+    for (PointOfInterest pointOfInterest in tripItem.pointsOfInterest) {
+      List<Photo> photos = pointOfInterest.photos.isNotEmpty
+          ? pointOfInterest.photos
+          : pointOfInterest.images.isEmpty
+              ? []
+              : photosFromJson(photoString: pointOfInterest.images);
+      for (int j = 0; j < photos.length; j++) {
+        try {
+          Uint8List? bytes = await _photoBytes(photos[j], imageRepository);
+          if (bytes != null) {
+            files.add(
+              http.MultipartFile.fromBytes(
+                'files',
+                bytes,
+                filename: '${pointOfInterest.uuid}_${j + 1}.jpg',
+              ),
+            );
           }
+        } catch (e) {
+          developer.log('Error WebHelper publish() ${e.toString()}',
+              name: 'error');
         }
       }
     }
@@ -546,10 +556,27 @@ Future<dynamic> publish(MyTripItem tripItem) async {
     request.fields['data'] = jsonEncode(apiData);
     request.files.addAll(files);
     response = await request.send().timeout(const Duration(seconds: 30));
+    return response.statusCode;
   } catch (e) {
-    debugPrint('error: ${e.toString()} ${response.statusCode}');
+    developer.log(
+        'Error WebHelper publish() ${e.toString()} ${response?.statusCode}',
+        name: 'error');
   }
   return ' ';
+}
+
+/// A photo's image bytes - from Hive by its key (photo.key, or the 32
+/// character name in its url), or from its file for a trip saved before
+/// images were kept in Hive. Null if it can't be found.
+Future<Uint8List?> _photoBytes(
+    Photo photo, ImageRepository imageRepository) async {
+  String key = photo.key.isNotEmpty ? photo.key : getFileName(url: photo.url);
+  Uint8List? bytes = await imageRepository.imageBytes(key);
+  if (bytes != null) return bytes;
+  if (!kIsWeb && photo.url.isNotEmpty && await File(photo.url).exists()) {
+    return await File(photo.url).readAsBytes();
+  }
+  return null;
 }
 
 Future<dynamic> saveTripWeb(

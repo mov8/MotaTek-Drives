@@ -258,6 +258,24 @@ class ImageRepository {
     return true;
   }
 
+  /// An image's bytes from the cache or Hive, or null if it isn't stored -
+  /// e.g. to upload it when a trip is published. (loadImage() expects the
+  /// image to be there.)
+  Future<Uint8List?> imageBytes(String key) async {
+    if (_imageCache.containsKey(key)) {
+      return _imageCache[key];
+    }
+    if (key.length != 32) return null;
+    if (!boxOpen) {
+      boxOpen = await openHive();
+    }
+    if (!_imageBox.containsKey(key)) return null;
+    dynamic bytes = await _imageBox.get(key);
+    if (bytes is Uint8List) return bytes;
+    if (bytes is List) return Uint8List.fromList(bytes.cast<int>());
+    return null;
+  }
+
   /// Removes an image from Hive, e.g. when its point of interest is deleted.
   /// Only Hive keys (32 characters) are stored there.
   Future<void> deleteImage(String key) async {
