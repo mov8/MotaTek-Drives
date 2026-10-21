@@ -224,22 +224,26 @@ class ImageRepository {
     key ??= getFileName(url: uri);
     key = key.isNotEmpty ? key : getFileName(url: uri);
 
-    if (!_imageCache.containsKey(key)) {
-      if (key.length == 32) {
-        Uint8List? imageBytes;
-        if (_imageBox.containsKey(key)) {
-          imageBytes = await _imageBox.get(key);
-        } else if ((bytes ?? []).isNotEmpty) {
-          try {
-            _imageBox.put(key, bytes);
-            imageBytes = bytes;
-          } catch (e) {
-            developer.log('Error writing to _imageBox: ${e.toString()}',
-                name: 'error');
-          }
+    if (!_imageCache.containsKey(key) && key.length == 32) {
+      Uint8List? imageBytes;
+      if (_imageBox.containsKey(key)) {
+        imageBytes = await _imageBox.get(key);
+      } else if ((bytes ?? []).isNotEmpty) {
+        try {
+          await _imageBox.put(key, bytes);
+          imageBytes = bytes;
+        } catch (e) {
+          developer.log('Error writing to _imageBox: ${e.toString()}',
+              name: 'error');
         }
-        _imageCache[key] = imageBytes!;
-      } else if (uri.isNotEmpty && uri.contains('assets')) {
+      }
+      // Not in Hive - try the url below rather than failing on a null
+      if (imageBytes != null) {
+        _imageCache[key] = imageBytes;
+      }
+    }
+    if (!_imageCache.containsKey(key)) {
+      if (uri.isNotEmpty && uri.contains('assets')) {
         final ByteData bytes = await rootBundle.load(uri);
         _imageCache[key] = bytes.buffer.asUint8List();
       } else if (uri.isNotEmpty && bytes == null) {
@@ -250,6 +254,14 @@ class ImageRepository {
       }
     }
 
+    if (!_imageCache.containsKey(key)) {
+      // Nowhere to be found - show the missing image placeholder
+      return {
+        key: Image.memory(Uint8List(0),
+            errorBuilder: (context, error, stackTrace) =>
+                const ImageMissing(width: 30))
+      };
+    }
     return {key: Image.memory(_imageCache[key]!)};
   }
 

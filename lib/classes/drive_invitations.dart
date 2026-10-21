@@ -338,9 +338,8 @@ class _DriveInvitationsState extends State<DriveInvitations>
                               children: [
                                 SizedBox(
                                   width: 200,
-                                  child: Image.file(
-                                    File(photos[i].url),
-                                  ),
+                                  // From Hive, a file or the web
+                                  child: StoredPhoto(photo: photos[i]),
                                 ),
                                 const SizedBox(
                                   width: 20,

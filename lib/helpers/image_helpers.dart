@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'dart:developer' as developer;
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:image_picker/image_picker.dart';
 import 'create_trip_helpers.dart';
 import '/models/other_models.dart';
@@ -209,11 +210,11 @@ class _PoiDetails extends State<PoiDetails> {
                             i++)
                           SizedBox(
                             width: 160,
-                            child: Image.file(
-                              File(photosFromJson(
+                            // From Hive, or a file for older photos
+                            child: StoredPhoto(
+                              photo: photosFromJson(
                                 photoString: widget.pointOfInterest.images,
-                              )[i]
-                                  .url),
+                              )[i],
                             ),
                           ),
                         const SizedBox(
@@ -532,5 +533,42 @@ Future<Image> getImageFromPhoto(
     Map<String, Image> image = await imageRepository.loadImage(
         key: photo.key, id: photo.id, uri: photo.url);
     return image.values.first;
+  }
+}
+
+/// Shows a photo wherever it's stored: Hive (ImageRepository) by its key,
+/// its file for one stored before Hive, or the web if its url is one.
+class StoredPhoto extends StatelessWidget {
+  final Photo photo;
+  final double? width;
+  final ImageRepository? imageRepository;
+  const StoredPhoto(
+      {super.key, required this.photo, this.width, this.imageRepository});
+
+  @override
+  Widget build(BuildContext context) {
+    String key = photo.key.isNotEmpty ? photo.key : getFileName(url: photo.url);
+    return FutureBuilder<Uint8List?>(
+      future: (imageRepository ?? ImageRepository()).imageBytes(key),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return SizedBox(width: width);
+        }
+        Widget missing(BuildContext context, Object error, StackTrace? trace) =>
+            const ImageMissing(width: 30);
+        if (snapshot.data != null) {
+          return Image.memory(snapshot.data!,
+              width: width, errorBuilder: missing);
+        }
+        if (photo.url.startsWith('http')) {
+          return Image.network(photo.url, width: width, errorBuilder: missing);
+        }
+        if (!kIsWeb && photo.url.isNotEmpty) {
+          return Image.file(File(photo.url),
+              width: width, errorBuilder: missing);
+        }
+        return const ImageMissing(width: 30);
+      },
+    );
   }
 }
