@@ -593,6 +593,11 @@ class _BottomNavState extends State<BottomNav> {
     int titleIndex = index; // > 1 ? ++index : index;
     MapService().persistentAppBarController?.update(_titles[titleIndex]);
     NavigationService().selected(index);
+    // The branch pages persist, so My Trips re-reads the saved trips each
+    // time it's shown - e.g. one just saved on the map
+    if (index == 3) {
+      MapService().myTripsController?.refresh();
+    }
     setState(() => currentPageIndex = index);
   }
 

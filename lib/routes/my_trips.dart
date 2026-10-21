@@ -89,7 +89,9 @@ class _MyTripsScreenState extends State<MyTrips> {
 
   void refresh() async {
     await getMyTripItems();
-    setState(() {});
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   void addCurrentTripItem() {

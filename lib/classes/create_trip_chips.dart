@@ -631,7 +631,8 @@ class CreateTripChips extends StatelessWidget {
       CurrentTripItem().imageRepository ??= ImageRepository();
       TripRepository tripRepository = TripRepository();
       await tripRepository.openBox();
-      tripRepository.saveTrip(CurrentTripItem());
+      // Awaited so My Trips (refreshed below) reads the trip just saved
+      await tripRepository.saveTrip(CurrentTripItem());
       CurrentTripItem().markSaved();
       CurrentTripItem().tripState = TripState.loaded;
       CurrentTripItem().tripValues.editing();
