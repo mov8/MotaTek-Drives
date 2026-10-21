@@ -441,7 +441,8 @@ class _HandleCTFabsState extends State<HandleCTFabs> {
     }
     CurrentTripItem().pointsOfInterest.add(pointOfInterest);
     CurrentTripItem().isSaved = false;
-    MapService().updateMapGeoJson(mapUpdates: MapUpdates.pointsOfInterest);
+    // Show its shield straight away (refreshMap() also micro-nudges)
+    await CurrentTripItem().refreshMap(change: MapUpdates.pointsOfInterest);
   }
 
   void updateToolTips(bool enter, int i) {

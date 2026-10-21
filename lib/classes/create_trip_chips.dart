@@ -422,7 +422,7 @@ class CreateTripChips extends StatelessWidget {
   }
 
   Future<void> pointOfInterest() async {
-    CurrentTripItem().requestPointOfInterest();
+    await CurrentTripItem().requestPointOfInterest();
     await _executeChipActions(tripActions: MyTripActions.addPointOfInterest);
   }
 

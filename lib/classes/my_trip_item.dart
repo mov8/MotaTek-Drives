@@ -224,6 +224,8 @@ class CurrentTripItem extends MyTripItem {
     if (index < 0 || index >= pointsOfInterest.length) return;
     PointOfInterest poi = pointsOfInterest.removeAt(index);
     isSaved = false;
+    // Take its shield off the map
+    refreshMap(change: MapUpdates.pointsOfInterest);
     if (poi.type == 13) {
       // Deleted - undo mustn't bring it back without its media
       for (List<Waypoint> entry in backBuffer) {
@@ -650,7 +652,9 @@ class CurrentTripItem extends MyTripItem {
       } else {
         mapUpdates = mapUpdates.add(change);
       }
-      MapService().updateMapGeoJson(mapUpdates: mapUpdates);
+      // Awaited so the micro-nudge comes after the sources are set - without
+      // it e.g. a new point of interest's shield could miss the redraw
+      await MapService().updateMapGeoJson(mapUpdates: mapUpdates);
       // Micro-nudge to update MapLibre the nudge causes the onIdle callback to be called
       await MapService()
           .controller!
@@ -1181,14 +1185,14 @@ class CurrentTripItem extends MyTripItem {
     MapService().createTripController!.update();
   }
 
-  void requestPointOfInterest() {
+  Future<void> requestPointOfInterest() async {
     tripActions = TripActions.pointOfInterest;
     tripValues.showMask = false;
     newPointOfInterest();
-    //  mapUpdates = mapUpdates.add(MapUpdates.pointsOfInterest);
     tripValues.pointOfInterestIndex = pointsOfInterest.length - 1;
     MapService().createTripController!.update();
-    return;
+    // Show its shield straight away, not only when the drawer closes
+    await refreshMap(change: MapUpdates.pointsOfInterest);
   }
 
   void requestGroup() {
