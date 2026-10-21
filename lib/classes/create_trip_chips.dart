@@ -775,7 +775,9 @@ class CreateTripChips extends StatelessWidget {
       trip.tripValues.showProgress = true; // <-- hides the crosshair
       MapService().bottomDrawerController?.close();
       MapService().createTripStackController?.refresh();
-      // Fit the whole route, and give the map time to draw it
+      // Fit the whole route, and wait for the map's onIdle - the camera has
+      // stopped and the map has drawn, so the snapshot gets the finished map
+      Future<void> idle = MapService().nextIdle();
       double west = points.map((p) => p[0]).reduce(min);
       double east = points.map((p) => p[0]).reduce(max);
       double south = points.map((p) => p[1]).reduce(min);
@@ -790,7 +792,10 @@ class CreateTripChips extends StatelessWidget {
               right: 40,
               bottom: 40))
           .timeout(const Duration(seconds: 3), onTimeout: () => null);
-      await Future.delayed(const Duration(milliseconds: 800));
+      // No onIdle if the camera didn't need to move - don't wait for ever
+      await idle.timeout(const Duration(seconds: 3), onTimeout: () {
+        debugPrint('[_snapshot_] no onIdle after fitting the route');
+      });
       // Time limited - the map image is a nice-to-have and must never stop
       // the trip being saved
       Stopwatch timer = Stopwatch()..start();

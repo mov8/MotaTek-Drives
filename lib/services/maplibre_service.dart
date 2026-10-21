@@ -272,7 +272,19 @@ map.on('mousemove', (e) => {
     return {'index': -1};
   }
 
+  /// Completed on the next onIdle - when the camera has stopped and the map
+  /// has drawn, e.g. so a snapshot captures the finished map
+  Completer<void>? _idleWaiter;
+
+  Future<void> nextIdle() {
+    _idleWaiter = Completer<void>();
+    return _idleWaiter!.future;
+  }
+
   onIdle() async {
+    if (_idleWaiter != null && !_idleWaiter!.isCompleted) {
+      _idleWaiter!.complete();
+    }
     if (controller != null) {
 // handle Published state
       /// The following onIdle came from GitHub branch web_with_markdown create_trip.dart
