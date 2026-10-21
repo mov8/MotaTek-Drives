@@ -1124,16 +1124,15 @@ class CurrentTripItem extends MyTripItem {
   /// Diagnostics (name _route_): each waypoint N(ormal) / G(reat road)
   /// (r = revisit), each great road R (from the route) / K (kept, off the
   /// route) with waypoint / line point counts, and the undo history.
-  void _logRoute(String event) => developer.log(
-      '$event: waypoints ${[
+  void _logRoute(String event) => debugPrint('[_route_] $event: waypoints ${[
         for (Waypoint w
             in routes.isEmpty ? <Waypoint>[] : routes.last.waypoints)
           '${w.isGoodRoad ? 'G' : 'N'}${w.revisit ? 'r' : ''}'
       ]} great roads ${[
         for (Route g in goodRoads)
           '${g.fromRoute ? 'R' : 'K'}${g.waypoints.length}/${g.lines.length}'
-      ]} history ${backBuffer.length} at $backBufferIndex',
-      name: '_route_');
+      ]} descriptions ${pointsOfInterest.where((poi) => poi.type == 13).length}'
+          ' history ${backBuffer.length} at $backBufferIndex');
 
   void requestGreatRoad({String description = '', String sounds = ''}) {
     isGoodRoad = true;
