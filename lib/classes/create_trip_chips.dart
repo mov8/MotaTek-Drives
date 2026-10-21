@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
@@ -792,8 +793,12 @@ class CreateTripChips extends StatelessWidget {
       await Future.delayed(const Duration(milliseconds: 800));
       // Time limited - the map image is a nice-to-have and must never stop
       // the trip being saved
+      Stopwatch timer = Stopwatch()..start();
       Uint8List bytes =
           await controller.takeSnapshot().timeout(const Duration(seconds: 5));
+      // How the snapshot behaves on this device - it has worked, then not
+      debugPrint('[_snapshot_] returned ${bytes.length} bytes in '
+          '${timer.elapsedMilliseconds}ms');
       if (bytes.isNotEmpty) {
         String key = getUuid();
         await ImageRepository()
@@ -801,10 +806,11 @@ class CreateTripChips extends StatelessWidget {
         _setMapImage(trip, key);
         trip.mapImage = ImageInMemory(name: 'map', imageBytes: bytes);
       }
+    } on TimeoutException {
+      debugPrint('[_snapshot_] takeSnapshot() never returned (timed out after '
+          '5s) - saving without a map image');
     } catch (e) {
-      developer.log(
-          'Error CreateTripChips()._createMapImage(): ${e.toString()}',
-          name: 'error');
+      debugPrint('[_snapshot_] takeSnapshot() failed: ${e.toString()}');
     } finally {
       if (before != null) {
         await controller
