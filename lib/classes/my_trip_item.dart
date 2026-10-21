@@ -877,7 +877,9 @@ class CurrentTripItem extends MyTripItem {
     await MapService().controller!.animateCamera(CameraUpdate.zoomBy(0.000001));
   }
 
-  Future<void> requestExtendStart() async {
+  Future<void> requestExtendStart() => _routeChange(_requestExtendStart);
+
+  Future<void> _requestExtendStart() async {
     tripActions = TripActions.none;
     tripValues.beforeWaypoint();
     // addWaypoints methods set the appropriate mapUpdate enum values
@@ -894,7 +896,9 @@ class CurrentTripItem extends MyTripItem {
     isSaved = false;
   }
 
-  Future<void> requestWaypoint() async {
+  Future<void> requestWaypoint() => _routeChange(_requestWaypoint);
+
+  Future<void> _requestWaypoint() async {
 // addWaypoints methods set the appropriate mapUpdate enum values
 
     tripValues.beforeWaypoint();
@@ -910,7 +914,10 @@ class CurrentTripItem extends MyTripItem {
     isSaved = false;
   }
 
-  Future<void> requestRevisitWaypoint() async {
+  Future<void> requestRevisitWaypoint() =>
+      _routeChange(_requestRevisitWaypoint);
+
+  Future<void> _requestRevisitWaypoint() async {
     tripActions = TripActions.none;
     tripValues.beforeWaypoint();
     List<Waypoint> waypoints = routes.isEmpty ? [] : routes.first.waypoints;
@@ -927,7 +934,9 @@ class CurrentTripItem extends MyTripItem {
     await MapService().controller!.animateCamera(CameraUpdate.zoomBy(0.000001));
   }
 
-  Future<void> requestExtendEnd() async {
+  Future<void> requestExtendEnd() => _routeChange(_requestExtendEnd);
+
+  Future<void> _requestExtendEnd() async {
     tripActions = TripActions.none;
     tripValues.beforeWaypoint();
 // addWaypoints methods set the appropriate mapUpdate enum values
@@ -940,7 +949,9 @@ class CurrentTripItem extends MyTripItem {
     isSaved = false;
   }
 
-  Future<void> requestRemoveWaypoint() async {
+  Future<void> requestRemoveWaypoint() => _routeChange(_requestRemoveWaypoint);
+
+  Future<void> _requestRemoveWaypoint() async {
     tripValues.setState = true;
     if (waypointIndex > -1) {
       await removeWaypoint(index: waypointIndex);
@@ -1049,7 +1060,7 @@ class CurrentTripItem extends MyTripItem {
         PointOfInterest? description = pointsOfInterest
             .where((poi) =>
                 poi.type == 13 &&
-                poi.point == stretch.first.point &&
+                _onStretch(poi.point, goodRoad) &&
                 !used.contains(poi.uuid))
             .firstOrNull;
         if (description != null) {
@@ -1061,6 +1072,15 @@ class CurrentTripItem extends MyTripItem {
     }
     goodRoads = [...kept, ...rebuilt];
   }
+
+  /// A description point of interest belongs to the great road it's on -
+  /// within 30m of its line (it's placed in the middle), or at its start
+  bool _onStretch(Point point, Route goodRoad) =>
+      point == goodRoad.waypoints.first.point ||
+      goodRoad.lines.any((p) =>
+          Geolocator.distanceBetween(
+              point.y.toDouble(), point.x.toDouble(), p[1], p[0]) <
+          30);
 
   /// A great road for the stretch, keeping a previous one's description
   /// (pointOfInterestUri) if it's the same great road - same start, or the
@@ -1081,8 +1101,39 @@ class CurrentTripItem extends MyTripItem {
   }
 
   /// The map sources to redraw after the route changes
-  MapUpdates get _routeMapUpdates =>
-      goodRoads.isEmpty ? MapUpdates.routesAndWaypoints : MapUpdates.updateAll;
+  /// Every source - redrawing only some left e.g. a removed great road's
+  /// layers showing their old contents
+  MapUpdates get _routeMapUpdates => MapUpdates.updateAll;
+
+  /// Route changes wait for the router. One started meanwhile (e.g. undo
+  /// tapped again) could interleave with it and muddle the route, so it's
+  /// ignored until the first has finished.
+  bool _changingRoute = false;
+
+  Future<void> _routeChange(Future<void> Function() change) async {
+    if (_changingRoute) return;
+    _changingRoute = true;
+    try {
+      await change();
+    } finally {
+      _changingRoute = false;
+      _logRoute('route changed');
+    }
+  }
+
+  /// Diagnostics (name _route_): each waypoint N(ormal) / G(reat road)
+  /// (r = revisit), each great road R (from the route) / K (kept, off the
+  /// route) with waypoint / line point counts, and the undo history.
+  void _logRoute(String event) => developer.log(
+      '$event: waypoints ${[
+        for (Waypoint w
+            in routes.isEmpty ? <Waypoint>[] : routes.last.waypoints)
+          '${w.isGoodRoad ? 'G' : 'N'}${w.revisit ? 'r' : ''}'
+      ]} great roads ${[
+        for (Route g in goodRoads)
+          '${g.fromRoute ? 'R' : 'K'}${g.waypoints.length}/${g.lines.length}'
+      ]} history ${backBuffer.length} at $backBufferIndex',
+      name: '_route_');
 
   void requestGreatRoad({String description = '', String sounds = ''}) {
     isGoodRoad = true;
@@ -1485,17 +1536,17 @@ class CurrentTripItem extends MyTripItem {
 
   bool get canRedo => backBufferIndex > 0;
 
-  Future<void> undo() async {
-    if (canUndo) {
-      await _restoreBackBuffer(++backBufferIndex);
-    }
-  }
+  Future<void> undo() => _routeChange(() async {
+        if (canUndo) {
+          await _restoreBackBuffer(++backBufferIndex);
+        }
+      });
 
-  Future<void> redo() async {
-    if (canRedo) {
-      await _restoreBackBuffer(--backBufferIndex);
-    }
-  }
+  Future<void> redo() => _routeChange(() async {
+        if (canRedo) {
+          await _restoreBackBuffer(--backBufferIndex);
+        }
+      });
 
   /// Restores a copy of backBuffer[index] - a copy so later changes to the
   /// route don't alter the buffer.
@@ -1971,7 +2022,10 @@ class CurrentTripItem extends MyTripItem {
   /// router, so the maneuvers describe the trip driven the other way. The
   /// waypoint numbers follow the new order. Reverses the route on screen, not
   /// backBuffer[0], which isn't the current state after an undo.
-  Future<void> reverseRoute({List<Map<String, dynamic>>? features}) async {
+  Future<void> reverseRoute({List<Map<String, dynamic>>? features}) =>
+      _routeChange(_reverseRoute);
+
+  Future<void> _reverseRoute() async {
     if (routes.isEmpty || routes.last.waypoints.length < 2) {
       return;
     }
@@ -2122,8 +2176,15 @@ class CurrentTripItem extends MyTripItem {
           .lastOrNull;
       if (goodRoad == null) return false;
       String uuid = getUuid();
+      // In the middle of the stretch - at its start it sat on the waypoint
+      // marker there, and hid it
+      List<double>? middle = goodRoad.lines.length > 2
+          ? goodRoad.lines[goodRoad.lines.length ~/ 2]
+          : null;
       pointsOfInterest.add(PointOfInterest(
-        point: goodRoad.waypoints.first.point,
+        point: middle == null
+            ? goodRoad.waypoints.first.point
+            : Point(middle[0], middle[1]),
         uuid: uuid,
         type: 13,
         name: name,
