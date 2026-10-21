@@ -605,11 +605,19 @@ Future<dynamic> saveTripWeb(
 
     List<http.MultipartFile> files = [];
     List<Map<String, dynamic>> images = [];
-    if (CurrentTripItem().mapImage != null) {
+    // The map is the trip's first image, kept in Hive - or the one in memory
+    List<Photo> tripPhotos = tripItem.images.isEmpty
+        ? []
+        : photosFromJson(photoString: tripItem.images);
+    Uint8List? mapBytes = tripPhotos.isEmpty
+        ? null
+        : await _photoBytes(tripPhotos.first, imageRepository);
+    mapBytes ??= CurrentTripItem().mapImage?.imageBytes;
+    if (mapBytes != null) {
       files.add(
         http.MultipartFile.fromBytes(
           'files', // <-- Must have this as it is used on api request.files.getlist('files')
-          CurrentTripItem().mapImage!.imageBytes as List<int>,
+          mapBytes,
           filename: 'map.png',
         ),
       );
@@ -618,16 +626,23 @@ Future<dynamic> saveTripWeb(
 
     // int pois = tripItem.pointsOfInterest.length;
     for (int i = 0; i < tripItem.pointsOfInterest.length; i++) {
-      List<Photo> photos = tripItem.pointsOfInterest[i].photos;
+      PointOfInterest pointOfInterest = tripItem.pointsOfInterest[i];
+      List<Photo> photos = pointOfInterest.photos.isNotEmpty
+          ? pointOfInterest.photos
+          : pointOfInterest.images.isEmpty
+              ? []
+              : photosFromJson(photoString: pointOfInterest.images);
       if (photos.isNotEmpty) {
         for (int j = 0; j < photos.length; j++) {
           try {
-            String key = photos[j].key;
-            if (key.isNotEmpty) {
+            // From Hive (or a file for older trips) - getBytes() only had
+            // images already loaded into memory
+            Uint8List? bytes = await _photoBytes(photos[j], imageRepository);
+            if (bytes != null) {
               files.add(
                 http.MultipartFile.fromBytes(
                   'files',
-                  imageRepository.getBytes(key: key),
+                  bytes,
                   filename: photos[j].url,
                 ),
               );
@@ -656,7 +671,8 @@ Future<dynamic> saveTripWeb(
     request.files.addAll(files);
     response = await request.send().timeout(const Duration(seconds: 30));
   } catch (e) {
-    developer.log('saveTripWeb() error: ${e.toString()} ${response.statusCode}',
+    developer.log(
+        'saveTripWeb() error: ${e.toString()} ${response?.statusCode}',
         name: 'error');
   }
   return ' ';
@@ -706,8 +722,14 @@ Future<String> postWithPhotos(
   try {
     request.headers['Authorization'] = 'Bearer ${Setup().jwt}';
     fields.forEach((key, value) => request.fields[key] = value.toString());
+    // Images are in Hive (or files for older ones) - see _photoBytes()
+    ImageRepository imageRepository = ImageRepository();
     for (Photo photo in photos) {
-      request.files.add(await http.MultipartFile.fromPath('files', photo.url));
+      Uint8List? bytes = await _photoBytes(photo, imageRepository);
+      if (bytes != null) {
+        request.files.add(http.MultipartFile.fromBytes('files', bytes,
+            filename: photo.url.split('/').last));
+      }
     }
     response = await request.send().timeout(Duration(seconds: timeout));
     if (response.statusCode == 201) {

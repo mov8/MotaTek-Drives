@@ -757,35 +757,69 @@ class CreateTripChips extends StatelessWidget {
     CurrentTripItem().tripActions = TripActions.none;
   }
 
-  Future<void> _createMapImage({int delay = 1}) async {
-    if (CurrentTripItem().mapImage == null) {
-      try {
-        CurrentTripItem().tripActions = TripActions.saving;
-        CurrentTripItem().highliteActions = HighliteActions.none;
-        CurrentTripItem().tripValues.showProgress = true;
-        MapService().bottomDrawerController!.close();
-        /* try {
-          Uint8List mapBytes = await MapService().controller!.takeSnapshot();
-
-          if (CurrentTripItem().mapImage == null) {
-            CurrentTripItem().mapImage ??= ImageInMemory(
-                name: 'map', imageBytes: mapBytes.buffer.asUint8List());
-          } else {
-            CurrentTripItem().mapImage!.imageBytes =
-                mapBytes.buffer.asUint8List();
-          }
-        } catch (e) {
-          developer.log(
-              'Error CreateTrip().createMapImage() saving map screenshot: "{eo.toString()',
-              name: 'error');
-        } */
-      } catch (e) {
-        developer.log(
-            'Error creating CreateTripChips().createMapImage(): ${e.toString()}',
-            name: 'error');
+  /// Captures the map showing the whole route and keeps it in Hive as the
+  /// trip's first image (caption 'map'), which publish() sends as map.png.
+  /// Recaptured on every save, replacing the last, so it matches the trip.
+  Future<void> _createMapImage() async {
+    MapLibreMapController? controller = MapService().controller;
+    CurrentTripItem trip = CurrentTripItem();
+    List<List<double>> points = [for (var route in trip.routes) ...route.lines];
+    if (controller == null || points.length < 2) return;
+    CameraPosition? before = controller.cameraPosition;
+    try {
+      trip.tripActions = TripActions.saving;
+      trip.highliteActions = HighliteActions.none;
+      trip.tripValues.showProgress = true; // <-- hides the crosshair
+      MapService().bottomDrawerController?.close();
+      MapService().createTripStackController?.refresh();
+      // Fit the whole route, and give the map time to draw it
+      double west = points.map((p) => p[0]).reduce(min);
+      double east = points.map((p) => p[0]).reduce(max);
+      double south = points.map((p) => p[1]).reduce(min);
+      double north = points.map((p) => p[1]).reduce(max);
+      await controller.moveCamera(CameraUpdate.newLatLngBounds(
+          LatLngBounds(
+              southwest: LatLng(south, west), northeast: LatLng(north, east)),
+          left: 40,
+          top: 40,
+          right: 40,
+          bottom: 40));
+      await Future.delayed(const Duration(milliseconds: 800));
+      Uint8List bytes = await controller.takeSnapshot();
+      if (bytes.isNotEmpty) {
+        String key = getUuid();
+        await ImageRepository()
+            .loadImage(key: key, uri: '$key.png', bytes: bytes);
+        _setMapImage(trip, key);
+        trip.mapImage = ImageInMemory(name: 'map', imageBytes: bytes);
       }
+    } catch (e) {
+      developer.log(
+          'Error CreateTripChips()._createMapImage(): ${e.toString()}',
+          name: 'error');
+    } finally {
+      if (before != null) {
+        await controller.moveCamera(CameraUpdate.newCameraPosition(before));
+      }
+      // Without this the crosshair stays hidden after the save
+      trip.tripValues.showProgress = false;
+      trip.tripActions = TripActions.none;
+      MapService().createTripStackController?.refresh();
     }
-    // Without this the crosshair stays hidden after the first save
-    CurrentTripItem().tripValues.showProgress = false;
+  }
+
+  /// Makes the map the trip's first image, deleting the previous map image
+  /// from Hive
+  void _setMapImage(CurrentTripItem trip, String key) {
+    List<Photo> photos =
+        trip.images.isEmpty ? [] : photosFromJson(photoString: trip.images);
+    for (Photo old in photos.where((photo) => photo.caption == 'map')) {
+      ImageRepository().deleteImage(
+          old.key.isNotEmpty ? old.key : getFileName(url: old.url));
+    }
+    photos.removeWhere((photo) => photo.caption == 'map');
+    photos.insert(
+        0, Photo(url: '$key.png', key: key, caption: 'map', rotation: 0));
+    trip.images = '[${photos.map((photo) => photo.toString()).join(', ')}]';
   }
 }
