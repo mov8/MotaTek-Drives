@@ -236,7 +236,10 @@ class _MyTripTileState extends State<MyTripTile> {
                           .contains(widget.myTripItem.pointsOfInterest[i].type))
                         Padding(
                           padding: EdgeInsetsGeometry.fromLTRB(5, 5, 5, 5),
-                          key: Key('poit'),
+                          // Unique per point of interest - siblings can't
+                          // share a key (all were 'poit', which failed once a
+                          // trip showed two, e.g. a great road description)
+                          key: Key('poi_$i'),
                           child: PointOfInterestTile(
                             key: Key('poit_$i'), // UniqueKey(),
                             index: i + 1,
