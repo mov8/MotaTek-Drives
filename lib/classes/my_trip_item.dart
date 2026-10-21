@@ -224,6 +224,12 @@ class CurrentTripItem extends MyTripItem {
     if (index < 0 || index >= pointsOfInterest.length) return;
     PointOfInterest poi = pointsOfInterest.removeAt(index);
     isSaved = false;
+    if (poi.type == 13) {
+      // Deleted - undo mustn't bring it back without its media
+      for (List<Waypoint> entry in backBuffer) {
+        _historyDescriptions[entry]?.remove(poi);
+      }
+    }
     await _discardMedia(mediaOf(poi));
   }
 
@@ -509,6 +515,9 @@ class CurrentTripItem extends MyTripItem {
 */
   @override
   void clearAll({TripState newTripState = TripState.clearing}) async {
+    // Descriptions only kept for redo go with the history - first, while
+    // _savedMedia still protects any the saved trip uses
+    _ditchDescriptions(backBuffer, const []);
     isSaved = false;
     _savedSnapshot = '';
     // Changes discarded - the saved trip keeps the media of any points of
@@ -1283,12 +1292,12 @@ class CurrentTripItem extends MyTripItem {
   /// Stores a copy so later changes to the route don't alter the buffer.
   void loadBackBuffer({Route? route}) {
     route ??= routes.isEmpty ? Route() : routes.last;
-    backBuffer = [
-      [
-        for (Waypoint waypoint in route.waypoints)
-          Waypoint.clone(waypoint: waypoint)
-      ]
+    List<Waypoint> entry = [
+      for (Waypoint waypoint in route.waypoints)
+        Waypoint.clone(waypoint: waypoint)
     ];
+    _historyDescriptions[entry] = _descriptions;
+    backBuffer = [entry];
     backBufferIndex = 0;
     MapService().webAppBarController?.update();
     MapService().persistentAppBarController?.refresh();
@@ -1510,12 +1519,16 @@ class CurrentTripItem extends MyTripItem {
     route ??= routes.last;
     if (backBufferIndex > 0) {
       // Ditch the undone states - removeRange's end is exclusive
+      _ditchDescriptions(backBuffer.sublist(0, backBufferIndex),
+          backBuffer.sublist(backBufferIndex));
       backBuffer.removeRange(0, backBufferIndex);
     }
     if (backBuffer.isEmpty) {
       // A new trip - start from no waypoints so the first can be undone too.
       // (A loaded trip starts from its saved waypoints - loadBackBuffer())
-      backBuffer.add([]);
+      List<Waypoint> start = [];
+      _historyDescriptions[start] = [];
+      backBuffer.add(start);
     }
     List<Waypoint> waypoints = [];
     for (int i = 0; i < route.waypoints.length; i++) {
@@ -1523,10 +1536,44 @@ class CurrentTripItem extends MyTripItem {
           waypoint: route.waypoints[
               i])); // Waypoint.fromMap(map: route.waypoints[i].toMap()));
     }
+    _historyDescriptions[waypoints] = _descriptions;
     backBuffer.insert(0, waypoints);
     backBufferIndex = 0;
     MapService().webAppBarController?.update();
     MapService().persistentAppBarController?.refresh();
+  }
+
+  /// The great road descriptions (type 13 points of interest) at each undo
+  /// history entry, so undo takes a description away with its great road and
+  /// redo brings it back. Keyed on the entry, so it can't get out of step.
+  final Expando<List<PointOfInterest>> _historyDescriptions = Expando();
+
+  List<PointOfInterest> get _descriptions =>
+      pointsOfInterest.where((poi) => poi.type == 13).toList();
+
+  /// Records the descriptions with the current history entry - Normal road
+  /// mode adds one after the entry was made
+  void _recordDescriptions() {
+    if (backBufferIndex >= 0 && backBufferIndex < backBuffer.length) {
+      _historyDescriptions[backBuffer[backBufferIndex]] = _descriptions;
+    }
+  }
+
+  /// A description only in history entries being thrown away - undone and
+  /// then a new change made, or the trip cleared - is ditched with its
+  /// photos and memo (now, or when saved if the saved trip uses them)
+  void _ditchDescriptions(
+      Iterable<List<Waypoint>> discarded, Iterable<List<Waypoint>> remaining) {
+    Set<PointOfInterest> keep = {
+      ...pointsOfInterest,
+      for (List<Waypoint> entry in remaining) ...?_historyDescriptions[entry],
+    };
+    Set<PointOfInterest> ditch = {
+      for (List<Waypoint> entry in discarded) ...?_historyDescriptions[entry],
+    }..removeAll(keep);
+    for (PointOfInterest poi in ditch) {
+      _discardMedia(mediaOf(poi));
+    }
   }
 
   /// backBuffer[0] is the latest state, so undo moves backBufferIndex up
@@ -1557,6 +1604,14 @@ class CurrentTripItem extends MyTripItem {
       for (Waypoint waypoint in backBuffer[index])
         Waypoint.clone(waypoint: waypoint)
     ];
+    // The great road descriptions as they were at this point
+    List<PointOfInterest>? descriptions =
+        _historyDescriptions[backBuffer[index]];
+    if (descriptions != null) {
+      pointsOfInterest
+        ..removeWhere((poi) => poi.type == 13)
+        ..addAll(descriptions);
+    }
     syncWaypointPointsOfInterest(waypoints: routes.last.waypoints);
     if (routes.last.waypoints.length > 1) {
       List<Route> rerouted =
@@ -2191,6 +2246,7 @@ class CurrentTripItem extends MyTripItem {
         sounds: sounds,
       ));
       goodRoad.pointOfInterestUri = uuid;
+      _recordDescriptions();
       return true;
     }
     if (tripState == TripState.tracking) {
