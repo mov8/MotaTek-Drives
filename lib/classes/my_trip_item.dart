@@ -999,7 +999,10 @@ class CurrentTripItem extends MyTripItem {
     List<Route> previous = [];
     for (Route goodRoad in goodRoads) {
       if (goodRoad.waypoints.isEmpty) continue; // placeholder
-      if (goodRoad.waypoints.every(onRoute)) {
+      // Built from the route before (fromRoute), or a loaded trip's great
+      // road on its route - rebuilt below. Testing only "on the route" left
+      // a great road behind, stale, once undo or remove took a waypoint off.
+      if (goodRoad.fromRoute || goodRoad.waypoints.every(onRoute)) {
         previous.add(goodRoad);
       } else {
         kept.add(goodRoad);
@@ -1074,7 +1077,7 @@ class CurrentTripItem extends MyTripItem {
       waypoints: stretch,
       colour: Setup().goodRouteColourHex(),
       pointOfInterestUri: match?.pointOfInterestUri ?? '',
-    );
+    )..fromRoute = true;
   }
 
   /// The map sources to redraw after the route changes

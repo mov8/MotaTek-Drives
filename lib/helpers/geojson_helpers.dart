@@ -299,8 +299,11 @@ List<Map<String, dynamic>> goodRoadsToGeoJson(
       // the whole source and keep drawing the previous route
       if (routes[i].lines.length < 2) continue;
       if (currentTrip &&
-          routes[i].waypoints.isNotEmpty &&
-          routes[i].waypoints.every((w) => routeWaypointNumber(w.point) > 0)) {
+          (routes[i].fromRoute ||
+              (routes[i].waypoints.isNotEmpty &&
+                  routes[i]
+                      .waypoints
+                      .every((w) => routeWaypointNumber(w.point) > 0)))) {
         continue;
       }
       features.add({

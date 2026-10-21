@@ -19,6 +19,11 @@ class Route {
   List<Waypoint> waypoints;
   String colour;
   String pointOfInterestUri;
+
+  /// A great road CurrentTripItem.syncGoodRoads() built from the route's
+  /// waypoints flagged isGoodRoad - replaced whenever the route changes.
+  /// Not saved: a loaded trip's great roads are recognised as on its route.
+  bool fromRoute = false;
   Route(
       {this.id = -1,
       this.uri = '',
