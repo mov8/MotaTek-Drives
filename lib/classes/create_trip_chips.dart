@@ -627,6 +627,7 @@ class CreateTripChips extends StatelessWidget {
       return;
     }
     await _createMapImage();
+    debugPrint('[_save_] map image done, saving trip ${CurrentTripItem().uri}');
     try {
       CurrentTripItem().imageRepository ??= ImageRepository();
       TripRepository tripRepository = TripRepository();
@@ -778,15 +779,21 @@ class CreateTripChips extends StatelessWidget {
       double east = points.map((p) => p[0]).reduce(max);
       double south = points.map((p) => p[1]).reduce(min);
       double north = points.map((p) => p[1]).reduce(max);
-      await controller.moveCamera(CameraUpdate.newLatLngBounds(
-          LatLngBounds(
-              southwest: LatLng(south, west), northeast: LatLng(north, east)),
-          left: 40,
-          top: 40,
-          right: 40,
-          bottom: 40));
+      await controller
+          .moveCamera(CameraUpdate.newLatLngBounds(
+              LatLngBounds(
+                  southwest: LatLng(south, west),
+                  northeast: LatLng(north, east)),
+              left: 40,
+              top: 40,
+              right: 40,
+              bottom: 40))
+          .timeout(const Duration(seconds: 3), onTimeout: () => null);
       await Future.delayed(const Duration(milliseconds: 800));
-      Uint8List bytes = await controller.takeSnapshot();
+      // Time limited - the map image is a nice-to-have and must never stop
+      // the trip being saved
+      Uint8List bytes =
+          await controller.takeSnapshot().timeout(const Duration(seconds: 5));
       if (bytes.isNotEmpty) {
         String key = getUuid();
         await ImageRepository()
@@ -800,7 +807,9 @@ class CreateTripChips extends StatelessWidget {
           name: 'error');
     } finally {
       if (before != null) {
-        await controller.moveCamera(CameraUpdate.newCameraPosition(before));
+        await controller
+            .moveCamera(CameraUpdate.newCameraPosition(before))
+            .timeout(const Duration(seconds: 3), onTimeout: () => null);
       }
       // Without this the crosshair stays hidden after the save
       trip.tripValues.showProgress = false;

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart' show debugPrint;
 import '/models/models.dart';
 import '/classes/classes.dart';
 import '/services/services.dart';
@@ -100,10 +101,10 @@ class TripRepository {
       //  await Hive.openBox('tripsBox');
       await _tripsBox.put(trip.uri, jsonString);
       _tripsBox.close();
-      developer.log('Saved trip to Hive OK ', name: '_hive_');
+      debugPrint('[_save_] saved trip ${trip.uri} to Hive');
     } catch (e) {
-      developer.log('Error saving trip to Hive ${e.toString()}',
-          name: '_hive_');
+      // Visible in the flutter run console - a failed save was silent
+      debugPrint('[_save_] ERROR saving trip to Hive: ${e.toString()}');
     }
   }
 
