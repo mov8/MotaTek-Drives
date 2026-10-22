@@ -100,6 +100,12 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^6.0.0 # ^2.0.0
 
+# maplibre_gl 0.27.1 with takeSnapshot patched (Android) to capture the map as
+# displayed - see packages/maplibre_gl/DRIVES_PATCH.md
+dependency_overrides:
+  maplibre_gl:
+    path: packages/maplibre_gl
+
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
