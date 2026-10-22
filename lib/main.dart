@@ -222,6 +222,9 @@ class _BaseShellScreen extends State<BaseShellScreen> {
   @override
   Widget build(BuildContext context) {
     MapService().createTripController ??= CreateTripController();
+    if (kIsWeb) {
+      return _webShell(context);
+    }
     return Scaffold(
       appBar: PersistentAppBar(
           controller: MapService().persistentAppBarController!),
@@ -231,27 +234,7 @@ class _BaseShellScreen extends State<BaseShellScreen> {
       drawer: const MainDrawer(),
       drawerEnableOpenDragGesture:
           ![1, 2].contains(widget.navigationShell.currentIndex),
-      body: FutureBuilder<bool>(
-          future: initialised,
-          builder: (BuildContext context, snapshot) {
-            if (snapshot.hasError) {
-              developer.log('Snapshot error: ${snapshot.error}', name: 'error');
-              return Center(
-                  child: Text(
-                      'Error getting the data from the server - check the Internet'));
-            } else if (snapshot.hasData) {
-              return widget.navigationShell;
-            } else {
-              return const SizedBox(
-                width: double.infinity,
-                height: double.infinity,
-                child: Align(
-                  alignment: Alignment.center,
-                  child: CircularProgressIndicator(),
-                ),
-              );
-            }
-          }),
+      body: _shellBody(),
 
       // widget.navigationShell,
       bottomNavigationBar: BottomNav(
@@ -259,6 +242,86 @@ class _BaseShellScreen extends State<BaseShellScreen> {
           navigationShell: widget.navigationShell),
       // resizeToAvoidBottomInset: false,
     );
+  }
+
+  /// The web version looks like a web page rather than a phone: the WebAppBar
+  /// across the top instead of the app bar and BottomNav, and the SideDrawer
+  /// over the left of the page. The SideDrawer holds the portrait screens and
+  /// the trip data the BottomDrawer shows on a phone; Home and Shop show the
+  /// selected summary tile's details to its right. The SideDrawer, WebAppBar
+  /// and StatusBar sit outside the FutureBuilder as initialise() sets them up.
+  Widget _webShell(BuildContext context) {
+    return Scaffold(
+      appBar: WebAppBar(
+        context: context,
+        appBarController: MapService().webAppBarController,
+        sideDrawerController: MapService().sideDrawerController,
+        statusBarController: MapService().statusBarController,
+        homeController: MapService().homeController,
+        onSelect: _webSelect,
+      ),
+      body: Stack(
+        children: [
+          _shellBody(),
+          SideDrawer(
+            context: context,
+            width: 0.4,
+            maxWidth: 0.7,
+            controller: MapService().sideDrawerController,
+            webAppBarController: MapService().webAppBarController,
+          ),
+          Align(
+            alignment: Alignment.bottomLeft,
+            child: StatusBar(controller: MapService().statusBarController),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// WebAppBar navigation. Published (1) and Explore (2) are the map pages.
+  /// Favourites (3) is the map too, with My Trips listed in the SideDrawer.
+  /// Messages (5) open in the SideDrawer over whatever page is showing, which
+  /// WebAppBar.navigate() has already done.
+  void _webSelect(int index) {
+    if (index == 5) return;
+    int branch = index == 3 ? 2 : index;
+    widget.navigationShell.goBranch(branch,
+        initialLocation: branch == widget.navigationShell.currentIndex);
+    NavigationService().selected(index);
+    if ([1, 2, 3].contains(index)) {
+      AppState appState =
+          [AppState.trips, AppState.createTrip, AppState.myTrips][index - 1];
+      // After the branch is built, so its CreateTrip is attached
+      WidgetsBinding.instance.addPostFrameCallback((_) => MapService()
+          .createTripController
+          ?.updateArguements(
+              arguments: TripArguments(appState: appState, activeChip: index)));
+    }
+  }
+
+  Widget _shellBody() {
+    return FutureBuilder<bool>(
+        future: initialised,
+        builder: (BuildContext context, snapshot) {
+          if (snapshot.hasError) {
+            developer.log('Snapshot error: ${snapshot.error}', name: 'error');
+            return Center(
+                child: Text(
+                    'Error getting the data from the server - check the Internet'));
+          } else if (snapshot.hasData) {
+            return widget.navigationShell;
+          } else {
+            return const SizedBox(
+              width: double.infinity,
+              height: double.infinity,
+              child: Align(
+                alignment: Alignment.center,
+                child: CircularProgressIndicator(),
+              ),
+            );
+          }
+        });
   }
 
   /// initialise() loads the MapLibre style from the api, loads the data into Setup() using

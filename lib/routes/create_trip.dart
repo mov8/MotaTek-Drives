@@ -614,7 +614,8 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
             try {
               await MapService().sideDrawerController!.setContent(
                   content: BottomDrawerItems.favourites,
-                  drawerItems: _myTripItems as List<Widget>);
+                  // a List<MyTripItem> - casting it to List<Widget> threw
+                  drawerItems: _myTripItems);
               Future.delayed(Duration(milliseconds: 200));
               setState(
                   () => MapService().sideDrawerController!.open(width: 0.4));
