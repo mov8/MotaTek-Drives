@@ -650,7 +650,7 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
     _tripArguments ??=
         TripArguments(activeChip: 2, appState: AppState.createTrip);
     return Stack(children: [
-      MapService().mlMap!,
+      KeyboardSteadyMap(child: MapService().mlMap!),
       CreateTripStack(controller: MapService().createTripStackController)
     ]);
   }
@@ -1211,7 +1211,8 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
               },
             );
           } else {
-            MyTripItem debugMyTripItem = await loadSavedTrip(title: _debuggingRoute) ?? MyTripItem();
+            MyTripItem debugMyTripItem =
+                await loadSavedTrip(title: _debuggingRoute) ?? MyTripItem();
             if (debugMyTripItem.routes.isNotEmpty) {
               _debugRoute.follow(routes: debugMyTripItem.routes);
               _positionStream = _debugPositionController.stream
@@ -1630,5 +1631,48 @@ class PositionUpdate {
       }
       routePoint = [];
     }
+  }
+}
+
+/// Keeps the map at its full height while the keyboard is showing.
+/// The shell Scaffold shrinks the page as the keyboard slides up, so the
+/// bottom drawer rides up with it - but the map would be resized on every
+/// frame of the keyboard's animation, and a native map view can't keep up:
+/// it judders and its image stretches. Instead the map keeps the height it
+/// had without the keyboard, and the keyboard covers its lower part.
+class KeyboardSteadyMap extends StatefulWidget {
+  final Widget child;
+  const KeyboardSteadyMap({super.key, required this.child});
+
+  @override
+  State<KeyboardSteadyMap> createState() => _KeyboardSteadyMapState();
+}
+
+class _KeyboardSteadyMapState extends State<KeyboardSteadyMap> {
+  double _height = 0;
+  double _width = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned.fill(
+      child: LayoutBuilder(builder: (context, constraints) {
+        // The Scaffold removes the keyboard from this MediaQuery, so ask the View
+        bool keyboardShowing = View.of(context).viewInsets.bottom > 0;
+        if (!keyboardShowing ||
+            _height == 0 ||
+            constraints.maxWidth != _width) {
+          _height = constraints.maxHeight;
+          _width = constraints.maxWidth;
+        }
+        return ClipRect(
+          child: OverflowBox(
+            alignment: Alignment.topCenter,
+            minHeight: _height,
+            maxHeight: _height,
+            child: widget.child,
+          ),
+        );
+      }),
+    );
   }
 }
