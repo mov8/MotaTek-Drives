@@ -251,7 +251,6 @@ class MyTripsEmptyView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const TextStyle style = TextStyle(fontSize: 22, color: Colors.white);
     List<String> lines = Setup().jwt.isEmpty
         ? [
             'My Drives allows you to build up a library of trips that you have enjoyed.',
@@ -268,52 +267,15 @@ class MyTripsEmptyView extends StatelessWidget {
             'Any trips you have saved can be published, for your friends or other people to enjoy.',
             'Saved trips can be edited, new images added, and saved again as a personal trip.',
           ];
-    return Stack(children: [
-      Positioned.fill(
-        child: Image.asset(
-          'assets/images/scenery.png',
-          fit: BoxFit.cover,
-        ),
-      ),
-      Positioned.fill(
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Colors.black.withValues(alpha: 0.4), // Light shadow top
-                Colors.black.withValues(alpha: 0.6), // Dark contrast bottom
-              ],
-            ),
-          ),
-        ),
-      ),
-      SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
-        child: Column(
-          children: [
-            for (String line in lines) ...[
-              Text(line, style: style),
-              const SizedBox(height: 20),
-            ],
-            if (Setup().jwt.isEmpty) ...[
-              const SizedBox(height: 30),
-              Center(
-                child: ActionChip(
-                  label: const Text('Register Now', style: style),
-                  onPressed: () => kIsWeb
-                      ? MapService()
-                          .sideDrawerController
-                          ?.setContent(content: BottomDrawerItems.login)
-                      : context.push('/login'),
-                  backgroundColor: Colors.blue,
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    ]);
+    return PageEmptyView(
+      image: 'assets/images/scenery.png',
+      lines: lines,
+      buttonLabel: Setup().jwt.isEmpty ? 'Register Now' : null,
+      onButton: () => kIsWeb
+          ? MapService()
+              .sideDrawerController
+              ?.setContent(content: BottomDrawerItems.login)
+          : context.push('/login'),
+    );
   }
 }

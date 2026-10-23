@@ -429,9 +429,11 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
           _tiles = shredCurrentTripItemData();
           break;
       }
-      // the no-trips message fills the drawer too
+      // so does a page's image and message when it has nothing to show
       _singleForm = _formContents.contains(content) ||
-          (content == BottomDrawerItems.favourites && _drawerItems!.isEmpty);
+          (_tiles.length == 1 &&
+              (_tiles.first is PageEmptyView ||
+                  _tiles.first is MyTripsEmptyView));
       refreshList = true;
       // Show the new content - without this it only appeared when something
       // else rebuilt the drawer, so e.g. Home's tiles stayed on other pages
@@ -619,6 +621,29 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
     controller = type == 'home'
         ? MapService().homeController
         : MapService().shopController;
+
+    // Nothing to show - the image and message fill the drawer
+    if (_drawerItems!.isEmpty) {
+      return [
+        type == 'home'
+            ? const PageEmptyView(
+                image: 'assets/images/meeting.png',
+                lines: [
+                  'Welcome to Drives - there is always somewhere to go.',
+                  'News about Drives, and articles about great trips, will appear here.',
+                  'Use Explore to plan a trip, or see the trips other drivers have Published.',
+                ],
+              )
+            : const PageEmptyView(
+                image: 'assets/images/MobileMarketing.png',
+                lines: [
+                  'There are no offers in the shop just now.',
+                  "The shop is where businesses, clubs and events for motorists offer things that'll make your trips even better.",
+                  'Please check back soon.',
+                ],
+              ),
+      ];
+    }
 
     for (int i = 0; i < _drawerItems!.length; i++) {
       tiles.add(
@@ -836,6 +861,8 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
                         child: Card(
                           elevation: 7,
                           shadowColor: const Color.fromARGB(255, 99, 98, 98),
+                          // a full-drawer image keeps the rounded corners
+                          clipBehavior: Clip.antiAlias,
                           child: SingleChildScrollView(
                             physics: NeverScrollableScrollPhysics(),
                             child: Container(

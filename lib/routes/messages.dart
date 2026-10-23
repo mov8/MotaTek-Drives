@@ -144,60 +144,21 @@ class _MessagesState extends State<Messages> {
   /// Logged out: the image and an invitation to log in - the whole screen on
   /// a phone, the whole SideDrawer on the web
   Widget _loggedOutView() {
-    return Stack(children: [
-      Positioned.fill(
-        child: Image.asset(
-          'assets/images/message.png',
-          fit: BoxFit.cover,
-        ),
-      ),
-      Positioned.fill(
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Colors.black.withValues(alpha: 0.5), // // Light shadow top
-                Colors.black.withValues(alpha: 0.7), // Dark contrast bottom
-              ],
-            ),
-          ),
-        ),
-      ),
-      Padding(
-        padding: EdgeInsets.fromLTRB(20, 20, 20, 0),
-        child: Column(
-          children: [
-            Text(
-                'Messaging allows you to keep in contact with members of your Drives group.',
-                style: TextStyle(fontSize: 22, color: Colors.white)),
-            SizedBox(height: 10),
-            Text(
-                'It is very useful if you are driving together with friends, or in group organised by your club.',
-                style: TextStyle(fontSize: 22, color: Colors.white)),
-            SizedBox(height: 10),
-            Text(
-                'To use Messaging you have to be logged into the Drives server.',
-                style: TextStyle(fontSize: 22, color: Colors.white)),
-            SizedBox(height: 10),
-            Text('To login tap the button below:',
-                style: TextStyle(fontSize: 22, color: Colors.white)),
-            SizedBox(height: 30),
-            ActionChip(
-              label: Text('Login Now',
-                  style: TextStyle(fontSize: 22, color: Colors.white)),
-              onPressed: () => kIsWeb
-                  ? MapService()
-                      .sideDrawerController
-                      ?.setContent(content: BottomDrawerItems.login)
-                  : context.push('/login'),
-              backgroundColor: Colors.blue,
-            ),
-          ],
-        ),
-      )
-    ]);
+    return PageEmptyView(
+      image: 'assets/images/message.png',
+      lines: const [
+        'Messaging allows you to keep in contact with members of your Drives group.',
+        'It is very useful if you are driving together with friends, or in group organised by your club.',
+        'To use Messaging you have to be logged into the Drives server.',
+        'To login tap the button below:',
+      ],
+      buttonLabel: 'Login Now',
+      onButton: () => kIsWeb
+          ? MapService()
+              .sideDrawerController
+              ?.setContent(content: BottomDrawerItems.login)
+          : context.push('/login'),
+    );
   }
 
   Widget _getPortraitBody() {
