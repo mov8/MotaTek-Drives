@@ -278,8 +278,12 @@ class _WebAppBarState extends State<WebAppBar> {
                         onExit: (_) => updateToolTips(false,
                             toolTips.length - (Setup().jwt.isEmpty ? 2 : 3)),
                         child: Row(
-                          children:
-                              CurrentTripItem().getActions(context: context),
+                          children: [
+                            ...CurrentTripItem().getActions(context: context),
+                            // Messages: add a contact, write a message
+                            if (NavigationService().page == 5)
+                              ...?MapService().messagesController?.actions(),
+                          ],
                         ),
                       ),
                     ),

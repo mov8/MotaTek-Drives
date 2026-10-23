@@ -447,13 +447,11 @@ class PersistentAppBar extends StatefulWidget implements PreferredSizeWidget {
 }
 
 class _PersistentAppBarState extends State<PersistentAppBar> {
-  late int _tileSelected;
   String _title = 'Drives community';
   @override
   void initState() {
     super.initState();
     widget.controller._addState(this);
-    _tileSelected = 0;
   }
 
   void update(String title) {
@@ -588,18 +586,9 @@ class _PersistentAppBarState extends State<PersistentAppBar> {
               size: 35,
             ),
           ),
-        if (widget.page == 5) ...[
-          if (Setup().jwt.isNotEmpty) ...[
-            if (_tileSelected == -1) ...[
-              IconButton(
-                  icon: Icon(Icons.person_add_outlined, size: 30),
-                  onPressed: () => widget.callback!(true)),
-              IconButton(
-                  onPressed: () => {},
-                  icon: Icon(Icons.help_outline_outlined, size: 35)),
-            ],
-          ],
-        ],
+        // Messages: add a contact, write a message
+        if (NavigationService().page == 5)
+          ...?MapService().messagesController?.actions(),
         IconButton(
           onPressed: () => {
             if (Setup().jwt.isEmpty) {context.push('/login')},

@@ -9,6 +9,9 @@ class MessageDetailsForm extends StatefulWidget {
   final List<Message> messages;
   final String email;
   final bool isGroup;
+  // The last message is the one being written - shown once the user asks
+  // to write one (the app bar's + button)
+  final bool writing;
 
   final sio.Socket socket;
 
@@ -17,7 +20,8 @@ class MessageDetailsForm extends StatefulWidget {
       required this.socket,
       required this.messages,
       required this.email,
-      this.isGroup = false});
+      this.isGroup = false,
+      this.writing = false});
   @override
   State<MessageDetailsForm> createState() => _MessageDetailsFormState();
 }
@@ -63,7 +67,9 @@ class _MessageDetailsFormState extends State<MessageDetailsForm> {
   Widget portraitView() {
     return Column(
       children: [
-        for (int index = 0; index < widget.messages.length; index++) ...[
+        for (int index = 0;
+            index < widget.messages.length - (widget.writing ? 0 : 1);
+            index++) ...[
           Dismissible(
             key: UniqueKey(), // Key('gmlt$index'),
             direction: DismissDirection.endToStart,
@@ -76,6 +82,7 @@ class _MessageDetailsFormState extends State<MessageDetailsForm> {
                   dismissAction(index: index, action: action),
               onSelect: (_) => sendMessage(index),
               readOnly: (index < widget.messages.length - 1),
+              isGroup: widget.isGroup,
             ),
           ),
         ],

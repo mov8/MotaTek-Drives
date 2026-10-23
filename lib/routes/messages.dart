@@ -34,6 +34,9 @@ class MessagesController {
 
   /// Web: shows a conversation to the right of the SideDrawer
   void select(int index) => _messagesState?.select(index);
+
+  /// The app bar's buttons on the Messages page, on both platforms
+  List<Widget> actions() => _messagesState?.actions() ?? [];
 }
 
 class Messages extends StatefulWidget {
@@ -62,6 +65,7 @@ class _MessagesState extends State<Messages> {
   List<Message> _messages = [];
   late int _tileSelected; // = -1;
   bool _addContact = false;
+  bool _writing = false; // the box to write a message in is showing
 
   sio.Socket socket = sio.io(urlBase, <String, dynamic>{
     // sio.Socket socket = sio.io('http://192.168.1.10:5000', <String, dynamic>{
@@ -166,19 +170,23 @@ class _MessagesState extends State<Messages> {
     if (Setup().jwt.isEmpty) {
       return _loggedOutView();
     }
-    return _tileSelected == -1
-        ? MessagesSummaryForm(
-            mailItems: _mailItems,
-            onTap: (index) => setState(() => onSummaryTileTap(index: index)),
-            onNewContact: () => setState(() => _addContact = false),
-            addContact: _addContact,
-          )
-        : MessageDetailsForm(
-            messages: _messages,
-            email: _mailItems[_tileSelected].email,
-            isGroup: _mailItems[_tileSelected].isGroup,
-            socket: socket,
-          );
+    // Scrolls - the keyboard takes half the screen
+    return SingleChildScrollView(
+      child: _tileSelected == -1
+          ? MessagesSummaryForm(
+              mailItems: _mailItems,
+              onTap: (index) => setState(() => onSummaryTileTap(index: index)),
+              onNewContact: () => setState(() => _addContact = false),
+              addContact: _addContact,
+            )
+          : MessageDetailsForm(
+              messages: _messages,
+              email: _mailItems[_tileSelected].email,
+              isGroup: _mailItems[_tileSelected].isGroup,
+              writing: _writing,
+              socket: socket,
+            ),
+    );
   }
 
   void appendEmptyMessage() {
@@ -204,13 +212,16 @@ class _MessagesState extends State<Messages> {
             page: NavigationService().page,
             onBack: () {
               if (mounted) setState(() => _tileSelected = -1);
+              _refreshAppBar();
             },
           );
       // Load the conversation's messages - the summaries are already here
       setState(() {
         _tileSelected = index;
+        _writing = false;
         _dataLoaded = getMessages();
       });
+      _refreshAppBar();
     }
   }
 
@@ -219,13 +230,50 @@ class _MessagesState extends State<Messages> {
   Future<void> refresh() async {
     if (Setup().jwt.isNotEmpty) _mailItems = await getMessagesByGroup();
     if (mounted) setState(() {});
+    _refreshAppBar();
     await sideBarItems();
   }
+
+  /// The app bar's buttons: add a contact, and with a conversation showing,
+  /// + to write a message - the box to write in only shows then, so the
+  /// keyboard doesn't pop up on opening a conversation. On a phone adding a
+  /// contact is with the conversations, so only while they're showing.
+  List<Widget> actions() {
+    if (Setup().jwt.isEmpty) return [];
+    bool open = _tileSelected > -1 && _tileSelected < _mailItems.length;
+    return [
+      if (kIsWeb || !open)
+        IconButton(
+          tooltip: 'Add a contact',
+          icon: const Icon(Icons.person_add_outlined,
+              size: 30, color: Colors.white),
+          onPressed: () {
+            _addContact = true;
+            kIsWeb ? sideBarItems() : setState(() {});
+          },
+        ),
+      if (open && !_writing)
+        IconButton(
+          tooltip: 'Write a message',
+          icon: const Icon(Icons.add, size: 30, color: Colors.white),
+          onPressed: () {
+            setState(() => _writing = true);
+            _refreshAppBar();
+          },
+        ),
+    ];
+  }
+
+  void _refreshAppBar() => kIsWeb
+      ? MapService().webAppBarController?.update()
+      : MapService().persistentAppBarController?.refresh();
 
   /// Web: loads the conversation and shows it to the right
   void select(int index) {
     _tileSelected = index;
+    _writing = false;
     setState(() => _dataLoaded = getMessages());
+    _refreshAppBar();
     sideBarItems(); // highlights nothing yet, but keeps the list current
   }
 
@@ -239,17 +287,10 @@ class _MessagesState extends State<Messages> {
         : Container(
             color: Colors.white,
             child: Column(children: [
-              ListTile(
-                title: const Text('Messages',
+              const ListTile(
+                title: Text('Messages',
                     style:
                         TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-                trailing: IconButton(
-                  icon: const Icon(Icons.person_add_outlined, size: 30),
-                  onPressed: () {
-                    _addContact = true;
-                    sideBarItems();
-                  },
-                ),
               ),
               Expanded(
                 child: SingleChildScrollView(
@@ -283,12 +324,15 @@ class _MessagesState extends State<Messages> {
     return Padding(
       padding: EdgeInsets.fromLTRB(
           MediaQuery.of(context).size.width * 0.38 + 10, 5, 10, 5),
-      child: MessageDetailsForm(
-        key: ValueKey(_tileSelected),
-        messages: _messages,
-        email: _mailItems[_tileSelected].email,
-        isGroup: _mailItems[_tileSelected].isGroup,
-        socket: socket,
+      child: SingleChildScrollView(
+        child: MessageDetailsForm(
+          key: ValueKey(_tileSelected),
+          messages: _messages,
+          email: _mailItems[_tileSelected].email,
+          isGroup: _mailItems[_tileSelected].isGroup,
+          writing: _writing,
+          socket: socket,
+        ),
       ),
     );
   }
