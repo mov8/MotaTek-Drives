@@ -175,8 +175,11 @@ class DrivesRequest {
             MapService().sideDrawerController!.setContent(
                 content: BottomDrawerItems.drives, drawerItems: trips);
           } else {
+            // The user opens the drawer to see them
             MapService().bottomDrawerController!.setContent(
-                content: BottomDrawerItems.drives, drawerItems: trips);
+                content: BottomDrawerItems.drives,
+                drawerItems: trips,
+                open: false);
           }
           return;
         } else {

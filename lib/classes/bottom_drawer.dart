@@ -54,11 +54,15 @@ class BottomDrawerController {
   /// 1 The list list of published drives for Great Drives
   /// 2 The CurrentTripItem() for My Trip
 
+  /// open: false changes what's in the drawer without opening it - e.g.
+  /// the published trips, which arrive whenever the map moves
   void setContent(
-      {BottomDrawerItems content = BottomDrawerItems.trip, List? drawerItems}) {
+      {BottomDrawerItems content = BottomDrawerItems.trip,
+      List? drawerItems,
+      bool open = true}) {
     drawerItems ??= [];
     if (content != BottomDrawerItems.none) {
-      _bottomDrawerState?.setContent(content, drawerItems);
+      _bottomDrawerState?.setContent(content, drawerItems, open: open);
     } else {
       _bottomDrawerState?.close();
     }
@@ -195,7 +199,8 @@ class _BottomDrawerState extends State<BottomDrawer>
     ),
   ];
 
-  void setContent(BottomDrawerItems content, List? drawerItems) {
+  void setContent(BottomDrawerItems content, List? drawerItems,
+      {bool open = true}) {
     try {
       _tiles.clear();
       _content = content;
@@ -223,7 +228,7 @@ class _BottomDrawerState extends State<BottomDrawer>
           break;
       }
       refreshList = true;
-      setState(() => _isSheetContentExpanded = true);
+      setState(() => _isSheetContentExpanded = open || _isSheetContentExpanded);
       _tiles.add(Container(
           height: 300,
           color: Colors.transparent)); // <-- add spacer for keyboard

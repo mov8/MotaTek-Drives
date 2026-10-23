@@ -851,6 +851,11 @@ class MapService {
       // Replaced by the published trips once they've loaded
       await sideDrawerController!
           .setContent(content: BottomDrawerItems.drives, drawerItems: []);
+    } else {
+      // Closed until the user opens it; the trips fill it as they load
+      bottomDrawerController?.setContent(
+          content: BottomDrawerItems.drives, drawerItems: [], open: false);
+      bottomDrawerController?.close();
     }
     _tripsOnMapUpdate(); // <-- Initialise the Trips cache
     await clearGeoJson();
@@ -869,6 +874,12 @@ class MapService {
     await clearGeoJson();
     // Draw the trip being planned again - Published cleared it
     await CurrentTripItem().refreshMap();
+    if (!kIsWeb) {
+      // The trip's details, not Published's list - closed until wanted
+      bottomDrawerController?.setContent(
+          content: BottomDrawerItems.trip, open: false);
+      bottomDrawerController?.close();
+    }
     if (kIsWeb) {
       sideDrawerController!.setContent(content: BottomDrawerItems.trip);
       sideDrawerController!.setFixed(fixed: false);
