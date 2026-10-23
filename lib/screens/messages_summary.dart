@@ -9,12 +9,15 @@ class MessagesSummaryForm extends StatefulWidget {
   final Function(int) onTap;
   final Function() onNewContact;
   bool addContact = false;
+  // Web: the conversation showing to the right of the SideDrawer
+  final int selected;
   MessagesSummaryForm(
       {super.key,
       required this.mailItems,
       required this.onTap,
       required this.onNewContact,
-      this.addContact = false});
+      this.addContact = false,
+      this.selected = -1});
   @override
   State<MessagesSummaryForm> createState() => _MessagesSummaryFormState();
 }
@@ -36,6 +39,7 @@ class _MessagesSummaryFormState extends State<MessagesSummaryForm> {
             onTap: () => widget.onTap(index),
             child: Card(
               elevation: 5,
+              color: index == widget.selected ? Colors.blue.shade100 : null,
               child: ListTile(
                 key: Key('$index'),
                 leading: widget.mailItems[index].isGroup

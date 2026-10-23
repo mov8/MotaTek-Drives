@@ -229,7 +229,15 @@ class _MessagesState extends State<Messages> {
   /// logged in, or been sent messages, since the page was built
   Future<void> refresh() async {
     if (Setup().jwt.isNotEmpty) _mailItems = await getMessagesByGroup();
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    // Like the other pages, the first conversation shows straight away
+    if (kIsWeb &&
+        _mailItems.isNotEmpty &&
+        (_tileSelected < 0 || _tileSelected >= _mailItems.length)) {
+      select(0);
+      return;
+    }
+    setState(() {});
     _refreshAppBar();
     await sideBarItems();
   }
@@ -274,7 +282,7 @@ class _MessagesState extends State<Messages> {
     _writing = false;
     setState(() => _dataLoaded = getMessages());
     _refreshAppBar();
-    sideBarItems(); // highlights nothing yet, but keeps the list current
+    sideBarItems(); // highlights the conversation
   }
 
   /// Web: the conversations fill the SideDrawer, with a button to add a
@@ -296,6 +304,7 @@ class _MessagesState extends State<Messages> {
                 child: SingleChildScrollView(
                   child: MessagesSummaryForm(
                     mailItems: _mailItems,
+                    selected: _tileSelected,
                     onTap: (index) => select(index),
                     onNewContact: () {
                       _addContact = false;

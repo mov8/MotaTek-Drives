@@ -125,17 +125,15 @@ class _LeadingWidgetState extends State<LeadingWidget>
             width: 45, // 45,
             height: 45, //45,
 
-            child: Positioned(
-              top: 0,
-              left: 0,
-              child: Padding(
-                padding: EdgeInsetsGeometry.fromLTRB(10, 10, 0, 0),
-                child: AnimatedIcon(
-                  icon: _animatedIcon,
-                  progress: animation,
-                  color: Colors.white,
-                  size: 30, //30,
-                ),
+            // Positioned only works directly in a Stack - here a release
+            // build showed a grey box instead of the burger
+            child: Padding(
+              padding: EdgeInsetsGeometry.fromLTRB(10, 10, 0, 0),
+              child: AnimatedIcon(
+                icon: _animatedIcon,
+                progress: animation,
+                color: Colors.white,
+                size: 30, //30,
               ),
             ),
           ),
