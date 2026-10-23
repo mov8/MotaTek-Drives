@@ -551,7 +551,9 @@ class MapService {
   }
 
   Future<void> onMapUpdated(MapLibreMapController mapController) async {
-    controller = mapController;
+    // Completes mapFuture too - nothing did after the move to go_router,
+    // so anything waiting for the map waited for ever
+    await setMapController(mapController);
     zoomFabController ??= ZoomFabController();
 
     if (CurrentTripItem().pointsOfInterest.isNotEmpty) {
