@@ -1,7 +1,6 @@
 import 'package:universal_io/universal_io.dart';
 import 'dart:convert';
 import 'dart:ui' as ui;
-import 'dart:developer' as developer;
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;

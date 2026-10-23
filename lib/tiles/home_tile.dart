@@ -1,14 +1,10 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import '/models/other_models.dart';
 import '/classes/classes.dart';
 import '/models/models.dart';
-import 'dart:developer' as developer;
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 
 import '/helpers/helpers.dart';
-import '/constants.dart';
 
 /// The mobile version will need the data putting in tiles, as it has no space to show a summary
 /// unlike the web version that uses the side drawer.

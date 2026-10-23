@@ -3,7 +3,6 @@ import 'package:flutter/foundation.dart';
 import 'package:universal_io/universal_io.dart';
 import 'dart:math';
 import 'dart:async';
-import 'dart:developer' as developer;
 import '/models/models.dart';
 import '/classes/classes.dart';
 import '/services/services.dart';

@@ -2,7 +2,6 @@ import 'dart:math';
 import 'package:drives/classes/classes.dart';
 
 import '/models/models.dart';
-import '/classes/route.dart' as mt_rt;
 import 'package:geolocator/geolocator.dart' as gl;
 import 'package:latlong2/latlong.dart';
 import 'package:flutter/widgets.dart';

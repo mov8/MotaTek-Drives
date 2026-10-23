@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:developer' as developer;
 
 /// Expand notifier is used to expand a ExpansionTile in a list based on a value
 /// The expandNotier has one method targetValue(int)

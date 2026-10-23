@@ -1,8 +1,4 @@
-import 'dart:convert';
-import 'dart:math';
 import 'dart:developer' as developer;
-import 'package:drives/main.dart';
-import 'package:image_picker/image_picker.dart';
 // import 'package:drives/helpers/markdown_helpers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -16,10 +12,8 @@ import '/models/other_models.dart';
 import '/classes/classes.dart';
 import '/services/services.dart' hide getPosition;
 // import 'package:flutter/services.dart' show rootBundle;
-import '/screens/screens.dart';
 import '/helpers/helpers.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
-import 'package:go_router/go_router.dart';
 
 class ShopController {
   _ShopState? _shopState;

@@ -1,18 +1,14 @@
 import 'dart:math';
 import 'dart:async';
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'dart:developer' as developer;
 import 'package:drives/classes/create_trip_stack.dart';
 import 'package:drives/main.dart' hide Routes;
-import 'package:drives/models/models.dart';
 import 'package:drives/routes/my_trips.dart';
 import 'package:flutter/foundation.dart';
 import 'package:drives/classes/classes.dart' hide Position, distanceBetween;
-import 'package:flutter/rendering.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:flutter/material.dart';
-import 'web_helper.dart';
 import '../constants.dart';
 import '../helpers/helpers.dart';
 import '../services/services.dart';

@@ -4,16 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:markdown/markdown.dart' as md;
-import '../main.dart';
 import '/constants.dart';
 import '/models/other_models.dart';
 import '/classes/classes.dart';
 import '/services/services.dart' hide getPosition;
-import '/screens/screens.dart';
 import '/helpers/helpers.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
-import 'package:go_router/go_router.dart';
 
 class HomeController {
   _HomeState? _homeState;

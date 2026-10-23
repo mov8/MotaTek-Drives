@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/services.dart';
 import '../screens/screens.dart';
-import 'dart:developer' as developer;
 
 class StatusBarController {
   _StatusBarState? _statusBarState;

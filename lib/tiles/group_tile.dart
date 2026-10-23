@@ -3,7 +3,6 @@ import 'package:drives/helpers/edit_helpers.dart';
 import 'package:flutter/material.dart';
 import 'package:drives/models/other_models.dart';
 import 'package:drives/classes/classes.dart';
-import 'dart:developer' as developer;
 
 /// Groups is the class that organises driving groups it handles:
 ///

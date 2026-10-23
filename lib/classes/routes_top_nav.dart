@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '/constants.dart';
-import '/models/models.dart';
 
 class RoutesTopNavController {
   _RoutesTopNavState? _routesTopNavState;

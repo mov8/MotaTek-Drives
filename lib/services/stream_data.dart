@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:developer' as developer;
 import 'package:geolocator/geolocator.dart';
 import '/classes/route.dart' as mt;
 import '/routes/routes.dart';

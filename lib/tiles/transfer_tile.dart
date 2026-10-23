@@ -1,6 +1,5 @@
 import '/models/other_models.dart';
 import '/services/services.dart';
-import 'dart:developer' as developer;
 import 'package:universal_io/universal_io.dart';
 
 Future<void> exportTripForWifiTransfer() async {

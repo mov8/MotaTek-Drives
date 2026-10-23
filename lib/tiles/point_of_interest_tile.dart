@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'dart:collection';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
-import 'dart:typed_data';
 import '/constants.dart';
 import 'package:image_picker/image_picker.dart';
 import '/helpers/helpers.dart';

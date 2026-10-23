@@ -1,12 +1,9 @@
 import 'dart:async';
-import 'package:drives/main.dart';
 import 'package:flutter/foundation.dart';
 import '../services/services.dart';
 import 'package:flutter/material.dart';
 import '/models/models.dart';
 import '/classes/classes.dart';
-import '../constants.dart';
-import 'dart:developer' as developer;
 
 class Splash extends StatefulWidget {
   const Splash({super.key});
