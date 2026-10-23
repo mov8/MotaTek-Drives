@@ -37,8 +37,8 @@ class Login extends StatelessWidget {
         if (Setup().jwt.isNotEmpty &&
             Setup().user.email.isNotEmpty &&
             Setup().user.password.length > 8) {
-          String jwt = await refreshToken();
-          if (jwt.isNotEmpty) {
+          String? jwt = await refreshToken();
+          if (jwt != null && jwt.isNotEmpty) {
             Setup().hasLoggedIn = true;
             return true;
           }

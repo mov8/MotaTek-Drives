@@ -199,20 +199,22 @@ Future<Map<String, dynamic>> postContacts(
   return {'message': 'error'};
 }
 
-Future<String> refreshToken() async {
-  final http.Response response =
-      await getWebData(uri: Uri.parse('$urlUser/token'), secure: true);
-  if ([200, 201].contains(response.statusCode)) {
-    try {
+/// A fresh token for the saved one: the new token, '' if the server rejected
+/// it (expired or invalid - the user has to log in again), or null if the
+/// server couldn't be reached (offline - keep the saved one)
+Future<String?> refreshToken() async {
+  try {
+    final http.Response response =
+        await getWebData(uri: Uri.parse('$urlUser/token'), secure: true);
+    if ([200, 201].contains(response.statusCode)) {
       Map<String, dynamic> data = jsonDecode(response.body);
       return data['token'] ?? '';
-    } catch (e) {
-      developer.log('Error refreshing jwt token: ${e.toString()}',
-          name: 'error');
-      return '';
     }
+    return [401, 403, 422].contains(response.statusCode) ? '' : null;
+  } catch (e) {
+    developer.log('Error refreshing jwt token: ${e.toString()}', name: 'error');
+    return null;
   }
-  return '';
 }
 
 Future<void> getUserDetails({required String email}) async {

@@ -325,8 +325,16 @@ class Setup {
     try {
       jwt = await _storage!.read(key: 'jwt') ?? '';
       if (jwt.isNotEmpty) {
-        String newJwt = await refreshToken();
-        if (newJwt.isNotEmpty) {
+        String? newJwt = await refreshToken();
+        if (newJwt == null) {
+          // Offline - keep the saved token
+        } else if (newJwt.isEmpty) {
+          // Expired or invalid - forget it, so the app doesn't treat the
+          // user as registered (e.g. offering Publish, which the server
+          // would refuse) until they log in again
+          jwt = '';
+          await _storage!.delete(key: 'jwt');
+        } else {
           jwt = newJwt;
           hasLoggedIn = true;
           await _storage!.write(key: 'jwt', value: jwt);
