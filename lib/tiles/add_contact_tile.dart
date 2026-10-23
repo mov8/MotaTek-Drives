@@ -3,26 +3,6 @@ import '/constants.dart';
 import '/classes/classes.dart';
 import '/services/services.dart';
 
-/// InviteMember handles the adding of a new member to a group there are 2 options:
-///   The invitee is already registered
-///     InviteMember adds member to the Group class to be sent to API on confirmed update
-///   The invitee is new
-///     InviteMember sends an invitation email to the prospective member
-///
-class AddContactTileController {
-  _AddContactTileState? _addContactTileState;
-
-  bool get isAttached => _addContactTileState != null;
-
-  void leave() {
-    assert(isAttached, 'Controller must be attached to widget');
-    try {} catch (e) {
-      String err = e.toString();
-      debugPrint('Error loading image: $err');
-    }
-  }
-}
-
 class AddContactTile extends StatefulWidget {
   final Function(bool)? onCancel;
   final Function(String)? onAddMember;

@@ -106,7 +106,6 @@ class _MarkdownFormState extends State<MarkdownForm> {
   late Map<String, dynamic> _markdownData;
   List<Map<String, dynamic>> _images = [];
   final TextEditingController _textEditingController = TextEditingController();
-  final SideToolbarController _sideToolBarController = SideToolbarController();
   late final _controller;
   bool _hidden = true;
   List<String> _buffer = [];
@@ -373,7 +372,7 @@ class _MarkdownFormState extends State<MarkdownForm> {
               onTap: () async {
                 debugPrint('Admin Option: ${e['text']}');
                 if (e['value'] == 'help') {
-                  setState(() => _sideToolBarController.close());
+                  setState(() {});
                 } else if (e['value'] == 'imageLeft') {
                   insertImage(orientation: 'left');
                 } else if (e['value'] == 'imageCentre') {
@@ -416,7 +415,7 @@ class _MarkdownFormState extends State<MarkdownForm> {
               size: 30, color: Color.fromRGBO(22, 20, 20, 1)),
         ],
         overflowMethods: [
-          () => setState(() => _sideToolBarController.close()),
+          () => setState(() {}),
           () => insertImage(orientation: 'left'),
           () => insertImage(orientation: 'centre'),
           () => insertImage(orientation: 'right'),

@@ -50,63 +50,6 @@ import '/classes/route.dart';
 /// and allow the apop to be used in poor coverage areas.
 ///
 
-class CacheFence {
-  LatLng northEast;
-  LatLng southWest;
-  LatLng position;
-  int screens;
-  bool changed = false;
-  CacheFence({
-    required this.northEast,
-    required this.southWest,
-    required this.position,
-    this.screens = 1,
-  });
-
-  Map<String, dynamic> update(
-      {required LatLng newNorthEast,
-      required LatLng newSouthWest,
-      int screens = 1}) {
-    bool changed = false;
-    if (northEast.latitude < newNorthEast.latitude ||
-        northEast.longitude < newNorthEast.longitude ||
-        southWest.longitude > newSouthWest.longitude ||
-        southWest.latitude > newSouthWest.latitude) {
-      changed = true;
-      northEast = newNorthEast;
-      southWest = newSouthWest;
-      if (screens > 1) {
-        double deltaLng =
-            (northEast.longitude - southWest.longitude).abs() * screens;
-        double deltaLat =
-            (northEast.latitude - southWest.latitude).abs() * screens;
-        northEast = LatLng(
-            northEast.latitude + deltaLat, northEast.longitude + deltaLng);
-        southWest = LatLng(
-            southWest.latitude - deltaLat, southWest.longitude - deltaLng);
-      }
-    }
-    return {'changed': changed, 'northEast': northEast, 'southWest': southWest};
-  }
-}
-
-class ViewportFence {
-  Fence screenFence;
-  Fence cacheFence;
-  double margin;
-  bool refresh = false;
-  ViewportFence({required this.screenFence, this.margin = 0.5})
-      : cacheFence = changeFenceByDegrees(fence: screenFence, degrees: 0.5);
-
-  bool fenceUpdate({required Fence screenFence, double degrees = 0.5}) {
-    if (!cacheFence.contains(bounds: screenFence)) {
-      cacheFence = changeFenceByDegrees(fence: screenFence, degrees: degrees);
-      return true;
-    }
-    return false;
-  }
-}
-
 Fence changeFenceByDegrees({required Fence fence, double degrees = 0.5}) {
   LatLng ne = LatLng(
       fence.northEast.latitude + degrees, fence.northEast.longitude + degrees);
@@ -210,57 +153,6 @@ class Fence {
   @override
   String toString() {
     return 'SW:${southWest.latitude} ${southWest.longitude} NE:${northEast.latitude} ${southWest.longitude}';
-  }
-}
-
-class PointSearchItem {
-  bool complete = false;
-  int firstPoint = -1;
-  int lastPoint = -1;
-  PointSearchItem();
-
-  Future<bool> search(
-      {required Fence fence,
-      required List<LatLng> points,
-      int jump = 1}) async {
-    int first = -1;
-    int last = -1;
-    int j;
-    complete = false;
-    for (j = firstPoint; j < lastPoint; j += jump) {
-      if (first == -1 &&
-          (firstPoint - j) >= 0 &&
-          fence.containsPoint(point: points[firstPoint - j])) {
-        first = firstPoint - j;
-        if (last == -1 && j > firstPoint) {
-          lastPoint = first;
-          firstPoint = 0;
-          complete = false;
-          return false;
-        }
-      }
-      if (last == -1 &&
-          (firstPoint + j) < lastPoint &&
-          fence.containsPoint(point: points[firstPoint + j])) {
-        last = firstPoint + j;
-        if (first == -1) {
-          firstPoint = last;
-          lastPoint = points.length;
-          complete = false;
-          return false;
-        }
-      }
-      if (last != -1 && first != -1) {
-        return true;
-      }
-    }
-    if (last != -1 && first != -1) {
-      complete = true;
-      return true;
-    } else {
-      complete = true;
-      return false;
-    }
   }
 }
 

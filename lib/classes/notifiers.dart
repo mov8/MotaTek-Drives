@@ -20,10 +20,3 @@ class ExpandNotifier extends ValueNotifier<int> {
     value = target;
   }
 }
-
-class ExpandNotifierId extends ValueNotifier<String> {
-  ExpandNotifierId(super.value);
-  void targetValue({String target = ""}) {
-    value = target;
-  }
-}

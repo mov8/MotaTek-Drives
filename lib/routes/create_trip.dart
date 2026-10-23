@@ -185,13 +185,10 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   final GlobalKey _appBarKey = GlobalKey();
 
   DateFormat dateFormat = DateFormat('dd/MM/yy HH:mm');
-  List<double> mapHeights = [0, 0, 0, 0];
 
   final start = TextEditingController();
   final end = TextEditingController();
 
-  final GroupMessagesController groupMessagesController =
-      GroupMessagesController();
   bool isVisible = false;
   PopupValue popValue = PopupValue(-1, '', '');
   final navigatorKey = GlobalKey<NavigatorState>();
@@ -1390,32 +1387,6 @@ Future openDialog(BuildContext context) => showDialog(
 submit(BuildContext context, setState) {
   Navigator.of(context).pop();
   setState(() {});
-}
-
-class PositionUpdate {
-  List<double>? routePoint;
-  MapLibreMapController? controller;
-  PositionUpdate({this.controller, List<double>? routePoint})
-      : routePoint = routePoint ?? [];
-
-  Future<void> update() async {
-    routePoint ??= [];
-    if (routePoint!.isNotEmpty && controller != null) {
-      CurrentTripItem().routes.last.lines.add(routePoint!);
-      await controller!.setGeoJsonSource('route-data', {
-        "type": "FeatureCollection",
-        "features": routesToGeoJson(),
-      });
-      if (CurrentTripItem().isGoodRoad) {
-        CurrentTripItem().goodRoads.last.lines.add(routePoint!);
-        await controller!.setGeoJsonSource('good-road-data', {
-          "type": "FeatureCollection",
-          "features": goodRoadsToGeoJson(),
-        });
-      }
-      routePoint = [];
-    }
-  }
 }
 
 /// Keeps the map at its full height while the keyboard is showing.

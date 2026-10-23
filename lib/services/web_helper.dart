@@ -138,91 +138,6 @@ Future<LatLng> getPosition(String value) async {
   return pos;
 }
 
-class SearchLocation extends StatefulWidget {
-  final Function onSelect;
-  const SearchLocation({super.key, required this.onSelect});
-  @override
-  State<SearchLocation> createState() => _SearchLocationState();
-}
-
-class _SearchLocationState extends State<SearchLocation> {
-  List<String> autoCompleteData = [];
-  String waypoint = '';
-  LatLng location = const LatLng(0.00, 0.00);
-  late TextEditingController textEditingController;
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 45,
-      width: MediaQuery.of(context).size.width - 50,
-      decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border.all(
-            color: Colors.blue,
-          ),
-          borderRadius: const BorderRadius.all(Radius.circular(20))),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 5, 20, 5),
-        child: Row(
-          children: [
-            const Expanded(
-              flex: 1,
-              child: Icon(Icons.search),
-            ),
-            const SizedBox(
-              width: 10,
-            ),
-            Expanded(
-              flex: 14,
-              child: Autocomplete(
-                optionsBuilder: (TextEditingValue textEditingValue) async {
-                  autoCompleteData =
-                      await getSuggestions(textEditingValue.text);
-                  setState(() {
-                    waypoint = textEditingValue.text;
-                  });
-                  if (textEditingValue.text.isEmpty) {
-                    return const Iterable<String>.empty();
-                  } else {
-                    return autoCompleteData.where((word) => word
-                        .toLowerCase()
-                        .contains(textEditingValue.text.toLowerCase()));
-                  }
-                },
-                fieldViewBuilder:
-                    (context, controller, focusNode, onEditingComplete) {
-                  textEditingController = controller;
-                  return TextFormField(
-                    textCapitalization: TextCapitalization.characters,
-                    controller: controller,
-                    focusNode: focusNode,
-                    onEditingComplete: onEditingComplete,
-                    decoration: const InputDecoration(
-                        hintText: 'Search for place name'),
-                  );
-                },
-                onSelected: (String selection) async {
-                  clearSelections();
-                  LatLng pos = await getPosition(selection);
-                  widget.onSelect(pos);
-                },
-              ),
-            ),
-            const SizedBox(
-              width: 10,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void clearSelections() {
-    textEditingController.text = '';
-    autoCompleteData.clear();
-  }
-}
-
 Future<Map<String, dynamic>> postUser(
     {required User user, bool register = false}) async {
   int code = 500;
@@ -586,17 +501,6 @@ mt.Route polylineFromMap(
   return mt.Route(
     lines: [],
     id: -1,
-    /*
-    driveKey: driveKey,
-    points:
-        getPrivateRepository().stringToPoints(map['points']), // routePoints,
-    color: routeColor,
-    borderColor: routeColor,
-    strokeWidth: (map['stroke']).toDouble(),
-    pointOfInterestIndex: -1,
-    pointOfInterestUri: map['point_of_interest_id'] ?? '',
-    rating: map['average_rating'] ?? 1,
-    */
   );
 }
 
@@ -979,101 +883,7 @@ Future<MyTripItem> getMyTrip(String tripUuid) async {
     Uri.parse('$urlDrive/$tripUuid'),
     headers: webHeader(secure: false),
   );
-  if (response.statusCode == 200) {
-    /*
-    Map<String, dynamic> trip = jsonDecode(response.body);
-    List<mt.Route> gotRoutes = [];
-
-    for (int i = 0; i < trip['polylines'].length; i++) {
-      gotRoutes.add(mt.Route(
-          id: -1,
-          points: getPrivateRepository()
-              .stringToPoints(trip['polylines'][i]['points']), // routePoints,
-          color: uiColours.keys.toList()[trip['polylines'][i]['colour']],
-          borderColor: uiColours.keys.toList()[trip['polylines'][i]['colour']],
-          strokeWidth: (trip['polylines'][i]['stroke']).toDouble()));
-    }
-
-    List<Maneuver> gotManeuvers = [];
-    LatLng pos = const LatLng(0, 0);
-    dynamic jsonPos;
-    for (int i = 0; i < trip['maneuvers'].length; i++) {
-      jsonPos = jsonDecode(trip['maneuvers'][i]['location']);
-      pos = LatLng(jsonPos['lat'], jsonPos['long']);
-      try {
-        gotManeuvers.add(Maneuver(
-          id: -1,
-          driveId: -1, //trip['maneuvers'][i]['driveId'],
-          roadFrom: trip['maneuvers'][i]['road_from'],
-          roadTo: trip['maneuvers'][i]['road_to'],
-          bearingBefore: trip['maneuvers'][i]['bearing_before'],
-          bearingAfter: trip['maneuvers'][i]['bearing_after'],
-          exit: trip['maneuvers'][i]['exit'],
-          location: pos,
-          modifier: trip['maneuvers'][i]['modifier'],
-          type: trip['maneuvers'][i]['type'],
-          distance: trip['maneuvers'][i]['distance'],
-        ));
-      } catch (e) {
-        // debugPrint('Error maneuvers: ${e.toString()}');
-      }
-    }
-
-    List<PointOfInterest> gotPointsOfInterest = [];
-
-    try {
-      for (int i = 0; i < trip['points_of_interest'].length; i++) {
-        try {
-          LatLng posn = LatLng(trip['points_of_interest'][i]['latitude'],
-              trip['points_of_interest'][i]['longitude']);
-          //   Widget marker = MarkerWidget(
-          //     type: trip['points_of_interest'][i]['_type'],
-          //     list: 0,
-          //     listIndex: i,
-          //   );
-          gotPointsOfInterest.add(PointOfInterest(
-            type: trip['points_of_interest'][i]['_type'],
-            waypoint: trip['points_of_interest'][i]['waypoint'],
-            name: trip['points_of_interest'][i]['name'],
-            description: trip['points_of_interest'][i]['description'],
-            width: trip['points_of_interest'][i]['_type'] == 12 ? 10 : 30,
-            height: trip['points_of_interest'][i]['_type'] == 12 ? 10 : 30,
-            images: trip['points_of_interest'][i]['images'],
-            //  url: '/${trip['id']}/${trip['points_of_interest'][i]['id']}/',
-            url: '${trip['id']}/${trip['points_of_interest'][i]['id']}',
-            score: trip['points_of_interest'][i]['average_rating'] ?? 1,
-            scored: trip['points_of_interest'][i]['ratings_count'] ?? 0,
-            point: posn,
-            //   child1: marker,
-          ));
-        } catch (e) {
-          // debugPrint('Error: ${e.toString()}');
-        }
-      }
-    } catch (e) {
-      debugPrint('PointsOfInterest error: ${e.toString()}');
-    }
-    try {
-      MyTripItem myTripItem = MyTripItem(
-        heading: trip['title'],
-        driveUri: tripUuid,
-        subHeading: trip['sub_title'],
-        body: trip['body'].replaceAll("\n", " "),
-        published: trip['added'],
-        images: Uri.parse('$urlDrive/images/${trip['id']}/map.png').toString(),
-        score: trip['score'] ?? 5.0,
-        distance: trip['distance'].toDouble(),
-        routes: gotRoutes,
-        maneuvers: gotManeuvers,
-        pointsOfInterest: gotPointsOfInterest,
-        closest: 12,
-      );
-      return myTripItem;
-    } catch (e) {
-      debugPrint('Error: ${e.toString()}');
-    }
-    */
-  }
+  if (response.statusCode == 200) {}
   return myTrip;
 }
 

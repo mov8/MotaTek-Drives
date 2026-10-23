@@ -297,11 +297,6 @@ class _BottomDrawerState extends State<BottomDrawer>
           onLongPress: followerLongPress,
           distance: 0,
           currentPosition: CurrentTripItem().tripValues.position, // Point(
-          //   CurrentTripItem().tripValues.position.x,
-          //   CurrentTripItem().tripValues.pos
-          //       .tripValues
-          //       .position
-          //       .x), // ToDo: calculate how far away
         ),
       ));
     }
@@ -542,32 +537,6 @@ class _BottomDrawerState extends State<BottomDrawer>
   /// To make sure the initiallyExpanded are not stuck in the ExpansionTiles have a key: UniqueKey() which forces Flutter
   /// to rebuild the ExpansionTile's state and so updating the initiallyExpanded state.
 
-/*
-  void dockOpenTile() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      try {
-        double oldHeight = height;
-        var box = _scrollKey.currentContext!.findRenderObject() as RenderBox;
-        //  height = box.size.height < 400 ? box.size.height + 4 : 400;
-        Scrollable.ensureVisible(
-          _scrollKey.currentContext!,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
-          alignment: 0.0, // 0.0 = top of screen, 0.5 = middle, 1.0 = bottom
-        );
-        double yPos = widgetPosition(key: _animatedContainerKey).y.toDouble();
-        double yPosT = widgetPosition(key: _scrollKey).y.toDouble();
-        double delta = 32 + yPosT - yPos;
-        if (delta > 0) {
-          _scrollController.animateTo(delta,
-              duration: Duration(milliseconds: 500), curve: Curves.ease);
-        }
-      } catch (e) {
-        developer.log('Error dockOpenTile(): ${e.toString()}', name: 'error');
-      }
-    });
-  }
-*/
   Point widgetPosition({required GlobalKey<State<StatefulWidget>> key}) {
     Point pos = Point(0, 0);
     final bnKeyContext = key.currentContext;

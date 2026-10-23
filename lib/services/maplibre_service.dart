@@ -81,8 +81,6 @@ class MapService {
   ScrollController scrollController = ScrollController();
   CreateTripController? createTripController = CreateTripController();
   LeadingWidgetController leadingWidgetController = LeadingWidgetController();
-  RoutesBottomNavController? routesBottomNavController =
-      RoutesBottomNavController();
   CreateTripStackController? createTripStackController =
       CreateTripStackController();
 
@@ -784,7 +782,6 @@ class MapService {
   _tripsOnTap(tap) async {
     var foundFeatures;
     try {
-      // var point = Point(tap.x.toDouble(), tap.y.toDouble());
       foundFeatures = await controller!
           .queryRenderedFeatures(tap, ["route-marker-layer"], null);
       // A trip's label - its trip is in its properties

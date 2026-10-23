@@ -48,17 +48,6 @@ class TripArguments {
   });
 }
 
-class MutableInt {
-  int value;
-  MutableInt({this.value = -1});
-}
-
-class BottomDrawerContent {
-  final BottomDrawerItems bottomDrawerItem;
-  final List<Widget> contents;
-  BottomDrawerContent({required this.bottomDrawerItem, required this.contents});
-}
-
 /// RrExpansionTile creates a rounded corner tile with padding and the Expanded divider lines removed
 class RrExpansionTile extends StatelessWidget {
   ExpansionTile child;
@@ -245,11 +234,6 @@ class RouterData {
       routes: routes,
     );
   }
-}
-
-class MutableDouble {
-  double value;
-  MutableDouble({this.value = -1.0});
 }
 
 /// List from OSRM car.lua preferences file

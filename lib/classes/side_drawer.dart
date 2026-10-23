@@ -499,11 +499,6 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
           onLongPress: followerLongPress,
           distance: 0,
           currentPosition: CurrentTripItem().tripValues.position, // Point(
-          //   CurrentTripItem().tripValues.position.x,
-          //   CurrentTripItem().tripValues.pos
-          //       .tripValues
-          //       .position
-          //       .x), // ToDo: calculate how far away
         ),
       ));
     }

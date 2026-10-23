@@ -1,4 +1,3 @@
-import 'dart:typed_data' as dt;
 import 'dart:math';
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -246,34 +245,6 @@ class ShortcodeSyntax extends md.InlineSyntax {
   }
 }
 
-class LineBreakSyntax extends md.InlineSyntax {
-  LineBreakSyntax() : super(r'(?:\\|  +)\n');
-
-  /// regex explanation see cheat-sheet above
-  /// \{ \} - escaped reserved characters
-  /// \s* - allow spaces between {< and content * means 0 or more
-  /// (.*?) - group1 any .* ant alpha numerics ? make it non-greedy ie stop at end
-
-  /// (?: means it's a non-capturing group
-  @override
-  bool onMatch(md.InlineParser parser, Match match) {
-    try {
-      parser.addNode(md.Element.empty('linebreak'));
-      return true;
-    } catch (e) {
-      developer.log('ShortcodeSyntax() error: {e.toString()}', name: 'error');
-      return false;
-    }
-  }
-}
-
-class LineBreakBuilder extends MarkdownElementBuilder {
-  @override
-  Widget? visitElementAfter(md.Element element, TextStyle? preferredStyle) {
-    return (Text('\n'));
-  }
-}
-
 class SpaceShortcodeBuilder extends MarkdownElementBuilder {
   @override
   Widget? visitElementAfter(md.Element element, TextStyle? preferredStyle) {
@@ -294,60 +265,6 @@ class SpaceShortcodeBuilder extends MarkdownElementBuilder {
 
     // Return a simple empty box
     return SizedBox(height: height);
-  }
-}
-
-class ImageShortcodeBuilder extends MarkdownElementBuilder {
-  ImageShortcodeBuilder();
-  @override
-  Widget? visitElementAfter(md.Element element, TextStyle? preferredStyle) {
-    final String text = element.textContent;
-    dt.Uint8List? image;
-
-    String? getAttr(String key) {
-      final reg = RegExp('$key="([^"]+)"');
-      return reg.firstMatch(text)?.group(1);
-    }
-
-    String? getUri() {
-      /// uri markdown syntax (cache/9797...9898.jpg) the Regex has to escape (, ), and s*
-      /// group(0) is whole match group(1) is the data retrieved in (.*)
-      final reg = RegExp(r'\(\s*cache(.*)\)');
-      return reg.firstMatch(text)?.group(1);
-    }
-
-    final String? src = getUri();
-    final String align = getAttr('align') ?? 'center';
-    final double width = double.tryParse(getAttr('width') ?? '') ?? 300.0;
-
-    if (src == null) return null;
-    // Handle Alignment
-    MainAxisAlignment mainAlign;
-    switch (align) {
-      case 'left':
-        mainAlign = MainAxisAlignment.start;
-        break;
-      case 'right':
-        mainAlign = MainAxisAlignment.end;
-        break;
-      default:
-        mainAlign = MainAxisAlignment.center;
-    }
-
-    return Row(
-      mainAxisAlignment: mainAlign,
-      children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: Image.memory(
-            image!,
-            width: width,
-            fit: BoxFit.contain,
-            errorBuilder: (context, _, __) => const Icon(Icons.broken_image),
-          ),
-        ),
-      ],
-    );
   }
 }
 
@@ -643,87 +560,6 @@ class MdStyleSheet {
           name: 'error');
     }
     return style;
-  }
-}
-
-/// Custom InlineSyntax to capture both soft breaks (raw \n)
-/// and hard breaks (two spaces or a backslash followed by \n)
-class SoftAndHardLineBreakSyntax extends md.InlineSyntax {
-  // This regex matches:
-  // 1. (?:  |\\)? -> Optional two spaces or a trailing backslash
-  // 2. \n          -> Followed by a newline character
-
-  static const _pattern = r'\{\{<\s*(.*?)\s*>\}\}';
-  SoftAndHardLineBreakSyntax() : super(_pattern); //r'(?:  |\\)?\n');
-
-  @override
-  bool onMatch(md.InlineParser parser, Match match) {
-    // Generate an element that Flutter's Markdown widget recognizes as a <br> tag
-    parser.addNode(md.Element.empty('br'));
-    return true;
-  }
-}
-
-class DesignerMarkdownViewer extends StatelessWidget {
-  final String markdownText;
-  final dynamic customExtensionSet; // From your previous soft-break setups
-
-  const DesignerMarkdownViewer({
-    super.key,
-    required this.markdownText,
-    this.customExtensionSet,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final baseTheme = Theme.of(context);
-
-    final professionalStyle = MarkdownStyleSheet.fromTheme(baseTheme).copyWith(
-      // 1. Set global vertical layout rhythm
-      blockSpacing: 20.0,
-
-      // 2. Format content margins inside the container box
-      blockquotePadding: const EdgeInsets.fromLTRB(20.0, 16.0, 20.0, 16.0),
-
-      // 3. Complete box styling containing the background icon layer
-      blockquoteDecoration: BoxDecoration(
-        color: const Color(0xFFF7F9FC),
-        borderRadius:
-            const BorderRadius.horizontal(right: Radius.circular(12.0)),
-        border: const Border(
-          left: BorderSide(
-            color: Colors.indigoAccent,
-            width: 8.0, // Clean, extra-wide colored band
-          ),
-        ),
-        image: DecorationImage(
-          image: const AssetImage(
-              'assets/icons/left_quote.png'), // Register in pubspec.yaml
-          alignment:
-              const Alignment(-0.95, -0.8), // Custom alignment coordinates
-          fit: BoxFit.none,
-          scale: 3.0,
-          colorFilter: ColorFilter.mode(
-            Colors.black
-                .withOpacity(0.04), // Faint, elegant watermark background
-            BlendMode.dstIn,
-          ),
-        ),
-      ),
-
-      // 4. Adjust the font presentation matching the design theme
-      blockquote: baseTheme.textTheme.bodyMedium?.copyWith(
-        color: Colors.blueGrey.shade900,
-        fontStyle: FontStyle.italic,
-        height: 1.5,
-      ),
-    );
-
-    return Markdown(
-      data: markdownText,
-      extensionSet: customExtensionSet,
-      styleSheet: professionalStyle,
-    );
   }
 }
 

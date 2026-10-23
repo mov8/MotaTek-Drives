@@ -172,11 +172,3 @@ class _FollowerTileState extends State<FollowerTile> {
     }
   }
 }
-
-/*
-
-May want to display when last pinged
-var startTime = DateTime(2020, 02, 20, 10, 30); // TODO: change this to your DateTime from firebase
-var currentTime = DateTime.now();
-var diff = currentTime.difference(startTime).inDays;
- */

@@ -281,8 +281,13 @@ class _MainDrawerState extends State<MainDrawer> {
                             if (e['value'] == 'shop') {
                               Navigator.push(
                                 context,
+                                // The shop content editor, like Home Page
+                                // Content (it opened an old copy of Shop)
                                 MaterialPageRoute(
-                                  builder: (context) => const Shop(),
+                                  builder: (context) => const MarkdownForm(
+                                    markdownData: {},
+                                    dataType: 'shop',
+                                  ),
                                 ),
                               );
                             } else if (e['value'] == 'home') {

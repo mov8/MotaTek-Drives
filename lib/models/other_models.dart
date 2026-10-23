@@ -11,7 +11,6 @@ import '/classes/classes.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import '/constants.dart';
-import '/screens/screens.dart';
 import 'package:flutter/material.dart' hide Route;
 import 'package:universal_io/io.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -464,81 +463,6 @@ class Setup {
   }
 
   int debugIndex = 0;
-}
-
-class OverflowMethods {
-  WebAppBarController? webAppBarController;
-  BuildContext? context;
-  OverflowMethods({this.context, this.webAppBarController});
-
-  void settings() {
-    if (webAppBarController == null) {
-      Navigator.push(
-        context!,
-        MaterialPageRoute(builder: (context) => SetupForm()),
-      );
-    } else {}
-  }
-
-  void register() {
-    if (webAppBarController == null) {
-      Navigator.push(
-        context!,
-        MaterialPageRoute(builder: (context) => const SignupForm()),
-      );
-    } else {}
-  }
-
-  void manageGroups() {
-    if (webAppBarController == null) {
-      Navigator.push(
-        context!,
-        MaterialPageRoute(builder: (context) => const GroupForm()),
-      );
-    } else {}
-  }
-
-//
-  void myGroups() {
-    if (webAppBarController == null) {
-      Navigator.push(
-        context!,
-        MaterialPageRoute(builder: (context) => const MyGroupsForm()),
-      );
-    } else {}
-  }
-
-  void inviteUser() {
-    if (webAppBarController == null) {
-      Navigator.push(
-        context!,
-        MaterialPageRoute(builder: (context) => const IntroduceForm()),
-      );
-    } else {}
-  }
-
-  void manageEvents() {
-    if (webAppBarController == null) {
-      Navigator.push(
-        context!,
-        MaterialPageRoute(builder: (context) => const GroupDriveForm()),
-      );
-    } else {}
-  }
-
-  void myEvents() {
-    if (webAppBarController == null) {
-      Navigator.push(
-        context!,
-        MaterialPageRoute(builder: (context) => const InvitationsScreen()),
-      );
-    } else {}
-  }
-
-  void docs() {
-    if (webAppBarController == null) {
-    } else {}
-  }
 }
 
 class PointOfInterest {
@@ -1306,19 +1230,6 @@ class User {
   }
 }
 
-class PoiImage {
-  int id = -1;
-  String url = '';
-  PoiImage(this.id, this.url);
-}
-
-class UiColour {
-  int id = -1;
-  Color colour = Colors.black;
-  String name = 'black';
-  UiColour(this.id, this.colour, this.name);
-}
-
 class Maneuver {
   int id = 0;
   String? uuid;
@@ -1401,15 +1312,6 @@ List<Maneuver> maneuversFromJson({required List<dynamic> jsonList}) {
 List<Map<String, dynamic>> jsonFromManeuvers(
     {required List<Maneuver> maneuvers}) {
   return [for (Maneuver maneuver in maneuvers) maneuver.toMap()];
-}
-
-class IntIm {
-  int value = -1;
-  IntIm({this.value = -1});
-  set setValue(int val) => value = val;
-  int get getValue {
-    return value;
-  }
 }
 
 /// class OsmAmenity
@@ -2045,130 +1947,12 @@ class Message {
   }
 }
 
-class MessageLocal {
-  int id = -1;
-  GroupMember groupMember;
-  String message = '';
-  bool read = false;
-  bool selected = false;
-  int targetId = 0;
-  DateTime received = DateTime.now();
-  int index = 0;
-  MessageLocal(
-      {required this.id,
-      required this.groupMember,
-      required this.message,
-      this.read = false,
-      this.selected = false}) {
-    received = DateTime.now();
-  }
-
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'user_id': groupMember.id,
-      'target_id': targetId,
-      'message': message,
-      'read': read ? 1 : 0,
-      'received': received.toString(),
-    };
-  }
-}
-
 class PopupValue {
   int dropdownIdx = -1;
   String text1 = '';
   String text2 = '';
   PopupValue(this.dropdownIdx, this.text1, this.text2);
 }
-
-/*
-/// lines and shields geometry format for MapLibre [[lng, lat], [lng, lat], ...]
-/// have to be defined in Flutter a List<dynamic> rather than List<List<double>>
-class GoodRoad extends Route {
-  // final int id; // SqLite id
-  // final String uri; // api uri
-  // List<List<double>> lines;
-  // List<List<double>> shields;
-  // List<Waypoint> waypoints;
-  String pointOfInterestUri;
-  // String colour;
-  GoodRoad({
-    super.id = -1,
-    super.uri = '',
-    List<List<double>>? lines,
-    List<List<double>>? shields,
-    List<Waypoint>? waypoints,
-    String? colour,
-    String? pointOfInterestUri,
-  })  : pointOfInterestUri = pointOfInterestUri ?? '',
-        super(
-            lines: lines ?? [],
-            shields: shields ?? [],
-            waypoints: waypoints ?? [],
-            colour: colour ?? Setup().goodRouteColourHex());
-
-  /// Bundling everything up int a single class simplified the
-  /// separating of the Route and GoodRoad geoJSON data - good-road-data
-
-  factory GoodRoad.fromMap({required Map<String, dynamic> map}) {
-    List<Waypoint> waypoints = [];
-    for (int i = 0; i < (map["waypoints"] ?? []).length; i++) {
-      waypoints.add(Waypoint.fromMap(map: map["waypoints"][i]));
-    }
-    return GoodRoad(
-        id: map["id"] ?? -1,
-        uri: map["uri"] ?? "",
-        lines: dynamicToDouble(dynamicList: jsonDecode(map['lines'] ?? [[]])),
-        shields:
-            dynamicToDouble(dynamicList: jsonDecode(map['shields'] ?? [[]])),
-        waypoints: waypoints);
-
-/*    
-    return GoodRoad(
-      id: map["id"] ?? -1,
-      uri: map["uri"] ?? "",
-      lines: map["lines"] ?? [],
-      shields: map["shields"] ?? [],
-      waypoints: map["waypoints"] ?? [],
-      pointOfInterestUri: map["point_of_interest_uri"] ?? "",
-    );
-*/
-  }
-
-  Map<String, dynamic> toMap() {
-    return {
-      "id": id,
-      "uri": uri,
-      "lines": lines,
-      "shields": shields,
-      "waypoints": waypoints,
-      "point_of_interest_uri": pointOfInterestUri,
-    };
-  }
-
-  Map<String, dynamic> toJSON({PointOfInterest? pointOfInterest}) {
-    pointOfInterest = pointOfInterest ?? PointOfInterest();
-    pointOfInterest.uuid = pointOfInterest.uuid ?? getUuid();
-    pointOfInterestUri = pointOfInterest.uuid!;
-    List<Map<String, dynamic>> waypointsJSON = [
-      for (int i = 0; i < waypoints.length; i++)
-        {
-          'point': {'lat': waypoints[i].point.y, 'long': waypoints[i].point.x}
-        }
-    ];
-    return {
-      "id": id,
-      "uri": uri.isNotEmpty ? uri : getUuid(),
-      "line_h": lines,
-      "shields": shields,
-      "waypoints": waypointsJSON,
-      "point_of_interest_uri": pointOfInterestUri,
-      "point_of_interest": pointOfInterest.toMap()
-    };
-  }
-}
-*/
 
 Map<String, dynamic> toGeoJson(
     {int index = 0, required List<int> point, bool highlighted = false}) {

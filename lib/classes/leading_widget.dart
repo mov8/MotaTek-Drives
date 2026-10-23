@@ -169,16 +169,3 @@ class _LeadingWidgetState extends State<LeadingWidget>
     );
   }
 }
-
-class MyClip extends CustomClipper<Rect> {
-  double width;
-  double height;
-  MyClip({this.width = 100, this.height = 100});
-  Rect getClip(Size size) {
-    return Rect.fromLTWH(0, 0, width, height);
-  }
-
-  bool shouldReclip(oldClipper) {
-    return false;
-  }
-}

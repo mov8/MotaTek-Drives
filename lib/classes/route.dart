@@ -87,11 +87,3 @@ List<Map<String, dynamic>> jsonFromWaypoints(
     {required List<Waypoint> waypoints}) {
   return [for (int i = 0; i < waypoints.length; i++) waypoints[i].toMap()];
 }
-
-/// Makes MapLibre easier to use as it uses the x - y notation (Longitude - Latitude)
-/// This means that a List<LngLat> can be used directly in MapLibre GeoJson
-class LngLat {
-  double lng;
-  double lat;
-  LngLat({required this.lng, required this.lat});
-}

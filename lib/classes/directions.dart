@@ -523,19 +523,6 @@ class DirectionDescriptors {
       } else {
         return number.truncateToDouble() + 1;
       }
-      /*
-      switch (decimalPlace) {
-        case < 0.15:
-          return number.truncateToDouble();
-        case < 0.35:
-          return number.truncateToDouble() + 0.25;
-        case < 0.65:
-          return number.truncateToDouble() + 0.5;
-        case < 0.85:
-          return number.truncateToDouble() + 0.75;
-        default:
-          return number.truncateToDouble() + 1;
-      */
     }
   }
 

@@ -211,7 +211,6 @@ class _BaseShellScreen extends State<BaseShellScreen> {
     MapService().sideDrawerController ??= SideDrawerController();
     MapService().statusBarController ??= StatusBarController();
     MapService().bottomDrawerController ??= BottomDrawerController();
-    MapService().routesBottomNavController ??= RoutesBottomNavController();
     MapService().createTripStackController ??= CreateTripStackController();
     MapService().homeController ??= HomeController();
     MapService().myTripsController ??= MyTripsController();
