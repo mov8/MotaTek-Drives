@@ -1108,15 +1108,19 @@ class CurrentTripItem extends MyTripItem {
     MapService().createTripController!.update();
   }
 
-  void requestGreatRoadEnd() {
+  /// True when the great road got a description to fill in - its index is
+  /// then tripValues.pointOfInterestIndex
+  bool requestGreatRoadEnd() {
     bool added = goodRoadEnd();
     isGoodRoad = false;
     tripValues.showMask = false;
+    if (added) tripValues.pointOfInterestIndex = pointsOfInterest.length - 1;
 
     if (!added && tripState != TripState.tracking) {
       tripState = tripValues.isEditing ? TripState.editing : TripState.manual;
     }
     MapService().createTripController!.update();
+    return added;
   }
 
   Future<void> requestPointOfInterest() async {

@@ -410,8 +410,11 @@ class CreateTripChips extends StatelessWidget {
   }
 
   Future<void> greatRoadEnd() async {
-    CurrentTripItem().requestGreatRoadEnd();
-    await _executeChipActions(tripActions: MyTripActions.addGoodRoadDetails);
+    // Only a great road with waypoints gets a description to fill in
+    bool described = CurrentTripItem().requestGreatRoadEnd();
+    await _executeChipActions(
+        tripActions:
+            described ? MyTripActions.addGoodRoadDetails : MyTripActions.none);
   }
 
   Future<void> reverseTrip() async {
@@ -499,8 +502,8 @@ class CreateTripChips extends StatelessWidget {
 
       case MyTripActions.startManual:
         try {
-          updateControllers(
-              items: BottomDrawerItems.trip, open: true, dock: true);
+          // Ready for the trip's details, but closed until they're needed
+          updateControllers(items: BottomDrawerItems.trip);
           CurrentTripItem().tripValues.manual();
           MapService().createTripStackController?.refresh();
           if (onUpdate != null) {
@@ -513,9 +516,12 @@ class CreateTripChips extends StatelessWidget {
         return;
 
       case MyTripActions.addPointOfInterest:
+        // Open at the new point of interest, for its details
         updateControllers(
           items: BottomDrawerItems.trip,
           open: true,
+          openPointOfInterest:
+              CurrentTripItem().tripValues.pointOfInterestIndex,
         );
 
         if (onUpdate != null) {
@@ -529,38 +535,39 @@ class CreateTripChips extends StatelessWidget {
         onUpdate!(MyTripActions.none);
         return;
 
-      /// May be able to combine this with .addPointOfInterest
+      // A great road just ended - open at its description, which like a
+      // point of interest needs a description and, ideally, photos
       case MyTripActions.addGoodRoadDetails:
         updateControllers(
-            items: BottomDrawerItems.goodRoad, open: true, dock: true);
+          items: BottomDrawerItems.trip,
+          open: true,
+          openPointOfInterest:
+              CurrentTripItem().tripValues.pointOfInterestIndex,
+        );
         onUpdate!(MyTripActions.none);
 
         return;
 
       case MyTripActions.showSteps:
-        updateControllers(
-            items: BottomDrawerItems.maneuvers, open: true, dock: true);
+        updateControllers(items: BottomDrawerItems.maneuvers, open: true);
         CurrentTripItem().tripActions = TripActions.none;
         onUpdate!(MyTripActions.none);
         return;
 
       case MyTripActions.showMessages:
-        updateControllers(
-            items: BottomDrawerItems.messages, open: true, dock: true);
+        updateControllers(items: BottomDrawerItems.messages, open: true);
         CurrentTripItem().tripActions = TripActions.none;
         onUpdate!(MyTripActions.none);
         return;
 
       case MyTripActions.showGroup:
-        updateControllers(
-            items: BottomDrawerItems.groups, open: true, dock: true);
+        updateControllers(items: BottomDrawerItems.groups, open: true);
         CurrentTripItem().tripActions = TripActions.none;
         onUpdate!(MyTripActions.none);
         return;
 
       case MyTripActions.follow:
-        updateControllers(
-            items: BottomDrawerItems.group, open: true, dock: true);
+        updateControllers(items: BottomDrawerItems.group, open: true);
         CurrentTripItem().tripActions = TripActions.none;
         setLocationUpdates();
         onUpdate!(MyTripActions.none);
@@ -587,9 +594,8 @@ class CreateTripChips extends StatelessWidget {
         return;
 
       default:
-        MapService()
-            .bottomDrawerController!
-            .setContent(content: BottomDrawerItems.trip);
+        // Keep the drawer's contents current, without opening it
+        updateControllers(items: BottomDrawerItems.trip);
         CurrentTripItem().tripActions = TripActions.none;
         onUpdate!(MyTripActions.none);
     }
@@ -601,7 +607,6 @@ class CreateTripChips extends StatelessWidget {
       MapService()
           .messageBoxController
           ?.message(message: Warning.headingIncomplete);
-      MapService().bottomDrawerController?.open();
       _getTripDescriptions();
       return;
     }
@@ -694,16 +699,29 @@ class CreateTripChips extends StatelessWidget {
     }
   }
 
+  /// Shows [items] in the drawer - the BottomDrawer on a phone, the
+  /// SideDrawer on the web - and opens it if [open]. The trip's drawer only
+  /// opens when there's something to fill in: a point of interest or great
+  /// road description just added ([openPointOfInterest]), or the trip's
+  /// details ([openHeader]); the drawer scrolls to it.
   void updateControllers(
-      {BottomDrawerItems? items, bool open = false, bool dock = false}) {
+      {BottomDrawerItems? items,
+      bool open = false,
+      int openPointOfInterest = -1,
+      bool openHeader = false}) {
     try {
       if (items != null) {
         if (kIsWeb) {
-          MapService()
-              .sideDrawerController!
-              .setContent(content: BottomDrawerItems.trip);
+          MapService().sideDrawerController!.setContent(
+              content: items,
+              openPointOfInterest: openPointOfInterest,
+              openHeader: openHeader);
         } else {
-          MapService().bottomDrawerController!.setContent(content: items);
+          MapService().bottomDrawerController!.setContent(
+              content: items,
+              open: open,
+              openPointOfInterest: openPointOfInterest,
+              openHeader: openHeader);
         }
       }
       if (open) {
@@ -713,22 +731,16 @@ class CreateTripChips extends StatelessWidget {
           MapService().bottomDrawerController!.open();
         }
       }
-      if (dock) {
-        if (kIsWeb) {
-          MapService().sideDrawerController!.scrollTo(index: 0);
-        }
-      }
     } catch (e) {
       developer.log('Error in updateControllers(): ${e.toString()}',
           name: 'error');
     }
   }
 
+  /// A save needs the trip's details - open the drawer at them
   void _getTripDescriptions() {
-    MapService()
-        .bottomDrawerController!
-        .setContent(content: BottomDrawerItems.trip);
-    MapService().bottomDrawerController!.open();
+    updateControllers(
+        items: BottomDrawerItems.trip, open: true, openHeader: true);
     CurrentTripItem().tripActions = TripActions.none;
   }
 

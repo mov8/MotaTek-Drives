@@ -59,7 +59,6 @@ class _CreateTripStackState extends State<CreateTripStack>
   StreamSubscription<Position>? _positionStream;
   late final FollowRoute _debugRoute;
   CurrentPosition _userPosition = CurrentPosition();
-  List tripItems = [];
   final List<Follower> _following = [];
   int _directionsIndex = 0;
   final bool _debugging = false; //true; //false; //true;
@@ -291,12 +290,6 @@ class _CreateTripStackState extends State<CreateTripStack>
             : TripState.manual;
       }
 
-      /// Put the default values back into the drawer after other is viewed and drawer is closed
-      if (tripItems.isNotEmpty) {
-        MapService().sideDrawerController!.setContent(
-            content: BottomDrawerItems.favourites,
-            drawerItems: tripItems as List<Widget>);
-      }
       if (MapService().sideDrawerController!.content ==
               BottomDrawerItems.settings &&
           MapService().sideDrawerController!.changed) {
@@ -329,41 +322,6 @@ class _CreateTripStackState extends State<CreateTripStack>
       return const Align(
         alignment: Alignment.topLeft,
       );
-    }
-  }
-
-  void updateControllers(
-      {BottomDrawerItems? items, bool open = false, bool dock = false}) {
-    try {
-      if (items != null) {
-        if (kIsWeb) {
-          MapService()
-              .sideDrawerController!
-              .setContent(content: BottomDrawerItems.trip);
-        } else {
-          MapService()
-              .bottomDrawerController!
-              .setContent(content: BottomDrawerItems.trip);
-        }
-      }
-      if (open) {
-        if (kIsWeb) {
-          MapService().sideDrawerController!.open(width: 0.4);
-        } else {
-          MapService()
-              .bottomDrawerController!
-              .setContent(content: BottomDrawerItems.trip);
-          MapService().bottomDrawerController!.open();
-        }
-      }
-      if (dock) {
-        if (kIsWeb) {
-          MapService().sideDrawerController!.scrollTo(index: 0);
-        }
-      }
-    } catch (e) {
-      developer.log('Error in updateControllers(): ${e.toString()}',
-          name: 'error');
     }
   }
 

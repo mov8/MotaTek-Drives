@@ -617,37 +617,6 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   ///   2: Point of Interest chip add a point of interest into list above & expand tile for details
   ///   3: Complete trip descriptions
 
-  void updateControllers(
-      {BottomDrawerItems? items, bool open = false, bool dock = false}) {
-    try {
-      if (items != null) {
-        if (kIsWeb) {
-          MapService()
-              .sideDrawerController!
-              .setContent(content: BottomDrawerItems.trip);
-        } else {
-          _bottomDrawerController.setContent(content: BottomDrawerItems.trip);
-        }
-      }
-      if (open) {
-        if (kIsWeb) {
-          MapService().sideDrawerController!.open(width: 0.4);
-        } else {
-          _bottomDrawerController.setContent(content: BottomDrawerItems.trip);
-          _bottomDrawerController.open();
-        }
-      }
-      if (dock) {
-        if (kIsWeb) {
-          MapService().sideDrawerController!.scrollTo(index: 0);
-        }
-      }
-    } catch (e) {
-      developer.log('Error in updateControllers(): ${e.toString()}',
-          name: 'error');
-    }
-  }
-
   Point chipPosition() {
     try {
       return Point(MapService().controller!.cameraPosition!.target.latitude,

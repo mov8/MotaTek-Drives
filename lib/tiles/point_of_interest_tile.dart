@@ -178,7 +178,8 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
     _expanded = false;
     _isNew = widget.pointOfInterest.name.isEmpty;
     _editing = canEdit && widget.pointOfInterest.complete() != 3;
-    if (_isNew && canEdit) {
+    // Only the point of interest just added is opened, ready to type its name
+    if (_isNew && canEdit && widget.expanded) {
       // After the first frame so the TextFormField is attached to fn1
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) fn1.requestFocus();
@@ -213,9 +214,12 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
 
   @override
   Widget build(BuildContext context) {
-    if (_editing ||
-        widget.pointOfInterest.name.isEmpty ||
-        widget.pointOfInterest.description.isEmpty) {
+    // Open while it's being filled in - only the one opened for its details
+    // (it used to open any incomplete point of interest)
+    if (widget.expanded &&
+        (_editing ||
+            widget.pointOfInterest.name.isEmpty ||
+            widget.pointOfInterest.description.isEmpty)) {
       _expandController.expand();
     } else if (_expanded == false) {
       // <-- only force a collapse if user taps tile

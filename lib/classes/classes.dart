@@ -9,6 +9,7 @@ export 'create_trip_chips.dart';
 export 'create_trip_cache.dart';
 export 'create_trip_fabs.dart';
 export 'directions.dart';
+export 'drawer_tiles.dart';
 export 'drive_invitations.dart';
 export 'fences.dart';
 export 'great_drives_cache.dart';

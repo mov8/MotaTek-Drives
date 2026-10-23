@@ -113,6 +113,14 @@ class _TripHeaderTileState extends State<TripHeaderTile> {
     _textEditingControllerTitle.text = CurrentTripItem().title;
     _textEditingControllerSubTitle.text = CurrentTripItem().subTitle;
     _textEditingControllerBody.text = CurrentTripItem().body;
+    // Opened for its details (a save needs them) - ready to type the name.
+    // It used to open itself, and take the keyboard, whenever the name or
+    // summary was empty.
+    if (widget.expanded) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) fn1.requestFocus();
+      });
+    }
   }
 
   @override
@@ -196,10 +204,6 @@ class _TripHeaderTileState extends State<TripHeaderTile> {
     _textEditingControllerTitle.text = CurrentTripItem().title;
     _textEditingControllerSubTitle.text = CurrentTripItem().subTitle;
     _textEditingControllerBody.text = CurrentTripItem().body;
-    if (CurrentTripItem().title.isEmpty || CurrentTripItem().subTitle.isEmpty) {
-      _expandController.expand();
-    }
-    fn1.requestFocus();
     return RrExpansionTile(
         context: context,
         child: ExpansionTile(

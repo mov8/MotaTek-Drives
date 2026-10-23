@@ -67,9 +67,14 @@ class SideDrawerController {
   /// 1 The list list of published drives for Great Drives
   /// 2 The CurrentTripItem() for My Trip
 
+  ///
+  /// The trip being planned: [openPointOfInterest] is the one to open for
+  /// its details - just added - and [openHeader] opens the trip's details.
   Future<void> setContent({
     required BottomDrawerItems content,
     List? drawerItems,
+    int openPointOfInterest = -1,
+    bool openHeader = false,
   }) async {
     drawerItems ??= [];
 
@@ -78,6 +83,8 @@ class SideDrawerController {
         _sideDrawerState?.setContent(
           content: content,
           drawerItems: drawerItems,
+          openPointOfInterest: openPointOfInterest,
+          openHeader: openHeader,
         );
       } catch (e) {
         developer.log(
@@ -192,6 +199,7 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
   bool _offerRestore = false;
 
   final GlobalKey _animatedContainerKey = GlobalKey();
+  final GlobalKey _scrollKey = GlobalKey(); // the tile open for its details
   final PointOfInterestController _pointOfInterestController =
       PointOfInterestController();
   final TripHeaderController _tripHeaderController = TripHeaderController();
@@ -276,13 +284,20 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
   };
   bool _singleForm = false;
 
+  int _openPointOfInterest = -1;
+  bool _openHeader = false;
+
   Future<void> setContent({
     required BottomDrawerItems content,
     List? drawerItems,
+    int openPointOfInterest = -1,
+    bool openHeader = false,
   }) async {
     drawerItems ??= [];
     try {
       _content = content;
+      _openPointOfInterest = openPointOfInterest;
+      _openHeader = openHeader;
       _drawerItems = drawerItems;
       _offerRestore = false; // default state
       switch (content) {
@@ -311,10 +326,6 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
           break;
         case BottomDrawerItems.cached:
           _tiles = _screenCache;
-          break;
-        case BottomDrawerItems.goodRoad:
-          _tiles = shredPointsOfInterest(type: 13);
-          _offerRestore = true;
           break;
         case BottomDrawerItems.drives:
           _tiles = shredTrips();
@@ -674,90 +685,31 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
   }
 
   List<Widget> shredCurrentTripItemData() {
-    List<Widget> tiles = [];
-    int j = 0;
-    if (_content == BottomDrawerItems.trip) {
-      tiles.add(
-        Padding(
-          key: Key('th1'),
-          padding: EdgeInsetsGeometry.fromLTRB(5, 5, 5, 5),
-          child: TripHeaderTile(
-            key: Key('tht_1'),
-            index: 0,
-            controller: _tripHeaderController,
-            tripItem: CurrentTripItem(),
-            expanded: false, //!headerComplete,
-            appState: CurrentTripItem().appState,
-            onUpdate: (complete) => headingComplete(complete),
-          ),
-        ),
-      );
-
-      for (int i = 0; i < CurrentTripItem().pointsOfInterest.length; i++) {
-        if (![
-          12,
-          14,
-          17,
-          18
-        ] // <-- exclude waypoint, great road start, start & end
-            .contains(CurrentTripItem().pointsOfInterest[i].type)) {
-          tiles.add(
-            Padding(
-              padding: EdgeInsetsGeometry.fromLTRB(5, 5, 5, 5),
-              key: Key('poi$i'),
-              child: PointOfInterestTile(
-                key: Key('poit_${j++}'),
-                index: i, // ndex,
-                listIndex: j++,
-                expanded: false, //!complete || selected == i,
-                pointOfInterest: CurrentTripItem().pointsOfInterest[i],
-                imageRepository: imageRepository,
-                onUpdate: pointOfInterestComplete,
-                onDelete: (index, lIndex) =>
-                    pointOfInterestDelete(index, lIndex),
-                driveId: CurrentTripItem().driveUri,
-              ),
-            ),
-          );
-        }
-      }
+    if (_content != BottomDrawerItems.trip) return [];
+    if (_openPointOfInterest >= 0 || _openHeader) {
+      // Scroll to the tile that's open for its details
+      int index = _openHeader ? 0 : tripPlanTileIndex(_openPointOfInterest);
+      WidgetsBinding.instance
+          .addPostFrameCallback((_) => scrollTo(index: index));
     }
-    return tiles;
-  }
-
-  List<Widget> shredPointsOfInterest({int type = -1}) {
-    List<Widget> tiles = [];
-    int j = 0;
-    for (int i = 0; i < CurrentTripItem().pointsOfInterest.length; i++) {
-      if ((![12, 14, 17, 18]
-                  .contains(CurrentTripItem().pointsOfInterest[i].type) &&
-              type == -1) ||
-          CurrentTripItem().pointsOfInterest[i].type == type) {
-        tiles.add(
-          Padding(
-            padding: EdgeInsetsGeometry.fromLTRB(5, 5, 5, 5),
-            key: Key('poi$i'),
-            child: PointOfInterestTile(
-              key: Key('poi$i'), // UniqueKey(),
-              index: i,
-              listIndex: j++,
-              controller: _pointOfInterestController,
-              pointOfInterest: CurrentTripItem().pointsOfInterest[i],
-              imageRepository: imageRepository,
-              driveId: CurrentTripItem().driveUri,
-              onDelete: (index, lIndex) => pointOfInterestDelete(index, lIndex),
-              onUpdate: pointOfInterestComplete,
-            ),
-          ),
-        );
-      }
-    }
-    return tiles;
+    return tripPlanTiles(
+      openPointOfInterest: _openPointOfInterest,
+      openHeader: _openHeader,
+      openKey: _scrollKey,
+      headerController: _tripHeaderController,
+      pointOfInterestController: _pointOfInterestController,
+      imageRepository: imageRepository,
+      onHeaderUpdate: headingComplete,
+      onPointOfInterestUpdate: pointOfInterestComplete,
+      onDelete: pointOfInterestDelete,
+    );
   }
 
   void pointOfInterestDelete(int index, int lIndex) {
     CurrentTripItem().removePointOfInterest(index);
     setState(() => _tiles.removeAt(lIndex));
+    // Like the BottomDrawer - closes once only the trip's details are left
+    if (_tiles.length < 2) close();
   }
 
   void headingComplete(bool complete) {
