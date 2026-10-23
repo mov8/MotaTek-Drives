@@ -56,7 +56,8 @@ class Messages extends StatefulWidget {
 
 class _MessagesState extends State<Messages> {
   final GlobalKey _scaffoldKey = GlobalKey();
-  late final Future<bool> _dataLoaded;
+  // The conversations, or the selected conversation's messages
+  late Future<bool> _dataLoaded;
   List<MailItem> _mailItems = [];
   List<Message> _messages = [];
   late int _tileSelected; // = -1;
@@ -127,13 +128,12 @@ class _MessagesState extends State<Messages> {
       return true;
     } else {
       try {
-        if (_mailItems[_tileSelected].isGroup) {
-          _messages = await getGroupMessages(_mailItems[_tileSelected].id);
-          return true;
-        } else {
-          _messages = await getUserMessages(_mailItems[_tileSelected].id);
-          return true;
-        }
+        _messages = _mailItems[_tileSelected].isGroup
+            ? await getGroupMessages(_mailItems[_tileSelected].id)
+            : await getUserMessages(_mailItems[_tileSelected].id);
+        // The last message is the one the user writes
+        appendEmptyMessage();
+        return true;
       } catch (e) {
         developer.log('Error message_detail.dart getMessages() ${e.toString()}',
             name: 'error');
@@ -206,7 +206,11 @@ class _MessagesState extends State<Messages> {
               if (mounted) setState(() => _tileSelected = -1);
             },
           );
-      setState(() => _tileSelected = index);
+      // Load the conversation's messages - the summaries are already here
+      setState(() {
+        _tileSelected = index;
+        _dataLoaded = getMessages();
+      });
     }
   }
 
