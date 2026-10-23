@@ -171,6 +171,24 @@ class MapService {
   /// now been moved to this singleton.
   ///   It controls the map, the SideDrawer, and the BottomDrawer
   ///   It fetches the data from the API either directly or through a cache
+  /// Pans the map so a point is in the middle of the part of the map that's
+  /// showing - above the BottomDrawer on a phone, right of the SideDrawer on
+  /// the web (both cover part of the map), e.g. the start of a trip
+  void showInView(LatLng point) {
+    if (controller == null) return;
+    // Degrees of longitude per logical pixel (512px tiles), and of latitude
+    // near this latitude
+    double zoom = controller!.cameraPosition?.zoom ?? 12;
+    double lngPerPixel = 360 / (512 * pow(2, zoom));
+    double latPerPixel = lngPerPixel * cos(point.latitude * pi / 180);
+    double dx = kIsWeb ? -(sideDrawerController?.getWidth() ?? 0) / 2 : 0;
+    double dy = kIsWeb ? 0 : (bottomDrawerController?.getHeight() ?? 0) / 2;
+    controller!.animateCamera(
+        CameraUpdate.newLatLng(LatLng(point.latitude - dy * latPerPixel,
+            point.longitude + dx * lngPerPixel)),
+        duration: const Duration(seconds: 1));
+  }
+
   /// Switches the map page's mode - Published (1) or Explore (2) - once the
   /// map and its style are ready. They're the same page, so this is what
   /// tells them apart.
@@ -769,6 +787,22 @@ class MapService {
       // var point = Point(tap.x.toDouble(), tap.y.toDouble());
       foundFeatures = await controller!
           .queryRenderedFeatures(tap, ["route-marker-layer"], null);
+      // A trip's label - its trip is in its properties
+      if (foundFeatures.isNotEmpty) {
+        String uri = '${foundFeatures.first['properties']?['uri'] ?? ''}';
+        if (kIsWeb) {
+          sideDrawerController?.showTrip(uri);
+        } else {
+          bottomDrawerController?.showTrip(uri);
+        }
+        // Keep the trip in view beside the drawer that's just opened - the
+        // label's first point is the start of the trip
+        List points = foundFeatures.first['geometry']?['coordinates'] ?? [];
+        if (points.isNotEmpty && points.first is List) {
+          WidgetsBinding.instance.addPostFrameCallback((_) => showInView(
+              LatLng(points.first[1].toDouble(), points.first[0].toDouble())));
+        }
+      }
     } catch (e) {
       developer.log(
           'Error MapService() _tripsOnTap() error ${e.toString} - features: ${foundFeatures.toString()}',

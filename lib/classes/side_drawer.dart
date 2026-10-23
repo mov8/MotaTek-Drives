@@ -41,6 +41,10 @@ class SideDrawerController {
     }
   }
 
+  /// Published: opens the drawer at a trip's tile, expanded - e.g. when its
+  /// label on the map is tapped
+  void showTrip(String uri) => _sideDrawerState?.showTrip(uri);
+
   void scrollTo({int index = -1}) {
     try {
       _sideDrawerState?.scrollTo(index: index);
@@ -196,8 +200,6 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
   BottomDrawerItems _content = BottomDrawerItems.none;
   final Directions _directions = Directions();
 
-  late final RotatingIconController _rotatingIconController;
-
   late final ImageRepository imageRepository;
 
   bool _changed = false;
@@ -213,7 +215,6 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
       widget.controller!._addState(this);
     }
     imageRepository = widget.imageRepository ?? ImageRepository();
-    _rotatingIconController = RotatingIconController();
   }
 
   void close() {
@@ -424,6 +425,21 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
     }
   }
 
+  String _openTripUri = ''; // the published trip whose tile is open
+
+  void showTrip(String uri) {
+    if (_content != BottomDrawerItems.drives) return;
+    int index = (_drawerItems ?? []).indexWhere((trip) => trip.uri == uri);
+    if (index < 0) return;
+    _openTripUri = uri;
+    setState(() {
+      _tiles = shredTrips();
+      width = _mapWidth * 0.4;
+      _visible = true;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => scrollTo(index: index));
+  }
+
   List<Widget> shredTrips() {
     List<Widget> tiles = [];
 
@@ -431,8 +447,12 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
       for (int i = 0; i < _drawerItems!.length; i++) {
         tiles.add(
           TripTile(
+            // A new tile when it opens - expanded only takes effect then
+            key: ValueKey(
+                '${_drawerItems![i].uri}${_drawerItems![i].uri == _openTripUri}'),
             index: i,
             tripItem: _drawerItems![i],
+            expanded: _drawerItems![i].uri == _openTripUri,
             imageRepository: imageRepository,
           ),
         );
@@ -772,9 +792,6 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
     } catch (e) {
       developer.log('Error side_drawer.open(): ${e.toString()}', name: 'error');
     }
-    if (!_rotatingIconController.rotated) {
-      _rotatingIconController.rotate();
-    }
   }
 
   void setWidth({double width = 0}) {
@@ -896,14 +913,17 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
                       height: mapHeight,
                       child: Padding(
                         padding: EdgeInsetsGeometry.fromLTRB(0, 0, 0, 0),
-                        child: RotatingIcon(
-                          icon: Icon(
+                        // Points the way the drawer will go - right to open,
+                        // left to close. It follows the width, so it can't
+                        // get out of step however the drawer was moved.
+                        child: AnimatedRotation(
+                          turns: width > 20 ? 0.5 : 0,
+                          duration: const Duration(milliseconds: 300),
+                          child: Icon(
                             Icons.arrow_circle_right_outlined,
                             size: dividerWidth,
                             color: Colors.blueAccent,
                           ),
-                          controller: _rotatingIconController,
-                          size: dividerWidth,
                         ),
                       ),
                     ),
@@ -915,14 +935,7 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
                     if (widget.onOpened != null) {
                       widget.onOpened!(width > 10);
                     }
-                    setState(() {
-                      width = width > 10 ? 0 : _openWidth;
-                      if (width == 0 && _rotatingIconController.rotated ||
-                          width > 0 && !_rotatingIconController.rotated) {
-                        _rotatingIconController.rotate();
-                      }
-                    });
-                    debugPrint('onTap: => width: $width');
+                    setState(() => width = width > 10 ? 0 : _openWidth);
                   },
                   onHorizontalDragUpdate: (DragUpdateDetails details) {
                     if (delay > 1) setContentSide();
@@ -933,11 +946,6 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
                           : _maxWidth;
                       if (widget.onChangeWidth != null) {
                         widget.onChangeWidth!(width);
-                      }
-                      if (width < 50) {}
-                      if (width <= 20 && _rotatingIconController.rotated ||
-                          width > 20 && !_rotatingIconController.rotated) {
-                        _rotatingIconController.rotate();
                       }
                     });
                   },

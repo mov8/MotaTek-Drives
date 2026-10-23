@@ -3,6 +3,8 @@ import '/classes/classes.dart'; //   my_trip_item.dart';
 import '/constants.dart';
 import '/helpers/edit_helpers.dart';
 import 'dart:developer' as developer;
+import 'package:maplibre_gl/maplibre_gl.dart' show LatLng;
+import '/services/services.dart';
 
 class TripHeaderController {
   _TripHeaderTileState? _tripHeaderTileState;
@@ -181,6 +183,14 @@ class _TripHeaderTileState extends State<TripHeaderTile> {
   /// set the focus for the next TextFormField using RequestFocus()
   /// According to Gemini TextAction.Next / Done is "fragile"
 
+  void _showStart() {
+    var routes = widget.tripItem.routes;
+    if (routes.isNotEmpty && routes.first.lines.isNotEmpty) {
+      List start = routes.first.lines.first;
+      MapService().showInView(LatLng(start[1].toDouble(), start[0].toDouble()));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     _textEditingControllerTitle.text = CurrentTripItem().title;
@@ -200,6 +210,10 @@ class _TripHeaderTileState extends State<TripHeaderTile> {
           backgroundColor: Colors.white,
           title: Text('Trip details'),
           initiallyExpanded: widget.expanded, //_initiallyExpanded,
+          // Shows the start of the trip being planned
+          onExpansionChanged: (expanded) {
+            if (expanded) _showStart();
+          },
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),

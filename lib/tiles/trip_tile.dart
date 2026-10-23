@@ -1,5 +1,3 @@
-import 'dart:math';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import '/classes/classes.dart';
@@ -45,6 +43,12 @@ class _TripTileState extends State<TripTile> {
   void initState() {
     super.initState();
     expanded = widget.expanded!;
+    if (expanded) {
+      // e.g. opened by tapping its label on the map
+      getDetails().then((_) {
+        if (mounted) setState(() {});
+      });
+    }
     photos = photosFromJson(
       photoString: widget.tripItem.imageUrls,
       endPoint: '${widget.tripItem.uri}/',
@@ -68,29 +72,12 @@ class _TripTileState extends State<TripTile> {
     }
   }
 
-  /// Pans the map to the start of the trip, placing it in the middle of
-  /// the part of the map that's showing - above the BottomDrawer on a phone,
-  /// right of the SideDrawer on the web (both cover part of the map)
+  /// Pans the map to the start of the trip - from its line on the map
   void _showStart() {
     List start = widget.tripItem.startPoint;
-    MapLibreMapController? controller = MapService().controller;
-    if (start.length < 2 || controller == null) return;
-    double lat = start[1].toDouble();
-    double lng = start[0].toDouble();
-    // Degrees of longitude per logical pixel (512px tiles), and of latitude
-    // near this latitude
-    double zoom = controller.cameraPosition?.zoom ?? 12;
-    double lngPerPixel = 360 / (512 * pow(2, zoom));
-    double latPerPixel = lngPerPixel * cos(lat * pi / 180);
-    double dx =
-        kIsWeb ? -(MapService().sideDrawerController?.getWidth() ?? 0) / 2 : 0;
-    double dy = kIsWeb
-        ? 0
-        : (MapService().bottomDrawerController?.getHeight() ?? 0) / 2;
-    controller.animateCamera(
-        CameraUpdate.newLatLng(
-            LatLng(lat - dy * latPerPixel, lng + dx * lngPerPixel)),
-        duration: const Duration(seconds: 1));
+    if (start.length >= 2) {
+      MapService().showInView(LatLng(start[1].toDouble(), start[0].toDouble()));
+    }
   }
 
   getDetails() async {

@@ -156,6 +156,10 @@ class DrivesRequest {
                     starts['${jsonData['features'][i]['id']}'] ?? const []);
               jsonData['features'][i]['properties']['color'] =
                   Setup().routeColourHex();
+              // The label's trip - MapLibre on the web replaces text feature
+              // ids with numbers, so a tapped label needs it here
+              jsonData['features'][i]['properties']['uri'] =
+                  '${jsonData['features'][i]['id']}';
               if (!_3DCache["cache"][zLevel]["exclude"]
                   .contains(jsonData['features'][i]['id'])) {
                 _3DCache["cache"][zLevel]["exclude"]

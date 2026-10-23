@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import '/helpers/edit_helpers.dart';
 import '../services/services.dart';
 
@@ -187,7 +188,18 @@ class ScreensAppBarBottom extends StatelessWidget
             padding: EdgeInsets.fromLTRB(5, 10, 5, 10),
             child: Row(
               children: [
-                if (leadingButton != null) leadingButton!,
+                if (leadingButton != null)
+                  leadingButton!
+                else if (kIsWeb)
+                  // On the web these forms are shown in the SideDrawer, where
+                  // there's no page to go back from - close puts the page's
+                  // own content back
+                  IconButton(
+                    icon: Icon(Icons.close, color: textColor),
+                    tooltip: 'Close',
+                    onPressed: () =>
+                        MapService().baseShellController?.refillSideDrawer(),
+                  ),
                 Expanded(
                   flex: 10,
                   child: Align(
@@ -232,7 +244,9 @@ class ScreensAppBarBottom extends StatelessWidget
               ],
             ),
           ),
-          if (content != null) content!,
+          // The rest of the drawer - the content used to size itself to the
+          // window and ran off the bottom
+          if (content != null) Expanded(child: content!),
         ],
       ),
     );
@@ -259,10 +273,10 @@ class ScreensAppBarBottom extends StatelessWidget
       // 1. Find the position of the button on the screen
       final RenderBox button =
           _menuButtonKey.currentContext!.findRenderObject() as RenderBox;
-      final RenderBox overlay = NavigationService()
-          .key
-          .currentContext!
-          .findRenderObject() as RenderBox;
+      // Its own context finds the overlay - the uiKey it used belonged to the
+      // old shell, so the menu never opened
+      final RenderBox overlay =
+          Overlay.of(context).context.findRenderObject() as RenderBox;
       // Calculate the position for the menu to appear
       final RelativeRect position = RelativeRect.fromRect(
         Rect.fromPoints(
@@ -276,9 +290,7 @@ class ScreensAppBarBottom extends StatelessWidget
       // 2. Use showMenu with the ROOT navigator's context
       await showMenu<String>(
         constraints: BoxConstraints(minWidth: 250),
-        context: NavigationService()
-            .uiKey
-            .currentContext!, // BREAK OUT: Use the main navigator!
+        context: context,
         position: position,
         items: overflowPrompts!
             .map<PopupMenuEntry<String>>(

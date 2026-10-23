@@ -26,7 +26,6 @@ export 'notifiers.dart';
 export 'other_classes.dart';
 export 'photo_carousel.dart';
 export 'preferences.dart';
-export 'rotating_icon.dart';
 export 'route.dart';
 export 'routes_bottom_nav.dart';
 export 'screens_appbar.dart';

@@ -56,6 +56,10 @@ class BottomDrawerController {
 
   /// open: false changes what's in the drawer without opening it - e.g.
   /// the published trips, which arrive whenever the map moves
+  /// Published: opens the drawer at a trip's tile, expanded - e.g. when its
+  /// label on the map is tapped
+  void showTrip(String uri) => _bottomDrawerState?.showTrip(uri);
+
   void setContent(
       {BottomDrawerItems content = BottomDrawerItems.trip,
       List? drawerItems,
@@ -241,14 +245,31 @@ class _BottomDrawerState extends State<BottomDrawer>
     }
   }
 
+  String _openTripUri = ''; // the published trip whose tile is open
+
+  void showTrip(String uri) {
+    if (_content != BottomDrawerItems.drives) return;
+    int index = (_drawerItems ?? []).indexWhere((trip) => trip.uri == uri);
+    if (index < 0) return;
+    _openTripUri = uri;
+    setContent(BottomDrawerItems.drives, _drawerItems);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_itemScrollController.isAttached) scrollTo(index: index);
+    });
+  }
+
   List<Widget> shredTrips() {
     List<Widget> tiles = [];
     if (_drawerItems!.isNotEmpty) {
       for (int i = 0; i < _drawerItems!.length; i++) {
         tiles.add(
           TripTile(
+            // A new tile when it opens - expanded only takes effect then
+            key: ValueKey(
+                '${_drawerItems![i].uri}${_drawerItems![i].uri == _openTripUri}'),
             index: i,
             tripItem: _drawerItems![i],
+            expanded: _drawerItems![i].uri == _openTripUri,
             imageRepository: ImageRepository(),
           ),
         );
@@ -635,8 +656,10 @@ class _BottomDrawerState extends State<BottomDrawer>
               // Locks the drawer to exactly 45% of whatever screen height they have
               maxHeight: MediaQuery.of(context).size.height * 0.45,
             ),
-            child: ListView.builder(
+            // Can scroll to a tile - e.g. a trip tapped on the map
+            child: ScrollablePositionedList.builder(
                 shrinkWrap: true,
+                itemScrollController: _itemScrollController,
                 itemCount: _tiles.length,
                 itemBuilder: (context, index) => _tiles[index]),
           ),
