@@ -97,7 +97,6 @@ class _GroupTileState extends State<GroupTile> {
   double cardElevation = 0;
   final List<String> dropdownOptions = [];
   int _memberCount = 0;
-  late GroupMemberState _groupMemberState = GroupMemberState.none;
   final ExpansibleController _expansibleController = ExpansibleController();
 
   @override
@@ -221,11 +220,9 @@ class _GroupTileState extends State<GroupTile> {
       if (widget.onAdd != null) {
         widget.onAdd!(1);
       }
-      _groupMemberState = GroupMemberState.none;
       widget.group.edited = true;
     }
     setState(() {
-      _groupMemberState = GroupMemberState.none;
       _addMember = false;
       _isNewGroup = false;
     });
@@ -239,7 +236,6 @@ class _GroupTileState extends State<GroupTile> {
       widget.onCancel!(widget.index);
     }
     setState(() {
-      _groupMemberState = GroupMemberState.none;
       _addMember = false;
     });
   }
@@ -263,7 +259,6 @@ class _GroupTileState extends State<GroupTile> {
   void addMember() {
     setState(() {
       _addMember = true;
-      _groupMemberState = GroupMemberState.isNew;
       if (widget.onAdd != null) {}
     });
   }

@@ -58,32 +58,21 @@ class _CreateTripStackState extends State<CreateTripStack>
     with TickerProviderStateMixin {
   late Future<bool> _dataLoaded;
   // TripArguments? _tripArguments;
-  final LeadingWidgetController _leadingWidgetController =
-      LeadingWidgetController();
   // final CreateTripController _createTripController = CreateTripController();
   final DirectionTileController _directionTileController =
       DirectionTileController();
   // final RoutesBottomNavController _bottomNavController =
   //    RoutesBottomNavController();
 
-  final ImageRepository _imageRepository = ImageRepository();
   StreamSubscription<Position>? _positionStream;
   late final FollowRoute _debugRoute;
   CurrentPosition _userPosition = CurrentPosition();
-  late final StreamController<Position> _debugPositionController;
-  late Position _currentPosition;
-  PositionUpdate _positionUpdate = PositionUpdate();
   List tripItems = [];
   final List<Follower> _following = [];
   int _directionsIndex = 0;
-  bool _resized = false;
   final bool _debugging = false; //true; //false; //true;
-  final String _debuggingRoute = '';
-  double _speed = 0.0;
 
   int positionUpdates = 0;
-
-  late int _warningIndex;
 
   final MessageBox _messageBox =
       MessageBox(controller: MapService().messageBoxController);
@@ -121,10 +110,10 @@ class _CreateTripStackState extends State<CreateTripStack>
     //if (index < 0) {
     //  MapService().fabsController?.show();
     //} else {
-    setState(() => _warningIndex = index);
+    setState(() {});
     //  setState(() => MapService().fabsController?.hide());
     await Future.delayed(const Duration(seconds: 15));
-    setState(() => _warningIndex = -1);
+    setState(() {});
     //  setState(() => MapService().fabsController?.show);
     //}
   }
@@ -232,7 +221,6 @@ class _CreateTripStackState extends State<CreateTripStack>
                     ),
                   );
                 } else {
-                  bool ready = snapshot.hasData;
                   return SizedBox.shrink();
                 }
               },
@@ -396,8 +384,6 @@ class _CreateTripStackState extends State<CreateTripStack>
             _positionStream =
                 Geolocator.getPositionStream(locationSettings: locationSettings)
                     .listen((position) {
-              _currentPosition = position;
-              _speed = _currentPosition.speed * 3.6 / 8 * 5; // M/S -> MPH
               if (CurrentTripItem().tripState == TripState.tracking) {
                 updateUserPosition(CurrentPosition(position: position));
               }
@@ -536,7 +522,6 @@ class _CreateTripStackState extends State<CreateTripStack>
   }
 
   void updatePosition(Position position) async {
-    _currentPosition = position;
     _userPosition = CurrentPosition(position: position);
     CurrentTripItem().tripValues.position = _userPosition.point;
     position.speed * metersPerSecondToMPH; //* 3.6 / 8 * 5; // M/S -> MPH
@@ -638,11 +623,6 @@ class _CreateTripStackState extends State<CreateTripStack>
         CurrentTripItem().tripState == TripState.tracking) {
       double travelled = getDistanceBetween(
           startXY: _userPosition.point, endXY: position.point);
-      _speed = position.speed.toDouble();
-      _positionUpdate = PositionUpdate(
-        controller: MapService().controller!, // as MapLibreMapController,
-        routePoint: position.list,
-      );
       if (travelled > 1000) {
         CurrentTripItem().newWaypoint(point: position.point);
       }
@@ -672,7 +652,6 @@ class _CreateTripStackState extends State<CreateTripStack>
   void handleDebugStream(
       Position position, FollowRoute debugRoute, List<Follower> following) {
     LatLng pos = LatLng(position.latitude, position.longitude);
-    _speed = 43.0;
     CurrentTripItem().tripValues.heading = angleFromPoints(point1: [
       CurrentTripItem().tripValues.lastPosition.x.toDouble(),
       CurrentTripItem().tripValues.lastPosition.y.toDouble()

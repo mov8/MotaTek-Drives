@@ -171,7 +171,6 @@ class Progress {
 }
 
 class CurrentTripItem extends MyTripItem {
-  CurrentTripItem._privateConstructor();
   bool isSaved = false;
 
   /// The trip as it was when last saved or loaded - see markSaved()
@@ -1772,13 +1771,6 @@ class CurrentTripItem extends MyTripItem {
       MapService().updateMapGeoJson(mapUpdates: mapUpdates);
       // Great roads aren't in the route's undo history
       goodRoads = await replaceRoutes(routes: goodRoads, updateBuffer: false);
-      List? lastPoint;
-      if (goodRoads.isNotEmpty) {
-        if (goodRoads.last.lines.isNotEmpty) {
-          lastPoint = goodRoads.last.lines.last;
-          goodRoads.last.lines = goodRoads.last.lines;
-        }
-      }
       isSaved = false;
     } catch (e) {
       developer.log('Error: ${e.toString()}', name: 'error');
@@ -1938,7 +1930,7 @@ class CurrentTripItem extends MyTripItem {
           newManeuvers.last.type = 'arrive';
           newManeuvers.last.point = routes.last.waypoints.last.point;
           maneuvers = isGoodRoad ? maneuvers : newManeuvers;
-          List<PointOfInterest> pointsOfInterest = reorderWaypoints(
+          reorderWaypoints(
             revisit: revisit,
           );
         } else {
@@ -2372,7 +2364,6 @@ class MyTripItem extends TripItem {
       }
     }
 */
-    List<Waypoint> waypoints = [];
     MyTripItem tripItem = MyTripItem();
     try {
       tripItem = MyTripItem(
@@ -2538,10 +2529,6 @@ class MyTripItem extends TripItem {
   }
 
   // publish(this);
-
-  _publish() {
-    return;
-  }
 
   String getPublishedDate({String noPrompt = ''}) {
     return added == '' ? noPrompt : added;

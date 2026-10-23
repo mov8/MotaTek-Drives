@@ -39,9 +39,7 @@ class _MyTripTileState extends State<MyTripTile> {
   @override
   void initState() {
     super.initState();
-    if (MapService().controller == null) {
-      MapLibreMap map = MapService().mlMap!;
-    }
+    if (MapService().controller == null) {}
   }
 
   @override
@@ -470,9 +468,6 @@ class _MyTripTileState extends State<MyTripTile> {
     CurrentTripItem().tripType = TripType.none;
     CurrentTripItem().updateMap = true;
     CurrentTripItem().mapUpdates = MapUpdates.updateAll;
-    LatLng startLatLng = LatLng(
-        CurrentTripItem().pointsOfInterest[0].point.y.toDouble(),
-        CurrentTripItem().pointsOfInterest[0].point.x.toDouble());
 
     try {
       LatLng position = LatLng(

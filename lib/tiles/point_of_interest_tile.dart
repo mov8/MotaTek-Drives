@@ -173,8 +173,6 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
 
   int promptIndex = 1;
 
-  bool _menuExists = false;
-  final GlobalKey _menuButtonKey = GlobalKey();
   IconData _typeIcon = Icons.ac_unit;
   String _typeName = '';
   bool _expanded = false;
@@ -620,45 +618,6 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
         if (mounted) fn2.requestFocus();
       });
     }
-  }
-
-  void _showCustomMenu(BuildContext context) async {
-    if (!_menuExists) {
-      _menuExists = true;
-      // 1. Find the position of the button on the screen
-      final RenderBox button =
-          _menuButtonKey.currentContext!.findRenderObject() as RenderBox;
-
-      final RenderBox overlay = NavigationService()
-          .key
-          .currentContext!
-          .findRenderObject() as RenderBox;
-      // Calculate the position for the menu to appear
-      final RelativeRect position = RelativeRect.fromRect(
-        Rect.fromPoints(
-          // button.localToGlobal(Offset.zero, ancestor: overlay),
-          button.localToGlobal(Offset(10, 0), ancestor: overlay),
-          button.localToGlobal(
-              button.size.bottomRight(Offset(10, 0)), // .zero),
-              ancestor: overlay),
-          /*    button.localToGlobal(
-              button.size.bottomRight(Offset(500, 0)), // .zero),
-              ancestor: overlay), */
-        ),
-        Offset(200, 0) /*.zero */ & overlay.size,
-      );
-      // 2. Use showMenu with the ROOT navigator's context
-      final String? selected = await showMenu<String>(
-        constraints: BoxConstraints(minWidth: 250),
-        context: /* context, */
-            NavigationService()
-                .key
-                .currentContext!, // BREAK OUT: Use the main navigator!
-        position: RelativeRect.fromLTRB(10, 100, 0, 0), // position,
-        items: getPopupMenuItems().toList(),
-      );
-    }
-    _menuExists = false;
   }
 
   List<PopupMenuEntry<String>> getPopupMenuItems() {

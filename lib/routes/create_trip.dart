@@ -219,8 +219,6 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   final GlobalKey mapKey = GlobalKey();
   final GlobalKey _scaffoldKey = GlobalKey();
   final GlobalKey _appBarKey = GlobalKey();
-  final GlobalKey _bottomNavKey = GlobalKey();
-  final GlobalKey<ScaffoldState> _scrollKey = GlobalKey();
 
   DateFormat dateFormat = DateFormat('dd/MM/yy HH:mm');
   List<double> mapHeights = [0, 0, 0, 0];
@@ -228,7 +226,6 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   final start = TextEditingController();
   final end = TextEditingController();
 
-  late final RoutesBottomNavController _bottomNavController; // =
   //late final SideDrawerController
   //    _sideDrawerController; // = SideDrawerController();
   final GroupMessagesController groupMessagesController =
@@ -242,12 +239,8 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   int type = -1;
   int _directionsIndex = 0;
   double iconSize = 35;
-  double _mapRotation = 0;
   StreamSubscription<Position>? _positionStream;
-  late Future<bool> _loadedOK;
   // late Future<bool> _groupChecked;
-  bool _showMask = false;
-  bool _osmIncludingChange = false;
   late FocusNode fn1;
   late ui.Size screenSize;
   late ui.Size appBarSize;
@@ -257,13 +250,8 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   // int CurrentTripItem().tripValues.pointOfInterestIndex = -1;
   late Position _currentPosition;
   CurrentPosition _userPosition = CurrentPosition();
-  int positionUpdates = 0;
-  PositionUpdate _positionUpdate = PositionUpdate();
-  bool _resized = false;
-  bool _styleLoaded = false;
 //  bool _repainted = false;
   // DateTime _start = DateTime.now();
-  double _speed = 0.0;
   int insertAfter = -1;
   int _poiDetailIndex = -1;
   var moveDelay = const Duration(seconds: 2);
@@ -273,22 +261,17 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   // late LocationSettings _locationSettings;
   late final StreamController<double?> _alignPositionStreamController;
   late final StreamController<void> _alignDirectionStreamController;
-  late final LeadingWidgetController _leadingWidgetController;
   late final DirectionTileController _directionTileController;
   late final StreamController<Position> _debugPositionController;
   late final FollowRoute _debugRoute;
   // late final SideDrawer _sideDrawer;
   int initialLeadingWidgetValue = 0;
-  final List<Place> _places = [];
   String wpId = '';
   String grId = '';
   // late final MLMap _mapLibreMap;
   String images = '';
   String mapStyle = '';
 
-  int _triggered = 0;
-  int _onIdleCalled = 0;
-  int _webAppBarSelected = 0;
   final bool _debugging = false; //true; //false; //true;
   final String _debuggingRoute = ''; // 'Debug'; // ''; //'Debug';
 
@@ -303,15 +286,12 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
     'autoConnect': false, // Prevent auto-connection
   });
 
-  late String _title;
   // TripRequest? _tripRequest;
   // Point _mapMiddle = Point(0, 0);
   // Size _mapSize = Size(0, 0);
-  bool _idleCalled = false;
   //  Point _pointAtCentre = Point(0, 0);
   // late MapLibreMap mlMap;
   final ImageRepository _imageRepository = ImageRepository();
-  late final Future<bool> _dataLoaded;
 /*
   Future<String> getPoiName({required latLng, name = ''}) async {
     dynamic jsonResponse;
@@ -341,7 +321,6 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     MapService().createTripController!._addState(this);
-    _leadingWidgetController = LeadingWidgetController();
     // CurrentTripItem().clearAll(); // debug
     // NetworkState().initialise();
     /// Have to have a controller instance for each Widget
@@ -352,8 +331,6 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
 
     MapService().statusBarController = StatusBarController();
     MapService().zoomFabController = ZoomFabController();
-    _title = widget.mapType;
-    _bottomNavController = RoutesBottomNavController();
     _directionTileController = DirectionTileController();
     // _expandNotifier = ExpandNotifier(-1);
     _bottomDrawerController.close();
@@ -364,7 +341,7 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
     }
 
     try {
-      _loadedOK = dataFromDatabase();
+      dataFromDatabase();
       if (CurrentTripItem().routes.isNotEmpty) {
         CurrentTripItem().mapUpdates = MapUpdates.updateAll;
       } else {
@@ -472,7 +449,7 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   }
 
   void changePage(String page) {
-    setState(() => _title = page);
+    setState(() {});
   }
 
   void updateArguments({required TripArguments arguments}) async {
@@ -620,7 +597,6 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
         case AppState.trips:
           {
             _drivesRequest ??= DrivesRequest(onUpdated: (_) {});
-            _idleCalled = false;
             //    await _onIdleTrips(forceUpdate: true);
           }
         default:
@@ -717,15 +693,6 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   /// The geoJson objects have to have a min_lat min_lon etc that is calculated by
   /// Mariadb.
   /// It makes sense to put all the highlight-able features under a single layer
-
-  _getTripDescriptions() async {
-    _bottomDrawerController.setContent(content: BottomDrawerItems.trip);
-    _bottomDrawerController.open();
-    //   await Future.delayed(Duration(milliseconds: 500));
-    //   _bottomDrawerController.dockOpenTile();
-    //   }
-    CurrentTripItem().tripActions = TripActions.none;
-  }
 
   /// Opens the bottomDrawer to add the details of the last added CurrentTripItem().PointOfInterest
   /// _executeChipActions controls the behaviour of the bottom drawer through its controller
@@ -1244,7 +1211,6 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
                 Geolocator.getPositionStream(locationSettings: locationSettings)
                     .listen((position) {
               _currentPosition = position;
-              _speed = _currentPosition.speed * 3.6 / 8 * 5; // M/S -> MPH
               if (CurrentTripItem().tripState == TripState.tracking) {
                 updateUserPosition(CurrentPosition(position: position));
               }
@@ -1275,11 +1241,6 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
         CurrentTripItem().tripState == TripState.tracking) {
       double travelled = getDistanceBetween(
           startXY: _userPosition.point, endXY: position.point);
-      _speed = position.speed.toDouble();
-      _positionUpdate = PositionUpdate(
-        controller: MapService().controller!, // as MapLibreMapController,
-        routePoint: position.list,
-      );
       if (travelled > 1000) {
         CurrentTripItem().newWaypoint(point: position.point);
       }
@@ -1296,8 +1257,6 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
     _currentPosition = position;
     _userPosition = CurrentPosition(position: position);
     CurrentTripItem().tripValues.position = _userPosition.point;
-    position.speed * metersPerSecondToMPH; //* 3.6 / 8 * 5; // M/S -> MPH
-    String debugString = 'updatePosition()  called x ${positionUpdates++} ';
     LatLng pos = _userPosition.latLng;
     // LatLng(position.latitude, position.longitude);
 
@@ -1392,7 +1351,6 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   void handleDebugStream(
       Position position, FollowRoute debugRoute, List<Follower> following) {
     LatLng pos = LatLng(position.latitude, position.longitude);
-    _speed = 43.0;
     CurrentTripItem().tripValues.heading = angleFromPoints(point1: [
       CurrentTripItem().tripValues.lastPosition.x.toDouble(),
       CurrentTripItem().tripValues.lastPosition.y.toDouble()
@@ -1510,49 +1468,6 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   /// Saves map image
   /// Sets the_CreateTripState to TripState.editing
 
-  Future<void> _createMapImage({int delay = 1}) async {
-    if (CurrentTripItem().mapImage == null) {
-      try {
-        setState(() {
-          CurrentTripItem().tripActions = TripActions.saving;
-          CurrentTripItem().highliteActions = HighliteActions.none;
-          CurrentTripItem().tripValues.showProgress = true;
-          _bottomDrawerController.close();
-        });
-        int tries = 0;
-        while (_resized == false && ++tries < 5) {
-          await Future.delayed(Duration(milliseconds: delay * 500));
-        }
-
-        // final Uint8List? imageBytes =
-        //     await _mapController!.takeSnapShot(width: 200, height: 200);
-
-        //  await _mapController!.takeSnapshot();
-        //  Uint8List? bytes = await _mapController!.takeSnapshot();
-        //  await _mapLibreMap.takeSnapshot();
-        try {
-          Uint8List mapBytes = await MapService().controller!.takeSnapshot();
-
-          if (CurrentTripItem().mapImage == null) {
-            CurrentTripItem().mapImage ??= ImageInMemory(
-                name: 'map', imageBytes: mapBytes.buffer.asUint8List());
-          } else {
-            CurrentTripItem().mapImage!.imageBytes =
-                mapBytes.buffer.asUint8List();
-          }
-        } catch (e) {
-          developer.log(
-              'Error CreateTrip().createMapImage() saving map screenshot: "{eo.toString()',
-              name: 'error');
-        }
-      } catch (e) {
-        developer.log('Error _createMapImage: ${e.toString()}', name: 'error');
-      }
-    }
-    setState(() => CurrentTripItem().tripValues.showProgress = false);
-    return; // CurrentTripItem().mapImage;
-  }
-
   bool getTripDetails({bool prompt = false}) {
     if (CurrentTripItem().title.isEmpty) {
       if (prompt) {
@@ -1594,10 +1509,6 @@ Future openDialog(BuildContext context) => showDialog(
 submit(BuildContext context, setState) {
   Navigator.of(context).pop();
   setState(() {});
-}
-
-_leadingWidget(context) {
-  return context?.openDrawer();
 }
 
 class PositionUpdate {

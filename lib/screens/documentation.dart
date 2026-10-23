@@ -11,8 +11,6 @@ class DocumentationForm extends StatefulWidget {
 class _DocumentationFormState extends State<DocumentationForm> {
   late Future<bool> _dataloaded;
 
-  String _htmlData = '';
-
   @override
   void initState() {
     super.initState();

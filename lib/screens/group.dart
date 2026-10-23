@@ -25,7 +25,6 @@ class _GroupFormState extends State<GroupForm> {
 
   String groupName = 'Driving Group';
   bool edited = false;
-  int? _index = 0;
 
   bool _changed = false;
   bool _expanded = false;
@@ -60,7 +59,6 @@ class _GroupFormState extends State<GroupForm> {
         debugPrint('Contract() failed');
       }
       setState(() {
-        _index = index;
         _activeController = controller;
         _expanded = true;
       });
@@ -68,7 +66,6 @@ class _GroupFormState extends State<GroupForm> {
       // closing open tile
       setState(() {
         _expanded = false;
-        _index = null;
         _activeController = null;
       });
     }
@@ -681,7 +678,6 @@ class _GroupsState extends State<Groups> {
         debugPrint('Contract() failed');
       }
       setState(() {
-        _index = index;
         _activeController = controller;
         _expanded = true;
       });
@@ -689,7 +685,6 @@ class _GroupsState extends State<Groups> {
       // closing open tile
       setState(() {
         _expanded = false;
-        _index = null;
         _activeController = null;
       });
     }

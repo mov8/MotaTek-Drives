@@ -51,24 +51,14 @@ class _RoutesBottomNavState extends State<RoutesBottomNav>
   // late AnimationController _animationIconController;
   bool isarrowmenu = false;
   List<int> badgeValues = [0, 0, 0, 0, 0, 0];
-  int _index = 0; // 0 = hamburger 1 = back
-  List<Widget> _destinations = [];
 
   @override
   void initState() {
     super.initState();
     widget.controller._addState(this);
-    _index = widget.initialValue;
     //  badgeValues[1] = Setup().tripCount;
     badgeValues[4] = Setup().shopCount;
     badgeValues[5] = Setup().messageCount;
-    _destinations = List<Widget>.generate(
-      6,
-      (index) => _navigationDestination(
-        index: index,
-        badgeValue: badgeValues[index],
-      ),
-    );
   }
 
   @override
@@ -79,7 +69,7 @@ class _RoutesBottomNavState extends State<RoutesBottomNav>
 
   void setValue(int id) {
     developer.log('routesBottomNav.setValue($id)', name: '_nav_');
-    setState(() => _index = id);
+    setState(() {});
   }
 
   @override
@@ -106,7 +96,6 @@ class _RoutesBottomNavState extends State<RoutesBottomNav>
                 NavigationService().navigateTo(routes[index], TripArguments());
                 MapService()
                     .setPage(page: index); //   <-- Ensures correct cache loaded
-                _index = index;
               },
               indicatorColor: Colors.lightBlue,
               selectedIndex: _index,
@@ -142,7 +131,6 @@ class _RoutesBottomNavState extends State<RoutesBottomNav>
                 MapService()
                     .setPage(page: index); //   <-- Ensures correct cache loaded
                 NavigationService().navigateTo(routes[index], null);
-                _index = index;
                 developer.log(
                     'RoutesBottomNav() _index: $_index  index: $index',
                     name: '_nav_');

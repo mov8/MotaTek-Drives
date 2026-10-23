@@ -40,8 +40,6 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
-  late final LeadingWidgetController _leadingWidgetController;
-  late final RoutesBottomNavController _bottomNavController;
   final GlobalKey _scaffoldKey = GlobalKey();
   final ItemScrollController _itemScrollController = ItemScrollController();
   late MdStyleSheet _styleSheet;
@@ -76,17 +74,11 @@ class _HomeState extends State<Home> {
   void initState() {
     super.initState();
     MapService().scrollToSideDrawerIndex.addListener(_handleExternalScroll);
-    _bottomNavController = RoutesBottomNavController();
-    _leadingWidgetController = LeadingWidgetController();
     if (MapService().homeController != null) {
       MapService().homeController!._addState(this);
     }
     _dataLoaded = _getHomeData();
     _styleSheet = MdStyleSheet();
-  }
-
-  _leadingWidget(context) {
-    return context?.openDrawer();
   }
 
   @override

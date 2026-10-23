@@ -44,8 +44,6 @@ class MyTrips extends StatefulWidget {
 }
 
 class _MyTripsScreenState extends State<MyTrips> {
-  late final LeadingWidgetController _leadingWidgetController;
-  late final RoutesBottomNavController _bottomNavController;
   final GlobalKey _scaffoldKey = GlobalKey();
   late Future<bool> _dataLoaded;
   // List<TripItem> _tripItems = [];
@@ -62,8 +60,6 @@ class _MyTripsScreenState extends State<MyTrips> {
       MapService().myTripsController?._addState(this);
     }
 //    widget.controller?._addState(this);
-    _leadingWidgetController = LeadingWidgetController();
-    _bottomNavController = RoutesBottomNavController();
     _dataLoaded = getMyTripItems();
   }
 
@@ -78,10 +74,6 @@ class _MyTripsScreenState extends State<MyTrips> {
           name: 'error');
     }
     return true;
-  }
-
-  _leadingWidget(context) {
-    return context?.openDrawer();
   }
 
   void refresh() async {
@@ -138,7 +130,6 @@ class _MyTripsScreenState extends State<MyTrips> {
   }
 
   Future<void> shareTrip(int index) async {
-    MyTripItem currentTrip = _myTripItems[index];
     /*
     currentTrip.showMethods = false;
     Navigator.push(

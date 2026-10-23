@@ -346,7 +346,7 @@ class _BaseShellScreen extends State<BaseShellScreen> {
   /// Splash screen is displayed
 
   Future<bool> initialise() async {
-    bool loaded = await MapService().loadStyle();
+    await MapService().loadStyle();
     if (kIsWeb) {
       MapService().webAppBarController?.showControls();
       MapService().sideDrawerController?.setFixed(fixed: true);

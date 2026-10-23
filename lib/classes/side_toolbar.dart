@@ -52,8 +52,6 @@ class _SideToolbarState extends State<SideToolbar>
 
   @override
   build(BuildContext context) {
-    double height = width * widget.buttons.length + 40;
-    height = MediaQuery.of(context).size.height - 100;
     return Material(
       child: Column(
         children: [
@@ -114,7 +112,6 @@ class _FormatEditorState extends State<FormatEditor>
   double _height = 40;
   double _collapsedWidth = 40;
   bool _end = true;
-  bool _hidden = true;
 
   @override
   void initState() {
@@ -123,7 +120,6 @@ class _FormatEditorState extends State<FormatEditor>
     // <-- Button size + 20 works
     _height = widget.height; // widget.index == 0 ? 10 : _width;
     _collapsedWidth = widget.width; //- 20;
-    _hidden = widget.hidden;
     _width = 0;
   }
 

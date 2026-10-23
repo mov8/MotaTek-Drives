@@ -172,7 +172,6 @@ class LinearScale extends CustomPainter {
         // default to meters / yards
         double displayUnits = baseUnitsPerPixel;
         String keyUnits = isMiles ? 'yards' : 'meters';
-        bool scale = false;
 
         /// Want to ensure that if the scale width is more than 1 mile / km then
         /// switch from meters / yards to miles

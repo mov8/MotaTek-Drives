@@ -318,7 +318,6 @@ class Setup {
   String jwt = '';
   User user = User(
       id: 0, forename: '', surname: '', password: '', email: '', phone: '');
-  bool? _loaded;
   String appDocumentDirectory = '';
   late Directory cacheDirectory;
   late Directory soundsDirectory;

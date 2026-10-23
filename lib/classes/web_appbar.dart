@@ -125,7 +125,6 @@ class _WebAppBarState extends State<WebAppBar> {
   late int initialValue;
   late int _selected;
   late int value;
-  String _heading = '';
   String _actionMessage = '';
   bool _showControls = false;
   bool _menuExists = false;
@@ -523,7 +522,6 @@ class _WebAppBarState extends State<WebAppBar> {
   ///   context. This is important, because the persistent widgets WebAppBar() and
   ///   SideDrawer() are created before the main navigation is defined.
   void navigate(BuildContext context, int index) {
-    _heading = pageHeadings[index];
     _menuExists = false;
 
     /// If the user taps a button when the menu is showing they'll never see it again

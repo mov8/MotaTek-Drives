@@ -9,9 +9,6 @@ import 'package:intl/intl.dart';
 
 class GroupDriveInvitationTileController {
   _GroupDriveInvitationTileState? _groupDriveInvitationTileState;
-  void _addState(_GroupDriveInvitationTileState groupDriveInvitationTileState) {
-    _groupDriveInvitationTileState = groupDriveInvitationTileState;
-  }
 
   bool get isAttached => _groupDriveInvitationTileState != null;
 

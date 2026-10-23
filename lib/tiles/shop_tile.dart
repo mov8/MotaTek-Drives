@@ -32,8 +32,6 @@ class ShopTile extends StatefulWidget {
 }
 
 class _HomeTileState extends State<ShopTile> {
-  List<Map<String, dynamic>> _images = [];
-
   @override
   Widget build(BuildContext context) {
     return driveDetails();

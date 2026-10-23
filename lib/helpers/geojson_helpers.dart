@@ -116,30 +116,6 @@ List fenceFilter({required LatLngBounds bounds, proportion = 0.6}) {
   return filter;
 }
 
-testFenceFilter(
-    {required LatLngBounds bounds,
-    required Map<String, dynamic> jsonData,
-    proportion = 0.6}) {
-  double height = bounds.northeast.latitude - bounds.southwest.latitude;
-  double width = bounds.northeast.longitude - bounds.southwest.longitude;
-
-  double lngGap = (width - (width * proportion));
-  double latGap = (height - (height * proportion));
-
-  LatLng ne = LatLng(
-      bounds.northeast.latitude - latGap, bounds.northeast.longitude - lngGap);
-  LatLng sw = LatLng(
-      bounds.southwest.latitude + latGap, bounds.southwest.longitude + lngGap);
-
-  for (int i = 0; i < jsonData['features'].length; i++) {
-    double min_lat = jsonData['features'][i]['properties']['min_lat'] ?? 90;
-    double max_lat = jsonData['features'][i]['properties']['max_lat'] ?? 0;
-    double min_lon = jsonData['features'][i]['properties']['min_lon'] ?? 180;
-    double max_lon = jsonData['features'][i]['properties']['max_lon'] ?? 0;
-  }
-  return;
-}
-
 /// stateFilter() is to allow features to be hidden if the TripState is inappropriate
 /// The geoJson has 4 possible state properties that matches a TripState.name where
 /// the filtered item should be exposed.

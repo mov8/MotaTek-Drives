@@ -51,9 +51,6 @@ class Messages extends StatefulWidget {
 }
 
 class _MessagesState extends State<Messages> {
-  late final RoutesBottomNavController _bottomNavController;
-  late final LeadingWidgetController _leadingWidgetController;
-  final ImageRepository _imageRepository = ImageRepository();
   final GlobalKey _scaffoldKey = GlobalKey();
   late final Future<bool> _dataLoaded;
   List<MailItem> _mailItems = [];
@@ -81,8 +78,6 @@ class _MessagesState extends State<Messages> {
     if (widget.controller != null) {
       widget.controller!._addState(this);
     }
-    _bottomNavController = RoutesBottomNavController();
-    _leadingWidgetController = LeadingWidgetController();
     _tileSelected = widget.index;
     socket.onError(
         (data) => developer.log('Error: ${data.toString()}', name: 'error'));
@@ -272,10 +267,6 @@ class _MessagesState extends State<Messages> {
     if (kIsWeb && widget.onBackClick != null) {
       widget.onBackClick!();
     }
-  }
-
-  _leadingWidget(context) {
-    return context?.openDrawer();
   }
 
   Map<String, String> getHeadings() {

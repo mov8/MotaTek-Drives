@@ -43,9 +43,6 @@ class PositionService {
   static final PositionService _instance = PositionService._internal();
   factory PositionService() => _instance;
   PositionService._internal();
-  Position? _currentPosition;
-  CurrentPosition? _userPosition;
-  double _speed = 0;
 
   StreamSubscription<Position>? _positionStream;
   StreamSubscription<Position>? _debuggingStream;
@@ -59,8 +56,6 @@ class PositionService {
     _positionStream =
         Geolocator.getPositionStream(locationSettings: locationSettings)
             .listen((position) {
-      _currentPosition = position;
-      _speed = _currentPosition!.speed * 3.6 / 8 * 5; // M/S -> MPH
       if (_movingStates.contains(CurrentTripItem().tripState)) {
         updateUserPosition(CurrentPosition(position: position));
       }
@@ -82,8 +77,6 @@ class PositionService {
     StreamController<Position> controller = StreamController<Position>();
     _debugRoute = FollowRoute(controller: controller);
     _debuggingStream = controller.stream.listen((position) {
-      _currentPosition = position;
-      _speed = _currentPosition!.speed * 3.6 / 8 * 5; // M/S -> MPH
       if (_movingStates.contains(CurrentTripItem().tripState)) {
         updateUserPosition(CurrentPosition(position: position));
       }
@@ -140,7 +133,6 @@ class PositionService {
       return;
     }
     CurrentTripItem trip = CurrentTripItem();
-    _speed = position.speed.toDouble();
     if (position.speed > 0 && position.heading >= 0) {
       _heading = position.heading;
     }
@@ -157,7 +149,6 @@ class PositionService {
     await MapService()
         .showLocation(position: position.point, bearing: _heading);
     _followCamera(position);
-    _userPosition = position;
   }
 
   /// Setup().rotateMap chooses the orientation:

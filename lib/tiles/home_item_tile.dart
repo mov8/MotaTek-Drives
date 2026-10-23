@@ -188,7 +188,6 @@ class _HomeItemTileState extends State<HomeItemTile> {
   bool expanded = true;
   bool canEdit = true;
   DateFormat dateFormat = DateFormat("dd MMM yy");
-  TextEditingController _textEditingController = TextEditingController();
   FocusNode fn1 = FocusNode();
   List<Photo> photos = [];
 

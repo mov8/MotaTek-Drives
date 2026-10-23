@@ -98,7 +98,6 @@ class _TripHeaderTileState extends State<TripHeaderTile> {
       TextEditingController();
   final TextEditingController _textEditingControllerBody =
       TextEditingController();
-  bool _initiallyExpanded = false;
 
   void initState() {
     super.initState();
@@ -112,10 +111,6 @@ class _TripHeaderTileState extends State<TripHeaderTile> {
     _textEditingControllerTitle.text = CurrentTripItem().title;
     _textEditingControllerSubTitle.text = CurrentTripItem().subTitle;
     _textEditingControllerBody.text = CurrentTripItem().body;
-
-    _initiallyExpanded = _textEditingControllerTitle.text.isEmpty ||
-        _textEditingControllerSubTitle.text.isEmpty ||
-        _textEditingControllerBody.text.isEmpty;
   }
 
   @override
@@ -205,9 +200,6 @@ class _TripHeaderTileState extends State<TripHeaderTile> {
       _expandController.expand();
     }
     fn1.requestFocus();
-    _initiallyExpanded = _textEditingControllerTitle.text.isEmpty ||
-        _textEditingControllerSubTitle.text.isEmpty ||
-        _textEditingControllerBody.text.isEmpty;
     return RrExpansionTile(
         context: context,
         child: ExpansionTile(

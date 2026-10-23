@@ -312,8 +312,6 @@ Future<Image> webImageFromBytes({required String url}) async {
   return Image.memory(imageBytes);
 }
 
-
-
 Future<void> saveLocalImage(String imageId, Uint8List image) async {
   var imageBox = await Hive.openLazyBox('imageBox');
   imageBox.put(imageId, image);

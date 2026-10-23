@@ -35,7 +35,6 @@ class ImportExport extends StatelessWidget {
       'autoConnect': false, // Prevent auto-connection
     });
     String _key = getRandomInt(1000, 9999).toString();
-    String _ipAddress = '';
     socket.onConnectError((_) => debugPrint('connect error'));
     socket.onError((data) =>
         developer.log('socket error: ${data.toString()}', name: 'error'));
@@ -48,13 +47,6 @@ class ImportExport extends StatelessWidget {
         socket.emit('pairing', {'message': 'device connected'});
       });
     }
-    socket.on('pairing', (data) {
-      try {
-        _ipAddress = data;
-      } catch (e) {
-        debugPrint('Error: ${e.toString()}');
-      }
-    });
     return Scaffold(
         appBar: AppBar(
           backgroundColor: Colors.blue,

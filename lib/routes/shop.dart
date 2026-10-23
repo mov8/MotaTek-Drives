@@ -45,8 +45,6 @@ class Shop extends StatefulWidget {
 }
 
 class _ShopState extends State<Shop> {
-  late final LeadingWidgetController _leadingWidgetController;
-  late final RoutesBottomNavController _bottomNavController;
   // late final ImageRepository _imageRepository;
   final GlobalKey _scaffoldKey = GlobalKey();
   final ItemScrollController _itemScrollController = ItemScrollController();
@@ -80,18 +78,12 @@ class _ShopState extends State<Shop> {
   void initState() {
     super.initState();
     MapService().scrollToSideDrawerIndex.addListener(_handleExternalScroll);
-    _bottomNavController = RoutesBottomNavController();
-    _leadingWidgetController = LeadingWidgetController();
     _styleSheet = MdStyleSheet();
     // _imageRepository = ImageRepository();
     if (MapService().shopController != null) {
       MapService().shopController!._addState(this);
     }
     _dataLoaded = _getShopData();
-  }
-
-  _leadingWidget(context) {
-    return context?.openDrawer();
   }
 
   @override

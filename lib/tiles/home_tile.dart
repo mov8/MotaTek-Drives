@@ -33,8 +33,6 @@ class HomeTile extends StatefulWidget {
 }
 
 class _HomeTileState extends State<HomeTile> {
-  List<Map<String, dynamic>> _images = [];
-
   @override
   Widget build(BuildContext context) {
     return driveDetails();

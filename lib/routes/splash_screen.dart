@@ -13,7 +13,6 @@ class Splash extends StatefulWidget {
 
 class _SplashState extends State<Splash> {
   final int _delaySecs = 4;
-  bool _initialised = false;
   @override
   void initState() {
     super.initState();
@@ -44,7 +43,7 @@ class _SplashState extends State<Splash> {
       //   Setup().setupToDb();
     }
     //  routeIndex = 4;
-    bool styleLoaded = await MapService().loadStyle();
+    await MapService().loadStyle();
 
     if (Setup().jwt.isEmpty) {
       Setup().loggingIn = true;
@@ -74,8 +73,6 @@ class _SplashState extends State<Splash> {
 
     double aspectRatio = screenSize.width / screenSize.height;
     aspectRatio = aspectRatio > 1 ? 9 / 18 : aspectRatio;
-    double paddingLR = kIsWeb ? 0 : 0;
-    double paddingTB = kIsWeb ? 50 : 0;
 
     return Stack(
       children: [

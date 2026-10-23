@@ -194,7 +194,6 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
   bool _offerRestore = false;
 
   final GlobalKey _animatedContainerKey = GlobalKey();
-  final GlobalKey _scrollKey = GlobalKey();
   final PointOfInterestController _pointOfInterestController =
       PointOfInterestController();
   final TripHeaderController _tripHeaderController = TripHeaderController();
@@ -204,7 +203,6 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
   final Directions _directions = Directions();
 
   late final RotatingIconController _rotatingIconController;
-  late final PointOfInterestController _poiController;
 
   // MapLibreMapController get mapController => widget._mapController!;
   late final ImageRepository imageRepository;
@@ -223,7 +221,6 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
     }
     imageRepository = widget.imageRepository ?? ImageRepository();
     _rotatingIconController = RotatingIconController();
-    _poiController = PointOfInterestController();
     /*
       _mapWidth = MediaQuery.of(context).size.width;
       _maxWidth = _mapWidth * widget.maxWidth;
@@ -521,10 +518,9 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
     followers ??= [];
     List<Widget> tiles = [];
     _tiles.clear();
-    bool expanded = false;
     for (int i = 0; i < followers.length; i++) {
       tiles.add(Padding(
-        key: expanded ? _scrollKey : Key('th1'),
+        key: Key('th1'),
         padding: EdgeInsetsGeometry.fromLTRB(5, 5, 5, 5),
         child: FollowerTile(
           follower: followers[i],
@@ -723,14 +719,9 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
   }
 
   List<Widget> shredCurrentTripItemData() {
-    ExpandNotifier expandNotifier = ExpandNotifier(1);
-    bool expanded = false;
-    int index = 0;
-    int selected = -1;
     List<Widget> tiles = [];
     int j = 0;
     if (_content == BottomDrawerItems.trip) {
-      expanded = CurrentTripItem().headerComplete() != 7;
       tiles.add(
         Padding(
           key: Key('th1'),
@@ -755,8 +746,6 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
           18
         ] // <-- exclude waypoint, great road start, start & end
             .contains(CurrentTripItem().pointsOfInterest[i].type)) {
-          bool complete = CurrentTripItem().pointsOfInterest[i].complete() == 3;
-          expanded = !complete;
           tiles.add(
             Padding(
               padding: EdgeInsetsGeometry.fromLTRB(5, 5, 5, 5),
@@ -783,7 +772,6 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
   }
 
   List<Widget> shredPointsOfInterest({int type = -1}) {
-    bool expanded = false;
     List<Widget> tiles = [];
     int j = 0;
     for (int i = 0; i < CurrentTripItem().pointsOfInterest.length; i++) {

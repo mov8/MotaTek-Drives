@@ -187,7 +187,6 @@ class ScreensAppBarBottom extends StatelessWidget
 
   @override
   Widget build(BuildContext context) {
-    BuildContext appContext = NavigationService().key.currentContext!;
     _menuExists = false;
     return PreferredSize(
       preferredSize: Size.fromHeight(80),
@@ -321,7 +320,7 @@ class ScreensAppBarBottom extends StatelessWidget
         Offset(0, 0) /*.zero */ & overlay.size,
       );
       // 2. Use showMenu with the ROOT navigator's context
-      final String? selected = await showMenu<String>(
+      await showMenu<String>(
         constraints: BoxConstraints(minWidth: 250),
         context: NavigationService()
             .uiKey

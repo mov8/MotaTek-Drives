@@ -328,7 +328,6 @@ class ImageShortcodeBuilder extends MarkdownElementBuilder {
     final String align = getAttr('align') ?? 'center';
     final double width = double.tryParse(getAttr('width') ?? '') ?? 300.0;
 
-    String key = '';
     if (src == null) return null;
     // Handle Alignment
     MainAxisAlignment mainAlign;

@@ -134,7 +134,6 @@ class _BottomDrawerState extends State<BottomDrawer>
   int delay = 500;
   bool refreshList = true;
 
-  final GlobalKey _animatedContainerKey = GlobalKey();
   final GlobalKey _scrollKey = GlobalKey();
 
   final PointOfInterestController _pointOfInterestController =

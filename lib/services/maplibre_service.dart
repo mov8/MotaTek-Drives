@@ -113,7 +113,6 @@ class MapService {
   MapLibreMap? mlMap;
 
   UserLocation? useLocation;
-  TripArguments? _tripArguments;
 
   final ValueNotifier<int?> scrollToSideDrawerIndex = ValueNotifier<int?>(null);
 
@@ -341,7 +340,6 @@ map.on('mousemove', (e) => {
         LatLngBounds bounds = await MapService().bounds;
         //  String debugString = '_onIdle() called x ${_onIdleCalled++}';
         statusBarController!.refresh();
-        double zoom = controller!.cameraPosition!.zoom;
         //  Point centrePoint = await pointAtCentre();
         CurrentTripItem().mapController ??= controller;
         LatLngBounds? bounds2;
@@ -618,7 +616,6 @@ map.on('mousemove', (e) => {
         });
         List<Map<String, dynamic>> jsonEnds =
             routeEndsToGeoJson(routes: CurrentTripItem().routes);
-        List coordinates = CurrentTripItem().routes.first.lines.first;
         // LatLng start = LatLng(coordinates[1], coordinates[0]);
         LatLng start = LatLng(
             CurrentTripItem().pointsOfInterest.first.point.y.toDouble(),
@@ -826,11 +823,6 @@ map.on('mousemove', (e) => {
       // var point = Point(tap.x.toDouble(), tap.y.toDouble());
       foundFeatures = await controller!
           .queryRenderedFeatures(tap, ["route-marker-layer"], null);
-      if (foundFeatures.isNotEmpty) {
-        var tappedFeature = foundFeatures.first;
-        var name = tappedFeature['properties']['name'];
-        String uri = tappedFeature['id'].substring(0, 32);
-      }
     } catch (e) {
       developer.log(
           'Error MapService() _tripsOnTap() error ${e.toString} - features: ${foundFeatures.toString()}',

@@ -20,9 +20,6 @@ class ShopController {
     _shopState = shopState;
   }
 */
-  void _addState(_ShopState, shopState) {
-    _shopState = shopState;
-  }
 
   bool get isAttached => _shopState != null;
 

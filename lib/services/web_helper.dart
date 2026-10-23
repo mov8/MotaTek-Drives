@@ -712,9 +712,7 @@ mt.Route polylineFromMap(
     {required Map<String, dynamic> map,
     bool goodRoad = false,
     int driveKey = -1}) {
-  int colour = goodRoad ? Setup().goodRouteColour : Setup().publishedTripColour;
   // map['colour'];
-  Color routeColor = uiColours.keys.toList()[colour];
   return mt.Route(
     lines: [],
     id: -1,
@@ -1025,7 +1023,6 @@ Future<List<TripSummary>> getTripSummaries(
 
 Future<List<TripItem>> getTrips() async {
   List<TripItem> trips = [];
-  LatLng pos = const LatLng(-52, 0);
   /*
   try {
     var currentPosition = Setup().lastPosition; //await utils.getPosition();

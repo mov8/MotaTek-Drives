@@ -56,7 +56,6 @@ const zoomUpper = 10.0;
 
 class DrivesRequest {
   double _lastZoom = 0;
-  double _thisZoom = 0;
 
   Function(int) onUpdated;
   Function(int, String)? onGetDownload;
@@ -111,11 +110,6 @@ class DrivesRequest {
       {required LatLngBounds bounds,
       required double zoom,
       bool force = false}) async {
-    /// If changing zoom level or breaching bounds
-    ///   1 zoom higher -> lower all higher polylines can be used but shields can't - excludes should be included in lower level
-    ///   2 zoom lower -> higher all lower level data should be left intact
-    ///   3 outside fence complete refresh of that level data with excludes from higher levels
-    _thisZoom = zoom;
     bool zoomChanged = zoomUpdate(zoom: zoom);
     bool fenceBreached = outsideFence(bounds: bounds, zoom: zoom);
 

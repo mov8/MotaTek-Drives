@@ -107,23 +107,15 @@ class MarkdownForm extends StatefulWidget {
 class _MarkdownFormState extends State<MarkdownForm> {
   // late Future<bool> _dataloaded;
   // List<MarkdownItem> _items = [];
-  late Map<String, dynamic> _MarkdownItem;
   late MdStyleSheet _stylesheet;
-  bool _expanded = false;
-  int? _index;
   bool _code = true;
-  List<bool> _changes = [];
   late Map<String, dynamic> _markdownData;
   List<Map<String, dynamic>> _images = [];
   // bool _changed = false;
-  String _prompt = 'Add, delete or edit page';
   // MarkdownItemTileController? _activeController;
   final TextEditingController _textEditingController = TextEditingController();
   // final ImageRepository _imageRepository = ImageRepository();
-  final LeadingWidgetController _leadingWidgetController =
-      LeadingWidgetController();
   final SideToolbarController _sideToolBarController = SideToolbarController();
-  final GlobalKey _scaffoldKey = GlobalKey();
   late final _controller;
   bool _hidden = true;
   List<String> _buffer = [];
@@ -209,10 +201,6 @@ class _MarkdownFormState extends State<MarkdownForm> {
     }
   };
   List<Map<String, dynamic>> msStyles = [];
-
-  _leadingWidget(context) {
-    return context?.openDrawer();
-  }
 
   Future<bool> dataFromDatabase() async {
     return true;
@@ -321,8 +309,6 @@ class _MarkdownFormState extends State<MarkdownForm> {
   }
 
   Widget portraitView() {
-    /// getButtons gets the contents of the SideToolbar that lets users change fonts etc
-    MdStyleSheet style = MdStyleSheet();
     List<FormatEditor> buttons = getButtons(
         styleSheet: _stylesheet, onUpdate: onUpdate, hidden: _hidden);
     return SizedBox(
@@ -370,7 +356,6 @@ class _MarkdownFormState extends State<MarkdownForm> {
   ///
   Widget portraitViewMd() {
     String data = _textEditingController.text;
-    MdStyleSheet style = MdStyleSheet();
     return Card(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(8, 8, 8, 50), //   all(8.0),
@@ -539,7 +524,7 @@ class _MarkdownFormState extends State<MarkdownForm> {
     // if (_items.isEmpty) {
     //  newMarkdownItem(mdData);
     // }
-    setState(() => _expanded = false);
+    setState(() {});
   }
 
   newMarkdownItem(String mdData) async {
@@ -562,8 +547,6 @@ class _MarkdownFormState extends State<MarkdownForm> {
     newMarkdownItem(mdData);
     //   }
     setState(() {
-      _expanded = false;
-      _index = null;
       _controller = null;
     });
     return;
