@@ -30,7 +30,7 @@ class MessagesController {
   void showDetails(tileIndex) => _messagesState!.showDetails(tileIndex);
 
   /// Web: the conversations in the SideDrawer (or, logged out, the message)
-  void fillSideDrawer() => _messagesState?.sideBarItems();
+  void fillSideDrawer() => _messagesState?.refresh();
 
   /// Web: shows a conversation to the right of the SideDrawer
   void select(int index) => _messagesState?.select(index);
@@ -121,6 +121,7 @@ class _MessagesState extends State<Messages> {
   void showDetails(int tileIndex) {}
 
   Future<bool> getMessages() async {
+    if (Setup().jwt.isEmpty) return true; // the invitation to log in
     if (_tileSelected == -1) {
       _mailItems = await getMessagesByGroup();
       return true;
@@ -207,6 +208,14 @@ class _MessagesState extends State<Messages> {
           );
       setState(() => _tileSelected = index);
     }
+  }
+
+  /// Web: each visit fetches the conversations again - the user may have
+  /// logged in, or been sent messages, since the page was built
+  Future<void> refresh() async {
+    if (Setup().jwt.isNotEmpty) _mailItems = await getMessagesByGroup();
+    if (mounted) setState(() {});
+    await sideBarItems();
   }
 
   /// Web: loads the conversation and shows it to the right

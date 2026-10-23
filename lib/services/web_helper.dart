@@ -210,7 +210,8 @@ Future<String?> refreshToken() async {
       Map<String, dynamic> data = jsonDecode(response.body);
       return data['token'] ?? '';
     }
-    return [401, 403, 422].contains(response.statusCode) ? '' : null;
+    // The API answers 408 'jwt invalid' for a token it doesn't accept
+    return [401, 403, 408, 422].contains(response.statusCode) ? '' : null;
   } catch (e) {
     developer.log('Error refreshing jwt token: ${e.toString()}', name: 'error');
     return null;
@@ -1265,6 +1266,9 @@ Future<List<MailItem>> getMessagesByGroup() async {
       }
       return mailItems;
     } else {
+      developer.log(
+          'getMessagesByGroup(): ${response.statusCode} ${response.body}',
+          name: 'error');
       return mailItems;
     }
   } catch (e) {
