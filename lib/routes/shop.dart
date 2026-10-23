@@ -308,7 +308,8 @@ main() {
 
   void sideBarItems() async {
     await _dataLoaded;
-    if (shopItems.isNotEmpty && mounted) {
+    // Even with no items - otherwise the last page's summaries stayed
+    if (kIsWeb && mounted) {
       MapService().sideDrawerController!.open();
       MapService()
           .sideDrawerController!

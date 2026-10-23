@@ -1754,6 +1754,10 @@ class TripItem {
   int downloads = 18;
   String added = '';
   List polylines;
+
+  /// [lng, lat] of the start of the route - published trips, from their
+  /// line on the map, so the map can pan to it
+  List startPoint = const [];
   TripItem({
     this.handle,
     this.id = 0,

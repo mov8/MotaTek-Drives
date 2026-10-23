@@ -1,3 +1,5 @@
+import 'dart:math';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import '/classes/classes.dart';
@@ -52,6 +54,7 @@ class _TripTileState extends State<TripTile> {
   expandChange({required bool expanded}) async {
     try {
       if (expanded) {
+        _showStart();
         await getDetails();
         if (mounted) {
           setState(() {});
@@ -63,6 +66,31 @@ class _TripTileState extends State<TripTile> {
     } catch (e) {
       debugPrint('Error tripTile expandChange: ${e.toString()} ');
     }
+  }
+
+  /// Pans the map to the start of the trip, placing it in the middle of
+  /// the part of the map that's showing - above the BottomDrawer on a phone,
+  /// right of the SideDrawer on the web (both cover part of the map)
+  void _showStart() {
+    List start = widget.tripItem.startPoint;
+    MapLibreMapController? controller = MapService().controller;
+    if (start.length < 2 || controller == null) return;
+    double lat = start[1].toDouble();
+    double lng = start[0].toDouble();
+    // Degrees of longitude per logical pixel (512px tiles), and of latitude
+    // near this latitude
+    double zoom = controller.cameraPosition?.zoom ?? 12;
+    double lngPerPixel = 360 / (512 * pow(2, zoom));
+    double latPerPixel = lngPerPixel * cos(lat * pi / 180);
+    double dx =
+        kIsWeb ? -(MapService().sideDrawerController?.getWidth() ?? 0) / 2 : 0;
+    double dy = kIsWeb
+        ? 0
+        : (MapService().bottomDrawerController?.getHeight() ?? 0) / 2;
+    controller.animateCamera(
+        CameraUpdate.newLatLng(
+            LatLng(lat - dy * latPerPixel, lng + dx * lngPerPixel)),
+        duration: const Duration(seconds: 1));
   }
 
   getDetails() async {

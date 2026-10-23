@@ -28,6 +28,12 @@ class MessagesController {
   bool get isAttached => _messagesState != null;
 
   void showDetails(tileIndex) => _messagesState!.showDetails(tileIndex);
+
+  /// Web: the conversations in the SideDrawer (or, logged out, the message)
+  void fillSideDrawer() => _messagesState?.sideBarItems();
+
+  /// Web: shows a conversation to the right of the SideDrawer
+  void select(int index) => _messagesState?.select(index);
 }
 
 class Messages extends StatefulWidget {
@@ -64,9 +70,7 @@ class _MessagesState extends State<Messages> {
   @override
   void initState() {
     super.initState();
-    if (widget.controller != null) {
-      widget.controller!._addState(this);
-    }
+    (widget.controller ?? MapService().messagesController)?._addState(this);
     _tileSelected = widget.index;
     socket.onError(
         (data) => developer.log('Error: ${data.toString()}', name: 'error'));
@@ -137,58 +141,68 @@ class _MessagesState extends State<Messages> {
     }
   }
 
-  Widget _getPortraitBody() {
-    if (Setup().jwt.isEmpty) {
-      return Stack(children: [
-        Positioned.fill(
-          child: Image.asset(
-            'assets/images/message.png',
-            fit: BoxFit.cover,
-          ),
+  /// Logged out: the image and an invitation to log in - the whole screen on
+  /// a phone, the whole SideDrawer on the web
+  Widget _loggedOutView() {
+    return Stack(children: [
+      Positioned.fill(
+        child: Image.asset(
+          'assets/images/message.png',
+          fit: BoxFit.cover,
         ),
-        Positioned.fill(
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.black.withValues(alpha: 0.5), // // Light shadow top
-                  Colors.black.withValues(alpha: 0.7), // Dark contrast bottom
-                ],
-              ),
+      ),
+      Positioned.fill(
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.black.withValues(alpha: 0.5), // // Light shadow top
+                Colors.black.withValues(alpha: 0.7), // Dark contrast bottom
+              ],
             ),
           ),
         ),
-        Padding(
-          padding: EdgeInsets.fromLTRB(20, 20, 20, 0),
-          child: Column(
-            children: [
-              Text(
-                  'Messaging allows you to keep in contact with members of your Drives group.',
+      ),
+      Padding(
+        padding: EdgeInsets.fromLTRB(20, 20, 20, 0),
+        child: Column(
+          children: [
+            Text(
+                'Messaging allows you to keep in contact with members of your Drives group.',
+                style: TextStyle(fontSize: 22, color: Colors.white)),
+            SizedBox(height: 10),
+            Text(
+                'It is very useful if you are driving together with friends, or in group organised by your club.',
+                style: TextStyle(fontSize: 22, color: Colors.white)),
+            SizedBox(height: 10),
+            Text(
+                'To use Messaging you have to be logged into the Drives server.',
+                style: TextStyle(fontSize: 22, color: Colors.white)),
+            SizedBox(height: 10),
+            Text('To login tap the button below:',
+                style: TextStyle(fontSize: 22, color: Colors.white)),
+            SizedBox(height: 30),
+            ActionChip(
+              label: Text('Login Now',
                   style: TextStyle(fontSize: 22, color: Colors.white)),
-              SizedBox(height: 10),
-              Text(
-                  'It is very useful if you are driving together with friends, or in group organised by your club.',
-                  style: TextStyle(fontSize: 22, color: Colors.white)),
-              SizedBox(height: 10),
-              Text(
-                  'To use Messaging you have to be logged into the Drives server.',
-                  style: TextStyle(fontSize: 22, color: Colors.white)),
-              SizedBox(height: 10),
-              Text('To login tap the button below:',
-                  style: TextStyle(fontSize: 22, color: Colors.white)),
-              SizedBox(height: 30),
-              ActionChip(
-                label: Text('Login Now',
-                    style: TextStyle(fontSize: 22, color: Colors.white)),
-                onPressed: () => context.push('/login'),
-                backgroundColor: Colors.blue,
-              ),
-            ],
-          ),
-        )
-      ]);
+              onPressed: () => kIsWeb
+                  ? MapService()
+                      .sideDrawerController
+                      ?.setContent(content: BottomDrawerItems.login)
+                  : context.push('/login'),
+              backgroundColor: Colors.blue,
+            ),
+          ],
+        ),
+      )
+    ]);
+  }
+
+  Widget _getPortraitBody() {
+    if (Setup().jwt.isEmpty) {
+      return _loggedOutView();
     }
     return _tileSelected == -1
         ? MessagesSummaryForm(
@@ -221,17 +235,7 @@ class _MessagesState extends State<Messages> {
   /// then the Side Drawer becomes inactive, after the MessagesDetail is shown.
   onSummaryTileTap({required int index}) {
     if (kIsWeb) {
-      if (widget.onSelect != null) {
-        widget.onSelect!(index);
-      }
-      _tileSelected = index;
-      if (widget.webAppBarController != null) {
-        widget.webAppBarController!
-            .setActionPrompt(getHeadings()['headings'] ?? 'Injected heading');
-      }
-
-      /// The next line resets the Future<bool> and should ensure the data is read for the message details
-      setState(() => _dataLoaded = getMessages());
+      select(index);
     } else {
       // The app bar shows Back while the thread is showing
       MapService().persistentAppBarController?.setBack(
@@ -242,6 +246,77 @@ class _MessagesState extends State<Messages> {
           );
       setState(() => _tileSelected = index);
     }
+  }
+
+  /// Web: loads the conversation and shows it to the right
+  void select(int index) {
+    _tileSelected = index;
+    setState(() => _dataLoaded = getMessages());
+    sideBarItems(); // highlights nothing yet, but keeps the list current
+  }
+
+  /// Web: the conversations fill the SideDrawer, with a button to add a
+  /// contact - or, logged out, the image and invitation to log in
+  Future<void> sideBarItems() async {
+    if (!kIsWeb || !mounted || NavigationService().page != 5) return;
+    if (_tileSelected == -1) await _dataLoaded; // the conversations
+    Widget content = Setup().jwt.isEmpty
+        ? _loggedOutView()
+        : Container(
+            color: Colors.white,
+            child: Column(children: [
+              ListTile(
+                title: const Text('Messages',
+                    style:
+                        TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                trailing: IconButton(
+                  icon: const Icon(Icons.person_add_outlined, size: 30),
+                  onPressed: () {
+                    _addContact = true;
+                    sideBarItems();
+                  },
+                ),
+              ),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: MessagesSummaryForm(
+                    mailItems: _mailItems,
+                    onTap: (index) => select(index),
+                    onNewContact: () {
+                      _addContact = false;
+                      sideBarItems();
+                    },
+                    addContact: _addContact,
+                  ),
+                ),
+              ),
+            ]),
+          );
+    MapService().sideDrawerController!.open();
+    MapService().sideDrawerController!.setContent(
+        content: BottomDrawerItems.messages, drawerItems: [content]);
+    MapService().sideDrawerController!.setFixed(fixed: true);
+    MapService().sideDrawerController!.setVisible(visible: true);
+  }
+
+  /// Web: the selected conversation, to the right of the SideDrawer
+  Widget _webDetails() {
+    if (Setup().jwt.isEmpty ||
+        _tileSelected == -1 ||
+        _tileSelected >= _mailItems.length) {
+      return const SizedBox.shrink();
+    }
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+          MediaQuery.of(context).size.width * 0.38 + 10, 5, 10, 5),
+      child: MessageDetailsForm(
+        key: ValueKey(_tileSelected),
+        messages: _messages,
+        email: _mailItems[_tileSelected].email,
+        isGroup: _mailItems[_tileSelected].isGroup,
+        socket: socket,
+      ),
+    );
   }
 
   onDetailBackTap() {
@@ -275,58 +350,14 @@ class _MessagesState extends State<Messages> {
   @override
   Widget build(BuildContext context) {
     if (kIsWeb) {
-      return ScreensAppBarBottom(
-        key: _scaffoldKey,
-        prompt: getHeadings()['subheading'] ?? '',
-        textColor: const Color.fromRGBO(1, 29, 51, 1),
-        leadingButton: _tileSelected > -1
-            ? IconButton(
-                onPressed: () => setState(() {
-                      if (widget.webAppBarController != null) {
-                        widget.webAppBarController!
-                            .setActionPrompt(getHeadings()['headings'] ?? '');
-                      }
-                      _tileSelected = -1;
-                    }),
-                icon:
-                    Icon(Icons.arrow_back, color: Color.fromRGBO(1, 29, 51, 1)))
-            : null,
-        actionButtons: _tileSelected == -1
-            ? [
-                IconButton(
-                    onPressed: () => setState(() => _addContact = true),
-                    icon: Icon(Icons.person_add_outlined,
-                        color: Color.fromRGBO(1, 29, 51, 1)))
-              ]
-            : [],
-        content: FutureBuilder<bool>(
-          future: getMessages(), // _dataLoaded,
-          builder: (BuildContext context, snapshot) {
-            if (snapshot.hasError) {
-              debugPrint('Snapshot error: ${snapshot.error}');
-            } else if (snapshot.hasData) {
-              return _getPortraitBody();
-            } else {
-              return const SizedBox(
-                width: double.infinity,
-                height: double.infinity,
-                child: Align(
-                  alignment: Alignment.center,
-                  child: CircularProgressIndicator(),
-                ),
-              );
-            }
-            return SizedBox(
-              width: double.infinity,
-              height: double.infinity,
-              child: Center(
-                child: Text(
-                  'No messages',
-                  style: TextStyle(fontSize: 22, color: Colors.white),
-                ),
-              ),
-            );
-          },
+      // The conversations are in the SideDrawer (sideBarItems())
+      return Scaffold(
+        backgroundColor: Colors.blue,
+        body: FutureBuilder<bool>(
+          future: _dataLoaded,
+          builder: (BuildContext context, snapshot) => snapshot.hasData
+              ? _webDetails()
+              : const Center(child: CircularProgressIndicator()),
         ),
       );
     } else {

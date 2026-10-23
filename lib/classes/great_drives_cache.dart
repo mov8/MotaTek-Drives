@@ -132,12 +132,28 @@ class DrivesRequest {
         var jsonData = jsonDecode(geoJson);
         if (jsonData['features'] != null) {
           List trips = [];
+          // Each trip's line shares its id - its first point is the start
+          Map<String, List> starts = {};
+          for (var feature in jsonData['features']) {
+            if (feature['group'] == 'line' && feature['geometry'] != null) {
+              List coordinates = feature['geometry']['coordinates'] ?? [];
+              while (coordinates.isNotEmpty && coordinates.first is List) {
+                if (coordinates.first.first is! List) break;
+                coordinates = coordinates.first; // a MultiLineString
+              }
+              if (coordinates.isNotEmpty) {
+                starts.putIfAbsent('${feature['id']}', () => coordinates.first);
+              }
+            }
+          }
           for (int i = 0; i < jsonData["features"].length; i++) {
             // 'shield' layer contains properties to create TripItem
             if (jsonData['features'][i]['group'] == 'shield') {
               trips.add(TripItem.from3DCache(
                   map: jsonData['features'][i]['properties'],
-                  uri: jsonData['features'][i]['id']));
+                  uri: jsonData['features'][i]['id'])
+                ..startPoint =
+                    starts['${jsonData['features'][i]['id']}'] ?? const []);
               jsonData['features'][i]['properties']['color'] =
                   Setup().routeColourHex();
               if (!_3DCache["cache"][zLevel]["exclude"]

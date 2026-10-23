@@ -15,6 +15,7 @@ import '../services/services.dart';
 import '../routes/create_trip.dart';
 import '../routes/home.dart';
 import '../routes/shop.dart';
+import '../routes/messages.dart';
 import '../tiles/tiles.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
@@ -87,6 +88,7 @@ class MapService {
 
   HomeController? homeController = HomeController();
   MyTripsController? myTripsController = MyTripsController();
+  MessagesController? messagesController = MessagesController();
   ShopController? shopController = ShopController();
   BaseShellController? baseShellController = BaseShellController();
   BottomNavController? bottomNavController = BottomNavController();
@@ -864,9 +866,10 @@ class MapService {
         page: _page,
         force: true); // <-- Update the drawer contents and map geoJson
     if (kIsWeb) {
+      // The trips are on the map; the user opens the drawer for the list
       sideDrawerController!.setFixed(fixed: false);
-      sideDrawerController!.open();
-    } else {}
+      sideDrawerController!.close();
+    }
     return true;
   }
 

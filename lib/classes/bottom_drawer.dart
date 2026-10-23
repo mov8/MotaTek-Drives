@@ -68,8 +68,11 @@ class BottomDrawerController {
     }
   }
 
+  /// How much of the map the drawer covers - its bar, plus its content when
+  /// open (the old height field was never set)
   double getHeight() {
-    return _bottomDrawerState?.height ?? 0;
+    if (!(_bottomDrawerState?.mounted ?? false)) return 0;
+    return _bottomDrawerState!.context.size?.height ?? 0;
   }
 
   int itemsCount() {

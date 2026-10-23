@@ -489,30 +489,15 @@ class _WebAppBarState extends State<WebAppBar> {
   void navigate(BuildContext context, int index) {
     _menuExists = false;
 
-    /// If the user taps a button when the menu is showing they'll never see it again
-    if (index != 5) {
-      // stop messages changing the side drawer type to fixed == false
-      MapService()
-          .sideDrawerController!
-          .setFixed(fixed: [0, 4].contains(index));
-    }
+    // The SideDrawer collapses on the map pages, where the map matters;
+    // elsewhere it holds the page's summaries and stays open
+    MapService().sideDrawerController!.setFixed(fixed: ![1, 2].contains(index));
     switch (index) {
       /// Published (1), Explore (2) and Favourites (3) - the shell switches to
       /// the map page and sets up the map and SideDrawer once it is built
       /// (BaseShellScreen._webSelect() via onSelect below)
       case 1 || 2 || 3:
         break;
-
-      /// Messages - special case in the Web version only want to show the data in the side drawer
-      /// This is so messages can be accessed any time. A PC screen with an expanding side drawer works well.
-      case 5: // <-- Messages
-        if (widget.sideDrawerController!.content ==
-                BottomDrawerItems.messages &&
-            widget.sideDrawerController!.screenCache.isNotEmpty) {
-          setSideDrawerContent(content: BottomDrawerItems.cached);
-        } else {
-          setSideDrawerContent(content: BottomDrawerItems.messages);
-        }
 
       /// The other cases will be rendered as screen contents and so are just pushed
       /// by the NavigationService() singleton. The map is totally hidden in the stack.
@@ -525,7 +510,7 @@ class _WebAppBarState extends State<WebAppBar> {
       widget.onSelect!(index);
     }
 
-    setState(() => _selected = index == 5 ? _selected : index);
+    setState(() => _selected = index);
     return;
   }
 

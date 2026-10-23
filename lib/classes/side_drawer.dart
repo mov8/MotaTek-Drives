@@ -1,6 +1,5 @@
 import 'dart:math';
 import 'package:drives/screens/screens.dart';
-import '../routes/messages.dart';
 import '../routes/my_trips.dart';
 import '../classes/classes.dart';
 import '../models/models.dart';
@@ -182,7 +181,6 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
   double _mapWidth = 600;
   double _maxWidth = 400;
   double _openWidth = 200;
-  int _messageIndex = -1;
   List<Widget> _screenCache = [];
   int delay = 500;
   bool refreshList = true;
@@ -402,17 +400,9 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
           ];
           break;
         case BottomDrawerItems.messages:
-          _tiles = [
-            Messages(
-              index: _messageIndex, // <-- debugging
-              onSelect: (index) => messageDetails(index),
-              webAppBarController: widget.webAppBarController,
-              onBackClick: () {
-                setState(() => _messageIndex = -1);
-              },
-            ),
-          ];
-          _offerRestore = true;
+          // Built by the Messages page - the conversations, or logged out
+          // the invitation to log in (Messages.sideBarItems())
+          _tiles = List<Widget>.from(_drawerItems!);
           break;
         default:
           _tiles = shredCurrentTripItemData();
@@ -446,21 +436,6 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
       }
     }
     return tiles;
-  }
-
-  void messageDetails(index) {
-    setState(() {
-      _messageIndex = index;
-      _tiles = [
-        Messages(
-          index: _messageIndex, // <-- debugging
-          onSelect: (index) => messageDetails(index),
-          onBackClick: () {
-            setState(() => _messageIndex = -1);
-          },
-        ),
-      ];
-    });
   }
 
   /// My Trips: a summary of each saved trip, whose arrow shows the trip's

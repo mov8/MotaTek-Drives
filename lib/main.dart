@@ -215,6 +215,7 @@ class _BaseShellScreen extends State<BaseShellScreen> {
     MapService().createTripStackController ??= CreateTripStackController();
     MapService().homeController ??= HomeController();
     MapService().myTripsController ??= MyTripsController();
+    MapService().messagesController ??= MessagesController();
     MapService().shopController ??= ShopController();
     MapService().fabsController ??= FabsController();
     MapService().baseShellController ??= BaseShellController();
@@ -286,10 +287,9 @@ class _BaseShellScreen extends State<BaseShellScreen> {
   /// WebAppBar navigation. Published (1) and Explore (2) are the map page.
   /// Favourites (3) is My Trips, split like Home and Shop: the summaries in
   /// the SideDrawer, the selected trip's details to the right.
-  /// Messages (5) open in the SideDrawer over whatever page is showing, which
-  /// WebAppBar.navigate() has already done.
+  /// Messages (5) too: the conversations in the SideDrawer, the selected
+  /// one to the right.
   void _webSelect(int index) {
-    if (index == 5) return;
     widget.navigationShell.goBranch(index,
         initialLocation: index == widget.navigationShell.currentIndex);
     NavigationService().selected(index);
@@ -310,6 +310,8 @@ class _BaseShellScreen extends State<BaseShellScreen> {
           MapService().myTripsController?.fillSideDrawer();
         case 4:
           MapService().shopController?.fillSideDrawer();
+        case 5:
+          MapService().messagesController?.fillSideDrawer();
         case 1 || 2:
           // Published and Explore set up the map too
           await MapService().showPage(index);
