@@ -219,6 +219,7 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
   void close() {
     if (mounted) {
       setState(() => width = 0);
+      MapService().webAppBarController?.update(); // its caption
     }
   }
 
@@ -415,6 +416,8 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
       // Show the new content - without this it only appeared when something
       // else rebuilt the drawer, so e.g. Home's tiles stayed on other pages
       if (mounted) setState(() {});
+      // The WebAppBar's caption describes what's in the drawer
+      MapService().webAppBarController?.update();
     } catch (e) {
       developer.log('Error setting SideDrawer setContent(): ${e.toString()}',
           name: 'error');

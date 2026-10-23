@@ -13,7 +13,9 @@ class RotatingIconController {
     _rotatingIconState?._rotate();
   }
 
-  bool get rotated => _rotatingIconState!.turns != 0;
+  /// False when there's no icon - e.g. the SideDrawer's edge, which isn't
+  /// built while the drawer is fixed open (it threw)
+  bool get rotated => (_rotatingIconState?.turns ?? 0) != 0;
 }
 
 class RotatingIcon extends StatefulWidget {

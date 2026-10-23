@@ -223,13 +223,11 @@ class _TripTileState extends State<TripTile> {
         ),
         initiallyExpanded: expanded,
         onExpansionChanged: (value) => expandChange(expanded: value),
-        leading: Expanded(
-          flex: 1,
-          child: CircleAvatar(
-            backgroundColor: Colors.blue,
-            child: Text(
-              getInitials(name: widget.tripItem.author),
-            ),
+        // Not Expanded - the leading widget isn't in a Row (it threw)
+        leading: CircleAvatar(
+          backgroundColor: Colors.blue,
+          child: Text(
+            getInitials(name: widget.tripItem.author),
           ),
         ),
         children: [

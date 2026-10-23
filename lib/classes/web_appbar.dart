@@ -201,10 +201,12 @@ class _WebAppBarState extends State<WebAppBar> {
                 padding: EdgeInsets.fromLTRB(20, 1, 5, 10),
                 child: Row(
                   children: [
-                    Align(
-                      alignment: AlignmentGeometry.bottomLeft,
-                      child: Expanded(
-                        flex: 4,
+                    // Expanded has to be the Row's child - inside the Align
+                    // it broke the app bar's layout (grey on the web)
+                    Expanded(
+                      flex: 4,
+                      child: Align(
+                        alignment: AlignmentGeometry.bottomLeft,
                         child: SizedBox(
                           width: 200,
                           child: getActionMessage(),
