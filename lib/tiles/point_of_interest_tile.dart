@@ -361,10 +361,12 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                   flex: 7,
                   child: deleteChip(),
                 ),
-                Expanded(
-                  flex: 6,
-                  child: saveChip(),
-                ),
+                // Only registered users can publish a great road
+                if (promptIndex == 1 || Setup().jwt.isNotEmpty)
+                  Expanded(
+                    flex: 6,
+                    child: saveChip(),
+                  ),
               ],
             ),
             SizedBox(
