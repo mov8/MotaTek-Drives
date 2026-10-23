@@ -796,8 +796,12 @@ class MapService {
         // label's first point is the start of the trip
         List points = foundFeatures.first['geometry']?['coordinates'] ?? [];
         if (points.isNotEmpty && points.first is List) {
-          WidgetsBinding.instance.addPostFrameCallback((_) => showInView(
-              LatLng(points.first[1].toDouble(), points.first[0].toDouble())));
+          // After the BottomDrawer has slid open (half a second), so its
+          // height is the open height
+          Future.delayed(
+              Duration(milliseconds: kIsWeb ? 50 : 600),
+              () => showInView(LatLng(
+                  points.first[1].toDouble(), points.first[0].toDouble())));
         }
       }
     } catch (e) {
