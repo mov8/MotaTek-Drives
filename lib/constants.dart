@@ -588,6 +588,7 @@ enum BottomDrawerItems {
   events,
   docs,
   login,
+  transfer, // <-- synchronising a trip with a phone
   markdown, // <-- Markdown editor
   markdownHome, // <-- Markdown summary tile
   markdownShop, // <-- Markdown summary tile

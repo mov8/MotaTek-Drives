@@ -614,6 +614,10 @@ class CreateTripChips extends StatelessWidget {
     debugPrint('[_save_] map image done, saving trip ${CurrentTripItem().uri}');
     try {
       CurrentTripItem().imageRepository ??= ImageRepository();
+      // My Trips shows "Saved on" - it was never set, so it was blank
+      if (CurrentTripItem().added.isEmpty) {
+        CurrentTripItem().added = dateFormat.format(DateTime.now());
+      }
       TripRepository tripRepository = TripRepository();
       await tripRepository.openBox();
       // Awaited so My Trips (refreshed below) reads the trip just saved
@@ -623,6 +627,8 @@ class CreateTripChips extends StatelessWidget {
       CurrentTripItem().tripValues.editing();
       MapService().messageBoxController?.message(message: Warning.tripSaved);
       MapService().myTripsController?.refresh();
+      // The details are done - the BottomDrawer was closed for the map image
+      if (kIsWeb) MapService().sideDrawerController?.close();
     } catch (e) {
       developer.log('_saveTro() Error saving trip: ${e.toString()}',
           name: 'error');

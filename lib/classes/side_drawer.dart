@@ -278,6 +278,7 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
     BottomDrawerItems.events,
     BottomDrawerItems.docs,
     BottomDrawerItems.login,
+    BottomDrawerItems.transfer,
     BottomDrawerItems.markdownHome,
     BottomDrawerItems.markdownShop,
     BottomDrawerItems.messages,
@@ -401,6 +402,10 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
         case BottomDrawerItems.docs:
           _tiles = [DocumentationForm()];
           _offerRestore = true;
+          break;
+        case BottomDrawerItems.transfer:
+          // Built by MyTripTile - synchronising a trip with the phone
+          _tiles = List<Widget>.from(_drawerItems!);
           break;
         case BottomDrawerItems.login:
           // Closing puts the page's own content back, and the WebAppBar

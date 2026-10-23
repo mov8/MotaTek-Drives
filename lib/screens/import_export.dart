@@ -24,7 +24,14 @@ import 'package:socket_io_client/socket_io_client.dart' as sio;
 
 class ImportExport extends StatelessWidget {
   final MyTripItem? tripItem;
-  const ImportExport({super.key, this.tripItem});
+
+  /// Called instead of popping the route when the screen isn't a route of
+  /// its own - on the web it's shown in the SideDrawer
+  final VoidCallback? onClose;
+  const ImportExport({super.key, this.tripItem, this.onClose});
+
+  void _close(BuildContext context) =>
+      onClose != null ? onClose!() : context.pop();
 
   // Mobile_arrow_down / up_right
   @override
@@ -52,7 +59,7 @@ class ImportExport extends StatelessWidget {
           backgroundColor: Colors.blue,
           leading: IconButton(
             icon: Icon(Icons.arrow_back, color: Colors.white),
-            onPressed: () => context.pop(),
+            onPressed: () => _close(context),
           ),
         ),
         backgroundColor: Colors.blue,
@@ -202,7 +209,7 @@ class ImportExport extends StatelessWidget {
                             style:
                                 TextStyle(fontSize: 22, color: Colors.white)),
                         backgroundColor: Colors.blue,
-                        onPressed: () => context.pop(),
+                        onPressed: () => _close(context),
                       ),
                     ),
                   ],
@@ -246,146 +253,4 @@ class ImportExport extends StatelessWidget {
     }
     return true;
   }
-}
-
-Widget webUser(context) {
-  return Stack(children: [
-    Positioned.fill(
-      child: Image.asset(
-        'assets/images/transfer.png',
-        fit: BoxFit.cover,
-      ),
-    ),
-    Positioned.fill(
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Colors.black.withValues(alpha: 0.5), // // Light shadow top
-              Colors.black.withValues(alpha: 0.7), // Dark contrast bottom
-            ],
-          ),
-        ),
-      ),
-    ),
-    Padding(
-      padding: EdgeInsets.fromLTRB(20, 10, 20, 0),
-      child: Column(
-        children: [
-          Text('Drives guest WiFi synchronisation',
-              style: TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white)),
-          Text('Import and export trips over WiFi as a guest user.',
-              style: TextStyle(fontSize: 22, color: Colors.white)),
-          SizedBox(height: 10),
-          Text(
-              'To synchronise trips both the sender and receiver must be running Drives and connected to a WiFi network.',
-              style: TextStyle(fontSize: 22, color: Colors.white)),
-          SizedBox(height: 10),
-          Text(
-              'The trips to be exported must first be saved on the sending device.',
-              style: TextStyle(fontSize: 22, color: Colors.white)),
-          SizedBox(height: 10),
-          Text(
-              'The receiving device loads the received trip into the Explore screen. Make sure any open trips are saved first.',
-              style: TextStyle(fontSize: 22, color: Colors.white)),
-          SizedBox(height: 10),
-          Text(
-              'Free registration makes synchronisation automatic, wherever you are, so long as you have an Internet connection.',
-              style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white)),
-          SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                  flex: 10,
-                  child: Text(
-                      'On the sending device go to the favourites screen',
-                      style: TextStyle(fontSize: 22, color: Colors.white))),
-              Expanded(
-                flex: 2,
-                child: Icon(Icons.favorite_outline),
-              ),
-            ],
-          ),
-          SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                  flex: 10,
-                  child: Text(
-                      'Choose which of your saved trips you want to export and tap the drop-down',
-                      style: TextStyle(fontSize: 20, color: Colors.white))),
-              Expanded(
-                flex: 2,
-                child: Icon(Icons.keyboard_arrow_down),
-              ),
-            ],
-          ),
-          SizedBox(height: 30),
-          Row(children: [
-            Expanded(
-                flex: 5,
-                child: ActionChip(
-                  label: Text('Proceed',
-                      style: TextStyle(fontSize: 22, color: Colors.white)),
-                  backgroundColor: Colors.blue,
-                  onPressed: () => context.pop(),
-                )),
-            Expanded(
-              flex: 5,
-              child: ActionChip(
-                label: Text('Register',
-                    style: TextStyle(fontSize: 22, color: Colors.white)),
-                backgroundColor: Colors.blue,
-                onPressed: () => context.pop(),
-              ),
-            ),
-          ]),
-        ],
-      ),
-    ),
-  ]);
-}
-
-Widget export() {
-  return Column(
-    children: [
-      Text('Drives WiFi trip import export',
-          style: TextStyle(
-              fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white)),
-      Text('To export this trip tap the Export button below.'),
-      SizedBox(height: 10),
-      Row(
-        children: [
-          Expanded(
-              flex: 10,
-              child: Text('On the receiving device open the Explore screen')),
-          Expanded(
-            flex: 2,
-            child: Icon(Icons.explore, size: 35, color: Colors.white),
-          ),
-        ],
-      ),
-      Row(
-        children: [
-          Expanded(
-              flex: 10,
-              child: Text('Tap the Import button at the top right hand side.',
-                  style: TextStyle(fontSize: 20, color: Colors.white))),
-          Expanded(
-            flex: 2,
-            child: Icon(Icons.arrow_circle_down_outlined,
-                size: 35, color: Colors.white),
-          ),
-        ],
-      ),
-    ],
-  );
 }

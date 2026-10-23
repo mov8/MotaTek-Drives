@@ -568,8 +568,22 @@ class _MyTripTileState extends State<MyTripTile> {
     return;
   }
 
+  /// For users who haven't registered - they can't publish, but can pass
+  /// the trip between the web and their phone (the phone acts as a server).
+  /// On the web it opens in the SideDrawer like the other forms.
   Future<void> synchroniseTrip() async {
-    context.push('/transfer', extra: widget.myTripItem);
-    return;
+    if (kIsWeb) {
+      MapService().sideDrawerController?.setContent(
+        content: BottomDrawerItems.transfer,
+        drawerItems: [
+          ImportExport(
+            tripItem: widget.myTripItem,
+            onClose: () => MapService().baseShellController?.refillSideDrawer(),
+          ),
+        ],
+      );
+    } else {
+      context.push('/transfer', extra: widget.myTripItem);
+    }
   }
 }
