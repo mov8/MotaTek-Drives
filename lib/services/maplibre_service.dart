@@ -269,6 +269,12 @@ class MapService {
       _idleWaiter!.complete();
     }
     if (controller != null) {
+      zoomFabController?.update();
+      if (kIsWeb) {
+        // The StatusBar's scale follows the zoom
+        _meters = await getMapWidthMeters();
+        statusBarController?.refresh();
+      }
 // handle Published state
       /// The following onIdle came from GitHub branch web_with_markdown create_trip.dart
 

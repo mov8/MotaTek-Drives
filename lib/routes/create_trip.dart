@@ -275,7 +275,6 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
     /// all the widgets it controls - not good.
     ///
 
-    MapService().statusBarController = StatusBarController();
     MapService().zoomFabController = ZoomFabController();
     _directionTileController = DirectionTileController();
     _bottomDrawerController.close();

@@ -790,10 +790,10 @@ const LatLng ukSouthWest = LatLng(49, -8);
 const double metersToMiles = 0.000621371192;
 const double metersPerSecondToMPH = 3.6 / 8 * 5;
 const double metersPerSecondToKmPH = 3.6;
-const double metersToYards = 0.9144;
+const double metersToYards = 1.0936133;
 const double metersPerMile = 1609.344;
 const double metersPerTenths = 160.934;
-const double yardsToMeters = 1.0936133;
+const double yardsToMeters = 0.9144;
 const double yardsPerMile = 1760;
 const double yardsToMiles = 0.000568182;
 

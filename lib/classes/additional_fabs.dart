@@ -8,6 +8,9 @@ class ZoomFabController {
   }
 
   bool get isAttached => _zoomFabState != null;
+
+  /// Shows the map's current zoom
+  void update() => _zoomFabState?.update();
 }
 
 class ZoomFab extends StatefulWidget {

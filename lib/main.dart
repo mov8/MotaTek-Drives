@@ -274,10 +274,13 @@ class _BaseShellScreen extends State<BaseShellScreen> {
             controller: MapService().sideDrawerController,
             webAppBarController: MapService().webAppBarController,
           ),
-          Align(
-            alignment: Alignment.bottomLeft,
-            child: StatusBar(controller: MapService().statusBarController),
-          ),
+          // The map pages' hints for the buttons under the mouse, and the
+          // map's scale
+          if ([1, 2].contains(widget.navigationShell.currentIndex))
+            Align(
+              alignment: Alignment.bottomLeft,
+              child: StatusBar(controller: MapService().statusBarController),
+            ),
         ],
       ),
     );
