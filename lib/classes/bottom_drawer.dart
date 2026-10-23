@@ -40,15 +40,6 @@ class BottomDrawerController {
     }
   }
 
-/*
-  void dockOpenTile() {
-    try {
-      _bottomDrawerState?.dockOpenTile();
-    } catch (e) {
-      debugPrint("Can't dock open tile: ${e.toString()}");
-    }
-  }
-*/
   void open() {
     try {
       _bottomDrawerState?.open();
@@ -94,7 +85,6 @@ class BottomDrawer extends StatefulWidget {
   final Function(double)? onChangeHeight;
   final Function(bool)? onOpened;
   final Function(bool)? onUpdate;
-  // final Function(bool)? requestClose;
   final GlobalKey? globalKey;
   final BuildContext context;
   final double maxHeight;
@@ -130,7 +120,6 @@ class _BottomDrawerState extends State<BottomDrawer>
   double height = 0;
   double contentBottom = 0;
   double contentHeight = 0;
-  // List<bool> _isExpanded = [];
   int delay = 500;
   bool refreshList = true;
 
@@ -138,7 +127,6 @@ class _BottomDrawerState extends State<BottomDrawer>
 
   final PointOfInterestController _pointOfInterestController =
       PointOfInterestController();
-  // final ScrollController _scrollController = ScrollController();
   final TripHeaderController _tripHeaderController = TripHeaderController();
   final ItemScrollController _itemScrollController = ItemScrollController();
 
@@ -155,13 +143,6 @@ class _BottomDrawerState extends State<BottomDrawer>
       widget.controller!._addState(this);
     }
   }
-
-/*
-  @override
-  void dispose() {
-    super.dispose();
-  }
-*/
 
   Future<void> close() async {
     MapService().tripHeaderController?.dismissKeyboard();
@@ -242,7 +223,6 @@ class _BottomDrawerState extends State<BottomDrawer>
           break;
       }
       refreshList = true;
-      // _toggleSheet();
       setState(() => _isSheetContentExpanded = true);
       _tiles.add(Container(
           height: 300,
@@ -278,10 +258,8 @@ class _BottomDrawerState extends State<BottomDrawer>
   List<Widget> shredGroup({List<Follower>? followers}) {
     followers ??= [];
     List<Widget> tiles = [];
-    //  bool expanded = false;
     for (int i = 0; i < followers.length; i++) {
       tiles.add(Padding(
-        //  key: expanded ? _scrollKey : Key('th1'),
         padding: EdgeInsetsGeometry.fromLTRB(5, 5, 5, 5),
         child: FollowerTile(
           follower: followers[i],
@@ -309,8 +287,6 @@ class _BottomDrawerState extends State<BottomDrawer>
   }
 
   void followerLongPress(int index) {
-    // CurrentTripItem().tripValues.showTarget = true;
-
     CurrentTripItem().mapController!.animateCamera(
         CameraUpdate.newLatLng(
           LatLng(
@@ -345,8 +321,6 @@ class _BottomDrawerState extends State<BottomDrawer>
   }
 
   void maneuverLongPress(int index) async {
-    // CurrentTripItem().tripValues.showTarget = true;
-
     CurrentTripItem().mapController!.animateCamera(
         CameraUpdate.newLatLng(
           LatLng(
@@ -367,7 +341,6 @@ class _BottomDrawerState extends State<BottomDrawer>
         DeviceFileSource source = DeviceFileSource(fileName);
         try {
           final player = AudioPlayer(); //..setReleaseMode(ReleaseMode.stop);
-          // player.setSourceAsset(fileName);
           player.play(source); //(source);
         } catch (e) {
           debugPrint('Error : ${e.toString()}');
@@ -576,20 +549,6 @@ class _BottomDrawerState extends State<BottomDrawer>
     }
     return pos;
   }
-/*
-  void setContentBottom({double offset = 0}) {
-    try {
-      contentBottom = contentBottom == 0 &&
-              widgetPosition(key: _animatedContainerKey).y > 300
-          ? widgetPosition(key: _animatedContainerKey).y + offset
-          : contentBottom;
-    } catch (e) {
-      developer.log('Error bottom_drawer.setContentBottom(): ${e.toString()}',
-          name: 'error');
-    }
-    return;
-  }
-  */
 
 /*
   Following two functions are useful for understanding rebuild problems - don't delete
@@ -687,126 +646,4 @@ class _BottomDrawerState extends State<BottomDrawer>
       ],
     );
   }
-
-  /* @override
-  Widget build(BuildContext context) {
-    double dividerHeight = 35;
-    bool _visible = true;
-
-    /// Ensure a fresh set of tiles is generated to ensure the initiallyExpanded value is
-    /// set to reflect the completeness of the tile's content.
-    /// The flag refreshList ensures that the list is only re-built when the data has changed
-    /// otherwise as Flutter calls rebuild that haven't been initiated with a setState(), and that
-    /// causes problems with the focus calling the keyboard. It is only set when the controller.refresh()
-    /// or controller.setContent() are called.
-
-    // if (refreshList) {
-    //   _tiles = shredCurrentTripItemData();
-    //   refreshList = false;
-    // }
-    return FocusScope(
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(0, 0, 0, 0),
-        child: Align(
-          alignment: Alignment.bottomLeft,
-          child: AnimatedContainer(
-            key: _animatedContainerKey,
-            duration: Duration(milliseconds: delay),
-            curve: Curves.easeOut, // fastOutSlowIn,
-            color: Colors.blue,
-            height: height + dividerHeight,
-            width: mounted ? MediaQuery.of(context).size.width : 100,
-            onEnd: () async {
-              contentHeight = height;
-              if (widget.onOpened != null) {
-                widget.onOpened!(height > 10);
-              }
-            },
-            child: SingleChildScrollView(
-              physics: NeverScrollableScrollPhysics(),
-              child: Column(
-                children: [
-                  Column(
-                    children: [
-                      GestureDetector(
-                        behavior: HitTestBehavior.translucent,
-                        child: AbsorbPointer(
-                          child: Container(
-                            color: const Color.fromARGB(255, 158, 158, 158),
-                            height: dividerHeight,
-                            width: MediaQuery.of(context).size.width,
-                            child: Icon(
-                              Icons.drag_handle,
-                              size: dividerHeight,
-                              color: Colors.blue,
-                            ),
-                          ),
-                        ),
-                        onTap: () async {
-                          setContentBottom();
-                          delay = 500;
-                          if (height > 50) {
-                            FocusScope.of(context).unfocus();
-                            _pointOfInterestController.dismissKeyboard();
-                            while (View.of(context).viewInsets.bottom > 0) {
-                              await Future.delayed(
-                                  const Duration(milliseconds: 10));
-                            }
-                            height = 0;
-                          } else {
-                            height = widget.maxHeight;
-                          }
-                          setState(() {});
-                        },
-                        onVerticalDragUpdate:
-                            (DragUpdateDetails details) async {
-                          if (delay > 1) setContentBottom();
-                          delay = 1;
-                          height = height - details.delta.dy > 0
-                              ? height - details.delta.dy
-                              : 0;
-                          if (widget.onChangeHeight != null) {
-                            widget.onChangeHeight!(height);
-                          }
-                          if (height < 50) {
-                            FocusScope.of(context).unfocus();
-                            _pointOfInterestController.dismissKeyboard();
-                            while (View.of(context).viewInsets.bottom > 0) {
-                              await Future.delayed(
-                                  const Duration(milliseconds: 10));
-                            }
-                            height = 0;
-                          }
-                          setState(() {});
-                        },
-                      ),
-                      AnimatedOpacity(
-                        opacity: _visible ? 1.0 : 0.0,
-                        duration: const Duration(milliseconds: 500),
-                        child: Container(
-                          height: contentHeight,
-                          child: SingleChildScrollView(
-                            physics: NeverScrollableScrollPhysics(),
-                            child: Container(
-                              height: contentHeight,
-                              color: Colors.blue,
-                              child: ScrollablePositionedList.builder(
-                                  itemScrollController: _itemScrollController,
-                                  itemCount: _tiles.length,
-                                  itemBuilder: (navContext, index) =>
-                                      _tiles[index]),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  } */
 }

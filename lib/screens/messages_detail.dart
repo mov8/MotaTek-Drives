@@ -6,8 +6,6 @@ import '/tiles/tiles.dart';
 import 'package:socket_io_client/socket_io_client.dart' as sio;
 
 class MessageDetailsForm extends StatefulWidget {
-  // var setup;
-  // final MailItem mailItem;
   final List<Message> messages;
   final String email;
   final bool isGroup;

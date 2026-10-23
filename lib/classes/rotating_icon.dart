@@ -51,7 +51,6 @@ class _RotatingIconState extends State<RotatingIcon> {
     } else {
       setState(() => turns = turns == 0 ? 0.5 : 0); //+= (widget.turns ?? 0.5));
     }
-    // turns = turns > 1 ? 0 : turns;
   }
 
   bool get rotated => turns > 0;

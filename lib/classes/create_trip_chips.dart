@@ -255,9 +255,6 @@ class CreateTripChips extends StatelessWidget {
           name: 'error');
     }
     //  Code below very useful - don't remove
-    //  developer.log(
-    //      '$phase waypointState: ${trip.waypointState} highlite: ${trip.highliteActions} => ${chipsForPhase[phase]}',
-    //      name: '_map_');
     return chips;
   }
 
@@ -491,7 +488,6 @@ class CreateTripChips extends StatelessWidget {
         return;
 
       case MyTripActions.clearTrip:
-        // CurrentTripItem().tripState = TripState.manualStart;
         CurrentTripItem().clearAll();
         CurrentTripItem().tripValues.manual();
         CurrentTripItem().tripValues.showTarget = false;
@@ -505,10 +501,6 @@ class CreateTripChips extends StatelessWidget {
         try {
           updateControllers(
               items: BottomDrawerItems.trip, open: true, dock: true);
-          // CurrentTripItem().tripActions = TripActions.none;
-          //  CurrentTripItem().tripState = TripState.manualStart;
-          //  CurrentTripItem().tripValues.showTarget = true;
-          //  CurrentTripItem().tripValues.showProgress = false;
           CurrentTripItem().tripValues.manual();
           MapService().createTripStackController?.refresh();
           if (onUpdate != null) {
@@ -524,7 +516,6 @@ class CreateTripChips extends StatelessWidget {
         updateControllers(
           items: BottomDrawerItems.trip,
           open: true,
-          //  dock: true,
         );
 
         if (onUpdate != null) {
@@ -556,18 +547,11 @@ class CreateTripChips extends StatelessWidget {
       case MyTripActions.showMessages:
         updateControllers(
             items: BottomDrawerItems.messages, open: true, dock: true);
-        //     MapService()
-        //         .bottomDrawerController!
-        //         .setContent(content: BottomDrawerItems.maneuvers);
-        //     MapService().bottomDrawerController!.open();
         CurrentTripItem().tripActions = TripActions.none;
         onUpdate!(MyTripActions.none);
         return;
 
       case MyTripActions.showGroup:
-        //      MapService().bottomDrawerController!.setContent(
-        //          content: BottomDrawerItems.group, drawerItems: _following);
-        //     MapService().bottomDrawerController!.open();
         updateControllers(
             items: BottomDrawerItems.groups, open: true, dock: true);
         CurrentTripItem().tripActions = TripActions.none;
@@ -575,10 +559,6 @@ class CreateTripChips extends StatelessWidget {
         return;
 
       case MyTripActions.follow:
-
-        //     MapService()
-        //         .bottomDrawerController!
-        //         .setContent(content: BottomDrawerItems.maneuvers);
         updateControllers(
             items: BottomDrawerItems.group, open: true, dock: true);
         CurrentTripItem().tripActions = TripActions.none;
@@ -610,7 +590,6 @@ class CreateTripChips extends StatelessWidget {
         MapService()
             .bottomDrawerController!
             .setContent(content: BottomDrawerItems.trip);
-        //  _bottomDrawerController.open(height: 300);
         CurrentTripItem().tripActions = TripActions.none;
         onUpdate!(MyTripActions.none);
     }
@@ -619,7 +598,6 @@ class CreateTripChips extends StatelessWidget {
 
   void _saveTrip() async {
     if (CurrentTripItem().headerComplete() != 7) {
-      // MapService().createTripStackController?.warn(0);
       MapService()
           .messageBoxController
           ?.message(message: Warning.headingIncomplete);
@@ -638,7 +616,6 @@ class CreateTripChips extends StatelessWidget {
       CurrentTripItem().markSaved();
       CurrentTripItem().tripState = TripState.loaded;
       CurrentTripItem().tripValues.editing();
-      // MapService().createTripStackController?.warn(1);
       MapService().messageBoxController?.message(message: Warning.tripSaved);
       MapService().myTripsController?.refresh();
     } catch (e) {
@@ -739,8 +716,6 @@ class CreateTripChips extends StatelessWidget {
       if (dock) {
         if (kIsWeb) {
           MapService().sideDrawerController!.scrollTo(index: 0);
-          //   } else {
-          //     MapService().bottomDrawerController!.dockOpenTile();
         }
       }
     } catch (e) {
@@ -754,9 +729,6 @@ class CreateTripChips extends StatelessWidget {
         .bottomDrawerController!
         .setContent(content: BottomDrawerItems.trip);
     MapService().bottomDrawerController!.open();
-    // await Future.delayed(Duration(milliseconds: 500));
-    // MapService().bottomDrawerController!.dockOpenTile();
-    //   }
     CurrentTripItem().tripActions = TripActions.none;
   }
 

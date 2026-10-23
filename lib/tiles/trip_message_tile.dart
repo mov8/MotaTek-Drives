@@ -62,11 +62,6 @@ class _TripMessageTileState extends State<TripMessageTile> {
                   initialValue: widget.message.message,
                   keyboardType: TextInputType.multiline,
                   maxLines: 5,
-                  //  decoration: InputDecoration(
-                  //    border: OutlineInputBorder(
-                  //      borderRadius: BorderRadius.all(Radius.circular(10.0)),
-                  //    ),
-                  // ),
                 ),
               ],
             ),

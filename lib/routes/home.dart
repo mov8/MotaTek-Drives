@@ -43,13 +43,10 @@ class _HomeState extends State<Home> {
   final ItemScrollController _itemScrollController = ItemScrollController();
   late MdStyleSheet _styleSheet;
   List<HomeItem> homeItems = [];
-  //final List<Widget> _sideBarContents = [];
 
   late Future<bool> _dataLoaded;
   bool _sideDrawerLoaded = false;
   int _index = 0;
-
-  // List<Map<String, dynamic>> _images = [];
 
   /// _handleExternalScroll executes the scrolling of the page content triggered by
   /// the SideDrawer. The ItemScrollController sits in this, the target object. MapService()
@@ -82,14 +79,12 @@ class _HomeState extends State<Home> {
 
   @override
   void dispose() {
-    // _sideBarContents.clear();
     MapService().scrollToSideDrawerIndex.removeListener(_handleExternalScroll);
     super.dispose();
   }
 
   Future<bool> _getHomeData() async {
     try {
-      // await initialise();
       List<Map<String, dynamic>> items = await getMarkdownItems(type: 'home');
       for (int i = 0; i < items.length; i++) {
         homeItems.add(HomeItem.fromMap(map: items[i]));
@@ -151,10 +146,8 @@ Sammy  | Blue
   
 > blockquote  
 
-
 >[!INFO]  
 >Callout  
-
 
   ---
 
@@ -196,10 +189,8 @@ Sammy  | Blue
   
 > blockquote  
 
-
 >[!INFO]  
 >Callout  
-
 
   ---
 
@@ -226,14 +217,11 @@ main() {
 ```
 ''';
 
-// homeItems.clear();
-
   void updateData(Map<String, dynamic> data) {
     try {
       setState(() {
         mdData = data['data'] ?? '';
         _styleSheet = data['style'];
-        //  MdStyleSheet.fromJson(json: data['style']);
         _index = data['index'] ?? _index;
       });
     } catch (e) {
@@ -242,7 +230,6 @@ main() {
     }
   }
 
-  // BuildContext pageContext = NavigationService().pageKey.currentContext!;
   Widget _getPortraitBody() {
     double leftPadding =
         MediaQuery.of(context).size.width * (kIsWeb ? 0.38 : 0);
@@ -305,11 +292,7 @@ main() {
       key: _scaffoldKey,
       // The main drawer is on the shell Scaffold in main.dart
       //   appBar: kIsWeb
-      //       ? null
-      //       : PersistentAppBar(
-      //           controller: MapService().persistentAppBarController!, page: 0),
       body: FutureBuilder<bool>(
-        //  initialData: false,
         future: _dataLoaded,
         builder: (BuildContext context, snapshot) {
           if (snapshot.hasError) {
@@ -332,13 +315,6 @@ main() {
         },
       ),
     );
-    /*   bottomNavigationBar: kIsWeb
-          ? null
-          : RoutesBottomNav(
-              controller: _bottomNavController,
-              initialValue: 0,
-              onMenuTap: (_) => {}),
-    ); */
   }
 
   /// force refills it when returning to Home - otherwise only the first

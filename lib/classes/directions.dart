@@ -1,17 +1,11 @@
-//import '/classes/classes.dart';
-// import '/classes/other_classes.dart';
 import 'dart:math';
 import '/helpers/create_trip_helpers.dart';
 
 import '/models/models.dart';
 import '/constants.dart';
 import '/classes/route.dart' as mt;
-// import '/helpers/create_trip_helpers.dart';
-// import '/classes/classes.dart';
-// import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import 'dart:developer' as developer;
-//import 'dart:math';
 
 /// Class to handle the directions.
 /// The index returned of the current Maneuver should:
@@ -169,7 +163,6 @@ class DirectionDescriptors {
   Map<String, dynamic> getDirections(
       {int maneuverIndex = 0,
       double metersToManeuver = 9999999999,
-      // List<double> position = const [0, 0],
       Point position = const Point(0, 0),
       int error = 0}) {
     Map<String, dynamic> directions = {};
@@ -424,27 +417,6 @@ class DirectionDescriptors {
   /// The aim is to get a good compromise between information and cacheability. The mp3 filename will be based on:
   ///   The maneuver.type
 
-/*
-  final List<String> type = [
-    "depart",
-    "continue",
-    "turn",
-    "roundabout",
-    "exit roundabout",
-    "end of road",
-    "new name",
-    "fork",
-    "arrive"
-  ];
-
-  final List<String> modifier = [
-    "left",
-    "right",
-    "straight",
-    "slight left",
-    "slight right"
-  ];
-*/
   Map<String, String> sounds(
       {required Maneuver maneuver,
       required double metersToManeuver,
@@ -455,10 +427,6 @@ class DirectionDescriptors {
     /// 1609 = 1 mile  804 = half a mile  161 = a tenth
     /// file name sp_type_modifier_distance_.mp3
 
-    //   if (maneuver.type == 'exit roundabout') {
-    //     soundTrigger = 2;
-    //     soundIndex++;
-    //   }
     String distance = '';
 
     /// Want to ensure that the sound is only generated once.

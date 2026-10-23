@@ -107,17 +107,6 @@ class _StatusBarState extends State<StatusBar> {
   }
 }
 
-/* 
-  child: ShaderMask(
-    shaderCallback: (rect) => LinearGradient(
-      colors: [Colors.black, Colors.transparent],
-      stops: [0.9, 1.0], // Fade out the last 10%
-    ).createShader(rect),
-    blendMode: BlendMode.dstIn,
-    child: CustomPaint(painter: HintPainter(hints)),
-  ),
-*/
-
 class MapKeyScale extends StatelessWidget {
   final double start;
   final double width;

@@ -32,7 +32,6 @@ class InitialsButton extends StatelessWidget {
           fit: BoxFit.scaleDown,
           child: Text(initials,
               style: headlineStyle(context: context, size: 2) //TextStyle(
-              // color: textColor, fontWeight: fontWeight, fontSize: fontSize),
               ),
         ),
       ),

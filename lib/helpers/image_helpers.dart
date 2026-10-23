@@ -10,8 +10,6 @@ import '/models/other_models.dart';
 import '../classes/classes.dart';
 import '../constants.dart';
 
-// import '/helpers/edit_helpers.dart';
-
 /// https://www.youtube.com/watch?v=MSv38jO4EJk
 
 /// ImagesTempStore is a singleton to allow the holding of images before they are
@@ -72,9 +70,6 @@ class ImageInMemory {
   Map<String, dynamic> get asJson =>
       {'url': name, 'caption': caption, 'rotation': rotation};
 
-  // Uint8List get imageBytes => _imageBytes ?? Uint8List(0);
-  // set imageBytes(Uint8List imageBytes) => _imageBytes;
-
   Photo get asPhoto => Photo(url: name, endPoint: 'memory');
 }
 
@@ -98,7 +93,6 @@ class PoiDetails extends StatefulWidget {
 class _PoiDetails extends State<PoiDetails> {
   final _contentControllerBody = TextEditingController();
   final _contentControllerTitle = TextEditingController();
-  // File? _image;
 
   @override
   initState() {
@@ -115,11 +109,6 @@ class _PoiDetails extends State<PoiDetails> {
       padding: const EdgeInsets.fromLTRB(10, 5, 10, 5),
       child: SizedBox(
         height: widget.height,
-        //  width: widget.width,
-        //  color: const Color.fromARGB(255, 213, 231, 247),
-        // padding: const EdgeInsets.fromLTRB(20, 5, 20, 0),
-        //  child: SingleChildScrollView(
-        //      child: Column(children: [
         child: ListView(
           children: [
             Row(
@@ -141,7 +130,6 @@ class _PoiDetails extends State<PoiDetails> {
                           maxLines: null,
                           textAlign: TextAlign.start,
                           textCapitalization: TextCapitalization.sentences,
-                          // decoration: null,
                           style: const TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.bold,
@@ -154,7 +142,6 @@ class _PoiDetails extends State<PoiDetails> {
                     child: IconButton(
                       icon: const Icon(Icons.cancel),
                       onPressed: () {
-                        //  debugPrint('onPressed pressed');
                         widget.pointOfInterest.description =
                             _contentControllerTitle.text;
                         widget.pointOfInterest.description =
@@ -183,7 +170,6 @@ class _PoiDetails extends State<PoiDetails> {
                         maxLines: null,
                         textAlign: TextAlign.start,
                         textCapitalization: TextCapitalization.sentences,
-                        // decoration: null,
                         style: const TextStyle(
                           fontSize: 19,
                           height: 1.5,
@@ -268,8 +254,6 @@ class _PoiDetails extends State<PoiDetails> {
                           ),
                           onPressed: () {
                             getImage(ImageSource.camera);
-                            //     ImagePicker()
-                            //         .pickImage(source: ImageSource.camera);
                           },
                           child: const Row(
                             children: [
@@ -306,7 +290,6 @@ class _PoiDetails extends State<PoiDetails> {
       if (pickedFile != null) {
         widget.pointOfInterest.images =
             ("${widget.pointOfInterest.images}, {'url': ${pickedFile.path}, 'caption':}");
-        // _image = File(pickedFile.path);
       }
     });
   }
@@ -358,33 +341,6 @@ Future<String> loadDeviceImage(
 /// a device
 ///   index is the position in any list of photos
 ///   fileName is the file path/name without the extension
-/*
-Future<Photo?> getDeviceImage(
-    {int index = 0,
-    String folder = '',
-    String fileName = 'image',
-    ImageSource source = ImageSource.gallery}) async {
-  ImagePicker picker = ImagePicker();
-  try {
-    XFile? image = await picker.pickImage(source: source, imageQuality: 10);
-    if (image != null) {
-      Directory targetDirectory =
-          Directory('${Setup().appDocumentDirectory}/$folder');
-      if (!await targetDirectory.exists()) {
-        await targetDirectory.create();
-      }
-      final target =
-          '${targetDirectory.path}/$fileName.${image.path.split('.').last}';
-      File(image.path).copy(target);
-      File(image.path).delete();
-      return Photo(url: target, index: index);
-    }
-  } catch (e) {
-    debugPrint('Error getting image from gallery: ${e.toString()}');
-  }
-  return null;
-}
-*/
 String getFileName({required String url}) {
   String uName = url;
   if (uName.contains('/')) {
@@ -466,7 +422,6 @@ List<Photo> photosFromJsonObject(
   images = images is String ? jsonDecode(images) : images;
   images = images is List ? images : [images];
   List<Photo> photos = [];
-  // String endpoint = '${urlBase}static/images/${jsonObject['uri'] ?? ''}';
   for (int i = 0; i < images.length; i++) {
     if (images[i] is Map && images[i].isNotEmpty) {
       photos.add(

@@ -1,14 +1,11 @@
 import 'package:flutter/foundation.dart';
 import '/tiles/tiles.dart';
 import 'package:flutter/material.dart';
-// import 'package:flutter/services.dart';
 import '/models/models.dart';
 import '/classes/classes.dart';
 import '/services/web_helper.dart';
 
 class InvitationsScreen extends StatefulWidget {
-  // var setup;
-
   const InvitationsScreen({super.key, setup});
 
   @override
@@ -22,7 +19,6 @@ class _InvitationsScreenState extends State<InvitationsScreen> {
   late FocusNode fn1;
   bool _expanded = false;
   int? _openIndex = -1;
-  //List<bool> expanded = [];
 
   List<EventInvitation> invitations = [];
   final List<EventInvitation> _refused = [];
@@ -73,31 +69,8 @@ class _InvitationsScreenState extends State<InvitationsScreen> {
             : '',
         update: _edited,
         overflowPrompts: overflowPrompts,
-        /* _expanded
-            ? ['Join trip now', 'Download trip']
-            : [
-                'Show all invitations',
-                'All excluding declined',
-                'Only future invitations'
-              ],
-              */
         overflowIcons: overflowIcons,
-        /* _expanded
-            ? [Icon(Icons.directions_car), Icon(Icons.download)]
-            : [
-                Icon(Icons.checklist_outlined),
-                Icon(Icons.remove_done_outlined),
-                Icon(Icons.more_time_outlined)
-              ], */
         overflowMethods: overflowMethods,
-        /*_expanded
-            ? [_startDrive, _downloadDrive]
-            : [
-                getData1,
-                getData2,
-                getData3,
-              ],
-              */
         showOverflow: true,
         showAction: _edited,
         updateMethod: (update) => _update(update: update),
@@ -124,7 +97,6 @@ class _InvitationsScreenState extends State<InvitationsScreen> {
         ),
       );
     } else {}
-    // introduces = [];
     return Scaffold(
       backgroundColor: Colors.blue,
       appBar: ScreensAppBar(
@@ -138,31 +110,8 @@ class _InvitationsScreenState extends State<InvitationsScreen> {
             : '',
         update: _edited,
         overflowPrompts: overflowPrompts,
-        /* _expanded
-            ? ['Join trip now', 'Download trip']
-            : [
-                'Show all invitations',
-                'All excluding declined',
-                'Only future invitations'
-              ],
-              */
         overflowIcons: overflowIcons,
-        /* _expanded
-            ? [Icon(Icons.directions_car), Icon(Icons.download)]
-            : [
-                Icon(Icons.checklist_outlined),
-                Icon(Icons.remove_done_outlined),
-                Icon(Icons.more_time_outlined)
-              ], */
         overflowMethods: overflowMethods,
-        /*_expanded
-            ? [_startDrive, _downloadDrive]
-            : [
-                getData1,
-                getData2,
-                getData3,
-              ],
-              */
         showOverflow: true,
         showAction: _edited,
         updateMethod: (update) => _update(update: update),
@@ -187,7 +136,6 @@ class _InvitationsScreenState extends State<InvitationsScreen> {
           throw ('Error - FutureBuilder introduce.dart');
         },
       ),
-      // body: MediaQuery.of(context).orientation == Orientation.portrait ? portraitView() : landscapeView()
     );
   }
 
@@ -234,7 +182,6 @@ class _InvitationsScreenState extends State<InvitationsScreen> {
               itemCount: invitations.length,
               itemBuilder: (context, index) => Dismissible(
                 key: UniqueKey(),
-                //    direction: DismissDirection.endToStart,
                 confirmDismiss: (direction) async {
                   _edited = true;
                   if (direction == DismissDirection.startToEnd) {
@@ -313,16 +260,6 @@ class _InvitationsScreenState extends State<InvitationsScreen> {
     ]);
   }
 
-/*
-  void expansionChange(index, value) async {
-    expanded[index] = value;
-    //  _expanded = value;
-    _openIndex = index;
-    _tripItem = await getTripItem(index);
-    _photos = _tripItem!.photos;
-    setState(() => setOverflows(value));
-  }
-*/
   expanded(
       int index, bool expanded, GroupDriveInvitationTileController controller) {
     if (expanded) {
@@ -335,13 +272,11 @@ class _InvitationsScreenState extends State<InvitationsScreen> {
         _openIndex = index;
         _activeController = controller;
         _expanded = true;
-        // _prompt = 'Edit ${_items[index].heading}';
       });
     } else {
       if (index == _openIndex) {
         // closing open tile
         setState(() {
-          // _prompt = 'Add, delete or edit promotions';
           _expanded = false;
           _openIndex = null;
           _activeController = null;

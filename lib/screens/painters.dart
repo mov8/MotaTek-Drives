@@ -3,8 +3,6 @@ import 'dart:math';
 import '/constants.dart';
 import 'dart:developer' as developer;
 
-// import 'package:latlong2/latlong.dart' hide Path;
-
 class TargetPainter extends CustomPainter {
   final double top;
   final double left;
@@ -12,9 +10,7 @@ class TargetPainter extends CustomPainter {
   final double radius = 20;
   final double inset = 5;
 
-  // @override
   TargetPainter({required this.top, required this.left, required this.color});
-  // final Color _color = color;
   var outLineBrush = Paint()
     ..style = PaintingStyle.stroke
     ..strokeWidth = 2.5;
@@ -104,17 +100,6 @@ class HighlightPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-/* 
-LayoutBuilder(
-  builder: (BuildContext context, BoxConstraints constraints) {
-    return Container(
-      width: constraints.maxWidth / 2,
-      height: constraints.maxHeight / 2,
-    );
-  },
-);
-*/
-
 /// LinearScale creates a linear distance scale calculated on the current map settings:
 /// It calculates the maps distance L -> R in meters and pixels and creates the scale
 /// bar appropriately. The minimum value is always 0, and the maximum is 1, 10, 100 ...
@@ -183,8 +168,6 @@ class LinearScale extends CustomPainter {
           keyUnits = isMiles ? 'miles' : 'km';
         }
 
-        // double targetLength = 400;
-
         /// Only convert to miles / km if the LinearScale raw width will be >= 1 (mapWidth km / miles)
         ///
         /// 1609.34 meters / mile (metersPerMile)
@@ -194,10 +177,6 @@ class LinearScale extends CustomPainter {
         /// Calculate the length of the LinearScale in miles
         /// Find the closest length base 10 to the raw length - final pixel LinearScale length
         /// Recalculate LinearScale length for new base 10 max value
-
-        // double mapWidthUnits = isMiles ? metersToMiles : 1;
-        // double unitConvert = isMiles ? metersPerMile : 1000;
-        // double keyToMapRatio = width / mapWidthPixels;
 
         double targetLength = width * displayUnits;
         int max = 1;
@@ -255,7 +234,6 @@ class LinearScale extends CustomPainter {
             textPainterEnd.width +
             textPainterStart.width +
             10;
-        // - start;
 
         double start = (mapWidthPixels - _length);
         double end = start + (max / displayUnits);
@@ -283,7 +261,6 @@ class LinearScale extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) {
     return (oldDelegate != this);
-    // return false;
   }
 }
 
@@ -347,7 +324,6 @@ class LocationPinPainter extends CustomPainter {
   Icon icon;
   String text;
   double score;
-  // @override
   LocationPinPainter(
       {this.index = 0,
       this.color = Colors.blue,
@@ -357,7 +333,6 @@ class LocationPinPainter extends CustomPainter {
       this.score = 3.5});
 
   //static const textStyle =
-  //    TextStyle(color: Colors.white, fontFamily: 'OpenSans', fontSize: 12);
 
   Paint filledLineBrush = Paint()
     ..style = PaintingStyle.fill
@@ -477,7 +452,6 @@ class FlagBackgroundPainter extends CustomPainter {
   Color color;
   double size;
 
-  // @override
   FlagBackgroundPainter({
     this.index = 0,
     this.color = Colors.blue,
@@ -515,10 +489,8 @@ class MapLabelPainter extends CustomPainter {
   final String labelText;
   final double pixelRatio;
 
-  // final ui.Image image;
   @override
   MapLabelPainter(
-      /*this.image,*/
       {required this.top,
       required this.left,
       required this.labelText,
@@ -526,12 +498,9 @@ class MapLabelPainter extends CustomPainter {
 
   static const textStyle =
       TextStyle(color: Colors.white, fontFamily: 'OpenSans', fontSize: 11);
-  // Size size = Size(width, height)
-//  top = top ~/2;
 
   @override
   void paint(Canvas canvas, Size size) {
-    // canvas.drawImage(image, Offset.zero, Paint());
     final textSpan = TextSpan(
       text: labelText,
       style: textStyle,
@@ -551,7 +520,6 @@ class MapLabelPainter extends CustomPainter {
     final dy = textHeight * 0.8;
     // final offset = Offset(-1 * dx + 10, dy.toDouble());
     final offset = Offset(0, dy.toDouble());
-    //  top = top ~/2;
 
     canvas.drawRRect(
         RRect.fromLTRBAndCorners(

@@ -1,20 +1,10 @@
-//import '/models/models.dart'; //my_trip_item.dart';
 import 'dart:math';
 import 'package:flutter/material.dart' hide Route;
 
 import '/classes/classes.dart';
 import '/helpers/helpers.dart';
 import '../models/other_models.dart';
-// import 'package:flutter/widgets.dart' hide Route;
 import '/constants.dart';
-//import 'package:latlong2/latlong.dart';
-/*
-            id: groupData['id'],
-            name: groupData['name'],
-            unreadMessages:
-                groupData['messages'] - int.parse(groupData['read']),
-            messages: groupData['messages'],
-*/
 
 class MailItem {
   final String id;
@@ -278,8 +268,6 @@ class MutableDouble {
 
 class TripPreferences {
   bool avoidMotorways;
-  // bool avoidMainRoads;
-  // bool avoidMinorRoads;
   bool avoidFerries;
   bool avoidTollRoads;
   int maxSpeed;
@@ -287,8 +275,6 @@ class TripPreferences {
   bool isRight = false;
   TripPreferences(
       {this.avoidMotorways = false,
-      // this.avoidMainRoads = false,
-      // this.avoidMinorRoads = false,
       this.avoidFerries = false,
       this.avoidTollRoads = false,
       this.maxSpeed = 70});
@@ -378,7 +364,3 @@ class Place {
         iconData: iconCodePoint);
   }
 }
-/*
-    final List<IconData> avatars = [
-      Icons.touch_app,
- */

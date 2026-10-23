@@ -44,7 +44,6 @@ class _MyTripTileState extends State<MyTripTile> {
 
   @override
   Widget build(BuildContext context) {
-    // List<PointOfInterest> pointsOfInterest;
     double webPadding = kIsWeb ? 25 : 0;
     return RrExpansionTile(
       context: context,
@@ -145,13 +144,8 @@ class _MyTripTileState extends State<MyTripTile> {
         ),
         onExpansionChanged: (expanded) =>
             expandChange(widget.index, expanded), //{
-        //   if (widget.onExpandChange != null) {
-        //     widget.onExpandChange!(widget.index, expanded);
-        //   }
-        // },
         children: [
           SizedBox(
-            // height: 200,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(5, 10, 5, 10),
               child: Align(
@@ -371,7 +365,6 @@ class _MyTripTileState extends State<MyTripTile> {
           )
         ],
       ),
-      // ),
     );
   }
 
@@ -414,11 +407,7 @@ class _MyTripTileState extends State<MyTripTile> {
     }
   }
 
-  changeRating(value) {
-    //  setState(() {
-    //    widget.tripItem.score = value;
-    //  });
-  }
+  changeRating(value) {}
 
   /// Warns the user before an unsaved trip in CurrentTripItem() is replaced
   /// by the saved one.
@@ -464,7 +453,6 @@ class _MyTripTileState extends State<MyTripTile> {
     // Undo should only apply to changes made after the trip is loaded
     CurrentTripItem().loadBackBuffer();
     CurrentTripItem().markSaved();
-    // CurrentTripItem().tripValues.showTarget = true;
     CurrentTripItem().tripType = TripType.none;
     CurrentTripItem().updateMap = true;
     CurrentTripItem().mapUpdates = MapUpdates.updateAll;
@@ -526,19 +514,12 @@ class _MyTripTileState extends State<MyTripTile> {
   */
   }
 
-/*
-import 'package:uuid/data.dart';
-import 'package:uuid/uuid.dart';
-import 'package:uuid/rng.dart';
-*/
-
   /// May have a problem having a single method for publishing a drive on
   /// both the Web and Android version. The issue is likely to be how to
   /// handle images - Android is simple but the Web may be problematic.
 
   Future<void> publishTrip() async {
     try {
-      // await publish(widget.myTripItem);
       await publish(widget.myTripItem);
     } catch (e) {
       developer.log('Error in my_trip_tile.dart publishTrip()', name: 'error');

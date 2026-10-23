@@ -12,12 +12,9 @@ import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import '/constants.dart';
 import '/screens/screens.dart';
-// import 'package:flutter_map/flutter_map.dart';
-// import 'package:latlong2/latlong.dart' as fm;
 import 'package:flutter/material.dart' hide Route;
 import 'package:universal_io/io.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-// import 'package:geolocator/geolocator.dart';
 
 /// https://api.flutter.dev/flutter/material/Icons-class.html  get the icon codepoint from here
 /// https://api.flutter.dev/flutter/material/Icons/add_road-constant.html eeaf
@@ -217,7 +214,6 @@ Map<Color, String> uiColours = {
 };
 
 List<Color> colourList = uiColours.keys.toList();
-// List<String> colourListHex = uiColours.keys.toHexStringRGB().toList();
 List<String> colorNameList = uiColours.values.toList();
 
 const List<Color> pinColours = [
@@ -237,35 +233,6 @@ String colourIntToHex({int index = 0}) {
 
 void myFunc() {}
 
-/*
-Future<String> distanceFromMe(
-    {required fm.LatLng position, decimalPlaces = 1, metric = false}) async {
-  Position pos = await Geolocator.getCurrentPosition();
-  double meters = Geolocator.distanceBetween(
-      pos.latitude, pos.longitude, position.latitude, position.longitude);
-  String unit = metric ? 'Km' : 'miles';
-  double factor = metric ? .001 : metersToMiles;
-  return '${(meters * factor).toStringAsFixed(decimalPlaces)} $unit';
-}
-*/
-/*
-class CutRoute {
-  int routeIndex = 0; // holds the polyLine Index in Routes
-  int pointIndex = 0; // holds the index of fm.LatLng on the above polyLine
-  int precedingPointIndex =
-      0; // holds the index of the previous POI in _routes[routeIndex].points[]
-  int precedingPoiIndex; // holds the index in _pointsOfInterest of the preceding POI
-  fm.LatLng poiPosition =
-      const fm.LatLng(0, 0); // The fm.LatLng of the POI to be inserted
-
-  CutRoute(
-      {required this.routeIndex,
-      required this.pointIndex,
-      required this.poiPosition,
-      this.precedingPoiIndex = 0,
-      this.precedingPointIndex = 0});
-}
-*/
 class Setup {
   int id = 0;
   int routeColour = 12;
@@ -307,13 +274,6 @@ class Setup {
   bool maleVoice = false;
   MyTripItem? currentTrip;
   Position lastPosition = Position();
-  //WebAppBarController? webAppBarController;
-  // SideDrawerController? sideDrawerController;
-  // StatusBarController? statusBarController;
-  // SideDrawer? sideDrawer;
-  // MLMap? mlMap;
-  // WebAppBar webAppBar = WebAppBar(appBarController: WebAppBarController());
-  // MapLibreMapController? mlMapController;
 
   String jwt = '';
   User user = User(
@@ -329,7 +289,6 @@ class Setup {
     return _instance;
   }
   FlutterSecureStorage? _storage;
-  // await _storage!.write(key: 'jwt', value: jwt);
 
   /// Setup().loaded ensures Setup singleton has been instantiated, and looks to see if a
   /// silent login is possible by retrieving the jwt either from secure storage on
@@ -446,53 +405,6 @@ class Setup {
     };
   }
 
-/*
-  Future<bool> setupFromStorage() async {
-    /* _storage ??= FlutterSecureStorage(
-      webOptions: WebOptions(
-        dbName: 'MotatekSecure',
-        publicKey: 'Config',
-      ),
-      iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
-    ); */
-    String mapString = await _storage!.read(key: 'values') ?? '';
-    if (mapString.isNotEmpty) {
-      Map map = json.decode(mapString);
-      id = map['id'];
-      routeColour = map['route_colour'];
-      goodRouteColour = map['good_route_colour'];
-      waypointColour = map['waypoint_colour'];
-      pointOfInterestColour = map['point_of_interest_colour'];
-      waypointColour2 = map['waypoint_colour_2'];
-      pointOfInterestColour2 = map['point_of_interest_colour_2'];
-      selectedColour = map['selected_colour'];
-      highlightedColour = map['highlighted_colour'];
-      publishedTripColour = map['published_trip_colour'] ?? 10;
-      recordDetail = map['record_detail'];
-      allowNotifications = map['allow_notifications'] == 1;
-      jwt = map['jwt'];
-      dark = map['dark'] == 1;
-      rotateMap = map['rotate_map'] == 1;
-      avoidMotorways = map['avoid_motorways'] == 1;
-      avoidAroads = map['avoid_a_roads'] == 1;
-      avoidBroads = map['avoid_b_roads'] == 1;
-      avoidTollRoads = map['avoid_toll_roads'] == 1;
-      avoidFerries = map['avoid_ferries'] == 1;
-      osmPubs = map['osm_pubs'] == 1;
-      osmRestaurants = map['osm_restaurants'] == 1;
-      osmFuel = map['osm_fuel'] == 1;
-      osmToilets = map['osm_toilets'] == 1;
-      osmAtms = map['osm_atms'] == 1;
-      osmHistorical = map['osm_historical'] == 1;
-      bottomNavIndex = map['bottom_nav_index'];
-      appState = map['app_state'];
-      maleVoice = (map['male_voice'] ?? 0) == 1;
-      return true;
-    }
-    return false;
-  }
-  */
-
   Future<void> save() async {
     await _storage!.write(key: 'jwt', value: jwt);
     UserRepository userRepository = UserRepository();
@@ -500,24 +412,14 @@ class Setup {
     userRepository.saveUser(user);
   }
 
-/*
-  Future<void> setupToStorage() async {
-    Map<String, dynamic> setupMap = toMap();
-    await _storage!.write(key: 'values', value: jsonEncode(setupMap));
-  }
-*/
-
   /// If the user has logged in correctly then the api will contain the
   /// user's details.
   /// The Mobile version will store the user details in SQLite
   /// The Web version will only save the JWT but will have to retrieve the
   /// setup Json Object from the api that contains full user details and colours etc
   Future<void> saveUser() async {
-    //   if (kIsWeb) {
     await _storage!.write(key: 'jwt', value: jwt);
-    //   } else {
     saveUserLocally(user);
-    //  }
   }
 
   Map<String, dynamic> toMap() {
@@ -668,7 +570,6 @@ class OverflowMethods {
 }
 
 class PointOfInterest {
-  // GlobalKey? handle;
   int id;
   String uuid;
   Point point;
@@ -680,8 +581,6 @@ class PointOfInterest {
   int scored;
   int type;
   List<Photo> photos;
-  // Map<String, dynamic> memoryImages;
-  // List<ImageInMemory> memoryImages;
 
   PointOfInterest({
     this.id = -1,
@@ -694,12 +593,9 @@ class PointOfInterest {
     this.score = 0,
     this.scored = 0,
     this.sounds = '',
-    //Map<String, dynamic>? memoryImages,
-    // List<ImageInMemory>? memoryImages,
     List<Photo>? photos,
   })  : uuid = uuid ?? getUuid(),
         photos = photos ?? <Photo>[];
-  //  memoryImages = memoryImages ?? <ImageInMemory>[]; // memoryImages ?? {};
 
   factory PointOfInterest.fromMap({required Map<String, dynamic> map}) {
     return PointOfInterest(
@@ -839,7 +735,6 @@ List<PointOfInterest> pointsOfInterestFromJson(
     {required List<dynamic> jsonList}) {
   return [
     for (Map<String, dynamic> json in jsonList)
-      //  if (![12, 17, 18].contains(json['type'] ?? 0))
       PointOfInterest.fromMap(map: json)
   ];
 }
@@ -895,7 +790,6 @@ class Group {
       'description': description,
       'members': _members.map((member) => member.toMap()).toList(),
       'created': created.toString(),
-      //  'edited': edited ? 1 : 0,
       'user_id': userId,
     };
   }
@@ -1046,7 +940,6 @@ class GroupMember {
 
   Map<String, dynamic> toFullMap() {
     return {
-      // 'id': stId,
       'user_id': userId,
       'forename': forename,
       'surname': surname,
@@ -1118,8 +1011,6 @@ class GroupEvent {
     this.selected = false,
     this.accepted = 0,
     this.invitees = const [{}],
-    //    {'forename': '', 'surname': '', 'email': '', 'status': 0},
-    //  ],
   });
 
   factory GroupEvent.fromMap({required Map<String, dynamic> map}) {
@@ -1156,8 +1047,6 @@ class GroupDriveByGroup {
     this.invited = 0,
     this.accepted = 0,
     this.invitees = const [{}],
-    //   {'forename': '', 'surname': '', 'email': '', 'status': 0},
-    // ],
   });
 
   factory GroupDriveByGroup.fromMap({required Map<String, dynamic> map}) {
@@ -1380,57 +1269,6 @@ class Photo {
     return jsonEncode(json);
   }
 }
-/*
-class ImageCacheItem {
-  int index;
-  int localId;
-  String url;
-  double lat;
-  double lng;
-  ImageCacheItem(
-      {this.localId = -1,
-      this.url = '',
-      this.lat = 0,
-      this.lng = 0,
-      this.index = -1});
-
-  factory ImageCacheItem.fromMap(
-      {required Map<String, dynamic> map, row = -1}) {
-    return ImageCacheItem(
-        index: row,
-        localId: map['id'] ?? -1,
-        url: map['uri'] ?? '',
-        lat: map['lat'] ?? 50.0,
-        lng: map['lng'] ?? 0);
-  }
-}
-*/
-/*
-class GoodRoadCacheItem {
-  int index;
-  int localId;
-  String url;
-  fm.LatLng northEast;
-  fm.LatLng southWest;
-  GoodRoadCacheItem(
-      {this.localId = -1,
-      this.url = '',
-      this.northEast = const fm.LatLng(50, 0),
-      this.southWest = const fm.LatLng(50, 0),
-      this.index = -1});
-
-  factory GoodRoadCacheItem.fromMap(
-      {required Map<String, dynamic> map, row = -1}) {
-    return GoodRoadCacheItem(
-      index: row,
-      localId: map['id'] ?? -1,
-      url: map['uri'] ?? '',
-      northEast: fm.LatLng(map['max_lat'] ?? 50.0, map['max_lng'] ?? 0),
-      southWest: fm.LatLng(map['min_lat'] ?? 50.0, map['min_lng'] ?? 0),
-    );
-  }
-}
-*/
 
 class User {
   int id = 0;
@@ -1740,7 +1578,6 @@ String handleWebImages(String urls) {
 class HomeItem {
   int id;
   String markdown;
-  // MdStyleSheet? style;
   Map<String, dynamic>? style;
   int score;
   List<Map<String, dynamic>>? images;
@@ -1772,7 +1609,6 @@ class HomeItem {
           images.add(Map<String, dynamic>.from(image));
         }
       }
-      // dateFormatDoc.format(homeItem.added)
       HomeItem homeItem = HomeItem(
           url: map['id'], //<-- on api the uri is id the primary column
           heading: map['heading'],
@@ -1805,85 +1641,7 @@ class HomeItem {
       'author': author,
     };
   }
-
-  // DateTime added = DateTime.now();
-  /* List<Photo> getPhotos() {
-    return [];
-  } */
 }
-
-/*
-class HomeItem {
-  int id;
-  String uri;
-  String heading;
-  String subHeading;
-  String body;
-  String imageUrls;
-  int score;
-  String coverage;
-  DateTime added;
-  HomeItem(
-      {this.id = -1,
-      this.uri = '',
-      required this.heading,
-      this.subHeading = '',
-      this.body = '',
-      imageUrls = '',
-      this.score = 5,
-      this.coverage = 'all',
-      DateTime? added})
-      : added = added ?? DateTime.now(),
-        imageUrls = handleWebImages(imageUrls);
-
-  /// Need to be able to change the URL as the API doesn't
-  /// send the endpoint address to save web traffic, The app
-  /// adds in the appropriate address as it processes the data
-  /// which is sent as  by the API and read as a map.
-  /// As the fromMap method has to cope with data from both the
-  /// API and the local SQLite db all integer values have to be
-  /// sent as integers and not strings to parse to integer.
-
-  factory HomeItem.fromMap(
-      {required Map<String, dynamic> map, String url = ''}) {
-    return HomeItem(
-      id: map['id'] ?? -1,
-      uri: '$url${map['uri']}',
-      heading: map['heading'],
-      subHeading: map['sub_heading'],
-      body: map['body'],
-      imageUrls: map['image_urls'], //jsonEncode(map['imageUrl']),
-      coverage: map['coverage'],
-      score: map['score'] ?? 5,
-    );
-  }
-
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id.toString(),
-      'uri': uri,
-      'heading': heading,
-      'sub_heading': subHeading,
-      'body': body,
-      'image_urls': imageUrls,
-      'coverage': coverage,
-      'score': score.toString(),
-    };
-  }
-
-  List<Photo> getPhotos() {
-    List<Photo> photos = [];
-    List imageList = jsonDecode(imageUrls);
-    for (int i = 0; i < imageList.length; i++) {
-      Map<String, dynamic> image = jsonDecode(imageList[i]);
-      image['url'] = '$staticImagesFolder/home_page/$uri/${image['url']}';
-      photos.add(Photo.fromJson(image));
-    }
-    return photos;
-  }
-}
-
-*/
 
 /// ShopItem that uses Markdown version. The only data that it uses is the Markdown text, the
 /// stylesheet, and the images. The titles, subtitles and links remain in the Markdown and
@@ -1892,7 +1650,6 @@ class HomeItem {
 class ShopItem {
   int id;
   String markdown;
-  // MdStyleSheet? style;
   Map<String, dynamic>? style;
   int score;
   List<Map<String, dynamic>>? images;
@@ -1924,7 +1681,6 @@ class ShopItem {
           images.add(Map<String, dynamic>.from(image));
         }
       }
-      // dateFormatDoc.format(shopItem.added)
       ShopItem shopItem = ShopItem(
           url: map['id'], //<-- on api the uri is id the primary column
           heading: map['heading'],
@@ -1959,161 +1715,10 @@ class ShopItem {
   }
 }
 
-/*
-class ShopItem {
-  int id;
-  String markdown;
-  MdStyleSheet? style;
-  int score;
-  List<String>? images;
-  String url;
-  String imageUrls = '';
-  String heading;
-  String subheading;
-  ShopItem({
-    this.id = 0,
-    this.url = '',
-    this.markdown = '',
-    this.heading = 'Heading',
-    this.subheading = 'Subheading',
-    this.style,
-    this.images,
-    this.score = 5,
-  }) {
-    style ??= MdStyleSheet();
-  }
-  factory ShopItem.fromMap({required Map<String, dynamic> map}) {
-    return ShopItem(
-        url: map['url'],
-        heading: map['heading'],
-        subheading: map['subheading'],
-        markdown: map['markdown'],
-        style: map['style'],
-        images: map['images'],
-        score: map['score']);
-  }
-  String uri = getUuid();
-
-  Map<String, dynamic> toMap() {
-    return {
-      'url': url,
-      'markdown': markdown,
-      'style': style,
-      'score': score,
-      'images': images,
-    };
-  }
-
-  DateTime added = DateTime.now();
-  /* List<Photo> getPhotos() {
-    return [];
-  } */
-}
-*/
-/*
-class ShopItem {
-  int id = -1;
-  String uri = '';
-  String heading = '';
-  String subHeading = '';
-  String body = '';
-  String imageUrls = '';
-  String coverage;
-  int score = 5;
-  String buttonText1;
-  String url1;
-  String buttonText2;
-  String url2;
-  int links;
-  DateTime? added;
-  ShopItem(
-      {this.id = -1,
-      this.uri = '',
-      required this.heading,
-      this.subHeading = '',
-      this.body = '',
-      imageUrls = '',
-      this.coverage = 'all',
-      this.score = 5,
-      this.buttonText1 = '',
-      this.url1 = '',
-      this.buttonText2 = '',
-      this.url2 = '',
-      this.links = 0,
-      DateTime? added})
-      : imageUrls = handleWebImages(imageUrls),
-        added = added ?? DateTime.now();
-
-  factory ShopItem.fromMap(
-      {required Map<String, dynamic> map, String url = ''}) {
-    return ShopItem(
-        id: map['id'] ?? -1,
-        uri: '$url${map['uri']}',
-        heading: map['heading'],
-        subHeading: map['sub_heading'],
-        body: map['body'],
-        coverage: map['coverage'],
-        imageUrls: map['image_urls'],
-        score: map['score'] ?? 5,
-        buttonText1: map['button_text_1'],
-        url1: map['url_1'],
-        buttonText2: map['button_text_2'],
-        url2: map['url_2'],
-        links: map['url_1'] == ''
-            ? 0
-            : map['url_2'] == ''
-                ? 1
-                : 2);
-  }
-
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id.toString(),
-      'uri': uri,
-      'heading': heading,
-      'sub_heading': subHeading,
-      'body': body,
-      'coverage': coverage,
-      'image_urls': imageUrls,
-      'score': score.toString(),
-      'button_text_1': buttonText1,
-      'url_1': url1,
-      'button_text_2': buttonText2,
-      'url_2': url2,
-    };
-  }
-
-  List<Photo> getPhotos() {
-    List<Photo> photos = [];
-    List imageList = jsonDecode(imageUrls);
-    for (int i = 0; i < imageList.length; i++) {
-      imageList[i] =
-          imageList[i] is String ? jsonDecode(imageList[i]) : imageList[i];
-      imageList[i]['url'] =
-          '$staticImagesFolder/shop_item/$uri/${imageList[i]['url']}';
-      photos.add(Photo.fromJson(imageList[i]));
-    }
-    return photos;
-  }
-
-  List<Photo> getPhotos2() {
-    List<Photo> photos = [];
-    List imageList = jsonDecode(imageUrls);
-    for (int i = 0; i < imageList.length; i++) {
-      Map<String, dynamic> image = jsonDecode(imageList[i]);
-      image['url'] = '$staticImagesFolder/home_page/$uri/${image['url']}';
-      photos.add(Photo.fromJson(image));
-    }
-    return photos;
-  }
-}
-
-*/
 /// class TripItem
 ///
 
 class TripSummary {
-  //extends Marker {
   int cacheKey;
   int id = -1;
   final String uri;
@@ -2126,8 +1731,6 @@ class TripSummary {
   final double score;
   int scored;
 
-  // late final Widget marker;
-  // late fm.LatLng markerPoint = const fm.LatLng(52.05884, -1.345583);
   TripSummary(
       {this.cacheKey = -1,
       this.uri = '',
@@ -2139,10 +1742,6 @@ class TripSummary {
       this.maxLong = 180,
       this.score = 5.0,
       this.scored = 1});
-  //   super.child = const Icon(Icons.location_pin),
-  //    super.point = const fm.LatLng(-50.0, -0.2),
-  //    super.width = 20,
-  //    super.height = 20});
 
   factory TripSummary.fromMap({required Map<String, dynamic> map}) {
     return TripSummary(
@@ -2155,7 +1754,6 @@ class TripSummary {
       maxLong: map['ne_lng'] ?? 0,
       score: map['score'] ?? 0,
       scored: map['scored'] ?? 0,
-      //  point: fm.LatLng(map['sw_lat'] ?? 0, map['sw_log'] ?? 0),
     );
   }
 }
@@ -2184,7 +1782,6 @@ class TripItem {
   int downloads = 18;
   String added = '';
   List polylines;
-  // List<PointOfInterest>? pointsOfInterest;
   TripItem({
     this.handle,
     this.id = 0,
@@ -2209,8 +1806,6 @@ class TripItem {
     this.uri = '',
     this.polylines = const [],
   }) : photos = photos ?? <Photo>[];
-  //    List<PointOfInterest>? pointsOfInterest});
-  //  : pointsOfInterest = pointsOfInterest ?? [];
 
   Map<String, dynamic> toMap() {
     return {
@@ -2272,7 +1867,6 @@ class TripItem {
       closest: 0, // has to be calculated
       imageUrls: tripMap['images'] ?? '',
       //    imageUrls: imageUrls.isEmpty
-      //        ? tripMap['image_urls'] ?? ''
       //        : imageUrls, // has to be calculated
       rating: tripMap['average_rating'] ??
           5.0, // tripMap['average_rating'].toDouble() ?? 5.0,
@@ -2292,33 +1886,6 @@ class TripItem {
     return ("${'★' * starValue}${'☆' * (5 - starValue)}");
   }
 
-/*
-
-      id: map['id'] is int ? map['id'] : -1,
-      driveUri: map['id'] is String
-          ? map['id']
-          : '', // The API sends back the uri as id
-      heading: map['title'] ?? map['heading'],
-      subHeading: map['sub_title'] ?? map['sub_heading'],
-      body: map['body'],
-      author: map['author'] ?? '',
-      published: map['added'] ?? DateTime.now().toIso8601String(),
-      imageUrls: imageUrls.isEmpty
-          ? map['image_urls'] ?? ''
-          : imageUrls, // has to be calculated
-      score: map['average_rating'] ?? 5,
-      distance: map['distance'] ?? 0,
-      pointsOfInterest: map['points_of_interest'] is int
-          ? map['points_of_interest'] ?? 0
-          : (map['points_ofInterest'] ?? []).length,
-      closest: 0, // has to be calculated
-      scored: map['ratings_count'] ?? 1,
-      downloads: map['downloads'] ?? 0,
-      uri: '$endpoint${map['uri'] ?? ''}',
-
-    );
-  }
-*/
   factory TripItem.from3DCache(
       {required Map<String, dynamic> map,
       String uri = '',
@@ -2458,7 +2025,6 @@ class Message {
   bool sent;
   String dated = '';
   DateTime received; // = DateTime.now();
-  // DateFormat dateFormat = DateFormat("dd MMM yyyy");
 
   Message(
       {required this.id,

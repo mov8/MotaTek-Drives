@@ -1,16 +1,12 @@
 import 'dart:developer' as developer;
-// import 'package:drives/helpers/markdown_helpers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
-// import 'package:flutter_markdown/flutter_markdown.dart' as md;
 import 'package:markdown/markdown.dart' as md;
 import '/constants.dart';
 import '/models/other_models.dart';
-// import '/tiles/shop_tile.dart';
 import '/services/services.dart' hide getPosition;
-// import 'package:flutter/services.dart' show rootBundle;
 import '/helpers/helpers.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
@@ -37,14 +33,12 @@ class ShopController {
 }
 
 class Shop extends StatefulWidget {
-  // final ShopController? controller = MapService().shopController;
   const Shop({super.key});
   @override
   State<Shop> createState() => _ShopState();
 }
 
 class _ShopState extends State<Shop> {
-  // late final ImageRepository _imageRepository;
   final GlobalKey _scaffoldKey = GlobalKey();
   final ItemScrollController _itemScrollController = ItemScrollController();
   late MdStyleSheet _styleSheet;
@@ -78,7 +72,6 @@ class _ShopState extends State<Shop> {
     super.initState();
     MapService().scrollToSideDrawerIndex.addListener(_handleExternalScroll);
     _styleSheet = MdStyleSheet();
-    // _imageRepository = ImageRepository();
     if (MapService().shopController != null) {
       MapService().shopController!._addState(this);
     }
@@ -87,7 +80,6 @@ class _ShopState extends State<Shop> {
 
   @override
   void dispose() {
-    // _imageRepository.clear();
     _sideBarContents.clear();
     MapService().scrollToSideDrawerIndex.removeListener(_handleExternalScroll);
     super.dispose();
@@ -159,10 +151,8 @@ Sammy  | Blue
   
 > blockquote  
 
-
 >[!INFO]  
 >Callout  
-
 
   ---
 
@@ -204,10 +194,8 @@ Sammy  | Blue
   
 > blockquote  
 
-
 >[!INFO]  
 >Callout  
-
 
   ---
 
@@ -241,7 +229,6 @@ main() {
         mdData = data['data'] ?? '';
         _styleSheet = data['style'] ?? _styleSheet;
         _images = data['images'] ?? _images;
-        //   MdStyleSheet.fromJson(json: data['style'] ?? _styleSheet.toJson());
       });
     } catch (e) {
       developer.log('Shop().updateData() error: ${e.toString()}',
@@ -293,51 +280,8 @@ main() {
       key: _scaffoldKey,
       // The main drawer is on the shell Scaffold in main.dart
       //    appBar: kIsWeb
-      //        ? null
-      //        : PersistentAppBar(
-      //            controller: MapService().persistentAppBarController!, page: 4),
 
-      /* AppBar(
-              automaticallyImplyLeading: false,
-              leading: LeadingWidget(
-                  controller: _leadingWidgetController,
-                  onMenuTap: (index) =>
-                      _leadingWidget(_scaffoldKey.currentState)), // IconButton(
-              title: const Text(
-                'Marketplace',
-                style: TextStyle(
-                  fontSize: 24,
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              iconTheme: const IconThemeData(color: Colors.white),
-              backgroundColor: Colors.blue,
-              actions: [
-                IconButton(
-                  onPressed: () => {
-                    if (Setup().jwt.isEmpty)
-                      {
-                        context.push('/login')
-                        /* Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) =>
-                                  LoginScreen(user: Setup().user)),
-                        ), */
-                      },
-                  },
-                  icon: Icon(
-                    Setup().jwt.isEmpty
-                        ? Icons.no_accounts_outlined
-                        : Icons.account_circle_outlined,
-                    size: 30,
-                  ),
-                )
-              ],
-            ), */
       body: FutureBuilder<bool>(
-        //  initialData: false,
         future: _dataLoaded,
         builder: (BuildContext context, snapshot) {
           if (snapshot.hasError) {
@@ -359,12 +303,6 @@ main() {
           }
         },
       ),
-      /* bottomNavigationBar: kIsWeb
-          ? null
-          : RoutesBottomNav(
-              controller: _bottomNavController,
-              initialValue: 4,
-              onMenuTap: (_) => {}),*/
     );
   }
 

@@ -19,13 +19,6 @@ import 'package:maplibre_gl/maplibre_gl.dart';
 /// of the external data and update the external data when the save method is called
 /// accessing the save method is achieved through the controller
 
-//class ExpandNotifier extends ValueNotifier<int> {//
-// ExpandNotifier(super.value);
-//  void targetValue({int target = -1}) {/
-//    value = target;
-//  }
-//}
-
 typedef IconEntry = DropdownMenuEntry<IconLabel>;
 
 enum IconLabel {
@@ -83,7 +76,6 @@ class PointOfInterestTile extends StatefulWidget {
   final ImageRepository imageRepository;
   PointOfInterestController? controller;
   final MapLibreMapController? mapController;
-  // final ExpandNotifier? expandNotifier;
   Function? onExpandChange;
   final Function? onIconTap;
   final Function(int, int)? onDelete;
@@ -103,7 +95,6 @@ class PointOfInterestTile extends StatefulWidget {
     required this.pointOfInterest,
     required this.imageRepository,
     this.controller,
-    //  this.expandNotifier,
     this.onIconTap,
     Function? onExpandChange,
     this.onDelete,
@@ -126,7 +117,6 @@ class PointOfInterestTile extends StatefulWidget {
       pointOfInterest: origin.pointOfInterest,
       imageRepository: origin.imageRepository,
       controller: origin.controller,
-      // expandNotifier: origin.expandNotifier,
       onIconTap: origin.onIconTap,
       onExpandChange: origin.onExpandChange,
       onDelete: origin.onDelete,
@@ -241,19 +231,11 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
     }
     // Don't requestFocus() here - build() runs when the keyboard closes and
     // would re-open it. A new point of interest gets focus in initState().
-    // return editableTile();
-    /*Card(
-      child: Text(
-        'Test Card',
-        style: (TextStyle(fontSize: 24, color: Colors.red)),
-      ),
-    ); */
     return canEdit ? editableTile() : unEditableTile();
   }
 
   Widget editableTile() {
     promptIndex = widget.pointOfInterest.type == 13 ? 0 : 1;
-    // int iconIndex = 15;
     try {
       Widget poiData = RrExpansionTile(
         context: context,
@@ -280,7 +262,6 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
               setState(() => widget.pointOfInterest.type = id);
             },
             menuHeight: 200,
-            // menuStyle:MenuStyle(maximumSize: Size.fromHeight(300))
             leadingIcon: Icon(
               IconData(poiTypes[widget.pointOfInterest.type]['iconMaterial'],
                   fontFamily: 'MaterialIcons'),
@@ -386,7 +367,6 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
               height: 30,
             ),
             if (widget.pointOfInterest.photos.isNotEmpty) ...[
-              //images.isNotEmpty) ...[
               Row(
                 children: <Widget>[
                   Expanded(
@@ -400,8 +380,6 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                         onPhotoDeleted: (photo) =>
                             CurrentTripItem().discardPhoto(photo),
                         photos: widget.pointOfInterest.photos, //getPhotos(
-                        // driveId: widget.driveId ?? CurrentTripItem().uri,
-                        //   ),
                         showCaptions: true,
                         imageRepository: widget.imageRepository,
                       ),
@@ -410,7 +388,6 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                 ],
               ),
             ],
-            // )
           ],
         ),
       );
@@ -432,7 +409,6 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
       // update the geoJson flag to show the details
       CurrentTripItem().mapUpdates =
           CurrentTripItem().mapUpdates.add(MapUpdates.pointsOfInterest);
-      //  MapService().controller.upda
       if (widget.onUpdate != null) {
         widget.onUpdate!(true);
       }
@@ -510,9 +486,7 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                 flex: 1,
                 child: Align(
                   alignment: Alignment.bottomLeft,
-                  child: Text('N/A',
-                      //  'published ${DateFormat("dd MMM yyyy").format(widget.pointOfInterest.published)}',
-                      style: const TextStyle(fontSize: 14)),
+                  child: Text('N/A', style: const TextStyle(fontSize: 14)),
                 ),
               ),
             ]),
@@ -569,7 +543,6 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                                 child: PhotoCarousel(
                                   imageRepository: widget.imageRepository,
                                   photos: widget.pointOfInterest.photos,
-                                  //  .getPhotos(driveId: widget.driveId ?? ''),
                                   height: 300,
                                   width: 300,
                                 ),
@@ -622,38 +595,31 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
 
   List<PopupMenuEntry<String>> getPopupMenuItems() {
     try {
-      List<PopupMenuEntry<String>>
-          menuItems = /*[
-        PopupMenuItem(onTap: () {}, value: ' ', child: Text('Child'))
-      ].toList(); */
-          poiTypes
-              .where(
-                (map) => (![9, 11, 12, 16, 18, 19].contains(map['id'])),
-              )
-              .map<PopupMenuEntry<String>>(
-                (e) => PopupMenuItem(
-                  onTap: () => changeType(e['id']),
-                  value: e['id'].toString(),
-                  //   child: PointerInterceptor(
-                  child: Row(
-                    children: [
-                      Icon(
-                        // Icons.access_alarms
-                        IconData(e['iconMaterial'],
-                            fontFamily: 'MaterialIcons'),
-                        color: Color(e['colourMaterial']),
-                      ),
-                      Text(
-                        '    ${e['name'] ?? 'Er'} (${e['id']})',
-                        style: titleStyle(
-                            context: context, color: Colors.black, size: 2),
-                      )
-                    ],
+      List<PopupMenuEntry<String>> menuItems = poiTypes
+          .where(
+            (map) => (![9, 11, 12, 16, 18, 19].contains(map['id'])),
+          )
+          .map<PopupMenuEntry<String>>(
+            (e) => PopupMenuItem(
+              onTap: () => changeType(e['id']),
+              value: e['id'].toString(),
+              child: Row(
+                children: [
+                  Icon(
+                    // Icons.access_alarms
+                    IconData(e['iconMaterial'], fontFamily: 'MaterialIcons'),
+                    color: Color(e['colourMaterial']),
                   ),
-                  //    ),
-                ),
-              )
-              .toList();
+                  Text(
+                    '    ${e['name'] ?? 'Er'} (${e['id']})',
+                    style: titleStyle(
+                        context: context, color: Colors.black, size: 2),
+                  )
+                ],
+              ),
+            ),
+          )
+          .toList();
       return menuItems;
     } catch (e) {
       developer.log('Error getting Popup data error: ${e.toString()}',
@@ -664,27 +630,21 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
 
   List<DropdownMenuEntry<String>> getDropdownMenuItems() {
     try {
-      List<DropdownMenuEntry<String>>
-          menuItems = /*[
-        PopupMenuItem(onTap: () {}, value: ' ', child: Text('Child'))
-      ].toList(); */
-          poiTypes
-              .where(
-                (map) => (![9, 11, 12, 16, 18, 19].contains(map['id'])),
-              )
-              .map<DropdownMenuEntry<String>>(
-                (e) => DropdownMenuEntry(
-                  value: e['id'].toString(),
-                  label: e['name'],
-                  leadingIcon: Icon(
-                    IconData(e['iconMaterial'], fontFamily: 'MaterialIcons'),
-                    color: Color(e['colourMaterial']),
-                  ),
-
-                  //    ),
-                ),
-              )
-              .toList();
+      List<DropdownMenuEntry<String>> menuItems = poiTypes
+          .where(
+            (map) => (![9, 11, 12, 16, 18, 19].contains(map['id'])),
+          )
+          .map<DropdownMenuEntry<String>>(
+            (e) => DropdownMenuEntry(
+              value: e['id'].toString(),
+              label: e['name'],
+              leadingIcon: Icon(
+                IconData(e['iconMaterial'], fontFamily: 'MaterialIcons'),
+                color: Color(e['colourMaterial']),
+              ),
+            ),
+          )
+          .toList();
       return menuItems;
     } catch (e) {
       developer.log('Error getting Popup data error: ${e.toString()}',
@@ -699,74 +659,10 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
     setState(() => getTitle());
   }
 
-/*
-      try {
-        ImagePicker picker = ImagePicker();
-        await //ImagePicker()
-            picker
-                .pickImage(source: ImageSource.gallery, imageQuality: 10)
-                .then(
-          (pickedFile) async {
-            try {
-              if (pickedFile != null) {
-                final directory = Setup().appDocumentDirectory;
-
-                /// Don't know what type of image so have to get file extension from picker file
-                int num = 1;
-                List<Map<String, dynamic>> images = [];
-                if (widget.pointOfInterest.images.isNotEmpty) {
-                  images = jsonDecode(widget.pointOfInterest.images);
-                  num = images.length + 1;
-                }
-                String imagePath =
-                    '$directory/${widget.pointOfInterest.uuid}_$num.${pickedFile.path.split('.').last}';
-                //$directory/point_of_interest_${id}_$num.${pickedFile.path.split('.').last}';
-                images.add({
-                  "url": imagePath,
-                  "caption": "image ${images.length + 1}",
-                  "rotation": 0,
-                });
-
-                /// Will have to sort this out for the web version
-                /// where files can't be used.
-                File(pickedFile.path).copy(imagePath);
-                File(pickedFile.path).delete();
-                setState(() {
-                  widget.pointOfInterest.images = jsonEncode(images);
-                  widget.pointOfInterest.photos.add(
-                    Photo.fromJsonMap(images.last as Map<String, String>),
-                  );
-                  /*
-                  widget.pointOfInterest.photos.add(Photo(
-                      url: imagePath,
-                      index: widget.pointOfInterest.photos.length,
-                      caption: "image ${images.length + 1}",
-                      rotation: 0));
-                  */
-                  // debugPrint('Images: $widget.pointOfInterest.images');
-                });
-              }
-            } catch (e) {
-              String err = e.toString();
-              debugPrint('Error getting image: $err');
-            }
-          },
-        );
-      } catch (e) {
-        String err = e.toString();
-        debugPrint('Error loading image: $err');
-      }
-      */
-
-  save(int id) {
-    //   if (widget.index == id) {
-//      expanded = false;
-//    }
-  }
+  save(int id) {}
 
   expandChange(index, expanded) async {
     if (expanded) {
-      // _expandController.expand();
       if (MapService().controller != null) {
         try {
           List<Map<String, dynamic>> jsonPointsOfInterest =
@@ -870,7 +766,6 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
           size: 20, color: Colors.white),
       onPressed: () =>
           CurrentTripItem().refreshMap(change: MapUpdates.pointsOfInterest),
-      //  widget.onSave != null ? widget.onSave!(widget.index) : null,
       backgroundColor: Colors.blueAccent,
     );
   }

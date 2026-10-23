@@ -110,7 +110,6 @@ class _IntroduceFormState extends State<IntroduceForm> {
               },
             ),
           ),
-          //  /*
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
             child: TextFormField(
@@ -191,8 +190,6 @@ class _IntroduceFormState extends State<IntroduceForm> {
               },
             ),
           ),
-          /*  ]),
-          ), */
         ],
       ),
     );

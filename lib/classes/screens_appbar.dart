@@ -13,7 +13,6 @@ class ScreensAppBar extends StatelessWidget implements PreferredSizeWidget {
   final bool update;
   String updateHeading;
   String updateSubHeading;
-  // final VoidCallback? updateMethod;
   final Function? updateMethod;
   final bool showDrawer;
   final bool showOverflow;
@@ -23,7 +22,6 @@ class ScreensAppBar extends StatelessWidget implements PreferredSizeWidget {
   List<String>? overflowPrompts;
   List<Icon>? overflowIcons;
   List<VoidCallback>? overflowMethods;
-  // List<Function(int)>? overflowMethods;
 
   /// ScreenAppBar is a generalised AppBar for all the setup screens. It handles all
   /// the CRUD methods for use with a device based app.
@@ -78,7 +76,6 @@ class ScreensAppBar extends StatelessWidget implements PreferredSizeWidget {
                 bool upload = await updateDialog(
                     context: context,
                     heading: updateHeading,
-                    //    onUpdate: (update) => updateMethod!(update),
                     subHeading: updateSubHeading);
                 try {
                   if (upload) {
@@ -105,11 +102,9 @@ class ScreensAppBar extends StatelessWidget implements PreferredSizeWidget {
         updateSubHeading: updateSubHeading,
         updateMethod: updateMethod,
         update: update,
-        //  showDrawer: showDrawer,
         showOverflow: showOverflow,
         showAction: false,
         leadingMethod: leadingMethod,
-        //  leadingIcon: leadingIcon,
         overflowPrompts: overflowPrompts,
         overflowIcons: overflowIcons,
         overflowMethods: overflowMethods,
@@ -148,18 +143,14 @@ class ScreensAppBarBottom extends StatelessWidget
   Color textColor;
   String updateHeading;
   String updateSubHeading;
-  // final VoidCallback? updateMethod;
   final Function? updateMethod;
-  // final bool showDrawer;
   final bool showOverflow;
   final bool showAction;
   final VoidCallback? leadingMethod;
   Widget? content;
-  // final Icon leadingIcon;
   List<String>? overflowPrompts;
   List<Icon>? overflowIcons;
   List<VoidCallback>? overflowMethods;
-  // List<Function(int)>? overflowMethods;
 
   ScreensAppBarBottom({
     super.key,
@@ -227,42 +218,6 @@ class ScreensAppBarBottom extends StatelessWidget
                       onPressed: () => _showCustomMenu(context),
                     ),
                   ),
-                  /*
-                  Expanded(
-                    flex: 1,
-                    child: Overlay(
-                      initialEntries: [
-                        OverlayEntry(
-                          builder: (context) {
-                            return PopupMenuButton(
-                              useRootNavigator: true,
-                              iconColor: textColor,
-                              itemBuilder: (appContext) => overflowPrompts!
-                                  .map<PopupMenuEntry<String>>(
-                                    (entry) => PopupMenuItem(
-                                      value: entry,
-                                      onTap: overflowMethods![
-                                          overflowPrompts!.indexOf(entry)],
-                                      child: Row(children: [
-                                        overflowIcons![
-                                            overflowPrompts!.indexOf(entry)],
-                                        SizedBox(width: 5),
-                                        Text(
-                                          overflowPrompts![
-                                              overflowPrompts!.indexOf(entry)],
-                                          style: TextStyle(fontSize: 18),
-                                        )
-                                      ]),
-                                    ),
-                                  )
-                                  .toList(),
-                            );
-                          },
-                        ),
-                      ], //                   })
-                    ),
-                  ),
-                  */
                   if (showAction) ...[
                     IconButton(
                       onPressed: () => updateMethod!(true),
@@ -311,13 +266,12 @@ class ScreensAppBarBottom extends StatelessWidget
       // Calculate the position for the menu to appear
       final RelativeRect position = RelativeRect.fromRect(
         Rect.fromPoints(
-          //  button.localToGlobal(Offset.zero, ancestor: overlay),
           button.localToGlobal(Offset(100, 0), ancestor: overlay),
           button.localToGlobal(
               button.size.bottomRight(Offset(100, 0)), // .zero),
               ancestor: overlay),
         ),
-        Offset(0, 0) /*.zero */ & overlay.size,
+        Offset(0, 0) & overlay.size,
       );
       // 2. Use showMenu with the ROOT navigator's context
       await showMenu<String>(
@@ -353,10 +307,8 @@ class ScreensAppBarBottom extends StatelessWidget
 
 Future<bool> updateDialog(
     {required BuildContext context,
-    // required Function(bool) onUpdate,
     String heading = '',
     String subHeading = ''}) async {
-  // void Function()? updateMethod}) =>
   bool? update = await showDialog<bool>(
         context: context,
         builder: (context) => StatefulBuilder(
@@ -373,13 +325,11 @@ Future<bool> updateDialog(
                 children: [
                   if (heading.isNotEmpty)
                     Text(heading,
-                        //   "You have declined ${_refused.length} invitation${_refused.length > 1 ? 's' : ''}",
                         style: textStyle(
                             context: context, size: 2, color: Colors.black)),
                   if (subHeading.isNotEmpty)
                     Text(
                       subHeading,
-                      //    "You have accepted ${_accepted.length} invitation${_accepted.length > 1 ? 's' : ''}",
                       style: textStyle(
                           context: context, size: 2, color: Colors.black),
                     ),

@@ -45,7 +45,6 @@ class _CompactDropdownState<T> extends State<CompactDropdown<T>> {
           onChanged: changed, // onChanged,
           menuMaxHeight: 400,
           dropdownColor: const Color.fromRGBO(3, 1, 109, 0.337),
-          // mouseCursor: MouseCursor.uncontrolled,
           style: const TextStyle(
               fontSize: 12,
               color: Colors.white), // Smaller font for web/dialogs

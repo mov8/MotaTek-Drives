@@ -15,12 +15,6 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 class ShopController {
   _ShopState? _shopState;
 
-/*
-  void _addState(_ShopState shopState) {
-    _shopState = shopState;
-  }
-*/
-
   bool get isAttached => _shopState != null;
 
   int get index => _shopState!._index;
@@ -46,13 +40,10 @@ class _ShopState extends State<Shop> {
   final ItemScrollController _itemScrollController = ItemScrollController();
   late MdStyleSheet _styleSheet;
   List<ShopItem> shopItems = [];
-  //final List<Widget> _sideBarContents = [];
 
   late Future<bool> _dataLoaded;
   bool _sideDrawerLoaded = false;
   int _index = 0;
-
-  // List<Map<String, dynamic>> _images = [];
 
   /// _handleExternalScroll executes the scrolling of the page content triggered by
   /// the SideDrawer. The ItemScrollController sits in this, the target object. MapService()
@@ -79,9 +70,7 @@ class _ShopState extends State<Shop> {
     _bottomNavController = RoutesBottomNavController();
     _leadingWidgetController = LeadingWidgetController();
 
-    if (MapService().shopController != null) {
-      //  MapService().shopController!._addState();
-    }
+    if (MapService().shopController != null) {}
     _dataLoaded = _getShopData();
     _styleSheet = MdStyleSheet();
   }
@@ -92,7 +81,6 @@ class _ShopState extends State<Shop> {
 
   @override
   void dispose() {
-    // _sideBarContents.clear();
     MapService().scrollToSideDrawerIndex.removeListener(_handleExternalScroll);
     super.dispose();
   }
@@ -158,10 +146,8 @@ Sammy  | Blue
   
 > blockquote  
 
-
 >[!INFO]  
 >Callout  
-
 
   ---
 
@@ -203,10 +189,8 @@ Sammy  | Blue
   
 > blockquote  
 
-
 >[!INFO]  
 >Callout  
-
 
   ---
 
@@ -233,14 +217,11 @@ main() {
 ```
 ''';
 
-// shopItems.clear();
-
   void updateData(Map<String, dynamic> data) {
     try {
       setState(() {
         mdData = data['data'] ?? '';
         _styleSheet = data['style'];
-        //  MdStyleSheet.fromJson(json: data['style']);
         _index = data['index'] ?? _index;
       });
     } catch (e) {
@@ -249,7 +230,6 @@ main() {
     }
   }
 
-  // BuildContext pageContext = NavigationService().pageKey.currentContext!;
   Widget _getPortraitBody() {
     double leftPadding =
         MediaQuery.of(context).size.width * (kIsWeb ? 0.38 : 0);
@@ -339,7 +319,6 @@ main() {
               ],
             ),
       body: FutureBuilder<bool>(
-        //  initialData: false,
         future: _dataLoaded,
         builder: (BuildContext context, snapshot) {
           if (snapshot.hasError) {

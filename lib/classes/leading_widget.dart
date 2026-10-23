@@ -42,7 +42,6 @@ class _LeadingWidgetState extends State<LeadingWidget>
   late AnimationController _animationIconController;
   late Animation<double> animation;
   AnimatedIconData _animatedIcon = AnimatedIcons.menu_arrow;
-  // bool isarrowmenu = false;
   late int _widgetId; // 0 = hamburger 1 = back
   late int _initialValue;
   bool showBadge = true;
@@ -50,7 +49,6 @@ class _LeadingWidgetState extends State<LeadingWidget>
   @override
   void initState() {
     super.initState();
-    // bool changeId = _widgetId != widget.initialValue;
     _widgetId = widget.initialValue;
     _initialValue = widget.initialValue;
     widget.controller._addState(this);
@@ -60,7 +58,6 @@ class _LeadingWidgetState extends State<LeadingWidget>
     );
     _animationIconController.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
-        //    debugPrint('Animation complete _widgetId: $_widgetId');
         setState(() => showBadge = true);
       }
     });
@@ -124,14 +121,10 @@ class _LeadingWidgetState extends State<LeadingWidget>
             widget.onMenuTap(_widgetId);
             debugPrint('Ontap _widgetId: $_widgetId');
           }),
-          //   child: ClipRect(
-          //  ClipOval(  // <-- Original mobile setup
-          //  clipper: MyClip(width: 200, height: 200),
           child: SizedBox(
             width: 45, // 45,
             height: 45, //45,
 
-            // child: Center(
             child: Positioned(
               top: 0,
               left: 0,
@@ -146,7 +139,6 @@ class _LeadingWidgetState extends State<LeadingWidget>
               ),
             ),
           ),
-          //  ),
         ),
         if (Setup().tripCount > 0 && _widgetId == 0) //  showBadge)
           Positioned(
@@ -161,8 +153,6 @@ class _LeadingWidgetState extends State<LeadingWidget>
               constraints: BoxConstraints(
                 minWidth: 16 + ((Setup().tripCount / ~10) * 8),
                 minHeight: 16 + ((Setup().tripCount / ~10) * 8),
-                //  minWidth: 20 + ((Setup().tripCount / ~10) * 8),
-                //  minHeight: 20 + ((Setup().tripCount / ~10) * 8),
               ),
               child: Text(
                 '${Setup().tripCount}',

@@ -52,9 +52,4 @@ class NavigationService {
     MapService().createTripController!.update();
     return num;
   }
-/*
-  void goBack() {
-    return key.currentState!.pop();
-  }
-*/
 }

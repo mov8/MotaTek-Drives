@@ -40,9 +40,7 @@ class _SplashState extends State<Splash> {
 
     if (routeIndex != 0) {
       Setup().bottomNavIndex = 0;
-      //   Setup().setupToDb();
     }
-    //  routeIndex = 4;
     await MapService().loadStyle();
 
     if (Setup().jwt.isEmpty) {
@@ -59,12 +57,8 @@ class _SplashState extends State<Splash> {
     }
 
     if (mounted) {
-      setState(() {
-        //  NavigationService().navigateTo(routes[0], null);
-      });
-    } else {
-      // NavigationService().navigateTo(routes[0], null);
-    }
+      setState(() {});
+    } else {}
   }
 
   Widget _getPortraitBody() {
@@ -77,21 +71,7 @@ class _SplashState extends State<Splash> {
     return Stack(
       children: [
         Center(
-          child: Text(
-              'Hi'), /*Padding(
-            padding: EdgeInsetsGeometry.fromLTRB(
-                paddingLR, paddingTB, paddingLR, paddingTB),
-          //  child: AspectRatio(
-          //    aspectRatio: aspectRatio,
-          //    child: Image(
-           //     image: AssetImage('assets/images/splash.png'),
-           //     fit: BoxFit.cover,
-           //     height: double.infinity,
-           //     width: double.infinity,
-           //     alignment: Alignment.center,
-            //  ),
-            ), */
-          // ),
+          child: Text('Hi'),
         )
       ],
     );

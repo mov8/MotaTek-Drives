@@ -27,7 +27,6 @@ class _DeleteTripsFormState extends State<DeleteTripsForm> {
       {required List<TripSummary> tripSummaries}) async {
     if (tripSummaries.isEmpty) {
       try {
-        //     debugPrint('_loadTrips called');
         tripSummaries.addAll(await getTripSummaries(
             northEast: ukNorthEast, southWest: ukSouthWest));
       } catch (e) {
@@ -62,7 +61,6 @@ class _DeleteTripsFormState extends State<DeleteTripsForm> {
           if (snapshot.hasError) {
             debugPrint('Snapshot has error: ${snapshot.error}');
           } else if (snapshot.hasData) {
-            //  _drives.addAll(snapshot.data ?? []);
             return portraitView();
           } else {
             return const SizedBox(
@@ -184,10 +182,7 @@ class _DeleteTripsFormState extends State<DeleteTripsForm> {
   }
 
   void onConfirmDeleteMember(int value) {
-    // debugPrint('Returned value: ${value.toString()}');
     if (value > -1) {
-      //   deleteGroupMemberById(value);
-      //  widget.groupMember?.index = -1;
       Navigator.pop(context);
     }
   }

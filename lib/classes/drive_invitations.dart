@@ -1,4 +1,3 @@
-// import 'package:universal_io/universal_io.dart';
 import '/services/web_helper.dart';
 import 'package:flutter/material.dart';
 import '/models/other_models.dart';
@@ -46,7 +45,6 @@ class _DriveInvitationsState extends State<DriveInvitations>
   @override
   Widget build(BuildContext context) {
     photos = [];
-    // photosFromJson(photoString: widget.myTripItem.images);
     return SingleChildScrollView(
       child: Column(
         children: [
@@ -57,7 +55,6 @@ class _DriveInvitationsState extends State<DriveInvitations>
               Tab(
                   icon: Icon(Icons.group_outlined),
                   text: 'Invite Group Members'),
-              // Tab(icon: Icon(Icons.outgoing_mail), text: 'Send Invitations'),
               Tab(icon: Icon(Icons.map_outlined), text: 'Drive Details'),
             ],
           ),
@@ -67,7 +64,6 @@ class _DriveInvitationsState extends State<DriveInvitations>
               controller: _tController,
               children: [
                 invited(),
-                //   invitation(),
                 tripDescription(),
               ],
             ),
@@ -110,10 +106,6 @@ class _DriveInvitationsState extends State<DriveInvitations>
                   ]),
                   children: [
                     if (widget.groupDrivers[index].invitees.isNotEmpty)
-                      //  Expanded(
-                      //    flex: 1,
-                      //   child: SingleChildScrollView(
-                      // child:
                       ListView.builder(
                         itemCount: widget.groupDrivers[index].invitees.length,
 
@@ -141,8 +133,6 @@ class _DriveInvitationsState extends State<DriveInvitations>
                             ),
                           ),
                         ),
-                        //     ),
-                        //   ),
                       ),
                     if (widget.groupDrivers[index].invitees.isEmpty)
                       SizedBox(
@@ -183,7 +173,6 @@ class _DriveInvitationsState extends State<DriveInvitations>
         value: value,
         onChanged: (value) => setState(() {
           widget.groupDrivers[groupIndex].selected = true;
-          //  widget.myTripItem.selected = true;
           widget.groupDrivers[groupIndex].invitees[driverIndex]['invite'] =
               value;
           int tripIndex = -1;
@@ -263,7 +252,6 @@ class _DriveInvitationsState extends State<DriveInvitations>
                       const Icon(Icons.route),
                       Text(
                         '',
-                        //   '${widget.myTripItem.distance.toStringAsFixed(1)} miles long',
                         style: labelStyle(
                           context: context,
                           size: 3,
@@ -292,7 +280,6 @@ class _DriveInvitationsState extends State<DriveInvitations>
                       const Icon(Icons.social_distance),
                       Text(
                         ' ',
-                        // '${(widget.myTripItem.distanceAway * metersToMiles).toStringAsFixed(1)} miles away',
                         style: labelStyle(
                           context: context,
                           size: 3,
@@ -310,7 +297,6 @@ class _DriveInvitationsState extends State<DriveInvitations>
                     alignment: Alignment.topLeft,
                     child: Text(
                       ' ',
-                      // widget.myTripItem.subHeading,
                       style: const TextStyle(
                           color: Colors.black,
                           fontSize: 18,
@@ -374,7 +360,6 @@ class _DriveInvitationsState extends State<DriveInvitations>
 
   sendInvitations() async {
     if (widget.myTripItem.published) {
-      // await widget.myTripItem.publish();
       publish(widget.myTripItem);
       widget.myTripItem.savePrivate();
     }

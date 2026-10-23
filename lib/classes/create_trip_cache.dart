@@ -50,9 +50,6 @@ import '/services/services.dart';
 ///   from the higher density layers.
 ///
 
-// const zoomCTLower = 7.0;
-// const zoomCTUpper = 10.0;
-
 class TripRequest {
   double _lastZoom = 0;
   double _thisZoom = 0;
@@ -74,7 +71,6 @@ class TripRequest {
   List<TripItem> trips = [];
   List<Maneuver> maneuvers = [];
   List<PointOfInterest> pointsOfInterest = [];
-  // TripHeaderController _tripHeaderController = TripHeaderController();
 
   String requestId = '';
 
@@ -164,7 +160,6 @@ class TripRequest {
         if (geoJson.isNotEmpty) {
           jsonData = jsonDecode(geoJson);
           if (jsonData['features'] != null) {
-            // return jsonData;  // Debug
             // Extract returned ids to exclude
             for (int i = 0; i < jsonData["features"].length; i++) {
               if (jsonData['features'][i]['properties'].length == 5) {
@@ -184,7 +179,6 @@ class TripRequest {
                 zoom: zoom);
             if (geoJson.isNotEmpty) {
               jsonData = jsonDecode(geoJson);
-              // return jsonData;  // Debug
               // Extract returned ids to exclude
               for (int i = 0; i < jsonData["features"].length; i++) {
                 _3DCache["cache"][zLevel]["data"]["pois"]
@@ -323,13 +317,9 @@ class TripRequest {
               callback(true);
             }
           },
-          // onUpdate: (value) => callback!(value) ?? (_) {},
         ),
       )
     ];
-    //  if (newPointOfInterest != null) {
-    //    pointsOfInterest.add(newPointOfInterest);
-    //  }
     if (CurrentTripItem().pointsOfInterest.isNotEmpty) {
       for (int i = 0; i < CurrentTripItem().pointsOfInterest.length; i++) {
         if (![12, 14, 17, 18, 19]

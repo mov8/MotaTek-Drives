@@ -1,14 +1,7 @@
-// import 'dart:math';
 import 'dart:convert';
 import '../helpers/helpers.dart';
 import '/classes/classes.dart';
 import '/models/models.dart';
-// import 'dart:ui';
-
-// import 'package:flutter/widgets.dart';
-// import 'package:flutter_map/flutter_map.dart';
-// import 'package:latlong2/latlong.dart';
-// import '/screens/painters.dart';
 
 // Points formatted for MapLibre [[lng, lat], [lng, lat], ...]
 class Route {
@@ -84,7 +77,6 @@ List<Route> routesFromJson({required List<dynamic> jsonList}) {
     routes.add(Route.fromMap(map: jsonList[i]));
   }
   return routes;
-  // return [for (Map<String, dynamic> json in jsonList) Route.fromMap(map: json)];
 }
 
 List<Map<String, dynamic>> jsonFromRoutes({required List<Route> routes}) {

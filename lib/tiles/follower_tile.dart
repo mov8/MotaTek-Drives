@@ -10,7 +10,6 @@ import '/constants.dart';
 
 class FollowerTile extends StatefulWidget {
   final Follower follower;
-  // final AsyncCallback onLoadTrip;
 
   final Future<void> Function(int) onIconClick;
   final Function(int) onLongPress;
@@ -50,11 +49,6 @@ class _FollowerTileState extends State<FollowerTile> {
     calcStatus();
     return Material(
       child: ListTile(
-        //  shape: const RoundedRectangleBorder(
-        //     borderRadius: BorderRadius.all(
-        //       Radius.circular(10),
-        //     ),
-        //   ),
         shape:
             ContinuousRectangleBorder(borderRadius: BorderRadius.circular(20)),
         contentPadding: const EdgeInsets.fromLTRB(5, 5, 5, 10),
@@ -113,19 +107,6 @@ class _FollowerTileState extends State<FollowerTile> {
             Text('model: ${widget.follower.model}',
                 style:
                     labelStyle(context: context, color: Colors.black, size: 3)),
-            /*
-            Row(children: [
-             
-              Expanded(
-                flex: 1,
-                child: Text('make: ${widget.follower.manufacturer}'),
-              ),
-              Expanded(
-                flex: 2,
-                child: Text('model: ${widget.follower.model}'),
-              ),
-            ]),
-            */
             Row(children: [
               Expanded(
                 flex: 1,

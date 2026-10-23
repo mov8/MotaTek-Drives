@@ -26,7 +26,6 @@ class WriteMessageTile extends StatefulWidget {
 }
 
 class _WriteMessageTileState extends State<WriteMessageTile> {
-  //DateFormat dateFormat = DateFormat('dd/MM/yy HH:mm');
   late bool originator;
   late Future<bool> canDismissItem;
   late FocusNode _focusNode;
@@ -46,7 +45,6 @@ class _WriteMessageTileState extends State<WriteMessageTile> {
     super.dispose();
   }
 
-  // @override
   Future<bool> canDismiss() {
     return canDismissItem;
   }
@@ -122,7 +120,6 @@ class _WriteMessageTileState extends State<WriteMessageTile> {
                               flex: 20,
                               child: TextFormField(
                                 readOnly: widget.readOnly,
-                                //focusNode: _focusNode,
                                 onTap: _focusNode.requestFocus,
                                 autofocus: true,
                                 maxLines:

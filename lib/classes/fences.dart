@@ -1,8 +1,5 @@
-// import '/models/models.dart'; //my_trip_item.dart';
-// import '/constants.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
-// import 'package:flutter/material.dart';
 import '/classes/route.dart';
 
 /// The issue of slow data loading is to be addressed by only retrieving the data
@@ -103,15 +100,7 @@ class ViewportFence {
 
   bool fenceUpdate({required Fence screenFence, double degrees = 0.5}) {
     if (!cacheFence.contains(bounds: screenFence)) {
-      //   debugPrint('cacheFence does not contain screenFence');
-      //   debugPrint(
-      //       'cachFence NE ${cacheFence.northEast} SW ${cacheFence.southWest}');
-      //   debugPrint(
-      //       'screenFence NE ${screenFence.northEast} SW ${screenFence.southWest}');
       cacheFence = changeFenceByDegrees(fence: screenFence, degrees: degrees);
-      //  debugPrint('Updated cacheFence');
-      //  debugPrint(
-      //      'cachFence NE ${cacheFence.northEast} SW ${cacheFence.southWest}');
       return true;
     }
     return false;
@@ -175,12 +164,6 @@ class Fence {
     ok = ok && southWest.longitude <= bounds.southWest.longitude;
     ok = ok && northEast.longitude >= bounds.northEast.longitude;
     return ok;
-    /*
-    return (southWest.latitude <= bounds.southWest.latitude) &&
-        (northEast.latitude >= bounds.northEast.latitude) &&
-        (southWest.longitude <= bounds.southWest.longitude) &&
-        (northEast.longitude >= bounds.northEast.longitude);
-  */
   }
 
   LatLng getCentre({required Fence bounds}) {
@@ -286,14 +269,6 @@ Fence fenceFromPolylines({required Route polyline, margin = 0}) {
   double minLat = 90;
   double maxLong = -180;
   double minLong = 180;
-/*
-  for (List point in polyline.points) {
-    maxLat = point[1] > maxLat ? point[1] : maxLat;
-    minLat = point[1] < minLat ? point[1] : minLat;
-    maxLong = point[0] > maxLong ? point[0] : maxLong;
-    minLong = point[0] < minLong ? point[0] : minLong;
-  }
-  */
   return Fence(
       northEast: LatLng(maxLat - margin, maxLong + margin),
       southWest: LatLng(minLat + margin, minLong - margin));

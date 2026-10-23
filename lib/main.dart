@@ -237,11 +237,9 @@ class _BaseShellScreen extends State<BaseShellScreen> {
           ![1, 2].contains(widget.navigationShell.currentIndex),
       body: _shellBody(),
 
-      // widget.navigationShell,
       bottomNavigationBar: BottomNav(
           controller: MapService().bottomNavController,
           navigationShell: widget.navigationShell),
-      // resizeToAvoidBottomInset: false,
     );
   }
 

@@ -1,4 +1,3 @@
-// import 'package:drives/models/other_models.dart' hide Message;
 import 'package:flutter/material.dart';
 import '/services/services.dart';
 import '../constants.dart';
@@ -54,7 +53,6 @@ class _MessageBoxState extends State<MessageBox> {
 
   @override
   Widget build(BuildContext context) {
-    // index = 1;
     developer.log('MessageBox().build() called index: $index',
         name: '_keyboard_');
     return AnimatedCrossFade(
@@ -81,9 +79,7 @@ class _MessageBoxState extends State<MessageBox> {
                 flex: 2,
                 child: Icon(warnings[index < 0 ? 0 : index]['iconData'],
                     color: warnings[index < 0 ? 0 : index]['color'],
-                    size: warnings[index < 0 ? 0 : index]['size'])
-                // child: warnings[index < 0 ? 0 : index]['icon'],
-                ),
+                    size: warnings[index < 0 ? 0 : index]['size'])),
             Expanded(
               flex: 12,
               child: Text(
@@ -94,7 +90,6 @@ class _MessageBoxState extends State<MessageBox> {
               ),
             ),
           ],
-          //    ),
         ),
       ),
       secondChild: const SizedBox.shrink(),
@@ -104,7 +99,6 @@ class _MessageBoxState extends State<MessageBox> {
           setState(() => index = -1);
           MapService().fabsController?.drop(height: 0);
         }
-        // index = -1;
       },
     );
   }

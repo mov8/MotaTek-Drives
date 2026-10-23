@@ -88,7 +88,6 @@ List fenceFilter({required LatLngBounds bounds, proportion = 0.6}) {
       bounds.southwest.latitude + latGap, bounds.southwest.longitude + lngGap);
 
   var filter = [
-    //"published_routes", [
     "all", // <- all conditions must be met so NOT "any"
     // Object's sw corner must be further south and west than the fence's ne corner
     [

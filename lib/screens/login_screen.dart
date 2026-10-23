@@ -14,8 +14,6 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreen extends State<LoginScreen> {
   List<String> registered = [];
-//  LoginError loginError = LoginError.noData;
-//  bool isRegistered = false;
   final FocusNode emFocusNode = FocusNode();
   final FocusNode pwFocusNode = FocusNode();
   final FocusNode fnFocusNode = FocusNode();
@@ -150,7 +148,6 @@ class _LoginScreen extends State<LoginScreen> {
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          //  hintText: 'Enter your email address',
                           hintStyle:
                               TextStyle(fontSize: 18, color: Colors.blue),
                         ),
@@ -305,7 +302,6 @@ class _LoginScreen extends State<LoginScreen> {
                     )
                   ],
                 ),
-
                 const SizedBox(height: 5),
                 Row(
                   children: [
@@ -323,7 +319,6 @@ class _LoginScreen extends State<LoginScreen> {
                     )
                   ],
                 ),
-                //   SizedBox(height: 30),
                 Padding(
                   padding: EdgeInsets.fromLTRB(5, 15, 5, 20),
                   child: Row(
@@ -340,7 +335,6 @@ class _LoginScreen extends State<LoginScreen> {
                             label: Text('forename',
                                 style: TextStyle(
                                     fontSize: 22, color: Colors.blue)),
-                            //   hintStyle: hintStyle(context: context),
                           ),
                           textInputAction: TextInputAction.next,
                           textCapitalization: TextCapitalization.words,
@@ -383,7 +377,6 @@ class _LoginScreen extends State<LoginScreen> {
                     ],
                   ),
                 ),
-
                 Padding(
                   padding: EdgeInsetsGeometry.fromLTRB(0, 5, 0, 0),
                   child: Center(
@@ -427,7 +420,6 @@ class _LoginScreen extends State<LoginScreen> {
                     ),
                   ),
                 )
-                // if (joiningOffset == 0)
               ],
             ),
           ),

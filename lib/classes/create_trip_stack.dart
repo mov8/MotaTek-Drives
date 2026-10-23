@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:core';
-// import '../main.dart';
 import 'dart:developer' as developer;
 import 'dart:math';
 import '/constants.dart';
@@ -12,7 +11,6 @@ import '/models/models.dart';
 import '/helpers/helpers.dart';
 import '/tiles/tiles.dart';
 import 'package:flutter/material.dart';
-// import 'package:flutter/rendering.dart';
 import 'package:geolocator/geolocator.dart';
 import '/routes/routes.dart';
 import 'package:socket_io_client/socket_io_client.dart' as sio;
@@ -40,8 +38,6 @@ class CreateTripStackController {
 
   void warn(int index) {
     if (isAttached) {
-      //   _createTripStackState?.showTopSnackBar(
-      //       _createTripStackState!.context, index);
       _createTripStackState?.warn(index);
     }
   }
@@ -57,12 +53,8 @@ class CreateTripStack extends StatefulWidget {
 class _CreateTripStackState extends State<CreateTripStack>
     with TickerProviderStateMixin {
   late Future<bool> _dataLoaded;
-  // TripArguments? _tripArguments;
-  // final CreateTripController _createTripController = CreateTripController();
   final DirectionTileController _directionTileController =
       DirectionTileController();
-  // final RoutesBottomNavController _bottomNavController =
-  //    RoutesBottomNavController();
 
   StreamSubscription<Position>? _positionStream;
   late final FollowRoute _debugRoute;
@@ -107,51 +99,11 @@ class _CreateTripStackState extends State<CreateTripStack>
   }
 
   void warn(int index) async {
-    //if (index < 0) {
-    //  MapService().fabsController?.show();
-    //} else {
     setState(() {});
-    //  setState(() => MapService().fabsController?.hide());
     await Future.delayed(const Duration(seconds: 15));
     setState(() {});
-    //  setState(() => MapService().fabsController?.show);
-    //}
   }
 
-/*
-  void showTopSnackBar(
-    BuildContext context,
-    int index, {
-    Duration? duration,
-  }) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        dismissDirection: DismissDirection.up,
-        duration: duration ?? const Duration(milliseconds: 1000),
-        backgroundColor: Colors.grey,
-        margin: EdgeInsets.only(
-            bottom: MediaQuery.of(context).size.height - 120,
-            left: 10,
-            right: 10),
-        behavior: SnackBarBehavior.floating,
-        content: Row(
-          children: [
-            Expanded(flex: 2, child: warnings[index]['icon']),
-            Expanded(
-              flex: 10,
-              child: Text(
-                warnings[index]['message'],
-                style: const TextStyle(
-                  fontSize: 20,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-*/
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<bool>(
@@ -168,7 +120,6 @@ class _CreateTripStackState extends State<CreateTripStack>
             developer.log('CreateTrip().build() error:${e.toString()}',
                 name: 'error');
           }
-          // return body; //_getPortraitBody();
         } else {
           return const SizedBox(
             width: double.infinity,
@@ -181,16 +132,6 @@ class _CreateTripStackState extends State<CreateTripStack>
         }
 
         return const SizedBox.shrink();
-        /*  width: double.infinity,
-          height: double.infinity,
-          child: Align(
-            alignment: Alignment.center,
-            child: Text('Error getting data -\nCheck your Internet connection',
-                style: TextStyle(fontSize: 22, color: Colors.white)),
-          ),
-          */
-
-        // throw ('Error - FutureBuilder in create_trips.dart');
       },
     );
   }
@@ -228,7 +169,6 @@ class _CreateTripStackState extends State<CreateTripStack>
           ),
         ),
 
-        // if (_warningIndex > -1) MessageBox(index: 1), //_warningIndex),
         if (NavigationService().page == 2) ...[
           Positioned(
             top: 0,
@@ -240,7 +180,6 @@ class _CreateTripStackState extends State<CreateTripStack>
             left: 0,
             right: 0,
             bottom: 0,
-            // height: 110,
             child: Align(
               // <-- Only do editing in "Explore" mode
               alignment: Alignment.bottomLeft,
@@ -251,9 +190,7 @@ class _CreateTripStackState extends State<CreateTripStack>
                       EdgeInsetsGeometry.fromLTRB(kIsWeb ? 30 : 0, 0, 0, 0),
                   child: CreateTripChips(
                     createTripController: MapService().createTripController,
-                    onUpdate: (_) {
-                      // setState(() => UIStateService().notify());
-                    },
+                    onUpdate: (_) {},
                   ),
                 ),
               ),
@@ -315,104 +252,15 @@ class _CreateTripStackState extends State<CreateTripStack>
 
         /// getDirections shows the turn-by-turn navigation details
         getDirections(_directionsIndex),
-        //   MessageBox(
-        //     index: _warningIndex,
-        //   ),
         if (kIsWeb) ...[]
       ],
     );
   }
 
-/*
-  void setLocationUpdates2() async {
-    try {
-      if (CurrentTripItem().tripValues.pauseStream) {
-        _positionStream!.pause();
-        CurrentTripItem().tripValues.resumeStream = true;
-        CurrentTripItem().tripValues.pauseStream = false;
-      } else if (CurrentTripItem().tripValues.resumeStream) {
-        _positionStream!.resume();
-        CurrentTripItem().tripValues.resumeStream = false;
-      } else {
-        if (CurrentTripItem().tripValues.streamFinished) {
-          _positionStream!.cancel();
-        }
-        if (_debugging) {
-          if (_debuggingRoute.isEmpty) {
-            _debugRoute.follow(routes: CurrentTripItem().routes);
-            _positionStream = _debugPositionController.stream.listen(
-              (Position position) {
-                updatePosition(position);
-              },
-            );
-          } else {
-            MyTripItem debugMyTripItem = await loadSavedTrip(title: _debuggingRoute) ?? MyTripItem();
-            if (debugMyTripItem.routes.isNotEmpty) {
-              _debugRoute.follow(routes: debugMyTripItem.routes);
-              _positionStream = _debugPositionController.stream
-                  .listen((Position position) => updatePosition(position));
-            }
-          }
-          if (CurrentTripItem().tripState == TripState.following) {
-            _following.add(Follower(
-                forename: 'One',
-                surname: 'One',
-                registration: 'CAR 001',
-                position: [0, 0],
-                track: true,
-                carColour: 'red',
-                iconColour: 1));
-            _following.add(Follower(
-              forename: 'Two',
-              surname: 'Two',
-              registration: 'CAR 002',
-              position: [0, 0],
-              track: true,
-              carColour: 'blue',
-              iconColour: 2,
-            ));
-            setState(() => CurrentTripItem().groupDriveId = 'gdDebug1');
-          }
-
-          // _positionStream.
-        } else {
-          const LocationSettings locationSettings = LocationSettings(
-            accuracy: LocationAccuracy.best,
-            distanceFilter: 5, // 10 meters
-          );
-          try {
-            _positionStream =
-                Geolocator.getPositionStream(locationSettings: locationSettings)
-                    .listen((position) {
-              if (CurrentTripItem().tripState == TripState.tracking) {
-                updateUserPosition(CurrentPosition(position: position));
-              }
-            });
-          } catch (e) {
-            debugPrint('Error getting stream ${e.toString()}');
-          }
-        }
-        CurrentTripItem().tripValues.streamStarted = true;
-        CurrentTripItem().tripValues.streamFinished = false;
-        CurrentTripItem().tripValues.lastPosition = Point(0, 0);
-        CurrentTripItem().tripValues.startPosition = Point(0, 0);
-        CurrentTripItem().tripValues.position = Point(0, 0);
-
-        if (_positionStream != null) {
-          _positionStream!
-              .onDone(() => CurrentTripItem().tripValues.streamFinished = true);
-        }
-      }
-    } catch (e) {
-      developer.log('Error Stream error: ${e.toString()}', name: 'error');
-    }
-  }
-*/
   Point chipPosition() {
     try {
       return Point(MapService().controller!.cameraPosition!.target.latitude,
           MapService().controller!.cameraPosition!.target.longitude);
-      // _animatedMapController.mapController.camera.center;
     } catch (e) {
       return Point(0, 0);
     }
@@ -511,8 +359,6 @@ class _CreateTripStackState extends State<CreateTripStack>
       if (dock) {
         if (kIsWeb) {
           MapService().sideDrawerController!.scrollTo(index: 0);
-          //  } else {
-          //    MapService().bottomDrawerController!.dockOpenTile();
         }
       }
     } catch (e) {
@@ -527,7 +373,6 @@ class _CreateTripStackState extends State<CreateTripStack>
     position.speed * metersPerSecondToMPH; //* 3.6 / 8 * 5; // M/S -> MPH
 
     LatLng pos = _userPosition.latLng;
-    // LatLng(position.latitude, position.longitude);
 
     if (_debugging) {
       handleDebugStream(position, _debugRoute, _following);

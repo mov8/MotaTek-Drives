@@ -196,35 +196,6 @@ class PositionService {
   }
 }
 
-// final GlobalKey<NavigatorState> key = GlobalKey<NavigatorState>();
-
-// NavigatorState get _navigator => key.currentState!;
-/*
-  Future<dynamic> navigateTo(String routeName, Object? arguments) async {
-    try {
-      if (key.currentState == null) {
-        developer.log('Navigator.key.currentState is null', name: 'error');
-        return;
-      } else if (!['trips', 'createTrip'].contains(routeName) || kIsWeb) {
-        key.currentState!.pushNamed(routeName, arguments: arguments);
-      }
-    } catch (e) {
-      developer.log(
-          'NavigationService().navigateTo($routeName) from: ${MapService().page}  error: ${e.toString()} ',
-          name: 'error');
-    }
-    return; // key.currentState!.pushNamed(routeName, arguments: arguments);
- 
- 
-  }
-
-  int page = 0;
-
-  void goBack() {
-    return key.currentState!.pop();
-  }
-  */
-
 class FollowRoute<T> {
   int _currentIndex = 0;
   int _index = 0;
@@ -313,8 +284,6 @@ class FollowRoute<T> {
   }
 }
 
-// class gpsDataProvider {}
-
 /*
   StreamSubscription<List<int>> listenToStream() {
     return BluetoothServer().characteristicDataProvider.stream.listen(
@@ -347,8 +316,6 @@ class FollowRoute<T> {
     });
   }
 
-
-
   Future<void> connect() async {
     //  NotificationServer().showNotification(message: 'Bluetooth connected', description: 'Sentinel - Bluetooth status');
     // BluetoothServer().connected = true;
@@ -364,6 +331,5 @@ class FollowRoute<T> {
     }
     if (BluetoothServer().characteristicDataProvider.isListening) {}
   }
-
 
 */

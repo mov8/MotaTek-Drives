@@ -30,10 +30,6 @@ class _MessagesSummaryFormState extends State<MessagesSummaryForm> {
         )
       ],
       for (int index = 0; index < widget.mailItems.length; index++) ...[
-        //  Expanded(
-        //    child: ListView.builder(
-        //      itemCount: widget.mailItems.length,
-        //      itemBuilder: (context, index) =>
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
           child: InkWell(
@@ -95,10 +91,7 @@ class _MessagesSummaryFormState extends State<MessagesSummaryForm> {
             ),
           ),
         ),
-        //   ),
       ],
-
-      //  ),
     ]);
   }
 

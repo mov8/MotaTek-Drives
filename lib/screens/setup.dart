@@ -7,7 +7,6 @@ import '/helpers/edit_helpers.dart';
 import '/helpers/hive_helpers.dart' show UserRepository;
 
 class SetupForm extends StatefulWidget {
-  // var setup;
   Function(bool)? onChange;
   SetupForm({super.key, setup, this.onChange});
   @override
@@ -15,10 +14,8 @@ class SetupForm extends StatefulWidget {
 }
 
 class _SetupFormState extends State<SetupForm> {
-  //int sound = 0;
   final iconFlyover = SymbolsGet.get('flyover', SymbolStyle.sharp);
   final iconRoad = SymbolsGet.get('road', SymbolStyle.sharp);
-  // bool _hasChanged = false;
 
   /// The settings when the screen opened. The switches change Setup()
   /// directly, so this detects changes and puts the settings back if the
@@ -52,9 +49,7 @@ class _SetupFormState extends State<SetupForm> {
           update: _hasChanged(),
           updateMethod: (update) => _update(update: update),
           showAction: _hasChanged()),
-
       body: portraitView(),
-      // body: MediaQuery.of(context).orientation == Orientation.portrait ? portraitView() : landscapeView()
     );
   }
 
@@ -248,7 +243,6 @@ class _SetupFormState extends State<SetupForm> {
                 () {
                   _hasChanged();
                   Setup().dark = value;
-                  //  ThemeSetter().isDark(Setup().dark);
                 },
               );
             },
@@ -275,7 +269,6 @@ class _SetupFormState extends State<SetupForm> {
                       Setup().pointOfInterestColour =
                           uiColours.values.toList().indexOf(chosen.toString());
                     }),
-                    //  uiColours.keys.toList().toString().indexOf(item.toString())),
                   ),
                 ),
               ),
@@ -295,7 +288,6 @@ class _SetupFormState extends State<SetupForm> {
                       Setup().pointOfInterestColour2 =
                           uiColours.values.toList().indexOf(chosen.toString());
                     }),
-                    //  uiColours.keys.toList().toString().indexOf(item.toString())),
                   ),
                 ),
               ),
@@ -320,7 +312,6 @@ class _SetupFormState extends State<SetupForm> {
                               .toList()
                               .indexOf(chosen.toString());
                         }),
-                        //  uiColours.keys.toList().toString().indexOf(item.toString())),
                       ))),
               Expanded(
                 child: Padding(
@@ -339,7 +330,6 @@ class _SetupFormState extends State<SetupForm> {
                       Setup().waypointColour2 =
                           uiColours.values.toList().indexOf(chosen.toString());
                     }),
-                    //  uiColours.keys.toList().toString().indexOf(item.toString())),
                   ),
                 ),
               ),
@@ -364,7 +354,6 @@ class _SetupFormState extends State<SetupForm> {
                       Setup().routeColour =
                           uiColours.values.toList().indexOf(chosen.toString());
                     }),
-                    //  uiColours.keys.toList().toString().indexOf(item.toString())),
                   ),
                 ),
               ),
@@ -409,7 +398,6 @@ class _SetupFormState extends State<SetupForm> {
                       Setup().publishedTripColour =
                           uiColours.values.toList().indexOf(chosen.toString());
                     }),
-                    //  uiColours.keys.toList().toString().indexOf(item.toString())),
                   ),
                 ),
               ),
@@ -430,7 +418,6 @@ class _SetupFormState extends State<SetupForm> {
                       Setup().highlightedColour =
                           uiColours.values.toList().indexOf(chosen.toString());
                     }),
-                    //  uiColours.keys.toList().toString().indexOf(item.toString())),
                   ),
                 ),
               ),
@@ -520,7 +507,6 @@ class SetupView extends StatefulWidget {
 }
 
 class _SetupViewState extends State<SetupView> {
-  // bool _hasChanged = false;
   final iconFlyover = SymbolsGet.get('flyover', SymbolStyle.sharp);
   final iconRoad = SymbolsGet.get('road', SymbolStyle.sharp);
   final Color _textColor = kIsWeb ? Colors.black : Colors.white;
@@ -528,7 +514,6 @@ class _SetupViewState extends State<SetupView> {
   Widget build(BuildContext context) {
     // TODO: implement build
 
-    // Widget portraitView() {
     return SingleChildScrollView(
       child: Column(
         children: [
@@ -710,7 +695,6 @@ class _SetupViewState extends State<SetupView> {
                 () {
                   _hasChanged();
                   Setup().dark = value;
-                  //  ThemeSetter().isDark(Setup().dark);
                 },
               );
             },
@@ -737,7 +721,6 @@ class _SetupViewState extends State<SetupView> {
                       Setup().pointOfInterestColour =
                           uiColours.values.toList().indexOf(chosen.toString());
                     }),
-                    //  uiColours.keys.toList().toString().indexOf(item.toString())),
                   ),
                 ),
               ),
@@ -757,7 +740,6 @@ class _SetupViewState extends State<SetupView> {
                       Setup().pointOfInterestColour2 =
                           uiColours.values.toList().indexOf(chosen.toString());
                     }),
-                    //  uiColours.keys.toList().toString().indexOf(item.toString())),
                   ),
                 ),
               ),
@@ -782,7 +764,6 @@ class _SetupViewState extends State<SetupView> {
                               .toList()
                               .indexOf(chosen.toString());
                         }),
-                        //  uiColours.keys.toList().toString().indexOf(item.toString())),
                       ))),
               Expanded(
                 child: Padding(
@@ -801,7 +782,6 @@ class _SetupViewState extends State<SetupView> {
                       Setup().waypointColour2 =
                           uiColours.values.toList().indexOf(chosen.toString());
                     }),
-                    //  uiColours.keys.toList().toString().indexOf(item.toString())),
                   ),
                 ),
               ),
@@ -826,7 +806,6 @@ class _SetupViewState extends State<SetupView> {
                       Setup().routeColour =
                           uiColours.values.toList().indexOf(chosen.toString());
                     }),
-                    //  uiColours.keys.toList().toString().indexOf(item.toString())),
                   ),
                 ),
               ),
@@ -871,7 +850,6 @@ class _SetupViewState extends State<SetupView> {
                       Setup().publishedTripColour =
                           uiColours.values.toList().indexOf(chosen.toString());
                     }),
-                    //  uiColours.keys.toList().toString().indexOf(item.toString())),
                   ),
                 ),
               ),
@@ -892,7 +870,6 @@ class _SetupViewState extends State<SetupView> {
                       Setup().highlightedColour =
                           uiColours.values.toList().indexOf(chosen.toString());
                     }),
-                    //  uiColours.keys.toList().toString().indexOf(item.toString())),
                   ),
                 ),
               ),
@@ -935,12 +912,4 @@ class _SetupViewState extends State<SetupView> {
     }
     return value;
   }
-/*
-  void setState(Function update) {
-    update();
-    if (onChange != null) {
-      onChange!();
-    }
-  }
-*/
 }

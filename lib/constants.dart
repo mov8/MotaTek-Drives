@@ -26,7 +26,6 @@ const wifiIpAddress = 'http://192.168.1.168:5001/'; // <- Home fibre
 // https://drives.motatek.com/v1/user/test
 
 const urlBase = wifiIpAddress;
-// const urlBase = apiAddress;
 
 const mapsApiKey = '';
 
@@ -228,15 +227,6 @@ enum ChangedFeatures {
 ///   1 requested the user has tapped the ActionChip to open drawer
 ///   2 completed the user has added the data now update the map
 ///
-
-/*
-enum DataSources {none, goodRoads, pointsOfInterest, headers, steps, messages}
-enum DataSourceStates {none, requested, completed}
-
-class BottomDrawerData {
-  bool none
-}
-*/
 
 enum Warning { none, headingIncomplete, tripSaved, tripDownloaded }
 
@@ -792,8 +782,6 @@ RegExp emailRegex = RegExp(r'[a-zA-Z0-9.]+@[a-zA-Z0-9]+\.[a-zA-Z]+');
 const List<int> responseOk = [200, 201, 202, 204];
 const List<int> responseError = [400, 401, 403, 408, 410];
 
-// String stadiaMapsApiKey = 'ea533710-31bd-4144-b31b-5cc0578c74d7';
-
 const LatLng ukNorthEast = LatLng(61, 2);
 const LatLng ukSouthWest = LatLng(49, -8);
 
@@ -842,7 +830,6 @@ const String urlRouter = 'https://drives.motatek.com/router/route/v1/driving/';
 const String urlTiler = 'https://drives.motatek.com/router/route/v1/tile/style';
 const String urlTilerMapLibre =
     'https://drives.motatek.com/v1/tile/style/map_libre'; // <-- Gets the MapLibre Style
-// const String urlTestTiler = '${urlBase}v1/tile/test_style';
 const String urlUser = '${urlBase}v1/user';
 
 const Map<String, int> iconMap = {

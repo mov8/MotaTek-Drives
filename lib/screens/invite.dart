@@ -80,7 +80,6 @@ class _InviteFormState extends State<InviteForm> {
   }
 
   Widget portraitView() {
-    // List<String> dropdownOptions = [];
     return SingleChildScrollView(
       child: SizedBox(
         height: (MediaQuery.of(context).size.height),
@@ -193,8 +192,6 @@ class _InviteFormState extends State<InviteForm> {
   getDropdownItems(String query) async {
     dropdownOptions.clear();
     dropdownOptions.addAll(await getApiContacts(value: query));
-    // debugPrint(
-    //     'For query query $query dropdownOptions.length = ${dropdownOptions.length}');
     setState(() {});
   }
 
@@ -204,10 +201,7 @@ class _InviteFormState extends State<InviteForm> {
   }
 
   void onConfirmDeleteMember(int value) {
-    // debugPrint('Returned value: ${value.toString()}');
     if (value > -1) {
-      // deleteGroupMemberById(value);
-      //  widget.groupMember?.index = -1;
       Navigator.pop(context);
     }
   }

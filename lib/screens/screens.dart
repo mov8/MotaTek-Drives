@@ -20,4 +20,3 @@ export 'setup.dart';
 export 'share.dart';
 export 'shop.dart';
 export 'sign_up.dart';
-// export 'star_ratings.dart';

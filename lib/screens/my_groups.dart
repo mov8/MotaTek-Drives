@@ -6,8 +6,6 @@ import '/services/services.dart';
 import '/classes/classes.dart';
 
 class MyGroupsForm extends StatefulWidget {
-  // var setup;
-
   const MyGroupsForm({super.key, setup});
 
   @override
@@ -27,7 +25,6 @@ class _MyGroupsFormState extends State<MyGroupsForm> {
   @override
   void initState() {
     super.initState();
-    // dataloaded = dataFromDatabase();
     dataloaded = dataFromWeb();
   }
 
@@ -105,7 +102,6 @@ class _MyGroupsFormState extends State<MyGroupsForm> {
                 style: TextStyle(fontSize: 22, color: Colors.white),
               ),
             );
-            //  throw ('Error - FutureBuilder group.dart');
           },
         ),
       );
@@ -142,15 +138,9 @@ class _MyGroupsFormState extends State<MyGroupsForm> {
                 ),
               ],
             )),
-        //    ),
       );
     } else {
       widget = Column(crossAxisAlignment: CrossAxisAlignment.center, children: [
-        // children[//]
-        //Expanded(
-        //child: ListView.builder(
-        //itemCount: groups.length,
-        //itemBuilder: (context, index) =>
         //
         for (int idx = 0; idx < groups.length; idx++) ...[
           Padding(
@@ -216,8 +206,6 @@ class _MyGroupsFormState extends State<MyGroupsForm> {
             ),
           ),
         ]
-        // ),
-        // ),
       ]);
     }
 

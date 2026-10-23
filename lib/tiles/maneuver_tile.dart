@@ -2,12 +2,9 @@ import '/constants.dart';
 import 'package:flutter/material.dart';
 import '/models/other_models.dart';
 import '/screens/screens.dart';
-// import '/classes/classes.dart';
 import '/classes/classes.dart' as mt;
 import '/helpers/create_trip_helpers.dart';
 import '/helpers/edit_helpers.dart';
-// import '/classes/route.dart' as mt;
-// import 'dart:developer' as developer;
 
 class ManeuverTile extends StatefulWidget {
   final Maneuver maneuver;
@@ -58,7 +55,6 @@ class _ManeuverTileState extends State<ManeuverTile> {
               '${modifyModifier(mt.CurrentTripItem().maneuvers, widget.index)}', //${widget.maneuver.roadFrom}',
               style: textStyle(context: context, size: 2, color: Colors.black),
             ),
-            // before: ${widget.maneuver.bearingBefore}  after: ${widget.maneuver.bearingAfter} - ($_sweepAngle})',
             subtitle: Text(getSubtitle(maneuver: widget.maneuver),
                 style:
                     textStyle(context: context, size: 3, color: Colors.black)),

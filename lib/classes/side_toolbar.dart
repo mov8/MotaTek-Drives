@@ -24,7 +24,6 @@ class SideToolbarController {
 }
 
 class SideToolbar extends StatefulWidget {
-  // List<IconButton> buttons = [];
   List<FormatEditor> buttons = [];
   SideToolbarController? controller;
   List<String>? captions;
@@ -56,10 +55,7 @@ class _SideToolbarState extends State<SideToolbar>
       child: Column(
         children: [
           for (int i = 0; i < widget.buttons.length; i++)
-            Row(children: [
-              //    Expanded(child: SizedBox(width: double.infinity)),
-              widget.buttons[i]
-            ]),
+            Row(children: [widget.buttons[i]]),
         ],
       ),
     );
@@ -175,7 +171,6 @@ class _FormatEditorState extends State<FormatEditor>
                                           Expanded(
                                             flex: 2,
                                             child: Text(
-                                              // 'heading?',
                                               widget.tools[i].heading,
                                               style: TextStyle(fontSize: 14),
                                             ),
@@ -240,7 +235,6 @@ class _FormatEditorState extends State<FormatEditor>
                                   widget.onSelect!(widget.styleKey);
                                 }
                               }
-                              // _end = !_end;
                             },
                           );
                         },

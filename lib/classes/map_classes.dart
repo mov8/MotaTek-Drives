@@ -1,23 +1,9 @@
-// import '/constants.dart';
-// import '/constants.dart';
-// import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-// import 'package:path/path.dart' hide Style;
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
-// import 'dart:ui' as ui;
-// import 'package:universal_io/universal_io.dart';
-// import 'package:universal_io/universal_io.dart';
 import '/classes/classes.dart';
 import '/models/models.dart';
 import '/tiles/tiles.dart';
-// import '/screens/main_drawer.dart';
-// import '/screens/dialogs.dart';
 import '/services/services.dart'; // hide getPosition;
-// import 'package:latlong2/latlong.dart';
-// import 'package:flutter_map/flutter_map.dart';
-// import 'package:geolocator/geolocator.dart' as gl;
-// import '/classes/route.dart' as mt;
-// import 'package:path_provider/path_provider.dart';
 
 /// Improving performance -
 /// Use classes not functions
@@ -44,211 +30,6 @@ enum MapHeightChangeType { heights, toggle, fromDrag }
 
 List<double> mapHeights = [0, 0, 0, 0];
 
-/*
-class Trips extends StatefulWidget {
-  const Trips({
-    super.key,
-  });
-
-  @override
-  State<Trips> createState() => _TripsState();
-}
-
-class _TripsState extends State<Trips> with TickerProviderStateMixin {
-  late final LeadingWidgetController _leadingWidgetController;
-  final GlobalKey _scaffoldKey = GlobalKey();
-  bool _showPreferences = false;
-  final List<TripItem> tripItems = [];
-  final TripsPreferences _preferences = TripsPreferences();
-  late final RoutesBottomNavController _bottomNavController;
-
-  @override
-  void initState() {
-    super.initState();
-    _leadingWidgetController = LeadingWidgetController();
-  }
-
-  @override
-  void dispose() {
-    //   _animatedMapController.dispose();
-    //   _mapController.dispose();
-    super.dispose();
-  }
-
-  _leadingWidget(context) {
-    return context?.openDrawer();
-  }
-
-  double getInitialZoom() {
-    return 8;
-  }
-
-  routeTapped(routes, details) {
-    if (details != null) {}
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.blue,
-      key: _scaffoldKey,
-      drawer: const MainDrawer(),
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        leading: LeadingWidget(
-          controller: _leadingWidgetController,
-          onMenuTap: (index) => _leadingWidget(_scaffoldKey.currentState),
-        ), // IconButton(
-        title: Text(
-          tripItems.isNotEmpty && tripItems[0].uri.contains('http')
-              ? 'Trips available to download'
-              : 'To share trips register for free',
-          style: const TextStyle(
-              fontSize: 20, color: Colors.white, fontWeight: FontWeight.w700),
-        ),
-        iconTheme: const IconThemeData(color: Colors.white),
-
-        backgroundColor: Colors.blue,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.filter_list), //more_vert),
-            onPressed: () =>
-                setState(() => _showPreferences = !_showPreferences),
-          ),
-        ],
-        bottom: (_showPreferences)
-            ? PreferredSize(
-                preferredSize: const ui.Size.fromHeight(60),
-                child: AnimatedContainer(
-                  height: 60,
-                  curve: Curves.easeInOut,
-                  duration: const Duration(seconds: 3),
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(5, 10, 5, 10),
-                    child: SetPreferences(
-                      preferences: _preferences,
-                    ), //setPreferences(),
-                  ),
-                ),
-              )
-            : null,
-      ),
-      body: PortraitBody(),
-      //   floatingActionButton: Fabs(),
-      //     animatedMapController: _animatedMapController), // _handleFabs(),
-      bottomNavigationBar: RoutesBottomNav(
-        controller: _bottomNavController,
-        initialValue: 1,
-        onMenuTap: (_) => {},
-      ),
-    );
-  }
-*/
-/*
-  Future<List<TripItem>> getTripsToShow() async {
-    try {
-      return [
-        for (Map<String, dynamic> trip in _tripsOnMap)
-          await _tripItemRepository.loadTripItem(
-              key: trip['row'],
-              id: trip['source']['id'],
-              uri: trip['source']['uri'])
-      ];
-    } catch (e) {
-      // debugPrint('Error: ${e.toString()}');
-    }
-    return [];
-  }
-
-
-  /// filterFeatures
-  ///   Objective is to keep two lists of features correctly populated
-  ///   from a complete feature list based on the map position.
-  ///   - The master list of all features fetched from the API or local db
-  ///   - The cached subset of features - several screens worth
-  ///   - The visible subset of features on the screen and in the grid
-  ///
-  ///
-  ///   if the cacheFeatures is empty populates it from all features
-  ///   that are bounded by the cache fence and populates the features
-  ///   visible on screen
-  ///
-  ///   if map moves but the _screenFence is till within the _cacheFence
-  ///   just repulates the visible features
-  ///
-  ///   if the map moves outside the cachedFence then redefines the
-  ///   _cacheFence based on the _screenFence with a cache margin 0.5 degrees
-  ///   It populated the cachedfeatures from the master list. It also
-  ///   populated the visible features as the
-  ///
-
-  /// Trying to speed up the search of long polylines
-  /// Strategy is to start in the middle and search both towards
-  /// the top and bottom of the list at the same time looking for
-  /// points that are within the screen fence. If the upward search
-  /// finds a valid point before the downward search it changes the lastPoint
-  /// to that of the found point and the firstPoint to 0. If the downward
-  /// search finds a valid point first it changes the firstPoint to the
-  /// found point and the lastPoint to the points.length
-}
-*/
-/*
-class Fabs extends StatelessWidget {
-  final AnimatedMapController animatedMapController;
-  const Fabs({super.key, required this.animatedMapController});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.start,
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        const SizedBox(
-          height: 175,
-        ),
-        FloatingActionButton(
-          heroTag: 'location',
-          onPressed: () async {
-            gl.Position glPosition = await Geolocator.getCurrentPosition();
-            Position currentPosition.pointXYList = [glPosition.longitude, glPosition.latitude];
-            //      debugPrint('Position: ${currentPosition.toString()}');
-            animatedMapController.animateTo(
-              dest: LatLng(currentPosition.latitude, currentPosition.longitude),
-            );
-          },
-          backgroundColor: Colors.blue,
-          shape: const CircleBorder(),
-          child: const Icon(Icons.my_location),
-        ),
-        const SizedBox(
-          height: 15,
-        ),
-        FloatingActionButton(
-          heroTag: 'zoomIn',
-          onPressed: () async {
-            animatedMapController.animatedZoomIn();
-          },
-          backgroundColor: Colors.blue, //.withOpacity(0.5),
-          shape: const CircleBorder(),
-          child: const Icon(Icons.zoom_in, size: 30),
-        ),
-        const SizedBox(
-          height: 15,
-        ),
-        FloatingActionButton(
-          heroTag: 'zoomOut',
-          onPressed: () async {
-            animatedMapController.animatedZoomOut();
-          },
-          backgroundColor: Colors.blue,
-          shape: const CircleBorder(),
-          child: const Icon(Icons.zoom_out, size: 30),
-        ),
-      ],
-    );
-  }
-}
-*/
 class SetPreferences extends StatefulWidget {
   final TripsPreferences preferences;
 
@@ -299,10 +80,8 @@ class _SetPreferencesState extends State<SetPreferences> {
       width: MediaQuery.of(context).size.width,
       child: Row(
         children: [
-          //  if (!_preferences.isLeft) ...[
           Icon(widget.preferences.isLeft ? null : Icons.arrow_back_ios,
               color: Colors.white),
-          //  ],
           SizedBox(
             width: MediaQuery.of(context).size.width - 60, //delta,
             child: ListView(
@@ -318,20 +97,17 @@ class _SetPreferencesState extends State<SetPreferences> {
                     value: widget.preferences.currentLocation,
                     onChanged: (value) =>
                         widget.preferences.currentLocation = value!,
-                    // setState(() => preferences.currentLocation = value!),
                     controlAffinity: ListTileControlAffinity.leading,
                   ),
                 ),
                 SizedBox(
                   width: 210,
                   child: CheckboxListTile(
-                    //  activeColor: Colors.white,
                     hoverColor: Colors.white,
                     title: const Text('North West',
                         style: TextStyle(color: Colors.white)),
                     value: widget.preferences.northWest,
                     onChanged: (value) => widget.preferences.northWest = value!,
-                    //   setState(() => _preferences.northWest = value!),
                     controlAffinity: ListTileControlAffinity.leading,
                   ),
                 ),
@@ -342,20 +118,17 @@ class _SetPreferencesState extends State<SetPreferences> {
                         style: TextStyle(color: Colors.white)),
                     value: widget.preferences.northEast,
                     onChanged: (value) => widget.preferences.northEast = value!,
-                    // setState(() => _preferences.northEast = value!),
                     controlAffinity: ListTileControlAffinity.leading,
                   ),
                 ),
                 SizedBox(
                   width: 210,
                   child: CheckboxListTile(
-                    //  activeColor: Colors.white,
                     hoverColor: Colors.white,
                     title: const Text('South West',
                         style: TextStyle(color: Colors.white)),
                     value: widget.preferences.southWest,
                     onChanged: (value) => widget.preferences.southWest = value!,
-                    //  setState(() => _preferences.southWest = value!),
                     controlAffinity: ListTileControlAffinity.leading,
                   ),
                 ),
@@ -366,14 +139,12 @@ class _SetPreferencesState extends State<SetPreferences> {
                         style: TextStyle(color: Colors.white)),
                     value: widget.preferences.southEast,
                     onChanged: (value) => widget.preferences.southEast = value!,
-                    //   setState(() => _preferences.southEast = value!),
                     controlAffinity: ListTileControlAffinity.leading,
                   ),
                 ),
               ],
             ),
           ),
-          //  if (!_preferences.isRight) ...[
           Icon(
             widget.preferences.isRight ? null : Icons.arrow_forward_ios,
             color: Colors.white,
@@ -498,15 +269,12 @@ class _FeatureDetailsState extends State<FeatureDetails> {
           cards.add(newCard);
         }
       }
-    } else {
-      // debugPrint('Using existing cards - refresh not needed');
-    }
+    } else {}
     debugPrint('Cards.length = ${cards.length}');
     return true;
   }
 
   Future<Card?> getCard({required Feature feature, required int index}) async {
-    // debugPrint('getCard called for index $index');
     /// getFeatures returns all the features from the API
     /// type 1: drives - id + max/min lat/lng
     /// type 2: points of interest excluding type 12 ad 16 drive start end (12) and followers (16)
@@ -540,7 +308,6 @@ class _FeatureDetailsState extends State<FeatureDetails> {
       PointOfInterest? pointOfInterest = await widget.pointOfInterestRepository
           .loadPointOfInterest(
               key: feature.row, id: feature.id, uri: feature.uri);
-      // pointOfInterest?.setName('$index. ${pointOfInterest.getName()}');
       return Card(
         key: Key('pin_${feature.row}'),
         elevation: 10,
@@ -549,26 +316,21 @@ class _FeatureDetailsState extends State<FeatureDetails> {
             ? Colors.white
             : const Color.fromARGB(255, 174, 211, 241),
         child: PointOfInterestTile(
-          //  expandNotifier: _expandNotifier,
           controller: _pointOfInterestController,
           index: index,
           pointOfInterest: pointOfInterest!,
           imageRepository: widget.imageRepository,
           onExpandChange: widget.expandChange, //testFunc,
           onIconTap: testFunc,
-          //  onDelete: testFunc,
           onRated: onPointOfInterestRatingChanged,
           canEdit: false,
         ),
       );
-    } else {
-      // debugPrint('Type 12 PointOfInterest ignored');
-    }
+    } else {}
     return null;
   }
 
   onPointOfInterestRatingChanged(int value, int index) {
-    // key.toString() => "[<'pin_12'>]"
     int row = int.parse(_cards[index]
         .key
         .toString()
@@ -586,20 +348,9 @@ class _FeatureDetailsState extends State<FeatureDetails> {
     putDriveRating(uri, value);
   }
 
-  onGetTrip(int index, String uri) async {
-    /*     
-    MyTripItem webTrip = await getMyTrip(tripItems[index].driveUri);
-    webTrip.setId(-1);
-    webTrip.setDriveUri(tripItems[index].driveUri);
-    if (context.mounted) {
-      Navigator.pushNamed(context, 'createTrip',
-          arguments: TripArguments(webTrip, 'web'));
-    }
-    */
-  }
+  onGetTrip(int index, String uri) async {}
 
   testFunc(var details) {
-    // debugPrint('testFunc');
     return null;
   }
 
@@ -652,7 +403,6 @@ class _BottomSheetDividerState extends State<BottomSheetDivider> {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      // excludeFromSemantics: true,
       behavior: HitTestBehavior.translucent, //deferToChild, //translucent,
       onTap: () => setState(() => widget.onChange(widget.height, true)),
       onVerticalDragUpdate: (DragUpdateDetails details) =>
@@ -1062,28 +812,5 @@ Future<Map<String, dynamic>> getDialogData(
       break;
   }
   return mapInfo;
-}
-*/
-/*
-class Providers {
-  const Providers();
-
-    final TripItemRepository _tripItemRepository = TripItemRepository();
-  final PointOfInterestRepository _pointOfInterestRepository =
-      PointOfInterestRepository();
-  final GoodRoadRepository _goodRoadRepository = GoodRoadRepository();
-  final RouteRepository _routeRepository = RouteRepository();
-  final ImageRepository _imageRepository = ImageRepository();
-
-  dynamic getData(dynamic data) {
-    switch (data.runtimeType) {
-      case TripItem _:
-        return _tripItemRepository.loadTripItem(key: key, id: id, uri: uri)
-
-
-    }
-  }
-
-
 }
 */

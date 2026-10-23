@@ -21,9 +21,7 @@ Sammy  | Blue
   
 > blockquote  
 
-
 > [!INFO]  Callout ?                                                                                   
-
 
 sentence with a footnote. [^1] 
 
@@ -86,8 +84,6 @@ String mdHelp = '''
 |Table | `!Col 1 !Col 2 !       !------!-------!        !text 1!text 2!       !text 3! text 4!`|
 |Line break| `four       tabs`|
 
-
-
 ''';
 
 class MarkdownForm extends StatefulWidget {
@@ -105,16 +101,11 @@ class MarkdownForm extends StatefulWidget {
 }
 
 class _MarkdownFormState extends State<MarkdownForm> {
-  // late Future<bool> _dataloaded;
-  // List<MarkdownItem> _items = [];
   late MdStyleSheet _stylesheet;
   bool _code = true;
   late Map<String, dynamic> _markdownData;
   List<Map<String, dynamic>> _images = [];
-  // bool _changed = false;
-  // MarkdownItemTileController? _activeController;
   final TextEditingController _textEditingController = TextEditingController();
-  // final ImageRepository _imageRepository = ImageRepository();
   final SideToolbarController _sideToolBarController = SideToolbarController();
   late final _controller;
   bool _hidden = true;
@@ -246,7 +237,6 @@ class _MarkdownFormState extends State<MarkdownForm> {
     Map<String, dynamic> markdownItem =
         {}; // = MarkdownItem(heading: 'Heading', subheading: 'Subheading');
     if (data.isNotEmpty) {
-      // final title = RegExp(r'#(.*)'); RegExp('$key="([^"]+)"')
       // r'#\s*(.*)' = lines with # followed by 0 or more spaces
       // with any character other than newline in group
       String? getAttr(String key) {
@@ -363,7 +353,6 @@ class _MarkdownFormState extends State<MarkdownForm> {
           child: SingleChildScrollView(
             child: MarkdownBody(
               data: data,
-              //   extensionSet: customExtensionSet,
               imageBuilder: (Uri uri, String? title, String? alt) =>
                   imageBuilder(uri, title, alt),
               styleSheet: _stylesheet.markdownStyleSheet,
@@ -448,7 +437,6 @@ class _MarkdownFormState extends State<MarkdownForm> {
         ),
         update: false,
         textColor: const Color.fromRGBO(1, 29, 51, 1),
-        // updateMethod: (update) => (_) => (),
         content: portraitView(),
       );
     } else {
@@ -503,7 +491,6 @@ class _MarkdownFormState extends State<MarkdownForm> {
     final selection = _textEditingController.selection;
     int start = selection.baseOffset;
     if (start < 0) start = text.length;
-    //  _imageRepository.loadImage()
     addToBuffer(text: text);
     final insertion =
         '![alt image:${_images.length} caption="image ${_images.length}" align="$orientation" width="200" rotation="0" ](cache/${_images.last['name'] ?? ' '})';
@@ -520,10 +507,6 @@ class _MarkdownFormState extends State<MarkdownForm> {
 
   removeMarkdownItem(int index) async {
     await deleteMarkdownItem(widget.dataType, widget.uri);
-    // _items.removeAt(index);
-    // if (_items.isEmpty) {
-    //  newMarkdownItem(mdData);
-    // }
     setState(() {});
   }
 
@@ -541,53 +524,12 @@ class _MarkdownFormState extends State<MarkdownForm> {
   }
 
   Future<void> onDelete() async {
-    //   _items.removeAt(_index!);
-    //   _changes.removeAt(_index!);
-    //   if (_items.isEmpty) {
     newMarkdownItem(mdData);
-    //   }
     setState(() {
       _controller = null;
     });
     return;
   }
-/*
-  onAddImage() async {
-    int taken = _items[_index!].imageUrls.countOccurrences('com.motatek') + 1;
-    Photo? image =
-        await getDeviceImage(folder: 'Markdown_item', fileName: 'pic_$taken');
-    if (image != null) {
-      /// Don't need to specify endpoint as it's handled in the tile
-      List<Photo> testPhotos =
-          photosFromJson(photoString: _items[_index!].imageUrls);
-      testPhotos.add(image);
-      String testUri = photosToString(photos: testPhotos);
-      _items[_index!].imageUrls = testUri;
-    }
-
-    debugPrint(_items[_index!].imageUrls.toString());
-    setState(() => (_activeController!.updatePhotos()));
-  }
-
-  onMarkdown() => setState(() => _code = true);
-  onMarkdown() => setState(() => _code = false);
-  onHelp() async {}
-  onPost() {
-    try {
-      postMarkdownItem(_items[_index!]);
-      _changes[_index!] = false;
-      for (int i = 0; i < _changes.length; i++) {
-        _changed = _changes[i];
-        if (_changed) {
-          break;
-        }
-      }
-    } catch (e) {
-      debugPrint("Can't save ${_items[_index!].heading} - ${e.toString()}");
-    }
-    
-  }
-  */
 
   /// Handling images:
   /// User selects image from gallery - image remains in _imageRepository
@@ -616,15 +558,6 @@ class _MarkdownFormState extends State<MarkdownForm> {
   onPostAll(bool save) {
     if (save) {
       postMarkdownItem(widget.uri, widget.dataType, _markdownData);
-      /* for (int i = 0; i < _items.length; i++) {
-        if (_changes[i]) {
-          try {
-            postMarkdownItem(_items[i]);
-          } catch (e) {
-            debugPrint("Can't save ${_items[i].heading} - ${e.toString()}");
-          }
-        } 
-      } */
     }
   }
 }

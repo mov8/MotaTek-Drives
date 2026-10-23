@@ -28,7 +28,6 @@ class GroupMessagesController {
 }
 
 class GroupMessages extends StatefulWidget {
-  // var setup;
   final GroupMessagesController controller;
   final Function(int)? onSelect;
   final Function(int)? onCancel;
@@ -79,13 +78,10 @@ class _GroupMessagesState extends State<GroupMessages> {
   void initState() {
     super.initState();
     fn1 = FocusNode();
-    // dataloaded = dataFromDatabase();
     dataloaded = dataFromWeb();
     widget.controller._addState(this);
 
-    //socket.onConnect((_) => debugPrint('connecting'));
     socket.onConnectError((_) => debugPrint('connect error'));
-    //socket.onConnectError((_) => debugPrint('connect error'));
 
     socket.onError((data) => debugPrint('Error: ${data.toString()}'));
 
@@ -160,15 +156,6 @@ class _GroupMessagesState extends State<GroupMessages> {
 
   void onSendMessage(int index) {
     socket.emit('group_message', messages[index].message);
-    /*
-    messages[index].sent = true;
-    messages[index].dated = dateFormatDocTime.format(DateTime.now());
-    messages.add(Message(
-      id: '',
-      sender: '${Setup().user.forename} ${Setup().user.surname}',
-      message: '',
-    ));
-    */
     widget.onSelect!(index);
     return;
   }
@@ -198,7 +185,6 @@ class _GroupMessagesState extends State<GroupMessages> {
                 ),
               ),
             ),
-            //  SizedBox(height: 120),
           ],
         ),
       ),

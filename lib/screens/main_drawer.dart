@@ -1,4 +1,3 @@
-// import '/routes/home.dart';
 import '/constants.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
@@ -128,7 +127,6 @@ class _MainDrawerState extends State<MainDrawer> {
               ),
             ),
             onTap: () {
-              // getMyGroups();
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const MyGroupsForm()),
@@ -194,8 +192,6 @@ class _MainDrawerState extends State<MainDrawer> {
               ),
             ),
             onTap: () {
-              //   getMessagesByGroup();
-              // getInvitationssByUser();
               Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -216,8 +212,6 @@ class _MainDrawerState extends State<MainDrawer> {
               ),
             ),
             onTap: () {
-              //   getMessagesByGroup();
-              // getInvitationssByUser();
               Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -238,12 +232,8 @@ class _MainDrawerState extends State<MainDrawer> {
               ),
             ),
             onTap: () async {
-              //   login(context);
               await loadUserLocally();
 
-              // 'test@test.com';
-              //  user.password = '';
-              //  Setup().user = user;
               if (context.mounted) {
                 LoginState loginState =
                     await loginDialog(context, user: Setup().user);
@@ -271,12 +261,8 @@ class _MainDrawerState extends State<MainDrawer> {
               }
               setState(() {});
             },
-            //  Navigator.push(
-            //    context,
-            //    MaterialPageRoute(builder: (context) => const GroupForm()),
           ),
           if (true) ...[
-            //Setup().user.email == 'james@staintonconsultancy.com') ...[
             ListTile(
               leading: const Icon(
                 Icons.admin_panel_settings_outlined,
@@ -351,12 +337,7 @@ class _MainDrawerState extends State<MainDrawer> {
                   fontSize: 20,
                 ),
               ),
-              onTap: () {
-                // tryLogin(user);
-              },
-              //  Navigator.push(
-              //    context,
-              //    MaterialPageRoute(builder: (context) => const GroupForm()),
+              onTap: () {},
             ),
           ],
         ],

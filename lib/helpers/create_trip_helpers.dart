@@ -3,11 +3,7 @@ import 'dart:convert';
 import 'package:uuid/uuid.dart';
 import 'dart:math';
 import 'dart:developer' as developer;
-// import 'package:geolocator/geolocator.dart' as gl;
 import 'package:http/http.dart' as http;
-// import 'package:latlong2/latlong.dart';
-// import '/classes/route.dart' as mt;
-// import 'geojson_helpers.dart';
 import '/models/models.dart';
 import '/constants.dart';
 import '/classes/classes.dart';
@@ -192,7 +188,6 @@ List<Maneuver> getManeuversFromJson({required List routes, name = ''}) {
                     if ((bearingAfter - bearingBefore).abs() < 60) {
                       modifier = 'slightly $modifier';
                     }
-                    //    modifier = '$modifier (${bearingAfter - bearingBefore})';
                     maneuvers[maneuvers.length - 1].modifier = modifier;
                     maneuvers[maneuvers.length - 1].bearingAfter = bearingAfter;
                   } else {
@@ -406,7 +401,6 @@ int getRoundaboutAngle(
   return angle;
 }
 
-// getClosestPoint({int route = 0, int point = 0, bool full = true}) {
 PositionData getClosestPoint(
     {List<Route> routes = const [],
     Point position = const Point(0, 0),

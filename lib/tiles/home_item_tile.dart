@@ -17,7 +17,6 @@ import '/constants.dart';
 ///
 ///
 Map markdownStyle = {
-  // 'h1': TextStyle(color: Colors.blue, fontSize: 24, fontWeight: FontWeight.bold), //
   'h1': {'color': Colors.blue, 'fontSize': 24.0, 'fontWeight': FontWeight.bold},
   'h2': {'color': Colors.blue, 'fontSize': 22.0, 'fontWeight': FontWeight.bold},
   'h3': {
@@ -68,10 +67,8 @@ Sammy  | Blue
   
 > blockquote  
 
-
 >[!INFO]  
 >Callout  
-
 
   ---
 
@@ -97,25 +94,6 @@ main() {
 }
 ```
 ''';
-
-/*
-            h2: const TextStyle(
-                color: Colors.blue, fontSize: 22, fontWeight: FontWeight.bold),
-            h3: const TextStyle(
-                color: Colors.black, fontSize: 20, fontWeight: FontWeight.bold),
-            h4: const TextStyle(
-                color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold),
-            tableBody: const TextStyle(
-                color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold),
-            tableHead: const TextStyle(
-                color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold),
-            tableHeadAlign: TextAlign.start,
-            blockquote: const TextStyle(
-                color: Colors.black, fontSize: 20, fontWeight: FontWeight.bold),
-            code: const TextStyle(
-                color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold),
-};
-*/
 
 class HomeItemTileController {
   _HomeItemTileState? _homeItemTileState;
@@ -147,7 +125,6 @@ class HomeItemTileController {
 }
 
 class HomeItemTile extends StatefulWidget {
-//  final PointOfInterestController? pointOfInterestController;
   final HomeItem homeItem;
   final HomeItemTileController controller;
   final int index;
@@ -257,57 +234,7 @@ class _HomeItemTileState extends State<HomeItemTile> {
     if (widget.homeItem.images!.length != imageUrlLength) {
       getPhotos();
     }
-    return /*RrExpansionTile(
-      context: context,
-      child: ExpansionTile(
-        backgroundColor: Colors.white,
-        collapsedBackgroundColor: Colors.white,
-        controller: _expansibleController,
-        title: widget.homeItem.heading == ''
-            ? Text(
-                'Add a home page item',
-                style: headlineStyle(
-                    context: context, size: 2, color: Colors.black),
-              )
-            : Text(
-                widget.homeItem.heading,
-                style: headlineStyle(
-                    context: context, size: 2, color: Colors.black),
-              ),
-        subtitle: Row(children: [
-          Expanded(
-              flex: 1,
-              child: Text(
-                'pub ${dateFormat.format(DateTime.now())}',
-                style:
-                    textStyle(context: context, size: 3, color: Colors.black),
-              )),
-          const Expanded(flex: 1, child: Text('rank 0'))
-        ]),
-        initiallyExpanded: expanded,
-        onExpansionChanged: (expanded) =>
-            widget.onExpandChange!(expanded, widget.controller),
-        leading: IconButton(
-          iconSize: 25,
-          icon: const Icon(Icons.newspaper_outlined),
-          onPressed: () {},
-        ),
-        children: [
-          if (widget.code) ...[
-            Container(
-              width: double.infinity,
-              height: 600.0,
-              child: TextField(
-                decoration: InputDecoration(),
-                controller: _textEditingController,
-                maxLines: null,
-                textCapitalization: TextCapitalization.sentences,
-                style: TextStyle(fontSize: 20, color: Colors.black),
-              ),
-            ),
-          ],
-          if (!widget.code) ...[  */
-        Card(
+    return Card(
       child: Padding(
         padding: const EdgeInsets.all(8.0),
         child: Center(
@@ -339,240 +266,7 @@ class _HomeItemTileState extends State<HomeItemTile> {
         )),
       ),
     );
-    /* Markdown(
-              data: '# Heading 1', //_textEditingController.text,
-              styleSheet:
-                  MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
-                p: Theme.of(context)
-                    .textTheme
-                    .bodyMedium
-                    ?.copyWith(color: Colors.black),
-                h1: const TextStyle(
-                    color: Colors.blue,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold),
-                /* TextStyle(
-                        color: markdownStyle['h1']['color'],
-                        fontSize: markdownStyle['h1']['fontSize'],
-                        fontWeight: markdownStyle['h1']['fontWeight']), */
-                h2: const TextStyle(
-                    color: Colors.blue,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold),
-                h3: const TextStyle(
-                    color: Colors.black,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold),
-                h4: const TextStyle(
-                    color: Colors.black,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold),
-                tableBody: const TextStyle(
-                    color: Colors.black,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold),
-                tableHead: const TextStyle(
-                    color: Colors.black,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold),
-                tableHeadAlign: TextAlign.start,
-                blockquote: const TextStyle(
-                    color: Colors.black,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold),
-                code: const TextStyle(
-                    color: Colors.black,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold),
-              ),
-            ) */
-    // ]
-    //      ],
-    //    ),
-    //  );
   }
-/*
-  Widget oldFormToBeDeleted() {
-    return SizedBox(
-      height: 950,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(5, 5, 0, 30),
-        child: Column(
-          children: <Widget>[
-            Row(children: [
-              Expanded(
-                flex: 2,
-                child: DropdownButtonFormField<String>(
-                  decoration: InputDecoration(
-                    border: OutlineInputBorder(),
-                    labelText: 'Coverage',
-                    labelStyle: labelStyle(
-                        context: context, size: 2, color: Colors.black),
-                    hintStyle:
-                        hintStyle(context: context, color: Colors.blueGrey),
-                  ),
-                  initialValue: widget.homeItem.coverage,
-                  items: dropDownMenuItems,
-                  style:
-                      textStyle(context: context, color: Colors.black, size: 2),
-                  onChanged: (item) {
-                    widget.homeItem.coverage = item ?? 'all';
-                    widget.onChange!(index);
-                  },
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                flex: 1,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
-                  child: TextFormField(
-                      //   readOnly: !canEdit,
-                      initialValue: widget.homeItem.score.toString(),
-                      autofocus: true,
-                      textInputAction: TextInputAction.next,
-                      textAlign: TextAlign.start,
-                      keyboardType: const TextInputType
-                          .numberWithOptions(), //for(i = -1; i < 100; i++) i.toString()],
-                      textCapitalization: TextCapitalization.sentences,
-                      decoration: InputDecoration(
-                        border: OutlineInputBorder(),
-                        hintText: "-1 invisible higher the better",
-                        labelText: 'Article ranking',
-                        labelStyle: labelStyle(
-                            context: context, size: 2, color: Colors.black),
-                      ),
-                      style: textStyle(
-                          context: context, size: 2, color: Colors.black),
-                      autovalidateMode: AutovalidateMode.onUserInteraction,
-                      onChanged: (text) {
-                        widget.onChange!(index);
-                        widget.homeItem.heading = text;
-                      }),
-                ),
-              ),
-            ]),
-            Row(children: [
-              Expanded(
-                flex: 1,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
-                  child: TextFormField(
-                      //   readOnly: !canEdit,
-                      initialValue: widget.homeItem.heading,
-                      autofocus: true,
-                      textInputAction: TextInputAction.next,
-                      textAlign: TextAlign.start,
-                      keyboardType: TextInputType.streetAddress,
-                      textCapitalization: TextCapitalization.sentences,
-                      decoration: InputDecoration(
-                        border: OutlineInputBorder(),
-                        hintText: "What is the home item's heading...",
-                        labelText: 'Home item heading',
-                        labelStyle: labelStyle(
-                            context: context, size: 2, color: Colors.black),
-                      ),
-                      style: textStyle(
-                          context: context, size: 2, color: Colors.black),
-                      autovalidateMode: AutovalidateMode.onUserInteraction,
-                      onChanged: (text) {
-                        widget.homeItem.heading = text;
-                        widget.onChange!(index);
-                      }),
-                ),
-              ),
-            ]),
-            Row(
-              children: [
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
-                    child: TextFormField(
-                        readOnly: !canEdit,
-                        initialValue: widget.homeItem.subHeading,
-                        autofocus: canEdit,
-                        textInputAction: TextInputAction.next,
-                        textAlign: TextAlign.start,
-                        keyboardType: TextInputType.streetAddress,
-                        textCapitalization: TextCapitalization.sentences,
-                        decoration: InputDecoration(
-                          border: OutlineInputBorder(),
-                          hintText: "What is the home item's sub-heading...",
-                          labelText: 'Home item sub-heading',
-                          labelStyle: labelStyle(
-                              context: context, size: 2, color: Colors.black),
-                        ),
-                        style: textStyle(
-                            context: context, size: 2, color: Colors.black),
-                        autovalidateMode: AutovalidateMode.onUserInteraction,
-                        onChanged: (text) {
-                          widget.homeItem.subHeading = text;
-                          widget.onChange!(index);
-                        }),
-                  ),
-                )
-              ],
-            ),
-            Row(
-              children: [
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
-                    child: TextFormField(
-                        readOnly: !canEdit,
-                        maxLines: null,
-                        textInputAction: TextInputAction.done,
-                        //     expands: true,
-                        initialValue: widget.homeItem.body,
-                        textAlign: TextAlign.start,
-                        keyboardType: TextInputType.streetAddress,
-                        textCapitalization: TextCapitalization.sentences,
-                        decoration: InputDecoration(
-                          border: OutlineInputBorder(),
-                          hintText: 'Article content...',
-                          labelText: 'Home page article',
-                          labelStyle: labelStyle(
-                              context: context, size: 2, color: Colors.black),
-                        ),
-                        style: textStyle(
-                            context: context, size: 2, color: Colors.black),
-                        autovalidateMode: AutovalidateMode.onUserInteraction,
-                        onChanged: (text) {
-                          widget.homeItem.body = text;
-                          widget.onChange!(index);
-                        }
-                        //body = text
-                        ),
-                  ),
-                ),
-              ],
-            ),
-            if (widget.homeItem.imageUrls.isNotEmpty)
-              Column(
-                children: [
-                  Row(
-                    children: <Widget>[
-                      Expanded(
-                        flex: 8,
-                        child: ImageArranger(
-                          onChange: (idx) => setState(() => imageIndex = idx),
-                          urlChange: (imageUrls) =>
-                              widget.homeItem.imageUrls = imageUrls,
-                          photos: photos,
-                          endPoint: '', // widget.homeItem.uri,
-                          showCaptions: true,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-  */
 
   save(int id) {
     if (widget.index == id) {
@@ -614,21 +308,6 @@ class _HomeItemTileState extends State<HomeItemTile> {
     }
   }
 
-/*
-  List<String> getImageUrls(PointOfInterest pointOfInterest) {
-    var pics = jsonDecode(pointOfInterest.getImages());
-    return [
-      for (String pic in pics)
-        Uri.parse('${urlBase}v1/drive/images${pointOfInterest.url}$pic')
-            .toString()
-    ];
-  }
-*/
-/*
-  Widget showLocalImage(String url) {
-    return SizedBox(width: 160, child: Image.file(File(url)));
-  }
-*/
   Widget showLocalImage(String url, {index = -1}) {
     return SizedBox(
         key: Key('sli$index'), width: 160, child: Image.file(File(url)));

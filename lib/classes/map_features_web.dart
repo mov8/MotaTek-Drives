@@ -4,7 +4,6 @@ import '/classes/classes.dart';
 import '/tiles/tiles.dart';
 import '/classes/route.dart' as mt;
 import '/models/models.dart';
-// import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter/material.dart';
 
@@ -71,7 +70,6 @@ Future<PublishedFeatures> getPublishedFeatures(
     showRoutes = false,
     ExpandNotifier? expandNotifier,
     Map<String, int>? pointOfInterestLookup}) async {
-  // List<Feature> features = [];
   Map<String, int> pointOfInterestLookup = {};
 
   List<Feature> features = (await getFeatures(
@@ -82,39 +80,9 @@ Future<PublishedFeatures> getPublishedFeatures(
     pinTap: pinTap,
     onGetTrip: onGetTrip,
     showRoutes: showRoutes,
-    //  expandNotifier: expandNotifier,
   );
 }
 
-/*
-class OsmFeatures {
-  Function(int)? pinTap;
-  List<OsmAmenity> amenities = [];
-  Fence? cacheFence = Fence.create();
-  OsmFeatures({required this.amenities, this.pinTap, this.cacheFence});
-  Future<bool> update({required Fence fence, double size = 30}) async {
-    try {
-      amenities =
-          await getOsmAmenities(polygon: fence.polygonString(), size: size);
-      debugPrint('amenities polygonString = $amenities');
-      return true;
-    } catch (e) {
-      debugPrint('Error getting OSM data ${e.toString()}');
-      return true;
-    }
-  }
-
-  void resizeOsmAmenities({required double size}) {
-    for (int i = 0; i < amenities.length; i++) {
-      amenities[i] = OsmAmenity.morph(osmAmenity: amenities[i], size: size);
-    }
-  }
-
-  void clear() {
-    amenities.clear();
-  }
-}
-*/
 class PublishedFeatures {
   Function(bool)? onUpdate;
   Function(int) pinTap;
@@ -150,7 +118,6 @@ class PublishedFeatures {
       this.onGetTrip,
       this.onUpdate,
       this.exclude = const [12, 14, 16, 17, 18],
-      //   this.expandNotifier,
       this.showZoom = 10,
       this.showRoutes = false});
 
@@ -164,7 +131,6 @@ class PublishedFeatures {
     required Feature feature,
     required int index,
     List<Card>? children,
-    // ExpandNotifier? expandNotifier,
   }) async {
     if (feature.type == 0) {
       TripItem tripItem = await tripItemRepository.loadTripItem(
@@ -196,7 +162,6 @@ class PublishedFeatures {
         shadowColor: Colors.transparent,
         color: Colors.transparent,
         child: PointOfInterestTile(
-          //   expandNotifier: expandNotifier,
           index: index,
           pointOfInterest: pointOfInterest!,
           imageRepository: imageRepository,

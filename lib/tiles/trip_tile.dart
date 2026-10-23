@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import '/classes/classes.dart';
-// import 'package:latlong2/latlong.dart';
 import '/constants.dart';
 import '/models/other_models.dart';
 import '/helpers/edit_helpers.dart';
@@ -37,14 +36,12 @@ class TripTile extends StatefulWidget {
 
 class _TripTileState extends State<TripTile> {
   List<Photo> photos = [];
-  // String _photoString = '';
   bool isExpanded = false;
   bool expanded = true;
   final List<Card> _childCards = [];
   @override
   void initState() {
     super.initState();
-    //  _childCards = [];
     expanded = widget.expanded!;
     photos = photosFromJson(
       photoString: widget.tripItem.imageUrls,
@@ -56,17 +53,13 @@ class _TripTileState extends State<TripTile> {
     try {
       if (expanded) {
         await getDetails();
-        //  widget.expanded = true;
         if (mounted) {
           setState(() {});
         }
         if (widget.onExpand != null) {
           widget.onExpand!(widget.index);
         }
-      } else {
-        //  _expansionTileController.collapse();
-      }
-      //  setState(() => isExpanded = expanded);
+      } else {}
     } catch (e) {
       debugPrint('Error tripTile expandChange: ${e.toString()} ');
     }
@@ -104,13 +97,6 @@ class _TripTileState extends State<TripTile> {
 
   @override
   Widget build(BuildContext context) {
-    /*
-    if (widget.tripItem.imageUrls != _photoString) {
-      photos = photosFromJson(
-          photoString: widget.tripItem.imageUrls, endPoint: '$urlDriveImages/');
-      _photoString = widget.tripItem.imageUrls;
-    }
-    */
     return RrExpansionTile(
       context: context,
       child: ExpansionTile(
@@ -149,7 +135,6 @@ class _TripTileState extends State<TripTile> {
                     style: const TextStyle(
                       color: Colors.black,
                       fontSize: 12,
-                      // fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
@@ -185,7 +170,6 @@ class _TripTileState extends State<TripTile> {
                     padding: EdgeInsetsGeometry.fromLTRB(0, 0, 0, 5),
                     child: Text(
                       widget.tripItem.score,
-                      // '${'★' * widget.tripItem.rating.toInt()}${'☆' * (5 - widget.tripItem.rating.toInt())}',
                       style: textStyle(
                         context: context,
                         color: const Color.fromRGBO(255, 196, 0, 0.918),
@@ -220,8 +204,6 @@ class _TripTileState extends State<TripTile> {
             ),
           ),
         ),
-        /* Icon(Icons.route,
-              size: 25, color: colourList[Setup().publishedTripColour]), */
         children: [
           SingleChildScrollView(
             child: Padding(
@@ -237,7 +219,6 @@ class _TripTileState extends State<TripTile> {
                           Expanded(
                             flex: 1,
                             child: SizedBox(
-                              // height: 350,
                               child: PhotoCarousel(
                                 imageRepository: widget.imageRepository,
                                 photos: widget.tripItem.tripPhotos,
@@ -284,50 +265,6 @@ class _TripTileState extends State<TripTile> {
                         ),
                       ),
                     ),
-                    /*
-                      if (widget.tripItem.author.isNotEmpty)
-                        SizedBox(
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(5, 0, 5, 15),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  flex: 1,
-                                  child: CircleAvatar(
-                                    backgroundColor: Colors.blue,
-                                    child: Text(
-                                      getInitials(name: widget.tripItem.author),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  flex: 7,
-                                  child: Text(
-                                    widget.tripItem.author,
-                                    style: textStyle(
-                                      context: context,
-                                      color: Colors.black,
-                                    ),
-                                  ),
-                                ),
-                                Expanded(
-                                  flex: 2,
-                                  child: Column(
-                                    children: [
-                                      IconButton(
-                                        icon: const Icon(Icons.group_add),
-                                        onPressed: () => (setState(() {})),
-                                      ),
-                                      //   const Text('follow'),
-                                    ],
-                                  ),
-                                )
-                              ],
-                            ),
-                          ),
-                        ),
-                        */
                     if (_childCards.isNotEmpty)
                       Row(
                         children: [

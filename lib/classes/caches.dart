@@ -2,17 +2,13 @@ import 'dart:typed_data';
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
-// import 'package:universal_io/universal_io.dart';
 import 'package:universal_io/universal_io.dart';
 import 'dart:developer' as developer;
 import '/models/other_models.dart';
 import '/services/services.dart';
 import '/classes/classes.dart';
 import 'package:flutter/material.dart' hide Route;
-// import 'package:latlong2/latlong.dart';
 import 'package:hive/hive.dart';
-
-// import '/classes/classes.dart';
 
 /// TripItemRepository handles the cache for TripItems in the Trips route
 /// The [List<Feature>] initially hold the bare bones of the TripItems id, uri
@@ -45,7 +41,6 @@ class TripItemRepository {
         _tripItemCache[key] = TripItem(title: '');
       }
     } else {}
-    //   debugPrint(fetched);
     return _tripItemCache[key]!;
   }
 
@@ -67,9 +62,8 @@ class PointOfInterestRepository {
       if (uri.isNotEmpty) {
         _pointOfInterestCache[key] = await getPointOfInterest(uri: uri);
       } else {
-        _pointOfInterestCache[key] = PointOfInterest(
-            //    point: const [0, 0],
-            ); //child1: const FeatureMarker());
+        _pointOfInterestCache[key] =
+            PointOfInterest(); //child1: const FeatureMarker());
       }
     }
     return _pointOfInterestCache[key]!;
@@ -79,42 +73,6 @@ class PointOfInterestRepository {
     _pointOfInterestCache.clear();
   }
 }
-
-/*
-
-class OsmDataRepository {
-  final Map<int, OsmAmenity> _osmAmenityCache = {};
-  OsmDataRepository();
-  FutureOr<OsmAmenity?> loadPointOfInterest(
-      {required int key,
-      required int id,
-      required int osmId,
-      zoom = 30}) async {
-    // PointOfInterest pointOfIntest = PointOfInterest(markerPoint: MarkerPoint(), marker: marker)
-    if (!_osmAmenityCache.containsKey(key)) {
-      //  try {
-      if (osmId >= 0) {
-        _osmAmenityCache[key] = await getOsmAmenity(osmId: osmId);
-      } else {
-        _osmAmenityCache[key] = OsmAmenity(
-            position: const LatLng(0, 0), marker: const FeatureMarker());
-      }
-    } else {
-      //   debugPrint('Point of obtained from cache');
-    }
-    //  debugPrint(fetched);
-    return _osmAmenityCache[key]!;
-  }
-
-  clear() {
-    _osmAmenityCache.clear();
-  }
-
-  load({required List<OsmAmenity> amenities, required CacheFence fence}) async {
-    _osmAmenityCache.clear();
-  }
-}
-*/
 
 class RouteRepository {
   final Map<int, List<Route>?> _routeCache = {};
@@ -129,13 +87,9 @@ class RouteRepository {
       if (uri.isNotEmpty) {
         _routeCache[key] = await getDriveRoutes(driveUri: uri);
       } else {
-        _routeCache[key] = [
-          //       Route(points: [const []])
-        ];
+        _routeCache[key] = [];
       }
-    } else {
-      //    debugPrint('Route returned from cache');
-    }
+    } else {}
     return _routeCache[key];
   }
 
@@ -156,14 +110,8 @@ class GoodRoadRepository {
     if (!_goodRoadCache.containsKey(key)) {
       if (uri.isNotEmpty) {
         _goodRoadCache[key] = await getRoute(uriString: uri, goodRoad: true);
-      } else {
-        //     _goodRoadCache[key] = Route(points: [
-        //       const [0, 0]
-        //     ]);
-      }
-    } else {
-      //    debugPrint('GoodRoad returned from cache');
-    }
+      } else {}
+    } else {}
     return _goodRoadCache[key];
   }
 

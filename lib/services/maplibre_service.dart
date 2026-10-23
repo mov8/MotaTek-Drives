@@ -17,7 +17,6 @@ import '../routes/home.dart';
 import '../routes/shop.dart';
 import '../tiles/tiles.dart';
 import 'package:geolocator/geolocator.dart';
-// import '../main.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:flutter/gestures.dart';
 
@@ -92,7 +91,6 @@ class MapService {
   MessageBoxController? messageBoxController = MessageBoxController();
 
   final GlobalKey mapKey = GlobalKey();
-  // final GlobalKey scrollToKey = GlobalKey();
   ItemScrollController itemScrollController = ItemScrollController();
 
   final ImageRepository _tripImageRepository = ImageRepository();
@@ -108,7 +106,6 @@ class MapService {
   CameraPosition? _cameraPosition;
   MapUpdates mapUpdates = MapUpdates.updateAll; // <-- What geoJson to update
   MapUpdates onExitUpdate = MapUpdates.none;
-  // Future<bool>? _controllerReady;
   Future<bool>? mapControllerReady;
   MapLibreMap? mlMap;
 
@@ -125,16 +122,9 @@ class MapService {
     if (!_controllerCompleter.isCompleted) {
       _controllerCompleter.complete(mapController);
     }
-    // mapControllerReady = controller == mapController;
     return true;
   }
 
-/*
-  Future<bool> controllerReady(MapLibreMapController controller) async {
-    bool controllerReady = await setMapController(controller); // != null;
-    return controllerReady;
-  }
-*/
   onTap(tap, position) {
     if (_page == 1) {
       _tripsOnTap(tap);
@@ -208,38 +198,6 @@ class MapService {
   /// defined within main.dart where the persistent mapLibreMap
   /// id instantiated - its onCameraIdle gets assigned to this method.
 
-/* 
-map.on('mousemove', (e) => {
-    const features = map.queryRenderedFeatures(e.point);
-
-    // Limit the number of properties we're displaying for
-    // legibility and performance
-    const displayProperties = [
-        'type',
-        'properties',
-        'id',
-        'layer',
-        'source',
-        'sourceLayer',
-        'state'
-    ];
-
-    const displayFeatures = features.map((feat) => {
-        const displayFeat = {};
-        displayProperties.forEach((prop) => {
-            displayFeat[prop] = feat[prop];
-        });
-        return displayFeat;
-    });
-
-    document.getElementById('features').textContent = JSON.stringify(
-        displayFeatures,
-        null,
-        2
-    );
-});
-*/
-
   Future<Map<String, dynamic>> waypointTargetted() async {
     Point point =
         await controller!.toScreenLocation(controller!.cameraPosition!.target);
@@ -251,7 +209,6 @@ map.on('mousemove', (e) => {
         ? 'good-road-marker-layer'
         : 'way-marker-layer';
 
-    // _mapController!.queryRenderedFeaturesInRect(rect, layerIds, filter)
     var features =
         await controller!.queryRenderedFeaturesInRect(rect, [layer], null);
     if (features.isNotEmpty) {
@@ -298,7 +255,6 @@ map.on('mousemove', (e) => {
           LatLngBounds bounds =
               await MapService().controller!.getVisibleRegion();
           double zoom = MapService().controller!.cameraPosition!.zoom;
-          //     Map geoJson =
           _drivesRequest ??= DrivesRequest(
               onUpdated: (_) => {},
               onGetDetails: (_) => {},
@@ -307,23 +263,6 @@ map.on('mousemove', (e) => {
           await _drivesRequest!
               .update(bounds: bounds, zoom: zoom, force: !_idleCalled);
           _idleCalled = true;
-/*
-          if (geoJson.isNotEmpty) {
-            developer.log('Rendering geoJson for published data',
-                name: '_content_');
-            await MapService().controller!.setGeoJsonSource(
-                'published-data', Map<String, dynamic>.from(geoJson));
-          } else {
-            developer.log('Missing _drivesRequest.geoJson for published data',
-                name: '_content_');
-          }
-
-          List<TripItem> tripItems = _drivesRequest!.getDrivesData();
-          developer.log('Setting bottom drawer items 1498', name: '_drawer_');
-          sideDrawerController!.setContent(
-              content: BottomDrawerItems.drives,
-              drawerItems: tripItems as List<Widget>);
-*/
         } catch (e) {
           developer.log('Error setting published data: ${e.toString()}',
               name: 'error');
@@ -338,9 +277,7 @@ map.on('mousemove', (e) => {
         createTripStackController!.refresh(); // _positionUpdate.update();
       } else {
         LatLngBounds bounds = await MapService().bounds;
-        //  String debugString = '_onIdle() called x ${_onIdleCalled++}';
         statusBarController!.refresh();
-        //  Point centrePoint = await pointAtCentre();
         CurrentTripItem().mapController ??= controller;
         LatLngBounds? bounds2;
         try {
@@ -369,7 +306,6 @@ map.on('mousemove', (e) => {
             }
           }
           if (CurrentTripItem().tripState == TripState.clearing) {
-            //  _pointAtCentre = centrePoint;
             CurrentTripItem().tripState = TripState.none;
             CurrentTripItem().waypointState = WaypointState.none;
             CurrentTripItem().tripState == TripState.none;
@@ -378,10 +314,7 @@ map.on('mousemove', (e) => {
             createTripStackController?.refresh();
           }
 
-          if (CurrentTripItem().tripActions != TripActions.none) {
-            //  _executeChipActions();
-            //  CurrentTripItem().tripActions = TripActions.none;
-          }
+          if (CurrentTripItem().tripActions != TripActions.none) {}
 
           /// Update the published features that are within the "select fence",
           /// Shows the highlight background for roads + their shields
@@ -616,7 +549,6 @@ map.on('mousemove', (e) => {
         });
         List<Map<String, dynamic>> jsonEnds =
             routeEndsToGeoJson(routes: CurrentTripItem().routes);
-        // LatLng start = LatLng(coordinates[1], coordinates[0]);
         LatLng start = LatLng(
             CurrentTripItem().pointsOfInterest.first.point.y.toDouble(),
             CurrentTripItem().pointsOfInterest.first.point.x.toDouble());
@@ -779,10 +711,6 @@ map.on('mousemove', (e) => {
     _bounds = bounds;
   }
 
-  // List<Widget> screenCache = [];
-
-  // Future<double> get mapWidthMeters => getMapWidthMeters();
-
   Future<double> getMapWidthMeters() async {
     _bounds = await controller!.getVisibleRegion();
     if (_bounds != null) {
@@ -830,21 +758,17 @@ map.on('mousemove', (e) => {
     }
   }
 
-  // _tripsOnMapUpdate(LatLng pos) async {
   _tripsOnMapUpdate() async {
     _drivesRequest ??= DrivesRequest(
         onUpdated: (_) => {},
         onGetDetails: (_) => {},
         onGetDownload: (index, name) => {},
         imageRepository: _tripImageRepository);
-    // _mapController = mapController;
 
-    // MapService().currentPosition = await Geolocator.getCurrentPosition();
     _tripRequest ??= TripRequest(
         onUpdated: (_) => {},
         onGetDetails: (_) => {},
         imageRepository: _tripImageRepository);
-    // CurrentTripItem().mapController = _mapController;
     Position position = await Geolocator.getCurrentPosition();
     _currentPosition = LatLng(position.latitude, position.longitude);
   }
@@ -869,7 +793,6 @@ map.on('mousemove', (e) => {
               zoom: zoom,
               force: force); //  _bottomDrawerController.itemsCount() == 0);
         } else {
-          //if (page == 2) {
           /// _tripRequests the Published cache _tripRequest keeps track of the data required
           /// as the user moves the map or changes the zoom. It redraws the geoJson features
           /// on the map to correspond to the data.
@@ -878,7 +801,6 @@ map.on('mousemove', (e) => {
         var filter = fenceFilter(bounds: bounds, proportion: 0.6);
         controller!.setFilter("route-marker-layer", filter);
         controller!.setFilter("good_roads_highlighted", filter);
-        // _mapController!.setFilter("good-road-marker-layer", filter);
         controller!.setFilter("roads_highlighted", filter);
         await controller!.animateCamera(CameraUpdate.zoomBy(0.000001));
       } catch (e) {
@@ -914,9 +836,7 @@ map.on('mousemove', (e) => {
     if (kIsWeb) {
       sideDrawerController!.setFixed(fixed: false);
       sideDrawerController!.open();
-    } else {
-      //     routesBottomNavController!.setValue(1);
-    }
+    } else {}
     return true;
   }
 
@@ -926,10 +846,7 @@ map.on('mousemove', (e) => {
       sideDrawerController!.setContent(content: BottomDrawerItems.trip);
       sideDrawerController!.setFixed(fixed: false);
       sideDrawerController!.close();
-    } else {
-      //     routesBottomNavController!.setValue(2);
-      // await bottomDrawerController!.setContent(content: BottomDrawerItems.trip, drawerItems: [empty]);
-    }
+    } else {}
     return true;
   }
 

@@ -72,7 +72,6 @@ class _GroupDriveFormState extends State<GroupDriveForm>
 
   @override
   Widget build(BuildContext context) {
-    // _action = 0;
     if (kIsWeb) {
       return ScreensAppBarBottom(
         heading: 'Organise a group event',
@@ -83,11 +82,8 @@ class _GroupDriveFormState extends State<GroupDriveForm>
         showOverflow: true,
         update: _changed == true,
         textColor: const Color.fromRGBO(1, 29, 51, 1),
-        // updateHeading: 'Save your group drive?',
-        // updateSubHeading: 'You have made changes.',
         showAction: _changed == true,
         updateMethod: (update) => checkInvitations(update),
-
         content: FutureBuilder<bool>(
           future: _dataLoaded,
           builder: (BuildContext context, snapshot) {
@@ -121,8 +117,6 @@ class _GroupDriveFormState extends State<GroupDriveForm>
           overflowMethods: _overflowMethods,
           showOverflow: true,
           update: _changed == true,
-          // updateHeading: 'Save your group drive?',
-          // updateSubHeading: 'You have made changes.',
           showAction: _changed == true,
           updateMethod: (update) => checkInvitations(update),
         ),
@@ -225,9 +219,6 @@ class _GroupDriveFormState extends State<GroupDriveForm>
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                //      IconButton(
-                                //          onPressed: () => startDrive(index),
-                                //          icon: Icon(Icons.directions_car_outlined, size: 30)),
                                 Text(
                                   _trips[index].eventName,
                                   style: TextStyle(
@@ -246,10 +237,8 @@ class _GroupDriveFormState extends State<GroupDriveForm>
                         onExpansionChanged: (value) =>
                             _expansionChange(index, value),
 
-                        //     subtitle: Text(
                         //       'Event date  ${dateFormatDoc.format(DateTime.parse(_trips[index].eventDate))} - press button to join',
                         //       style: TextStyle(fontSize: 14),
-                        //     ),
                         children: [
                           ListView.builder(
                             physics: const NeverScrollableScrollPhysics(),
@@ -264,7 +253,6 @@ class _GroupDriveFormState extends State<GroupDriveForm>
                                 padding:
                                     EdgeInsetsGeometry.fromLTRB(5, 0, 5, 0),
                                 child: ListTile(
-                                  //   shape: ShapeBorder()
                                   leading: Icon(inviteIcons[int.parse(
                                       _trips[index].invitees[mIndex]
                                           ['state'])]),
@@ -467,7 +455,6 @@ class _GroupDriveFormState extends State<GroupDriveForm>
                     Padding(
                       padding: EdgeInsets.fromLTRB(10, 20, 0, 5),
                       child: TextFormField(
-                        //  key: Key('${widget.contact.standId}${widget.index}_7'),
                         readOnly: false,
                         autofocus: false,
                         minLines: 2,
@@ -544,7 +531,6 @@ class _GroupDriveFormState extends State<GroupDriveForm>
       instructions = ''}) async {
     if (!myTripItem.published) {
       await publish(myTripItem);
-      // await myTripItem.publish();
     }
     try {
       Map<String, dynamic> toEmail = {

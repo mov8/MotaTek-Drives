@@ -3,12 +3,9 @@ import '/classes/classes.dart';
 import '/helpers/create_trip_helpers.dart';
 import 'package:flutter/material.dart';
 import '/models/other_models.dart';
-// import '/classes/other_classes.dart';
 import '/tiles/maneuver_tile.dart';
 import '/services/web_helper.dart';
 import 'package:geolocator/geolocator.dart';
-// import 'package:latlong2/latlong.dart';
-// import '/classes/route.dart' as mt;
 import 'package:audioplayers/audioplayers.dart';
 import '/helpers/edit_helpers.dart';
 import 'dart:developer' as developer;
@@ -43,17 +40,6 @@ class DirectionTileController {
       debugPrint('error with directionTile controller: ${e.toString()}');
     }
   }
-
-  /*
-    void setFirstManeuver() {
-    assert(isAttached, 'Controller must be attached to widget');
-    try {
-      __directionTileState?.updateRoute();
-    } catch (e) {
-      debugPrint('error with directionTile controller: ${e.toString()}');
-    }
-  }
-  */
 }
 
 class DirectionTile extends StatefulWidget {
@@ -75,15 +61,12 @@ class DirectionTile extends StatefulWidget {
 }
 
 class _DirectionTileState extends State<DirectionTile> {
-  // String _roadFrom = '';
-  // String _roadTo = '';
   int _sweepAngle = 0;
   int _nextManeuverIndex = 0;
   double _metersToManeuver = 99999999;
   int _routeIndex = 0;
   int _pointIndex = 0;
   double _metersToRoute = 99999999;
-  // List<double> _lastLatLng = [0, 0];
   Point _lastLatLng = Point(0, 0);
   int _lastManeuver = 0;
   int _errorCount = 0;
@@ -93,7 +76,6 @@ class _DirectionTileState extends State<DirectionTile> {
   late CurrentTripItem tripItem;
 
   Map<String, dynamic> _prompts = {'heading': '', 'subheading': ''};
-  // late String _driveId;
 
   @override
   void initState() {
@@ -108,7 +90,6 @@ class _DirectionTileState extends State<DirectionTile> {
 
   @override
   Widget build(BuildContext context) {
-    // Map<String, dynamic> prompts = updatePrompts();
     try {
       if (_nextManeuverIndex >= 0) {
         if (tripItem.maneuvers[_nextManeuverIndex].type
@@ -198,7 +179,6 @@ class _DirectionTileState extends State<DirectionTile> {
 
       /// _nextManeuver has to be defined by the rerouting in currentTripItem.changeRoutes() it
       /// has to be fed back using the controller;
-      //   setState(() => _nextManeuverIndex = _lastManeuver);
     }
   }
 

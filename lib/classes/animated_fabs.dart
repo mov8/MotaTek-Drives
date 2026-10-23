@@ -1,4 +1,3 @@
-// import 'package:universal_io/universal_io.dart';
 import 'package:universal_io/universal_io.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:async';
@@ -15,7 +14,6 @@ import 'package:latlong2/latlong.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http;
 import '/classes/sound_repository.dart';
-// import 'package:pointer_interceptor/pointer_interceptor.dart';
 
 //import '/classes/classes.dart';
 //import ''
@@ -49,7 +47,6 @@ class _PlaceFinderState extends State<PlaceFinder> {
   Widget build(BuildContext context) {
     return AnimatedContainer(
       duration: const Duration(seconds: 1),
-      // color: Colors.blueAccent,
       width: _width,
       height: _height,
       decoration: BoxDecoration(
@@ -64,7 +61,6 @@ class _PlaceFinderState extends State<PlaceFinder> {
           ]),
       curve: Curves.fastOutSlowIn,
       onEnd: () => setState(() => _expanded = _width > _height),
-      //   child: PointerInterceptor(
       child: _expanded
           ? Row(
               children: [
@@ -132,7 +128,6 @@ class _PlaceFinderState extends State<PlaceFinder> {
                 ),
               ),
             ),
-      //  ),
     );
   }
 
@@ -144,7 +139,6 @@ class _PlaceFinderState extends State<PlaceFinder> {
 }
 
 class FloatingChecklist extends StatefulWidget {
-  // final Function(int) onMenuTap;
   final Function(int, bool)? onCheck;
   final Function(bool)? onClose;
 
@@ -183,7 +177,6 @@ class FloatingChecklist extends StatefulWidget {
 
 class _FloatingChecklistState extends State<FloatingChecklist> {
   late double _width;
-//late double _maxWidth;
   late double _height;
   late double _maxHeight;
   late bool _expanded;
@@ -193,7 +186,6 @@ class _FloatingChecklistState extends State<FloatingChecklist> {
   void initState() {
     super.initState();
     _width = widget.width;
-    //  _maxWidth = widget.maxWidth;
     _height = widget.height;
     _maxHeight = widget.maxHeight;
     _choices = widget.choices;
@@ -225,7 +217,6 @@ class _FloatingChecklistState extends State<FloatingChecklist> {
           _height = _width == widget.width ? widget.height : _maxHeight + 50;
         },
       ),
-      // child: PointerInterceptor(
       child: _expanded
           ? Row(
               children: [
@@ -317,7 +308,6 @@ class _FloatingChecklistState extends State<FloatingChecklist> {
                 ),
               ),
             ),
-      //  ),
     );
   }
 }
@@ -476,15 +466,12 @@ class _FloatingTextEditState extends State<FloatingTextEdit> {
                           focusNode: widget.focusNode,
                           decoration: InputDecoration(
                             filled: true,
-                            //  hint: Text(widget.hint),
                             border: widget.inputBorder,
                             fillColor: widget.fillColor,
                           ),
                           textCapitalization: TextCapitalization.words,
                           onChanged: (text) => widget.onChange!(text),
-                          onSubmitted: (text) {
-                            //      debugPrint('$text submitted');
-                          },
+                          onSubmitted: (text) {},
                         ),
                         Positioned(
                           right: -5,

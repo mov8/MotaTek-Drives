@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart';
 import 'dart:developer' as developer;
 import '/screens/messages_summary.dart';
 import 'package:flutter/material.dart';
-// import 'package:flutter/services.dart';
 import '/models/other_models.dart';
 import '/classes/classes.dart';
 import '/screens/screens.dart';
@@ -10,7 +9,6 @@ import '/services/services.dart';
 import 'package:socket_io_client/socket_io_client.dart' as sio;
 import '/constants.dart';
 import 'package:go_router/go_router.dart';
-// import 'dart:developer' as developer;
 
 /// Messages route supports 3 message views:
 /// 1 Summary - the user and group messages are mixed
@@ -63,15 +61,6 @@ class _MessagesState extends State<Messages> {
     'transports': ['websocket'], // Specify WebSocket transport
     'autoConnect': false, // Prevent auto-connection
   });
-/*
-  HomeItem homeItem = HomeItem(
-      heading: 'Keep in contact ',
-      subHeading: 'Message group members or individuals.',
-      body:
-          'Tell members about new events, or keep in contact on a group drive',
-      uri: 'assets/images',
-      imageUrls: '[{"url": "assets/images/message.png", "caption": ""}]');
-*/
   @override
   void initState() {
     super.initState();
@@ -149,13 +138,6 @@ class _MessagesState extends State<Messages> {
   }
 
   Widget _getPortraitBody() {
-    /*  if (Setup().user.email.isEmpty || !Setup().hasLoggedIn) {
-      return HomeTile(
-        homeItem: homeItem,
-        imageRepository: _imageRepository, 
-      );
-    } else { */
-
     if (Setup().jwt.isEmpty) {
       return Stack(children: [
         Positioned.fill(
@@ -221,7 +203,6 @@ class _MessagesState extends State<Messages> {
             isGroup: _mailItems[_tileSelected].isGroup,
             socket: socket,
           );
-    //   }
   }
 
   void appendEmptyMessage() {
@@ -356,68 +337,6 @@ class _MessagesState extends State<Messages> {
         //     appBar: PersistentAppBar(
         //         controller: MapService().persistentAppBarController!, page: 5),
 
-        /*AppBar(
-          leading: LeadingWidget(
-            controller: _leadingWidgetController,
-            initialValue: 0,
-            value: 0,
-            onMenuTap: (index) {
-              if (index == 0) {
-                _leadingWidget(_scaffoldKey.currentState);
-              } else {
-                _tileSelected = -1;
-                setState(() => _leadingWidgetController.changeWidget(0));
-              }
-            },
-          ),
-          title: Text(getHeadings()['heading']!,
-              style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white)),
-          iconTheme: const IconThemeData(color: Colors.white),
-          backgroundColor: Colors.blue,
-          actions: [
-            IconButton(
-              onPressed: () => {
-                if (Setup().jwt.isEmpty) {context.push('/login')},
-              },
-              icon: Icon(
-                Setup().jwt.isEmpty
-                    ? Icons.no_accounts_outlined
-                    : Icons.account_circle_outlined,
-                size: 30,
-              ),
-            ),
-            if (Setup().jwt.isNotEmpty) ...[
-              if (_tileSelected == -1) ...[
-                IconButton(
-                    icon: Icon(Icons.person_add_outlined, size: 30),
-                    onPressed: () => setState(() => _addContact = true)),
-                IconButton(
-                    onPressed: () => {},
-                    icon: Icon(Icons.help_outline_outlined)),
-              ],
-              if (_tileSelected > -1) ...[
-                IconButton(
-                    onPressed: () => {},
-                    icon: Icon(Icons.help_outline_outlined))
-              ],
-            ],
-          ],
-          bottom: PreferredSize(
-            preferredSize: Size.fromHeight(40),
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(5, 10, 5, 10),
-              child: Text(getHeadings()['subheading']!,
-                  textAlign: TextAlign.left,
-                  style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white)),
-            ),
-          ),
-        ), */
         body: FutureBuilder<bool>(
           future: _dataLoaded,
           builder: (BuildContext context, snapshot) {
@@ -437,12 +356,7 @@ class _MessagesState extends State<Messages> {
             }
             throw ('Error - FutureBuilder in main.dart');
           },
-        ), /*
-        bottomNavigationBar: RoutesBottomNav(
-          controller: _bottomNavController,
-          onMenuTap: (_) => {},
-          initialValue: 5,
-        ), */
+        ),
       );
     }
   }

@@ -143,12 +143,10 @@ class _TripHeaderTileState extends State<TripHeaderTile> {
 
   void collapse() {
     _expandController.collapse();
-    // setState(() => widget.expanded = false);
   }
 
   void expand() {
     _expandController.expand();
-    //  setState(() => widget.expanded = false);
   }
 
   void dismissKeyboard() {
@@ -160,11 +158,7 @@ class _TripHeaderTileState extends State<TripHeaderTile> {
           fn3.unfocus();
           collapse();
           FocusManager.instance.primaryFocus?.unfocus();
-          //    FocusManager().primaryFocus?.unfocus();
-          // FocusScope.of(context).unfocus();
         });
-
-        //  MapService().bottomDrawerController?.close();
       } catch (e) {
         developer.log(
             'Error trip_header_tile.dart dismissKeyboard(): ${e.toString}',
@@ -174,10 +168,6 @@ class _TripHeaderTileState extends State<TripHeaderTile> {
   }
 
   void checkComplete() async {
-    /*   if (_textEditingControllerTitle.text.isNotEmpty &&
-        _textEditingControllerSubTitle.text.isNotEmpty &&
-        _textEditingControllerBody.text.isNotEmpty)
-  */
     if (CurrentTripItem().title.isNotEmpty &&
         CurrentTripItem().subTitle.isNotEmpty &&
         CurrentTripItem().body.isNotEmpty) {
@@ -210,14 +200,12 @@ class _TripHeaderTileState extends State<TripHeaderTile> {
           backgroundColor: Colors.white,
           title: Text('Trip details'),
           initiallyExpanded: widget.expanded, //_initiallyExpanded,
-          children: /*[Text('Test body')]*/
-              [
+          children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
               child: TextFormField(
                 key: Key('tff1'),
                 readOnly: widget.appState == AppState.driveTrip,
-                // initialValue: CurrentTripItem().title,
                 focusNode: fn1,
                 controller: _textEditingControllerTitle,
                 textAlign: TextAlign.start,
@@ -253,9 +241,7 @@ class _TripHeaderTileState extends State<TripHeaderTile> {
               child: TextFormField(
                 focusNode: fn2,
                 key: Key('tff2'),
-                //     initialValue: CurrentTripItem().subTitle,
                 controller: _textEditingControllerSubTitle,
-                // autofocus: true,
                 readOnly: widget.appState == AppState.driveTrip,
                 textAlign: TextAlign.start,
                 keyboardType: TextInputType.multiline,
@@ -291,7 +277,6 @@ class _TripHeaderTileState extends State<TripHeaderTile> {
                 key: Key('tff3'),
                 readOnly: widget.appState == AppState.driveTrip,
                 controller: _textEditingControllerBody,
-                //        initialValue: CurrentTripItem().body,
                 focusNode: fn3,
                 textAlign: TextAlign.start,
                 maxLines: null,
@@ -321,120 +306,6 @@ class _TripHeaderTileState extends State<TripHeaderTile> {
             ),
           ],
         ));
-    /*  return RrExpansionTile(
-      context: context,
-      child: ExpansionTile(
-        key: UniqueKey(), // PageStorageKey(widget.index),
-        controller: _expandController,
-        shape: Border(),
-        collapsedBackgroundColor: Colors.white,
-        onExpansionChanged: (value) => onExpandChanged(value),
-        backgroundColor: Colors.white,
-        title: Text(
-            widget.tripItem.title.isEmpty
-                ? "Enter your trip details"
-                : 'Route: ${widget.tripItem.title} details',
-            style: titleStyle(context: context, color: Colors.black, size: 2)),
-        initiallyExpanded: widget.expanded,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
-            child: TextFormField(
-              key: Key('tff1'),
-              readOnly: widget.appState == AppState.driveTrip,
-              focusNode: fn1,
-              controller: _textEditingControllerTitle,
-              textAlign: TextAlign.start,
-              keyboardType: TextInputType.streetAddress,
-              textCapitalization: TextCapitalization.words,
-              inputFormatters: [
-                TitleCaseFormatter()
-              ], // <-- Custom extension for Web
-              textInputAction: TextInputAction.next,
-              decoration: InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: 'Give your trip a name...',
-                labelText: 'Trip name',
-                hintStyle:
-                    textStyle(context: context, color: Colors.black, size: 2),
-                labelStyle:
-                    textStyle(context: context, color: Colors.black, size: 2),
-              ),
-              style: textStyle(context: context, color: Colors.black, size: 2),
-              onChanged: (text) {
-                CurrentTripItem().title = text;
-              }, //widget.tripItem.title = text,
-              onFieldSubmitted: (text) {
-                checkComplete();
-              },
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-            child: TextFormField(
-              focusNode: fn2,
-              key: Key('tff2'),
-              controller: _textEditingControllerSubTitle,
-              // autofocus: true,
-              readOnly: widget.appState == AppState.driveTrip,
-              textAlign: TextAlign.start,
-              keyboardType: TextInputType.multiline,
-              maxLines: null,
-              textCapitalization: TextCapitalization.sentences,
-              textInputAction: TextInputAction.next,
-              inputFormatters: [SentenceCaseFormatter()],
-              decoration: InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: 'Enter a short summary of your trip...',
-                labelText: 'Trip summary',
-                hintStyle:
-                    textStyle(context: context, color: Colors.black, size: 2),
-                labelStyle:
-                    textStyle(context: context, color: Colors.black, size: 2),
-              ),
-              style: textStyle(context: context, color: Colors.black, size: 2),
-              autovalidateMode: AutovalidateMode.onUserInteraction,
-              onChanged: (text) => CurrentTripItem().subTitle = text,
-              onFieldSubmitted: (text) {
-                checkComplete();
-                FocusScope.of(context).requestFocus(fn3);
-              },
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-            child: TextFormField(
-              key: Key('tff3'),
-              readOnly: widget.appState == AppState.driveTrip,
-              controller: _textEditingControllerBody,
-              focusNode: fn3,
-              textAlign: TextAlign.start,
-              maxLines: null,
-              keyboardType: TextInputType.multiline,
-              textCapitalization: TextCapitalization.sentences,
-              inputFormatters: [SentenceCaseFormatter()],
-              textInputAction: TextInputAction.done,
-              decoration: InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: 'Describe details of your trip...',
-                labelText: 'Trip details',
-                hintStyle:
-                    textStyle(context: context, color: Colors.black, size: 2),
-                labelStyle:
-                    textStyle(context: context, color: Colors.black, size: 2),
-              ),
-              style: textStyle(context: context, color: Colors.black, size: 2),
-              autovalidateMode: AutovalidateMode.onUserInteraction,
-              onChanged: (text) =>
-                  CurrentTripItem().body = text, //widget.tripItem.body = text,
-              onFieldSubmitted: (text) {
-                checkComplete();
-              },
-            ),
-          ),
-        ],
-      ),
-    ); */
   }
 
   onExpandChanged(value) {

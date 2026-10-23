@@ -1,7 +1,5 @@
-// import '/classes/classes.dart';
 import '/classes/autocomplete_widget.dart';
 import 'package:flutter/material.dart';
-// import 'package:flutter/services.dart';
 import '/models/other_models.dart';
 import '/services/services.dart';
 import '/services/web_helper.dart';
@@ -93,7 +91,6 @@ class _DeleteTripsFormState extends State<DeleteUserForm> {
       {required List<TripSummary> tripSummaries}) async {
     if (tripSummaries.isEmpty) {
       try {
-        //  debugPrint('_loadTrips called');
         tripSummaries.addAll(await getTripSummaries(
             northEast: ukNorthEast, southWest: ukSouthWest));
       } catch (e) {
@@ -166,7 +163,6 @@ class _DeleteTripsFormState extends State<DeleteUserForm> {
   }
 
   Widget portraitView() {
-    // List<String> dropdownOptions = [];
     return SingleChildScrollView(
       child: SizedBox(
         height: (MediaQuery.of(context).size.height),
@@ -280,10 +276,7 @@ class _DeleteTripsFormState extends State<DeleteUserForm> {
   }
 
   void onConfirmDeleteMember(int value) {
-    // debugPrint('Returned value: ${value.toString()}');
     if (value > -1) {
-      //  deleteGroupMemberById(value);
-      //  widget.groupMember?.index = -1;
       Navigator.pop(context);
     }
   }

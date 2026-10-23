@@ -16,9 +16,7 @@ class AddContactTileController {
 
   void leave() {
     assert(isAttached, 'Controller must be attached to widget');
-    try {
-      //    _addContactTileState?.leave();
-    } catch (e) {
+    try {} catch (e) {
       String err = e.toString();
       debugPrint('Error loading image: $err');
     }
@@ -182,9 +180,7 @@ class _AddContactTileState extends State<AddContactTile> {
           _fieldStates[1] = false;
         }
         update = true;
-      } else {
-        // update = _dropdownOptions.isNotEmpty;
-      }
+      } else {}
     }
     complete = _fieldStates[0] && _fieldStates[1] && _fieldStates[2];
     if (update) {

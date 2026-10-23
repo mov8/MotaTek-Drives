@@ -40,15 +40,8 @@ class _FollowerMarkerTileState extends State<FollowerMarkerTile> {
           child:
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text('${widget.manufacturer} ${widget.model}',
-                style: textStyle(
-                    context: context,
-                    color: Colors.black,
-                    size:
-                        2) /* const TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  overflow: TextOverflow.ellipsis),*/
-                ),
+                style:
+                    textStyle(context: context, color: Colors.black, size: 2)),
             Text(
               'Colour ${widget.colour}',
               style: textStyle(context: context, color: Colors.black, size: 2),

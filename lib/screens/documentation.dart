@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-// import 'package:html/parser.dart' show parse;
-// import 'package:html/dom.dart';
 
 class DocumentationForm extends StatefulWidget {
   const DocumentationForm({super.key, setup});
@@ -28,7 +26,6 @@ class _DocumentationFormState extends State<DocumentationForm> {
   }
 
   Future<bool> dataFromWeb() async {
-    // _htmlData = await getDocs();
     return true;
   }
 
@@ -93,17 +90,6 @@ class _DocumentationFormState extends State<DocumentationForm> {
   }
 
   Widget portraitView() {
-    /*
-    return SingleChildScrollView(
-      child: Html(data: _htmlData),
-            Icons.home,
-      Icons.route,
-      Icons.map,
-      Icons.person,
-      Icons.shopping_bag,
-      Icons.chat_bubble
-    );
-    */
     return Padding(
       padding: EdgeInsets.fromLTRB(50, 0, 5, 40),
       child: Column(
@@ -139,25 +125,4 @@ class _DocumentationFormState extends State<DocumentationForm> {
       ),
     );
   }
-
-  /* 
-  Future<String> fetchHelpSection(String pageUrl, String sectionId) async {
-  final response = await http.get(Uri.parse(pageUrl));
-
-  if (response.statusCode == 200) {
-    var document = parse(response.body);
-    // Find the element by its ID
-    Element? sectionElement = document.getElementById(sectionId);
-
-    if (sectionElement != null) {
-      // You might want to return innerHtml or outerHtml depending on your needs
-      return sectionElement.innerHtml ?? 'Section content not found.';
-    } else {
-      return 'Section with ID "$sectionId" not found on page.';
-    }
-  } else {
-    throw Exception('Failed to load help page: ${response.statusCode}');
-  }
-}
-  */
 }

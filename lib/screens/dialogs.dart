@@ -6,13 +6,11 @@ import 'package:latlong2/latlong.dart';
 import 'dart:async';
 import '/constants.dart';
 import '/services/services.dart';
-import '/helpers/helpers.dart'; /*edit_helpers.dart';*/
+import '/helpers/helpers.dart';
 import '/models/models.dart';
 import '/classes/classes.dart';
 import '/tiles/tiles.dart';
 import 'package:socket_io_client/socket_io_client.dart' as sio;
-// import 'package:flutter_phone_direct_caller/flutter_phone_direct_caller.dart';
-//import '/screens/screens.dart';
 
 const Duration fakeAPIDuration = Duration(seconds: 1);
 const Duration debounceDuration = Duration(milliseconds: 500);
@@ -41,7 +39,6 @@ List<TextButton> actionButtons(
     textButtons.add(TextButton(
         style: TextButton.styleFrom(
             padding: const EdgeInsets.all(16.0),
-            //  backgroundColor: const Color.fromARGB(255, 204, 224, 241),
             textStyle: labelStyle(
                 context: context,
                 color: Colors.deepPurple,
@@ -243,8 +240,6 @@ osmDataDialog(
   showDialog(
     context: context,
     builder: (BuildContext context) {
-      // result = alert;
-
       return alert;
     },
   );
@@ -295,7 +290,6 @@ AlertDialog followerDialog({
 
 AlertDialog contactDiolog({
   required BuildContext context,
-  //  Follower? follower,
   Map<String, String>? follower,
   required sio.Socket socket,
 }) {
@@ -354,10 +348,7 @@ AlertDialog contactDiolog({
             Row(
               children: [
                 ElevatedButton(
-                  onPressed: () async {
-                    //  await FlutterPhoneDirectCaller.callNumber(
-                    //      follower["phoneNumber"] ?? '');
-                  },
+                  onPressed: () async {},
                   child: Expanded(
                     flex: 1,
                     child: Padding(
@@ -384,7 +375,6 @@ AlertDialog contactDiolog({
               height: 70,
               child: Padding(
                 padding: const EdgeInsets.all(10),
-                //  child: SingleChildScrollView(
                 child: Row(
                   children: [
                     Expanded(
@@ -406,7 +396,6 @@ AlertDialog contactDiolog({
                     ),
                   ],
                 ),
-                //    ),
               ),
             ),
           ]
@@ -447,7 +436,6 @@ class Utility {
 
   showAlertDialog(
       BuildContext context, String alertTitle, String alertMessage) async {
-    // bool result = false;
     // set up the buttons
     Widget cancelButton = TextButton(
       child: const Text("Cancel"),
@@ -480,8 +468,6 @@ class Utility {
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        // result = alert;
-
         return alert;
       },
     );
@@ -492,7 +478,6 @@ class Utility {
     String title = 'Title',
     String message = 'Message',
   }) async {
-    // Function(bool)? response}) async {
     AlertDialog alert = AlertDialog(
       title: Text(
         title,
@@ -518,7 +503,6 @@ class Utility {
             style: TextStyle(fontSize: 24),
           ),
           onPressed: () {
-            // response!(true);
             Navigator.pop(context, true);
           },
         ),
@@ -528,7 +512,6 @@ class Utility {
             style: TextStyle(fontSize: 24),
           ),
           onPressed: () {
-            // response!(false);
             Navigator.pop(context, false);
           },
         )
@@ -701,10 +684,7 @@ AlertDialog buildColumnDialog(
 
 Future<LoginState> loginDialog(BuildContext context,
     {required User user}) async {
-  // String status = '';
   List<String> registered = [];
-//  LoginError loginError = LoginError.noData;
-//  bool isRegistered = false;
   final FocusNode focusNode = FocusNode();
   TextEditingController controllerEm = TextEditingController();
   TextEditingController controllerPw = TextEditingController();
@@ -919,7 +899,6 @@ Future<LoginState> loginDialog(BuildContext context,
                 )
               ],
             ),
-            // if (joiningOffset == 0)
           ]),
         ),
         actions: [
@@ -955,7 +934,6 @@ Future<LoginState> loginDialog(BuildContext context,
             ),
           TextButton(
             onPressed: () {
-              //  focusNode.dispose();
               Navigator.pop(context, LoginState.cancel);
             },
             child: const Text(
@@ -985,7 +963,6 @@ class DriverDetails {
     showDialog<void>(
       context: context,
       builder: (BuildContext context) {
-        //  Map<String, dynamic> carData = {};
         return AlertDialog(
           title: Text('Drive - ${driver.driveName}'),
           titlePadding: EdgeInsets.fromLTRB(30, 30, 0, 0),
@@ -1197,8 +1174,6 @@ class _DialogOkCancelState extends State<DialogOkCancel> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      //  context: context,
-      //  barrierDismissible: false,
       title: Column(children: [
         Row(children: [
           Text(widget.title,
@@ -1252,7 +1227,6 @@ Future<LatLng> locationDialog(BuildContext context, Function callback) async {
   LatLng location = const LatLng(0.00, 0.00);
   await showDialog(
       context: context,
-      // builder: (context) => StatefulBuilder(
       barrierDismissible: false,
       builder: (context) =>
           StatefulBuilder(builder: (BuildContext context, setState) {
@@ -1311,7 +1285,6 @@ Future<LatLng> locationDialog(BuildContext context, Function callback) async {
                                       );
                                     },
                                     onSelected: (String selection) {
-                                      // waypoints[i] = selection;
                                       debugPrint(
                                           'You just selected $selection');
                                     },
@@ -1337,10 +1310,8 @@ Future<LatLng> locationDialog(BuildContext context, Function callback) async {
                   },
                 ]);
           })).then((result) {
-    //  debugPrint('Result from dialog: ${result.toString()}');
     if (result != null && result != "OK" && result != "CANCEL") {
       location = result;
-//      debugPrint('Location after callback: ${location.toString()}');
     }
   });
   return location;
@@ -1350,7 +1321,6 @@ Future<List<Polyline>> routeDialog(
     BuildContext context, int points, Function callback) async {
   List<TextEditingController> controllers = [];
   List<String> waypoints = [];
-  // List<LatLng> routePoints = [LatLng(52.05884, -1.345583)];
   List<Polyline> polylines = [
     Polyline(
         points: const [LatLng(52.05884, -1.345583)], // routePoints,
@@ -1363,11 +1333,8 @@ Future<List<Polyline>> routeDialog(
     waypoints.add('');
   }
 
-  // User user = User(forename: '', surname: '', email: '', password: '');
-
   await showDialog(
       context: context,
-      // builder: (context) => StatefulBuilder(
       barrierDismissible: false,
       builder: (context) =>
           StatefulBuilder(builder: (BuildContext context, setState) {
@@ -1452,7 +1419,6 @@ Future<List<Polyline>> routeDialog(
                     await callback(waypoints).then((result) {
                       if (result != null) {
                         polylines = result;
-                        //     debugPrint('polylines.length = ${polylines.length}');
                       }
                     });
                   },
@@ -1683,5 +1649,3 @@ class _DebounceTimer {
 class _CancelException implements Exception {
   const _CancelException();
 }
-
-//  [LatLng(52.05884, -1.345583)]

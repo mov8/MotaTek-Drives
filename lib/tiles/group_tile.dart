@@ -201,10 +201,6 @@ class _GroupTileState extends State<GroupTile> {
     );
   }
 
-  //addMember() {
-  //  widget.group.groupMembers().add(GroupMember(forename: '', surname: ''));
-  //}
-
   /// The GroupTile displays a list of all the members in the group in a series of cards.
   ///
   /// addMember() automaticall adds a new empty member to the list of members so the user can invite
@@ -215,7 +211,6 @@ class _GroupTileState extends State<GroupTile> {
 
   addNewMember(member) {
     if (member != null && member.userId.isNotEmpty) {
-      // && _groupMemberState == GroupMemberState.isNew) {
       widget.group.addMember(member);
       if (widget.onAdd != null) {
         widget.onAdd!(1);

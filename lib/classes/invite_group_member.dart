@@ -18,13 +18,11 @@ class InviteMember extends StatefulWidget {
   final Function(bool)? onCancel;
   final Function(bool)? onAddMemer;
   final Group group;
-  // final GroupMember newMember;
   final bool addMember;
   final Color color;
   final double elevation;
   const InviteMember(
       {super.key,
-      //     required this.newMember,
       required this.group,
       this.onInvite,
       this.onCancel,
@@ -45,7 +43,6 @@ class _InviteMemberState extends State<InviteMember> {
   late FocusNode _focusNode1;
   late FocusNode _focusNode2;
   GroupMember newMember = GroupMember(forename: '', surname: '');
-  // TextInputAction _textInputAction = TextInputAction.done;
   late GroupMemberState _groupMemberState;
 
   @override
@@ -72,7 +69,6 @@ class _InviteMemberState extends State<InviteMember> {
 
   Widget suffix(List<bool> fieldStates) {
     if (!fieldStates[2]) {
-      // return Icon(Icons.star_outline);
       return Padding(
         padding: EdgeInsetsGeometry.fromLTRB(0, 0, 5, 0),
         child: InkWell(
@@ -182,15 +178,12 @@ class _InviteMemberState extends State<InviteMember> {
                             searchLength: 1,
                             style: textStyle(
                                 context: context, color: Colors.black, size: 2),
-                            //       autofocus: true,
-                            //   textInputAction: _textInputAction,
                             decoration: InputDecoration(
                               border: OutlineInputBorder(),
                               hintText: 'Enter users email address',
                               hintStyle: hintStyle(context: context),
                               labelText: 'Email address',
                               labelStyle: labelStyle(context: context),
-                              //  prefix: Icon(Icons.cancel_outlined),
                               suffixIcon: suffix(_fieldStates),
                             ),
                             keyboardType: TextInputType.emailAddress,
@@ -213,11 +206,7 @@ class _InviteMemberState extends State<InviteMember> {
                       ),
                     ],
                   ),
-                  //   if ([
-                  //     GroupMemberState.isNew,
-                  //     GroupMemberState.complete,
                   //     GroupMemberState.added
-                  //   ].contains(_groupMemberState)) ...[
                   if (![GroupMemberState.none, GroupMemberState.registered]
                       .contains(_groupMemberState)) ...[
                     SizedBox(height: 20),
@@ -227,7 +216,6 @@ class _InviteMemberState extends State<InviteMember> {
                           flex: 1,
                           child: TextFormField(
                             focusNode: _focusNode2,
-                            //   initialValue: newMember.forename,
                             readOnly: _groupMemberState ==
                                 GroupMemberState.registered,
                             keyboardType: TextInputType.name,
@@ -260,7 +248,6 @@ class _InviteMemberState extends State<InviteMember> {
                           child: TextFormField(
                             autofocus: true,
                             keyboardType: TextInputType.name,
-                            //  initialValue: newMember.surname ?? '',
                             readOnly: _groupMemberState ==
                                 GroupMemberState.registered,
                             textInputAction: TextInputAction.done,
@@ -292,75 +279,6 @@ class _InviteMemberState extends State<InviteMember> {
                 ],
               ),
             ),
-            //  ],
-            /*  Align(
-              alignment: Alignment.center,
-              child: Padding(
-                padding: EdgeInsetsGeometry.fromLTRB(0, 20, 0, 0),
-                child: Wrap(
-                  alignment: WrapAlignment.center,
-                  spacing: 10,
-                  children: [
-                    if ([GroupMemberState.complete, GroupMemberState.registered]
-                        .contains(
-                            _groupMemberState)) // (_addMember || _isRegistered)
-                      ActionChip(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        onPressed: () async {
-                          if (_groupMemberState == GroupMemberState.complete) {
-                            await sendInvitation();
-                            if (widget.onInvite != null) {
-                              widget.onInvite!(newMember);
-                            }
-                            setState(() => clearData(cancel: false));
-                          } else {
-                            if (widget.onInvite != null) {
-                              widget.onInvite!(newMember);
-                            }
-                          }
-                        },
-                        backgroundColor: Colors.blue,
-                        avatar: Icon(
-                          _groupMemberState == GroupMemberState.complete
-                              ? Icons.person_add_alt_1_outlined
-                              : Icons.how_to_reg_outlined,
-                          color: Colors.white,
-                        ),
-                        label: Text(
-                          _groupMemberState == GroupMemberState.complete
-                              ? "Send invitation"
-                              : "Ok",
-                          style: TextStyle(fontSize: 18, color: Colors.white),
-                        ),
-                      ),
-                    ActionChip(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      onPressed: () {
-                        if (widget.onCancel != null) {
-                          widget.onCancel!(true);
-                        }
-                      },
-                      //    onPressed: () => setState(() =>
-                      //        clearData(cancel: true)), // widget.onAddLink!(index),
-                      backgroundColor: Colors.blue,
-                      avatar: const Icon(
-                        Icons.person_off_outlined,
-                        color: Colors.white,
-                      ),
-                      label: const Text(
-                        "Cancel",
-                        style: TextStyle(fontSize: 18, color: Colors.white),
-                      ),
-                    )
-                  ],
-                ),
-              ),
-            ),
-            */
           ],
         ),
       ),
@@ -411,9 +329,7 @@ class _InviteMemberState extends State<InviteMember> {
           _fieldStates[1] = false;
         }
         update = true;
-      } else {
-        // update = _dropdownOptions.isNotEmpty;
-      }
+      } else {}
     }
     complete = _fieldStates[0] && _fieldStates[1] && _fieldStates[2];
     if (update) {
@@ -471,9 +387,7 @@ class _InviteMemberState extends State<InviteMember> {
       "email": newMember.email,
       "phone": newMember.phone,
     };
-    // widget.group.addMember(newMember);
     sent = await putIntroduced(inviteeData);
-    // widget.addMember;
     _groupMemberState = GroupMemberState.added;
     return sent;
   }

@@ -20,7 +20,6 @@ Future<Map<String, dynamic>> shredMarkdown({required String markdown}) async {
     'images': []
   };
   if (markdown.isNotEmpty) {
-    // final title = RegExp(r'#(.*)'); RegExp('$key="([^"]+)"')
     // r'#\s*(.*)' = lines with # followed by 0 or more spaces
     // with any character other than newline in group
     String? getAttr(String key) {
@@ -220,7 +219,6 @@ there are no spaced between {{< and >}}
 * = match 0 or more
 ? = match as characters as possible
 
-
 eg String pattern = r'd+.d+';  checks for digit(s).digits(s)
 characters that Regex requires escaping .*?[]{}()|^$
 in addition Dart requires that \ needs escaping so in literals use \\ 
@@ -255,14 +253,8 @@ class LineBreakSyntax extends md.InlineSyntax {
   /// \{ \} - escaped reserved characters
   /// \s* - allow spaces between {< and content * means 0 or more
   /// (.*?) - group1 any .* ant alpha numerics ? make it non-greedy ie stop at end
-  // static const _pattern = r'<<\s*(.*?)\s*>>';
-  // static const _pattern = r'(?:\s{2,})$';
-  //  static const _pattern = r'(?:\\|  +)\n';
-  // static const _pattern = r'((?:\s{2,}\n)|(?:\s{2,}\r))'; //  |\\)?\n';
-  // static const _pattern = r'(?:\s{2,})\n';
 
   /// (?: means it's a non-capturing group
-  // static const _pattern = r'((?:\s{2,}\n)|(?:\s{2,}\r))'; //  |\\)?\n';
   @override
   bool onMatch(md.InlineParser parser, Match match) {
     try {
@@ -511,16 +503,6 @@ MarkdownStyleSheet getBaseStyle() {
         fontSize: 20,
         fontStyle: FontStyle.normal,
         fontWeight: FontWeight.bold),
-    /*  blockquoteDecoration: BoxDecoration(
-      color: Color(0xFFF1F5F9),
-      border: Border(
-        left: BorderSide(
-          color: Colors.blue, // Accent color (e.g., Blue)
-          width: 10.0, // Thick left line
-        ),
-      ),
-    ),
-    */
     code: TextStyle(
         color: Colors.black,
         fontSize: 16,
@@ -541,7 +523,6 @@ MarkdownStyleSheet getBaseStyle() {
 }
 
 class MdStyleSheet {
-  //extends StatelessWidget {
   MarkdownStyleSheet markdownStyleSheet;
   MdStyleSheet({MarkdownStyleSheet? styleSheet})
       : markdownStyleSheet = styleSheet ?? getBaseStyle();
@@ -575,15 +556,8 @@ class MdStyleSheet {
       code:
           json.containsKey('code') ? textStyleFromMap(json['code']) : base.code,
     );
-    // markdownStyleSheet = base;
     return MdStyleSheet(styleSheet: base);
   }
-/*
-  @override
-  Widget build(BuildContext context) {
-    return Text('');
-  }
-*/
 
   MarkdownStyleSheet styleSheetFromJson({required Map<String, dynamic> json}) {
     final base = MarkdownStyleSheet();
@@ -651,28 +625,6 @@ class MdStyleSheet {
     };
   }
 
-/*
-  dynamic toJsonString() {
-    Map<String, dynamic> jsonStyle = {
-      'p': markdownStyleSheet!.p.toString(),
-      'blockquoteAlign': markdownStyleSheet!.blockquoteAlign.toString(),
-      'blockquotePadding': markdownStyleSheet!.blockquotePadding.toString(),
-      'h1': markdownStyleSheet!.h1.toString(),
-      'h2': markdownStyleSheet!.h2.toString(),
-      'h3': markdownStyleSheet!.h3.toString(),
-      'h4': markdownStyleSheet!.h4.toString(),
-      'tableBody': markdownStyleSheet!.tableBody.toString(),
-      'tableHead': markdownStyleSheet!.tableHead.toString(),
-      'tableHeadAlign': markdownStyleSheet!.tableHeadAlign.toString(),
-      'blockquoteDecoration':
-          markdownStyleSheet!.blockquoteDecoration.toString(),
-      'checkbox': markdownStyleSheet!.checkbox.toString(),
-      'listBullet': markdownStyleSheet!.listBullet.toString(),
-      'code': markdownStyleSheet!.code.toString(),
-    };
-    return jsonStyle;
-  }
-*/
   /// Update the StyleSheet elements from the editors. The tags can't be updated directly as the
   /// fields are all final. Have to convert to json then update then convert back,
   updateTag({required Map<String, dynamic> tag}) {
@@ -691,7 +643,6 @@ class MdStyleSheet {
           name: 'error');
     }
     return style;
-    // textStyleFromMap(toJson()[key]);
   }
 }
 
@@ -702,20 +653,6 @@ class SoftAndHardLineBreakSyntax extends md.InlineSyntax {
   // 1. (?:  |\\)? -> Optional two spaces or a trailing backslash
   // 2. \n          -> Followed by a newline character
 
-/*
-  static const _pattern = r'\{\{<\s*(.*?)\s*>\}\}';
-  @override
-  bool onMatch(md.InlineParser parser, Match match) {
-    try {
-      parser.addNode(md.Element.text('shortcode', match[1]!));
-      return true;
-    } catch (e) {
-      developer.log('ShortcodeSyntax() error: {e.toString()}', name: 'error');
-      return false;
-    }
-  }
-
-*/
   static const _pattern = r'\{\{<\s*(.*?)\s*>\}\}';
   SoftAndHardLineBreakSyntax() : super(_pattern); //r'(?:  |\\)?\n');
 
@@ -825,16 +762,6 @@ MarkdownStyleSheet markdownStyleSheetFromJson(
     blockquote: jsonStyle['blockQuote'] ??
         TextStyle(
             color: Colors.black, fontSize: 20, fontWeight: FontWeight.bold),
-    /*  blockquoteDecoration: BoxDecoration(
-      color: Color(0xFFF1F5F9),
-      border: Border(
-        left: BorderSide(
-          color: Colors.blue, // Accent color (e.g., Blue)
-          width: 6.0, // Thick left line
-        ),
-      ),
-    ),
-    */
     code: jsonStyle['code'] ??
         TextStyle(
             color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold),
@@ -896,104 +823,6 @@ TextAlign textAlignFromMap(String data) {
   return TextAlign.center;
 }
 
-/* 
-'blockquoteDecoration'Attempt to improve the blockquote border style: 
-markdownStyleSheet!.blockquoteDecoration ??
-    BoxDecoration(
-      color: Colors.grey.shade100, // <--- Your custom background color
-      borderRadius: const BorderRadius.only(
-        topRight: Radius.circular(8.0),
-        bottomRight: Radius.circular(8.0),
-      ),
-      border: Border(
-        left: BorderSide(
-          color: Colors.blueAccent, // <--- Color of the leading strip
-          width:
-              6.0, // <--- Make the leading strip thicker (e.g., 6px or 8px)
-        ),
-      ),
-    ), 
-*/
-
-/*
-List<Widget> getActions({
-  bool code = true,
-  List<String>? buffer,
-  int bufferIndex = -1,
-  PopupMenuButton? overflow,
-  codePressed,
-  undoPressed,
-  redoPressed,
-  onUploadPressed,
-}) {
-  buffer ??= [];
-  return [
-    IconButton(
-      onPressed: codePressed,
-      icon: Icon(
-        code ? Icons.code_off : Icons.code,
-      ),
-    ),
-    if (code == true) ...[
-      IconButton(
-        onPressed: () => onUploadPressed,
-        icon: Icon(
-          Icons.upload,
-        ),
-      ),
-      IconButton(
-        icon: Icon(
-          Icons.undo_outlined,
-          color: buffer.isEmpty || bufferIndex == buffer.length - 1
-              ? Colors.grey
-              : Colors.white,
-        ),
-        onPressed: undoPressed,
-      ),
-      IconButton(
-        icon: Icon(
-          Icons.redo_outlined,
-          color:
-              buffer.isEmpty || bufferIndex <= 0 ? Colors.grey : Colors.white,
-        ),
-        onPressed: redoPressed,
-      ),
-      if (overflow != null) overflow
-      /*   PopupMenuButton(
-        itemBuilder: (context) => markdownOptions
-            .map<PopupMenuEntry<String>>(
-              (e) => PopupMenuItem(
-                textStyle: TextStyle(fontSize: 18, color: Colors.black),
-                onTap: overflowTap(e['value']),
-
-                /* () async {
-                  debugPrint('Admin Option: ${e['text']}');
-                  if (e['value'] == 'help') {
-                    setState(() => _sideToolBarController.close());
-                  } else if (e['value'] == 'imageLeft') {
-                    insertImage(orientation: 'left');
-                  } else if (e['value'] == 'imageCentre') {
-                    insertImage(orientation: 'centre');
-                  } else if (e['value'] == 'imageRight') {
-                    insertImage(orientation: 'right');
-                  } else if (e['value'] == 'style') {
-                    setState(() => _hidden = false);
-                    //  markdownStyleDialog(context);
-                  }
-                }, 
-                */
-                child: Row(
-                  children: [e['iconData'], Text(e['text'])],
-                ),
-              ),
-            )
-            .toList(),
-      ), */
-    ],
-  ];
-}
-*/
-
 List<IconButton> getActionsButtons({
   bool code = true,
   List<String>? buffer,
@@ -1008,14 +837,6 @@ List<IconButton> getActionsButtons({
 }) {
   buffer ??= [];
   return [
-    /*
-    IconButton(
-      onPressed: codePressed,
-      icon: Icon(
-        code ? Icons.code_off : Icons.code,
-      ),S
-    ),
-    */
     if (code == true) ...[
       IconButton(
         onPressed: addPressed,
@@ -1056,56 +877,6 @@ List<IconButton> getActionsButtons({
     ],
   ];
 }
-/*
-List<Icon> getActionIcons(
-    {bool code = true,
-    List<String>? buffer,
-    int bufferIndex = -1,
-    PopupMenuButton? overflow,
-    codePressed,
-    undoPressed,
-    redoPressed}) {
-  buffer ??= [];
-  return [
-    Icon(
-      code ? Icons.code_off : Icons.code,
-    ),
-    if (code == true) ...[
-      Icon(
-        Icons.upload,
-      ),
-      Icon(
-        Icons.undo_outlined,
-        color: buffer.isEmpty || bufferIndex == buffer.length - 1
-            ? Colors.grey
-            : Colors.white,
-      ),
-      Icon(
-        Icons.redo_outlined,
-        color: buffer.isEmpty || bufferIndex <= 0 ? Colors.grey : Colors.white,
-      ),
-    ],
-  ];
-}
-*/
-/*
-List<Function()> getActionMethods(
-    {bool code = true,
-    List<String>? buffer,
-    int bufferIndex = -1,
-    PopupMenuButton? overflow,
-    codePressed,
-    undoPressed,
-    redoPressed}) {
-  return [
-    codePressed,
-    if (code == true) ...[
-      () => (),
-      undoPressed,
-      redoPressed,
-    ]
-  ];
-}*/
 
 List<Map<String, dynamic>> markdownOptions = [
   {
@@ -1117,9 +888,7 @@ List<Map<String, dynamic>> markdownOptions = [
   {
     'text': ' Image to left',
     'iconData': Icon(Icons.looks_one_outlined,
-        //   Icon(IconData(0xeeaf, fontFamily: 'MaterialIcons'), //   looks_one,
-        size: 30,
-        color: Color.fromRGBO(22, 20, 20, 1)),
+        size: 30, color: Color.fromRGBO(22, 20, 20, 1)),
     'value': 'imageLeft'
   },
   {

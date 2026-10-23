@@ -117,8 +117,6 @@ class SideDrawerController {
     }
   }
 
-  // bool get isAttached => _sideDrawerState? != null;
-
   bool get isAttached => _sideDrawerState != null;
 
   bool get isOpen => (_sideDrawerState?.width ?? 0) > 20;
@@ -162,7 +160,6 @@ class SideDrawer extends StatefulWidget {
       this.onChangeWidth,
       this.onOpened,
       this.onUpdate,
-      //  this.requestClose,
       this.dividerWidth = 30,
       this.content,
       this.imageRepository,
@@ -181,13 +178,11 @@ class SideDrawer extends StatefulWidget {
 class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
   double width = 0;
   double contentSide = 0;
-  // double contentWidth = 100;
   double _mapWidth = 600;
   double _maxWidth = 400;
   double _openWidth = 200;
   int _messageIndex = -1;
   List<Widget> _screenCache = [];
-  // List<bool> _isExpanded = [];
   int delay = 500;
   bool refreshList = true;
 
@@ -204,7 +199,6 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
 
   late final RotatingIconController _rotatingIconController;
 
-  // MapLibreMapController get mapController => widget._mapController!;
   late final ImageRepository imageRepository;
 
   bool _changed = false;
@@ -221,24 +215,11 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
     }
     imageRepository = widget.imageRepository ?? ImageRepository();
     _rotatingIconController = RotatingIconController();
-    /*
-      _mapWidth = MediaQuery.of(context).size.width;
-      _maxWidth = _mapWidth * widget.maxWidth;
-      _openWidth = _mapWidth * widget.width;
-      width = _openWidth;
-    */
   }
 
-/*
-  @override
-  void dispose() {
-    super.dispose();
-  }
-*/
   void close() {
     if (mounted) {
       setState(() => width = 0);
-      // }
     }
   }
 
@@ -292,12 +273,6 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
     BottomDrawerItems.messages,
   };
   bool _singleForm = false;
-
-/*
-  int itemsCount() {
-    return _tiles.length;
-  }
-*/
 
   Future<void> setContent({
     required BottomDrawerItems content,
@@ -432,7 +407,6 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
           break;
       }
       _singleForm = _formContents.contains(content);
-      // setState(() => refreshList = true);
       refreshList = true;
     } catch (e) {
       developer.log('Error setting SideDrawer setContent(): ${e.toString()}',
@@ -461,8 +435,6 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
     setState(() {
       _messageIndex = index;
       _tiles = [
-        //  SidebarMessages(),
-
         Messages(
           index: _messageIndex, // <-- debugging
           onSelect: (index) => messageDetails(index),
@@ -472,9 +444,6 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
         ),
       ];
     });
-    // widget.onUpdate!(BottomDrawerItems.messages, index);
-    // _messageIndex = index;
-    // setContent(BottomDrawerItems.messages, []);
   }
 
   List<Widget> shredFavourites() {
@@ -552,8 +521,6 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
   }
 
   void followerLongPress(int index) {
-    // CurrentTripItem().tripValues.showTarget = true;
-
     CurrentTripItem().mapController!.animateCamera(
         CameraUpdate.newLatLng(
           LatLng(
@@ -589,8 +556,6 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
   }
 
   void maneuverLongPress(int index) async {
-    // CurrentTripItem().tripValues.showTarget = true;
-
     CurrentTripItem().mapController!.animateCamera(
         CameraUpdate.newLatLng(
           LatLng(
@@ -600,7 +565,6 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
         ),
         duration: Duration(milliseconds: 300));
 
-    // debugPrint('index: $index moved: ${moved ?? false}');
     final String fileName = await getSpeech(
         text:
             'Stop the car you idiot, I want to get out', //CurrentTripItem().maneuvers[index].modifier,
@@ -612,7 +576,6 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
         DeviceFileSource source = DeviceFileSource(fileName);
         try {
           final player = AudioPlayer(); //..setReleaseMode(ReleaseMode.stop);
-          // player.setSourceAsset(fileName);
           player.play(source); //(source);
         } catch (e) {
           debugPrint('Error : ${e.toString()}');
@@ -755,7 +718,6 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
                 index: i, // ndex,
                 listIndex: j++,
                 expanded: false, //!complete || selected == i,
-                //   controller: expanded ? _pointOfInterestController : null,
                 pointOfInterest: CurrentTripItem().pointsOfInterest[i],
                 imageRepository: imageRepository,
                 onUpdate: pointOfInterestComplete,
@@ -817,15 +779,10 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
   }
 
   void open(newWidth) async {
-    // _openWidth = width > 0 ? width : 0.4; //_openWidth;
-    //  if (_fixed) {
-    //    setState(() => _visible = true);
-    //  } else {
     newWidth = 0.4;
     _visible = true;
     bool changed = newWidth != width; //  false;
     try {
-      //   setContentSide();
       delay = 500;
       width = _mapWidth * newWidth;
     } catch (e) {
@@ -841,7 +798,6 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
     if (!_rotatingIconController.rotated) {
       _rotatingIconController.rotate();
     }
-    //  }
   }
 
   void setWidth({double width = 0}) {
@@ -891,7 +847,6 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
     // the drawer, e.g. a form's buttons
     double mapHeight = MediaQuery.of(context).size.height -
         (Scaffold.maybeOf(context)?.appBarMaxHeight ?? 0);
-    // MapService().mapHeight;
 
     /// Ensure a fresh set of tiles is generated to ensure the initiallyExpanded value is
     /// set to reflect the completeness of the tile's content.
@@ -899,14 +854,6 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
     /// otherwise as Flutter calls rebuild that haven't been initiated with a setState(), and that
     /// causes problems with the focus calling the keyboard. It is only set when the controller.refresh()
     /// or controller.setContent() are called.
-
-    // if (refreshList) {
-    //   _tiles = shredCurrentTripItemData();
-    //   refreshList = false;
-    // }
-    //  width = _mapWidth * 0.4; // <-- debug
-    //  _visible = true; // <-- debug
-    //   _fixed = false; // <-- debug
 
     double leftPadding = _fixed ? 10 : 0;
     return FocusScope(
@@ -929,8 +876,6 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
                     widget.onOpened!(width > 10);
                   }
                 },
-                //  child: PointerInterceptor(
-                // absorbing: false,
                 child: PointerInterceptor(
                   child: AnimatedOpacity(
                     opacity: _visible ? 1.0 : 0.0,
@@ -964,11 +909,7 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
                   ),
                 ),
               ),
-              //     ),
-
               if (!_fixed) ...[
-                //     PointerInterceptor(
-                //       child:
                 GestureDetector(
                   behavior: HitTestBehavior.translucent,
                   child: AbsorbPointer(
@@ -1016,10 +957,7 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
                       if (widget.onChangeWidth != null) {
                         widget.onChangeWidth!(width);
                       }
-                      if (width < 50) {
-                        // FocusScope.of(context).unfocus();
-                        // _pointOfInterestController.dismissKeyboard();
-                      }
+                      if (width < 50) {}
                       if (width <= 20 && _rotatingIconController.rotated ||
                           width > 20 && !_rotatingIconController.rotated) {
                         _rotatingIconController.rotate();
@@ -1027,7 +965,6 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
                     });
                   },
                 ),
-                //    ),
               ],
             ],
           ),

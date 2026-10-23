@@ -23,10 +23,8 @@ class GroupDriveAddTile extends StatefulWidget {
 }
 
 class _GroupDriveAddTileState extends State<GroupDriveAddTile> {
-  //int _driveIndex = -1;
   @override
   Widget build(BuildContext context) {
-    // List<Photo> photos = photosFromJson(widget.myTripItem.images);
     return SingleChildScrollView(
       child: Column(
         children: [
@@ -63,9 +61,6 @@ class _GroupDriveAddTileState extends State<GroupDriveAddTile> {
               ),
             ),
           ],
-          //  Expanded(
-          //    flex: 1,
-          //    child:
           ListView.builder(
             physics: const NeverScrollableScrollPhysics(),
             // This tells the
@@ -84,15 +79,10 @@ class _GroupDriveAddTileState extends State<GroupDriveAddTile> {
               ),
             ),
           ),
-          //  ),
         ],
       ),
     );
   }
 
-  changeRating(value) {
-    //  setState(() {
-    //    widget.tripItem.score = value;
-    //  });
-  }
+  changeRating(value) {}
 }

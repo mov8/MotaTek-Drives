@@ -3,10 +3,8 @@ import 'dart:convert';
 import 'dart:developer' as developer;
 import 'package:drives/constants.dart';
 import 'package:flutter/foundation.dart';
-// import 'package:flutter/material.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import '/models/other_models.dart';
-// import '/tiles/tiles.dart';
 import '/classes/classes.dart';
 import '/services/services.dart';
 
@@ -71,7 +69,6 @@ class DrivesRequest {
   List<String> received = [];
   Map<String, dynamic> request = {"zoom": 14, "b_box": [], "exclude": []};
   Map<String, dynamic> exclude = {};
-  // List trips = [];
   List excluded = [];
   String requestId = '';
 
@@ -134,7 +131,6 @@ class DrivesRequest {
             zoom: zoom);
         var jsonData = jsonDecode(geoJson);
         if (jsonData['features'] != null) {
-          // trips.clear();
           List trips = [];
           for (int i = 0; i < jsonData["features"].length; i++) {
             // 'shield' layer contains properties to create TripItem

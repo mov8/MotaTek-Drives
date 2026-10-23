@@ -1,14 +1,10 @@
 import 'dart:async';
 import 'dart:core';
-// import 'dart:js_interop_unsafe';
 import 'dart:ui' as ui;
-// import 'dart:js' as js; //_interop' as js1;
 import 'dart:developer' as developer;
 import 'package:intl/intl.dart';
-// import 'dart:typed_data';
 import 'dart:math';
 import '/constants.dart';
-// import '/services/services.dart';
 import '/classes/classes.dart' hide Position;
 import 'package:flutter/foundation.dart';
 import '/screens/screens.dart';
@@ -21,9 +17,7 @@ import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:socket_io_client/socket_io_client.dart' as sio;
-// hide LatLng;
 
-// MapLibreMapController? _mapController;
 BottomDrawerController _bottomDrawerController = BottomDrawerController();
 
 /*
@@ -91,7 +85,6 @@ class CurrentPosition {
   LatLng get latLng => LatLng(latitude, longitude);
   Point get point => Point(longitude, latitude);
   List<double> get list => [longitude, latitude];
-  //int get speed => speed ?? 0;
 }
 
 class CreateTripController {
@@ -103,18 +96,14 @@ class CreateTripController {
   bool isAttached() => _createTripState != null;
 
   Future<ui.Image?> getMapImage() async {
-    try {
-      //  return _createTripState?._createMapImage();
-    } catch (e) {
+    try {} catch (e) {
       debugPrint("Can't get the map image");
     }
     return null;
   }
 
   void updateValues({required CreateTripValues values}) {
-    try {
-      //    _createTripState?.updateValues(values: values);
-    } catch (e) {
+    try {} catch (e) {
       debugPrint("Can't update CreateTrip state values: ${e.toString()}");
     }
   }
@@ -128,18 +117,14 @@ class CreateTripController {
   }
 
   bool? getTripInfo({bool prompt = false}) {
-    try {
-      //  return _createTripState?.getTripDetails(prompt: prompt);
-    } catch (e) {
+    try {} catch (e) {
       debugPrint("Can't stop following");
     }
     return false;
   }
 
   void drive({bool follow = false}) {
-    try {
-      //     _createTripState?.setLocationUpdates();
-    } catch (e) {
+    try {} catch (e) {
       debugPrint('Controller error: ${e.toString()}');
     }
   }
@@ -153,25 +138,6 @@ class CreateTripController {
   void update() {
     _createTripState?.update();
   }
-
-/*
-  void editing() {
-  setLocationUpdates()
-    try {
-      _createTripState?.editing();
-    } catch (e) {
-      debugPrint("Can't stop following");
-    }
-  }
-
-  void waypoint() {
-    try {
-      _createTripState?.waypoint();
-    } catch (e) {
-      debugPrint("Can't stop following");
-    }
-  }
-  */
 }
 
 /// OVERALL STRUCTURE
@@ -204,11 +170,9 @@ class CreateTripController {
 ///
 
 class CreateTrip extends StatefulWidget {
-  // final CreateTripController? controller;
   final String mapType;
   const CreateTrip({
     super.key,
-    // this.controller,
     this.mapType = 'explore',
   });
   @override
@@ -226,8 +190,6 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   final start = TextEditingController();
   final end = TextEditingController();
 
-  //late final SideDrawerController
-  //    _sideDrawerController; // = SideDrawerController();
   final GroupMessagesController groupMessagesController =
       GroupMessagesController();
   bool isVisible = false;
@@ -240,35 +202,28 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   int _directionsIndex = 0;
   double iconSize = 35;
   StreamSubscription<Position>? _positionStream;
-  // late Future<bool> _groupChecked;
   late FocusNode fn1;
   late ui.Size screenSize;
   late ui.Size appBarSize;
   double mapHeight = 250;
   double listHeight = 0;
   final TripPreferences _preferences = TripPreferences();
-  // int CurrentTripItem().tripValues.pointOfInterestIndex = -1;
   late Position _currentPosition;
   CurrentPosition _userPosition = CurrentPosition();
-//  bool _repainted = false;
-  // DateTime _start = DateTime.now();
   int insertAfter = -1;
   int _poiDetailIndex = -1;
   var moveDelay = const Duration(seconds: 2);
   int highlightedIndex = -1;
   final List<Follower> _following = [];
   final List<MyTripItem> _myTripItems = [];
-  // late LocationSettings _locationSettings;
   late final StreamController<double?> _alignPositionStreamController;
   late final StreamController<void> _alignDirectionStreamController;
   late final DirectionTileController _directionTileController;
   late final StreamController<Position> _debugPositionController;
   late final FollowRoute _debugRoute;
-  // late final SideDrawer _sideDrawer;
   int initialLeadingWidgetValue = 0;
   String wpId = '';
   String grId = '';
-  // late final MLMap _mapLibreMap;
   String images = '';
   String mapStyle = '';
 
@@ -286,11 +241,6 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
     'autoConnect': false, // Prevent auto-connection
   });
 
-  // TripRequest? _tripRequest;
-  // Point _mapMiddle = Point(0, 0);
-  // Size _mapSize = Size(0, 0);
-  //  Point _pointAtCentre = Point(0, 0);
-  // late MapLibreMap mlMap;
   final ImageRepository _imageRepository = ImageRepository();
 /*
   Future<String> getPoiName({required latLng, name = ''}) async {
@@ -321,8 +271,7 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     MapService().createTripController!._addState(this);
-    // CurrentTripItem().clearAll(); // debug
-    // NetworkState().initialise();
+
     /// Have to have a controller instance for each Widget
     /// being controlled, as the controller shares the widgets state
     /// A single controller would then share the state of
@@ -332,7 +281,6 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
     MapService().statusBarController = StatusBarController();
     MapService().zoomFabController = ZoomFabController();
     _directionTileController = DirectionTileController();
-    // _expandNotifier = ExpandNotifier(-1);
     _bottomDrawerController.close();
 
     if (_debugging) {
@@ -353,7 +301,6 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
       listHeight = -1;
       socket.onConnectError((_) => debugPrint('connect error'));
       socket.onError((data) => debugPrint('Error: ${data.toString()}'));
-      // _hasRepainted = false;
       socket.on(
         'message_from_trip',
         (data) {
@@ -370,8 +317,6 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
                   tripMessage.lat != 0 &&
                   tripMessage.lng != 0) {
                 for (int i = 0; i < _following.length; i++) {
-                  //for (Follower follower in _following) {
-
                   if (_following[i].email == tripMessage.email &&
                       _following[i].email != Setup().user.email) {
                     _following[i] = _following[i].moveFollower(
@@ -388,21 +333,7 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
                       ];
                       _following[i].accepted = tripMessage.accepted;
                     }
-                    if (_following[i].track) {
-                      /*    if (_following[i].routeIndex == -1) {
-                        _following[i].routeIndex =
-                            CurrentTripItem().routes.length;
-                        CurrentTripItem()
-                            .routes
-                            .last
-                            .add([tripMessage.lng, tripMessage.lat]);
-                      } else {
-                        CurrentTripItem()
-                            .routes[_following[i].routeIndex]
-                            .add([tripMessage.lng, tripMessage.lat]);
-                      }
-                    */
-                    }
+                    if (_following[i].track) {}
                   }
                 }
               } else {
@@ -417,7 +348,6 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
                 }
 
                 CurrentTripItem().tripMessages.add(tripMessage);
-                //   showMessages(message: tripMessage);
               }
               setState(() {});
             } catch (e) {
@@ -426,17 +356,8 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
           }
         },
       );
-      /*
-      socket.onConnect((_) {
-        socket.emit('trip_join',
-            {'token': Setup().jwt, 'trip': CurrentTripItem().groupDriveId});
-      });
-      */
 
-      if (socket.connected) {
-//        socket.emit('trip_join',
-//            {'token': Setup().jwt, 'trip': CurrentTripItem().groupDriveId});
-      }
+      if (socket.connected) {}
     } catch (e) {
       developer.log(
           'Error CreateTrip().initState() called error: ${e.toString()}',
@@ -464,9 +385,7 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
 
   @override
   void dispose() {
-    // if (_positionStream != null) {
     _positionStream?.cancel();
-    //  }
     _alignPositionStreamController.close();
     _alignDirectionStreamController.close();
     _debugPositionController.close();
@@ -536,10 +455,7 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   Future<bool> dataFromDatabase() async {
     try {
       await getPermission();
-      // String style = await MapService().style;
       _currentPosition = await Geolocator.getCurrentPosition();
-      // mapStyle = await getStyle(url: urlTilerMapLibre);
-      // mapStyle = await MapService().style;
       // Setup is loaded from Hive at startup (main.dart initialise())
       if (Setup().hasLoggedIn) {
         _preferences.avoidMotorways = Setup().avoidMotorways;
@@ -547,7 +463,6 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
         _preferences.avoidTollRoads = Setup().avoidTollRoads;
       }
       return true;
-      // mapStyle = await MapService().style;
     } catch (e) {
       debugPrint('Error getting features data: ${e.toString()}');
       return false;
@@ -560,7 +475,6 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
     if (abKeyContext != null) {
       final box = abKeyContext.findRenderObject() as RenderBox;
       abHeight = box.size.height;
-      // box.size.bottomRight(origin)
     }
     return abHeight;
   }
@@ -577,7 +491,6 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
       switch (_tripArguments!.appState) {
         case AppState.myTrips:
           {
-            // _onIdle();
             _myTripItems.clear();
             _myTripItems.addAll(await loadSavedTrips());
             try {
@@ -597,7 +510,6 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
         case AppState.trips:
           {
             _drivesRequest ??= DrivesRequest(onUpdated: (_) {});
-            //    await _onIdleTrips(forceUpdate: true);
           }
         default:
           {
@@ -670,7 +582,6 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
         center: Offset(point.x.toDouble(), point.y.toDouble()),
         width: 15,
         height: 15);
-    // String layer = CurrentTripItem().isGoodRoad ? 'planned_routes' : 'good_roads';
     var features = await MapService()
         .controller!
         .queryRenderedFeaturesInRect(rect, ['good_roads'], null);
@@ -732,8 +643,6 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
       if (dock) {
         if (kIsWeb) {
           MapService().sideDrawerController!.scrollTo(index: 0);
-          //   } else {
-          //     _bottomDrawerController.dockOpenTile();
         }
       }
     } catch (e) {
@@ -746,7 +655,6 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
     try {
       return Point(MapService().controller!.cameraPosition!.target.latitude,
           MapService().controller!.cameraPosition!.target.longitude);
-      // _animatedMapController.mapController.camera.center;
     } catch (e) {
       return Point(0, 0);
     }
@@ -782,7 +690,6 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
         routeIndex: routeIndex,
         pointIndex: pointIndex);
     if (update) {
-      // setState(() => _directionTileController.updateRoute());
       _directionTileController.updateRoute();
     }
   }
@@ -825,7 +732,6 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
             position: follower.position,
           ),
         );
-        // }
       } catch (e) {
         debugPrint('Error: ${e.toString()}');
       }
@@ -914,7 +820,6 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
     showDialog<void>(
       context: context,
       builder: (BuildContext context) {
-        //  Map<String, dynamic> carData = {};
         return AlertDialog(
           title: Text('Drive - ${driver.driveName}',
               style: textStyle(context: context, color: Colors.black, size: 2)),
@@ -1115,16 +1020,11 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   void onConfirmDeleteTrip(int value) {
     debugPrint('Returned value: ${value.toString()}');
     if (value > -1) {
-      // int driveId = _myTripItems[value].driveId;
-      //   int driveId = CurrentTripItem().driveId;
-      //   getPrivateRepository().deleteDriveLocal(driveId: driveId);
       CurrentTripItem().clearAll();
-      // setState(() => _myTripItems.removeAt(value));
     }
   }
 
   Future getImage(ImageSource source, PointOfInterest poi) async {
-    // XFile _image;
     final picker = ImagePicker();
 
     await picker.pickImage(source: source, imageQuality: 10).then((pickedFile) {
@@ -1258,7 +1158,6 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
     _userPosition = CurrentPosition(position: position);
     CurrentTripItem().tripValues.position = _userPosition.point;
     LatLng pos = _userPosition.latLng;
-    // LatLng(position.latitude, position.longitude);
 
     if (_debugging) {
       handleDebugStream(position, _debugRoute, _following);
@@ -1433,26 +1332,9 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
     }
   }
 
-  iconButtonTapped(var details) {
-    /*
-    if (CurrentTripItem().tripValues.pointOfInterestIndex > -1) {
-      _animatedMapController.animateTo(
-          dest: CurrentTripItem()
-              .pointsOfInterest[
-                  CurrentTripItem().tripValues.pointOfInterestIndex]
-              .point);
-    }
-    */
-  }
+  iconButtonTapped(var details) {}
 
-  removePointOfInterest(var details) {
-    /*
-    if (CurrentTripItem().tripValues.pointOfInterestIndex > -1) {
-      CurrentTripItem().removePointOfInterestAt(
-          CurrentTripItem().tripValues.pointOfInterestIndex);
-    }
-  */
-  }
+  removePointOfInterest(var details) {}
 
   routeMissed(var details) {
     if (details != null) {
@@ -1478,7 +1360,6 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
 
       CurrentTripItem().tripActions = TripActions.headingDetail;
       fn1.requestFocus();
-      //  });
     }
     return false;
   }
@@ -1521,7 +1402,6 @@ class PositionUpdate {
     routePoint ??= [];
     if (routePoint!.isNotEmpty && controller != null) {
       CurrentTripItem().routes.last.lines.add(routePoint!);
-      // CurrentTripItem().mapUpdates.add(MapUpdates.routes);
       await controller!.setGeoJsonSource('route-data', {
         "type": "FeatureCollection",
         "features": routesToGeoJson(),

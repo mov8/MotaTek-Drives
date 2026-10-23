@@ -7,7 +7,6 @@ class RoutesBottomNavController {
   void _addState(_RoutesBottomNavState navState) {
     try {
       _routesBottomNavState = navState;
-      //    debugPrint('_routesBottomNavState attached OK');
     } catch (e) {
       debugPrint('Attachment error: ${e.toString()}');
     }
@@ -47,7 +46,6 @@ class RoutesBottomNav extends StatefulWidget {
 
 class _RoutesBottomNavState extends State<RoutesBottomNav>
     with TickerProviderStateMixin {
-  // late AnimationController _animationIconController;
   bool isarrowmenu = false;
   List<int> badgeValues = [0, 0, 0, 0, 0, 0];
 
@@ -55,14 +53,12 @@ class _RoutesBottomNavState extends State<RoutesBottomNav>
   void initState() {
     super.initState();
     widget.controller._addState(this);
-    //  badgeValues[1] = Setup().tripCount;
     badgeValues[4] = Setup().shopCount;
     badgeValues[5] = Setup().messageCount;
   }
 
   @override
   void dispose() {
-    // _leadingWidgetController.dispose();
     super.dispose();
   }
 
@@ -73,94 +69,8 @@ class _RoutesBottomNavState extends State<RoutesBottomNav>
 
   @override
   Widget build(BuildContext context) {
-    //  debugPrint('selectedIndex: $_index');
-    // int newIndex = 0;
-
     /// The line below makes sure that the two map page bottom nav bar buttons are correct
-    // _index = NavigationService().isWidget ? NavigationService().page : _index;
 
-    return const SizedBox
-        .shrink(); /*NavigationService().isWidget // <-- Use Widget
-        ? Align(
-            alignment: Alignment.bottomLeft,
-            child: NavigationBar(
-              key: Key('bnb1'),
-              elevation: 5,
-              height: 60,
-              surfaceTintColor: Colors.blue,
-              onDestinationSelected: (int index) {
-                developer.log('NavigationBar().onDestinationSelected($index)',
-                    name: '_nav_');
-
-                NavigationService().navigateTo(routes[index], TripArguments());
-                MapService()
-                    .setPage(page: index); //   <-- Ensures correct cache loaded
-              },
-              indicatorColor: Colors.lightBlue,
-              selectedIndex: _index,
-              labelTextStyle: WidgetStateProperty.resolveWith<TextStyle>(
-                (Set<WidgetState> states) {
-                  // If the tab is currently selected:
-                  if (states.contains(WidgetState.selected)) {
-                    return const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue,
-                    );
-                  }
-                  // Default style for unselected tabs:
-                  return const TextStyle(
-                    fontSize: 10,
-                    color: Colors.deepPurple,
-                  );
-                },
-              ),
-              destinations: _destinations,
-            ),
-          ) //;
-        : NavigationBar(
-            // <-- Use Page
-            elevation: 5,
-            height: 60,
-            surfaceTintColor: Colors.blue,
-            onDestinationSelected: (int index) {
-              try {
-                developer.log('NavigationBar().onDestinationSelected($index)',
-                    name: '_nav_');
-                MapService()
-                    .setPage(page: index); //   <-- Ensures correct cache loaded
-                NavigationService().navigateTo(routes[index], null);
-                developer.log(
-                    'RoutesBottomNav() _index: $_index  index: $index',
-                    name: '_nav_');
-              } catch (e) {
-                developer.log(
-                    'Error with NavigatonService().navigateTo() error: ${e.toString()}',
-                    name: 'error');
-              }
-            },
-            indicatorColor: Colors.lightBlue,
-            selectedIndex: _index, //NavigationService().page, //_index,
-            labelTextStyle: WidgetStateProperty.resolveWith<TextStyle>(
-              (Set<WidgetState> states) {
-                // If the tab is currently selected:
-                if (states.contains(WidgetState.selected)) {
-                  return const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blue,
-                  );
-                }
-                // Default style for unselected tabs:
-                return const TextStyle(
-                  fontSize: 10,
-                  color: Colors.deepPurple,
-                );
-              },
-            ),
-            destinations: _destinations,
-          );
-      */
+    return const SizedBox.shrink();
   }
-
 }

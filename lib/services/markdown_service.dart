@@ -1,6 +1,3 @@
-//import 'dart:math';
-//import 'dart:async';
-//import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
 import 'package:drives/classes/classes.dart' hide Position, distanceBetween;
 import 'package:flutter/material.dart';

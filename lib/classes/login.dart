@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
-// import '../classes/classes.dart';
 import '../models/models.dart';
 import '../services/services.dart';
 import '../screens/screens.dart';
 import '../constants.dart';
 import 'package:flutter/foundation.dart';
 import '/helpers/hive_helpers.dart';
-// import 'dart:developer' as developer;
 
 class Login extends StatelessWidget {
   BuildContext context;
@@ -26,11 +24,6 @@ class Login extends StatelessWidget {
       ///   Login dialog appears
       /// 3 Email on device and password < 8 characters
       ///   Sign_up form appears to allow completion of registration
-      //   int code = 0;
-
-      //   if (Setup().isWeb) {
-      //     return true;
-      //   }
 
       if ((!kIsWeb && Setup().user.password.isEmpty) ||
           (kIsWeb && Setup().jwt.isNotEmpty)) {
@@ -54,7 +47,6 @@ class Login extends StatelessWidget {
         if (Setup().user.email.isNotEmpty && Setup().user.password.length > 8) {
           Map<String, dynamic> response = await tryLogin(user: Setup().user);
           String status = response['msg'] ?? '';
-          //    code = response['response_status_code'] ?? 0;
 
           if (status == 'OK') {
             await saveUserLocally(Setup().user);
@@ -82,7 +74,6 @@ class Login extends StatelessWidget {
               Setup().user = user;
               return true;
             }
-            // return false;
           } else if (loginState == LoginState.cancel) {
             return false;
           }
@@ -120,7 +111,6 @@ class Login extends StatelessWidget {
         debugPrint('Server not listening ($urlBase)');
         return false;
       }
-      // return false;
     } catch (e) {
       debugPrint('Splash login error: ${e.toString()}');
       return false;

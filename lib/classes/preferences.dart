@@ -59,7 +59,6 @@ class SetPreferences extends StatelessWidget {
                 SizedBox(
                   width: 210,
                   child: CheckboxListTile(
-                    //  activeColor: Colors.white,
                     hoverColor: Colors.white,
                     title: const Text('South West',
                         style: TextStyle(color: Colors.white)),

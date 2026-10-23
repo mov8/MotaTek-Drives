@@ -5,11 +5,9 @@ import '/classes/classes.dart' hide Route;
 import '/tiles/my_trip_tile.dart';
 import '/services/services.dart';
 import '/helpers/helpers.dart';
-// import '/helpers/edit_helpers.dart';
 import '../constants.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:developer' as developer;
-// import 'package:latlong2/latlong.dart';
 
 class MyTripsController {
   _MyTripsScreenState? _myTripsScreenState;
@@ -46,7 +44,6 @@ class MyTrips extends StatefulWidget {
 class _MyTripsScreenState extends State<MyTrips> {
   final GlobalKey _scaffoldKey = GlobalKey();
   late Future<bool> _dataLoaded;
-  // List<TripItem> _tripItems = [];
   List<MyTripItem> _myTripItems = [];
   final ImageRepository _imageRepository = ImageRepository();
 
@@ -59,7 +56,6 @@ class _MyTripsScreenState extends State<MyTrips> {
     if (MapService().myTripsController != null) {
       MapService().myTripsController?._addState(this);
     }
-//    widget.controller?._addState(this);
     _dataLoaded = getMyTripItems();
   }
 
@@ -91,9 +87,6 @@ class _MyTripsScreenState extends State<MyTrips> {
 
   /// Loads CurrentTripItem() with the chosen trip and navigates to My Trip page - create_trip.dart
   Future<void> loadTrip(int index) async {
-    // CurrentTripItem.reset();
-    // CurrentTripItem().clearAll(newTripState: TripState.loaded);
-    // fromMyTripItem({required MyTripItem myTripItem})
     // /load_private/<uri>
 
     MyTripItem? myTripItem = await loadSavedTripByUri(_myTripItems[index].uri);
@@ -120,97 +113,27 @@ class _MyTripsScreenState extends State<MyTrips> {
     CurrentTripItem().mapUpdates = MapUpdates.updateAll;
 
     if (mounted) {
-      //   if (kIsWeb) {
-      //   } else {
       Navigator.pushNamedAndRemoveUntil(
           context, 'createTrip', (Route<dynamic> route) => false, //,
           arguments: TripArguments(trip: myTripItem, origin: 'db'));
-      //  }
     }
   }
 
   Future<void> shareTrip(int index) async {
-    /*
-    currentTrip.showMethods = false;
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-          builder: (context) => ShareForm(
-                tripItem: currentTrip,
-              )),
-    ).then((value) {
-      setState(() {
-        currentTrip.showMethods = true;
-      });
-    });
-    */
     return;
   }
 
   void deleteTrip(int index) {
     setState(() => _myTripItems.removeAt(index));
-    /* 
-    Utility().showOkCancelDialog(
-        context: context,
-        alertTitle: 'Permanently delete trip?',
-        alertMessage: ' ', // _myTripItems[index].heading,
-        okValue: index, // _myTripItems[index].getDriveId(),
-        callback: onConfirmDeleteTrip);
   }
-
-  void onConfirmDeleteTrip(int value) async {
-    if (value > -1) {
-      String id =
-          kIsWeb ? _myTripItems[value].uri : _myTripItems[value].id.toString();
-
-      getPrivateRepository()
-          .deleteDriveLocal(tripItem: _myTripItems[value])
-          .then((_) => setState(() => _myTripItems.removeAt(value)));
-    }
-    */
-  }
-
-/*
-import 'package:uuid/data.dart';
-import 'package:uuid/uuid.dart';
-import 'package:uuid/rng.dart';
-
-*/
 
   /// May have a problem having a single method for publishing a drive on
   /// both the Web and Android version. The issue is likely to be how to
   /// handle images - Android is simple but the Web may be problematic.
-/*
-  Future<void> publishTrip(int index) async {
-    await publish(_myTripItems[index]);
-    // await getPrivateRepository().publish(_myTripItems[index]);
-    return;
-  }
-*/
   /// Loading only basic trip information into the My Drives list.
   /// Will add remaining information if the user requests it by
   /// expanding the expansion tile.
-  Future<void> onExpandChange(int index, bool expanded) async {
-    /*
-    if (_myTripItems[index].pointsOfInterest.isEmpty) {
-      try {
-        _myTripItems[index] =
-            await loadPrivateTrip(uri: _myTripItems[index].uri) ??
-                _myTripItems[index];
-      } catch (e) {
-        debugPrint('Error getting the trip details');
-      }
-      setState(()  {});
-    }
-    */
-  }
-
-  /*
-  Future<void> refreshTrip(int index) async {
-    Map<String, dynamic> tripJSON = _myTripItems[index].
-    _myTripItems[index] = MyTripItem.fromJson()
-  }
-  */
+  Future<void> onExpandChange(int index, bool expanded) async {}
 
   Widget _getPortraitBody() {
     if (_myTripItems.isEmpty && Setup().jwt.isEmpty) {
@@ -335,18 +258,10 @@ import 'package:uuid/rng.dart';
             padding: kIsWeb
                 ? const EdgeInsets.fromLTRB(250, 5, 250, 5)
                 : const EdgeInsets.fromLTRB(5, 5, 5, 0),
-            /*   child: Center(
-              child: Text('Stuff '),
-            ),
-          */
-
             child: MyTripTile(
               index: i,
               myTripItem: _myTripItems[i],
-              // onLoadTrip: loadTrip,
-              // onShareTrip: shareTrip,
               onDeleteTrip: (index) => deleteTrip(index),
-              //  onPublishTrip: publishTrip,
               onExpandChange: onExpandChange,
               showMethods:
                   !_myTripItems[i].title.contains('Save your trips for'),
@@ -371,46 +286,12 @@ import 'package:uuid/rng.dart';
       //   appBar: PersistentAppBar(
       //       controller: MapService().persistentAppBarController!, page: 3),
 
-      /* AppBar(
-          automaticallyImplyLeading: false,
-          leading: LeadingWidget(
-            controller: _leadingWidgetController,
-            onMenuTap: (index) => _leadingWidget(
-              _scaffoldKey.currentState,
-            ),
-          ), // IconButton(
-          title: const Text(
-            'My Drives',
-            style: TextStyle(
-              fontSize: 24,
-              color: Colors.white,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          iconTheme: const IconThemeData(color: Colors.white),
-          backgroundColor: Colors.blue,
-          actions: [
-            IconButton(
-              onPressed: () {
-                if (Setup().jwt.isEmpty) {
-                  context.push('/login');
-                }
-              },
-              icon: Icon(
-                Setup().jwt.isEmpty
-                    ? Icons.no_accounts_outlined
-                    : Icons.account_circle_outlined,
-                size: 30,
-              ),
-            )
-          ]), */
       body: FutureBuilder<bool>(
         future: _dataLoaded,
         builder: (BuildContext context, snapshot) {
           if (snapshot.hasError) {
             debugPrint('Snapshot error: ${snapshot.error}');
           } else if (snapshot.hasData) {
-            // _building = false;
             return _getPortraitBody();
           } else {
             return const SizedBox(
@@ -425,10 +306,6 @@ import 'package:uuid/rng.dart';
           throw ('Error - FutureBuilder in main.dart');
         },
       ),
-      /*   bottomNavigationBar: RoutesBottomNav(
-          controller: _bottomNavController,
-          initialValue: 3,
-          onMenuTap: (_) => {}), */
     );
   }
 }

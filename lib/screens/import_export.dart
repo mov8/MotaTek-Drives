@@ -150,8 +150,6 @@ class ImportExport extends StatelessWidget {
                   Center(
                     child: SizedBox(
                       width: 100,
-                      // padding: EdgeInsets.fromLTRB(50, 0, 50, 0),
-
                       child: TextField(
                         maxLength: 4,
                         decoration: InputDecoration(

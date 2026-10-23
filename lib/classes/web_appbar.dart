@@ -4,11 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../models/models.dart';
 import '../services/services.dart';
-// import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
-// import 'package:collection/collection.dart';
-// import 'package:pointer_interceptor/pointer_interceptor.dart';
 import 'dart:developer' as developer;
-// import '/helpers/edit_helpers.dart';
 import 'classes.dart';
 import '../constants.dart';
 
@@ -80,7 +76,6 @@ class WebAppBarController {
 }
 
 class WebAppBar extends StatefulWidget implements PreferredSizeWidget {
-  // String heading;
   final BuildContext context;
   final LeadingWidgetController? controller;
   final CreateTripController?
@@ -98,7 +93,6 @@ class WebAppBar extends StatefulWidget implements PreferredSizeWidget {
 
   WebAppBar({
     super.key,
-    // required this.heading,
     required this.context,
     this.controller,
     this.appBarController,
@@ -172,12 +166,6 @@ class _WebAppBarState extends State<WebAppBar> {
       backgroundColor: Colors.blue,
       elevation: 0,
       automaticallyImplyLeading: false,
-      /* leading: LeadingWidget(
-        controller: widget.controller,
-        initialValue: 0, //widget.initialValue, //   initialLeadingWidgetValue,
-        onMenuTap: widget.onMenuTap,
-      ),
-      */
       iconTheme: const IconThemeData(color: Colors.white),
 
       /// Removes Shadow
@@ -212,8 +200,6 @@ class _WebAppBarState extends State<WebAppBar> {
               preferredSize: Size.fromHeight(60),
               child: Padding(
                 padding: EdgeInsets.fromLTRB(20, 1, 5, 10),
-                //  child: Row(
-                //    children: [
                 child: Row(
                   children: [
                     Align(
@@ -244,7 +230,6 @@ class _WebAppBarState extends State<WebAppBar> {
                                     padding:
                                         EdgeInsetsGeometry.fromLTRB(0, 5, 5, 0),
                                     child: ActionChip(
-                                      // tooltip: toolTips[i],
                                       onPressed: () => navigate(context, i),
                                       chipAnimationStyle: ChipAnimationStyle(
                                         selectAnimation: const AnimationStyle(
@@ -360,7 +345,6 @@ class _WebAppBarState extends State<WebAppBar> {
             Overlay.of(context).context.findRenderObject() as RenderBox;
         final RelativeRect position = RelativeRect.fromRect(
           Rect.fromPoints(
-            //  button.localToGlobal(Offset.zero, ancestor: overlay),
             button.localToGlobal(Offset.zero, ancestor: overlay),
             button.localToGlobal(
                 button.size.bottomRight(Offset.zero), // .zero),
@@ -369,7 +353,6 @@ class _WebAppBarState extends State<WebAppBar> {
           Offset.zero & overlay.size,
         );
         // 2. Use showMenu with the ROOT navigator's context
-        // final String? selected =
         await showMenu<String>(
           constraints: BoxConstraints(minWidth: 250),
           context: context,
@@ -477,23 +460,6 @@ class _WebAppBarState extends State<WebAppBar> {
     );
   }
 
-/*
-  Widget setActionMessage(
-      {String prompt = '',
-      Color colour = Colors.white,
-      double pointSize = 22,
-      FontWeight fontWeight = FontWeight.normal}) {
-    return Text(
-      prompt,
-      style: TextStyle(
-        color: colour,
-        fontSize: pointSize,
-        fontWeight: fontWeight,
-      ),
-    );
-  }
-*/
-
   void setActionMessage(prompt) {
     setState(() => _actionMessage = prompt);
   }
@@ -554,9 +520,6 @@ class _WebAppBarState extends State<WebAppBar> {
       /// The side drawer is fixed, and contains the data to navigate the main screen area.
       default:
         debugPrint('Current page: $screenName');
-      /*  NavigationService().navigateTo(routes[index],
-            TripArguments(appState: AppState.myTrips, activeChip: index));
-      */
     }
 
     if (widget.onSelect != null) {
@@ -566,42 +529,6 @@ class _WebAppBarState extends State<WebAppBar> {
     setState(() => _selected = index == 5 ? _selected : index);
     return;
   }
-
-/*
-  List<Map<String, dynamic>> adminOptions = [
-    {
-      'text': 'Home Page Content',
-      'iconData': const Icon(Icons.home_outlined),
-      'value': 'home'
-    },
-    {
-      'text': 'Shop Content',
-      'iconData': const Icon(Icons.shopping_bag_outlined),
-      'value': 'shop'
-    },
-    {
-      'text': 'Remove Drive',
-      'iconData': const Icon(Icons.remove_road_outlined),
-      'value': 'remove'
-    },
-    {
-      'text': 'Remove User',
-      'iconData': const Icon(Icons.person_off_outlined),
-      'value': 'user'
-    },
-    {
-      'text': 'Survey',
-      'iconData': const Icon(Icons.sick_outlined),
-      'value': 'survey'
-    },
-    {
-      'text': 'Invite user',
-      'iconData': const Icon(Icons.person_add_outlined),
-      'value': 'invite'
-    },
-  ];
-
-  */
 
   Future<void> setSideDrawerContent(
       {required BottomDrawerItems content, List<Widget>? drawerData}) async {

@@ -9,9 +9,6 @@ import 'dart:developer' as developer;
 // Although storing data as json is fine, at some stage should convert to adaptors
 
 // Following test routine works
-// final Box name = await Hive.openBox('name');
-// await Hive.openBox('name');
-// name.put('name', 'David');
 
 class UserRepository {
   late final Box _userBox;
@@ -20,7 +17,6 @@ class UserRepository {
     return true;
   }
 
-  // void openBox() => Hive.openBox('userBox');
   // Save the model as a JSON string
   Future<void> saveUser(User user) async {
     if (!_userBox.isOpen) {
@@ -97,7 +93,6 @@ class TripRepository {
 
       final String jsonString =
           jsonEncode(trip.toJson()); // <-- toJson is a MyTripIem method
-      //  await Hive.openBox('tripsBox');
       await _tripsBox.put(trip.uri, jsonString);
       _tripsBox.close();
       debugPrint('[_save_] saved trip ${trip.uri} to Hive');

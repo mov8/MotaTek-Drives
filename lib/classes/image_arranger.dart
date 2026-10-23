@@ -237,38 +237,3 @@ class _ImageArrangerState extends State<ImageArranger> {
     }
   }
 }
-
-/*
-      Image image = ImageMissing(width: 30);
-      cacheKey ??= getFileName(url: url);
-
-      Map<String, dynamic> cachedImage =
-          await widget.imageRepository!.loadImage(key: cacheKey);
-      return cachedImage[cacheKey];
-    } else {
-      return ImageMissing(width: 30);
-*/
-
-/*  if (url.contains('assets/images')) {
-      return Image(
-        image: AssetImage(url),
-        errorBuilder:
-            (BuildContext context, Object exception, StackTrace? stackTrace) {
-          return const ImageMissing(width: 30);
-        },
-      );
-    } else if (widget.imageRepository != null) {
-      cacheKey ??= getFileName(url: url);
-      Map<String, dynamic> cachedImage =
-          await widget.imageRepository!.loadImage(key: cacheKey);
-      return cachedImage[cacheKey];
-    } else {
-      return Image.file(
-        File(url),
-        errorBuilder:
-            (BuildContext context, Object exception, StackTrace? stackTrace) {
-          return const ImageMissing(width: 30);
-        },
-      );
-    }
-*/

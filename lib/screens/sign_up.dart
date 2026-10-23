@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-// import 'package:flutter/services.dart';
 import '/models/other_models.dart';
 import '/services/services.dart';
 import '/screens/dialogs.dart';
@@ -17,7 +16,6 @@ class SignupForm extends StatefulWidget {
 }
 
 class _SignupFormState extends State<SignupForm> {
-  //int sound = 0;
   String email = 'james@eggxactly.com';
   String password = 'ohmy10';
   int manufacturer = 0;
@@ -42,7 +40,6 @@ class _SignupFormState extends State<SignupForm> {
   bool hasChanged = false;
   bool complete = false;
   final Key _formKey = GlobalKey<FormState>();
-  //final FocusNode _focusNode = FocusNode();
 
   final ButtonStyle style = ElevatedButton.styleFrom(
       minimumSize: const Size.fromHeight(60),
@@ -57,20 +54,16 @@ class _SignupFormState extends State<SignupForm> {
     userExists =
         Setup().user.email.isNotEmpty && Setup().user.surname.isNotEmpty;
     savedPassword = Setup().user.password;
-    // Setup().user.password = '';
     mode = (userExists && savedPassword.length > 7) || Setup().jwt.isNotEmpty
         ? 1
         : 0;
     debugPrint('mode: $mode');
     _loadedOk = checkUserData();
     complete = false;
-    // WidgetsBinding.instance.addPostFrameCallback(
-    //    (_) => FocusScope.of(context).requestFocus(_focusNode));
   }
 
   @override
   void dispose() {
-    // _focusNode.dispose();
     super.dispose();
   }
 
@@ -108,7 +101,6 @@ class _SignupFormState extends State<SignupForm> {
             if (snapshot.hasError) {
               debugPrint('Snapshot error: ${snapshot.error}');
             } else if (snapshot.hasData) {
-              // _building = false;
               return portraitView();
             } else {
               return const SizedBox(
@@ -142,7 +134,6 @@ class _SignupFormState extends State<SignupForm> {
             if (snapshot.hasError) {
               debugPrint('Snapshot error: ${snapshot.error}');
             } else if (snapshot.hasData) {
-              // _building = false;
               return portraitView();
             } else {
               return const SizedBox(
@@ -177,7 +168,6 @@ class _SignupFormState extends State<SignupForm> {
                     flex: 5,
                     child: TextFormField(
                         autofocus: true,
-                        // focusNode: _focusNode,
                         decoration: InputDecoration(
                             border: OutlineInputBorder(),
                             hintText: 'Enter your forename',
@@ -196,7 +186,6 @@ class _SignupFormState extends State<SignupForm> {
                             setState(() => complete = !complete);
                           }
                         },
-                        // setState(() => Setup().user.forename = text),
                         validator: (val) {
                           if (val == null || val.isEmpty) {
                             return 'Please enter your forename';
@@ -310,12 +299,8 @@ class _SignupFormState extends State<SignupForm> {
                                   hintText: 'Enter your password',
                                   hintStyle: hintStyle(context: context),
                                   labelText: 'Password',
-                                  labelStyle: labelStyle(context: context)
-                                  //  errorText: 'Minimum of 8 characters',
-                                  // error: false,
-                                  ),
+                                  labelStyle: labelStyle(context: context)),
                               textAlign: TextAlign.left,
-                              //     minLength: 8,
                               keyboardType: TextInputType.visiblePassword,
                               textInputAction: TextInputAction.done,
                               initialValue: Setup().user.password.toString(),
@@ -376,7 +361,6 @@ class _SignupFormState extends State<SignupForm> {
                       ),
                     ),
                   ],
-                  //    SizedBox(height: 15),
                 ),
               ),
 
@@ -479,10 +463,7 @@ class _SignupFormState extends State<SignupForm> {
                       style: textStyle(context: context, color: textColour),
                     ),
                   ),
-                ]
-
-                    //    SizedBox(height: 15),
-                    ),
+                ]),
               ),
             ],
             if (carData) ...[
@@ -514,7 +495,6 @@ class _SignupFormState extends State<SignupForm> {
                     border: OutlineInputBorder(),
                     labelText: 'Car Model',
                   ),
-                  // value: models[0],
                   items: models
                       .map((item) => DropdownMenuItem<String>(
                             value: item,
@@ -549,7 +529,6 @@ class _SignupFormState extends State<SignupForm> {
           ],
         ),
       ),
-      // ),
     );
   }
 

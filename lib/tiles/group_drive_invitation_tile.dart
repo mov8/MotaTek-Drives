@@ -5,7 +5,6 @@ import '/models/models.dart';
 import '/constants.dart';
 import '/helpers/edit_helpers.dart';
 import 'package:intl/intl.dart';
-// import 'dart:developer' as develper;
 
 class GroupDriveInvitationTileController {
   _GroupDriveInvitationTileState? _groupDriveInvitationTileState;
@@ -97,20 +96,12 @@ class _GroupDriveInvitationTileState extends State<GroupDriveInvitationTile> {
             Text(invState[widget.eventInvitation.accepted]),
           ],
         ),
-        //onLongPress: () => widget.onEdit!(widget.index),
-        //    tileColor: Color(0xFFC2DFE7),
-        //   trailing: IconButton(
-        //     iconSize: 30,
-        //     icon: const Icon(Icons.delete),
-        //     onPressed: () => widget.onDelete,
-        //   ),
 
         title: Text(
           widget.eventInvitation.name,
           style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           overflow: TextOverflow.ellipsis,
         ),
-        //  initiallyExpanded: widget.expanded,
         subtitle: Column(
           children: [
             Row(
@@ -161,8 +152,6 @@ class _GroupDriveInvitationTileState extends State<GroupDriveInvitationTile> {
         onExpansionChanged: (val) {
           widget.onExpandChange!(val, widget.controller);
           photos = widget.photos ?? []; //photosFromJson(
-          // photoString: widget.tripItem!.imageUrls,
-          // endPoint: '$urlDriveImages/');
         }, //  getSummary(val),
         children: [
           if (widget.tripItem == null) ...[
@@ -431,7 +420,6 @@ class _GroupDriveInvitationTileState extends State<GroupDriveInvitationTile> {
               ),
             ),
           ],
-          // onLongPress: () => widget.onLongPress(widget.index),
         ],
       ),
     );
@@ -445,25 +433,11 @@ class _GroupDriveInvitationTileState extends State<GroupDriveInvitationTile> {
             decoration: TextDecoration.none, fontWeight: FontWeight.normal);
     return style;
   }
-/*
-  getSummary(bool val) async {
-    if (widget.onExpansionChange != null) {
-      widget.onExpansionChange!(widget.index, val);
-    }
-    if (widget.tripItem != null) {
-      photos = photosFromJson(
-          photoString: widget.tripItem!.imageUrls,
-          endPoint: '$urlDriveImages/');
-    }
-  }
-  */
 
   respond(value) async {
     widget.eventInvitation.accepted = value;
     answerInvitation(widget.eventInvitation).then((val) => setState(() {}));
   }
 
-  changeRating(value) {
-    // widget.onRatingChanged(value, widget.index);
-  }
+  changeRating(value) {}
 }

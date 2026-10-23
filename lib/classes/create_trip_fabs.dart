@@ -7,12 +7,8 @@ import '../services/services.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import '../constants.dart';
-// import 'dart:developer' as developer;
-// import 'package:http/http.dart' as http;
 import 'package:maplibre_gl/maplibre_gl.dart';
-// import 'package:flutter/foundation.dart';
 
-// List<String> ['jj'];
 const List<String> fabHints = [
   "Search for a place by it's name, and zoom the map to centre on it.",
   "Set the map's router preferences to navigate a route for you avoiding motorways for example and show reviewed features.",
@@ -150,13 +146,6 @@ class _HandleCTFabsState extends State<HandleCTFabs> {
                             secondChild: const SizedBox.shrink(),
                             onEnd: () {
                               _dropped = true;
-                              /*    if (_drop) {
-                              //  Future.delayed(Duration(milliseconds: 100));
-                              MapService()
-                                  .messageBoxController
-                                  ?.setIndex(index: 1);
-                            }
-                          */
                             },
                           ),
                           if (CurrentTripItem().tripState ==
@@ -166,7 +155,6 @@ class _HandleCTFabsState extends State<HandleCTFabs> {
                             MouseRegion(
                               onEnter: (_) => updateToolTips(true, 0),
                               onExit: (_) => updateToolTips(false, 0),
-                              //   child: PointerInterceptor(
                               child: PlaceFinder(
                                 height: _height,
                                 width: _width,
@@ -178,7 +166,6 @@ class _HandleCTFabsState extends State<HandleCTFabs> {
                                           ),
                                         ),
                               ),
-                              //   ),
                             ),
                           const SizedBox(
                             height: 10,
@@ -186,7 +173,6 @@ class _HandleCTFabsState extends State<HandleCTFabs> {
                           MouseRegion(
                             onEnter: (_) => updateToolTips(true, 1),
                             onExit: (_) => updateToolTips(false, 1),
-                            //  child: PointerInterceptor(
                             child: FloatingChecklist(
                               choices: [
                                 {'Avoid motorways': Setup().avoidMotorways},
@@ -248,7 +234,6 @@ class _HandleCTFabsState extends State<HandleCTFabs> {
                                 }
                               },
                             ),
-                            //   ),
                           ),
                           const SizedBox(height: 10),
                           if ([TripState.tracking, TripState.following]
@@ -256,7 +241,6 @@ class _HandleCTFabsState extends State<HandleCTFabs> {
                             MouseRegion(
                               onEnter: (_) => updateToolTips(true, 2),
                               onExit: (_) => updateToolTips(false, 2),
-                              //   child: PointerInterceptor(
                               child: Material(
                                 child: FloatingTextEdit(
                                   key: Key('ftepoi'),
@@ -281,14 +265,12 @@ class _HandleCTFabsState extends State<HandleCTFabs> {
                                       icon: Icon(Icons.mic)),
                                 ),
                               ),
-                              //     ),
                             ),
                             if (CurrentTripItem().isGoodRoad) ...[
                               const SizedBox(height: 10),
                               MouseRegion(
                                 onEnter: (_) => updateToolTips(true, 3),
                                 onExit: (_) => updateToolTips(false, 3),
-                                //   child: PointerInterceptor(
                                 child: FloatingTextEdit(
                                   key: Key('ftegr'),
                                   maxWidth: 200,
@@ -315,7 +297,6 @@ class _HandleCTFabsState extends State<HandleCTFabs> {
                                     ),
                                   ),
                                 ),
-                                //  ),
                               ),
                               const SizedBox(
                                 height: 10,
@@ -351,7 +332,6 @@ class _HandleCTFabsState extends State<HandleCTFabs> {
                           MouseRegion(
                             onEnter: (_) => updateToolTips(true, 4),
                             onExit: (_) => updateToolTips(false, 4),
-                            //    child: PointerInterceptor(
                             child: FloatingActionButton(
                               onPressed: () => updatePosition(),
                               heroTag: 'mapCentre',
@@ -366,7 +346,6 @@ class _HandleCTFabsState extends State<HandleCTFabs> {
                                     : Colors.white,
                               ),
                             ),
-                            //       ),
                           ),
                           const SizedBox(height: 10),
                           if (MapService().controller != null)
@@ -380,27 +359,6 @@ class _HandleCTFabsState extends State<HandleCTFabs> {
                                 height: 125,
                               ),
                             ),
-                          /*   
-                    const SizedBox(height: 10),
-                        FloatingActionButton(
-                          onPressed: () {
-                            MapService()
-                                .messageBoxController
-                                ?.message(message: Warning.tripSaved);
-                          },
-                          heroTag: 'mapCentre',
-                          backgroundColor: Colors.blue,
-                          shape: const CircleBorder(),
-                          child: Icon(
-                            Icons.temple_hindu_outlined,
-                            color: CurrentTripItem().isTracking
-                                ? CurrentTripItem().tripValues.autoCentre
-                                    ? Colors.white
-                                    : Colors.grey
-                                : Colors.white,
-                          ),
-                        ), 
-                */
                         ],
                       ),
                     ),

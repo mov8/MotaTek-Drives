@@ -154,7 +154,6 @@ class _PhotoCarouselState extends State<PhotoCarousel> {
       controller: _pageController,
       itemBuilder: (BuildContext context, int index) {
         /// angle is in radians 2 Pi radians = 360 degrees clockwise 0.5 1 1.5
-        // return Stack(
         return Column(
           children: [
             Expanded(

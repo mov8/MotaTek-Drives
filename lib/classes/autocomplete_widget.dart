@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '/classes/classes.dart';
-// import '/helpers/edit_helpers.dart';
 import 'package:flutter/services.dart';
 
 class AutocompleteWidget extends StatelessWidget {
@@ -18,9 +17,7 @@ class AutocompleteWidget extends StatelessWidget {
           return option.contains(textEditingValue.text.toLowerCase());
         });
       },
-      onSelected: (String selection) {
-        //      debugPrint('You just selected $selection');
-      },
+      onSelected: (String selection) {},
     );
   }
 }
@@ -80,7 +77,6 @@ class AutocompleteAsync extends StatefulWidget {
   final int searchLength;
   final double optionsMinHeight;
   final double optionsMaxHeight;
-//  final bool autofocus;
   final Function(String)? onSelect;
   final Function(String)? onChange;
   final Function(String)? onUpdateOptionsRequest;
@@ -101,7 +97,6 @@ class AutocompleteAsync extends StatefulWidget {
       this.optionsMinHeight = 50,
       this.optionsMaxHeight = 150,
       this.onSelect,
-//      this.autofocus = false,
       this.onChange,
       this.inputFormatters,
       this.onUpdateOptionsRequest,
@@ -125,7 +120,6 @@ class _AutocompleteAsyncState extends State<AutocompleteAsync> {
   @override
   void initState() {
     super.initState();
-    // bool changeId = _widgetId != widget.initialValue;
     widget.controller._addState(this);
     _nextAction = widget.textInputAction ?? TextInputAction.next;
   }
@@ -171,9 +165,7 @@ class _AutocompleteAsyncState extends State<AutocompleteAsync> {
               }
             }
           },
-          onSubmitted: (text) {
-            //     debugPrint('$text submitted');
-          },
+          onSubmitted: (text) {},
         );
       },
       optionsViewBuilder: (BuildContext context,
@@ -313,7 +305,6 @@ class _AutocompletePlace extends State<AutocompletePlace> {
           AutocompleteOnSelected<Place> onSelected, Iterable<Place> options) {
         return Material(
           color: Colors.white60,
-          //  elevation: 4.0,
           child: ListView(
             children: options.map((Place option) {
               return Card(
@@ -341,7 +332,6 @@ class _AutocompletePlace extends State<AutocompletePlace> {
       onSelected: (chosen) {
         if (widget.onSelect != null) {
           try {
-            //  fieldTextEditingController.text = chosen.name;
             widget.onSelect!(chosen);
           } catch (e) {
             debugPrint('Error ${e.toString()}');
