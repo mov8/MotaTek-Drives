@@ -289,6 +289,13 @@ class _BaseShellScreen extends State<BaseShellScreen> {
   /// Messages (5) too: the conversations in the SideDrawer, the selected
   /// one to the right.
   void _webSelect(int index) {
+    // The map pages start with the SideDrawer closed - the user opens it.
+    // Closed now, before the page shows: their set-up (which also closes
+    // it) waits for the map and the published trips, so the page appeared
+    // with the last page's drawer open and then closed it.
+    if ([1, 2].contains(index)) {
+      MapService().sideDrawerController?.close(animate: false);
+    }
     widget.navigationShell.goBranch(index,
         initialLocation: index == widget.navigationShell.currentIndex);
     NavigationService().selected(index);

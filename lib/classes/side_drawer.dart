@@ -25,9 +25,11 @@ class SideDrawerController {
     _sideDrawerState = sideDrawerState;
   }
 
-  void close() {
+  /// animate: false closes it at once - e.g. when switching to a map page,
+  /// so the page doesn't appear with the drawer open and then close it
+  void close({bool animate = true}) {
     try {
-      _sideDrawerState?.close();
+      _sideDrawerState?.close(animate: animate);
     } catch (e) {
       debugPrint("Can't close side drawer: ${e.toString()}");
     }
@@ -225,8 +227,9 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
     imageRepository = widget.imageRepository ?? ImageRepository();
   }
 
-  void close() {
+  void close({bool animate = true}) {
     if (mounted) {
+      if (!animate) delay = 1;
       setState(() => width = 0);
       MapService().webAppBarController?.update(); // its caption
     }
