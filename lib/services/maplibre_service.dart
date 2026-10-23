@@ -61,6 +61,11 @@ class MapService {
   /// controller = snapShot.data! - it works well
 
   Future<MapLibreMapController> get mapFuture => _controllerCompleter.future;
+
+  /// Completes when the map's style has loaded - its sources can't be
+  /// changed before then
+  Future<void> get styleReady => _styleCompleter.future;
+  final Completer<void> _styleCompleter = Completer<void>();
   final Completer<MapLibreMapController> _controllerCompleter =
       Completer<MapLibreMapController>();
 
@@ -164,6 +169,16 @@ class MapService {
   /// now been moved to this singleton.
   ///   It controls the map, the SideDrawer, and the BottomDrawer
   ///   It fetches the data from the API either directly or through a cache
+  /// Switches the map page's mode - Published (1), Explore (2) or, on the
+  /// web, Favourites (3) - once the map and its style are ready. Published
+  /// and Explore are the same page, so this is what tells them apart.
+  Future<void> showPage(int page) async {
+    if (![1, 2, 3].contains(page)) return;
+    await mapFuture;
+    await styleReady;
+    await setPage(page: page);
+  }
+
   Future<bool> setPage({required int page}) async {
     _page = page;
     switch (_page) {
@@ -570,6 +585,7 @@ class MapService {
   }
 
   Future<void> onStyleLoaded() async {
+    if (!_styleCompleter.isCompleted) _styleCompleter.complete();
     // A new style drops runtime layers, so add the marker every time
     await addLocationMarker();
     if (controller != null) {
@@ -815,18 +831,27 @@ class MapService {
   ///   1 Put the correct data into the side / bottom drawer
   ///   2 Set the drawer to fixed or not fixed
 
+  /// Empties the published trips and every layer of the current trip -
+  /// before only the route and waypoints were cleared, so its great roads
+  /// and points of interest showed over the published trips
   Future<void> clearGeoJson() async {
-    /// Update the map
-    await controller!.setGeoJsonSource(
-        "published-data", {"type": "FeatureCollection", "features": []});
-    await controller!.setGeoJsonSource(
-        "route-data", {"type": "FeatureCollection", "features": []});
-    await controller!.setGeoJsonSource(
-        "waypoint-data", {"type": "FeatureCollection", "features": []});
+    for (String source in ['published-data', ...mapSources.keys]) {
+      try {
+        await controller!.setGeoJsonSource(
+            source, {"type": "FeatureCollection", "features": []});
+      } catch (e) {
+        developer.log('clearGeoJson() $source: ${e.toString()}', name: 'error');
+      }
+    }
     await controller!.animateCamera(CameraUpdate.zoomBy(0.000001));
   }
 
   Future<bool> initialiseTrips() async {
+    if (kIsWeb) {
+      // Replaced by the published trips once they've loaded
+      await sideDrawerController!
+          .setContent(content: BottomDrawerItems.drives, drawerItems: []);
+    }
     _tripsOnMapUpdate(); // <-- Initialise the Trips cache
     await clearGeoJson();
 
@@ -842,6 +867,8 @@ class MapService {
 
   Future<bool> initialiseExplore() async {
     await clearGeoJson();
+    // Draw the trip being planned again - Published cleared it
+    await CurrentTripItem().refreshMap();
     if (kIsWeb) {
       sideDrawerController!.setContent(content: BottomDrawerItems.trip);
       sideDrawerController!.setFixed(fixed: false);

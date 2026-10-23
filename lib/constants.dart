@@ -587,6 +587,7 @@ enum BottomDrawerItems {
   myEvents,
   events,
   docs,
+  login,
   markdown, // <-- Markdown editor
   markdownHome, // <-- Markdown summary tile
   markdownShop, // <-- Markdown summary tile

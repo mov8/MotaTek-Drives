@@ -268,6 +268,7 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
     BottomDrawerItems.myEvents,
     BottomDrawerItems.events,
     BottomDrawerItems.docs,
+    BottomDrawerItems.login,
     BottomDrawerItems.markdownHome,
     BottomDrawerItems.markdownShop,
     BottomDrawerItems.messages,
@@ -389,6 +390,16 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
           _tiles = [DocumentationForm()];
           _offerRestore = true;
           break;
+        case BottomDrawerItems.login:
+          // Closing puts the page's own content back, and the WebAppBar
+          // shows the logged-in icon
+          _tiles = [
+            LoginScreen(onClose: () {
+              MapService().webAppBarController?.update();
+              MapService().baseShellController?.refillSideDrawer();
+            })
+          ];
+          break;
         case BottomDrawerItems.messages:
           _tiles = [
             Messages(
@@ -408,6 +419,9 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
       }
       _singleForm = _formContents.contains(content);
       refreshList = true;
+      // Show the new content - without this it only appeared when something
+      // else rebuilt the drawer, so e.g. Home's tiles stayed on other pages
+      if (mounted) setState(() {});
     } catch (e) {
       developer.log('Error setting SideDrawer setContent(): ${e.toString()}',
           name: 'error');

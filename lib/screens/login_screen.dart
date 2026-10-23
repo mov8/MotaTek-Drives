@@ -4,10 +4,12 @@ import 'package:flutter/material.dart';
 import '/services/services.dart';
 import '/constants.dart';
 import '/helpers/helpers.dart';
-import 'package:go_router/go_router.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen();
+  /// Called instead of popping the route when the screen isn't a route of
+  /// its own - on the web it's shown in the SideDrawer
+  final VoidCallback? onClose;
+  const LoginScreen({super.key, this.onClose});
   @override
   State<LoginScreen> createState() => _LoginScreen();
 }
@@ -63,6 +65,14 @@ class _LoginScreen extends State<LoginScreen> {
     }, // passwordTooShort
   ];
   User user = Setup().user;
+
+  void _close([LoginState? state]) {
+    if (widget.onClose != null) {
+      widget.onClose!();
+    } else {
+      Navigator.pop(context, state);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -292,7 +302,7 @@ class _LoginScreen extends State<LoginScreen> {
                                 /// The Web version will only save the JWT but will have to retrieve the
                                 /// setup Json Object from the api that contains full user details and colours etc
                                 Setup().saveUser();
-                                Navigator.pop(context, LoginState.login);
+                                _close(LoginState.login);
                               } else {
                                 setState(() =>
                                     loginStatus = LoginStatus.passwordUnknown);
@@ -384,22 +394,22 @@ class _LoginScreen extends State<LoginScreen> {
                       onPressed: () async {
                         if (statusPrompts[loginStatus.index]['button'] ==
                             'Cancel') {
-                          context.pop();
+                          _close();
                         }
                         if (loginStatus == LoginStatus.emailUnknown) {
                           Setup().user = user;
-                          context.pop();
+                          _close();
                         } else if ((user.password.isEmpty ||
                             loginStatus == LoginStatus.passwordUnknown)) {
                           Setup().user = user;
-                          context.pop();
+                          _close();
                         } else {
                           Map<String, dynamic> response =
                               await tryLogin(user: Setup().user);
                           String status = response['msg'] ?? '';
                           if (context.mounted && status == 'OK') {
                             MapService().persistentAppBarController?.update('');
-                            Navigator.pop(context, LoginState.login);
+                            _close(LoginState.login);
                           } else if ([204, 401]
                               .contains(response["response_status_code"])) {
                             loginStatus = LoginStatus.passwordUnknown;

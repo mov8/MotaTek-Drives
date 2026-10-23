@@ -1,7 +1,6 @@
 import 'package:drives/routes/create_trip.dart';
 import 'package:drives/routes/home.dart';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import '../models/models.dart';
 import '../services/services.dart';
 import 'dart:developer' as developer;
@@ -291,11 +290,11 @@ class _WebAppBarState extends State<WebAppBar> {
                         onExit: (_) => updateToolTips(false,
                             toolTips.length - (Setup().jwt.isEmpty ? 2 : 3)),
                         child: IconButton(
-                          // The same login screen as the phone's app bar
-                          onPressed: () async {
+                          // The phone's login screen, in the SideDrawer like the other forms
+                          onPressed: () {
                             if (Setup().jwt.isEmpty) {
-                              await context.push('/login');
-                              if (mounted) setState(() {});
+                              setSideDrawerContent(
+                                  content: BottomDrawerItems.login);
                             }
                           },
                           icon: Icon(

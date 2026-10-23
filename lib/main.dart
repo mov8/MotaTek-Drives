@@ -182,6 +182,11 @@ class BaseShellController {
       MapService().bottomNavController?.selectPage(index);
     }
   }
+
+  /// Web: puts the current page's content back in the SideDrawer, e.g.
+  /// when the login screen shown there closes
+  void refillSideDrawer() =>
+      _baseShellScreen?._fillSideDrawer(NavigationService().page);
 }
 
 class BaseShellScreen extends StatefulWidget {
@@ -305,8 +310,7 @@ class _BaseShellScreen extends State<BaseShellScreen> {
           MapService().shopController?.fillSideDrawer();
         case 1 || 2 || 3:
           // Published, Explore and Favourites set up the map too
-          await MapService().mapFuture;
-          await MapService().setPage(page: index);
+          await MapService().showPage(index);
       }
     } catch (e) {
       developer.log('Error filling the SideDrawer for page $index: $e',
@@ -674,6 +678,12 @@ class _BottomNavState extends State<BottomNav> {
     // time it's shown - e.g. one just saved on the map
     if (index == 3) {
       MapService().myTripsController?.refresh();
+    }
+    // Published and Explore share the one map page - switch its mode, or
+    // Explore keeps showing what Published loaded
+    if ([1, 2].contains(index)) {
+      WidgetsBinding.instance
+          .addPostFrameCallback((_) => MapService().showPage(index));
     }
     setState(() => currentPageIndex = index);
   }
