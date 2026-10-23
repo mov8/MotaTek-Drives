@@ -51,7 +51,7 @@ class _GroupDriveAddTileState extends State<GroupDriveAddTile> {
                               fontSize: 20, fontWeight: FontWeight.bold)),
                       SizedBox(height: 5),
                       Text(
-                        "Create one in My Trip and save it.",
+                        "Plan one in Explore and save it.",
                         style: TextStyle(
                             fontSize: 20, fontWeight: FontWeight.bold),
                       ),

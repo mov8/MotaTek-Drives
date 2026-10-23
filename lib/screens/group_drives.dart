@@ -74,8 +74,8 @@ class _GroupDriveFormState extends State<GroupDriveForm>
   Widget build(BuildContext context) {
     if (kIsWeb) {
       return ScreensAppBarBottom(
-        heading: 'Organise a group event',
-        prompt: 'Invite group members to a group event.',
+        heading: "Events I've organised",
+        prompt: "Events I've organised",
         overflowPrompts: _overflowPrompts,
         overflowIcons: _overflowIcons,
         overflowMethods: _overflowMethods,
@@ -110,8 +110,8 @@ class _GroupDriveFormState extends State<GroupDriveForm>
         backgroundColor: Colors.blue,
         resizeToAvoidBottomInset: false, // stop keyboard overflows
         appBar: ScreensAppBar(
-          heading: 'Organise a group event',
-          prompt: 'Invite group members to a group event.',
+          heading: "Events I've organised",
+          prompt: 'Your group events, and organising a new one.',
           overflowPrompts: _overflowPrompts,
           overflowIcons: _overflowIcons,
           overflowMethods: _overflowMethods,
@@ -171,8 +171,9 @@ class _GroupDriveFormState extends State<GroupDriveForm>
                   text: 'Organise New Event'),
             ],
           ),
-        SizedBox(
-          height: MediaQuery.of(context).size.height - 250,
+        // The tabs fill what's left - a height worked out from the screen
+        // ran off the bottom of the web's SideDrawer
+        Expanded(
           child: TabBarView(
             controller: _tController,
             children: [
@@ -196,129 +197,124 @@ class _GroupDriveFormState extends State<GroupDriveForm>
 
   Widget organised() {
     Color textColor = kIsWeb ? Colors.black : Colors.white;
-    return SizedBox(
-      height: MediaQuery.of(context).size.height - 250, //SingleChildScrollView(
-      child: _trips.isNotEmpty
-          ? ListView.builder(
-              itemCount: _trips.length,
-              itemBuilder: (context, index) => Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 0.0, vertical: 5.0),
-                child: Card(
-                  elevation: 5,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(5, 5, 5, 5),
-                    child: RrExpansionTile(
-                      context: context,
-                      child: ExpansionTile(
-                        backgroundColor: Colors.white,
-                        title: SizedBox(
-                          height: 60,
-                          child: InkWell(
-                            onLongPress: () => startDrive(index),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  _trips[index].eventName,
-                                  style: TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold,
-                                      color: textColor),
-                                ),
-                                Text(
-                                  'On ${dateFormatDoc.format(DateTime.parse(_trips[index].eventDate))}  (long-press to join trip now)',
-                                  style: TextStyle(fontSize: 14),
-                                ),
-                              ],
-                            ),
+    return _trips.isNotEmpty
+        ? ListView.builder(
+            itemCount: _trips.length,
+            itemBuilder: (context, index) => Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 0.0, vertical: 5.0),
+              child: Card(
+                elevation: 5,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(5, 5, 5, 5),
+                  child: RrExpansionTile(
+                    context: context,
+                    child: ExpansionTile(
+                      backgroundColor: Colors.white,
+                      title: SizedBox(
+                        height: 60,
+                        child: InkWell(
+                          onLongPress: () => startDrive(index),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _trips[index].eventName,
+                                style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: textColor),
+                              ),
+                              Text(
+                                'On ${dateFormatDoc.format(DateTime.parse(_trips[index].eventDate))}  (long-press to join trip now)',
+                                style: TextStyle(fontSize: 14),
+                              ),
+                            ],
                           ),
                         ),
-                        onExpansionChanged: (value) =>
-                            _expansionChange(index, value),
+                      ),
+                      onExpansionChanged: (value) =>
+                          _expansionChange(index, value),
 
-                        //       'Event date  ${dateFormatDoc.format(DateTime.parse(_trips[index].eventDate))} - press button to join',
-                        //       style: TextStyle(fontSize: 14),
-                        children: [
-                          ListView.builder(
-                            physics: const NeverScrollableScrollPhysics(),
-                            // This tells the ListView to calculate its full height based on its children.
-                            // WARNING: This is bad for performance on very long lists!
-                            shrinkWrap: true,
-                            itemCount: _trips[index].invitees.length,
-                            itemBuilder: (context, mIndex) => Padding(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 0.0, vertical: 5.0),
-                              child: Padding(
-                                padding:
-                                    EdgeInsetsGeometry.fromLTRB(5, 0, 5, 0),
-                                child: ListTile(
-                                  leading: Icon(inviteIcons[int.parse(
-                                      _trips[index].invitees[mIndex]
-                                          ['state'])]),
-                                  title: Text(
-                                      '${_trips[index].invitees[mIndex]['forename']} ${_trips[index].invitees[mIndex]['surname']}',
-                                      style: TextStyle(
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.bold)),
-                                  subtitle: Text(
-                                      '${_trips[index].invitees[mIndex]['email']}    ${_trips[index].invitees[mIndex]['phone']}'),
-                                  tileColor: Colors.white,
-                                ),
+                      //       'Event date  ${dateFormatDoc.format(DateTime.parse(_trips[index].eventDate))} - press button to join',
+                      //       style: TextStyle(fontSize: 14),
+                      children: [
+                        ListView.builder(
+                          physics: const NeverScrollableScrollPhysics(),
+                          // This tells the ListView to calculate its full height based on its children.
+                          // WARNING: This is bad for performance on very long lists!
+                          shrinkWrap: true,
+                          itemCount: _trips[index].invitees.length,
+                          itemBuilder: (context, mIndex) => Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 0.0, vertical: 5.0),
+                            child: Padding(
+                              padding: EdgeInsetsGeometry.fromLTRB(5, 0, 5, 0),
+                              child: ListTile(
+                                leading: Icon(inviteIcons[int.parse(
+                                    _trips[index].invitees[mIndex]['state'])]),
+                                title: Text(
+                                    '${_trips[index].invitees[mIndex]['forename']} ${_trips[index].invitees[mIndex]['surname']}',
+                                    style: TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold)),
+                                subtitle: Text(
+                                    '${_trips[index].invitees[mIndex]['email']}    ${_trips[index].invitees[mIndex]['phone']}'),
+                                tileColor: Colors.white,
                               ),
                             ),
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
               ),
-            )
-          : Center(
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(20, 100, 20, 0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+            ),
+          )
+        : Center(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(20, 100, 20, 0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "No future group events.",
+                    style: headlineStyle(
+                        context: context, size: 1, color: textColor),
+                  ),
+                  SizedBox(height: 10),
+                  Row(children: [
                     Text(
-                      "No future group events.",
+                      "1. Create and save a trip.",
                       style: headlineStyle(
-                          context: context, size: 1, color: textColor),
+                          context: context, size: 2, color: textColor),
                     ),
-                    SizedBox(height: 10),
-                    Row(children: [
-                      Text(
-                        "1. Create and saved a trip.",
+                    if (_myTripItems.isNotEmpty)
+                      Icon(Icons.check, color: textColor, size: 30),
+                  ]),
+                  SizedBox(height: 5),
+                  Row(children: [
+                    Text("2. Create a group of participants.",
                         style: headlineStyle(
-                            context: context, size: 2, color: textColor),
-                      ),
-                      if (_myTripItems.isNotEmpty)
-                        Icon(Icons.check, color: textColor, size: 30),
-                    ]),
-                    SizedBox(height: 5),
-                    Row(children: [
-                      Text("2. Create a group of participants.",
-                          style: headlineStyle(
-                              context: context, size: 2, color: textColor)),
-                      if (_groups.isNotEmpty)
-                        Icon(Icons.check, color: textColor, size: 30),
-                    ]),
-                    SizedBox(height: 5),
-                    Text(
-                      "3. Invite group members.",
-                      style: headlineStyle(
-                        context: context,
-                        size: 2,
-                        color: textColor,
-                      ),
+                            context: context, size: 2, color: textColor)),
+                    if (_groups.isNotEmpty)
+                      Icon(Icons.check, color: textColor, size: 30),
+                  ]),
+                  SizedBox(height: 5),
+                  Text(
+                    "3. Invite group members.",
+                    style: headlineStyle(
+                      context: context,
+                      size: 2,
+                      color: textColor,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
-    );
+          );
   }
 
   void _expansionChange(int index, bool value) {

@@ -44,7 +44,7 @@ class _DriveInvitationsState extends State<DriveInvitations>
 
   @override
   Widget build(BuildContext context) {
-    photos = [];
+    photos = widget.myTripItem.photos ?? [];
     return SingleChildScrollView(
       child: Column(
         children: [
@@ -251,7 +251,7 @@ class _DriveInvitationsState extends State<DriveInvitations>
                     child: Column(children: [
                       const Icon(Icons.route),
                       Text(
-                        '',
+                        '${widget.myTripItem.distance.toStringAsFixed(1)} miles',
                         style: labelStyle(
                           context: context,
                           size: 3,
@@ -279,7 +279,7 @@ class _DriveInvitationsState extends State<DriveInvitations>
                     child: Column(children: [
                       const Icon(Icons.social_distance),
                       Text(
-                        ' ',
+                        '${(widget.myTripItem.distanceAway * metersToMiles).toStringAsFixed(1)} miles away',
                         style: labelStyle(
                           context: context,
                           size: 3,
@@ -296,7 +296,7 @@ class _DriveInvitationsState extends State<DriveInvitations>
                   child: Align(
                     alignment: Alignment.topLeft,
                     child: Text(
-                      ' ',
+                      widget.myTripItem.subTitle,
                       style: const TextStyle(
                           color: Colors.black,
                           fontSize: 18,
@@ -309,7 +309,7 @@ class _DriveInvitationsState extends State<DriveInvitations>
               const SizedBox(
                 height: 10,
               ),
-              if (widget.myTripItem.images.isNotEmpty)
+              if (photos.isNotEmpty)
                 Row(children: <Widget>[
                   Expanded(
                     flex: 8,
