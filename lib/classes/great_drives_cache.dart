@@ -188,15 +188,6 @@ class DrivesRequest {
             MapService().bottomDrawerController!.setContent(
                 content: BottomDrawerItems.drives, drawerItems: trips);
           }
-
-          Map<String, dynamic> results = {
-            "geoJson": {
-              "type": "FeatureCollection",
-              "features": _3DCache["cache"][zLevel]["data"]["lines"] +
-                  _3DCache["cache"][zLevel]["data"]["shields"]
-            },
-            "drawerData": trips
-          };
           return;
         } else {
           return;
@@ -210,7 +201,7 @@ class DrivesRequest {
     }
   }
 
-  String level({required zoom}) {
+  String level({required double zoom}) {
     if (zoom >= zoomUpper) {
       return 'upper';
     } else if (zoom > zoomLower) {
@@ -262,44 +253,4 @@ class DrivesRequest {
     };
     return;
   }
-
-/*
-  List<Card> getTripTiles({String openUri = '', GlobalKey? key}) {
-    List<Card> cards = [];
-    // List<TripItem> trips = getSummaries();
-    if (trips.isNotEmpty) {
-      for (int i = 0; i < trips.length; i++) {
-        cards.add(
-          Card(
-            child: TripTile(
-              key: trips[i].driveUri == openUri ? key : Key('tt$i'),
-              tripItem: trips[i],
-              imageRepository: imageRepository!,
-              index: i,
-              expanded: trips[i].driveUri == openUri,
-              onGetTrip: (index, uri) {
-                download(index, uri);
-                /*
-                if (onGetDownload != null) {
-                  onGetDownload!(index, uri);
-                }
-                */
-              },
-              onExpand: onGetDetails,
-            ),
-          ),
-        );
-      }
-    }
-    return cards;
-  }
-
-  List getDrivesData() {
-    return trips;
-  }
-
-  download(index, uri) {
-    debugPrint('index: $index  uri: $uri');
-  }
-  */
 }

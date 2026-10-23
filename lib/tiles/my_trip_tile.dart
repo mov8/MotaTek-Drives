@@ -544,7 +544,7 @@ import 'package:uuid/rng.dart';
   Future<void> publishTrip() async {
     try {
       // await publish(widget.myTripItem);
-      await getPrivateRepository().publish(widget.myTripItem);
+      await publish(widget.myTripItem);
     } catch (e) {
       developer.log('Error in my_trip_tile.dart publishTrip()', name: 'error');
     }

@@ -206,14 +206,14 @@ class Fence {
         bounds.southWest.longitude < northEast.longitude;
   }
 
-  setBounds({required Fence bounds, double deltaDegrees = 0.0}) {
+  void setBounds({required Fence bounds, double deltaDegrees = 0.0}) {
     northEast = LatLng(bounds.northEast.latitude + deltaDegrees,
         bounds.northEast.longitude + deltaDegrees);
     southWest = LatLng(bounds.southWest.latitude - deltaDegrees,
         bounds.southWest.longitude - deltaDegrees);
   }
 
-  changeBounds(
+  void changeBounds(
       {required LatLngBounds latlngBounds, double deltaDegrees = 0.0}) {
     northEast = LatLng(latlngBounds.northEast.latitude + deltaDegrees,
         latlngBounds.northEast.longitude + deltaDegrees);
