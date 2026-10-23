@@ -29,6 +29,14 @@ class MyTripsController {
       _myTripsScreenState?.addCurrentTripItem();
     }
   }
+
+  /// Web: re-reads the saved trips and puts their summaries in the SideDrawer
+  void fillSideDrawer() => _myTripsScreenState?.refresh();
+
+  /// Web: shows a trip's details to the right of the SideDrawer
+  void select(int index) => _myTripsScreenState?.select(index);
+
+  int get selected => _myTripsScreenState?._selected ?? -1;
 }
 
 class MyTrips extends StatefulWidget {
@@ -45,6 +53,7 @@ class _MyTripsScreenState extends State<MyTrips> {
   final GlobalKey _scaffoldKey = GlobalKey();
   late Future<bool> _dataLoaded;
   List<MyTripItem> _myTripItems = [];
+  int _selected = 0; // web: the trip whose details are showing
   final ImageRepository _imageRepository = ImageRepository();
 
   @override
@@ -76,7 +85,25 @@ class _MyTripsScreenState extends State<MyTrips> {
     await getMyTripItems();
     if (mounted) {
       setState(() {});
+      sideBarItems();
     }
+  }
+
+  void select(int index) {
+    setState(() => _selected = index);
+    sideBarItems(); // highlights the selected summary
+  }
+
+  /// Web: the trips' summaries in the SideDrawer - or, with no trips, the
+  /// image and message filling it
+  void sideBarItems() {
+    if (!kIsWeb || !mounted || NavigationService().page != 3) return;
+    if (_selected >= _myTripItems.length) _selected = 0;
+    MapService().sideDrawerController!.open();
+    MapService().sideDrawerController!.setContent(
+        content: BottomDrawerItems.favourites, drawerItems: _myTripItems);
+    MapService().sideDrawerController!.setFixed(fixed: true);
+    MapService().sideDrawerController!.setVisible(visible: true);
   }
 
   void addCurrentTripItem() {
@@ -125,6 +152,7 @@ class _MyTripsScreenState extends State<MyTrips> {
 
   void deleteTrip(int index) {
     setState(() => _myTripItems.removeAt(index));
+    sideBarItems();
   }
 
   /// May have a problem having a single method for publishing a drive on
@@ -136,135 +164,41 @@ class _MyTripsScreenState extends State<MyTrips> {
   Future<void> onExpandChange(int index, bool expanded) async {}
 
   Widget _getPortraitBody() {
-    if (_myTripItems.isEmpty && Setup().jwt.isEmpty) {
-      return Stack(children: [
-        Positioned.fill(
-          child: Image.asset(
-            'assets/images/scenery.png',
-            fit: BoxFit.cover,
+    if (kIsWeb) {
+      // The summaries (or the no-trips message) are in the SideDrawer; the
+      // selected trip's details go to its right, like Home and Shop
+      if (_myTripItems.isEmpty) return const SizedBox.shrink();
+      int index = _selected < _myTripItems.length ? _selected : 0;
+      return Padding(
+        padding: EdgeInsets.fromLTRB(
+            MediaQuery.of(context).size.width * 0.38 + 10, 5, 10, 5),
+        child: SingleChildScrollView(
+          child: MyTripTile(
+            key: ValueKey(_myTripItems[index].uri),
+            view: MyTripTileView.details,
+            index: index,
+            myTripItem: _myTripItems[index],
+            onDeleteTrip: (index) => deleteTrip(index),
+            showMethods: true,
+            imageRepository: _imageRepository,
           ),
         ),
-        Positioned.fill(
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.black.withValues(alpha: 0.4), // // Light shadow top
-                  Colors.black.withValues(alpha: 0.6), // Dark contrast bottom
-                ],
-              ),
-            ),
-          ),
-        ),
-        if (Setup().jwt.isEmpty && _myTripItems.isEmpty) ...[
-          if (Setup().jwt.isEmpty) ...[
-            Padding(
-              padding: EdgeInsetsGeometry.fromLTRB(20, 20, 20, 0),
-              child: Column(
-                children: [
-                  Text(
-                      'My Drives allows you to build up a library of trips that you have enjoyed.',
-                      style: TextStyle(fontSize: 22, color: Colors.white)),
-                  SizedBox(height: 20),
-                  Text(
-                      '''Registering in Drives ensures your saved trip details will be available to all your devices, otherwise trips can only be shared with other devices through the Drives WiFi import export facility.''',
-                      style: TextStyle(fontSize: 22, color: Colors.white)),
-                  SizedBox(height: 20),
-                  Text(
-                      "Registering allows you to publish your trips, for your friends or other people to enjoy.",
-                      style: TextStyle(fontSize: 22, color: Colors.white)),
-                  SizedBox(height: 20),
-                  Text(
-                      "Registering helps when members of a club, or a group of friends want to follow the trip together.",
-                      style: TextStyle(fontSize: 22, color: Colors.white)),
-                  SizedBox(height: 20),
-                  Text(
-                      "Registering gives in-app messaging and real-time group location tracking.",
-                      style: TextStyle(fontSize: 22, color: Colors.white)),
-                  SizedBox(height: 20),
-                  Text("Tap the button below to log in.",
-                      style: TextStyle(fontSize: 22, color: Colors.white)),
-                  SizedBox(height: 50),
-                  Center(
-                    child: ActionChip(
-                      label: Text('Register Now',
-                          style: TextStyle(fontSize: 22, color: Colors.white)),
-                      onPressed: () => context.push('/login'),
-                      backgroundColor: Colors.blue,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-          if (_myTripItems.isEmpty && Setup().jwt.isNotEmpty) ...[
-            Padding(
-              padding: EdgeInsetsGeometry.fromLTRB(20, 20, 20, 0),
-              child: Column(
-                children: [
-                  Text("You haven't saved any trips yet.",
-                      style: TextStyle(fontSize: 22, color: Colors.white)),
-                  SizedBox(height: 20),
-                  Text(
-                      '''Saving trips allows you to keep your own private library of trips stored on your device.''',
-                      style: TextStyle(fontSize: 22, color: Colors.white)),
-                  SizedBox(height: 20),
-                  Text(
-                      '''To save a trip go to the explore screen, enter the waypoints for the trip and any photos. 
-                      Tap the Save Trip button and it will be saved in this screen as a personal trip.''',
-                      style: TextStyle(fontSize: 22, color: Colors.white)),
-                  SizedBox(height: 20),
-                  if (Setup().jwt.isNotEmpty)
-                    Text(
-                        "Any trips you have saved can be publish, for your friends or other people to enjoy.",
-                        style: TextStyle(fontSize: 22, color: Colors.white)),
-                  SizedBox(height: 20),
-                  Text(
-                      "Saved trips can be edited, new images added, and saved again as a personal trip.",
-                      style: TextStyle(fontSize: 22, color: Colors.white)),
-                  SizedBox(height: 20),
-                  if (Setup().jwt.isNotEmpty) ...[
-                    Text(
-                        "Registering helps when members of a club, or a group of friends want to follow the trip together.",
-                        style: TextStyle(fontSize: 22, color: Colors.white)),
-                    SizedBox(height: 20),
-                    Text(
-                        "Registering gives in-app messaging and real-time group location tracking.",
-                        style: TextStyle(fontSize: 22, color: Colors.white)),
-                    SizedBox(height: 20),
-                  ],
-                  Text("Tap the button below to log in.",
-                      style: TextStyle(fontSize: 22, color: Colors.white)),
-                  SizedBox(height: 50),
-                ],
-              ),
-            ),
-          ]
-        ],
-      ]);
+      );
     }
-
     if (_myTripItems.isEmpty) {
-      _myTripItems.add(MyTripItem(
-          title: 'No favourite trips saved', subTitle: 'Why not add one now?'));
+      return const MyTripsEmptyView();
     }
-
-    ListView listView = ListView(
+    return ListView(
       children: [
         for (int i = 0; i < _myTripItems.length; i++) ...[
           Padding(
-            padding: kIsWeb
-                ? const EdgeInsets.fromLTRB(250, 5, 250, 5)
-                : const EdgeInsets.fromLTRB(5, 5, 5, 0),
+            padding: const EdgeInsets.fromLTRB(5, 5, 5, 0),
             child: MyTripTile(
               index: i,
               myTripItem: _myTripItems[i],
               onDeleteTrip: (index) => deleteTrip(index),
               onExpandChange: onExpandChange,
-              showMethods:
-                  !_myTripItems[i].title.contains('Save your trips for'),
+              showMethods: true,
               imageRepository: _imageRepository,
             ),
           )
@@ -274,7 +208,6 @@ class _MyTripsScreenState extends State<MyTrips> {
         ),
       ],
     );
-    return listView;
   }
 
   @override
@@ -307,5 +240,80 @@ class _MyTripsScreenState extends State<MyTrips> {
         },
       ),
     );
+  }
+}
+
+/// Shown when there are no saved trips - the whole screen on a phone, the
+/// whole SideDrawer on the web. Logged out it explains registering; logged
+/// in, how to save a trip.
+class MyTripsEmptyView extends StatelessWidget {
+  const MyTripsEmptyView({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    const TextStyle style = TextStyle(fontSize: 22, color: Colors.white);
+    List<String> lines = Setup().jwt.isEmpty
+        ? [
+            'My Drives allows you to build up a library of trips that you have enjoyed.',
+            'Registering in Drives ensures your saved trip details will be available to all your devices, otherwise trips can only be shared with other devices through the Drives WiFi import export facility.',
+            'Registering allows you to publish your trips, for your friends or other people to enjoy.',
+            'Registering helps when members of a club, or a group of friends want to follow the trip together.',
+            'Registering gives in-app messaging and real-time group location tracking.',
+            'Tap the button below to log in.',
+          ]
+        : [
+            "You haven't saved any trips yet.",
+            'Saving trips allows you to keep your own private library of trips stored on your device.',
+            'To save a trip go to the explore screen, enter the waypoints for the trip and any photos. Tap the Save Trip button and it will be saved in this screen as a personal trip.',
+            'Any trips you have saved can be published, for your friends or other people to enjoy.',
+            'Saved trips can be edited, new images added, and saved again as a personal trip.',
+          ];
+    return Stack(children: [
+      Positioned.fill(
+        child: Image.asset(
+          'assets/images/scenery.png',
+          fit: BoxFit.cover,
+        ),
+      ),
+      Positioned.fill(
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.black.withValues(alpha: 0.4), // Light shadow top
+                Colors.black.withValues(alpha: 0.6), // Dark contrast bottom
+              ],
+            ),
+          ),
+        ),
+      ),
+      SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+        child: Column(
+          children: [
+            for (String line in lines) ...[
+              Text(line, style: style),
+              const SizedBox(height: 20),
+            ],
+            if (Setup().jwt.isEmpty) ...[
+              const SizedBox(height: 30),
+              Center(
+                child: ActionChip(
+                  label: const Text('Register Now', style: style),
+                  onPressed: () => kIsWeb
+                      ? MapService()
+                          .sideDrawerController
+                          ?.setContent(content: BottomDrawerItems.login)
+                      : context.push('/login'),
+                  backgroundColor: Colors.blue,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    ]);
   }
 }

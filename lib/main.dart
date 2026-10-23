@@ -283,15 +283,15 @@ class _BaseShellScreen extends State<BaseShellScreen> {
     );
   }
 
-  /// WebAppBar navigation. Published (1) and Explore (2) are the map pages.
-  /// Favourites (3) is the map too, with My Trips listed in the SideDrawer.
+  /// WebAppBar navigation. Published (1) and Explore (2) are the map page.
+  /// Favourites (3) is My Trips, split like Home and Shop: the summaries in
+  /// the SideDrawer, the selected trip's details to the right.
   /// Messages (5) open in the SideDrawer over whatever page is showing, which
   /// WebAppBar.navigate() has already done.
   void _webSelect(int index) {
     if (index == 5) return;
-    int branch = index == 3 ? 2 : index;
-    widget.navigationShell.goBranch(branch,
-        initialLocation: branch == widget.navigationShell.currentIndex);
+    widget.navigationShell.goBranch(index,
+        initialLocation: index == widget.navigationShell.currentIndex);
     NavigationService().selected(index);
     // Highlights the button when the page change didn't come from it
     MapService().webAppBarController?.changeButton(index);
@@ -306,10 +306,12 @@ class _BaseShellScreen extends State<BaseShellScreen> {
       switch (index) {
         case 0:
           MapService().homeController?.fillSideDrawer();
+        case 3:
+          MapService().myTripsController?.fillSideDrawer();
         case 4:
           MapService().shopController?.fillSideDrawer();
-        case 1 || 2 || 3:
-          // Published, Explore and Favourites set up the map too
+        case 1 || 2:
+          // Published and Explore set up the map too
           await MapService().showPage(index);
       }
     } catch (e) {

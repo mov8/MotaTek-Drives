@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:drives/screens/screens.dart';
 import '../routes/messages.dart';
+import '../routes/my_trips.dart';
 import '../classes/classes.dart';
 import '../models/models.dart';
 import '../tiles/tiles.dart';
@@ -417,7 +418,9 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
           _tiles = shredCurrentTripItemData();
           break;
       }
-      _singleForm = _formContents.contains(content);
+      // the no-trips message fills the drawer too
+      _singleForm = _formContents.contains(content) ||
+          (content == BottomDrawerItems.favourites && _drawerItems!.isEmpty);
       refreshList = true;
       // Show the new content - without this it only appeared when something
       // else rebuilt the drawer, so e.g. Home's tiles stayed on other pages
@@ -460,41 +463,27 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
     });
   }
 
+  /// My Trips: a summary of each saved trip, whose arrow shows the trip's
+  /// details to the right (like Home and Shop) - or, with no trips, the
+  /// image and message filling the drawer
   List<Widget> shredFavourites() {
-    List<Widget> tiles = [
-      Center(
-          child: Text('No information',
-              style: TextStyle(fontSize: 20, color: Colors.black)))
+    if ((_drawerItems ?? []).isEmpty) return [const MyTripsEmptyView()];
+    int selected = MapService().myTripsController?.selected ?? -1;
+    return [
+      for (int i = 0; i < _drawerItems!.length; i++)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(10, 10, 10, 5),
+          child: MyTripTile(
+            view: MyTripTileView.summary,
+            index: i,
+            myTripItem: _drawerItems![i],
+            selected: i == selected,
+            onSelect: () => MapService().myTripsController?.select(i),
+            onDeleteTrip: (_) {},
+            imageRepository: imageRepository,
+          ),
+        ),
     ];
-
-    if ((_drawerItems ?? []).isNotEmpty) {
-      tiles.clear();
-      for (int i = 0; i < _drawerItems!.length; i++) {
-        if (_drawerItems![i] != null) {
-          try {
-            tiles.add(
-              MyTripTile(
-                index: i,
-                myTripItem: _drawerItems![i],
-                onDeleteTrip: (index) =>
-                    setState(() => _drawerItems!.removeAt(index)),
-                imageRepository: imageRepository,
-                onExpandChange: (index, expanded) =>
-                    getTripDetails(index, expanded),
-                mapController: MapService().controller,
-                showMethods: true,
-              ),
-            );
-          } catch (e) {
-            developer.log(
-                'Error adding a TripTile to the side-drawer content: ${e.toString()}',
-                name: 'error');
-          }
-        }
-      }
-    }
-
-    return tiles;
   }
 
   List<Widget> shredGroup({List<Follower>? followers}) {
@@ -522,10 +511,6 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
     }
 
     return tiles;
-  }
-
-  getTripDetails(index, expanded) async {
-    if (expanded && widget._mapController != null) {}
   }
 
   Future<void> followerIconClick(int index) async {

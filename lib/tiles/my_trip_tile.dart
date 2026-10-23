@@ -11,7 +11,14 @@ import '/models/models.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:go_router/go_router.dart';
 
+/// full: the expansion tile (phone). On the web My Trips is split like Home
+/// and Shop - the summary in the SideDrawer, the details to its right.
+enum MyTripTileView { full, summary, details }
+
 class MyTripTile extends StatefulWidget {
+  final MyTripTileView view;
+  final VoidCallback? onSelect; // summary: show this trip's details
+  final bool selected; // summary: this trip's details are showing
   final MyTripItem myTripItem;
   final Function(int) onDeleteTrip;
   final void Function(int, bool)? onExpandChange;
@@ -28,6 +35,9 @@ class MyTripTile extends StatefulWidget {
     this.showMethods = false,
     this.mapController,
     this.imageRepository,
+    this.view = MyTripTileView.full,
+    this.onSelect,
+    this.selected = false,
   });
 
   @override
@@ -44,237 +54,319 @@ class _MyTripTileState extends State<MyTripTile> {
 
   @override
   Widget build(BuildContext context) {
-    double webPadding = kIsWeb ? 25 : 0;
-    return RrExpansionTile(
-      context: context,
-      child: ExpansionTile(
-        backgroundColor: Colors.white,
-        collapsedBackgroundColor: Colors.white,
-        shape: null,
-        title: Column(
+    switch (widget.view) {
+      case MyTripTileView.summary:
+        return _summaryCard(context);
+      case MyTripTileView.details:
+        return Card(color: Colors.white, child: _details(context));
+      case MyTripTileView.full:
+        return RrExpansionTile(
+          context: context,
+          child: ExpansionTile(
+            backgroundColor: Colors.white,
+            collapsedBackgroundColor: Colors.white,
+            shape: null,
+            title: _summary(context),
+            onExpansionChanged: (expanded) =>
+                expandChange(widget.index, expanded),
+            children: [_details(context)],
+          ),
+        );
+    }
+  }
+
+  /// The heading - title, distance, highlights, how far away, when saved
+  Widget _summary(BuildContext context) {
+    return Column(
+      children: [
+        Row(
           children: [
-            Row(
-              children: [
-                Expanded(
-                  flex: 8,
-                  child: Text(
-                    widget.myTripItem.title,
-                    style: TextStyle(
-                        fontSize: 20,
-                        color: Colors.black,
-                        fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ],
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(5, 0, 5, 15),
-              child: Row(
-                children: [
-                  Expanded(
-                    flex: 1,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.route),
-                        Text(
-                          'Distance',
-                          style: labelStyle(
-                              context: context, color: Colors.black, size: 3),
-                        ),
-                        Text(
-                          '${widget.myTripItem.distance.toStringAsFixed(1)} miles',
-                          style: labelStyle(
-                              context: context, color: Colors.black, size: 3),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Expanded(
-                    flex: 1,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.landscape),
-                        Text(
-                          '${widget.myTripItem.pointsOfInterestCount}',
-                          style: labelStyle(
-                              context: context, color: Colors.black, size: 3),
-                        ),
-                        Text(
-                          'highlights',
-                          style: labelStyle(
-                              context: context, color: Colors.black, size: 3),
-                        )
-                      ],
-                    ),
-                  ),
-                  Expanded(
-                    flex: 1,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.social_distance),
-                        Text(
-                          (widget.myTripItem.distanceAway * metersToMiles)
-                              .toStringAsFixed(1),
-                          style: labelStyle(
-                              context: context, color: Colors.black, size: 3),
-                        ),
-                        Text(
-                          'miles away',
-                          style: labelStyle(
-                              context: context, color: Colors.black, size: 3),
-                        )
-                      ],
-                    ),
-                  ),
-                ],
+            Expanded(
+              flex: 8,
+              child: Text(
+                widget.myTripItem.title,
+                style: TextStyle(
+                    fontSize: 20,
+                    color: Colors.black,
+                    fontWeight: FontWeight.bold),
               ),
             ),
-            Row(children: [
-              Expanded(
-                flex: 8,
-                child: Text('Saved on ${widget.myTripItem.added}',
-                    style: textStyle(
-                        context: context, color: Colors.blueGrey, size: 3)),
-              ),
-            ]),
           ],
         ),
-        onExpansionChanged: (expanded) =>
-            expandChange(widget.index, expanded), //{
-        children: [
-          SizedBox(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(5, 10, 5, 10),
-              child: Align(
-                alignment: Alignment.topLeft,
+        Padding(
+          padding: const EdgeInsets.fromLTRB(5, 0, 5, 15),
+          child: Row(
+            children: [
+              Expanded(
+                flex: 1,
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const SizedBox(
-                      height: 10,
+                    const Icon(Icons.route),
+                    Text(
+                      'Distance',
+                      style: labelStyle(
+                          context: context, color: Colors.black, size: 3),
                     ),
-                    SizedBox(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(5, 0, 5, 10),
-                        child: Align(
-                          alignment: Alignment.topLeft,
-                          child: Text(
-                            widget.myTripItem.subTitle,
-                            style: titleStyle(
-                                context: context, color: Colors.black),
-                            textAlign: TextAlign.left,
-                          ),
+                    Text(
+                      '${widget.myTripItem.distance.toStringAsFixed(1)} miles',
+                      style: labelStyle(
+                          context: context, color: Colors.black, size: 3),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                flex: 1,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.landscape),
+                    Text(
+                      '${widget.myTripItem.pointsOfInterestCount}',
+                      style: labelStyle(
+                          context: context, color: Colors.black, size: 3),
+                    ),
+                    Text(
+                      'highlights',
+                      style: labelStyle(
+                          context: context, color: Colors.black, size: 3),
+                    )
+                  ],
+                ),
+              ),
+              Expanded(
+                flex: 1,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.social_distance),
+                    Text(
+                      (widget.myTripItem.distanceAway * metersToMiles)
+                          .toStringAsFixed(1),
+                      style: labelStyle(
+                          context: context, color: Colors.black, size: 3),
+                    ),
+                    Text(
+                      'miles away',
+                      style: labelStyle(
+                          context: context, color: Colors.black, size: 3),
+                    )
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        Row(children: [
+          Expanded(
+            flex: 8,
+            child: Text('Saved on ${widget.myTripItem.added}',
+                style: textStyle(
+                    context: context, color: Colors.blueGrey, size: 3)),
+          ),
+        ]),
+      ],
+    );
+  }
+
+  /// Web: the summary in the SideDrawer, with an arrow - like the Home and
+  /// Shop cards - that shows the trip's details to its right
+  Widget _summaryCard(BuildContext context) {
+    return Card(
+      color: Colors.white,
+      elevation: 5,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(10, 5, 5, 5),
+        child: Row(children: [
+          Expanded(child: _summary(context)),
+          IconButton(
+            onPressed: widget.onSelect,
+            icon: Icon(
+              Icons.arrow_circle_right_outlined,
+              size: 40,
+              color: widget.selected ? Colors.blue : Colors.black,
+            ),
+          ),
+        ]),
+      ),
+    );
+  }
+
+  /// The trip's details - photos, description, points of interest and the
+  /// load / publish / delete buttons
+  Widget _details(BuildContext context) {
+    double webPadding = kIsWeb ? 25 : 0;
+    return SizedBox(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(5, 10, 5, 10),
+        child: Align(
+          alignment: Alignment.topLeft,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              const SizedBox(
+                height: 10,
+              ),
+              SizedBox(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(5, 0, 5, 10),
+                  child: Align(
+                    alignment: Alignment.topLeft,
+                    child: Text(
+                      widget.myTripItem.subTitle,
+                      style: titleStyle(context: context, color: Colors.black),
+                      textAlign: TextAlign.left,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(
+                height: 10,
+              ),
+              if ((widget.myTripItem.photos ?? []).isNotEmpty)
+                Row(
+                  children: <Widget>[
+                    Expanded(
+                      flex: 8,
+                      child: SizedBox(
+                        height: kIsWeb ? 450 : 250,
+                        child: PhotoCarousel(
+                          height: kIsWeb ? 400 : 250,
+                          width: kIsWeb ? 500 : 250,
+                          photos: widget.myTripItem.photos!,
+                          imageRepository: widget.imageRepository!,
+                          showCaptions: true,
                         ),
                       ),
                     ),
-                    const SizedBox(
-                      height: 10,
+                  ],
+                ),
+              const SizedBox(
+                height: 10,
+              ),
+              SizedBox(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(5, 0, 5, 10),
+                  child: Align(
+                    alignment: Alignment.topLeft,
+                    child: Text(
+                      widget.myTripItem.body,
+                      style: textStyle(context: context, color: Colors.black),
+                      textAlign: TextAlign.left,
                     ),
-                    if ((widget.myTripItem.photos ?? []).isNotEmpty)
-                      Row(
-                        children: <Widget>[
-                          Expanded(
-                            flex: 8,
-                            child: SizedBox(
-                              height: kIsWeb ? 450 : 250,
-                              child: PhotoCarousel(
-                                height: kIsWeb ? 400 : 250,
-                                width: kIsWeb ? 500 : 250,
-                                photos: widget.myTripItem.photos!,
-                                imageRepository: widget.imageRepository!,
-                                showCaptions: true,
-                              ),
+                  ),
+                ),
+              ),
+              if (widget.myTripItem.pointsOfInterest.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(5, 0, 5, 5),
+                  child: Align(
+                    alignment: Alignment.topLeft,
+                    child: Text(
+                      'Points of interest:',
+                      textAlign: TextAlign.left,
+                      style: titleStyle(
+                          context: context, color: Colors.black, size: 2),
+                    ),
+                  ),
+                ),
+              for (int i = 0;
+                  i < widget.myTripItem.pointsOfInterest.length;
+                  i++) ...[
+                if (![12, 14, 17, 18]
+                    .contains(widget.myTripItem.pointsOfInterest[i].type))
+                  Padding(
+                    padding: EdgeInsetsGeometry.fromLTRB(5, 5, 5, 5),
+                    // Unique per point of interest - siblings can't
+                    // share a key (all were 'poit', which failed once a
+                    // trip showed two, e.g. a great road description)
+                    key: Key('poi_$i'),
+                    child: PointOfInterestTile(
+                      key: Key('poit_$i'), // UniqueKey(),
+                      index: i + 1,
+                      pointOfInterest: widget.myTripItem.pointsOfInterest[i],
+                      imageRepository:
+                          widget.imageRepository ?? ImageRepository(),
+                      driveId: widget.myTripItem.uri, //    driveUri,
+                      canEdit: false,
+                      mapController: widget.mapController,
+                      backgroundColor:
+                          const Color.fromRGBO(10, 169, 243, 0.158),
+                    ),
+                  ),
+              ],
+              SizedBox(height: 20),
+              if (imageBytes.isNotEmpty) ...[
+                Text('ImageBytes is not empty.. ${imageBytes.length}'),
+                SizedBox(height: 450, child: Image.memory(imageBytes)),
+                Text('image end'),
+              ],
+              if (widget.myTripItem.showMethods || widget.showMethods) ...[
+                SizedBox(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(5, 0, 5, 20),
+                    child: Row(children: [
+                      Expanded(
+                        flex: 1,
+                        child: Padding(
+                          padding: EdgeInsets.fromLTRB(webPadding, 0, 5, 10),
+                          child: TextButton(
+                            onPressed: () async => loadTrip(widget.index),
+                            child: Column(
+                              children: [
+                                Icon(
+                                  Icons.file_open_outlined,
+                                  size: 30,
+                                ),
+                                Text(
+                                  'Load Trip',
+                                  style: textStyle(
+                                    context: context,
+                                    color: Colors.black,
+                                    size: 3,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        ],
-                      ),
-                    const SizedBox(
-                      height: 10,
-                    ),
-                    SizedBox(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(5, 0, 5, 10),
-                        child: Align(
-                          alignment: Alignment.topLeft,
-                          child: Text(
-                            widget.myTripItem.body,
-                            style: textStyle(
-                                context: context, color: Colors.black),
-                            textAlign: TextAlign.left,
-                          ),
                         ),
                       ),
-                    ),
-                    if (widget.myTripItem.pointsOfInterest.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(5, 0, 5, 5),
-                        child: Align(
-                          alignment: Alignment.topLeft,
-                          child: Text(
-                            'Points of interest:',
-                            textAlign: TextAlign.left,
-                            style: titleStyle(
-                                context: context, color: Colors.black, size: 2),
-                          ),
-                        ),
-                      ),
-                    for (int i = 0;
-                        i < widget.myTripItem.pointsOfInterest.length;
-                        i++) ...[
-                      if (![12, 14, 17, 18]
-                          .contains(widget.myTripItem.pointsOfInterest[i].type))
-                        Padding(
-                          padding: EdgeInsetsGeometry.fromLTRB(5, 5, 5, 5),
-                          // Unique per point of interest - siblings can't
-                          // share a key (all were 'poit', which failed once a
-                          // trip showed two, e.g. a great road description)
-                          key: Key('poi_$i'),
-                          child: PointOfInterestTile(
-                            key: Key('poit_$i'), // UniqueKey(),
-                            index: i + 1,
-                            pointOfInterest:
-                                widget.myTripItem.pointsOfInterest[i],
-                            imageRepository:
-                                widget.imageRepository ?? ImageRepository(),
-                            driveId: widget.myTripItem.uri, //    driveUri,
-                            canEdit: false,
-                            mapController: widget.mapController,
-                            backgroundColor:
-                                const Color.fromRGBO(10, 169, 243, 0.158),
-                          ),
-                        ),
-                    ],
-                    SizedBox(height: 20),
-                    if (imageBytes.isNotEmpty) ...[
-                      Text('ImageBytes is not empty.. ${imageBytes.length}'),
-                      SizedBox(height: 450, child: Image.memory(imageBytes)),
-                      Text('image end'),
-                    ],
-                    if (widget.myTripItem.showMethods ||
-                        widget.showMethods) ...[
-                      SizedBox(
+                      Expanded(
+                        flex: 1,
                         child: Padding(
-                          padding: const EdgeInsets.fromLTRB(5, 0, 5, 20),
-                          child: Row(children: [
-                            Expanded(
-                              flex: 1,
-                              child: Padding(
-                                padding:
-                                    EdgeInsets.fromLTRB(webPadding, 0, 5, 10),
-                                child: TextButton(
-                                  onPressed: () async => loadTrip(widget.index),
+                          padding: EdgeInsets.fromLTRB(webPadding, 0, 5, 10),
+                          child: Setup().jwt.isNotEmpty
+                              ? TextButton(
+                                  onPressed: () async => publishTrip(),
                                   child: Column(
                                     children: [
                                       Icon(
-                                        Icons.file_open_outlined,
+                                        Icons.cloud_upload_outlined,
                                         size: 30,
                                       ),
                                       Text(
-                                        'Load Trip',
-                                        style: textStyle(
+                                        'Publish Trip',
+                                        style: labelStyle(
+                                          context: context,
+                                          color: Colors.black,
+                                          size: 3,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              : TextButton(
+                                  onPressed: () async => synchroniseTrip(),
+                                  child: Column(
+                                    children: [
+                                      Icon(
+                                        Icons.import_export_outlined,
+                                        size: 30,
+                                      ),
+                                      Text(
+                                        'Synchronise Trip',
+                                        style: labelStyle(
                                           context: context,
                                           color: Colors.black,
                                           size: 3,
@@ -283,87 +375,36 @@ class _MyTripTileState extends State<MyTripTile> {
                                     ],
                                   ),
                                 ),
-                              ),
-                            ),
-                            Expanded(
-                              flex: 1,
-                              child: Padding(
-                                padding:
-                                    EdgeInsets.fromLTRB(webPadding, 0, 5, 10),
-                                child: Setup().jwt.isNotEmpty
-                                    ? TextButton(
-                                        onPressed: () async => publishTrip(),
-                                        child: Column(
-                                          children: [
-                                            Icon(
-                                              Icons.cloud_upload_outlined,
-                                              size: 30,
-                                            ),
-                                            Text(
-                                              'Publish Trip',
-                                              style: labelStyle(
-                                                context: context,
-                                                color: Colors.black,
-                                                size: 3,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      )
-                                    : TextButton(
-                                        onPressed: () async =>
-                                            synchroniseTrip(),
-                                        child: Column(
-                                          children: [
-                                            Icon(
-                                              Icons.import_export_outlined,
-                                              size: 30,
-                                            ),
-                                            Text(
-                                              'Synchronise Trip',
-                                              style: labelStyle(
-                                                context: context,
-                                                color: Colors.black,
-                                                size: 3,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                              ),
-                            ),
-                            Expanded(
-                              flex: 1,
-                              child: Padding(
-                                padding:
-                                    EdgeInsets.fromLTRB(webPadding, 0, 5, 10),
-                                child: TextButton(
-                                  onPressed: () => deleteTrip(widget.index),
-                                  child: Column(
-                                    children: [
-                                      Icon(Icons.delete_forever, size: 30),
-                                      Text(
-                                        'Delete Trip',
-                                        style: labelStyle(
-                                            context: context,
-                                            color: Colors.black,
-                                            size: 3),
-                                      )
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ]),
                         ),
                       ),
-                    ]
-                  ],
+                      Expanded(
+                        flex: 1,
+                        child: Padding(
+                          padding: EdgeInsets.fromLTRB(webPadding, 0, 5, 10),
+                          child: TextButton(
+                            onPressed: () => deleteTrip(widget.index),
+                            child: Column(
+                              children: [
+                                Icon(Icons.delete_forever, size: 30),
+                                Text(
+                                  'Delete Trip',
+                                  style: labelStyle(
+                                      context: context,
+                                      color: Colors.black,
+                                      size: 3),
+                                )
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ]),
+                  ),
                 ),
-              ),
-            ),
-          )
-        ],
+              ]
+            ],
+          ),
+        ),
       ),
     );
   }

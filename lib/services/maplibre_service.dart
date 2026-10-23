@@ -169,11 +169,11 @@ class MapService {
   /// now been moved to this singleton.
   ///   It controls the map, the SideDrawer, and the BottomDrawer
   ///   It fetches the data from the API either directly or through a cache
-  /// Switches the map page's mode - Published (1), Explore (2) or, on the
-  /// web, Favourites (3) - once the map and its style are ready. Published
-  /// and Explore are the same page, so this is what tells them apart.
+  /// Switches the map page's mode - Published (1) or Explore (2) - once the
+  /// map and its style are ready. They're the same page, so this is what
+  /// tells them apart.
   Future<void> showPage(int page) async {
-    if (![1, 2, 3].contains(page)) return;
+    if (![1, 2].contains(page)) return;
     await mapFuture;
     await styleReady;
     await setPage(page: page);
@@ -186,8 +186,6 @@ class MapService {
         return await initialiseTrips();
       case 2:
         return await initialiseExplore();
-      case 3:
-        return initialiseFavourites();
     }
     return true;
   }
@@ -887,25 +885,6 @@ class MapService {
       sideDrawerController!.setFixed(fixed: false);
       sideDrawerController!.close();
     } else {}
-    return true;
-  }
-
-  Future<bool> initialiseFavourites() async {
-    List myTripItems = [];
-    await clearGeoJson();
-    myTripItems.addAll(await loadSavedTrips());
-    try {
-      await sideDrawerController!.setContent(
-          content: BottomDrawerItems.favourites,
-          drawerItems: myTripItems); // as List<Widget>);
-      Future.delayed(Duration(milliseconds: 200));
-      sideDrawerController!.open(width: 0.4);
-    } catch (e) {
-      developer.log(
-          'Error MapService().initialiseFavourites() setting sideDrawer contents: ${e.toString()}',
-          name: 'error');
-    }
-
     return true;
   }
 
