@@ -31,6 +31,9 @@ class HomeController {
 
   String getMarkdown() => _homeState!.mdData;
   MdStyleSheet getStyle() => _homeState!._styleSheet;
+
+  /// Web: puts the summary tiles back in the SideDrawer on returning to Home
+  void fillSideDrawer() => _homeState?.sideBarItems(force: true);
 }
 
 class Home extends StatefulWidget {
@@ -350,10 +353,15 @@ main() {
     ); */
   }
 
-  void sideBarItems() async {
+  /// force refills it when returning to Home - otherwise only the first
+  /// build fills it, as build() calls this on every rebuild
+  void sideBarItems({bool force = false}) async {
     FlutterNativeSplash.remove();
     await _dataLoaded;
-    if (homeItems.isNotEmpty && mounted && kIsWeb && !_sideDrawerLoaded) {
+    if (homeItems.isNotEmpty &&
+        mounted &&
+        kIsWeb &&
+        (force || !_sideDrawerLoaded)) {
       MapService().sideDrawerController!.open();
       MapService()
           .sideDrawerController!

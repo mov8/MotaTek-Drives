@@ -38,6 +38,9 @@ class ShopController {
   int get index => _shopState!._index;
   String getMarkdown() => _shopState!.mdData;
   MdStyleSheet getStyle() => _shopState!._styleSheet;
+
+  /// Web: puts the summary tiles back in the SideDrawer on returning to Shop
+  void fillSideDrawer() => _shopState?.sideBarItems();
 }
 
 class Shop extends StatefulWidget {

@@ -181,6 +181,16 @@ class BaseShellController {
   }
 
   bool get isAttached => _baseShellScreen != null;
+
+  /// Changes page from anywhere - the BottomNav on a phone, the WebAppBar
+  /// on the web (e.g. loading a trip from My Trips opens it in Explore)
+  void selectPage(int index) {
+    if (kIsWeb) {
+      _baseShellScreen?._webSelect(index);
+    } else {
+      MapService().bottomNavController?.selectPage(index);
+    }
+  }
 }
 
 class BaseShellScreen extends StatefulWidget {
@@ -289,14 +299,29 @@ class _BaseShellScreen extends State<BaseShellScreen> {
     widget.navigationShell.goBranch(branch,
         initialLocation: branch == widget.navigationShell.currentIndex);
     NavigationService().selected(index);
-    if ([1, 2, 3].contains(index)) {
-      AppState appState =
-          [AppState.trips, AppState.createTrip, AppState.myTrips][index - 1];
-      // After the branch is built, so its CreateTrip is attached
-      WidgetsBinding.instance.addPostFrameCallback((_) => MapService()
-          .createTripController
-          ?.updateArguements(
-              arguments: TripArguments(appState: appState, activeChip: index)));
+    // Highlights the button when the page change didn't come from it
+    MapService().webAppBarController?.changeButton(index);
+    // After the branch is built, so its page is attached
+    WidgetsBinding.instance.addPostFrameCallback((_) => _fillSideDrawer(index));
+  }
+
+  /// Every visit refills the SideDrawer - the branch pages persist, so a
+  /// page's own first-build setup only ran the first time it was shown
+  Future<void> _fillSideDrawer(int index) async {
+    try {
+      switch (index) {
+        case 0:
+          MapService().homeController?.fillSideDrawer();
+        case 4:
+          MapService().shopController?.fillSideDrawer();
+        case 1 || 2 || 3:
+          // Published, Explore and Favourites set up the map too
+          await MapService().mapFuture;
+          await MapService().setPage(page: index);
+      }
+    } catch (e) {
+      developer.log('Error filling the SideDrawer for page $index: $e',
+          name: 'error');
     }
   }
 

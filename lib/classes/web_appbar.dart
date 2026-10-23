@@ -1,6 +1,7 @@
 import 'package:drives/routes/create_trip.dart';
 import 'package:drives/routes/home.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../models/models.dart';
 import '../services/services.dart';
 // import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
@@ -306,7 +307,13 @@ class _WebAppBarState extends State<WebAppBar> {
                         onExit: (_) => updateToolTips(false,
                             toolTips.length - (Setup().jwt.isEmpty ? 2 : 3)),
                         child: IconButton(
-                          onPressed: () {},
+                          // The same login screen as the phone's app bar
+                          onPressed: () async {
+                            if (Setup().jwt.isEmpty) {
+                              await context.push('/login');
+                              if (mounted) setState(() {});
+                            }
+                          },
                           icon: Icon(
                             Setup().jwt.isEmpty
                                 ? Icons.no_accounts_outlined
@@ -348,10 +355,10 @@ class _WebAppBarState extends State<WebAppBar> {
         // 1. Find the position of the button on the screen
         final RenderBox button =
             _menuButtonKey.currentContext!.findRenderObject() as RenderBox;
-        final RenderBox overlay = NavigationService()
-            .key
-            .currentContext!
-            .findRenderObject() as RenderBox;
+        // The WebAppBar is inside the router's navigator now, so its own
+        // context finds the overlay - the old uiKey belonged to the old shell
+        final RenderBox overlay =
+            Overlay.of(context).context.findRenderObject() as RenderBox;
         final RelativeRect position = RelativeRect.fromRect(
           Rect.fromPoints(
             //  button.localToGlobal(Offset.zero, ancestor: overlay),
@@ -366,9 +373,7 @@ class _WebAppBarState extends State<WebAppBar> {
         // final String? selected =
         await showMenu<String>(
           constraints: BoxConstraints(minWidth: 250),
-          context: NavigationService()
-              .uiKey
-              .currentContext!, // BREAK OUT: Use the main navigator!
+          context: context,
           position: position,
           items: getPopupMenuItems(),
         );
@@ -529,87 +534,11 @@ class _WebAppBarState extends State<WebAppBar> {
           .setFixed(fixed: [0, 4].contains(index));
     }
     switch (index) {
-      /// 1 - Published the map Widget CreateTripStack() show map with published data in the side drawer
-      case 1:
-        {
-          /// Fulfil Published - Trips
-
-          try {
-            MapService().setPage(page: 1);
-
-            /// Tell MapService() singleton what to do
-            if (screenName != 'createTrip') {
-              /* NavigationService().navigateTo(
-                routes[2], // <--- Published uses CreateTrip() screen
-                TripArguments(
-                    appState: AppState.trips,
-                    activeChip: 1,
-                    changedScreen: true),
-              ); */
-            } else {
-              widget.tripController?.updateArguements(
-                arguments:
-                    TripArguments(appState: AppState.trips, activeChip: 1),
-              );
-            }
-          } catch (e) {
-            developer.log(
-                'Error trying to switch to no:1 error: ${e.toString()}',
-                name: 'error');
-          }
-        }
-
-      /// 2 - Explore the map Widget CreateTripStack() show map with good roads and points of interest data in the side drawer
-      case 2:
-        {
-          /// Fulfil Explore - CreateTrip
-          try {
-            MapService().setPage(page: 2); // <-- Published setup
-            if (screenName != 'createTrip') {
-              /* NavigationService().navigateTo(
-                routes[2], // <-- CreateTrips()
-                TripArguments(
-                    appState: AppState.createTrip,
-                    activeChip: 2,
-                    changedScreen: true),
-              ); */
-
-              //  arguments: TripArguments(myTripItem, 'db'));
-            } else {
-              widget.tripController?.updateArguements(
-                arguments:
-                    TripArguments(appState: AppState.createTrip, activeChip: 2),
-              );
-            }
-          } catch (e) {
-            developer.log(
-                'Error trying to switch to no:2 error: ${e.toString()}',
-                name: 'error');
-          }
-        }
-
-      /// 3 - Favourites the map Widget CreateTripStack() shows map with private trip data in the side drawer
-      case 3:
-        {
-          MapService().setPage(page: 3);
-
-          /// Fulfil Favourites - MyTrips
-          if (screenName != 'createTrip') {
-            /* NavigationService().navigateTo(
-              routes[2], // <-- uses CreateTrips() with MyTrips in SideDrawer
-              TripArguments(
-                appState: AppState.myTrips,
-                activeChip: 3,
-                changedScreen: true,
-              ), 
-            ); */
-          } else {
-            widget.tripController?.updateArguements(
-              arguments:
-                  TripArguments(appState: AppState.myTrips, activeChip: 3),
-            );
-          }
-        }
+      /// Published (1), Explore (2) and Favourites (3) - the shell switches to
+      /// the map page and sets up the map and SideDrawer once it is built
+      /// (BaseShellScreen._webSelect() via onSelect below)
+      case 1 || 2 || 3:
+        break;
 
       /// Messages - special case in the Web version only want to show the data in the side drawer
       /// This is so messages can be accessed any time. A PC screen with an expanding side drawer works well.

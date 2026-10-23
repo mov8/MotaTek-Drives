@@ -278,6 +278,24 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
 
   List<Widget> _tiles = [];
 
+  /// Contents that are a single full screen (a Scaffold) rather than a list
+  /// of tiles. They fill the drawer - in the scrolling list a Scaffold has
+  /// no height to lay out in.
+  static const Set<BottomDrawerItems> _formContents = {
+    BottomDrawerItems.settings,
+    BottomDrawerItems.register,
+    BottomDrawerItems.myGroups,
+    BottomDrawerItems.groups,
+    BottomDrawerItems.invite,
+    BottomDrawerItems.myEvents,
+    BottomDrawerItems.events,
+    BottomDrawerItems.docs,
+    BottomDrawerItems.markdownHome,
+    BottomDrawerItems.markdownShop,
+    BottomDrawerItems.messages,
+  };
+  bool _singleForm = false;
+
 /*
   int itemsCount() {
     return _tiles.length;
@@ -395,6 +413,10 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
           }
           _offerRestore = true;
           break;
+        case BottomDrawerItems.docs:
+          _tiles = [DocumentationForm()];
+          _offerRestore = true;
+          break;
         case BottomDrawerItems.messages:
           _tiles = [
             Messages(
@@ -412,6 +434,7 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
           _tiles = shredCurrentTripItemData();
           break;
       }
+      _singleForm = _formContents.contains(content);
       // setState(() => refreshList = true);
       refreshList = true;
     } catch (e) {
@@ -876,7 +899,10 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
     _mapWidth = MediaQuery.of(context).size.width;
     _maxWidth = _mapWidth * widget.maxWidth;
     _openWidth = _mapWidth * widget.width;
-    double mapHeight = MediaQuery.of(context).size.height; //width;
+    // Below the WebAppBar - the whole window height cut off the bottom of
+    // the drawer, e.g. a form's buttons
+    double mapHeight = MediaQuery.of(context).size.height -
+        (Scaffold.maybeOf(context)?.appBarMaxHeight ?? 0);
     // MapService().mapHeight;
 
     /// Ensure a fresh set of tiles is generated to ensure the initiallyExpanded value is
@@ -934,11 +960,14 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
                               width: width,
                               height: mapHeight,
                               color: const Color.fromRGBO(54, 143, 244, 0.411),
-                              child: ScrollablePositionedList.builder(
-                                  itemScrollController: _itemScrollController,
-                                  itemCount: _tiles.length,
-                                  itemBuilder: (navContext, index) =>
-                                      _tiles[index]),
+                              child: _singleForm && _tiles.isNotEmpty
+                                  ? _tiles.first
+                                  : ScrollablePositionedList.builder(
+                                      itemScrollController:
+                                          _itemScrollController,
+                                      itemCount: _tiles.length,
+                                      itemBuilder: (navContext, index) =>
+                                          _tiles[index]),
                             ),
                           ),
                         ),
