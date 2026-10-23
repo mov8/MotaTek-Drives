@@ -335,8 +335,7 @@ class Setup {
         MapService().persistentAppBarController?.update('');
       }
       UserRepository userRepository = UserRepository();
-      await userRepository.openBox();
-      userRepository.getSetup();
+      await userRepository.getSetup();
       user = await userRepository.getUser() ?? user;
     } catch (e) {
       developer.log('Error Setup() loaded() retrieving jwt: ${e.toString()}',
@@ -348,32 +347,36 @@ class Setup {
     return jwt.isEmpty;
   }
 
+  /// A missing setting keeps its current value - settings saved before a
+  /// field was added, or in the old format, mustn't stop the rest loading
   fromJson({required Map<String, dynamic> map}) {
     id = 0;
-    routeColour = map['routeColour'];
-    goodRouteColour = map['goodRouteColour'];
-    waypointColour = map['waypointColour'];
-    pointOfInterestColour = map['pointOfInterestColour'];
-    waypointColour2 = map['waypointColour2'];
-    pointOfInterestColour2 = map['pointOfInterestColour2'];
-    selectedColour = map['selectedColour'];
-    highlightedColour = map['highlightedColour'];
-    publishedTripColour = map['publishedTripColour'];
-    allowNotifications = map['allowNotifications'];
-    dark = map['dark'];
-    rotateMap = map['rotateMap'];
-    avoidMotorways = map['avoidMotorways'];
-    avoidAroads = map['avoidAroads'];
-    avoidBroads = map['avoidBroads'];
-    avoidTollRoads = map['avoidTollRoads'];
-    avoidFerries = map['avoidFerries'];
-    osmPubs = map['osmPubs'];
-    osmRestaurants = map['osmRestaurants'];
-    osmFuel = map['osmFuel'];
-    osmToilets = map['osmToilets'];
-    osmAtms = map['osmAtms'];
-    osmHistorical = map['osmHistorical'];
-    maleVoice = map['maleVoice'];
+    routeColour = map['routeColour'] ?? routeColour;
+    goodRouteColour = map['goodRouteColour'] ?? goodRouteColour;
+    waypointColour = map['waypointColour'] ?? waypointColour;
+    pointOfInterestColour =
+        map['pointOfInterestColour'] ?? pointOfInterestColour;
+    waypointColour2 = map['waypointColour2'] ?? waypointColour2;
+    pointOfInterestColour2 =
+        map['pointOfInterestColour2'] ?? pointOfInterestColour2;
+    selectedColour = map['selectedColour'] ?? selectedColour;
+    highlightedColour = map['highlightedColour'] ?? highlightedColour;
+    publishedTripColour = map['publishedTripColour'] ?? publishedTripColour;
+    allowNotifications = map['allowNotifications'] ?? allowNotifications;
+    dark = map['dark'] ?? dark;
+    rotateMap = map['rotateMap'] ?? rotateMap;
+    avoidMotorways = map['avoidMotorways'] ?? avoidMotorways;
+    avoidAroads = map['avoidAroads'] ?? avoidAroads;
+    avoidBroads = map['avoidBroads'] ?? avoidBroads;
+    avoidTollRoads = map['avoidTollRoads'] ?? avoidTollRoads;
+    avoidFerries = map['avoidFerries'] ?? avoidFerries;
+    osmPubs = map['osmPubs'] ?? osmPubs;
+    osmRestaurants = map['osmRestaurants'] ?? osmRestaurants;
+    osmFuel = map['osmFuel'] ?? osmFuel;
+    osmToilets = map['osmToilets'] ?? osmToilets;
+    osmAtms = map['osmAtms'] ?? osmAtms;
+    osmHistorical = map['osmHistorical'] ?? osmHistorical;
+    maleVoice = map['maleVoice'] ?? maleVoice;
   }
 
   Map<String, dynamic> toJson() {
@@ -405,11 +408,13 @@ class Setup {
     };
   }
 
+  /// Saves the login token, the user and the settings. The writes weren't
+  /// awaited, and the settings weren't saved at all.
   Future<void> save() async {
     await _storage!.write(key: 'jwt', value: jwt);
     UserRepository userRepository = UserRepository();
-    userRepository.openBox();
-    userRepository.saveUser(user);
+    await userRepository.saveUser(user);
+    await userRepository.saveSetup();
   }
 
   /// If the user has logged in correctly then the api will contain the
@@ -420,39 +425,6 @@ class Setup {
   Future<void> saveUser() async {
     await _storage!.write(key: 'jwt', value: jwt);
     saveUserLocally(user);
-  }
-
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'route_colour': routeColour,
-      'good_route_colour': goodRouteColour,
-      'waypoint_colour': waypointColour,
-      'point_of_interest_colour': pointOfInterestColour,
-      'waypoint_colour_2': waypointColour2,
-      'point_of_interest_colour_2': pointOfInterestColour2,
-      'highlighted_colour': highlightedColour,
-      'published_trip_colour': publishedTripColour,
-      'selected_colour': selectedColour,
-      'record_detail': recordDetail,
-      'jwt': jwt,
-      'allow_notifications': allowNotifications ? 1 : 0,
-      'dark': dark ? 1 : 0,
-      'rotate_map': rotateMap ? 1 : 0,
-      'avoid_motorways': avoidMotorways ? 1 : 0,
-      'avoid_a_roads': avoidAroads ? 1 : 0,
-      'avoid_b_roads': avoidBroads ? 1 : 0,
-      'avoid_toll_roads': avoidTollRoads ? 1 : 0,
-      'avoid_ferries': avoidFerries ? 1 : 0,
-      'osm_pubs': osmPubs ? 1 : 0,
-      'osm_restaurants': osmRestaurants ? 1 : 0,
-      'osm_fuel': osmFuel ? 1 : 0,
-      'osm_toilets': osmToilets ? 1 : 0,
-      'osm_atms': osmAtms ? 1 : 0,
-      'osm_historical': osmHistorical ? 1 : 0,
-      'bottom_nav_index': bottomNavIndex,
-      'app_state': appState,
-    };
   }
 
   String routeColourHex() {

@@ -26,7 +26,7 @@ class _SetupFormState extends State<SetupForm> {
   @override
   void initState() {
     super.initState();
-    _original = Setup().toMap();
+    _original = Setup().toJson();
   }
 
   @override
@@ -457,15 +457,10 @@ class _SetupFormState extends State<SetupForm> {
   /// True when a setting differs from when the screen opened. jwt etc. aren't
   /// settings and can change underneath (a token refresh).
   bool _hasChanged() {
-    const List<String> notSettings = [
-      'id',
-      'jwt',
-      'bottom_nav_index',
-      'app_state'
-    ];
-    Map<String, dynamic> now = Setup().toMap();
-    bool changed = now.keys
-        .any((key) => !notSettings.contains(key) && now[key] != _original[key]);
+    // toJson() is just the settings - unlike the old toMap() it includes
+    // the voice choice
+    Map<String, dynamic> now = Setup().toJson();
+    bool changed = now.keys.any((key) => now[key] != _original[key]);
     widget.onChange?.call(changed);
     return changed;
   }

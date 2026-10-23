@@ -10,68 +10,55 @@ import 'dart:developer' as developer;
 
 // Following test routine works
 
+/// The user, their login token and their settings, in the 'user' box.
+/// The box stays open once opened - it used to be closed after a save, and
+/// as a late final field it couldn't be opened again, so a second save in
+/// the same session failed.
 class UserRepository {
-  late final Box _userBox;
+  Future<Box> _box() async =>
+      Hive.isBoxOpen('user') ? Hive.box('user') : await Hive.openBox('user');
+
   Future<bool> openBox() async {
-    _userBox = await Hive.openBox('user');
+    await _box();
     return true;
   }
 
   // Save the model as a JSON string
   Future<void> saveUser(User user) async {
-    if (!_userBox.isOpen) {
-      await openBox();
-    }
-    final String jsonString = jsonEncode(user.toMap());
-    await _userBox.put('user', jsonString);
-    _userBox.close();
+    await (await _box()).put('user', jsonEncode(user.toMap()));
   }
 
   Future<void> saveJwt(String jwt) async {
-    if (!_userBox.isOpen) {
-      await openBox();
-    }
-    await _userBox.put('jwt', jwt);
-    _userBox.close;
+    await (await _box()).put('jwt', jwt);
   }
 
+  /// Saved with toJson() - the keys fromJson() reads. toMap()'s snake_case
+  /// keys were saved before, so the settings never loaded back.
   Future<void> saveSetup() async {
-    if (!_userBox.isOpen) {
-      await openBox();
-    }
-    final String jsonString = jsonEncode(Setup().toMap());
-    await _userBox.put('setup', jsonString);
-    _userBox.close;
+    await (await _box()).put('setup', jsonEncode(Setup().toJson()));
   }
 
   // Retrieve and decode the model safely
   Future<User?> getUser() async {
-    if (!_userBox.isOpen) {
-      await openBox();
-    }
-    final String? jsonString = _userBox.get('user');
+    final String? jsonString = (await _box()).get('user');
     if (jsonString == null) return null;
-    final Map<String, dynamic> jsonMap = jsonDecode(jsonString);
-    _userBox.close;
-    return User.fromJson(jsonMap);
+    return User.fromJson(jsonDecode(jsonString));
   }
 
   Future<String> getJwt() async {
-    if (!_userBox.isOpen) {
-      await openBox();
-    }
-    return _userBox.get('jwt') ?? '';
+    return (await _box()).get('jwt') ?? '';
   }
 
   Future<bool> getSetup() async {
-    if (!_userBox.isOpen) {
-      await openBox();
-    }
-    final String? jsonString = _userBox.get('setup');
+    final String? jsonString = (await _box()).get('setup');
     if (jsonString == null) return false;
-    final Map<String, dynamic> jsonMap = jsonDecode(jsonString);
-    Setup().fromJson(map: jsonMap);
-    _userBox.close;
+    try {
+      Setup().fromJson(map: jsonDecode(jsonString));
+    } catch (e) {
+      developer.log('Error loading the settings from Hive: ${e.toString()}',
+          name: 'error');
+      return false;
+    }
     return true;
   }
 }
