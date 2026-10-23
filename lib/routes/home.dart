@@ -6,7 +6,6 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:markdown/markdown.dart' as md;
 import '/constants.dart';
 import '/models/other_models.dart';
-import '/classes/classes.dart';
 import '/services/services.dart' hide getPosition;
 import '/helpers/helpers.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';

@@ -9,7 +9,6 @@ import 'package:markdown/markdown.dart' as md;
 import '/constants.dart';
 import '/models/other_models.dart';
 // import '/tiles/shop_tile.dart';
-import '/classes/classes.dart';
 import '/services/services.dart' hide getPosition;
 // import 'package:flutter/services.dart' show rootBundle;
 import '/helpers/helpers.dart';

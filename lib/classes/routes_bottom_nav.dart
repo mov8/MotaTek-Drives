@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'dart:developer' as developer;
-import '/constants.dart';
 import '/models/models.dart';
 
 class RoutesBottomNavController {
@@ -164,37 +163,4 @@ class _RoutesBottomNavState extends State<RoutesBottomNav>
       */
   }
 
-  NavigationDestination _navigationDestination(
-      {required int index, badgeValue = 0}) {
-    if (badgeValue == 0) {
-      return NavigationDestination(
-        selectedIcon: Icon(
-          routeNavIconsSelected[index],
-        ),
-        icon: Icon(
-          routeNavIcons[index],
-        ),
-        label: routeNavLabels[index],
-      );
-    } else {
-      return NavigationDestination(
-        icon: Badge(
-          label: Text(badgeValue
-              .toString()), // _messages.isEmpty ? null : Text(_messages.length.toString()),
-          child: Icon(
-            routeNavIcons[index],
-          ),
-        ),
-        selectedIcon: Badge(
-          label: Text(
-            badgeValue.toString(),
-          ),
-          child: Icon(
-            routeNavIconsSelected[index],
-          ),
-        ),
-        label: routeNavLabels[index],
-      );
-    }
-  }
 }
