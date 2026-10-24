@@ -196,7 +196,8 @@ class _GroupDriveFormState extends State<GroupDriveForm>
   }
 
   Widget organised() {
-    Color textColor = kIsWeb ? Colors.black : Colors.white;
+    // The events are on white cards on both platforms
+    const Color textColor = Colors.black;
     return _trips.isNotEmpty
         ? ListView.builder(
             itemCount: _trips.length,
