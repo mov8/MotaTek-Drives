@@ -1,79 +1,24 @@
-import '/classes/autocomplete_widget.dart';
 import 'package:flutter/material.dart';
-import '/models/other_models.dart';
+import '/classes/classes.dart';
 import '/services/services.dart';
-import '/services/web_helper.dart';
-import '/constants.dart';
 
-/*
- app sends a dict {"email": "", "user": bool, "trips": bool, "pois": bool,
- "roads": bool, "ratings": bool, "groups": bool}
- 
- email identifies the user to process
- user:
-    true: the user gets deleted
-    false: doesn't get deleted
-trips ... groups:
-    true: the item get deleted
-    false: the item get handed to a user called "anonymous user"
-    
-if the drive is deleted and not the points of interest etc then they
-are handed to the anonymous user for a drive called unnamed drive
-
-Table dependencies
-
-table								      user_id		drive_id	group_id	group_drive_id	points_of_interest_id
-downloads							    yes			  yes			  no			  no				      no
-drive_ratings						  yes			  yes			  no			  no				      no
-drives								    yes			  id			  no			  no				      no
-good_roads							  no			  yes			  no			  no				      yes
-group_drive_invitations	  yes			  no			  no			  yes				      no
-group_drives						  yes			  yes			  no			  id				      no
-group_members						  yes			  no			  yes			  no				      no
-groups								    yes			  no			  no			  no				      no		
-introduced							  yes			  no			  no			  no				      no
-maneuvers							    no			  yes			  no			  no				      no
-messages							    1*			  no			  2*			  no				      no
-point_of_interest_ratings	yes			  no			  no			  no				      yes		
-points_of_interest				no			  no			  no			  no				      id
-polylines							    no			  yes			  no			  no				      no
-
-delete drive: polylines, maneuvers, group_drives, drive_ratings, downloads, m/d good_roads, drives 
-delete pois: points_of_interest_ratings, images, m/d good_roads 
-delete good_roads: good_roads
-delete ratings: point_of_interest_ratings, drive_ratings
-user groups: user_id to removed user 
-
-move drive: drive_ratings, drives, group_drive_invitations, group_drives, group_   
-
-1* user_id + user_target_id
-2* group_target_id
-
- */
-
+/// Admin (web only): stops a user using Drives. The API disables the
+/// account - the email and login are scrambled, so they can't log in -
+/// and leaves their published trips, which Remove trips deletes. (It used to
+/// offer to remove their trips, points of interest, roads, ratings and
+/// groups too, which the API ignored. What happens to a user's data is for
+/// the club admin work.)
 class DeleteUserForm extends StatefulWidget {
   const DeleteUserForm({super.key});
 
   @override
-  State<DeleteUserForm> createState() => _DeleteTripsFormState();
+  State<DeleteUserForm> createState() => _DeleteUserFormState();
 }
 
-class _DeleteTripsFormState extends State<DeleteUserForm> {
-  final List<TripSummary> _drives = [];
+class _DeleteUserFormState extends State<DeleteUserForm> {
   late AutoCompleteAsyncController _controller;
-  bool editing = false;
-  TextInputAction action = TextInputAction.done;
-  int selected = 0;
   final List<String> dropdownOptions = [];
-  Map<String, dynamic> options = {
-    "email": "",
-    "user": false,
-    "trips": false,
-    "pois": false,
-    "roads": false,
-    "ratings": false,
-    "groups": false
-  };
+  String _email = '';
 
   @override
   void initState() {
@@ -87,169 +32,44 @@ class _DeleteTripsFormState extends State<DeleteUserForm> {
     super.dispose();
   }
 
-  Future<List<TripSummary>> _loadTrips(
-      {required List<TripSummary> tripSummaries}) async {
-    if (tripSummaries.isEmpty) {
-      try {
-        tripSummaries.addAll(await getTripSummaries(
-            northEast: ukNorthEast, southWest: ukSouthWest));
-      } catch (e) {
-        debugPrint('Error downloading trip summaries = ${e.toString()}');
-      }
-    }
-    return tripSummaries;
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.blue,
-      appBar: AppBar(
-        backgroundColor: Colors.blue,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
-
-        /// Removes Shadow
-        toolbarHeight: 40,
-        title: const Text(
-          'Delete user ',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        bottom: const PreferredSize(
-          preferredSize: Size.fromHeight(60),
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(5, 10, 5, 10),
-            child: Text(
-              'Delete user from the server',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ),
-        leading: BackButton(
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
-      ),
-      body: FutureBuilder<List<TripSummary>>(
-        future: _loadTrips(tripSummaries: _drives),
-        builder: (BuildContext context, snapshot) {
-          if (snapshot.hasError) {
-            debugPrint('Snapshot has error: ${snapshot.error}');
-          } else if (snapshot.hasData) {
-            return portraitView();
-          } else {
-            return const SizedBox(
-              width: double.infinity,
-              height: double.infinity,
-              child: Align(
-                alignment: Alignment.center,
-                child: CircularProgressIndicator(),
-              ),
-            );
-          }
-          throw ('Error - FutureBuilder group.dart');
-        },
-      ),
-    );
-  }
-
-  Widget portraitView() {
-    return SingleChildScrollView(
-      child: SizedBox(
-        height: (MediaQuery.of(context).size.height),
+    return ScreensAppBarBottom(
+      heading: 'Remove user',
+      prompt: 'Stop a user using Drives',
+      textColor: const Color.fromRGBO(1, 29, 51, 1),
+      content: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 30, 20, 10),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.end,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 30, 20, 10),
-              child: AutocompleteAsync(
-                controller: _controller,
-                options: dropdownOptions,
-                decoration: InputDecoration(
-                  border: OutlineInputBorder(),
-                  hintText: 'Enter users email address',
-                  labelText: 'Email address',
-                ),
-                keyboardType: TextInputType.emailAddress,
-                onSelect: (chosen) => options["email"] = chosen,
-                onChange: (text) => options["email"] = text,
-                onUpdateOptionsRequest: (query) => getDropdownItems(query),
+            AutocompleteAsync(
+              controller: _controller,
+              options: dropdownOptions,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                hintText: "Enter the user's email address",
+                labelText: 'Email address',
               ),
+              keyboardType: TextInputType.emailAddress,
+              onSelect: (chosen) => setState(() => _email = chosen),
+              onChange: (text) => setState(() => _email = text),
+              onUpdateOptionsRequest: (query) => getDropdownItems(query),
             ),
-            SwitchListTile(
-              title: Text('Remove User',
-                  style: Theme.of(context).textTheme.bodyLarge!),
-              value: options["user"],
-              onChanged: (bool value) =>
-                  setState(() => options["user"] = value),
-              secondary: const Icon(Icons.person_off_outlined, size: 30),
-            ),
-            SwitchListTile(
-              title: Text("Remove user's trips",
-                  style: Theme.of(context).textTheme.bodyLarge!),
-              value: options["trips"],
-              onChanged: (bool value) =>
-                  setState(() => options["trips"] = value),
-              secondary: const Icon(Icons.directions_car_outlined, size: 30),
-            ),
-            SwitchListTile(
-              title: Text("Remove user's points of interest",
-                  style: Theme.of(context).textTheme.bodyLarge!),
-              value: options["pois"],
-              onChanged: (bool value) =>
-                  setState(() => options["pois"] = value),
-              secondary: const Icon(Icons.castle_outlined, size: 30),
-            ),
-            SwitchListTile(
-              title: Text("Remove user's good roads",
-                  style: Theme.of(context).textTheme.bodyLarge!),
-              value: options["roads"],
-              onChanged: (bool value) =>
-                  setState(() => options["roads"] = value),
-              secondary: const Icon(Icons.remove_road_outlined, size: 30),
-            ),
-            SwitchListTile(
-              title: Text("Remove user's ratings",
-                  style: Theme.of(context).textTheme.bodyLarge!),
-              value: options["ratings"],
-              onChanged: (bool value) =>
-                  setState(() => options["ratings"] = value),
-              secondary: const Icon(Icons.star_outline_outlined, size: 30),
-            ),
-            SwitchListTile(
-              title: Text("Remove user's groups",
-                  style: Theme.of(context).textTheme.bodyLarge!),
-              value: options["groups"],
-              onChanged: (bool value) =>
-                  setState(() => options["groups"] = value),
-              secondary: const Icon(Icons.group_remove_outlined, size: 30),
-            ),
-            Align(
-              alignment: Alignment.bottomLeft,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                child: ActionChip(
-                  onPressed: () => deleteUser(options: options),
-                  backgroundColor: Colors.blue,
-                  avatar: const Icon(
-                    Icons.delete,
-                    color: Colors.white,
-                  ),
-                  label: Text('Remove user',
-                      style:
-                          const TextStyle(fontSize: 18, color: Colors.white)),
-                ),
-              ),
+            const SizedBox(height: 20),
+            const Text(
+                "Their account is disabled: they can't log in again with this "
+                'email. Their published trips stay - remove them with Remove '
+                'trips.',
+                style: TextStyle(fontSize: 16)),
+            const SizedBox(height: 20),
+            ActionChip(
+              onPressed: _email.contains('@') ? _confirmRemove : null,
+              backgroundColor: Colors.blue,
+              disabledColor: Colors.blue.shade200, // until there's something to remove
+              avatar: const Icon(Icons.person_off_outlined, color: Colors.white),
+              label: const Text('Remove user',
+                  style: TextStyle(fontSize: 18, color: Colors.white)),
             ),
           ],
         ),
@@ -257,27 +77,41 @@ class _DeleteTripsFormState extends State<DeleteUserForm> {
     );
   }
 
-  getDropdownItems(String query) async {
-    dropdownOptions.clear();
-    dropdownOptions.addAll(await getApiOptions(value: query));
-    setState(() {});
+  Future<void> getDropdownItems(String query) async {
+    dropdownOptions
+      ..clear()
+      ..addAll(await getApiOptions(value: query));
+    if (mounted) setState(() {});
   }
 
-  deleteUser({required Map<String, dynamic> options}) async {
-    if (options["user"] ||
-        options["trips"] ||
-        options["pois"] ||
-        options["roads"] ||
-        options["ratings"] ||
-        options["groups"]) {
-      await deleteWebUser(uriMap: options);
-      setState(() => dropdownOptions.clear());
-    }
-  }
-
-  void onConfirmDeleteMember(int value) {
-    if (value > -1) {
-      Navigator.pop(context);
+  Future<void> _confirmRemove() async {
+    bool? ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Remove $_email?'),
+        content: const Text("They won't be able to log in to Drives again."),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Remove')),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    bool removed = await deleteWebUser(uriMap: {'email': _email});
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(removed
+            ? '$_email has been removed'
+            : "$_email couldn't be removed")));
+    if (removed) {
+      setState(() {
+        _email = '';
+        dropdownOptions.clear();
+      });
     }
   }
 }

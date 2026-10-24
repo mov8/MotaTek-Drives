@@ -1634,12 +1634,14 @@ class TripSummary {
   final double maxLong;
   final double score;
   int scored;
+  final String author; // who published it - shown to admins
 
   TripSummary(
       {this.cacheKey = -1,
       this.uri = '',
       this.title = '',
       this.subTitle = '',
+      this.author = '',
       this.minLat = -180.0,
       this.maxLat = 180,
       this.minLong = -180,
@@ -1652,12 +1654,13 @@ class TripSummary {
       uri: map['uri'],
       title: map['title'] ?? ' ',
       subTitle: map['sub_title'] ?? ' ',
+      author: map['author'] ?? '',
       minLat: map['sw_lat'] ?? 0,
       maxLat: map['ne_lat'] ?? 0,
       minLong: map['sw_lng'] ?? 0,
       maxLong: map['ne_lng'] ?? 0,
-      score: map['score'] ?? 0,
-      scored: map['scored'] ?? 0,
+      score: ((map['score'] ?? 0) as num).toDouble(),
+      scored: ((map['scored'] ?? 0) as num).toInt(),
     );
   }
 }

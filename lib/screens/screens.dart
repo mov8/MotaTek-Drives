@@ -14,6 +14,5 @@ export 'messages_detail.dart';
 export 'my_groups.dart';
 export 'painters.dart';
 export 'group_drives.dart';
-export 'invite.dart';
 export 'setup.dart';
 export 'sign_up.dart';

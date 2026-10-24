@@ -619,27 +619,21 @@ Future<List<Feature>> getFeatures(
   return [];
 }
 
-Future<List<TripSummary>> getTripSummaries(
-    {required LatLng northEast,
-    required LatLng southWest,
-    double zoom = 8}) async {
+/// Every published trip, newest first - for the admin screens (admins only)
+Future<List<TripSummary>> getTripSummaries() async {
   List<TripSummary> summaries = [];
-
-  final http.Response response = await http
-      .get(
-        Uri.parse('$urlDrive/summary/-90/90/-180/180/$zoom'),
-      )
-      .timeout(const Duration(seconds: 5));
-
-  if (response.statusCode == 200) {
-    try {
-      List<dynamic> tripsJson = jsonDecode(response.body);
-      for (Map<String, dynamic> trip in tripsJson) {
+  try {
+    final http.Response response =
+        await getWebData(uri: Uri.parse('$urlDrive/summaries'), secure: true);
+    if (response.statusCode == 200) {
+      for (Map<String, dynamic> trip in jsonDecode(response.body)) {
         summaries.add(TripSummary.fromMap(map: trip));
       }
-    } catch (e) {
-      debugPrint('Error processing summaries: ${e.toString()}');
+    } else {
+      developer.log('getTripSummaries(): ${response.statusCode}', name: 'error');
     }
+  } catch (e) {
+    developer.log('getTripSummaries(): ${e.toString()}', name: 'error');
   }
   return summaries;
 }
@@ -1421,15 +1415,16 @@ Future<List<Map<String, dynamic>>> getMarkdownItems(
 }
 
 Future<bool> deleteMarkdownItem(type, uri) async {
-  var request;
   String markdownUri =
       type == 'home' ? '$urlHomeItem/delete' : '$urlShopItem/delete';
-  http.MultipartRequest('POST', Uri.parse(markdownUri));
+  // The request was built and thrown away, so delete never sent anything
+  var request = http.MultipartRequest('POST', Uri.parse(markdownUri));
   try {
+    request.headers['Authorization'] = 'Bearer ${Setup().jwt}';
     request.fields['uri'] = uri;
-    dynamic response =
+    http.StreamedResponse response =
         await request.send().timeout(const Duration(seconds: 30));
-    if (response.statusCode == 201) {
+    if ([200, 201].contains(response.statusCode)) {
       return true;
     }
   } catch (e) {
@@ -1445,9 +1440,9 @@ Future<bool> deleteMarkdownItem(type, uri) async {
 
 Future<String> postMarkdownItem(
     String uri, String type, Map<String, dynamic> mapItem) async {
-  String action = uri.isEmpty ? 'publish' : 'update';
+  // A new item or an edited one - publish saves either
   String markdownUri =
-      type == 'home' ? '$urlHomeItem/publish' : '$urlShopItem/$action';
+      type == 'home' ? '$urlHomeItem/publish' : '$urlShopItem/publish';
   var request = http.MultipartRequest('POST', Uri.parse(markdownUri));
 
   try {

@@ -1,10 +1,10 @@
-import '/classes/classes.dart';
 import 'package:flutter/material.dart';
+import '/classes/classes.dart';
 import '/models/other_models.dart';
 import '/services/services.dart';
-import '/services/web_helper.dart';
-import '/constants.dart';
 
+/// Admin (web only): removes published trips from the server for good.
+/// Shown in the SideDrawer from the overflow menu.
 class DeleteTripsForm extends StatefulWidget {
   const DeleteTripsForm({super.key});
 
@@ -14,142 +14,84 @@ class DeleteTripsForm extends StatefulWidget {
 
 class _DeleteTripsFormState extends State<DeleteTripsForm> {
   final List<TripSummary> _drives = [];
-  bool editing = false;
-  TextInputAction action = TextInputAction.done;
+  late Future<bool> _loaded;
   int selected = 0;
 
   @override
   void initState() {
     super.initState();
+    _loaded = _loadTrips();
   }
 
-  Future<List<TripSummary>> _loadTrips(
-      {required List<TripSummary> tripSummaries}) async {
-    if (tripSummaries.isEmpty) {
-      try {
-        tripSummaries.addAll(await getTripSummaries(
-            northEast: ukNorthEast, southWest: ukSouthWest));
-      } catch (e) {
-        debugPrint('Error downloading trip summaries = ${e.toString()}');
-      }
-    }
-    return tripSummaries;
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
+  Future<bool> _loadTrips() async {
+    _drives
+      ..clear()
+      ..addAll(await getTripSummaries());
+    return true;
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.blue,
-      appBar: ScreensAppBar(
-        heading: 'Drives Admin',
-        prompt: 'Remove trips permanently from server', //_prompt,
-        updateHeading: 'You have marked trips for deletion.',
-        updateSubHeading: 'Delete trips or Ignore changes',
-        update: selected > 0,
-        showAction: selected > 0,
-        updateMethod: (_) => deleteTrips(trips: _drives),
+    return ScreensAppBarBottom(
+      heading: 'Remove trips',
+      prompt: 'Remove trips permanently from the server',
+      textColor: const Color.fromRGBO(1, 29, 51, 1),
+      content: FutureBuilder<bool>(
+        future: _loaded,
+        builder: (context, snapshot) => snapshot.hasData
+            ? portraitView()
+            : const Center(child: CircularProgressIndicator()),
       ),
-
-      body: FutureBuilder<List<TripSummary>>(
-        future: _loadTrips(tripSummaries: _drives),
-        builder: (BuildContext context, snapshot) {
-          if (snapshot.hasError) {
-            debugPrint('Snapshot has error: ${snapshot.error}');
-          } else if (snapshot.hasData) {
-            return portraitView();
-          } else {
-            return const SizedBox(
-              width: double.infinity,
-              height: double.infinity,
-              child: Align(
-                alignment: Alignment.center,
-                child: CircularProgressIndicator(),
-              ),
-            );
-          }
-          throw ('Error - FutureBuilder group.dart');
-        },
-      ), //portraitView(),
     );
   }
 
-  Column portraitView() {
+  Widget portraitView() {
+    if (_drives.isEmpty) {
+      return const Center(child: Text('There are no published trips.'));
+    }
     return Column(children: [
       Expanded(
-        child: SizedBox(
-          height: (MediaQuery.of(context).size.height -
-              AppBar().preferredSize.height -
-              kBottomNavigationBarHeight -
-              20 * 0.93), // 200,
-          child: ListView.builder(
-            itemCount: _drives.length,
-            itemBuilder: (context, index) => Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
-              child: Card(
-                child: CheckboxListTile(
-                  title: Column(children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            _drives[index].title,
-                            style: const TextStyle(
-                                fontSize: 18, fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      ],
-                    ),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(_drives[index].subTitle),
-                        ),
-                      ],
-                    ),
-                    Row(
-                      children: [
-                        StarRating(
-                            onRatingChanged: (val) =>
-                                {debugPrint('Rating $val')},
-                            rating: _drives[index].score)
-                      ],
-                    ),
-                  ]),
-                  value: _drives[index].id == 1,
-                  onChanged: (value) {
-                    setState(
-                      () {
-                        _drives[index].id = value! ? 1 : -1;
-                        selected += value ? 1 : -1;
-                      },
-                    );
-                  },
+        child: ListView.builder(
+          itemCount: _drives.length,
+          itemBuilder: (context, index) => Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            child: Card(
+              child: CheckboxListTile(
+                title: Text(_drives[index].title,
+                    style: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.bold)),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (_drives[index].subTitle.trim().isNotEmpty)
+                      Text(_drives[index].subTitle),
+                    if (_drives[index].author.isNotEmpty)
+                      Text('by ${_drives[index].author}'),
+                    StarRating(
+                        onRatingChanged: (_) {},
+                        rating: _drives[index].score),
+                  ],
                 ),
-                // ToDo: calculate how far away
+                value: _drives[index].id == 1,
+                onChanged: (value) => setState(() {
+                  _drives[index].id = value! ? 1 : -1;
+                  selected += value ? 1 : -1;
+                }),
               ),
             ),
           ),
         ),
       ),
-      Align(
-        alignment: Alignment.bottomLeft,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10),
+      Padding(
+        padding: const EdgeInsets.all(10),
+        child: Align(
+          alignment: Alignment.bottomLeft,
           child: ActionChip(
-            onPressed: () => deleteTrips(
-                trips: _drives), // deleteMember(widget.groupMember!.id),
+            onPressed: selected == 0 ? null : _confirmDelete,
             backgroundColor: Colors.blue,
-            avatar: const Icon(
-              Icons.delete,
-              color: Colors.white,
-            ),
-            label: Text('Delete $selected Trips',
+            disabledColor: Colors.blue.shade200, // until there's something to remove
+            avatar: const Icon(Icons.delete, color: Colors.white),
+            label: Text('Remove $selected trip${selected == 1 ? '' : 's'}',
                 style: const TextStyle(fontSize: 18, color: Colors.white)),
           ),
         ),
@@ -157,33 +99,43 @@ class _DeleteTripsFormState extends State<DeleteTripsForm> {
     ]);
   }
 
-  deleteTrips({required List<TripSummary> trips}) async {
-    List<Map<String, String>> items = [];
-    String uris = '';
-    for (TripSummary trip in trips) {
-      if (trip.id == 1) {
-        uris = "$uris, '${trip.uri}'";
-        if (uris.length > 30) {
-          items.add({'delete': uris.substring(2)});
-          uris = '';
-        }
-      }
-    }
-    if (uris.isNotEmpty) {
-      items.add({'delete': uris.substring(2)});
-    }
-    if (items.isNotEmpty) {
-      await deleteWebTrip(uriMap: items);
-    }
-    setState(() {
-      selected = 0;
-      trips.removeWhere((trip) => trip.id == 1);
-    });
+  /// There's no undo - the trips, their routes, points of interest and
+  /// images all go
+  Future<void> _confirmDelete() async {
+    bool? ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Remove $selected trip${selected == 1 ? '' : 's'}?'),
+        content: const Text('They are deleted from the server, with their '
+            'routes, points of interest and photos. This cannot be undone.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Remove')),
+        ],
+      ),
+    );
+    if (ok == true) await deleteTrips();
   }
 
-  void onConfirmDeleteMember(int value) {
-    if (value > -1) {
-      Navigator.pop(context);
+  Future<void> deleteTrips() async {
+    List<Map<String, String>> items = [
+      for (TripSummary trip in _drives)
+        if (trip.id == 1) {'delete': "'${trip.uri}'"}
+    ];
+    bool deleted = items.isNotEmpty && await deleteWebTrip(uriMap: items);
+    if (!mounted) return;
+    if (deleted) {
+      setState(() {
+        selected = 0;
+        _drives.removeWhere((trip) => trip.id == 1);
+      });
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("The trips couldn't be removed")));
     }
   }
 }

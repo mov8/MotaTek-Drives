@@ -286,6 +286,8 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
     BottomDrawerItems.markdownHome,
     BottomDrawerItems.markdownShop,
     BottomDrawerItems.messages,
+    BottomDrawerItems.deleteTrips,
+    BottomDrawerItems.deleteUser,
   };
   bool _singleForm = false;
 
@@ -410,6 +412,12 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
         case BottomDrawerItems.docs:
           _tiles = [DocumentationForm()];
           _offerRestore = true;
+          break;
+        case BottomDrawerItems.deleteTrips:
+          _tiles = [const DeleteTripsForm()];
+          break;
+        case BottomDrawerItems.deleteUser:
+          _tiles = [const DeleteUserForm()];
           break;
         case BottomDrawerItems.transfer:
           // Built by MyTripTile - synchronising a trip with the phone

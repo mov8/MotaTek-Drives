@@ -444,7 +444,7 @@ enum MapUpdates {
 
 enum GroupMemberState { none, isNew, registered, incomplete, complete, added }
 
-enum GroupAction { add, delete, edit, invite, uninvite, update, leave }
+enum GroupAction { add, delete, uninvite, update, leave }
 
 // enums HighLightActions TripActions TripState MapHeights
 // https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status#informational_responses
@@ -596,6 +596,8 @@ enum BottomDrawerItems {
   markdown, // <-- Markdown editor
   markdownHome, // <-- Markdown summary tile
   markdownShop, // <-- Markdown summary tile
+  deleteTrips, // <-- admin: remove published trips (web)
+  deleteUser, // <-- admin: stop a user using Drives (web)
   cached,
 }
 
@@ -690,6 +692,22 @@ List<Map<String, dynamic>> drawerOptions = [
       markdownData: {},
       dataType: 'shop',
     ) //Shop()
+  },
+  {
+    'key': 'deleteTrips',
+    'text': 'Remove trips',
+    'iconData': Icon(Icons.delete_sweep_outlined, size: 30),
+    'method': BottomDrawerItems.settings.index,
+    'drawer': BottomDrawerItems.deleteTrips,
+    'screen': DeleteTripsForm(),
+  },
+  {
+    'key': 'deleteUser',
+    'text': 'Remove user',
+    'iconData': Icon(Icons.person_off_outlined, size: 30),
+    'method': BottomDrawerItems.settings.index,
+    'drawer': BottomDrawerItems.deleteUser,
+    'screen': DeleteUserForm(),
   },
   {
     'key': 'goodRoad',
