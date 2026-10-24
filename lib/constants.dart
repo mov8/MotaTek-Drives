@@ -827,7 +827,6 @@ const String urlTextToSpeech = '${urlBase}v1/text_to_speech';
 const String urlMessage = '${urlBase}v1/message';
 const String urlPointOfInterest = '${urlBase}v1/point_of_interest';
 const String urlPointOfInterestRating = '${urlBase}v1/point_of_interest_rating';
-const String urlPolyline = '${urlBase}v1/polyline';
 const String urlOsmReview = '${urlBase}v1/osm_review';
 const String staticImagesFolder =
     '${urlBase}static/images'; // Now the same on development and production versions

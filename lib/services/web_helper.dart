@@ -449,27 +449,6 @@ Future<String> postWithPhotos(
   return '';
 }
 
-Future<List<mt.Route>> getDriveRoutes(
-    {required String driveUri, driveKey = -1}) async {
-  final http.Response response =
-      await getWebData(uri: Uri.parse('$urlPolyline/drive/$driveUri'));
-  debugPrint('getDriveRoutes response code: ${response.statusCode}');
-  if ([200, 201].contains(response.statusCode)) {
-    try {
-      List<dynamic> maps = jsonDecode(response.body);
-      return [
-        for (Map<String, dynamic> map in maps)
-          polylineFromMap(map: map, goodRoad: false, driveKey: driveKey)
-      ];
-    } catch (e) {
-      debugPrint('Error getPolylines: ${e.toString()}');
-      return [];
-    }
-  } else {
-    return [];
-  }
-}
-
 Future<List<mt.Route>> getGoodRoads(LatLng ne, LatLng sw) async {
   final Uri uri = Uri.parse(
       '$urlGoodRoad/location/${sw.latitude}/${ne.latitude}/${sw.longitude}/${ne.longitude}');
@@ -483,18 +462,6 @@ Future<List<mt.Route>> getGoodRoads(LatLng ne, LatLng sw) async {
     ];
   }
   return [];
-}
-
-Future<mt.Route?> getRoute(
-    {required String uriString, bool goodRoad = false}) async {
-  String stringUri =
-      goodRoad ? '$urlGoodRoad/$uriString' : '$urlPolyline/$uriString';
-  final http.Response response = await getWebData(uri: Uri.parse(stringUri));
-  if ([200, 201].contains(response.statusCode)) {
-    Map<String, dynamic> map = jsonDecode(response.body);
-    return polylineFromMap(map: map, goodRoad: goodRoad);
-  }
-  return null;
 }
 
 mt.Route polylineFromMap(
