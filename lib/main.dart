@@ -369,7 +369,9 @@ class _BaseShellScreen extends State<BaseShellScreen> {
       MapService().sideDrawerController?.setVisible(visible: true);
     }
     try {
-      // Setup().loaded gets jwt from SecureStorage and gets user and Setup() data from Hive
+      await Setup().loadToken();
+      // The rest - the position, refreshing the token, the user and the
+      // settings (from Hive) - carries on while the app starts
       Setup().loaded;
       await Hive.initFlutter(Setup().appDocumentDirectory);
     } catch (e) {

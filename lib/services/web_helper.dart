@@ -434,21 +434,6 @@ Future<String> postWithPhotos(
   return '';
 }
 
-Future<List<mt.Route>> getGoodRoads(LatLng ne, LatLng sw) async {
-  final Uri uri = Uri.parse(
-      '$urlGoodRoad/location/${sw.latitude}/${ne.latitude}/${sw.longitude}/${ne.longitude}');
-
-  final http.Response response = await getWebData(uri: uri);
-  if ([200, 201].contains(response.statusCode) && response.body.length > 10) {
-    List<dynamic> maps = jsonDecode(response.body);
-    return [
-      for (Map<String, dynamic> map in maps)
-        polylineFromMap(map: map, goodRoad: true)
-    ];
-  }
-  return [];
-}
-
 mt.Route polylineFromMap(
     {required Map<String, dynamic> map,
     bool goodRoad = false,
@@ -457,26 +442,6 @@ mt.Route polylineFromMap(
     lines: [],
     id: -1,
   );
-}
-
-Future<List<PointOfInterest>> getPointsOfInterest(ne, sw) async {
-  List<PointOfInterest> pointsOfInterest = [];
-
-  final http.Response response = await http
-      .get(
-        Uri.parse(
-            '$urlPointOfInterest/location/${sw.latitude}/${ne.latitude}/${sw.longitude}/${ne.longitude}'),
-        headers: webHeader(),
-      )
-      .timeout(const Duration(seconds: 20));
-  if ([200, 201].contains(response.statusCode) && response.body.length > 10) {
-    List pois = jsonDecode(response.body);
-    for (int i = 0; i < pois.length; i++) {
-      pointsOfInterest.add(PointOfInterest.fromMap(map: pois[i]));
-    }
-  }
-
-  return pointsOfInterest;
 }
 
 Future<bool> postOsmReview({required Map<String, dynamic> reviewMap}) async {
@@ -505,23 +470,6 @@ Future<List<dynamic>> getOsmReviews({required String osmId}) async {
   }
 }
 
-Future<PointOfInterest> getPointOfInterest(
-    {String uri = '', int index = 0}) async {
-  final http.Response response = await http
-      .get(
-        Uri.parse('$urlPointOfInterest/$uri'),
-        headers: webHeader(),
-      )
-      .timeout(const Duration(seconds: 10));
-  if ([200, 201].contains(response.statusCode) && response.body.length > 10) {
-    dynamic map = jsonDecode(response.body);
-    PointOfInterest pointOfInterest = PointOfInterest.fromMap(map: map);
-    return pointOfInterest;
-  } else {
-    return PointOfInterest(name: '');
-  }
-}
-
 String endpoint(
     {required String driveUri,
     required String pointOfInterestUri,
@@ -541,35 +489,6 @@ List<String> webUrls(
     return urls;
   }
   return [];
-}
-
-Future<String> postManeuver(Maneuver maneuver, String driveUid) async {
-  final http.Response response = await postWebData(
-      uri: Uri.parse('$urlManeuver/add'),
-      body: jsonEncode(maneuver.toMap(driveUid: driveUid)));
-  if ([200, 201].contains(response.statusCode)) {
-    return jsonEncode({'code': response.statusCode});
-  } else {
-    return jsonEncode({'token': '', 'code': response.statusCode});
-  }
-}
-
-Future<String> postManeuvers(List<Maneuver> maneuvers, String driveUid) async {
-  List<Map<String, dynamic>> maps = [];
-  for (int i = 0; i < maneuvers.length; i++) {
-    maps.add(maneuvers[i].toMap(driveUid: driveUid));
-  }
-
-  if (maps.isEmpty) {
-    return jsonEncode({'message': 'no maneuvers to post'});
-  }
-  final http.Response response = await postWebData(
-      uri: Uri.parse('$urlManeuver/add'), body: jsonEncode(maps), secure: true);
-  if (response.statusCode == 201) {
-    return jsonEncode({'code': response.statusCode});
-  } else {
-    return jsonEncode({'token': '', 'code': response.statusCode});
-  }
 }
 
 /// getFeatures returns all the features from the API
@@ -761,21 +680,6 @@ putPointOfInterestRating(String uri, double score) async {
       headers: webHeader(secure: true),
       body: jsonEncode(map));
   if ([200, 201].contains(response.statusCode)) {}
-}
-
-Future<Map<String, dynamic>> getPointOfInterestRating(String uri) async {
-  Map<String, dynamic> rating = {'rating': '0.0'};
-  final http.Response response = await http
-      .get(
-        Uri.parse('$urlPointOfInterestRating/$uri'),
-        headers: webHeader(),
-      )
-      .timeout(const Duration(seconds: 10));
-  if (response.statusCode == 200) {
-    rating = jsonDecode(response.body);
-  }
-
-  return rating;
 }
 
 /// Gets all the information about a trip in one json object from the api

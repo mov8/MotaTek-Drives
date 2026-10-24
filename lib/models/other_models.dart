@@ -287,7 +287,26 @@ class Setup {
   factory Setup() {
     return _instance;
   }
-  FlutterSecureStorage? _storage;
+  final FlutterSecureStorage _storage = FlutterSecureStorage(
+    webOptions: WebOptions(
+      dbName: 'MotatekSecure',
+      publicKey: 'Config',
+    ),
+    // iOS-specific configuration
+    iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
+  );
+
+  /// The saved login token. Start-up waits for this - and only this, as the
+  /// rest of loaded can take a while - so the first pages ask the API with
+  /// it: Home asked before it was read, so a club's items didn't show
+  Future<void> loadToken() async {
+    try {
+      jwt = await _storage.read(key: 'jwt') ?? '';
+    } catch (e) {
+      developer.log('Error reading the saved token: ${e.toString()}',
+          name: 'error');
+    }
+  }
 
   /// Setup().loaded ensures Setup singleton has been instantiated, and looks to see if a
   /// silent login is possible by retrieving the jwt either from secure storage on
@@ -298,14 +317,6 @@ class Setup {
   /// LoginDialog Class.
 
   Future<bool> get loaded async {
-    _storage = FlutterSecureStorage(
-      webOptions: WebOptions(
-        dbName: 'MotatekSecure',
-        publicKey: 'Config',
-      ),
-      // iOS-specific configuration
-      iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
-    );
     // Images, the cache and voice memos are stored under the documents
     // directory - this was lost in the move from SQLite to Hive
     if (!kIsWeb) {
@@ -323,7 +334,7 @@ class Setup {
     lastPosition = await getPosition();
 
     try {
-      jwt = await _storage!.read(key: 'jwt') ?? '';
+      jwt = await _storage.read(key: 'jwt') ?? '';
       if (jwt.isNotEmpty) {
         String? newJwt = await refreshToken();
         if (newJwt == null) {
@@ -333,11 +344,11 @@ class Setup {
           // user as registered (e.g. offering Publish, which the server
           // would refuse) until they log in again
           jwt = '';
-          await _storage!.delete(key: 'jwt');
+          await _storage.delete(key: 'jwt');
         } else {
           jwt = newJwt;
           hasLoggedIn = true;
-          await _storage!.write(key: 'jwt', value: jwt);
+          await _storage.write(key: 'jwt', value: jwt);
         }
         MapService().persistentAppBarController?.update('');
       }
@@ -418,7 +429,7 @@ class Setup {
   /// Saves the login token, the user and the settings. The writes weren't
   /// awaited, and the settings weren't saved at all.
   Future<void> save() async {
-    await _storage!.write(key: 'jwt', value: jwt);
+    await _storage.write(key: 'jwt', value: jwt);
     UserRepository userRepository = UserRepository();
     await userRepository.saveUser(user);
     await userRepository.saveSetup();
@@ -430,7 +441,7 @@ class Setup {
   /// The Web version will only save the JWT but will have to retrieve the
   /// setup Json Object from the api that contains full user details and colours etc
   Future<void> saveUser() async {
-    await _storage!.write(key: 'jwt', value: jwt);
+    await _storage.write(key: 'jwt', value: jwt);
     saveUserLocally(user);
   }
 
