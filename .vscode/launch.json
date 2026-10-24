@@ -33,7 +33,9 @@
             "request": "launch",
             "type": "dart",
             "flutterMode": "debug",
-            "args": ["--web-port", "56684"]
+            // Below 49152: Windows reserves blocks of the ports above that
+            // (Hyper-V / WSL), which change on reboot - 56684 got caught
+            "args": ["--web-port", "8090"]
         }
     ]
 }
