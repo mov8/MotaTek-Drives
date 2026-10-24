@@ -1,5 +1,4 @@
 import '/classes/classes.dart';
-import '/services/services.dart';
 import 'package:flutter/material.dart';
 import '/models/models.dart';
 import '/constants.dart';
@@ -349,7 +348,7 @@ class _GroupDriveInvitationTileState extends State<GroupDriveInvitationTile> {
                         IconButton(
                             icon: Icon(inviteIcons[2]),
                             onPressed: () =>
-                                widget.onRespond!(widget.index, 2) //respond(2),
+                                widget.onRespond!(widget.index, 2),
                             ),
                         Align(
                           alignment: Alignment.center,
@@ -432,11 +431,6 @@ class _GroupDriveInvitationTileState extends State<GroupDriveInvitationTile> {
         : textStyle(context: context, color: Colors.black, size: 3).copyWith(
             decoration: TextDecoration.none, fontWeight: FontWeight.normal);
     return style;
-  }
-
-  respond(value) async {
-    widget.eventInvitation.accepted = value;
-    answerInvitation(widget.eventInvitation).then((val) => setState(() {}));
   }
 
   changeRating(value) {}

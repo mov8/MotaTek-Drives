@@ -359,8 +359,9 @@ class _DriveInvitationsState extends State<DriveInvitations>
   }
 
   sendInvitations() async {
-    if (widget.myTripItem.published) {
-      publish(widget.myTripItem);
+    // The API needs the trip before it can be a group drive
+    if (!widget.myTripItem.published) {
+      await publish(widget.myTripItem);
       widget.myTripItem.savePrivate();
     }
 

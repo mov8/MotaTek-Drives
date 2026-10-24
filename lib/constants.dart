@@ -451,7 +451,7 @@ enum GroupAction { add, delete, uninvite, update, leave }
 
 const List<String> settlementTypes = ['city', 'town', 'village', 'hamlet'];
 DateFormat dateFormat = DateFormat('dd/MM/yy');
-DateFormat dateFormatSQL = DateFormat('yyyy-MM-dd hh:mm:ss');
+DateFormat dateFormatSQL = DateFormat('yyyy-MM-dd HH:mm:ss');
 DateFormat dateFormatDoc = DateFormat('E dd/MM/yyyy');
 DateFormat dateFormatDocTime = DateFormat('E dd/MM/yyyy hh:mm:ss');
 
@@ -835,7 +835,6 @@ const String urlGoodRoad = '${urlBase}v1/good_road';
 const String urlGroup = '${urlBase}v1/group';
 const String urlGroupDrive = '${urlBase}v1/group_drive';
 const String urlGroupDriveInvitation = '${urlBase}v1/group_drive_invitation';
-const String urlGroupMember = '${urlBase}v1/group_member';
 const String urlHomeItem = '${urlBase}v1/home_item';
 const String urlShopItem = '${urlBase}v1/shop_item';
 const String urlIntroduced = '${urlBase}v1/introduced';

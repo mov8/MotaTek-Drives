@@ -832,26 +832,6 @@ Future<String> getDocs() async {
   return 'error: ${response.statusCode}';
 }
 
-Future<List<GroupMember>> getIntroduced() async {
-  List<GroupMember> introduced = [];
-  try {
-    final http.Response response = await http
-        .get(
-          Uri.parse('$urlIntroduced/get'),
-          headers: webHeader(),
-        )
-        .timeout(const Duration(seconds: 10));
-    if (response.statusCode == 200) {
-      var members = jsonDecode(response.body);
-      introduced = [
-        for (Map<String, dynamic> memberMap in members)
-          GroupMember.fromMap(memberMap)
-      ];
-    }
-  } catch (e) {}
-  return introduced;
-}
-
 Future<bool> putIntroduced(Map<String, dynamic> invitee) async {
   final http.Response response = await http.post(
       Uri.parse('$urlIntroduced/put'),
@@ -971,41 +951,6 @@ Future<List<Group>> getManagedGroups() async {
   }
 }
 
-Future<List<GroupMember>> getManagedGroupMembers(String groupId) async {
-  try {
-    final http.Response response = await getWebData(
-        uri: Uri.parse('$urlGroupMember/members/$groupId'), secure: true);
-    if ([200, 201].contains(response.statusCode)) {
-      var groups = jsonDecode(response.body);
-      return [
-        for (Map<String, dynamic> groupData in groups)
-          GroupMember.fromApiMap(groupData)
-      ];
-    } else {
-      return [];
-    }
-  } catch (e) {
-    return [];
-  }
-}
-
-Future<List<Group>> getGroups() async {
-  try {
-    final http.Response response =
-        await getWebData(uri: Uri.parse('$urlGroup/get'), secure: true);
-    if ([200, 201].contains(response.statusCode)) {
-      var groups = jsonDecode(response.body);
-      return [
-        for (Map<String, dynamic> groupData in groups) Group.fromMap(groupData)
-      ];
-    } else {
-      return [];
-    }
-  } catch (e) {
-    return [];
-  }
-}
-
 Future<bool> serverListening() async {
   try {
     final http.Response response = await http
@@ -1076,58 +1021,6 @@ Future<Map<String, dynamic>> updateGroups(
       body: jsonEncode(groupsMaps),
       secure: true,
       timeout: 5);
-  if ([200, 201].contains(response.statusCode)) {
-    return {'msg': 'OK'};
-  }
-  return {'msg': 'error'};
-}
-
-Future<Map<String, dynamic>> updateGroup({required Group group}) async {
-  Map<String, dynamic> groupMap = group.toMap();
-  final http.Response response = await postWebData(
-      uri: Uri.parse('$urlGroup/update'),
-      body: jsonEncode(groupMap),
-      secure: true,
-      timeout: 5);
-  if ([200, 201].contains(response.statusCode)) {
-    return {'msg': 'OK'};
-  }
-  return {'msg': 'error'};
-}
-
-Future<Map<String, dynamic>> deleteGroupMember(
-    {required String groupMemberId}) async {
-  final http.Response response = await postWebData(
-      uri: Uri.parse('$urlGroupMember/delete'),
-      body: jsonEncode({'id': groupMemberId}),
-      secure: true,
-      timeout: 5);
-  if ([200, 201].contains(response.statusCode)) {
-    return {'msg': 'OK'};
-  }
-  return {'msg': 'error'};
-}
-
-Future<List<GroupDrive>> getGroupDrives() async {
-  try {
-    final http.Response response = await getWebData(
-        uri: Uri.parse('$urlGroupDrive/pending'), secure: true, timeout: 5);
-    if ([200, 201].contains(response.statusCode)) {
-      List<dynamic> groups = jsonDecode(response.body);
-      return [for (Map<String, dynamic> map in groups) GroupDrive.fromMap(map)];
-    } else {
-      return [];
-    }
-  } catch (e) {
-    return [];
-  }
-}
-
-Future<Map<String, dynamic>> deleteGroupDrive(
-    {required String groupDriveId}) async {
-  final http.Response response = await postWebData(
-      uri: Uri.parse('$urlGroupDrive/delete'),
-      body: jsonEncode({'group_drive_id': groupDriveId}));
   if ([200, 201].contains(response.statusCode)) {
     return {'msg': 'OK'};
   }
@@ -1245,16 +1138,6 @@ Future<String> putMessage(Group group, Message message) async {
       body: '{"group_id": ${group.id}, "message": ${message.message}}');
   if ([200, 201].contains(response.statusCode)) {
     return jsonDecode(response.body);
-  }
-  return '';
-}
-
-Future<String> putGroup(Map<String, dynamic> groupData) async {
-  final http.Response response = await postWebData(
-      uri: Uri.parse('${urlBase}v1/group/add'), body: jsonEncode(groupData));
-  if ([200, 201].contains(response.statusCode)) {
-    dynamic responseData = jsonDecode(response.body);
-    return responseData['id'] ?? '';
   }
   return '';
 }
@@ -1434,40 +1317,6 @@ Future<List<EventInvitation>> getInvitationsByUser({int state = 0}) async {
   return [];
 }
 
-Future<List<EventInvitation>> getInvitationsByUserNew() async {
-  try {
-    final http.Response response = await getWebData(
-        uri:
-            Uri.parse('$urlGroupDriveInvitation/my_drives/01-01-2025 00:00:00'),
-        secure: true);
-
-    if ([200, 201].contains(response.statusCode)) {
-      var invitations = jsonDecode(response.body);
-      return [
-        for (Map<String, dynamic> invitation in invitations)
-          EventInvitation.fromByUserMap(invitation)
-      ];
-    }
-  } catch (e) {}
-  return [];
-}
-
-Future<List<EventInvitation>> getInvitationsByEvent(
-    {String eventId = ''}) async {
-  try {
-    final http.Response response = await getWebData(
-        uri: Uri.parse('$urlGroupDriveInvitation/trip/$eventId'));
-    if ([200, 201].contains(response.statusCode)) {
-      var invitations = jsonDecode(response.body);
-      return [
-        for (Map<String, dynamic> invitation in invitations)
-          EventInvitation.fromByEventMap(invitation)
-      ];
-    }
-  } catch (e) {}
-  return [];
-}
-
 Future<bool> respondToInvitations(
     {required Map<String, dynamic> responses}) async {
   final http.Response response = await postWebData(
@@ -1486,22 +1335,6 @@ Future<int> inviteWebUser({required String body}) async {
   http.Response response =
       await postWebData(uri: uri, body: body, secure: true);
   return response.statusCode;
-}
-
-Future<List<EventInvitation>> getInvitationsToAlter(
-    {String eventId = ''}) async {
-  try {
-    final http.Response response = await getWebData(
-        uri: Uri.parse('$urlGroupDriveInvitation/alter/$eventId'));
-    if ([200, 201].contains(response.statusCode)) {
-      var invitations = jsonDecode(response.body);
-      return [
-        for (Map<String, dynamic> invitation in invitations)
-          EventInvitation.fromByUserToAlterMap(invitation)
-      ];
-    }
-  } catch (e) {}
-  return [];
 }
 
 Future<List<GroupDriveByGroup>> getMembersByGroup() async {
@@ -1546,20 +1379,6 @@ Future<List<GroupEvent>> getMembersByDrive({DateTime? startDate}) async {
   }
 }
 
-Future<String> postGroupDriveInvitations(
-    List<EventInvitation> invitations) async {
-  List<Map<String, dynamic>> map = [
-    for (EventInvitation invite in invitations)
-      if (invite.selected) invite.toMap()
-  ];
-  final http.Response response = await postWebData(
-      uri: Uri.parse('$urlGroupDriveInvitation/update'), body: jsonEncode(map));
-  if ([200, 201].contains(response.statusCode)) {
-    return response.body;
-  }
-  return '';
-}
-
 Future<String> postGroupDrive(
     {required Map<String, dynamic> invitations}) async {
   final http.Response response = await postWebData(
@@ -1570,15 +1389,6 @@ Future<String> postGroupDrive(
     return response.body;
   }
   return '';
-}
-
-Future<bool> answerInvitation(EventInvitation invitation) async {
-  final http.Response response = await postWebData(
-      uri: Uri.parse('$urlGroupDriveInvitation/respond'),
-      secure: true,
-      body: jsonEncode(
-          {"invitation_id": invitation.id, "response": invitation.accepted}));
-  return [200, 201].contains(response.statusCode);
 }
 
 Future<List<Follower>> getDrivers(
@@ -1597,23 +1407,6 @@ Future<List<Follower>> getDrivers(
     return followers;
   } else {
     return [];
-  }
-}
-
-Future<bool> sendDriverDetails(Follower driver) async {
-  try {
-    final http.Response response = await postWebData(
-        uri: Uri.parse('$urlGroupDriveInvitation/car_details'),
-        body: jsonEncode(driver.toMap()),
-        secure: true);
-    if (response.statusCode == 200) {
-      return true;
-    } else {
-      return false;
-    }
-  } catch (e) {
-    debugPrint("Can't send driver details to the web: ${e.toString()}");
-    return false;
   }
 }
 
@@ -1643,19 +1436,4 @@ Future<bool> checkEmail({required String email}) async {
     debugPrint('Error ${e.toString()}');
     return false;
   }
-}
-
-Future<List<GroupMember>> getGroupMembers() async {
-  try {
-    final http.Response response =
-        await getWebData(uri: Uri.parse('$urlIntroduced/get'), secure: true);
-    if (response.statusCode == 200) {
-      var members = jsonDecode(response.body);
-      return [
-        for (Map<String, dynamic> memberMap in members)
-          GroupMember.fromMap(memberMap)
-      ];
-    }
-  } catch (e) {}
-  return [];
 }

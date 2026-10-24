@@ -820,19 +820,6 @@ class GroupMember {
     );
   }
 
-  factory GroupMember.fromApiMap(Map<String, dynamic> map) {
-    return GroupMember(
-      id: map['group_member_id'],
-      userId: map['user_id'],
-      groupId: map['group_id'],
-      forename: map['member_forename'],
-      surname: map['member_surname'],
-      email: map['member_email'],
-      phone: map['member_phone'] ?? '',
-      selected: (map['registered'] ?? 1) == 1,
-    );
-  }
-
 // Getter for edited have to use this because ints are passed by value not by reference
   bool get edited => isEdited == 'true';
 // Setter for edited
@@ -862,36 +849,6 @@ class GroupMember {
       'phone': phone,
       'added': DateTime.now().toIso8601String(),
     };
-  }
-}
-
-class GroupDrive {
-  String driveId;
-  String groupDriveId;
-  String name;
-  int accepted;
-  int pending;
-  DateTime driveDate;
-  int index = 0;
-  bool selected = false;
-  GroupDrive(
-      {this.driveId = '',
-      this.groupDriveId = '',
-      this.name = '',
-      this.accepted = 0,
-      this.pending = 0,
-      driveDate})
-      : driveDate = driveDate ?? DateTime.now();
-
-  factory GroupDrive.fromMap(Map<String, dynamic> map) {
-    return GroupDrive(
-      driveId: map['drive_id'],
-      groupDriveId: map['group_drive_id'],
-      name: map['drive_name'],
-      accepted: int.parse(map['accepted']),
-      pending: int.parse(map['pending']),
-      driveDate: DateTime.parse(map['drive_date']),
-    );
   }
 }
 
@@ -1006,29 +963,6 @@ class EventInvitation {
       id: map['invitation_id'] ?? '',
       invitationDate: DateTime.parse(map['invitation_date']),
       accepted: int.parse(map['accepted']),
-    );
-  }
-
-  factory EventInvitation.fromByEventMap(Map<String, dynamic> map) {
-    return EventInvitation(
-      forename: map['invitee_forename'],
-      surname: map['invitee_surname'],
-      phone: map['invitee_phone'],
-      email: map['invitee_email'],
-      id: map['invitation_id'] ?? '',
-      invitationDate: DateTime.parse(map['invitation_date']),
-      accepted: int.parse(map['accepted']),
-    );
-  }
-  factory EventInvitation.fromByUserToAlterMap(Map<String, dynamic> map) {
-    return EventInvitation(
-      forename: map['invitee_forename'],
-      surname: map['invitee_surname'],
-      phone: map['invitee_phone'],
-      email: map['invitee_email'],
-      id: map['invitation_id'] ?? '',
-      accepted: int.parse(map['accepted']),
-      driveId: map['group_drive_id'],
     );
   }
 
