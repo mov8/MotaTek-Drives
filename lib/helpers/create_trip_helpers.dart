@@ -101,6 +101,11 @@ String setAvoiding() {
 ///   2 All waypoints are added to the routes.waypoints[] list so even for a new route the waypoints already
 ///     belong to that route.
 
+/// How the router is asked for a route - a test replaces it with a fake
+/// router, so trip editing can be tested without the network
+@visibleForTesting
+Future<http.Response> Function(Uri url) routerHttpGet = (url) => http.get(url);
+
 Future<RouterData> getRouterData(
     {required Route route,
     bool addPoints = true,
@@ -131,7 +136,7 @@ Future<RouterData> getRouterData(
   var url = Uri.parse(
       '$urlRouter$waypoints?steps=true&annotations=true&geometries=geojson&overview=full$avoid');
   try {
-    var response = await http.get(url).timeout(const Duration(seconds: 20));
+    var response = await routerHttpGet(url).timeout(const Duration(seconds: 20));
     if ([200, 201].contains(response.statusCode)) {
       jsonResponse = jsonDecode(response.body);
       if (jsonResponse == null) {

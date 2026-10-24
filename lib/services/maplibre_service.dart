@@ -975,6 +975,7 @@ class MapService {
       {required MapUpdates mapUpdates,
       MapUpdates? exitMapUpdates,
       Point? centre}) async {
+    if (controller == null) return; // no map yet - e.g. in a test
     centre ??= Point(controller!.cameraPosition!.target.longitude,
         controller!.cameraPosition!.target.latitude);
     if (mapUpdates != MapUpdates.none && !mapUpdates.isUpdating) {

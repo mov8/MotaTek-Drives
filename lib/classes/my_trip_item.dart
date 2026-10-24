@@ -1369,10 +1369,11 @@ class CurrentTripItem extends MyTripItem {
           }
         }
       }
-      LatLng target = MapService().controller!.cameraPosition!.target;
-      point = point == null || point.x == 0
-          ? Point(target.longitude, target.latitude)
-          : point;
+      // No point given - the waypoint goes under the crosshair
+      if (point == null || point.x == 0) {
+        LatLng target = MapService().controller!.cameraPosition!.target;
+        point = Point(target.longitude, target.latitude);
+      }
       // A waypoint added during a great road is flagged as part of it
       Waypoint waypoint = Waypoint(
           point: point,
@@ -1531,7 +1532,7 @@ class CurrentTripItem extends MyTripItem {
     MapService().webAppBarController?.update();
     MapService().persistentAppBarController?.refresh();
     // Micro-nudge to update MapLibre the nudge causes the onIdle callback to be called
-    await MapService().controller!.animateCamera(CameraUpdate.zoomBy(0.000001));
+    await MapService().controller?.animateCamera(CameraUpdate.zoomBy(0.000001));
   }
 
   /// removeWaypoint() works in both manual and editing modes.
@@ -1760,16 +1761,33 @@ class CurrentTripItem extends MyTripItem {
             }
           }
 
-          /// Add next 2 lines to ensure the waypoint can be extracted from the maneuvers
-          newManeuvers.last.type = 'arrive';
-          newManeuvers.last.point = routes.last.waypoints.last.point;
+          /// The last maneuver arrives at the last waypoint. A route with no
+          /// turns has only its depart left - it needs an arrive of its own,
+          /// or the depart became the arrive and the Start moved to the end
+          Point end = routes.last.waypoints.last.point;
+          if (newManeuvers.length == 1) {
+            newManeuvers.add(Maneuver(
+                roadFrom: newManeuvers.first.roadTo,
+                roadTo: newManeuvers.first.roadTo,
+                exit: 0,
+                bearingBefore: 0,
+                bearingAfter: 0,
+                point: end,
+                modifier: '',
+                type: 'arrive',
+                distance: 0));
+          } else {
+            newManeuvers.last.type = 'arrive';
+            newManeuvers.last.point = end;
+          }
           maneuvers = isGoodRoad ? maneuvers : newManeuvers;
           reorderWaypoints(
             revisit: revisit,
           );
-        } else {
-          routes = [];
         }
+        // The router didn't answer (no signal, or the server is down): the
+        // routes are returned as they were. It used to return none, so
+        // adding a waypoint without a connection wiped the whole trip.
       } catch (e) {
         developer.log('Error replaceRoutes() ${e.toString()}', name: 'error');
       }
