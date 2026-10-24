@@ -306,23 +306,6 @@ Future<Map<String, dynamic>> getSetup(int id) async {
   return {};
 }
 
-Future<int> testApi() async {
-  Map<String, dynamic> apiData = {
-    'uri': '',
-  };
-  dynamic response;
-  try {
-    var request =
-        http.MultipartRequest('POST', Uri.parse('$urlDrive/test_api'));
-    request.headers['Authorization'] = 'Bearer ${Setup().jwt}';
-    request.fields['data'] = jsonEncode(apiData);
-    response = await request.send().timeout(const Duration(seconds: 30));
-  } catch (e) {
-    debugPrint('Error was: ${e.toString()}');
-  }
-  return response.statusCode;
-}
-
 Future<dynamic> publish(MyTripItem tripItem) async {
   Map<String, dynamic> apiData = tripItem.toJson();
   dynamic response;
@@ -594,33 +577,6 @@ Future<String> postManeuvers(List<Maneuver> maneuvers, String driveUid) async {
 /// type 2: points of interest excluding type 12 ad 16
 /// type 3: good roads
 
-Future<List<Feature>> getFeatures(
-    {double zoom = 12,
-    required Function onTap,
-    Map<String, int>? pointOfInterestLookup}) async {
-  http.Response response =
-      await getWebData(uri: Uri.parse('$urlDrive/features'));
-  if (response.statusCode == 200) {
-    List<dynamic> dataJson = jsonDecode(response.body);
-    int row = 0;
-    List<Feature> features = [];
-    for (Map<String, dynamic> map in dataJson) {
-      Feature feature = Feature.fromMap(
-          map: map, row: row++, size: zoom * 5, onTap: () => onTap);
-      if (pointOfInterestLookup != null && feature.poiType == 13) {
-        try {
-          pointOfInterestLookup[feature.uri] = feature.row;
-        } catch (e) {
-          debugPrint('Error updating lookup: ${e.toString()}');
-        }
-      }
-      features.add(feature);
-    }
-    return features;
-  }
-  return [];
-}
-
 /// Every published trip, newest first - for the admin screens (admins only)
 Future<List<TripSummary>> getTripSummaries() async {
   List<TripSummary> summaries = [];
@@ -737,19 +693,6 @@ Future<TripItem?> getTrip(
     }
   }
   return null;
-}
-
-Future<bool> deletePrivateDrive({required String uri}) async {
-  Map<String, String> headers = {
-    'Authorization': 'Bearer ${Setup().jwt}',
-    "Content-Type": "application/json; charset=UTF-8"
-  };
-  var body = jsonEncode({'uri': uri});
-
-  final http.Response response = await http
-      .post(Uri.parse('$urlDrive/delete_private'), headers: headers, body: body)
-      .timeout(const Duration(seconds: 20));
-  return response.statusCode == 200;
 }
 
 String imageListToString({required imageList}) {

@@ -42,7 +42,8 @@ class Route {
         lines: dynamicToDouble(dynamicList: jsonDecode(map['lines'] ?? [[]])),
         shields:
             dynamicToDouble(dynamicList: jsonDecode(map['shields'] ?? [[]])),
-        waypoints: waypoints);
+        waypoints: waypoints,
+        pointOfInterestUri: map['point_of_interest_uri'] ?? '');
   }
 
   factory Route.fromGeoJson(
@@ -67,6 +68,9 @@ class Route {
       "lines": json.encode(lines),
       "shields": jsonEncode(shields),
       "waypoints": jsonFromWaypoints(waypoints: waypoints),
+      // a great road's description - it was lost when a trip was saved,
+      // and the API couldn't link a published great road to it
+      "point_of_interest_uri": pointOfInterestUri,
     };
   }
 }

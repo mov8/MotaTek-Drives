@@ -118,6 +118,32 @@ void main() {
     });
   });
 
+  group('a great road keeps its description', () {
+    // A great road is a Route whose pointOfInterestUri links it to its
+    // description. toMap() didn't save it, so a reloaded trip lost the link
+    // and the API couldn't connect a published great road to it.
+    test('saved and loaded again (toMap / fromMap)', () {
+      Route road = Route(
+          uri: 'r1', lines: [[-0.5, 51.4], [-0.6, 51.5]], pointOfInterestUri: 'poi9');
+      Route again = Route.fromMap(map: road.toMap());
+      expect(again.pointOfInterestUri, 'poi9');
+      expect(again.lines, road.lines);
+    });
+
+    test('loaded from the API', () {
+      MyTripItem trip = MyTripItem.fromApiJson({
+        'good_roads': [
+          {
+            'uri': 'g1',
+            'lines': '{"type": "LineString", "coordinates": [[-0.5, 51.4], [-0.6, 51.5]]}',
+            'point_of_interest_uri': 'poi9',
+          }
+        ]
+      });
+      expect(trip.goodRoads.single.pointOfInterestUri, 'poi9');
+    });
+  });
+
   group('TripSummary.fromMap', () {
     test('reads the admin list (drive/summaries), score as a double', () {
       TripSummary s = TripSummary.fromMap(map: {

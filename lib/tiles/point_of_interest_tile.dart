@@ -1,5 +1,4 @@
 import 'package:universal_io/universal_io.dart';
-import 'dart:convert';
 import 'dart:collection';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
@@ -774,15 +773,6 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
           CurrentTripItem().refreshMap(change: MapUpdates.pointsOfInterest),
       backgroundColor: Colors.blueAccent,
     );
-  }
-
-  List<String> getImageUrls(PointOfInterest pointOfInterest) {
-    var pics = jsonDecode(pointOfInterest.images);
-    return [
-      for (var pic in pics)
-        Uri.parse('$urlDrive/images${pointOfInterest.uuid}${pic['url']}')
-            .toString()
-    ];
   }
 
   int getIconIndex({required int iconIndex, int fallback = 0}) {

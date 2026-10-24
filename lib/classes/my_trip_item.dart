@@ -2256,7 +2256,8 @@ class MyTripItem extends TripItem {
             Route(
                 uri: route['uri'] ?? '',
                 lines: line(route['lines']),
-                shields: line(route['shields']))
+                shields: line(route['shields']),
+                pointOfInterestUri: route['point_of_interest_uri'] ?? '')
         ];
 
     return MyTripItem(
