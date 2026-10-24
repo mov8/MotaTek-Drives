@@ -225,7 +225,8 @@ Future<void> getUserDetails({required String email}) async {
   if ([200, 201].contains(response.statusCode)) {
     try {
       Map<String, dynamic> data = jsonDecode(response.body);
-      Setup().jwt = data['token'] ?? '';
+      // (it set Setup().jwt from a 'token' this route never sends, which
+      // logged you out)
       Setup().user.forename = data['forename'] ?? '';
       Setup().user.surname = data['surname'] ?? '';
       Setup().user.email = email;
