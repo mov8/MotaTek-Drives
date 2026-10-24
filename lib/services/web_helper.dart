@@ -220,7 +220,8 @@ Future<String?> refreshToken() async {
 
 Future<void> getUserDetails({required String email}) async {
   final http.Response response =
-      await getWebData(uri: Uri.parse('$urlUser/user/$email'));
+      // your own details - the API needs the login token
+      await getWebData(uri: Uri.parse('$urlUser/user/$email'), secure: true);
   if ([200, 201].contains(response.statusCode)) {
     try {
       Map<String, dynamic> data = jsonDecode(response.body);

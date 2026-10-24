@@ -15,7 +15,6 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreen extends State<LoginScreen> {
-  List<String> registered = [];
   final FocusNode emFocusNode = FocusNode();
   final FocusNode pwFocusNode = FocusNode();
   final FocusNode fnFocusNode = FocusNode();
@@ -169,34 +168,19 @@ class _LoginScreen extends State<LoginScreen> {
                             setState(() => loginStatus = LoginStatus.noData);
                           }
 
-                          /// If a possible email then get a list of all emails matching the
-                          /// data entered so far
-                          bool found = false;
-                          if (user.email.contains('.') &&
-                              user.email.contains('@')) {
-                            if (registered.isEmpty) {
-                              registered = await getApiOptions(
-                                  value: user.email, secure: false);
-                              found = registered.length == 1;
-                            } else {
-                              found = false;
-                              for (String email in registered) {
-                                found = found
-                                    ? found
-                                    : email.startsWith(user.email);
-                              }
-                              if (!found) {
-                                registered.clear();
-                              }
+                          /// A registered email moves on to the password. (It used to fetch every
+                          /// registered email starting with what was typed and fill one in - so
+                          /// anyone could find out other people's emails.)
+                          if (emailRegex.hasMatch(user.email)) {
+                            String typed = user.email;
+                            bool found = await checkEmail(email: typed);
+                            // still the same email once the answer arrives
+                            if (found && typed == user.email && mounted) {
+                              user.password = '';
+                              controllerPw.clear();
+                              loginStatus = LoginStatus.emailKnown;
+                              setState(() => pwFocusNode.requestFocus());
                             }
-                          }
-                          if (emailRegex.hasMatch(user.email) && found) {
-                            controllerEm.text = registered.first;
-                            user.email = registered.first;
-                            user.password = '';
-                            controllerPw.clear();
-                            loginStatus = LoginStatus.emailKnown;
-                            setState(() => pwFocusNode.requestFocus());
                           }
                         },
                         onSubmitted: (text) async {
