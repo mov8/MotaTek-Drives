@@ -122,6 +122,8 @@ class PositionService {
     if (tripState == TripState.tracking) {
       await _extendTrackedRoute(position);
     }
+    // The others in a group drive see this car move
+    GroupDriveService().updatePosition(position.point);
     // Redraws the speed and, when following, the directions, which work
     // from tripValues.position
     MapService().createTripStackController?.refresh();

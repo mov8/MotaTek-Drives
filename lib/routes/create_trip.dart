@@ -16,7 +16,6 @@ import 'package:flutter/material.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:socket_io_client/socket_io_client.dart' as sio;
 
 BottomDrawerController _bottomDrawerController = BottomDrawerController();
 
@@ -196,7 +195,6 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   int id = -1;
   int userId = -1;
   int type = -1;
-  int _directionsIndex = 0;
   double iconSize = 35;
   StreamSubscription<Position>? _positionStream;
   late FocusNode fn1;
@@ -217,37 +215,25 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
       headingAccuracy: 0,
       speed: 0,
       speedAccuracy: 0);
-  CurrentPosition _userPosition = CurrentPosition();
   int insertAfter = -1;
   int _poiDetailIndex = -1;
   var moveDelay = const Duration(seconds: 2);
   int highlightedIndex = -1;
-  final List<Follower> _following = [];
   final List<MyTripItem> _myTripItems = [];
   late final StreamController<double?> _alignPositionStreamController;
   late final StreamController<void> _alignDirectionStreamController;
   late final DirectionTileController _directionTileController;
-  late final StreamController<Position> _debugPositionController;
-  late final FollowRoute _debugRoute;
   int initialLeadingWidgetValue = 0;
   String wpId = '';
   String grId = '';
   String images = '';
   String mapStyle = '';
 
-  final bool _debugging = false; //true; //false; //true;
-  final String _debuggingRoute = ''; // 'Debug'; // ''; //'Debug';
-
   UserLocation? useLocation;
   TripArguments? _tripArguments;
   DrivesRequest? _drivesRequest;
 
   StreamSocket streamSocket = StreamSocket();
-  sio.Socket socket = sio.io(urlBase, <String, dynamic>{
-    // sio.Socket socket = sio.io('http://192.168.1.10:5000', <String, dynamic>{
-    'transports': ['websocket'], // Specify WebSocket transport
-    'autoConnect': false, // Prevent auto-connection
-  });
 
   final ImageRepository _imageRepository = ImageRepository();
 /*
@@ -290,11 +276,6 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
     _directionTileController = DirectionTileController();
     _bottomDrawerController.close();
 
-    if (_debugging) {
-      _debugPositionController = StreamController<Position>();
-      _debugRoute = FollowRoute(controller: _debugPositionController);
-    }
-
     try {
       dataFromDatabase();
       if (CurrentTripItem().routes.isNotEmpty) {
@@ -306,65 +287,6 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
       _alignDirectionStreamController = StreamController<void>.broadcast();
       fn1 = FocusNode();
       listHeight = -1;
-      socket.onConnectError((_) => debugPrint('connect error'));
-      socket.onError((data) => debugPrint('Error: ${data.toString()}'));
-      socket.on(
-        'message_from_trip',
-        (data) {
-          TripMessage tripMessage = TripMessage.fromSocketMap(data);
-          if (tripMessage.message.isNotEmpty) {
-            debugPrint('message: ${tripMessage.message}');
-          }
-
-          if (tripMessage.email != Setup().user.email &&
-              (tripMessage.message.isNotEmpty ||
-                  ['p', 's'].contains(tripMessage.type))) {
-            try {
-              if (['p', 's'].contains(tripMessage.type) &&
-                  tripMessage.lat != 0 &&
-                  tripMessage.lng != 0) {
-                for (int i = 0; i < _following.length; i++) {
-                  if (_following[i].email == tripMessage.email &&
-                      _following[i].email != Setup().user.email) {
-                    _following[i] = _following[i].moveFollower(
-                        newPosition: [tripMessage.lng, tripMessage.lat]);
-                    if (tripMessage.type == 's') {
-                      _following[i].manufacturer = tripMessage.manufacturer;
-                      _following[i].model = tripMessage.model;
-                      _following[i].carColour = tripMessage.carColour;
-                      _following[i].registration = tripMessage.registration;
-                      _following[i].phoneNumber = tripMessage.phoneNumber;
-                      _following[i].position = [
-                        tripMessage.lng,
-                        tripMessage.lat
-                      ];
-                      _following[i].accepted = tripMessage.accepted;
-                    }
-                    if (_following[i].track) {}
-                  }
-                }
-              } else {
-                for (int i = 0; i < _following.length; i++) {
-                  if (_following[i].email == tripMessage.email) {
-                    tripMessage.manufacturer = _following[i].manufacturer;
-                    tripMessage.model = _following[i].model;
-                    tripMessage.carColour = _following[i].carColour;
-                    tripMessage.registration = _following[i].registration;
-                    break;
-                  }
-                }
-
-                CurrentTripItem().tripMessages.add(tripMessage);
-              }
-              setState(() {});
-            } catch (e) {
-              debugPrint('Error: ${e.toString()}');
-            }
-          }
-        },
-      );
-
-      if (socket.connected) {}
     } catch (e) {
       developer.log(
           'Error CreateTrip().initState() called error: ${e.toString()}',
@@ -395,11 +317,7 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
     _positionStream?.cancel();
     _alignPositionStreamController.close();
     _alignDirectionStreamController.close();
-    _debugPositionController.close();
     fn1.dispose();
-    if (socket.connected) {
-      socket.close;
-    }
 
     streamSocket.dispose();
     super.dispose();
@@ -675,62 +593,6 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
     FocusManager.instance.primaryFocus?.unfocus();
   }
 
-  Future<bool> loadGroup({required String groupDriveId, int status = 2}) async {
-    List<Follower> participants = [];
-    Follower? myCarInfo;
-    try {
-      participants = await getDrivers(groupDriveId: groupDriveId, accepted: 2);
-    } catch (e) {
-      debugPrint('error getting drivers: ${e.toString()}');
-    }
-    int cIndex = 2;
-    _following.clear;
-
-    for (int i = 0; i < participants.length; i++) {
-      Follower follower = participants[i];
-      cIndex = cIndex < 16 ? ++cIndex : 2;
-      if (Setup().user.email == follower.email) {
-        myCarInfo = follower;
-      }
-      try {
-        _following.add(
-          Follower(
-            uri: follower.uri,
-            iconColour: cIndex,
-            driveId: follower.driveId,
-            forename: follower.forename,
-            surname: follower.surname,
-            phoneNumber: follower.phoneNumber,
-            manufacturer: follower.manufacturer,
-            model: follower.model,
-            carColour: follower.carColour,
-            registration: follower.registration,
-            email: follower.email,
-            position: follower.position,
-          ),
-        );
-      } catch (e) {
-        debugPrint('Error: ${e.toString()}');
-      }
-    }
-    if (myCarInfo == null) {
-      cIndex = cIndex < 16 ? ++cIndex : 2;
-      myCarInfo = Follower(
-        forename: Setup().user.forename,
-        surname: Setup().user.surname,
-        email: Setup().user.email,
-        phoneNumber: Setup().user.phone,
-        driveName: ' ', // CurrentTripItem().heading,
-        iconColour: cIndex,
-        position: [_currentPosition.longitude, _currentPosition.latitude],
-      );
-      _following.add(myCarInfo);
-    }
-    await carInfo(myCarInfo);
-
-    return true;
-  }
-
   /// _setBottomDrawerDetails() determines what is shown in the bottom drawer
   /// enum TripActions {
   ///  none,            Returns an empty SizedBox
@@ -752,236 +614,6 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
       _bottomDrawerController.close();
       CurrentTripItem().drawerClosed();
     }
-  }
-
-  messageGroup(int index) async {
-    return contactDiolog(context: context, socket: socket);
-  }
-
-  Future<String> showMessages({required TripMessage message}) async {
-    showDialog<void>(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Padding(
-              padding: EdgeInsetsDirectional.symmetric(horizontal: 20),
-              child: const Text('Group Drive Message')),
-          content: SizedBox(
-            width: 150,
-            height: 300,
-            child: Align(
-              alignment: Alignment.topLeft,
-              child: TripMessageTile(
-                index: -1,
-                message: message,
-                onEdit: (_) {},
-                onSelect: (_) {},
-              ),
-            ),
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Dismiss', style: TextStyle(fontSize: 22)),
-              onPressed: () {
-                Navigator.pop(context, '');
-              },
-            ),
-          ],
-        );
-      },
-    );
-    return '';
-  }
-
-  Future<String> carInfo(Follower driver) async {
-    showDialog<void>(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Drive - ${driver.driveName}',
-              style: textStyle(context: context, color: Colors.black, size: 2)),
-          titlePadding: EdgeInsets.fromLTRB(30, 30, 0, 0),
-          content: SizedBox(
-            width: 400,
-            height: 300,
-            child: Column(
-              children: [
-                SizedBox(
-                  height: 70,
-                  child: Padding(
-                    padding: const EdgeInsets.all(10),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: TextFormField(
-                            autofocus: true,
-                            initialValue: driver.manufacturer,
-                            style: textStyle(
-                                context: context, color: Colors.black),
-                            decoration: InputDecoration(
-                                label: Text('Vehicle manufacturer'),
-                                labelStyle: labelStyle(context: context),
-                                border: OutlineInputBorder(),
-                                hintText: 'Manufacturer',
-                                hintStyle: hintStyle(context: context)),
-                            textInputAction: TextInputAction.next,
-                            textCapitalization: TextCapitalization.words,
-                            keyboardType: TextInputType.name,
-                            onChanged: (value) => driver.manufacturer = value,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                SizedBox(
-                  height: 70,
-                  child: Padding(
-                    padding: const EdgeInsets.all(10),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: TextFormField(
-                            initialValue: driver.model,
-                            decoration: InputDecoration(
-                                label: Text('Vehicle model'),
-                                labelStyle: labelStyle(context: context),
-                                border: OutlineInputBorder(),
-                                hintText: 'Model',
-                                hintStyle: hintStyle(context: context)),
-                            textInputAction: TextInputAction.next,
-                            textCapitalization: TextCapitalization.words,
-                            keyboardType: TextInputType.name,
-                            onChanged: (value) => driver.model = value,
-                            style: textStyle(
-                                context: context, color: Colors.black),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                SizedBox(
-                  height: 70,
-                  child: Padding(
-                    padding: const EdgeInsets.all(10),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          flex: 2,
-                          child: TextFormField(
-                            initialValue: driver.carColour,
-                            decoration: InputDecoration(
-                                label: Text('Colour'),
-                                labelStyle: labelStyle(context: context),
-                                border: OutlineInputBorder(),
-                                hintText: 'Colour',
-                                hintStyle: hintStyle(context: context)),
-                            textInputAction: TextInputAction.next,
-                            keyboardType: TextInputType.name,
-                            onChanged: (value) => driver.carColour = value,
-                            style: textStyle(
-                                context: context, color: Colors.black),
-                          ),
-                        ),
-                        SizedBox(width: 5),
-                        Expanded(
-                          flex: 2,
-                          child: TextFormField(
-                            initialValue: driver.registration,
-                            decoration: InputDecoration(
-                                label: Text('Registration'),
-                                labelStyle: labelStyle(context: context),
-                                border: OutlineInputBorder(),
-                                hintText: 'Reg No',
-                                hintStyle: hintStyle(context: context)),
-                            textCapitalization: TextCapitalization.characters,
-                            textInputAction: TextInputAction.next,
-                            keyboardType: TextInputType.name,
-                            onChanged: (value) => driver.registration = value,
-                            style: textStyle(
-                                context: context, color: Colors.black),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                SizedBox(
-                  height: 70,
-                  child: Padding(
-                    padding: const EdgeInsets.all(10),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: TextFormField(
-                            style: textStyle(
-                                context: context, color: Colors.black),
-                            initialValue: driver.phoneNumber,
-                            decoration: InputDecoration(
-                                label: Text('Mobile'),
-                                labelStyle: labelStyle(context: context),
-                                border: OutlineInputBorder(),
-                                hintText: 'Mobile phone number',
-                                hintStyle: hintStyle(context: context)),
-                            textInputAction: TextInputAction.done,
-                            keyboardType: TextInputType.phone,
-                            onChanged: (value) => driver.phoneNumber = value,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Ok', style: TextStyle(fontSize: 22)),
-              onPressed: () async {
-                _currentPosition = await Geolocator.getCurrentPosition();
-                driver.position = [
-                  _currentPosition.longitude,
-                  _currentPosition.latitude
-                ];
-                await sendDriverDetails(driver);
-                if (!socket.connected) {
-                  socket.connect();
-                }
-                if (socket.connected) {
-                  socket.emit('trip_join', {
-                    'token': Setup().jwt,
-                    'trip': ' ', // CurrentTripItem().groupDriveId,
-                    'message': '',
-                    'make': driver.manufacturer,
-                    'model': driver.model,
-                    'colour': driver.carColour,
-                    'reg': driver.registration,
-                    'phone': driver.phoneNumber,
-                    'lat': _currentPosition.latitude,
-                    'lng': _currentPosition.longitude,
-                  });
-                } else {
-                  debugPrint('Socket not connected');
-                }
-
-                if (context.mounted) {
-                  Navigator.pop(context);
-                }
-              },
-            ),
-            TextButton(
-              child: const Text('Cancel', style: TextStyle(fontSize: 22)),
-              onPressed: () {
-                Navigator.pop(context, '');
-              },
-            ),
-          ],
-        );
-      },
-    );
-    return '';
   }
 
   Future<void> deleteTrip(int index) async {
@@ -1025,269 +657,6 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   /// Uses Geolocator.getPositionStream to get a stream of locations. Triggers posotion update
   /// every 10M
   /// must use _positionStream.cancel() to cancel stream when no longer reading from it
-
-  void setLocationUpdates() async {
-    try {
-      if (CurrentTripItem().tripValues.pauseStream) {
-        _positionStream!.pause();
-        CurrentTripItem().tripValues.resumeStream = true;
-        CurrentTripItem().tripValues.pauseStream = false;
-      } else if (CurrentTripItem().tripValues.resumeStream) {
-        _positionStream!.resume();
-        CurrentTripItem().tripValues.resumeStream = false;
-      } else {
-        if (CurrentTripItem().tripValues.streamFinished) {
-          _positionStream!.cancel();
-        }
-        if (_debugging) {
-          if (_debuggingRoute.isEmpty) {
-            _debugRoute.follow(routes: CurrentTripItem().routes);
-            _positionStream = _debugPositionController.stream.listen(
-              (Position position) {
-                updatePosition(position);
-              },
-            );
-          } else {
-            MyTripItem debugMyTripItem =
-                await loadSavedTrip(title: _debuggingRoute) ?? MyTripItem();
-            if (debugMyTripItem.routes.isNotEmpty) {
-              _debugRoute.follow(routes: debugMyTripItem.routes);
-              _positionStream = _debugPositionController.stream
-                  .listen((Position position) => updatePosition(position));
-            }
-          }
-          if (CurrentTripItem().tripState == TripState.following) {
-            _following.add(Follower(
-                forename: 'One',
-                surname: 'One',
-                registration: 'CAR 001',
-                position: [0, 0],
-                track: true,
-                carColour: 'red',
-                iconColour: 1));
-            _following.add(Follower(
-              forename: 'Two',
-              surname: 'Two',
-              registration: 'CAR 002',
-              position: [0, 0],
-              track: true,
-              carColour: 'blue',
-              iconColour: 2,
-            ));
-            setState(() => CurrentTripItem().groupDriveId = 'gdDebug1');
-          }
-
-          // _positionStream.
-        } else {
-          const LocationSettings locationSettings = LocationSettings(
-            accuracy: LocationAccuracy.best,
-            distanceFilter: 5, // 10 meters
-          );
-          try {
-            _positionStream =
-                Geolocator.getPositionStream(locationSettings: locationSettings)
-                    .listen((position) {
-              _currentPosition = position;
-              if (CurrentTripItem().tripState == TripState.tracking) {
-                updateUserPosition(CurrentPosition(position: position));
-              }
-            });
-          } catch (e) {
-            debugPrint('Error getting stream ${e.toString()}');
-          }
-        }
-        CurrentTripItem().tripValues.streamStarted = true;
-        CurrentTripItem().tripValues.streamFinished = false;
-        CurrentTripItem().tripValues.lastPosition = Point(0, 0);
-        CurrentTripItem().tripValues.startPosition = Point(0, 0);
-        CurrentTripItem().tripValues.position = Point(0, 0);
-
-        if (_positionStream != null) {
-          _positionStream!
-              .onDone(() => CurrentTripItem().tripValues.streamFinished = true);
-        }
-      }
-    } catch (e) {
-      developer.log('Error Stream error: ${e.toString()}', name: 'error');
-    }
-  }
-
-  void updateUserPosition(CurrentPosition position) async {
-    if (_userPosition.point.y > 0 &&
-        position.point.y > 0 &&
-        CurrentTripItem().tripState == TripState.tracking) {
-      double travelled = getDistanceBetween(
-          startXY: _userPosition.point, endXY: position.point);
-      if (travelled > 1000) {
-        CurrentTripItem().newWaypoint(point: position.point);
-      }
-    }
-
-    /// Update the map without animation
-    MapService()
-        .controller!
-        .moveCamera(CameraUpdate.newLatLng(position.latLng));
-    setState(() => _userPosition = position);
-  }
-
-  void updatePosition(Position position) async {
-    _currentPosition = position;
-    _userPosition = CurrentPosition(position: position);
-    CurrentTripItem().tripValues.position = _userPosition.point;
-    LatLng pos = _userPosition.latLng;
-
-    if (_debugging) {
-      handleDebugStream(position, _debugRoute, _following);
-    }
-
-    if (CurrentTripItem().tripState == TripState.tracking &&
-        CurrentTripItem().tripValues.lastPosition.y != 0) {
-      double distance = Geolocator.distanceBetween(
-          pos.latitude,
-          pos.longitude,
-          CurrentTripItem().tripValues.lastPosition.y.toDouble(),
-          CurrentTripItem().tripValues.lastPosition.x.toDouble());
-      if (distance > 5) {
-        try {
-          if (distance > 1000) {
-            CurrentTripItem().routes.last.waypoints.add(Waypoint(
-                value: CurrentTripItem().routes.last.waypoints.length + 1));
-            if (CurrentTripItem().isGoodRoad) {
-              CurrentTripItem().goodRoads.last.waypoints.add(Waypoint(
-                  value:
-                      CurrentTripItem().goodRoads.last.waypoints.length + 1));
-            }
-          }
-          CurrentTripItem()
-              .routes
-              .last
-              .lines
-              .add([pos.longitude, pos.latitude]);
-
-          await MapService().controller!.setGeoJsonSource('route-data', {
-            "type": "FeatureCollection",
-            "features": routesToGeoJson(),
-          });
-
-          if (CurrentTripItem().isGoodRoad) {
-            CurrentTripItem()
-                .goodRoads
-                .last
-                .lines
-                .add([pos.longitude, pos.latitude]);
-            await MapService().controller!.setGeoJsonSource('good-road-data', {
-              "type": "FeatureCollection",
-              "features": goodRoadsToGeoJson(),
-            });
-          }
-        } catch (e) {
-          developer.log('Error updatePosition() error: ${e.toString()}',
-              name: 'error');
-        }
-        CurrentTripItem().tripValues.lastPosition =
-            Point(pos.longitude, pos.latitude);
-      }
-    }
-
-    CurrentTripItem().tripValues.heading = position.heading;
-    CurrentTripItem().mapUpdates = MapUpdates.followers;
-
-    MapService().controller!.animateCamera(CameraUpdate.newLatLng(pos));
-
-    setState(() => getDirectionsIndex());
-    if (Setup().rotateMap) {
-      MapService()
-          .controller!
-          .animateCamera(CameraUpdate.bearingTo(position.heading));
-    }
-  }
-
-  int getDirectionsIndex() {
-    int idx = -1;
-    double distance = 99999;
-    double temp;
-    if (CurrentTripItem().tripState == TripState.following) {
-      for (int i = _directionsIndex;
-          i < CurrentTripItem().maneuvers.length;
-          i++) {
-        temp = Geolocator.distanceBetween(
-            CurrentTripItem().tripValues.position.y.toDouble(),
-            CurrentTripItem().tripValues.position.x.toDouble(),
-            CurrentTripItem().maneuvers[i].point.y.toDouble(),
-            CurrentTripItem().maneuvers[i].point.x.toDouble());
-        if (temp < distance) {
-          distance = temp;
-          idx = i;
-        }
-      }
-    }
-    return idx;
-  }
-
-  void handleDebugStream(
-      Position position, FollowRoute debugRoute, List<Follower> following) {
-    LatLng pos = LatLng(position.latitude, position.longitude);
-    CurrentTripItem().tripValues.heading = angleFromPoints(point1: [
-      CurrentTripItem().tripValues.lastPosition.x.toDouble(),
-      CurrentTripItem().tripValues.lastPosition.y.toDouble()
-    ], point2: [
-      pos.longitude,
-      pos.latitude
-    ]).toDouble();
-    if (_following.isNotEmpty) {
-      try {
-        int index = _debugRoute.getIndex;
-        int jump = 12;
-        for (int i = 0; i < _following.length; i++) {
-          if (index > jump * (i + 1)) {
-            following[i] = following[i].moveFollower(
-              newPosition: debugRoute.getPositionAt(index - (jump * (i + 1))),
-            );
-          } else {
-            break;
-          }
-        }
-      } catch (e) {
-        debugPrint('Error setting followin ${e.toString()}');
-      }
-    }
-    updateGroupOnMap(position);
-  }
-
-  void updateGroupOnMap(Position position) {
-    if (CurrentTripItem().groupDriveId.isNotEmpty) {
-      if (!socket.connected) {
-        socket.connect();
-        for (Follower follower in _following) {
-          if (follower.email == Setup().user.email) {
-            socket.emit('trip_join', {
-              'token': Setup().jwt,
-              'trip': CurrentTripItem().groupDriveId,
-              'message': '',
-              'make': follower.manufacturer,
-              'model': follower.model,
-              'colour': follower.carColour,
-              'reg': follower.registration,
-              'phone': follower.phoneNumber,
-              'lat': position.latitude,
-              'lng': position.longitude,
-            });
-          }
-        }
-      }
-
-      if (socket.connected) {
-        socket.emit(
-          'trip_message',
-          {
-            'message': '',
-            'lat': position.latitude,
-            'lng': position.longitude,
-          },
-        );
-      }
-    }
-  }
 
   locationLatLng(pos) {
     setState(() {});

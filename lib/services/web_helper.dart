@@ -879,15 +879,22 @@ Future<Map<String, dynamic>> getPointOfInterestRating(String uri) async {
 /// [pointsOfInterest] uri drive_id type name description images point
 ///
 ///
+/// A whole published trip - routes, turn-by-turn instructions and points of
+/// interest - e.g. a group drive's
 Future<MyTripItem> getMyTrip(String tripUuid) async {
-  MyTripItem myTrip = MyTripItem(title: '', subTitle: '');
-
-  final http.Response response = await http.get(
-    Uri.parse('$urlDrive/$tripUuid'),
-    headers: webHeader(secure: false),
-  );
-  if (response.statusCode == 200) {}
-  return myTrip;
+  try {
+    final http.Response response = await http.get(
+      Uri.parse('$urlDrive/$tripUuid'),
+      headers: webHeader(secure: false),
+    );
+    if (response.statusCode == 200) {
+      return MyTripItem.fromApiJson(jsonDecode(response.body));
+    }
+    developer.log('getMyTrip(): ${response.statusCode}', name: 'error');
+  } catch (e) {
+    developer.log('getMyTrip(): ${e.toString()}', name: 'error');
+  }
+  return MyTripItem(title: '', subTitle: '');
 }
 
 Future<String> getSpeech(
@@ -1678,7 +1685,7 @@ Future<List<Follower>> getDrivers(
     var followersMap = jsonDecode(response.body);
 
     for (Map<String, dynamic> followerMap in followersMap) {
-      followers.add(Follower.fromMap(map: followerMap));
+      followers.add(Follower.fromParticipantMap(map: followerMap));
     }
     return followers;
   } else {

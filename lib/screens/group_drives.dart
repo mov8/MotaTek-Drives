@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import '/classes/classes.dart';
 import '/models/models.dart';
 import '/services/services.dart';
-import '/helpers/hive_helpers.dart';
+import '/helpers/helpers.dart';
 
 class GroupDriveForm extends StatefulWidget {
   const GroupDriveForm({super.key, setup});
@@ -334,13 +334,14 @@ class _GroupDriveFormState extends State<GroupDriveForm>
     });
   }
 
+  /// The trip on the map, joined to the group drive - this page is over the
+  /// map on a phone, in the SideDrawer on the web
   startDrive(int index) async {
     MyTripItem gotTrip = await getMyTrip(_trips[index].driveId);
-    if (mounted) {
-      Navigator.pushNamed(context, 'createTrip',
-          arguments: TripArguments(
-              trip: gotTrip, groupDriveId: _trips[index].eventId));
-    }
+    if (!mounted) return;
+    if (!kIsWeb) Navigator.of(context).popUntil((route) => route.isFirst);
+    await openTripOnMap(gotTrip);
+    await GroupDriveService().start(groupDriveId: _trips[index].eventId);
   }
 
   Widget newTrip() {

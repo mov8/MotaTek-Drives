@@ -25,7 +25,10 @@ const wifiIpAddress = 'http://192.168.1.168:5001/'; // <- Home fibre
 // const wifiIpAddress ='http://10.2.222.57:5001/'; // <- Staines library 10.2.222.57:5001
 // https://drives.motatek.com/v1/user/test
 
-const urlBase = wifiIpAddress;
+// A build can choose another API, e.g. a test server:
+//   --dart-define=DRIVES_API=http://192.168.1.168:5002/
+const urlBase =
+    String.fromEnvironment('DRIVES_API', defaultValue: wifiIpAddress);
 
 const mapsApiKey = '';
 
@@ -303,7 +306,7 @@ List<String> mapSources = [
   'waypoint-data',
   'good-road-waypoint-data',
   'point-of-interest-data',
-  'followers'
+  'streamed-data' // <-- the group drive's other cars (MapUpdates.followers)
 ];
 
 /// MapUpdates combination enum to action user requests on the map
@@ -570,7 +573,8 @@ enum BottomDrawerItems {
   group,
   headingDetail,
   maneuvers,
-  messages,
+  messages, // <-- the Messages page's conversations (web)
+  tripMessages, // <-- a group drive's messages
   pointOfInterest,
   showGroup,
   steps,

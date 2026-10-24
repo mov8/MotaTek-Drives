@@ -3,6 +3,7 @@
 // private_storage local / api repositories have gone.)
 
 export '../helpers/image_helpers.dart';
+export 'group_drive_service.dart';
 export 'maplibre_service.dart';
 export 'markdown_service.dart';
 export 'navigation_service.dart';

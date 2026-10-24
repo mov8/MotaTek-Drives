@@ -8,12 +8,9 @@ import 'package:flutter/foundation.dart';
 import '/screens/screens.dart';
 import '/services/services.dart' hide getPosition;
 import '/models/models.dart';
-import '/helpers/helpers.dart';
 import '/tiles/tiles.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
-import '/routes/routes.dart';
-import 'package:socket_io_client/socket_io_client.dart' as sio;
 import 'package:maplibre_gl/maplibre_gl.dart'; // hide LatLng;
 
 class CreateTripStackController {
@@ -61,11 +58,7 @@ class _CreateTripStackState extends State<CreateTripStack>
       DirectionTileController();
 
   StreamSubscription<Position>? _positionStream;
-  late final FollowRoute _debugRoute;
-  CurrentPosition _userPosition = CurrentPosition();
-  final List<Follower> _following = [];
   int _directionsIndex = 0;
-  final bool _debugging = false; //true; //false; //true;
 
   int positionUpdates = 0;
 
@@ -73,11 +66,6 @@ class _CreateTripStackState extends State<CreateTripStack>
       MessageBox(controller: MapService().messageBoxController);
 
   StreamSocket streamSocket = StreamSocket();
-  sio.Socket socket = sio.io(urlBase, <String, dynamic>{
-    // sio.Socket socket = sio.io('http://192.168.1.10:5000', <String, dynamic>{
-    'transports': ['websocket'], // Specify WebSocket transport
-    'autoConnect': false, // Prevent auto-connection
-  });
 
   @override
   void initState() {
@@ -335,119 +323,6 @@ class _CreateTripStackState extends State<CreateTripStack>
     }
   }
 
-  void updatePosition(Position position) async {
-    _userPosition = CurrentPosition(position: position);
-    CurrentTripItem().tripValues.position = _userPosition.point;
-    position.speed * metersPerSecondToMPH; //* 3.6 / 8 * 5; // M/S -> MPH
-
-    LatLng pos = _userPosition.latLng;
-
-    if (_debugging) {
-      handleDebugStream(position, _debugRoute, _following);
-    }
-
-    if (CurrentTripItem().tripState == TripState.tracking &&
-        CurrentTripItem().tripValues.lastPosition.y != 0) {
-      double distance = Geolocator.distanceBetween(
-          pos.latitude,
-          pos.longitude,
-          CurrentTripItem().tripValues.lastPosition.y.toDouble(),
-          CurrentTripItem().tripValues.lastPosition.x.toDouble());
-      if (distance > 5) {
-        try {
-          if (distance > 1000) {
-            CurrentTripItem().routes.last.waypoints.add(Waypoint(
-                value: CurrentTripItem().routes.last.waypoints.length + 1));
-            if (CurrentTripItem().isGoodRoad) {
-              CurrentTripItem().goodRoads.last.waypoints.add(Waypoint(
-                  value:
-                      CurrentTripItem().goodRoads.last.waypoints.length + 1));
-            }
-          }
-          CurrentTripItem()
-              .routes
-              .last
-              .lines
-              .add([pos.longitude, pos.latitude]);
-
-          await MapService().controller!.setGeoJsonSource('route-data', {
-            "type": "FeatureCollection",
-            "features": routesToGeoJson(),
-          });
-
-          if (CurrentTripItem().isGoodRoad) {
-            CurrentTripItem()
-                .goodRoads
-                .last
-                .lines
-                .add([pos.longitude, pos.latitude]);
-            await MapService().controller!.setGeoJsonSource('good-road-data', {
-              "type": "FeatureCollection",
-              "features": goodRoadsToGeoJson(),
-            });
-          }
-        } catch (e) {
-          developer.log('Error updatePosition() error: ${e.toString()}',
-              name: 'error');
-        }
-        CurrentTripItem().tripValues.lastPosition =
-            Point(pos.longitude, pos.latitude);
-      }
-    }
-
-    CurrentTripItem().tripValues.heading = position.heading;
-    CurrentTripItem().mapUpdates = MapUpdates.followers;
-
-    MapService().controller!.animateCamera(CameraUpdate.newLatLng(pos));
-
-    setState(() => getDirectionsIndex());
-    if (Setup().rotateMap) {
-      MapService()
-          .controller!
-          .animateCamera(CameraUpdate.bearingTo(position.heading));
-    }
-  }
-
-  int getDirectionsIndex() {
-    int idx = -1;
-    double distance = 99999;
-    double temp;
-    if (CurrentTripItem().tripState == TripState.following) {
-      for (int i = _directionsIndex;
-          i < CurrentTripItem().maneuvers.length;
-          i++) {
-        temp = Geolocator.distanceBetween(
-            CurrentTripItem().tripValues.position.y.toDouble(),
-            CurrentTripItem().tripValues.position.x.toDouble(),
-            CurrentTripItem().maneuvers[i].point.y.toDouble(),
-            CurrentTripItem().maneuvers[i].point.x.toDouble());
-        if (temp < distance) {
-          distance = temp;
-          idx = i;
-        }
-      }
-    }
-    return idx;
-  }
-
-  void updateUserPosition(CurrentPosition position) async {
-    if (_userPosition.point.y > 0 &&
-        position.point.y > 0 &&
-        CurrentTripItem().tripState == TripState.tracking) {
-      double travelled = getDistanceBetween(
-          startXY: _userPosition.point, endXY: position.point);
-      if (travelled > 1000) {
-        CurrentTripItem().newWaypoint(point: position.point);
-      }
-    }
-
-    /// Update the map without animation
-    MapService()
-        .controller!
-        .moveCamera(CameraUpdate.newLatLng(position.latLng));
-    setState(() => _userPosition = position);
-  }
-
   Future<void> changeRoute(
       {int lastManeuverIndex = 0,
       int routeIndex = 0,
@@ -459,71 +334,6 @@ class _CreateTripStackState extends State<CreateTripStack>
         pointIndex: pointIndex);
     if (update) {
       _directionTileController.updateRoute();
-    }
-  }
-
-  void handleDebugStream(
-      Position position, FollowRoute debugRoute, List<Follower> following) {
-    LatLng pos = LatLng(position.latitude, position.longitude);
-    CurrentTripItem().tripValues.heading = angleFromPoints(point1: [
-      CurrentTripItem().tripValues.lastPosition.x.toDouble(),
-      CurrentTripItem().tripValues.lastPosition.y.toDouble()
-    ], point2: [
-      pos.longitude,
-      pos.latitude
-    ]).toDouble();
-    if (_following.isNotEmpty) {
-      try {
-        int index = _debugRoute.getIndex;
-        int jump = 12;
-        for (int i = 0; i < _following.length; i++) {
-          if (index > jump * (i + 1)) {
-            following[i] = following[i].moveFollower(
-              newPosition: debugRoute.getPositionAt(index - (jump * (i + 1))),
-            );
-          } else {
-            break;
-          }
-        }
-      } catch (e) {
-        debugPrint('Error setting followin ${e.toString()}');
-      }
-    }
-    updateGroupOnMap(position);
-  }
-
-  void updateGroupOnMap(Position position) {
-    if (CurrentTripItem().groupDriveId.isNotEmpty) {
-      if (!socket.connected) {
-        socket.connect();
-        for (Follower follower in _following) {
-          if (follower.email == Setup().user.email) {
-            socket.emit('trip_join', {
-              'token': Setup().jwt,
-              'trip': CurrentTripItem().groupDriveId,
-              'message': '',
-              'make': follower.manufacturer,
-              'model': follower.model,
-              'colour': follower.carColour,
-              'reg': follower.registration,
-              'phone': follower.phoneNumber,
-              'lat': position.latitude,
-              'lng': position.longitude,
-            });
-          }
-        }
-      }
-
-      if (socket.connected) {
-        socket.emit(
-          'trip_message',
-          {
-            'message': '',
-            'lat': position.latitude,
-            'lng': position.longitude,
-          },
-        );
-      }
     }
   }
 }

@@ -3,7 +3,8 @@ import '/tiles/tiles.dart';
 import 'package:flutter/material.dart';
 import '/models/models.dart';
 import '/classes/classes.dart';
-import '/services/web_helper.dart';
+import '/services/services.dart';
+import '/helpers/helpers.dart';
 
 class InvitationsScreen extends StatefulWidget {
   const InvitationsScreen({super.key, setup});
@@ -313,13 +314,15 @@ class _InvitationsScreenState extends State<InvitationsScreen> {
           ];
   }
 
+  /// The trip on the map, joined to the group drive - this page is over the
+  /// map on a phone, in the SideDrawer on the web
   startDrive(int index) async {
     MyTripItem gotTrip = await getMyTrip(invitations[index].driveId);
-    if (mounted) {
-      Navigator.pushNamed(context, 'createTrip',
-          arguments: TripArguments(
-              trip: gotTrip, groupDriveId: invitations[index].groupDriveId));
-    }
+    if (!mounted) return;
+    if (!kIsWeb) Navigator.of(context).popUntil((route) => route.isFirst);
+    await openTripOnMap(gotTrip);
+    await GroupDriveService()
+        .start(groupDriveId: invitations[index].groupDriveId);
   }
 
   saveDrive(int index) async {

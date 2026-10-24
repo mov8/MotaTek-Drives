@@ -396,6 +396,11 @@ List<Map<String, dynamic>> followersToGeoJson(
   if (followers.isNotEmpty) {
     try {
       for (int i = 0; i < followers.length; i++) {
+        // Hidden by the participant's track checkbox, or not reported yet
+        if (!followers[i].track ||
+            (followers[i].position[0] == 0 && followers[i].position[1] == 0)) {
+          continue;
+        }
         features.add(
           {
             "type": "Feature",
@@ -408,7 +413,7 @@ List<Map<String, dynamic>> followersToGeoJson(
               "bearing": 0,
               "item_type": "location_icon",
               "name":
-                  ('${followers[i].forename} {followers[i].surname}').trim(),
+                  ('${followers[i].forename} ${followers[i].surname}').trim(),
               "registration": followers[i].registration,
               "manufacturer": followers[i].manufacturer,
               "model": followers[i].model,

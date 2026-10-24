@@ -98,7 +98,8 @@ class SideDrawerController {
     }
   }
 
-  BottomDrawerItems get content => _sideDrawerState!._content;
+  BottomDrawerItems get content =>
+      _sideDrawerState?._content ?? BottomDrawerItems.none;
 
   List<Widget> get screenCache => _sideDrawerState!._screenCache;
 
@@ -321,7 +322,11 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
           _screenCache = _tiles;
           break;
         case BottomDrawerItems.group:
-          _tiles = shredGroup(followers: _drawerItems as List<Follower>);
+          _tiles = groupTiles(); // a group drive's participants
+          _offerRestore = true;
+          break;
+        case BottomDrawerItems.tripMessages:
+          _tiles = tripMessageTiles();
           _offerRestore = true;
           break;
         case BottomDrawerItems.maneuvers:
@@ -505,46 +510,6 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
     ];
   }
 
-  List<Widget> shredGroup({List<Follower>? followers}) {
-    followers ??= [];
-    List<Widget> tiles = [];
-    _tiles.clear();
-    for (int i = 0; i < followers.length; i++) {
-      tiles.add(Padding(
-        key: Key('th1'),
-        padding: EdgeInsetsGeometry.fromLTRB(5, 5, 5, 5),
-        child: FollowerTile(
-          follower: followers[i],
-          index: i,
-          onIconClick: followerIconClick,
-          onLongPress: followerLongPress,
-          distance: 0,
-          currentPosition: CurrentTripItem().tripValues.position, // Point(
-        ),
-      ));
-    }
-
-    return tiles;
-  }
-
-  Future<void> followerIconClick(int index) async {
-    String message = ''; // await messageGroup(index);
-    if (message.isNotEmpty) {}
-    return;
-  }
-
-  void followerLongPress(int index) {
-    CurrentTripItem().mapController!.animateCamera(
-        CameraUpdate.newLatLng(
-          LatLng(
-            CurrentTripItem().maneuvers[index].point.y.toDouble(),
-            CurrentTripItem().maneuvers[index].point.x.toDouble(),
-          ),
-        ),
-        duration: Duration(milliseconds: 300));
-    return;
-  }
-
   List<Widget> shredManeuvers() {
     List<Widget> tiles = [];
     _tiles.clear();
@@ -597,21 +562,6 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
     }
     setState(() => _directions.currentIndex = index);
     return;
-  }
-
-  List<Widget> shredMessages() {
-    List<Widget> tiles = [];
-    for (int i = 0; i < CurrentTripItem().tripMessages.length; i++) {
-      tiles.add(
-        TripMessageTile(
-          index: i,
-          message: CurrentTripItem().tripMessages[i],
-          onEdit: (_) {},
-          onSelect: (_) {},
-        ),
-      );
-    }
-    return tiles;
   }
 
   List<Widget> shredMarkdownItems(String type) {

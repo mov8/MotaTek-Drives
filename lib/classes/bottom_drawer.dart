@@ -1,6 +1,5 @@
 import 'dart:math';
 import '../classes/classes.dart';
-import '../models/models.dart';
 import '../tiles/tiles.dart';
 import '../services/services.dart';
 import 'package:flutter/material.dart';
@@ -23,6 +22,10 @@ class BottomDrawerController {
   }
 
   bool get isAttached => _bottomDrawerState != null;
+
+  /// What the drawer is showing
+  BottomDrawerItems get content =>
+      _bottomDrawerState?._content ?? BottomDrawerItems.none;
 
   void close() {
     try {
@@ -232,13 +235,13 @@ class _BottomDrawerState extends State<BottomDrawer>
           _tiles = shredCurrentTripItemData();
           break;
         case BottomDrawerItems.group:
-          _tiles = shredGroup(followers: _drawerItems as List<Follower>);
+          _tiles = groupTiles(); // a group drive's participants
           break;
         case BottomDrawerItems.maneuvers:
           _tiles = shredManeuvers();
           break;
-        case BottomDrawerItems.messages:
-          _tiles = shredMessages();
+        case BottomDrawerItems.tripMessages:
+          _tiles = tripMessageTiles();
           break;
         case BottomDrawerItems.drives:
           _tiles = shredTrips();
@@ -296,44 +299,6 @@ class _BottomDrawerState extends State<BottomDrawer>
 
   void deleteWebTrip(int index) async {}
 
-  List<Widget> shredGroup({List<Follower>? followers}) {
-    followers ??= [];
-    List<Widget> tiles = [];
-    for (int i = 0; i < followers.length; i++) {
-      tiles.add(Padding(
-        padding: EdgeInsetsGeometry.fromLTRB(5, 5, 5, 5),
-        child: FollowerTile(
-          follower: followers[i],
-          index: i,
-          onIconClick: followerIconClick,
-          onLongPress: followerLongPress,
-          distance: 0,
-          currentPosition: CurrentTripItem().tripValues.position, // Point(
-        ),
-      ));
-    }
-
-    return tiles;
-  }
-
-  Future<void> followerIconClick(int index) async {
-    String message = ''; // await messageGroup(index);
-    if (message.isNotEmpty) {}
-    return;
-  }
-
-  void followerLongPress(int index) {
-    CurrentTripItem().mapController!.animateCamera(
-        CameraUpdate.newLatLng(
-          LatLng(
-            CurrentTripItem().maneuvers[index].point.y.toDouble(),
-            CurrentTripItem().maneuvers[index].point.x.toDouble(),
-          ),
-        ),
-        duration: Duration(milliseconds: 300));
-    return;
-  }
-
   List<Widget> shredManeuvers() {
     List<Widget> tiles = [];
     for (int i = 0; i < CurrentTripItem().maneuvers.length; i++) {
@@ -385,21 +350,6 @@ class _BottomDrawerState extends State<BottomDrawer>
     }
     setState(() => _directions.currentIndex = index);
     return;
-  }
-
-  List<Widget> shredMessages() {
-    List<Widget> tiles = [];
-    for (int i = 0; i < CurrentTripItem().tripMessages.length; i++) {
-      tiles.add(
-        TripMessageTile(
-          index: i,
-          message: CurrentTripItem().tripMessages[i],
-          onEdit: (_) {},
-          onSelect: (_) {},
-        ),
-      );
-    }
-    return tiles;
   }
 
   List<Widget> shredCurrentTripItemData() {

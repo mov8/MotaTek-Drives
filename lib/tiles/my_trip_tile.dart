@@ -471,56 +471,7 @@ class _MyTripTileState extends State<MyTripTile> {
     }
   }
 
-  Future<void> _loadTrip() async {
-    // Clear everything left from the previous trip before loading
-    CurrentTripItem().clearAll();
-    CurrentTripItem().id = widget.myTripItem.id;
-    CurrentTripItem().uri = widget.myTripItem.uri;
-    CurrentTripItem().title = widget.myTripItem.title;
-    CurrentTripItem().subTitle = widget.myTripItem.subTitle;
-    CurrentTripItem().author = widget.myTripItem.author;
-    CurrentTripItem().authorUri = widget.myTripItem.authorUri;
-    CurrentTripItem().images = widget.myTripItem.images;
-    CurrentTripItem().imageUrls = widget.myTripItem.imageUrls;
-    CurrentTripItem().body = widget.myTripItem.body;
-    CurrentTripItem().pointsOfInterest = widget.myTripItem.pointsOfInterest;
-    CurrentTripItem().maneuvers = widget.myTripItem.maneuvers;
-    CurrentTripItem().routes = widget.myTripItem.routes;
-    CurrentTripItem().goodRoads = widget.myTripItem.goodRoads;
-    CurrentTripItem().score = widget.myTripItem.score;
-
-    // Loaded, not editing - the chips offer Follow drive and Edit route
-    CurrentTripItem().tripState = TripState.loaded;
-    // Undo should only apply to changes made after the trip is loaded
-    CurrentTripItem().loadBackBuffer();
-    CurrentTripItem().markSaved();
-    CurrentTripItem().tripType = TripType.none;
-    CurrentTripItem().updateMap = true;
-    CurrentTripItem().mapUpdates = MapUpdates.updateAll;
-
-    try {
-      LatLng position = LatLng(
-          CurrentTripItem().pointsOfInterest.first.point.y.toDouble(),
-          CurrentTripItem().pointsOfInterest.first.point.x.toDouble());
-      MapService().controller?.moveCamera(CameraUpdate.newLatLng(position));
-      CurrentTripItem().tripValues.editing();
-      // No crosshair until the user taps Edit route
-      CurrentTripItem().tripValues.showTarget = false;
-      // The map's onIdle works out what's under the crosshair
-      CurrentTripItem().waypointIndex = -1;
-      CurrentTripItem().waypointState = WaypointState.none;
-    } catch (e) {
-      developer.log('Error MyTripTile().loadTrip(): ${e.toString()}',
-          name: 'error');
-    }
-    // Switch to the existing map page (Explore). context.push('/map') built a
-    // second CreateTrip, duplicating the map's GlobalKey.
-    MapService().baseShellController?.selectPage(2);
-    // Draw the loaded trip. _onIdle only redraws everything while editing, so
-    // a loaded trip has to be drawn here. The nudge's onIdle then applies the
-    // loaded waypoint filter.
-    await CurrentTripItem().refreshMap(change: MapUpdates.updateAll);
-  }
+  Future<void> _loadTrip() => openTripOnMap(widget.myTripItem);
 
   Future<void> deleteTrip(int index) async {
     Utility().showOkCancelDialog(

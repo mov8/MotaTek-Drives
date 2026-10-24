@@ -1387,6 +1387,28 @@ class Follower {
     );
   }
 
+  /// A participant from the API's group drive invitations
+  /// (group_drive_invitation/<group drive>/<state>)
+  factory Follower.fromParticipantMap({required Map<String, dynamic> map}) {
+    double lat = double.tryParse('${map["lat"] ?? 0}') ?? 0;
+    double lng = double.tryParse('${map["lng"] ?? 0}') ?? 0;
+    return Follower(
+      uri: map["invitation_id"] ?? "",
+      driveId: map["group_drive_id"] ?? "",
+      driveName: map["drive_name"] ?? "",
+      forename: map["user_forename"] ?? "",
+      surname: map["user_surname"] ?? "",
+      email: map["user_email"] ?? "",
+      phoneNumber: map["user_phone"] ?? "",
+      manufacturer: map["manufacturer"] ?? "",
+      model: map["model"] ?? "",
+      registration: map["registration"] ?? "",
+      carColour: map["colour"] ?? "",
+      accepted: int.tryParse('${map["accepted"] ?? 0}') ?? 0,
+      position: [lng, lat],
+    );
+  }
+
   Map<String, dynamic> toMap() {
     return {
       "uri": uri,

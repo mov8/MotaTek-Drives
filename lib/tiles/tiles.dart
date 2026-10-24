@@ -11,6 +11,7 @@ export 'my_trip_select_tile.dart';
 export 'osm_review_tile.dart';
 export 'point_of_interest_tile.dart';
 export 'trip_header_tile.dart';
+export 'trip_message_composer.dart';
 export 'trip_message_tile.dart';
 export 'trip_tile.dart';
 export 'write_message_tile.dart';

@@ -985,21 +985,14 @@ class MapService {
 
         for (int i = 0; i < sources.length; i++) {
           try {
-            if (i < 5) {
-              try {
-                await controller!.setGeoJsonSource(sources[i], {
-                  "type": "FeatureCollection",
-                  "features": mapSources[sources[i]](),
-                });
-              } catch (e) {
-                developer.log(
-                    'Error MapService().updateMapGeoJson() mapController.seGeoJsonSource() failed source: ${sources[i]} (i:$i)',
-                    name: "error");
-              }
-            }
+            await controller!.setGeoJsonSource(sources[i], {
+              "type": "FeatureCollection",
+              "features": mapSources[sources[i]](),
+            });
           } catch (e) {
-            developer.log("updateMapGeoJson()  Error: ${e.toString()}",
-                name: 'error');
+            developer.log(
+                'Error MapService().updateMapGeoJson() setGeoJsonSource() failed source: ${sources[i]}: ${e.toString()}',
+                name: "error");
           }
         }
       }

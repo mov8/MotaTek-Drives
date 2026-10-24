@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import '/models/other_models.dart';
 import '/classes/utilities.dart';
 import '/helpers/edit_helpers.dart';
-import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import '/constants.dart';
 
@@ -134,41 +133,29 @@ class _FollowerTileState extends State<FollowerTile> {
       ),
     );
   }
-
-  changePosition({LatLng position = const LatLng(0, 0)}) {
-    if (widget.follower.position != [0.0, 0.0]) {
-      double distance = Geolocator.distanceBetween(
-          widget.currentPosition.y.toDouble(),
-          widget.currentPosition.x.toDouble(),
-          widget.follower.position[1],
-          widget.follower.position[0]);
-      if (distance > 1000) {
-        _status =
-            '(${(distance * metersToMiles).toStringAsFixed(1)} miles away)';
-      } else {
-        _status = '(${distance.round()} meters away)';
-      }
-    }
-  }
-
-  calcStatus() {
-    _status = '(tracked with this device)';
-    if (widget.follower.email != Setup().user.email) {
-      _status = _statuses[widget.follower.accepted];
-      if (widget.follower.position != LatLng(0.0, 0.0)) {
-        double distance = Geolocator.distanceBetween(
-            widget.currentPosition.y.toDouble(),
-            widget.currentPosition.x.toDouble(),
-            widget.follower.position[1],
-            widget.follower.position[0]);
-        if (distance > 1000) {
-          _status =
-              '(${(distance * metersToMiles).toStringAsFixed(1)} miles away)';
-        } else {
-          _status = '(${distance.round()} meters away)';
-        }
-      }
+  /// Whether they've joined, and - once their car has reported - how far
+  /// away it is
+  void calcStatus() {
+    if (widget.follower.email == Setup().user.email) {
+      _status = '(tracked with this device)';
       return;
     }
+    int accepted = widget.follower.accepted;
+    _status = accepted >= 0 && accepted < _statuses.length
+        ? _statuses[accepted]
+        : '';
+    List<double> position = widget.follower.position;
+    Point here = widget.currentPosition;
+    if ((position[0] == 0 && position[1] == 0) || (here.x == 0 && here.y == 0)) {
+      return;
+    }
+    double distance = Geolocator.distanceBetween(
+        here.y.toDouble(), here.x.toDouble(), position[1], position[0]);
+    String away = distance > 1000
+        ? '${(distance * metersToMiles).toStringAsFixed(1)} miles away'
+        : '${distance.round()} metres away';
+    _status = _status.isEmpty
+        ? '($away)'
+        : '${_status.substring(0, _status.length - 1)}, $away)';
   }
 }

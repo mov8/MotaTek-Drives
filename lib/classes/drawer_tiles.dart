@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:maplibre_gl/maplibre_gl.dart';
 import '/classes/classes.dart';
+import '/models/other_models.dart';
+import '/services/services.dart';
 import '/tiles/tiles.dart';
 
 /// The trip being planned, as tiles - the same in the BottomDrawer (phone)
@@ -75,4 +78,51 @@ int tripPlanTileIndex(int pointOfInterest) {
     if (![12, 14, 17, 18].contains(pointsOfInterest[i].type)) index++;
   }
   return index;
+}
+
+/// A group drive's other participants - who has joined, their car - the
+/// same in both drawers. Tapping one shows their car on the map.
+List<Widget> groupTiles() {
+  List<Follower> followers = CurrentTripItem().followers;
+  return [
+    for (int i = 0; i < followers.length; i++)
+      Padding(
+        key: Key('gdf$i'),
+        padding: const EdgeInsets.all(5),
+        child: FollowerTile(
+          follower: followers[i],
+          index: i,
+          onIconClick: (index) async => _showFollower(index),
+          onLongPress: _showFollower,
+          distance: 0,
+          currentPosition: CurrentTripItem().tripValues.position,
+        ),
+      ),
+  ];
+}
+
+void _showFollower(int index) {
+  List<Follower> followers = CurrentTripItem().followers;
+  if (index >= followers.length) return;
+  List<double> position = followers[index].position;
+  if (position[0] == 0 && position[1] == 0) return; // not reported yet
+  MapService().showInView(LatLng(position[1], position[0]));
+}
+
+/// A group drive's messages, oldest first, then the predefined messages
+/// and the box to write one in
+List<Widget> tripMessageTiles() {
+  GroupDriveService().unread = 0;
+  List<TripMessage> messages = CurrentTripItem().tripMessages;
+  return [
+    for (int i = 0; i < messages.length; i++)
+      TripMessageTile(
+        key: Key('gdm$i'),
+        index: i,
+        message: messages[i],
+        onEdit: (_) {},
+        onSelect: (_) {},
+      ),
+    const TripMessageComposer(key: Key('gdmc')),
+  ];
 }

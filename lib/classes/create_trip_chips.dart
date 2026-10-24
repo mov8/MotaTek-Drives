@@ -238,8 +238,6 @@ class CreateTripChips extends StatelessWidget {
     );
   }
 
-  final List<Follower> _following = [];
-
   List<Widget> getChips() {
     final CurrentTripItem trip = CurrentTripItem();
     final PlanPhase phase = phaseOf(trip);
@@ -438,7 +436,7 @@ class CreateTripChips extends StatelessWidget {
 
   Future<void> messages() async {
     CurrentTripItem().requestMessages();
-    await _executeChipActions(tripActions: MyTripActions.message);
+    await _executeChipActions(tripActions: MyTripActions.showMessages);
   }
 
   void tripData() {
@@ -555,13 +553,13 @@ class CreateTripChips extends StatelessWidget {
         return;
 
       case MyTripActions.showMessages:
-        updateControllers(items: BottomDrawerItems.messages, open: true);
+        updateControllers(items: BottomDrawerItems.tripMessages, open: true);
         CurrentTripItem().tripActions = TripActions.none;
         onUpdate!(MyTripActions.none);
         return;
 
       case MyTripActions.showGroup:
-        updateControllers(items: BottomDrawerItems.groups, open: true);
+        updateControllers(items: BottomDrawerItems.group, open: true);
         CurrentTripItem().tripActions = TripActions.none;
         onUpdate!(MyTripActions.none);
         return;
@@ -579,6 +577,7 @@ class CreateTripChips extends StatelessWidget {
         return;
 
       case MyTripActions.stopFollowing:
+        GroupDriveService().stop(); // the drive's over for this user
         CurrentTripItem().tripValues.pauseStream = true;
         CurrentTripItem().tripState = TripState.stoppedFollowing;
         setLocationUpdates();
@@ -668,26 +667,6 @@ class CreateTripChips extends StatelessWidget {
               PositionService()
                   .InitialiseDebugging(routes: debugMyTripItem.routes);
             }
-          }
-          if (CurrentTripItem().tripState == TripState.following) {
-            _following.add(Follower(
-                forename: 'One',
-                surname: 'One',
-                registration: 'CAR 001',
-                position: [0, 0],
-                track: true,
-                carColour: 'red',
-                iconColour: 1));
-            _following.add(Follower(
-              forename: 'Two',
-              surname: 'Two',
-              registration: 'CAR 002',
-              position: [0, 0],
-              track: true,
-              carColour: 'blue',
-              iconColour: 2,
-            ));
-            CurrentTripItem().groupDriveId = 'gdDebug1';
           }
 
           // _positionStream.
