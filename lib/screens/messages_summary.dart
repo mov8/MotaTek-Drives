@@ -104,7 +104,7 @@ class _MessagesSummaryFormState extends State<MessagesSummaryForm> {
       GroupMember contact = await getUserByEmail(email);
       String name = '${contact.forename} ${contact.surname}';
       widget.mailItems
-          .add(MailItem(id: '', name: name, isGroup: false, email: email));
+          .add(MailItem(id: contact.userId, name: name, email: email));
     }
     widget.onNewContact();
   }

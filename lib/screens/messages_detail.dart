@@ -7,6 +7,8 @@ import 'package:socket_io_client/socket_io_client.dart' as sio;
 
 class MessageDetailsForm extends StatefulWidget {
   final List<Message> messages;
+  // The conversation: the group's id, or the person's email
+  final String groupId;
   final String email;
   final bool isGroup;
   // The last message is the one being written - shown once the user asks
@@ -19,6 +21,7 @@ class MessageDetailsForm extends StatefulWidget {
       {super.key,
       required this.socket,
       required this.messages,
+      this.groupId = '',
       required this.email,
       this.isGroup = false,
       this.writing = false});
@@ -34,14 +37,6 @@ class _MessageDetailsFormState extends State<MessageDetailsForm> {
   @override
   void initState() {
     super.initState();
-  }
-
-  @override
-  void dispose() {
-    if (widget.isGroup) {
-      widget.socket.emit('leave_group');
-    }
-    super.dispose();
   }
 
   Future<bool> dataFromWeb() async {
@@ -93,8 +88,10 @@ class _MessageDetailsFormState extends State<MessageDetailsForm> {
   dismissAction({required int index, required int action}) {}
 
   void sendMessage(int index) {
+    widget.messages.last.dated = dateFormatDoc.format(DateTime.now());
     if (widget.isGroup) {
-      widget.socket.emit('group_message', widget.messages.last.message);
+      widget.socket.emit('group_message',
+          {'group_id': widget.groupId, 'message': widget.messages.last.message});
     } else {
       try {
         widget.socket.emit('user_message', {
@@ -102,7 +99,6 @@ class _MessageDetailsFormState extends State<MessageDetailsForm> {
           'token': Setup().jwt,
           'user_email': widget.email,
         });
-        widget.messages.last.dated = dateFormatDoc.format(DateTime.now());
       } catch (e) {
         developer.log('user_message error: ${e.toString()}', name: 'error');
       }

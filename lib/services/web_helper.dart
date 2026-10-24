@@ -1027,30 +1027,6 @@ Future<Map<String, dynamic>> updateGroups(
   return {'msg': 'error'};
 }
 
-Future<bool> deleteMessage({required String messageId}) async {
-  final http.Response response = await postWebData(
-      uri: Uri.parse('$urlMessage/delete'),
-      body: jsonEncode({'id': messageId}),
-      secure: true);
-  if ([200, 201].contains(response.statusCode)) {
-    return true;
-  } else {
-    return false;
-  }
-}
-
-Future<bool> updateMessage({required String messageId}) async {
-  final http.Response response = await postWebData(
-      uri: Uri.parse('$urlMessage/mark_as_read'),
-      body: jsonEncode({'id': messageId}),
-      secure: true);
-  if ([200, 201].contains(response.statusCode)) {
-    return true;
-  } else {
-    return false;
-  }
-}
-
 Future<List<MailItem>> getMessagesByGroup() async {
   List<MailItem> mailItems = [];
   try {
@@ -1059,16 +1035,7 @@ Future<List<MailItem>> getMessagesByGroup() async {
     if ([200, 201].contains(response.statusCode)) {
       var groups = jsonDecode(response.body);
       for (Map<String, dynamic> groupData in groups) {
-        mailItems.add(MailItem(
-          id: groupData['id'],
-          name: groupData['name'],
-          unreadMessages:
-              int.parse(groupData['received']) - int.parse(groupData['read']),
-          received: int.parse(groupData['received']),
-          sent: int.parse(groupData['sent']),
-          read: int.parse(groupData['read']),
-          isGroup: groupData['group'] == 1,
-        ));
+        mailItems.add(MailItem.fromMap(groupData));
       }
       return mailItems;
     } else {
@@ -1130,16 +1097,6 @@ Future<List<Message>> getUserMessages(String userId) async {
         name: 'error');
     return [];
   }
-}
-
-Future<String> putMessage(Group group, Message message) async {
-  final http.Response response = await postWebData(
-      uri: Uri.parse('$urlMessage/add'),
-      body: '{"group_id": ${group.id}, "message": ${message.message}}');
-  if ([200, 201].contains(response.statusCode)) {
-    return jsonDecode(response.body);
-  }
-  return '';
 }
 
 /// getHomeItems gets a list of home articles for the home screen

@@ -83,25 +83,8 @@ class _MessagesState extends State<Messages> {
       socket.emit('user_connect', {'token': Setup().jwt});
     });
 
-    socket.on('message_from_group', (data) {
-      try {
-        if (_tileSelected > -1 && _mailItems[_tileSelected].isGroup) {
-          _messages[_messages.length - 1] = Message.fromSocketMap(data);
-          setState(() => appendEmptyMessage());
-        }
-      } catch (e) {
-        debugPrint('Error: ${e.toString()}');
-      }
-    });
-
-    socket.on('user_message', (data) {
-      try {
-        _messages[_messages.length - 1] = Message.fromSocketMap(data);
-        setState(() => appendEmptyMessage());
-      } catch (e) {
-        debugPrint('Error: ${e.toString()}');
-      }
-    });
+    socket.on('message_from_group', (data) => _received(data, group: true));
+    socket.on('user_message', (data) => _received(data, group: false));
     try {
       socket.connect();
     } catch (e) {
@@ -113,14 +96,35 @@ class _MessagesState extends State<Messages> {
 
   @override
   void dispose() {
-    if (socket.connected) {
-      try {
-        socket.emit('cleave');
-      } catch (e) {
-        debugPrint('error disposing of group_messages: ${e.toString()}');
-      }
-    }
+    // Closes the connection - it was left open on leaving Messages
+    socket.dispose();
     super.dispose();
+  }
+
+  /// A message just sent to this user or one of their groups: shown if its
+  /// conversation is open - above the one being written, which it used to
+  /// replace - or with the conversations showing, their counts are updated
+  Future<void> _received(dynamic data, {required bool group}) async {
+    if (!mounted) return;
+    try {
+      Map<String, dynamic> map = Map<String, dynamic>.from(data);
+      bool open = _tileSelected > -1 && _tileSelected < _mailItems.length;
+      if (!open) {
+        _mailItems = await getMessagesByGroup();
+        if (mounted) setState(() {});
+        return;
+      }
+      MailItem item = _mailItems[_tileSelected];
+      bool forThis = item.isGroup == group &&
+          (group ? item.id == map['group_id'] : item.email == map['email']);
+      if (forThis) {
+        setState(() => _messages.insert(
+            _messages.isEmpty ? 0 : _messages.length - 1,
+            Message.fromSocketMap(map)));
+      }
+    } catch (e) {
+      debugPrint('Error: ${e.toString()}');
+    }
   }
 
   void showDetails(int tileIndex) {}
@@ -181,6 +185,7 @@ class _MessagesState extends State<Messages> {
             )
           : MessageDetailsForm(
               messages: _messages,
+              groupId: _mailItems[_tileSelected].id,
               email: _mailItems[_tileSelected].email,
               isGroup: _mailItems[_tileSelected].isGroup,
               writing: _writing,
@@ -337,6 +342,7 @@ class _MessagesState extends State<Messages> {
         child: MessageDetailsForm(
           key: ValueKey(_tileSelected),
           messages: _messages,
+          groupId: _mailItems[_tileSelected].id,
           email: _mailItems[_tileSelected].email,
           isGroup: _mailItems[_tileSelected].isGroup,
           writing: _writing,

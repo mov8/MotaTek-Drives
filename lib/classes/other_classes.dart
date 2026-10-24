@@ -27,6 +27,22 @@ class MailItem {
     this.isGroup = false,
     this.email = '',
   });
+
+  /// A conversation from the API (message/all_messages) - the counts come
+  /// as strings. A person's email is who a reply goes to.
+  factory MailItem.fromMap(Map<String, dynamic> map) {
+    int count(String key) => int.tryParse('${map[key] ?? 0}') ?? 0;
+    return MailItem(
+      id: map['id'] ?? '',
+      name: map['name'] ?? '',
+      unreadMessages: count('received') - count('read'),
+      received: count('received'),
+      sent: count('sent'),
+      read: count('read'),
+      isGroup: map['group'] == 1,
+      email: map['email'] ?? '',
+    );
+  }
 }
 
 class TripArguments {
