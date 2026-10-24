@@ -27,7 +27,11 @@ Future<Position> getPosition() async {
     }
   }
   try {
-    gl.Position glPosition = await gl.Geolocator.getCurrentPosition();
+    // A limit: without one it waits for ever when no fix comes (location
+    // off, or a browser's prompt unanswered), and the app with it
+    gl.Position glPosition = await gl.Geolocator.getCurrentPosition(
+        locationSettings:
+            const gl.LocationSettings(timeLimit: Duration(seconds: 10)));
     Setup().lastPosition.pointXYList = [
       glPosition.longitude,
       glPosition.latitude

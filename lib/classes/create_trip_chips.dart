@@ -567,7 +567,11 @@ class CreateTripChips extends StatelessWidget {
         return;
 
       case MyTripActions.follow:
-        updateControllers(items: BottomDrawerItems.group, open: true);
+        // The participants for a group drive; following alone, the drawer
+        // would only cover the map
+        updateControllers(
+            items: BottomDrawerItems.group,
+            open: CurrentTripItem().groupDriveId.isNotEmpty);
         CurrentTripItem().tripActions = TripActions.none;
         setLocationUpdates();
         onUpdate!(MyTripActions.none);

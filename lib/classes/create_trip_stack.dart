@@ -36,6 +36,10 @@ class CreateTripStackController {
     }
   }
 
+  /// Following: the turn-by-turn panel works out the next instruction and
+  /// the distance to it from tripValues.position
+  void updateDirections() => _createTripStackState?.updateDirections();
+
   void warn(int index) {
     if (isAttached) {
       _createTripStackState?.warn(index);
@@ -95,6 +99,12 @@ class _CreateTripStackState extends State<CreateTripStack>
 
   void refresh() {
     setState(() => {});
+  }
+
+  void updateDirections() {
+    if (_directionTileController.isAttached) {
+      _directionTileController.updatePosition();
+    }
   }
 
   void warn(int index) async {

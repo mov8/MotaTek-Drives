@@ -1,6 +1,7 @@
 import 'dart:math';
 import '/classes/classes.dart';
 import '/helpers/create_trip_helpers.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '/models/other_models.dart';
 import '/tiles/maneuver_tile.dart';
@@ -285,6 +286,9 @@ class _DirectionTileState extends State<DirectionTile> {
       {required String text,
       required String fileName,
       bool delete = false}) async {
+    // The spoken prompts are files in the app's documents folder, which a
+    // browser doesn't have
+    if (kIsWeb) return '';
     String soundDir = '${Setup().appDocumentDirectory}/sounds';
     if (!Directory(soundDir).existsSync()) {
       Directory(soundDir).createSync();

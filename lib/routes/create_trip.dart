@@ -205,7 +205,18 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   double mapHeight = 250;
   double listHeight = 0;
   final TripPreferences _preferences = TripPreferences();
-  late Position _currentPosition;
+  // Staines (MapService().currentPosition's default) until there's a fix
+  Position _currentPosition = Position(
+      latitude: 51.433,
+      longitude: -0.513,
+      timestamp: DateTime.now(),
+      accuracy: 0,
+      altitude: 0,
+      altitudeAccuracy: 0,
+      heading: 0,
+      headingAccuracy: 0,
+      speed: 0,
+      speedAccuracy: 0);
   CurrentPosition _userPosition = CurrentPosition();
   int insertAfter = -1;
   int _poiDetailIndex = -1;
@@ -451,7 +462,8 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
   Future<bool> dataFromDatabase() async {
     try {
       await getPermission();
-      _currentPosition = await Geolocator.getCurrentPosition();
+      _currentPosition = await MapService().currentPositionOrNull() ??
+          _currentPosition;
       // Setup is loaded from Hive at startup (main.dart initialise())
       if (Setup().hasLoggedIn) {
         _preferences.avoidMotorways = Setup().avoidMotorways;

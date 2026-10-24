@@ -528,6 +528,21 @@ class MapService {
     return position;
   }
 
+  /// Where the user is, or null if no fix comes within 10 seconds - a
+  /// browser whose location prompt isn't answered, or a computer with its
+  /// location switched off. Without a limit getCurrentPosition() waits for
+  /// ever, and the app waited with it on the splash screen.
+  Future<Position?> currentPositionOrNull() async {
+    try {
+      return await Geolocator.getCurrentPosition(
+          locationSettings:
+              const LocationSettings(timeLimit: Duration(seconds: 10)));
+    } catch (e) {
+      developer.log('No location: ${e.toString()}', name: 'error');
+      return null;
+    }
+  }
+
   LatLng? _currentPosition;
   double _meters = 0;
 
@@ -716,15 +731,23 @@ class MapService {
   Future<String> _fetchStyle() async {
     try {
       _styleString = await getStyle(url: urlTilerMapLibre);
-      await getPermission();
-      Position position = await Geolocator.getCurrentPosition();
-      _currentPosition = LatLng(position.latitude, position.longitude);
-      return _styleString;
     } catch (e) {
       developer.log('Error getting style from api: ${e.toString()}',
           name: 'error');
+      return '';
     }
-    return '';
+    // No location (refused, switched off, or slow to come) leaves the map
+    // at currentPosition's default - it used to lose the style too
+    try {
+      await getPermission().timeout(const Duration(seconds: 30));
+    } catch (e) {
+      developer.log('Location permission: ${e.toString()}', name: 'error');
+    }
+    Position? position = await currentPositionOrNull();
+    if (position != null) {
+      _currentPosition = LatLng(position.latitude, position.longitude);
+    }
+    return _styleString;
   }
 
   Future<LatLngBounds> get bounds async => (await controller!
@@ -828,8 +851,10 @@ class MapService {
         onUpdated: (_) => {},
         onGetDetails: (_) => {},
         imageRepository: _tripImageRepository);
-    Position position = await Geolocator.getCurrentPosition();
-    _currentPosition = LatLng(position.latitude, position.longitude);
+    Position? position = await currentPositionOrNull();
+    if (position != null) {
+      _currentPosition = LatLng(position.latitude, position.longitude);
+    }
   }
 
   Function(bool)? createTripOnMapIde;

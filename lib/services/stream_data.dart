@@ -125,6 +125,9 @@ class PositionService {
     // Redraws the speed and, when following, the directions, which work
     // from tripValues.position
     MapService().createTripStackController?.refresh();
+    if (tripState == TripState.following) {
+      MapService().createTripStackController?.updateDirections();
+    }
     await MapService()
         .showLocation(position: position.point, bearing: _heading);
     _followCamera(position);

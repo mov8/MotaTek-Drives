@@ -523,7 +523,9 @@ class CurrentTripItem extends MyTripItem {
   RouteDelta goodRoadStart = RouteDelta();
   RouteDelta routeDelta = RouteDelta();
   WaypointState waypointState = WaypointState.none;
-  bool debugging = false;
+  // Replays the route as positions instead of the GPS, to test following,
+  // turn-by-turn and group drives: --dart-define=DRIVES_REPLAY=true
+  bool debugging = const bool.fromEnvironment('DRIVES_REPLAY');
   final String debuggingRoute = ''; // <-- Route name to follow
 
   /// load() method to hydrate the CurrentTripItem object with data from the
