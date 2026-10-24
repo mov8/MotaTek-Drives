@@ -85,6 +85,8 @@ dependencies:
   shelf_router: ^1.1.4
   markdown: ^7.1.1
   # isar_plus_flutter_libs: ^4.0.0-dev.13
+  mime: any
+  shelf: any
 dev_dependencies:
   flutter_test:
     sdk: flutter

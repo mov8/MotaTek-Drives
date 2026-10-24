@@ -133,6 +133,8 @@ git rm --cached file_to_remove.txt <-- remove a file from Git without deleting I
 git rm --cached -r directory_to_remove <-- remove a directory recursively
 git ls-tree -r master --name-only <-- Show all files in master branch 
 git git clone -b <branch> --single-branch https://github.com/<repository.git>
+git remote -v shows the remote uri 
+
 
 Todo-Tree: Failed to find vscode-ripgrep - please install ripgrep manually and set 'todo-tree.ripgrep' to point to the executable
 
