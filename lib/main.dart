@@ -370,6 +370,8 @@ class _BaseShellScreen extends State<BaseShellScreen> {
     }
     try {
       await Setup().loadToken();
+      // The server has this device's notification subscription as it is now
+      PushService().refresh();
       // The rest - the position, refreshing the token, the user and the
       // settings (from Hive) - carries on while the app starts
       Setup().loaded;

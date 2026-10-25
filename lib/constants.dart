@@ -843,6 +843,7 @@ const String urlTextToSpeech = '${urlBase}v1/text_to_speech';
 // const String urlTextToSpeech = 'https://motatek.com/mailer/send/';
 const String urlMessage = '${urlBase}v1/message';
 const String urlPointOfInterest = '${urlBase}v1/point_of_interest';
+const String urlPush = '${urlBase}v1/push';
 const String urlPointOfInterestRating = '${urlBase}v1/point_of_interest_rating';
 const String urlOsmReview = '${urlBase}v1/osm_review';
 const String staticImagesFolder =

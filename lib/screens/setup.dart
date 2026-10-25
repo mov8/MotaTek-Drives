@@ -5,6 +5,7 @@ import '/models/other_models.dart';
 import '/classes/classes.dart';
 import '/helpers/edit_helpers.dart';
 import '/helpers/hive_helpers.dart' show UserRepository;
+import '/services/push_service.dart';
 
 class SetupForm extends StatefulWidget {
   Function(bool)? onChange;
@@ -505,6 +506,34 @@ class _SetupViewState extends State<SetupView> {
   final iconFlyover = SymbolsGet.get('flyover', SymbolStyle.sharp);
   final iconRoad = SymbolsGet.get('road', SymbolStyle.sharp);
   final Color _textColor = kIsWeb ? Colors.black : Colors.white;
+
+  /// Whether this browser has notifications on. They change straight away,
+  /// not on Save - turning them on is when the browser asks permission.
+  bool _notifications = false;
+
+  @override
+  void initState() {
+    super.initState();
+    PushService().enabled.then((on) {
+      if (mounted) setState(() => _notifications = on);
+    });
+  }
+
+  Future<void> _setNotifications(bool on) async {
+    String problem = '';
+    if (on) {
+      problem = await PushService().enable();
+    } else {
+      await PushService().disable();
+    }
+    bool now = await PushService().enabled;
+    if (!mounted) return;
+    setState(() => _notifications = now);
+    if (problem.isNotEmpty) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(problem)));
+    }
+  }
   @override
   Widget build(BuildContext context) {
     // TODO: implement build
@@ -515,19 +544,10 @@ class _SetupViewState extends State<SetupView> {
           SwitchListTile(
             title: Text('Notifications',
                 style: textStyle(context: context, color: _textColor)),
-            value: Setup().allowNotifications,
-            onChanged: (bool value) {
-              setState(
-                () {
-                  try {
-                    _hasChanged();
-                    Setup().allowNotifications = value;
-                  } catch (e) {
-                    debugPrint('Error: ${e.toString()}');
-                  }
-                },
-              );
-            },
+            subtitle: Text('New messages and group drive invitations',
+                style: TextStyle(color: _textColor)),
+            value: _notifications,
+            onChanged: _setNotifications,
             secondary: Icon(Icons.notifications_on_outlined,
                 size: 30, color: _textColor),
           ),

@@ -150,6 +150,7 @@ Future<Map<String, dynamic>> postUser(
     if ([200, 201].contains(code)) {
       Setup().jwt = map['token'];
       Setup().save();
+      PushService().refresh(); // this device's notifications are theirs now
       return {'msg': 'OK', 'code': code};
     } else {
       map['msg'] = 'error';
@@ -274,6 +275,7 @@ Future<Map<String, dynamic>> tryLogin({required User user}) async {
         Setup().jwt = map['token'];
         Setup().saveUser();
         Setup().save();
+        PushService().refresh(); // this device's notifications are theirs now
         return {'msg': 'OK'};
       } else if (map.isNotEmpty) {
         return {'msg': map['msg'] ?? 'error', 'response_status_code': code};
