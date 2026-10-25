@@ -3,7 +3,8 @@ import 'package:maplibre_gl/maplibre_gl.dart';
 import '/classes/classes.dart';
 import '/constants.dart';
 import '/models/other_models.dart';
-import '/helpers/edit_helpers.dart';
+import '/helpers/helpers.dart';
+import '/screens/dialogs.dart';
 import 'tiles.dart';
 import '/services/services.dart';
 import 'dart:developer' as developer;
@@ -36,6 +37,7 @@ class TripTile extends StatefulWidget {
 
 class _TripTileState extends State<TripTile> {
   List<Photo> photos = [];
+  bool _downloading = false;
   bool isExpanded = false;
   bool expanded = true;
   final List<Card> _childCards = [];
@@ -278,6 +280,22 @@ class _TripTileState extends State<TripTile> {
                         ),
                       ),
                     ),
+                    // To follow, or change and keep as the user's own -
+                    // the bar's "Choose a drive to download"
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton.icon(
+                        icon: _downloading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2))
+                            : const Icon(Icons.download),
+                        label: const Text('Download',
+                            style: TextStyle(fontSize: 18)),
+                        onPressed: _downloading ? null : download,
+                      ),
+                    ),
                     if (_childCards.isNotEmpty)
                       Row(
                         children: [
@@ -312,6 +330,51 @@ class _TripTileState extends State<TripTile> {
       }
       setState(() => widget.tripItem.rating = value.toDouble());
     }
+  }
+
+  /// Opens the trip on the map, to follow or change - warning first if the
+  /// trip being worked on hasn't been saved
+  Future<void> download() async {
+    if (CurrentTripItem().hasUnsavedChanges) {
+      String current = CurrentTripItem().title.isEmpty
+          ? 'The trip you are working on'
+          : '"${CurrentTripItem().title}"';
+      Utility().showOkCancelDialog(
+          context: context,
+          alertTitle: 'Discard unsaved trip?',
+          alertMessage:
+              "$current hasn't been saved. Downloading \"${widget.tripItem.title}\" will clear it.",
+          okValue: 1,
+          callback: (value) {
+            if (value > -1) _download();
+          });
+    } else {
+      await _download();
+    }
+  }
+
+  /// The whole trip, waypoints and all, as a copy of its own - saving or
+  /// publishing it doesn't touch the original
+  Future<void> _download() async {
+    setState(() => _downloading = true);
+    MyTripItem trip = await getMyTrip(widget.tripItem.uri, download: true);
+    if (!mounted) return;
+    setState(() => _downloading = false);
+    if (trip.routes.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text("The trip couldn't be downloaded - please try again")));
+      return;
+    }
+    trip.uri = getUuid();
+    trip.published = false;
+    await openTripOnMap(trip);
+    // Not saved on this device yet - leaving it warns
+    CurrentTripItem().markUnsaved();
+    // After the next frame - the map page may only be being built now, and
+    // its message box isn't there to take the message until it is
+    WidgetsBinding.instance.addPostFrameCallback((_) => MapService()
+        .messageBoxController
+        ?.message(message: Warning.tripDownloaded));
   }
 
   getTrip(value) {

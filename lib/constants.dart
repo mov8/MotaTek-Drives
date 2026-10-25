@@ -233,7 +233,9 @@ enum ChangedFeatures {
 
 enum Warning { none, headingIncomplete, tripSaved, tripDownloaded }
 
-List<Map<String, dynamic>> warnings = [
+// A getter, so each message has the trip's title as it is now - as a list
+// it was made once, keeping the first trip's title
+List<Map<String, dynamic>> get warnings => [
   {
     'message':
         'The trip details are incomplete. before saving please add the missing details',

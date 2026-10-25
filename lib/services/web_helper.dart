@@ -689,16 +689,17 @@ putPointOfInterestRating(String uri, double score) async {
 /// [pointsOfInterest] uri drive_id type name description images point
 ///
 ///
-/// A whole published trip - routes, turn-by-turn instructions and points of
-/// interest - e.g. a group drive's
-Future<MyTripItem> getMyTrip(String tripUuid) async {
+/// A whole published trip - just as it was published, waypoints and all -
+/// e.g. a group drive's. download counts it as downloaded.
+Future<MyTripItem> getMyTrip(String tripUuid, {bool download = false}) async {
   try {
     final http.Response response = await http.get(
-      Uri.parse('$urlDrive/$tripUuid'),
-      headers: webHeader(secure: false),
+      Uri.parse('$urlDrive/$tripUuid${download ? '?download=true' : ''}'),
+      headers: webHeader(secure: download && Setup().jwt.isNotEmpty),
     );
     if (response.statusCode == 200) {
-      return MyTripItem.fromApiJson(jsonDecode(response.body));
+      return MyTripItem.fromJson(jsonObject: jsonDecode(response.body))
+        ..published = true;
     }
     developer.log('getMyTrip(): ${response.statusCode}', name: 'error');
   } catch (e) {

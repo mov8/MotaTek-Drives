@@ -1068,13 +1068,15 @@ class Photo {
         ? url
         : '$endPoint/$url';
 
+    // Numbers as either (a width of 200 threw, as it isn't a double, and
+    // the photos weren't shown)
     return Photo(
         url: url,
         id: json['id'] ?? -1,
         caption: json['caption'] ?? '',
         align: json['align'] ?? 'center',
-        rotation: json['rotation'] ?? 0,
-        width: json['width'] ?? 200,
+        rotation: (json['rotation'] as num? ?? 0).toInt(),
+        width: (json['width'] as num? ?? 200).toDouble(),
         key: key,
         index: index);
   }

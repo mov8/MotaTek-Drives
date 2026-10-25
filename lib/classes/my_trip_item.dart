@@ -183,6 +183,13 @@ class CurrentTripItem extends MyTripItem {
           title.isNotEmpty
       : _snapshot() != _savedSnapshot;
 
+  /// A trip that isn't saved on the device - e.g. one just downloaded -
+  /// so leaving it warns, like a new one
+  void markUnsaved() {
+    isSaved = false;
+    _savedSnapshot = '';
+  }
+
   /// Call after the trip is saved or loaded
   void markSaved() {
     // Saved without the removed points of interest - their media can go now
@@ -2179,18 +2186,20 @@ class MyTripItem extends TripItem {
         photos = photos ?? <Photo>[];
   // super(photos: photos ?? <Photo>[]); // <-- has to be last in list
 
+  /// A trip saved on the device, or a published one from the API (GET
+  /// drive/<uri>) - the API keeps a trip just as the app sends it
   factory MyTripItem.fromJson({required Map<String, dynamic> jsonObject}) {
-    List<Route> routes = routesFromJson(jsonList: jsonObject["routes"]);
+    List<Route> routes = routesFromJson(jsonList: jsonObject["routes"] ?? []);
 
     List<Maneuver> maneuvers = maneuversFromJson(
-      jsonList: jsonObject["maneuvers"],
+      jsonList: jsonObject["maneuvers"] ?? [],
     );
     List<Route> goodRoads = goodRoadsFromJson(
-      jsonList: jsonObject["good_roads"],
+      jsonList: jsonObject["good_roads"] ?? [],
     );
 
     List<PointOfInterest> pointsOfInterest = pointsOfInterestFromJson(
-      jsonList: jsonObject["points_of_interest"],
+      jsonList: jsonObject["points_of_interest"] ?? [],
     );
 
     /// Need to add all the images that are in each point of interest to trip image list
@@ -2228,81 +2237,6 @@ class MyTripItem extends TripItem {
     }
 
     return tripItem;
-  }
-
-  /// A whole published trip from the API (GET drive/<uri>) - e.g. a group
-  /// drive's. Its lines and points are GeoJSON, as strings.
-  factory MyTripItem.fromApiJson(Map<String, dynamic> map) {
-    dynamic geometry(dynamic geoJson) {
-      if (geoJson == null) return null;
-      Map json = geoJson is String ? jsonDecode(geoJson) : geoJson;
-      return json['coordinates'];
-    }
-
-    List<List<double>> line(dynamic geoJson) => [
-          for (List point in geometry(geoJson) ?? [])
-            [(point[0] as num).toDouble(), (point[1] as num).toDouble()]
-        ];
-
-    Point point(dynamic geoJson) {
-      List coordinates = geometry(geoJson) ?? [0, 0];
-      return Point(coordinates[0] as num, coordinates[1] as num);
-    }
-
-    num number(dynamic value) => num.tryParse('${value ?? 0}') ?? 0;
-
-    List<Route> routes(dynamic list) => [
-          for (Map route in list ?? [])
-            Route(
-                uri: route['uri'] ?? '',
-                lines: line(route['lines']),
-                shields: line(route['shields']),
-                pointOfInterestUri: route['point_of_interest_uri'] ?? '')
-        ];
-
-    return MyTripItem(
-      uri: map['uri'] ?? '',
-      title: (map['title'] ?? '').trim(),
-      subTitle: map['sub_title'] ?? '',
-      body: map['body'] ?? '',
-      added: map['added'] ?? '',
-      score: '${map['score'] ?? 5}',
-      scored: number(map['scored']).toInt(),
-      downloads: number(map['downloads']).toInt(),
-      distance: number(map['distance']).toDouble(),
-      authorUri: map['author_uri'] ?? '',
-      author: map['author'] ?? '',
-      routes: routes(map['routes']),
-      goodRoads: routes(map['good_roads']),
-      maneuvers: [
-        for (Map maneuver in map['maneuvers'] ?? [])
-          Maneuver(
-            uuid: maneuver['uri'],
-            roadFrom: maneuver['road_from'] ?? '',
-            roadTo: maneuver['road_to'] ?? '',
-            exit: number(maneuver['exit']).toInt(),
-            bearingBefore: number(maneuver['bearing_before']).toInt(),
-            bearingAfter: number(maneuver['bearing_after']).toInt(),
-            point: point(maneuver['point']),
-            modifier: maneuver['modifier'] ?? '',
-            type: maneuver['type'] ?? '',
-            distance: number(maneuver['distance']).toDouble(),
-          )
-      ],
-      pointsOfInterest: [
-        for (Map poi in map['points_of_interest'] ?? [])
-          PointOfInterest(
-            uuid: poi['uri'],
-            point: point(poi['point']),
-            type: number(poi['type'] ?? 12).toInt(),
-            name: poi['name'] ?? '',
-            description: poi['description'] ?? '',
-            images: poi['images'] ?? '',
-            score: number(poi['score'] ?? 5).toDouble(),
-            scored: number(poi['scored']).toInt(),
-          )
-      ],
-    )..published = true;
   }
 
   factory MyTripItem.summaryFromJson(
