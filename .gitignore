@@ -38,7 +38,8 @@ pubspec.lock
 /linux/
 /macos/
 /windows/
-/android/
+# android/ is kept: the app id, permissions and build settings (its own
+# .gitignore leaves out local paths and signing keys)
 /ios/
 # Symbolication related
 app.*.symbols
