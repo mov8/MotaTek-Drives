@@ -173,7 +173,9 @@ class _TripTileState extends State<TripTile> {
                 Expanded(
                   flex: 12,
                   child: Text(
-                    'Downloads (${widget.tripItem.downloads})',
+                    widget.tripItem.driven > 0
+                        ? 'Driven by ${widget.tripItem.driven} · Downloads (${widget.tripItem.downloads})'
+                        : 'Downloads (${widget.tripItem.downloads})',
                     style: textStyle(
                       context: context,
                       color: Colors.black,

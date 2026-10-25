@@ -10,6 +10,7 @@ import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 import '/models/models.dart';
 import '/services/services.dart';
+import '/screens/dialogs.dart' show rateStopsDialog;
 import '/classes/route.dart' as mt;
 import 'dart:developer' as developer;
 
@@ -376,6 +377,7 @@ Future<dynamic> publish(MyTripItem tripItem) async {
     request.fields['data'] = jsonEncode(apiData);
     request.files.addAll(files);
     response = await request.send().timeout(const Duration(seconds: 30));
+    if (response.statusCode == 200) tripItem.publishedUri = tripItem.uri;
     return response.statusCode;
   } catch (e) {
     developer.log(
@@ -691,6 +693,27 @@ putPointOfInterestRating(String uri, double score) async {
 /// [pointsOfInterest] uri drive_id type name description images point
 ///
 ///
+/// The summary of following a published trip (DrivenLog) - then, for any
+/// of its points of interest the user stopped at, the offer to rate them
+Future<void> sendDriven(DrivenLog log) async {
+  try {
+    final http.Response response = await postWebData(
+        uri: Uri.parse('$urlDrive/driven'), body: jsonEncode(log.summary()));
+    if (response.statusCode != 200) return;
+    List stopped = jsonDecode(response.body)['stopped_at'] ?? [];
+    List<PointOfInterest> stops = [
+      for (PointOfInterest poi in CurrentTripItem().pointsOfInterest)
+        if (stopped.contains(poi.uuid)) poi
+    ];
+    BuildContext? context = NavigationService().key.currentContext;
+    if (stops.isNotEmpty && context != null && context.mounted) {
+      await rateStopsDialog(context: context, stops: stops);
+    }
+  } catch (e) {
+    developer.log('sendDriven(): ${e.toString()}', name: 'error');
+  }
+}
+
 /// A whole published trip - just as it was published, waypoints and all -
 /// e.g. a group drive's. download counts it as downloaded.
 Future<MyTripItem> getMyTrip(String tripUuid, {bool download = false}) async {
@@ -701,7 +724,8 @@ Future<MyTripItem> getMyTrip(String tripUuid, {bool download = false}) async {
     );
     if (response.statusCode == 200) {
       return MyTripItem.fromJson(jsonObject: jsonDecode(response.body))
-        ..published = true;
+        ..published = true
+        ..publishedUri = tripUuid;
     }
     developer.log('getMyTrip(): ${response.statusCode}', name: 'error');
   } catch (e) {

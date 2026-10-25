@@ -25,6 +25,8 @@ Future<void> openTripOnMap(MyTripItem trip) async {
   CurrentTripItem().routes = trip.routes;
   CurrentTripItem().goodRoads = trip.goodRoads;
   CurrentTripItem().score = trip.score;
+  CurrentTripItem().publishedUri = trip.publishedUri;
+  CurrentTripItem().drivenLog = null;
 
   // Loaded, not editing - the chips offer Follow drive and Edit route
   CurrentTripItem().tripState = TripState.loaded;

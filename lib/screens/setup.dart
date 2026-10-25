@@ -92,6 +92,22 @@ class _SetupFormState extends State<SetupForm> {
                 size: 30, color: Colors.white),
           ),
           SwitchListTile(
+            title: Text('Help verify trips you drive',
+                style: textStyle(context: context)),
+            subtitle: const Text(
+                'Counts a trip you follow as driven, and the places you stop at. Only which turns and stops you passed is sent - never your route or where you are.',
+                style: TextStyle(color: Colors.white)),
+            value: Setup().verifyDriven,
+            onChanged: (bool value) {
+              setState(() {
+                _hasChanged();
+                Setup().verifyDriven = value;
+              });
+            },
+            secondary: const Icon(Icons.verified_outlined,
+                size: 30, color: Colors.white),
+          ),
+          SwitchListTile(
             title: Text('Auto-rotate map', style: textStyle(context: context)),
             value: Setup().rotateMap,
             onChanged: (bool value) {
@@ -550,6 +566,22 @@ class _SetupViewState extends State<SetupView> {
             onChanged: _setNotifications,
             secondary: Icon(Icons.notifications_on_outlined,
                 size: 30, color: _textColor),
+          ),
+          SwitchListTile(
+            title: Text('Help verify trips you drive',
+                style: textStyle(context: context, color: _textColor)),
+            subtitle: Text(
+                'Counts a trip you follow as driven, and the places you stop at. Only which turns and stops you passed is sent - never your route or where you are.',
+                style: TextStyle(color: _textColor)),
+            value: Setup().verifyDriven,
+            onChanged: (bool value) {
+              setState(() {
+                _hasChanged();
+                Setup().verifyDriven = value;
+              });
+            },
+            secondary:
+                Icon(Icons.verified_outlined, size: 30, color: _textColor),
           ),
           SwitchListTile(
             title: Text('Auto-rotate map',

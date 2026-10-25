@@ -1374,3 +1374,47 @@ class _DebounceTimer {
 class _CancelException implements Exception {
   const _CancelException();
 }
+
+/// After following a trip: the points of interest the user stopped at, to
+/// rate - ratings from people who were there
+Future<void> rateStopsDialog(
+    {required BuildContext context,
+    required List<PointOfInterest> stops}) async {
+  Map<String, double> rated = {};
+  await showDialog(
+    context: context,
+    builder: (context) => StatefulBuilder(
+      builder: (context, setState) => AlertDialog(
+        title: Text(stops.length == 1
+            ? 'You stopped at ${stops.first.name}'
+            : 'You stopped at ${stops.length} places'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('How was it? Your rating helps other drivers.'),
+            for (PointOfInterest stop in stops) ...[
+              const SizedBox(height: 12),
+              if (stops.length > 1)
+                Text(stop.name,
+                    style: const TextStyle(fontWeight: FontWeight.bold)),
+              StarRating(
+                rating: rated[stop.uuid] ?? 0,
+                onRatingChanged: (value) {
+                  putPointOfInterestRating(stop.uuid, value.toDouble());
+                  setState(() => rated[stop.uuid] = value.toDouble());
+                },
+              ),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(rated.isEmpty ? 'Not now' : 'Done'),
+          ),
+        ],
+      ),
+    ),
+  );
+}

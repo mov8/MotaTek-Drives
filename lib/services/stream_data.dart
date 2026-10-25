@@ -128,6 +128,9 @@ class PositionService {
     // from tripValues.position
     MapService().createTripStackController?.refresh();
     if (tripState == TripState.following) {
+      // First - the directions can fail (a trip with no turns), and the log
+      // mustn't miss the position
+      trip.drivenLog?.update(position.point, DateTime.now());
       MapService().createTripStackController?.updateDirections();
     }
     await MapService()

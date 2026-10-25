@@ -1179,8 +1179,33 @@ class CurrentTripItem extends MyTripItem {
     return;
   }
 
+  /// What following this trip has noted - see DrivenLog
+  DrivenLog? drivenLog;
+
+  /// A new log for following this trip - if the user agreed, is logged in,
+  /// and it's a published trip (or a copy of one)
+  void _startDrivenLog() {
+    drivenLog = null;
+    if (!Setup().verifyDriven || Setup().jwt.isEmpty || publishedUri.isEmpty) {
+      return;
+    }
+    drivenLog = DrivenLog(
+      tripUri: publishedUri,
+      // its turns - or, for a trip without turn instructions, points along
+      // its route
+      checkpoints: maneuvers.isNotEmpty
+          ? [for (Maneuver maneuver in maneuvers) maneuver.point]
+          : DrivenLog.pointsAlong([for (Route route in routes) ...route.lines]),
+      pointsOfInterest: {
+        for (PointOfInterest poi in pointsOfInterest)
+          if (!DrivenLog.notVisitable.contains(poi.type)) poi.uuid: poi.point
+      },
+    );
+  }
+
   Future<void> requestFollowRoute() async {
     tripState = TripState.following;
+    if (!tripValues.pauseStream) _startDrivenLog(); // not when resuming
     if (tripValues.pauseStream) {
       await MapService().controller!.updateMyLocationTrackingMode(
           MyLocationTrackingMode.none); // PositionService moves the camera
@@ -1206,6 +1231,8 @@ class CurrentTripItem extends MyTripItem {
   Future<void> requestStopFollowing() async {
     tripState = TripState.stoppedFollowing;
     tripValues.pauseFollowing();
+    // The summary of the drive - resuming carries on the same log
+    if (drivenLog?.hasSomething ?? false) sendDriven(drivenLog!);
     await MapService()
         .controller!
         .updateMyLocationTrackingMode(MyLocationTrackingMode.none);
@@ -1851,6 +1878,7 @@ class CurrentTripItem extends MyTripItem {
         'good_roads': goodRoadsJSON,
         'points_of_interest': pointsOfInterestJSON,
         'pois': pois,
+        'published_uri': publishedUri,
       };
 
       return json;
@@ -2154,6 +2182,10 @@ class MyTripItem extends TripItem {
   List<PointOfInterest> pointsOfInterest;
   String images;
   bool published = false;
+
+  /// The published trip this is, or was downloaded from - its drives count
+  /// for that one (DrivenLog). Empty for a trip that's never been published.
+  String publishedUri = '';
   List<Photo>? photos;
   MyTripItem({
     this.id = -1,
@@ -2230,7 +2262,7 @@ class MyTripItem extends TripItem {
         photos: (jsonObject['images'] ?? '').isEmpty
             ? []
             : photosFromJson(photoString: jsonObject['images']),
-      );
+      )..publishedUri = jsonObject['published_uri'] ?? '';
     } catch (e) {
       developer.log('factory MyTripItem.fromJson() error: ${e.toString()}',
           name: 'error');
@@ -2335,6 +2367,7 @@ class MyTripItem extends TripItem {
         "points_of_interest": pointsOfInterestJSON,
         "pois": pois,
         "published": published,
+        "published_uri": publishedUri,
       };
       return json;
     } catch (e) {

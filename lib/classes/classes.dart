@@ -12,6 +12,7 @@ export 'directions.dart';
 export 'drawer_tiles.dart';
 export 'page_empty_view.dart';
 export 'drive_invitations.dart';
+export 'driven_log.dart';
 export 'fences.dart';
 export 'great_drives_cache.dart';
 export 'image_list_indicator.dart';

@@ -247,6 +247,10 @@ class Setup {
   int recordDetail = 5;
   int nextScreen = 1;
   bool allowNotifications = true;
+
+  /// Following a published trip counts it as driven - only a summary is
+  /// sent (DrivenLog), and only if the user turns this on
+  bool verifyDriven = false;
   bool serverUp = false;
   bool hasLoggedIn = false;
   bool loggingIn = false;
@@ -381,6 +385,7 @@ class Setup {
     highlightedColour = map['highlightedColour'] ?? highlightedColour;
     publishedTripColour = map['publishedTripColour'] ?? publishedTripColour;
     allowNotifications = map['allowNotifications'] ?? allowNotifications;
+    verifyDriven = map['verifyDriven'] ?? verifyDriven;
     dark = map['dark'] ?? dark;
     rotateMap = map['rotateMap'] ?? rotateMap;
     avoidMotorways = map['avoidMotorways'] ?? avoidMotorways;
@@ -409,6 +414,7 @@ class Setup {
       'highlightedColour': highlightedColour,
       'publishedTripColour': publishedTripColour,
       'allowNotifications': allowNotifications,
+      'verifyDriven': verifyDriven,
       'dark': dark,
       'rotateMap': rotateMap,
       'avoidMotorways': avoidMotorways,
@@ -1634,6 +1640,9 @@ class TripItem {
   int closest = 12;
   int scored = 10;
   int downloads = 18;
+
+  /// How many people have driven it (following it - DrivenLog)
+  int driven = 0;
   String added = '';
   List polylines;
 
@@ -1659,6 +1668,7 @@ class TripItem {
     this.closest = 12,
     this.scored = 10,
     this.downloads = 18,
+    this.driven = 0,
     this.added = '',
     List<Photo>? photos,
     this.uri = '',
@@ -1767,6 +1777,7 @@ class TripItem {
         closest: 0, // has to be calculated
         scored: map['rated'],
         downloads: map['downloads'] ?? 0,
+        driven: map['driven'] ?? 0,
       );
     } catch (e) {
       debugPrint('Error creating TripItem from map');
