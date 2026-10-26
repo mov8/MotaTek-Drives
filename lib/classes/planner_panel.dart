@@ -52,6 +52,14 @@ const Map<String, String> _when = {
 
 const List<int> _times = [60, 90, 120, 150, 180, 240, 300];
 
+// The plan's field for each route preference, named as in Settings
+const List<(String, String)> _routePreferences = [
+  ('avoid_motorways', 'Avoid motorways'),
+  ('quiet_roads', 'Avoid main roads'),
+  ('avoid_ferries', 'Avoid ferries'),
+  ('avoid_tolls', 'Avoid toll roads'),
+];
+
 // The colours of UK road signs: blue motorways, green primary A roads
 const List<(String, String, Color)> _roadTypes = [
   ('motorway', 'Motorways', Color(0xFF1565C0)),
@@ -137,7 +145,11 @@ class _PlannerPanelState extends State<PlannerPanel> {
                         'to see, and a pub about halfway',
                   ),
                 ),
-                const SizedBox(height: 8),
+                Text('Your route preferences (as in Settings)',
+                    style: Theme.of(context).textTheme.titleSmall),
+                const SizedBox(height: 4),
+                _preferences(working),
+                const SizedBox(height: 10),
                 FilledButton.icon(
                   icon: const Icon(Icons.auto_awesome),
                   label: const Text('Plan my trip'),
@@ -173,6 +185,32 @@ class _PlannerPanelState extends State<PlannerPanel> {
         );
       },
     );
+  }
+
+  /// The user's route preferences before planning - their settings, which
+  /// the Fab menu changes too. The planner adds them to the request.
+  Widget _preferences(bool working) {
+    bool setting(String field) => switch (field) {
+          'avoid_motorways' => Setup().avoidMotorways,
+          'quiet_roads' => Setup().avoidAroads,
+          'avoid_ferries' => Setup().avoidFerries,
+          _ => Setup().avoidTollRoads,
+        };
+    return Wrap(spacing: 6, runSpacing: 6, children: [
+      for (var (field, name) in _routePreferences)
+        FilterChip(
+          label: Text(name),
+          selected: setting(field),
+          onSelected: working
+              ? null
+              : (on) => setState(() => switch (field) {
+                    'avoid_motorways' => Setup().avoidMotorways = on,
+                    'quiet_roads' => Setup().avoidAroads = on,
+                    'avoid_ferries' => Setup().avoidFerries = on,
+                    _ => Setup().avoidTollRoads = on,
+                  }),
+        ),
+    ]);
   }
 
   List<Widget> _result(BuildContext context, PlannerService planner) {
@@ -478,16 +516,13 @@ class _PlannerPanelState extends State<PlannerPanel> {
         child: const Chip(
             avatar: Icon(Icons.add, size: 18), label: Text('A stop')),
       ),
-      FilterChip(
-        label: const Text('Quiet roads'),
-        selected: f['quiet_roads'] == true,
-        onSelected: (on) => planner.changeField('quiet_roads', on),
-      ),
-      FilterChip(
-        label: const Text('Avoid motorways'),
-        selected: f['avoid_motorways'] == true,
-        onSelected: (on) => planner.changeField('avoid_motorways', on),
-      ),
+      // The route preferences - turning one off relaxes it (and the setting)
+      for (var (field, name) in _routePreferences)
+        FilterChip(
+          label: Text(name),
+          selected: f[field] == true,
+          onSelected: (on) => planner.changeRoutePreference(field, on),
+        ),
       if ((f['notes'] ?? '').toString().isNotEmpty)
         InputChip(
           label: ConstrainedBox(

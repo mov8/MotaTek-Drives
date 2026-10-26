@@ -69,6 +69,46 @@ class PlannerService extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ---- route preferences -----------------------------------------------------
+  // The user's settings (Settings, and the Fab menu on the map) - sent with
+  // a new request, and shown as chips once it's planned. A chip changes the
+  // setting too, so the app routes the trip as the planner measured it.
+
+  /// The settings as the API takes them
+  Map<String, bool> get preferences => {
+        'avoid_motorways': Setup().avoidMotorways,
+        'avoid_main_roads': Setup().avoidAroads,
+        'avoid_ferries': Setup().avoidFerries,
+        'avoid_tolls': Setup().avoidTollRoads,
+      };
+
+  /// A route preference's chip changed - field is one of the plan's fields
+  /// (avoid_motorways, quiet_roads, avoid_ferries, avoid_tolls)
+  void changeRoutePreference(String field, bool on) {
+    _setting(field, on);
+    changeField(field, on);
+  }
+
+  /// The settings as the plan has them - its request may have asked for more
+  void _settingsFrom(Map<String, dynamic> planned) {
+    for (String field in [
+      'avoid_motorways',
+      'quiet_roads',
+      'avoid_ferries',
+      'avoid_tolls'
+    ]) {
+      _setting(field, planned[field] == true);
+    }
+  }
+
+  void _setting(String field, bool on) => switch (field) {
+        'avoid_motorways' => Setup().avoidMotorways = on,
+        'quiet_roads' => Setup().avoidAroads = on,
+        'avoid_ferries' => Setup().avoidFerries = on,
+        'avoid_tolls' => Setup().avoidTollRoads = on,
+        _ => null,
+      };
+
   /// Back to the request, e.g. to ask for something else
   void newRequest() {
     _poll?.cancel();
@@ -94,7 +134,10 @@ class PlannerService extends ChangeNotifier {
               'lat': here.latitude,
               'lng': here.longitude,
             },
-            if (changed != null) 'fields': _toSend(changed),
+            if (changed != null)
+              'fields': _toSend(changed)
+            else
+              'preferences': preferences,
           }));
       Map body = response.body.isEmpty ? {} : jsonDecode(response.body);
       if (response.statusCode != 202) {
@@ -172,6 +215,7 @@ class PlannerService extends ChangeNotifier {
           fields = Map<String, dynamic>.from(result?['understood'] ?? {});
           edited = false;
           status = PlannerStatus.done;
+          _settingsFrom(fields!); // before it's routed
           await _showTrip();
           notifyListeners();
         case 'choose':

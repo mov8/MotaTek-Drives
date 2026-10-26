@@ -153,6 +153,20 @@ class _SetupFormState extends State<SetupForm> {
             secondary: Icon(iconFlyover, size: 30, color: Colors.white),
           ),
           SwitchListTile(
+            title: Text('Avoid main roads', style: textStyle(context: context)),
+            value: Setup().avoidAroads,
+            onChanged: (bool value) {
+              setState(
+                () {
+                  _hasChanged();
+                  Setup().avoidAroads = value;
+                },
+              );
+            },
+            secondary:
+                const Icon(Icons.alt_route, size: 30, color: Colors.white),
+          ),
+          SwitchListTile(
             title: Text('Avoid toll roads', style: textStyle(context: context)),
             value: Setup().avoidTollRoads,
             onChanged: (bool value) {
@@ -629,6 +643,20 @@ class _SetupViewState extends State<SetupView> {
               );
             },
             secondary: Icon(iconFlyover, size: 30, color: _textColor),
+          ),
+          SwitchListTile(
+            title: Text('Avoid main roads',
+                style: textStyle(context: context, color: _textColor)),
+            value: Setup().avoidAroads,
+            onChanged: (bool value) {
+              setState(
+                () {
+                  _hasChanged();
+                  Setup().avoidAroads = value;
+                },
+              );
+            },
+            secondary: Icon(Icons.alt_route, size: 30, color: _textColor),
           ),
           SwitchListTile(
             title: Text('Avoid toll roads',
