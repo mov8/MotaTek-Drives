@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:universal_io/universal_io.dart';
 import 'dart:convert';
+import 'dart:math' show max;
 import 'dart:typed_data';
 import '/constants.dart';
 import '/classes/classes.dart';
@@ -693,6 +694,56 @@ putPointOfInterestRating(String uri, double score) async {
 /// [pointsOfInterest] uri drive_id type name description images point
 ///
 ///
+/// "Write it for me": a name, summary and description for the trip as it
+/// is now, written from its route and points of interest - ({title,
+/// summary, description}, null), or (null, why not)
+Future<(Map<String, dynamic>?, String?)> describeTrip(MyTripItem trip) async {
+  List<List<double>> waypoints = [
+    for (Waypoint waypoint in trip.routes.isEmpty ? [] : trip.routes.first.waypoints)
+      if (!waypoint.revisit || waypoint == trip.routes.first.waypoints.last)
+        [waypoint.point.y.toDouble(), waypoint.point.x.toDouble()]
+  ];
+  if (waypoints.length < 2) {
+    // A tracked trip has only its line - every so many points of it
+    List<List<double>> line = [for (mt.Route route in trip.routes) ...route.lines];
+    int step = max(1, line.length ~/ 40);
+    waypoints = [
+      for (int i = 0; i < line.length; i += step) [line[i][1], line[i][0]],
+      if (line.isNotEmpty) [line.last[1], line.last[0]],
+    ];
+  }
+  List<Map<String, String>> places = [
+    for (PointOfInterest poi in trip.pointsOfInterest)
+      // not the Start / Waypoint / End markers
+      if (![12, 17, 18].contains(poi.type))
+        {
+          'name': poi.name,
+          'type': poi.type >= 0 && poi.type < poiTypes.length
+              ? poiTypes[poi.type]['name']
+              : '',
+          'description': poi.description,
+        }
+  ];
+  try {
+    final http.Response response = await postWebData(
+        uri: Uri.parse('$urlPlanner/describe'),
+        body: jsonEncode({'waypoints': waypoints, 'points_of_interest': places}),
+        timeout: 60);
+    Map<String, dynamic> body =
+        response.body.isEmpty ? {} : jsonDecode(response.body);
+    if (response.statusCode == 200) return (body, null);
+    return (
+      null,
+      [401, 407, 408].contains(response.statusCode)
+          ? 'Log in to have Drives write it for you'
+          : (body['msg'] ?? "Drives couldn't write it just now").toString()
+    );
+  } catch (e) {
+    developer.log('describeTrip(): ${e.toString()}', name: 'error');
+    return (null, "Couldn't reach Drives - check your connection and try again");
+  }
+}
+
 /// The summary of following a published trip (DrivenLog) - then, for any
 /// of its points of interest the user stopped at, the offer to rate them
 Future<void> sendDriven(DrivenLog log) async {

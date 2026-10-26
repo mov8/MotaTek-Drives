@@ -35,6 +35,10 @@ class MessageBox extends StatefulWidget {
 
 class _MessageBoxState extends State<MessageBox> {
   late int index;
+
+  /// The warning showing, kept while it fades out - it showed the first
+  /// warning's text as it went, as index is -1 by then
+  int _shown = 0;
   @override
   void initState() {
     super.initState();
@@ -48,13 +52,17 @@ class _MessageBoxState extends State<MessageBox> {
     if (boxIndex > -1) {
       MapService().fabsController?.drop(height: 80);
     }
-    setState(() => index = boxIndex);
+    setState(() {
+      index = boxIndex;
+      if (boxIndex > -1) _shown = boxIndex;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     developer.log('MessageBox().build() called index: $index',
         name: '_keyboard_');
+    Map<String, dynamic> warning = warnings[_shown];
     return AnimatedCrossFade(
       duration: const Duration(milliseconds: 500),
       crossFadeState:
@@ -77,16 +85,13 @@ class _MessageBoxState extends State<MessageBox> {
           children: [
             Expanded(
                 flex: 2,
-                child: Icon(warnings[index < 0 ? 0 : index]['iconData'],
-                    color: warnings[index < 0 ? 0 : index]['color'],
-                    size: warnings[index < 0 ? 0 : index]['size'])),
+                child: Icon(warning['iconData'],
+                    color: warning['color'], size: warning['size'])),
             Expanded(
               flex: 12,
               child: Text(
-                warnings[index < 0 ? 0 : index]['message'],
-                style: TextStyle(
-                    fontSize: 20,
-                    color: warnings[index < 0 ? 0 : index]['color']),
+                warning['message'],
+                style: TextStyle(fontSize: 20, color: warning['color']),
               ),
             ),
           ],
@@ -96,6 +101,7 @@ class _MessageBoxState extends State<MessageBox> {
       onEnd: () async {
         if (index > -1) {
           await Future.delayed(Duration(seconds: 2));
+          if (!mounted) return;
           setState(() => index = -1);
           MapService().fabsController?.drop(height: 0);
         }

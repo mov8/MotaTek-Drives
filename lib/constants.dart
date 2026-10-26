@@ -231,7 +231,13 @@ enum ChangedFeatures {
 ///   2 completed the user has added the data now update the map
 ///
 
-enum Warning { none, headingIncomplete, tripSaved, tripDownloaded }
+enum Warning {
+  none,
+  headingIncomplete,
+  tripSaved,
+  tripDownloaded,
+  checkDetails
+}
 
 // A getter, so each message has the trip's title as it is now - as a list
 // it was made once, keeping the first trip's title
@@ -255,6 +261,13 @@ List<Map<String, dynamic>> get warnings => [
         "Published trip ${CurrentTripItem().title} has been downloaded OK for you to edit, follow or save ${kIsWeb ? 'in your browser' : 'on your device'}.",
     'color': Colors.white,
     'iconData': Icons.library_add_check_rounded,
+    'iconSize': 40,
+  },
+  {
+    'message':
+        'Check the name, summary and details AI assist wrote - change anything you like - then Save trip again.',
+    'color': Colors.white,
+    'iconData': Icons.auto_awesome,
     'iconSize': 40,
   }
 ];

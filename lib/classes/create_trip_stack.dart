@@ -169,7 +169,8 @@ class _CreateTripStackState extends State<CreateTripStack>
         if (NavigationService().page == 2) ...[
           Positioned(
             top: 0,
-            left: 0,
+            // On the web, clear of the SideDrawer
+            left: kIsWeb ? MapService().sideDrawerController?.getWidth() ?? 0 : 0,
             right: 0,
             child: _messageBox,
           ),

@@ -232,9 +232,12 @@ class PlannerService extends ChangeNotifier {
             scored: stop['ratings'] ?? 0,
           )
       ],
+      // The trip's details, for the user to check when they save it
       title: suggested['title'] ?? 'AI assist trip',
-      subTitle: 'Suggested by AI assist - check before you drive',
-      body: '${suggested['summary'] ?? ''}\n\nYou asked for: "$request"',
+      subTitle: (suggested['tagline'] ?? '').toString().isNotEmpty
+          ? suggested['tagline']
+          : 'Planned with AI assist',
+      body: suggested['summary'] ?? '',
     );
     MapService().leadingWidgetController.changeWidget(1);
     await _showCandidates();
@@ -257,7 +260,8 @@ class PlannerService extends ChangeNotifier {
           left: 40 + side,
           top: 100,
           right: 40,
-          bottom: 40 + below));
+          // and above the chips
+          bottom: 40 + below + (kIsWeb ? 100 : 0)));
     } catch (e) {
       developer.log('PlannerService._fitTrip(): ${e.toString()}', name: 'error');
     }

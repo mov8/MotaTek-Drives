@@ -883,7 +883,11 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
                       widget.onOpened!(width > 10);
                     }
                     setState(() => width = width > 10 ? 0 : _openWidth);
+                    // The chips move clear of the drawer
+                    MapService().createTripStackController?.refresh();
                   },
+                  onHorizontalDragEnd: (_) =>
+                      MapService().createTripStackController?.refresh(),
                   onHorizontalDragUpdate: (DragUpdateDetails details) {
                     if (delay > 1) setContentSide();
                     setState(() {

@@ -191,6 +191,57 @@ class _TripHeaderTileState extends State<TripHeaderTile> {
   /// set the focus for the next TextFormField using RequestFocus()
   /// According to Gemini TextAction.Next / Done is "fragile"
 
+  bool _writing = false;
+
+  /// "Write it for me" - Drives writes the name, summary and details from
+  /// the trip as it is now: its route (the towns and roads) and its points
+  /// of interest, as the user described them
+  Future<void> _writeItForMe() async {
+    CurrentTripItem trip = CurrentTripItem();
+    bool written = trip.title.isNotEmpty ||
+        trip.subTitle.isNotEmpty ||
+        trip.body.isNotEmpty;
+    if (written && !await _replaceConfirmed()) return;
+    setState(() => _writing = true);
+    var (fields, problem) = await describeTrip(trip);
+    if (!mounted) return;
+    setState(() => _writing = false);
+    if (fields == null) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(problem ?? '')));
+      return;
+    }
+    setState(() {
+      trip.title = fields['title'] ?? trip.title;
+      trip.subTitle = fields['summary'] ?? trip.subTitle;
+      trip.body = fields['description'] ?? trip.body;
+    });
+    trip.isSaved = false; // offers Save trip
+    MapService().createTripStackController?.refresh();
+    // (not checkComplete() - that closes the drawer, and the user will want
+    // to read what was written)
+  }
+
+  Future<bool> _replaceConfirmed() async =>
+      await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Replace the trip details?'),
+          content: const Text(
+              'Drives will write a new name, summary and details from the '
+              "trip as it is now. What's there now will be replaced."),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel')),
+            FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Write it')),
+          ],
+        ),
+      ) ??
+      false;
+
   void _showStart() {
     var routes = widget.tripItem.routes;
     if (routes.isNotEmpty && routes.first.lines.isNotEmpty) {
@@ -322,6 +373,29 @@ class _TripHeaderTileState extends State<TripHeaderTile> {
                 },
               ),
             ),
+            if (widget.appState != AppState.driveTrip)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                child: Row(children: [
+                  Expanded(
+                    child: Text(
+                        'Drives can write these from the route and its points '
+                        'of interest - check them before you publish.',
+                        style: Theme.of(context).textTheme.bodySmall),
+                  ),
+                  const SizedBox(width: 8),
+                  TextButton.icon(
+                    icon: _writing
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Icon(Icons.auto_awesome),
+                    label: Text(_writing ? 'Writing...' : 'Write it for me'),
+                    onPressed: _writing ? null : _writeItForMe,
+                  ),
+                ]),
+              ),
           ],
         ));
   }

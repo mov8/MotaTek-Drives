@@ -641,6 +641,14 @@ class CreateTripChips extends StatelessWidget {
       _getTripDescriptions();
       return;
     }
+    // AI assist wrote the details - the user sees them before it's saved
+    if (CurrentTripItem().aiSuggestion &&
+        !CurrentTripItem().aiDetailsChecked) {
+      CurrentTripItem().aiDetailsChecked = true;
+      MapService().messageBoxController?.message(message: Warning.checkDetails);
+      _getTripDescriptions();
+      return;
+    }
     await _createMapImage();
     debugPrint('[_save_] map image done, saving trip ${CurrentTripItem().uri}');
     try {

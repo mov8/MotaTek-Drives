@@ -165,6 +165,10 @@ class CurrentTripItem extends MyTripItem {
   /// drawn in the AI colour, with the planner's other finds around it
   bool aiSuggestion = false;
 
+  /// Its details (written by AI assist) have been shown for the user to
+  /// check - the first Save trip shows them, the next saves
+  bool aiDetailsChecked = false;
+
   /// The trip as it was when last saved or loaded - see markSaved()
   String _savedSnapshot = '';
 
@@ -518,6 +522,7 @@ class CurrentTripItem extends MyTripItem {
     isSaved = false;
     isGoodRoad = false;
     aiSuggestion = false;
+    aiDetailsChecked = false;
     appState = AppState.createTrip;
     nearestWaypoints = Point(0, 0);
     mapUpdates = MapUpdates.updateAll;
