@@ -40,6 +40,16 @@ void main() {
     expect(clubs.canEditPages, isFalse);
   });
 
+  test("a club member doesn't get Drives' pages to choose; staff do", () {
+    ClubService clubs = ClubService()
+      ..read({...summary(), 'can_show_drives': false});
+    expect(clubs.canShowDrives, isFalse);
+    clubs.read({...summary(), 'can_show_drives': true});
+    expect(clubs.canShowDrives, isTrue);
+    clubs.clear();
+    expect(clubs.canShowDrives, isTrue); // nobody logged in: Drives' pages
+  });
+
   test('a user in no club', () {
     ClubService clubs = ClubService()
       ..read({'clubs': [], 'showing': 'drives', 'drives': 'drives'});

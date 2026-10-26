@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '/classes/classes.dart';
 import '/models/other_models.dart';
@@ -457,6 +458,8 @@ class _ClubAdminPanelState extends State<ClubAdminPanel> {
 
   Widget _profileTab() =>
       ListView(padding: const EdgeInsets.all(10), children: [
+        _standing(),
+        const SizedBox(height: 12),
         Row(children: [
           _logo(widget.club, 64),
           const SizedBox(width: 12),
@@ -488,6 +491,30 @@ class _ClubAdminPanelState extends State<ClubAdminPanel> {
         ),
         _note("The club's name is set by Drives - contact us to change it."),
       ]);
+
+  /// How the club stands with Drives - its members on the app, and its
+  /// subscription (MotaTek records payments, on the website)
+  Widget _standing() {
+    String? paid = widget.club['paid_until'];
+    DateTime? until = paid == null ? null : DateTime.parse(paid);
+    bool current =
+        until != null && !until.isBefore(DateUtils.dateOnly(DateTime.now()));
+    String when = until == null ? '' : DateFormat('d MMMM yyyy').format(until);
+    return Card(
+      child: ListTile(
+        leading: const Icon(Icons.verified_user_outlined),
+        title: Text('${widget.club['members'] ?? 0} '
+            'member${widget.club['members'] == 1 ? '' : 's'} on Drives'),
+        subtitle: Text(
+            until == null
+                ? 'Subscription: no payment recorded yet'
+                : current
+                    ? 'Subscription paid until $when'
+                    : 'Subscription ended on $when',
+            style: current ? null : TextStyle(color: Colors.red.shade700)),
+      ),
+    );
+  }
 
   Future<void> _saveProfile() async {
     var (club, problem) = await ClubService().updateProfile(_id, {

@@ -22,8 +22,9 @@ class Club {
 
 /// The user's clubs (api.clubs on the server): which they're in and as
 /// what, whose Home and Shop pages they're looking at, and whether they may
-/// edit those pages (a club's admin, or Drives staff). People in no club,
-/// and people not logged in, see Drives' own pages.
+/// edit those pages (a club's admin, or Drives staff). Someone in a club
+/// sees a club's pages; people in no club, people not logged in, and Drives
+/// staff who choose to, see Drives' own pages.
 ///
 /// The server keeps which club's pages the user sees, so Home and Shop are
 /// right before this has loaded; this is for the club picker (ClubPicker)
@@ -37,6 +38,7 @@ class ClubService extends ChangeNotifier {
   String showing = ''; // the club whose pages the user sees
   String drives = ''; // Drives' own pages
   bool canEditPages = false;
+  bool canShowDrives = true; // in no club, or Drives staff
 
   /// Done once the clubs are known - read, or cleared for nobody logged in
   final Completer<void> _known = Completer<void>();
@@ -53,12 +55,13 @@ class ClubService extends ChangeNotifier {
   /// From the server's summary - in the login reply, the user's details,
   /// /v1/club/mine and /v1/club/showing
   void read(Map data) {
+    String was = showing;
     clubs = [for (Map club in data['clubs'] ?? []) Club.fromMap(club)];
     showing = data['showing'] ?? '';
     drives = data['drives'] ?? '';
     canEditPages = data['can_edit_pages'] == true;
-    _isKnown();
-    notifyListeners();
+    canShowDrives = data['can_show_drives'] != false;
+    _showingChanged(was);
   }
 
   void _isKnown() {
@@ -66,11 +69,24 @@ class ClubService extends ChangeNotifier {
   }
 
   void clear() {
+    String was = showing;
     clubs = [];
     showing = drives;
     canEditPages = false;
+    canShowDrives = true;
+    _showingChanged(was);
+  }
+
+  /// Once Home and Shop have loaded, other pages - logging in or out, or
+  /// choosing another club - mean loading them again
+  void _showingChanged(String was) {
+    bool reload = _known.isCompleted && showing != was;
     _isKnown();
     notifyListeners();
+    if (reload) {
+      MapService().homeController?.reload();
+      MapService().shopController?.reload();
+    }
   }
 
   /// Fetches the user's clubs - at start-up, when they're already logged in
@@ -91,7 +107,7 @@ class ClubService extends ChangeNotifier {
   }
 
   /// Shows the user one of their clubs' pages, or Drives' own - and
-  /// reloads Home and Shop. Null, or why it couldn't.
+  /// reloads Home and Shop (read). Null, or why it couldn't.
   Future<String?> show(String clubId) async {
     try {
       http.Response response = await postWebData(
@@ -102,8 +118,6 @@ class ClubService extends ChangeNotifier {
         return body['msg'] ?? "Couldn't change the club";
       }
       read(body);
-      MapService().homeController?.reload();
-      MapService().shopController?.reload();
       return null;
     } catch (e) {
       developer.log('ClubService.show(): ${e.toString()}', name: 'error');

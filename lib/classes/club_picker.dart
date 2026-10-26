@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import '/services/services.dart';
 
-/// Above Home and Shop for someone in a club: whose pages they're looking
-/// at - one of their clubs', or Drives' own - and a menu to change it. Shown
-/// to nobody else (they see Drives' pages).
+/// Above Home and Shop, for someone with a choice of whose pages to see -
+/// in more than one club, or Drives staff (who look after Drives' own).
+/// Someone in one club just sees its pages; in none, Drives'.
 class ClubPicker extends StatelessWidget {
   const ClubPicker({super.key});
 
@@ -13,7 +13,9 @@ class ClubPicker extends StatelessWidget {
       listenable: ClubService(),
       builder: (context, _) {
         ClubService clubs = ClubService();
-        if (!clubs.inAnyClub) return const SizedBox.shrink();
+        if (clubs.clubs.length + (clubs.canShowDrives ? 1 : 0) < 2) {
+          return const SizedBox.shrink();
+        }
         return Padding(
           padding: const EdgeInsets.fromLTRB(10, 10, 10, 0),
           child: Card(
@@ -31,8 +33,9 @@ class ClubPicker extends StatelessWidget {
                     underline: const SizedBox.shrink(),
                     value: clubs.showing.isEmpty ? null : clubs.showing,
                     items: [
-                      DropdownMenuItem(
-                          value: clubs.drives, child: const Text('Drives')),
+                      if (clubs.canShowDrives)
+                        DropdownMenuItem(
+                            value: clubs.drives, child: const Text('Drives')),
                       for (Club club in clubs.clubs)
                         DropdownMenuItem(
                           value: club.id,
