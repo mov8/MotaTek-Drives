@@ -79,6 +79,8 @@ PlanPhase phaseOf(CurrentTripItem trip) {
 enum TripChip {
   createManually('Create manually', Icons.touch_app),
   trackDrive('Track drive', Icons.directions_car),
+  // The planner - see PlannerService
+  aiAssist('AI assist', Icons.auto_awesome),
   waypoint('Waypoint', Icons.pin_drop),
   insertWaypoint('Insert waypoint', Icons.pin_drop),
   extendStart('Extend start', Icons.pin_drop),
@@ -111,7 +113,11 @@ enum TripChip {
 /// The chips offered in each PlanPhase, in display order.
 /// resolveChip() then swaps or hides the few that depend on more than the phase.
 const Map<PlanPhase, List<TripChip>> chipsForPhase = {
-  PlanPhase.idle: [TripChip.createManually, TripChip.trackDrive],
+  PlanPhase.idle: [
+    TripChip.createManually,
+    TripChip.trackDrive,
+    TripChip.aiAssist,
+  ],
   // greatRoadEnd only shows in great road mode - e.g. after undoing back to
   // fewer than 2 waypoints, so the user can still switch back
   PlanPhase.awaitingFirstWp: [
@@ -125,7 +131,10 @@ const Map<PlanPhase, List<TripChip>> chipsForPhase = {
     TripChip.pointOfInterest,
     TripChip.clear,
   ],
+  // aiAssist only shows for a trip it suggested (resolveChip) - to change
+  // the request and plan again
   PlanPhase.routed: [
+    TripChip.aiAssist,
     TripChip.waypoint,
     TripChip.pointOfInterest,
     TripChip.addGreatRoad,
@@ -204,6 +213,8 @@ List<TripChip> resolveChip(TripChip chip, CurrentTripItem trip) =>
           when trip.highliteActions != HighliteActions.waypointHighlited =>
         [],
       TripChip.saveTrip when trip.isSaved => [],
+      TripChip.aiAssist when _waypointCount(trip) > 0 && !trip.aiSuggestion =>
+        [],
       TripChip.group || TripChip.messages when trip.groupDriveId.isEmpty => [],
       _ => [chip],
     };
@@ -220,11 +231,15 @@ class CreateTripChips extends StatelessWidget {
   final CreateTripController? createTripController;
   final Point? position;
 
+  /// Smaller chips, closer together - beside the SideDrawer on the web
+  final bool compact;
+
   CreateTripChips({
     super.key,
     this.createTripController,
     this.position,
     this.onUpdate,
+    this.compact = false,
   });
 
   @override
@@ -232,7 +247,8 @@ class CreateTripChips extends StatelessWidget {
     return Align(
       alignment: Alignment.bottomLeft,
       child: Wrap(
-        spacing: 5,
+        spacing: compact ? 3 : 5,
+        runSpacing: compact ? 3 : 0,
         children: getChips(),
       ),
     );
@@ -258,15 +274,18 @@ class CreateTripChips extends StatelessWidget {
 
   Widget _actionChip(TripChip chip) {
     return ActionChip(
-      visualDensity: const VisualDensity(horizontal: 0.0, vertical: 0.5),
+      visualDensity: compact
+          ? VisualDensity.compact
+          : const VisualDensity(horizontal: 0.0, vertical: 0.5),
       backgroundColor: Colors.blueAccent,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       label: Text(_label(chip),
-          style: TextStyle(fontSize: 16, color: Colors.white)),
+          style: TextStyle(fontSize: compact ? 13 : 16, color: Colors.white)),
       elevation: 10,
       shadowColor: Colors.black,
       onPressed: () => _handlerFor(chip)(),
-      avatar: Icon(chip.icon, size: 20, color: _iconColour(chip)),
+      avatar:
+          Icon(chip.icon, size: compact ? 16 : 20, color: _iconColour(chip)),
     );
   }
 
@@ -288,6 +307,7 @@ class CreateTripChips extends StatelessWidget {
       TripChip.editGreatRoad =>
         colourList[goodRoad ? Setup().routeColour : Setup().goodRouteColour],
       TripChip.greatRoadEnd => colourList[Setup().routeColour],
+      TripChip.aiAssist => colourList[Setup().aiRouteColour],
       _ => Colors.white,
     };
   }
@@ -296,6 +316,7 @@ class CreateTripChips extends StatelessWidget {
   Future<void> Function() _handlerFor(TripChip chip) => switch (chip) {
         TripChip.createManually => addManually,
         TripChip.trackDrive => addAutomatically,
+        TripChip.aiAssist => aiAssist,
         TripChip.waypoint || TripChip.insertWaypoint => waypoint,
         TripChip.extendStart => extendStart,
         TripChip.extendEnd => extendEnd,
@@ -341,7 +362,14 @@ class CreateTripChips extends StatelessWidget {
     await _executeChipActions(tripActions: MyTripActions.startManual);
   }
 
+  /// Opens AI assist in the drawer - the request, or the trip it suggested
+  Future<void> aiAssist() async {
+    updateControllers(items: BottomDrawerItems.planner, open: true);
+    onUpdate?.call(MyTripActions.none);
+  }
+
   Future<void> clear() async {
+    await PlannerService().reset();
     await CurrentTripItem().requestClear();
     CurrentTripItem().waypointState = WaypointState.none;
     MapService().leadingWidgetController.changeWidget(0);
@@ -626,6 +654,12 @@ class CreateTripChips extends StatelessWidget {
       // Awaited so My Trips (refreshed below) reads the trip just saved
       await tripRepository.saveTrip(CurrentTripItem());
       CurrentTripItem().markSaved();
+      if (CurrentTripItem().aiSuggestion) {
+        // The user's trip now - in the route colour, without the other finds
+        CurrentTripItem().aiSuggestion = false;
+        await PlannerService().tripSaved();
+        await CurrentTripItem().refreshMap();
+      }
       CurrentTripItem().tripState = TripState.loaded;
       CurrentTripItem().tripValues.editing();
       MapService().messageBoxController?.message(message: Warning.tripSaved);

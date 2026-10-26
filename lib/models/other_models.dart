@@ -243,6 +243,7 @@ class Setup {
   int selectedColour = 7;
   int highlightedColour = 13;
   int publishedTripColour = 10;
+  int aiRouteColour = 5; // <-- a trip AI assist suggested, until it's saved
   int bottomNavIndex = 0;
   int recordDetail = 5;
   int nextScreen = 1;
@@ -384,6 +385,7 @@ class Setup {
     selectedColour = map['selectedColour'] ?? selectedColour;
     highlightedColour = map['highlightedColour'] ?? highlightedColour;
     publishedTripColour = map['publishedTripColour'] ?? publishedTripColour;
+    aiRouteColour = map['aiRouteColour'] ?? aiRouteColour;
     allowNotifications = map['allowNotifications'] ?? allowNotifications;
     verifyDriven = map['verifyDriven'] ?? verifyDriven;
     dark = map['dark'] ?? dark;
@@ -413,6 +415,7 @@ class Setup {
       'selectedColour': selectedColour,
       'highlightedColour': highlightedColour,
       'publishedTripColour': publishedTripColour,
+      'aiRouteColour': aiRouteColour,
       'allowNotifications': allowNotifications,
       'verifyDriven': verifyDriven,
       'dark': dark,
@@ -485,6 +488,10 @@ class Setup {
 
   String publishedTripColourHex() {
     return colourList[publishedTripColour].toHexStringRGB();
+  }
+
+  String aiRouteColourHex() {
+    return colourList[aiRouteColour].toHexStringRGB();
   }
 
   int debugIndex = 0;

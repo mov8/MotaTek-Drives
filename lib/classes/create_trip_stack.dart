@@ -174,7 +174,9 @@ class _CreateTripStackState extends State<CreateTripStack>
             child: _messageBox,
           ),
           Positioned(
-            left: 0,
+            // On the web, clear of the SideDrawer - e.g. AI assist's - so the
+            // trip can be edited with it open
+            left: kIsWeb ? MapService().sideDrawerController?.getWidth() ?? 0 : 0,
             right: 0,
             bottom: 0,
             child: Align(
@@ -188,6 +190,8 @@ class _CreateTripStackState extends State<CreateTripStack>
                   child: CreateTripChips(
                     createTripController: MapService().createTripController,
                     onUpdate: (_) {},
+                    compact: kIsWeb &&
+                        (MapService().sideDrawerController?.getWidth() ?? 0) > 0,
                   ),
                 ),
               ),

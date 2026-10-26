@@ -161,6 +161,10 @@ class Progress {
 class CurrentTripItem extends MyTripItem {
   bool isSaved = false;
 
+  /// A trip AI assist suggested (loadSuggestion()) that hasn't been saved -
+  /// drawn in the AI colour, with the planner's other finds around it
+  bool aiSuggestion = false;
+
   /// The trip as it was when last saved or loaded - see markSaved()
   String _savedSnapshot = '';
 
@@ -513,6 +517,7 @@ class CurrentTripItem extends MyTripItem {
     tripValues.showTarget = false;
     isSaved = false;
     isGoodRoad = false;
+    aiSuggestion = false;
     appState = AppState.createTrip;
     nearestWaypoints = Point(0, 0);
     mapUpdates = MapUpdates.updateAll;
@@ -819,6 +824,38 @@ class CurrentTripItem extends MyTripItem {
         MyLocationTrackingMode.none); // trackingCompass);
     MapService().createTripController!.update();
     tripActions = TripActions.none;
+  }
+
+  /// The trip AI assist suggested (PlannerService) becomes the trip being
+  /// planned, in Edit mode - the user changes it like any other, and undo
+  /// goes back no further than the suggestion. waypoints are routed here;
+  /// stops are its points of interest.
+  Future<void> loadSuggestion({
+    required List<Waypoint> waypoints,
+    required List<PointOfInterest> stops,
+    required String title,
+    required String subTitle,
+    required String body,
+  }) async {
+    clearAll(newTripState: TripState.editing);
+    uri = getUuid();
+    this.title = title;
+    this.subTitle = subTitle;
+    this.body = body;
+    aiSuggestion = true;
+    routes = [Route(waypoints: waypoints)];
+    syncWaypointPointsOfInterest(waypoints: routes.last.waypoints);
+    pointsOfInterest.addAll(stops);
+    List<Route> routed = await replaceRoutes(routes: routes, updateBuffer: false);
+    if (routed.isNotEmpty) routes = routed;
+    await syncGoodRoads();
+    loadBackBuffer();
+    tripState = TripState.editing;
+    tripValues.editing();
+    markUnsaved();
+    mapUpdates = MapUpdates.updateAll;
+    await MapService().updateMapGeoJson(mapUpdates: mapUpdates);
+    MapService().createTripStackController?.refresh();
   }
 
   Future<void> requestEditing() async {

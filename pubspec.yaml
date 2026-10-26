@@ -103,10 +103,14 @@ dev_dependencies:
   flutter_lints: ^6.0.0 # ^2.0.0
 
 # maplibre_gl 0.27.1 with takeSnapshot patched (Android) to capture the map as
-# displayed - see packages/maplibre_gl/DRIVES_PATCH.md
+# displayed - see packages/maplibre_gl/DRIVES_PATCH.md. maplibre_gl_web 0.27.1
+# with its feature queries patched to answer while sources update - see
+# packages/maplibre_gl_web/DRIVES_PATCH.md
 dependency_overrides:
   maplibre_gl:
     path: packages/maplibre_gl
+  maplibre_gl_web:
+    path: packages/maplibre_gl_web
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

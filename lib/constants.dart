@@ -601,6 +601,7 @@ enum BottomDrawerItems {
   deleteTrips, // <-- admin: remove published trips (web)
   deleteUser, // <-- admin: stop a user using Drives (web)
   cached,
+  planner, // <-- AI assist: the request and the suggested trip
 }
 
 /// This list ensures that the overflow popup menu options are
@@ -843,6 +844,7 @@ const String urlTextToSpeech = '${urlBase}v1/text_to_speech';
 // const String urlTextToSpeech = 'https://motatek.com/mailer/send/';
 const String urlMessage = '${urlBase}v1/message';
 const String urlPointOfInterest = '${urlBase}v1/point_of_interest';
+const String urlPlanner = '${urlBase}v1/planner';
 const String urlPush = '${urlBase}v1/push';
 const String urlPointOfInterestRating = '${urlBase}v1/point_of_interest_rating';
 const String urlOsmReview = '${urlBase}v1/osm_review';

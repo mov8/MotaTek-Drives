@@ -233,6 +233,7 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
       if (!animate) delay = 1;
       setState(() => width = 0);
       MapService().webAppBarController?.update(); // its caption
+      MapService().createTripStackController?.refresh(); // the chips move
     }
   }
 
@@ -333,6 +334,10 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
           break;
         case BottomDrawerItems.maneuvers:
           _tiles = shredManeuvers();
+          _offerRestore = true;
+          break;
+        case BottomDrawerItems.planner:
+          _tiles = [const PlannerPanel()];
           _offerRestore = true;
           break;
         case BottomDrawerItems.cached:
@@ -726,6 +731,8 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
     try {
       if (mounted && changed) {
         setState(() {});
+        // The chips move clear of the drawer
+        MapService().createTripStackController?.refresh();
       }
     } catch (e) {
       developer.log('Error side_drawer.open(): ${e.toString()}', name: 'error');

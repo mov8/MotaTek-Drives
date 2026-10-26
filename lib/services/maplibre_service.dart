@@ -368,6 +368,7 @@ class MapService {
             filter = tripStateFilter(tripState: CurrentTripItem().tripState);
             controller!.setFilter("way-marker-layer", filter);
             controller!.setFilter("good-road-way-marker-layer", filter);
+            await _showEditHint();
           }
         } catch (e) {
           developer.log('_onIdle() error: ${e.toString()}', name: 'error');
@@ -446,6 +447,50 @@ class MapService {
       }
     }
     return leg;
+  }
+
+  bool _hinting = false; // the Status Bar is showing _showEditHint()'s hint
+
+  /// The Status Bar says what the chips do at the crosshair - "Insert a
+  /// waypoint between waypoints 7 and 8", "Remove waypoint 9" - after a
+  /// place AI assist found that's under it. Set by getWaypointState().
+  Future<void> _showEditHint() async {
+    if (statusBarController == null) return;
+    CurrentTripItem trip = CurrentTripItem();
+    if (![TripState.editing, TripState.manual].contains(trip.tripState)) {
+      if (_hinting) statusBarController!.clear();
+      _hinting = false;
+      return;
+    }
+    List<Waypoint> waypoints =
+        trip.routes.isEmpty ? [] : trip.routes.first.waypoints;
+    List<int> anchors = [
+      for (int i = 0; i < waypoints.length; i++)
+        if (waypoints[i].selected ?? false) i
+    ];
+    int over = trip.waypointIndex;
+    String hint = switch (trip.waypointState) {
+      WaypointState.remove when trip.tripState == TripState.editing =>
+        'Remove waypoint ${markerNumber(waypoints, over)}',
+      WaypointState.remove when over < waypoints.length - 1 =>
+        'Revisit waypoint ${markerNumber(waypoints, over)} - go back to it',
+      WaypointState.remove => 'Waypoint ${markerNumber(waypoints, over)}',
+      WaypointState.insert
+          when trip.tripState == TripState.editing && anchors.length == 2 =>
+        'Insert a waypoint between waypoints '
+            '${markerNumber(waypoints, anchors[0])} and '
+            '${markerNumber(waypoints, anchors[1])}',
+      WaypointState.extendStart when trip.tripState == TripState.editing =>
+        'Extend the start - a new first waypoint here',
+      WaypointState.extendEnd when trip.tripState == TripState.editing =>
+        'Extend the end - a new last waypoint here',
+      _ => waypoints.isEmpty
+          ? 'Waypoint - the start here'
+          : 'Waypoint - waypoint ${waypoints.where((w) => !w.revisit).length + 1} here',
+    };
+    String? place = await PlannerService().candidateAt(controller!);
+    statusBarController!.update([place == null ? hint : '$place  -  $hint']);
+    _hinting = true;
   }
 
   Future<void> getWaypointState() async {
@@ -627,6 +672,7 @@ class MapService {
     if (!_styleCompleter.isCompleted) _styleCompleter.complete();
     // A new style drops runtime layers, so add the marker every time
     await addLocationMarker();
+    await PlannerService().styleLoaded(); // and AI assist's candidates
     if (controller != null) {
       if (CurrentTripItem().pointsOfInterest.isNotEmpty) {
         LatLng position = LatLng(
@@ -728,9 +774,13 @@ class MapService {
   LatLng get currentPosition =>
       _currentPosition ?? LatLng(51.433, -0.513); // <-- Staines
 
+  /// Whether currentPosition is where the user is, not the default
+  bool get hasPosition => _currentPosition != null;
+
   Future<String> _fetchStyle() async {
     try {
-      _styleString = await getStyle(url: urlTilerMapLibre);
+      _styleString =
+          waypointsAbovePointsOfInterest(await getStyle(url: urlTilerMapLibre));
     } catch (e) {
       developer.log('Error getting style from api: ${e.toString()}',
           name: 'error');

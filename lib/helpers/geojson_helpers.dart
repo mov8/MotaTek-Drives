@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:math';
 import 'dart:developer' as developer;
 import '../classes/classes.dart';
@@ -146,14 +147,53 @@ List tripStateFilter({TripState tripState = TripState.none}) {
   return filter;
 }
 
+/// The map style (from the server) with the waypoint markers moved above
+/// the points of interest, which hid them - most of AI assist's stops are
+/// waypoints too, and a hidden anchor seemed not to be highlighted. The
+/// markers also ignore placement, so they don't hide the points of
+/// interest's labels in turn. Done in the app, as the style may become the
+/// user's own. A style that isn't JSON is returned as it is.
+String waypointsAbovePointsOfInterest(String style) {
+  const List<String> markers = [
+    'way-marker-layer',
+    'good-road-way-marker-layer'
+  ];
+  const String pointsOfInterest = 'point-of-interest-shield-layer';
+  try {
+    Map<String, dynamic> parsed = jsonDecode(style);
+    List layers = parsed['layers'];
+    if (!layers.any((layer) => layer['id'] == pointsOfInterest)) return style;
+    List moved = layers.where((layer) => markers.contains(layer['id'])).toList();
+    for (Map layer in moved) {
+      layer['layout'] = {
+        ...?layer['layout'],
+        'icon-ignore-placement': true,
+        'text-ignore-placement': true,
+        'text-allow-overlap': true,
+      };
+    }
+    layers.removeWhere((layer) => markers.contains(layer['id']));
+    layers.insertAll(
+        layers.indexWhere((layer) => layer['id'] == pointsOfInterest) + 1,
+        moved);
+    return jsonEncode(parsed);
+  } catch (_) {
+    return style;
+  }
+}
+
 List<Map<String, dynamic>> routesToGeoJson(
     {List<Route>? routes,
     int index = -1,
     String? colour,
     String? indexColour,
     bool? highlighted}) {
-  colour ??= Setup().routeColourHex();
   routes ??= CurrentTripItem().routes;
+  // A trip AI assist suggested is in the AI colour until it's saved
+  colour ??= CurrentTripItem().aiSuggestion &&
+          identical(routes, CurrentTripItem().routes)
+      ? Setup().aiRouteColourHex()
+      : Setup().routeColourHex();
   highlighted ??= false;
   indexColour = indexColour ?? Setup().highlightedColourHex();
 
@@ -436,6 +476,18 @@ String toStars({double rating = 5}) {
   return '${'★' * rated}${'☆' * (5 - rated)}';
 }
 
+/// The number a waypoint's marker shows - revisits have no marker or number
+/// of their own, so a revisit has its earlier waypoint's number
+int markerNumber(List<Waypoint> waypoints, int index) {
+  if (index < 0 || index >= waypoints.length) return 0;
+  if (waypoints[index].revisit) {
+    int first = waypoints
+        .indexWhere((w) => !w.revisit && w.point == waypoints[index].point);
+    if (first > -1) index = first;
+  }
+  return waypoints.take(index + 1).where((w) => !w.revisit).length;
+}
+
 List<Map<String, dynamic>> waypointsToGeoJson(
     {List<Waypoint>? waypoints,
     int index = -1,
@@ -447,7 +499,10 @@ List<Map<String, dynamic>> waypointsToGeoJson(
   try {
     waypoints ??= CurrentTripItem().routes.last.waypoints;
     lastPoint = lastPoint ?? [];
-    colour = colour ?? Setup().routeColourHex();
+    colour = colour ??
+        (CurrentTripItem().aiSuggestion
+            ? Setup().aiRouteColourHex()
+            : Setup().routeColourHex());
     indexColour = indexColour ?? Setup().highlightedColourHex();
     if (CurrentTripItem().routes.isNotEmpty) {
       for (int h = 0; h < CurrentTripItem().routes.length; h++) {
@@ -459,6 +514,12 @@ List<Map<String, dynamic>> waypointsToGeoJson(
         for (int i = 0; i < waypoints.length; i++) {
           if (waypoints[i].revisit) continue;
           number++;
+          // A highlighted revisit (e.g. the end of a round trip as an
+          // anchor) shows on the marker it shares
+          Point point = waypoints[i].point;
+          bool selected = waypoints.any((w) =>
+              (w.selected ?? false) &&
+              (identical(w, waypoints![i]) || (w.revisit && w.point == point)));
           features.add({
             "type": "Feature",
             "geometry": {
@@ -477,7 +538,7 @@ List<Map<String, dynamic>> waypointsToGeoJson(
               "number": number,
               // Highlights only mean something while editing - stops them
               // lingering after e.g. a save switches to TripState.loaded
-              "color": (waypoints[i].selected ?? false) &&
+              "color": selected &&
                       CurrentTripItem().tripState == TripState.editing
                   ? indexColour
                   // Great road waypoints are route waypoints in its colour
