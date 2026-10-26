@@ -1,15 +1,17 @@
 import 'dart:convert';
 import 'dart:developer' as developer;
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '/constants.dart';
 import '/models/models.dart';
 import 'web_helper.dart';
-import 'push_stub.dart' if (dart.library.js_interop) 'push_web.dart'
+import 'push_android.dart' if (dart.library.js_interop) 'push_web.dart'
     as platform;
 
 /// Push notifications on this device - a new message or a group drive
 /// invitation, even when Drives isn't open. In a browser that's Web Push
-/// (push_web.dart); Android phones are to come (push_stub.dart until then).
+/// (push_web.dart); on an Android phone, Firebase Cloud Messaging
+/// (push_android.dart).
 /// The server keeps each device's subscription and pushes to it.
 class PushService {
   static final PushService _instance = PushService._();
@@ -22,13 +24,19 @@ class PushService {
   /// Whether notifications are on for this device
   Future<bool> get enabled async => (await platform.current()) != null;
 
-  /// Turns notifications on - the browser asks the user first. Returns ''
-  /// when they're on, otherwise why not, to show the user
+  /// Turns notifications on - the browser or phone asks the user first.
+  /// Returns '' when they're on, otherwise why not, to show the user
   Future<String> enable() async {
-    if (!await supported) return "This browser can't show notifications.";
+    if (!await supported) {
+      return kIsWeb
+          ? "This browser can't show notifications."
+          : "This phone can't show notifications.";
+    }
     if (Setup().jwt.isEmpty) return 'Log in to get notifications.';
-    String key = await _serverKey();
-    if (key.isEmpty) return "The Drives server can't send notifications yet.";
+    String key = kIsWeb ? await _serverKey() : ''; // only a browser needs it
+    if (kIsWeb && key.isEmpty) {
+      return "The Drives server can't send notifications yet.";
+    }
     String? subscription;
     try {
       subscription = await platform.subscribe(key);
@@ -36,7 +44,9 @@ class PushService {
       developer.log('Push subscribe failed: ${e.toString()}', name: 'error');
     }
     if (subscription == null) {
-      return "Notifications are blocked for Drives - they can be allowed in the browser's settings for this site.";
+      return kIsWeb
+          ? "Notifications are blocked for Drives - they can be allowed in the browser's settings for this site."
+          : "Notifications are blocked for Drives - they can be allowed in the phone's Settings, under Apps, Drives.";
     }
     return await _send(subscription, 'subscribe')
         ? ''

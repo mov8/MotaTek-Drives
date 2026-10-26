@@ -247,7 +247,6 @@ class Setup {
   int bottomNavIndex = 0;
   int recordDetail = 5;
   int nextScreen = 1;
-  bool allowNotifications = true;
 
   /// Following a published trip counts it as driven - only a summary is
   /// sent (DrivenLog), and only if the user turns this on
@@ -386,7 +385,6 @@ class Setup {
     highlightedColour = map['highlightedColour'] ?? highlightedColour;
     publishedTripColour = map['publishedTripColour'] ?? publishedTripColour;
     aiRouteColour = map['aiRouteColour'] ?? aiRouteColour;
-    allowNotifications = map['allowNotifications'] ?? allowNotifications;
     verifyDriven = map['verifyDriven'] ?? verifyDriven;
     dark = map['dark'] ?? dark;
     rotateMap = map['rotateMap'] ?? rotateMap;
@@ -416,7 +414,6 @@ class Setup {
       'highlightedColour': highlightedColour,
       'publishedTripColour': publishedTripColour,
       'aiRouteColour': aiRouteColour,
-      'allowNotifications': allowNotifications,
       'verifyDriven': verifyDriven,
       'dark': dark,
       'rotateMap': rotateMap,
