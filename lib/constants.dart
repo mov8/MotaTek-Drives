@@ -615,6 +615,7 @@ enum BottomDrawerItems {
   deleteUser, // <-- admin: stop a user using Drives (web)
   cached,
   planner, // <-- AI assist: the request and the suggested trip
+  clubs, // <-- My clubs: invitations, my clubs, finding one, running one
 }
 
 /// This list ensures that the overflow popup menu options are
@@ -654,6 +655,14 @@ List<Map<String, dynamic>> drawerOptions = [
     'method': BottomDrawerItems.settings.index,
     'drawer': BottomDrawerItems.groups,
     'screen': MyGroupsForm(),
+  },
+  {
+    'key': 'clubs',
+    'text': 'My clubs',
+    'iconData': Icon(Icons.diversity_3_outlined, size: 30),
+    'method': BottomDrawerItems.settings.index,
+    'drawer': BottomDrawerItems.clubs,
+    'screen': ClubsForm(),
   },
   {
     'key': 'invite',

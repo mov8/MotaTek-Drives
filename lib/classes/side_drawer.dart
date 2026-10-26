@@ -278,6 +278,7 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
     BottomDrawerItems.register,
     BottomDrawerItems.myGroups,
     BottomDrawerItems.groups,
+    BottomDrawerItems.clubs,
     BottomDrawerItems.invite,
     BottomDrawerItems.myEvents,
     BottomDrawerItems.events,
@@ -371,6 +372,10 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
           break;
         case BottomDrawerItems.groups:
           _tiles = [MyGroupsForm()];
+          _offerRestore = true;
+          break;
+        case BottomDrawerItems.clubs:
+          _tiles = [const ClubsForm()];
           _offerRestore = true;
           break;
         case BottomDrawerItems.invite:

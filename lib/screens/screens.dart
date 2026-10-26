@@ -11,6 +11,7 @@ export 'invitations.dart';
 export 'login_screen.dart';
 export 'main_drawer.dart';
 export 'messages_detail.dart';
+export 'clubs.dart';
 export 'my_groups.dart';
 export 'painters.dart';
 export 'group_drives.dart';

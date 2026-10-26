@@ -110,4 +110,104 @@ class ClubService extends ChangeNotifier {
       return "Couldn't reach Drives - check your connection";
     }
   }
+
+  // ---- finding, joining and running clubs (/v1/club/...) ------------------
+  // Each returns (what came back, null) or (null, why not).
+
+  static const String _offline = "Couldn't reach Drives - check your connection";
+
+  Future<(dynamic, String?)> _call(String path,
+      {Map<String, dynamic>? body, bool post = false}) async {
+    try {
+      Uri uri = Uri.parse('$urlClub/$path');
+      http.Response response = post || body != null
+          ? await postWebData(uri: uri, body: jsonEncode(body ?? {}))
+          : await getWebData(uri: uri, secure: Setup().jwt.isNotEmpty);
+      dynamic data = response.body.isEmpty ? null : jsonDecode(response.body);
+      if (response.statusCode == 200) return (data, null);
+      if ([401, 407, 408].contains(response.statusCode)) {
+        return (null, 'Log in first, please');
+      }
+      return (null, (data is Map ? data['msg'] : null)?.toString() ?? 'That didn\'t work');
+    } catch (e) {
+      developer.log('ClubService $path: ${e.toString()}', name: 'error');
+      return (null, _offline);
+    }
+  }
+
+  /// Anything that changes the user's clubs comes back as their summary
+  Future<String?> _changed(String path, Map<String, dynamic> body) async {
+    var (data, problem) = await _call(path, body: body);
+    if (data is Map && data.containsKey('clubs')) read(data);
+    return problem;
+  }
+
+  Future<(dynamic, String?)> search(String name) =>
+      _call('search?name=${Uri.encodeQueryComponent(name)}');
+
+  Future<(dynamic, String?)> profile(String clubId) => _call(clubId);
+
+  Future<(dynamic, String?)> askToJoin(String clubId, String message) =>
+      _call('$clubId/join', body: {'message': message});
+
+  Future<String?> leave(String clubId) => _changed('$clubId/leave', {});
+
+  Future<(dynamic, String?)> invitations() => _call('invitations');
+
+  Future<String?> answer(String invitationId, bool accept) =>
+      _changed('invitations/$invitationId', {'accept': accept});
+
+  // the club's admin
+
+  Future<(dynamic, String?)> updateProfile(
+          String clubId, Map<String, dynamic> changes) =>
+      _call(clubId, body: changes);
+
+  Future<(dynamic, String?)> members(String clubId) =>
+      _call('$clubId/members');
+
+  Future<(dynamic, String?)> setRole(
+          String clubId, String userId, String role) =>
+      _call('$clubId/members/$userId', body: {'role': role});
+
+  Future<(dynamic, String?)> remove(String clubId, String userId) =>
+      _call('$clubId/members/$userId', body: {'remove': true});
+
+  Future<(dynamic, String?)> requests(String clubId) =>
+      _call('$clubId/requests');
+
+  Future<(dynamic, String?)> decide(
+          String clubId, String requestId, bool approve) =>
+      _call('$clubId/requests/$requestId', body: {'approve': approve});
+
+  /// emails as pasted - any number, any separators
+  Future<(dynamic, String?)> invite(
+          String clubId, String emails, String message) =>
+      _call('$clubId/invite', body: {'emails': emails, 'message': message});
+
+  Future<(dynamic, String?)> outstanding(String clubId) =>
+      _call('$clubId/invitations');
+
+  Future<(dynamic, String?)> withdraw(String clubId, String invitationId) =>
+      _call('$clubId/invitations/$invitationId/withdraw', post: true);
+
+  Future<(dynamic, String?)> uploadLogo(
+      String clubId, List<int> bytes, String filename) async {
+    try {
+      http.MultipartRequest request =
+          http.MultipartRequest('POST', Uri.parse('$urlClub/$clubId/logo'));
+      request.headers['Authorization'] = 'Bearer ${Setup().jwt}';
+      request.files.add(
+          http.MultipartFile.fromBytes('logo', bytes, filename: filename));
+      http.Response response =
+          await http.Response.fromStream(await request.send());
+      dynamic data = response.body.isEmpty ? null : jsonDecode(response.body);
+      return response.statusCode == 200
+          ? (data, null)
+          : (null, (data is Map ? data['msg'] : null)?.toString() ?? 'That didn\'t work');
+    } catch (e) {
+      developer.log('ClubService logo: ${e.toString()}', name: 'error');
+      return (null, _offline);
+    }
+  }
 }

@@ -135,6 +135,25 @@ class _MainDrawerState extends State<MainDrawer> {
           ),
           ListTile(
             leading: const Icon(
+              Icons.diversity_3_outlined,
+              size: 30,
+            ),
+            title: const Text(
+              'My clubs',
+              style: TextStyle(
+                color: Colors.blue,
+                fontSize: 20,
+              ),
+            ),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ClubsForm()),
+              );
+            },
+          ),
+          ListTile(
+            leading: const Icon(
               Icons.person_add_outlined,
               size: 30,
             ),
