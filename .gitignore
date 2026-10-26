@@ -51,3 +51,7 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Firebase - identifies the app to Firebase (Android push); kept out of the
+# public repository
+android/app/google-services.json
