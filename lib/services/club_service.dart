@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -37,6 +38,10 @@ class ClubService extends ChangeNotifier {
   String drives = ''; // Drives' own pages
   bool canEditPages = false;
 
+  /// Done once the clubs are known - read, or cleared for nobody logged in
+  final Completer<void> _known = Completer<void>();
+  Future<void> get known => _known.future;
+
   bool get inAnyClub => clubs.isNotEmpty;
 
   /// The name of the pages being shown - a club's, or Drives'
@@ -52,13 +57,19 @@ class ClubService extends ChangeNotifier {
     showing = data['showing'] ?? '';
     drives = data['drives'] ?? '';
     canEditPages = data['can_edit_pages'] == true;
+    _isKnown();
     notifyListeners();
+  }
+
+  void _isKnown() {
+    if (!_known.isCompleted) _known.complete();
   }
 
   void clear() {
     clubs = [];
     showing = drives;
     canEditPages = false;
+    _isKnown();
     notifyListeners();
   }
 
@@ -76,6 +87,7 @@ class ClubService extends ChangeNotifier {
     } catch (e) {
       developer.log('ClubService.refresh(): ${e.toString()}', name: 'error');
     }
+    _isKnown(); // offline - as they were
   }
 
   /// Shows the user one of their clubs' pages, or Drives' own - and

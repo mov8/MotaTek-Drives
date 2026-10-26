@@ -48,9 +48,6 @@ class _ShopState extends State<Shop> {
   late MdStyleSheet _styleSheet;
   List<ShopItem> shopItems = [];
 
-  /// What Shop shows with no items - kept, as a club with none follows one
-  /// with some
-  late final String _noItems;
   final List<Widget> _sideBarContents = [];
   int _index = 0;
   late Future<bool> _dataLoaded;
@@ -83,7 +80,6 @@ class _ShopState extends State<Shop> {
     if (MapService().shopController != null) {
       MapService().shopController!._addState(this);
     }
-    _noItems = mdData; // before the first items replace it
     _dataLoaded = _getShopData();
   }
 
@@ -115,7 +111,7 @@ class _ShopState extends State<Shop> {
         mdData = shopItems[0].markdown;
         _styleSheet = MdStyleSheet.fromJson(json: shopItems[0].style);
       } else {
-        mdData = _noItems;
+        mdData = _noOffers;
       }
     } catch (e) {
       developer.log('Error Shop()_getShopData() : ${e.toString()}',
@@ -124,70 +120,18 @@ class _ShopState extends State<Shop> {
     return true;
   }
 
-  String mdData3 = '''
+  String mdData = '';
 
-# Drives Marketplace   
+  /// Shop with no offers - on Drives' own pages or a club's
+  static const String _noOffers = '''
 
----
-
-*A memorable drive is not just about reaching a destination, but all about enjoying the journey...*
-
-**How many times on a beautiful day have you not known where to go?**
-
-> Drives makes planning great trips easy
-
-- Based on Open Street Maps data
-- Published trips points of interest and good roads to download
-- Publish your memorable trips points of interest and great stretches of road
-- Create new trips linking published highlights and save them privately or share them
-- Track your trip whn you've been when out exploring
-- Powerful controllable routing engine - re-route only when you want to
-- Turn-by-turn instructions with AI voice
-- Support for groups with email or messaging for news invitations or just chat
-- Group chat messaging and real time group tracking makes group trips easy
-''';
-
-  String mdData = '''
-
-# Drives Marketplace
---- 
-
-Name  | Favorite Color
-------------- | -------------
-Rooney  | Red
-Fred  | Blue
-Lisa  | Yellow
-Kyle  | Maroon
-Sammy  | Blue
-  
-> blockquote  
-
->[!INFO]  
->Callout  
-
-  ---
-
-# Special new offers
-
-### What I did today!
-#### *December 25, 2020*
-Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+# Shop
 
 ---
 
-# My Second post about new code!
-**Check out this code snippet**
+There are no offers in the shop just now.
 
-``` dart 
-main() {
-  var poemLines = lines(poem);
-  print(yell(poemLines.first));
-
-  // functions are first-class
-  var whisper = (String str) => str.toLowerCase();
-  print(poemLines.map(whisper).last);
-}
-```
+The shop is where businesses, clubs and events for motorists offer things that'll make your trips even better. Please check back soon.
 ''';
 
   String mdData2 = '''

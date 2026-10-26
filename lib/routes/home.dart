@@ -51,9 +51,6 @@ class _HomeState extends State<Home> {
   late Future<bool> _dataLoaded;
   bool _sideDrawerLoaded = false;
 
-  /// What Home shows with no items - kept, as a club with none follows one
-  /// with some
-  late final String _noItems;
   int _index = 0;
 
   /// _handleExternalScroll executes the scrolling of the page content triggered by
@@ -81,7 +78,6 @@ class _HomeState extends State<Home> {
     if (MapService().homeController != null) {
       MapService().homeController!._addState(this);
     }
-    _noItems = mdData; // before the first items replace it
     _dataLoaded = _getHomeData();
     _styleSheet = MdStyleSheet();
   }
@@ -102,13 +98,26 @@ class _HomeState extends State<Home> {
         mdData = homeItems[0].markdown;
         _styleSheet = MdStyleSheet.fromJson(json: homeItems[0].style);
       } else {
-        mdData = _noItems;
+        // Nothing published yet: a welcome - to a club's pages, or Drives'.
+        // (The clubs load at start-up, alongside this.)
+        await ClubService()
+            .known
+            .timeout(const Duration(seconds: 5), onTimeout: () {});
+        bool club = ClubService().inAnyClub &&
+            ClubService().showing != ClubService().drives;
+        mdData = club ? _clubWelcome : _drivesWelcome;
         homeItems = [
-          HomeItem(
-              heading: 'Drives trip planning app',
-              subheading: 'there is always somewhere to go',
-              markdown: mdData,
-              style: _styleSheet.toJson())
+          club
+              ? HomeItem(
+                  heading: 'Welcome to Drives-AI Club edition',
+                  subheading: ClubService().showingName,
+                  markdown: mdData,
+                  style: _styleSheet.toJson())
+              : HomeItem(
+                  heading: 'Drives trip planning app',
+                  subheading: 'there is always somewhere to go',
+                  markdown: mdData,
+                  style: _styleSheet.toJson())
         ];
       }
     } catch (e) {
@@ -118,9 +127,12 @@ class _HomeState extends State<Home> {
     return true;
   }
 
-  String markdown = '''
+  String mdData = '';
 
-# Drives Trip Planning and Sharing App  
+  /// Home with nothing published on Drives' own pages
+  static const String _drivesWelcome = '''
+
+# Drives Trip Planning and Sharing App
 
 ---
 
@@ -134,97 +146,26 @@ class _HomeState extends State<Home> {
 - Published trips points of interest and good roads to download
 - Publish your memorable trips points of interest and great stretches of road
 - Create new trips linking published highlights and save them privately or share them
-- Track your trip whn you've been when out exploring
+- Track your trip when you've been out exploring
 - Powerful controllable routing engine - re-route only when you want to
 - Turn-by-turn instructions with AI voice
 - Support for groups with email or messaging for news invitations or just chat
 - Group chat messaging and real time group tracking makes group trips easy
 ''';
 
-  String mdData = '''
+  /// Home with nothing published yet on a club's pages - until its admin
+  /// writes some
+  static const String _clubWelcome = '''
 
-# Drives Free Trip Planning App
---- 
-
-Name  | Favorite Color
-------------- | -------------
-Rooney  | Red
-Fred  | Blue
-Lisa  | Yellow
-Kyle  | Maroon
-Sammy  | Blue
-  
-> blockquote  
-
->[!INFO]  
->Callout  
-
-  ---
-
-# My New Blog Post
-
-### What I did today!
-#### *December 25, 2020*
-Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+# Welcome to Drives-AI Club edition
 
 ---
 
-# My Second post about new code!
-**Check out this code snippet**
+This trip planning app is designed for both individual club users and for group activities.
 
-``` dart 
-main() {
-  var poemLines = lines(poem);
-  print(yell(poemLines.first));
+You can use it just for arranging nice trips out to recommend to your members, but it is invaluable for group trips. It manages the trip invitations and responses, and control of the group as the trip progresses. It tracks the position in real time of each member of the group, and can message them either individually or as a group during the trip.
 
-  // functions are first-class
-  var whisper = (String str) => str.toLowerCase();
-  print(poemLines.map(whisper).last);
-}
-```
-''';
-
-  String mdData2 = '''
-
-# Drives Free Trip Planning App
---- 
-
-Name  | Favorite Color
-------------- | -------------
-Rooney  | Red
-Fred  | Blue
-Lisa  | Yellow
-Kyle  | Maroon
-Sammy  | Blue
-  
-> blockquote  
-
->[!INFO]  
->Callout  
-
-  ---
-
-# My New Blog Post
-
-### What I did today!
-#### *December 25, 2020*
-Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-
----
-
-# My Second post about new code!
-**Check out this code snippet**
-
-``` dart 
-main() {
-  var poemLines = lines(poem);
-  print(yell(poemLines.first));
-
-  // functions are first-class
-  var whisper = (String str) => str.toLowerCase();
-  print(poemLines.map(whisper).last);
-}
-```
+Drives helps you organise your club communications. It can act as a blog updating users of upcoming events and club news. Its built-in instant messaging helps greatly with communicating with individual users, or groups of users.
 ''';
 
   Future<void> reload() async {
