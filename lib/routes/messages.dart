@@ -92,6 +92,9 @@ class _MessagesState extends State<Messages> {
           name: 'error');
     }
     _dataLoaded = getMessages();
+    // Web: the first visit fills the SideDrawer once the page is built - the
+    // shell's fillSideDrawer() came before there was a page to ask
+    if (kIsWeb) WidgetsBinding.instance.addPostFrameCallback((_) => refresh());
   }
 
   @override

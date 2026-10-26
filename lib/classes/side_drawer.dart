@@ -133,6 +133,11 @@ class SideDrawerController {
 
   bool get isAttached => _sideDrawerState != null;
 
+  /// Web: details to the right of the drawer, for the screen in it - e.g.
+  /// the clubs console's selected club - the way Home and the other pages
+  /// show theirs. Null clears them; so does other content in the drawer.
+  void setDetails(Widget? details) => _sideDrawerState?.setDetails(details);
+
   bool get isOpen => (_sideDrawerState?.width ?? 0) > 20;
 
   bool get isFixed => _sideDrawerState!._fixed;
@@ -296,6 +301,11 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
 
   int _openPointOfInterest = -1;
   bool _openHeader = false;
+  Widget? _details; // to the right of the drawer (setDetails)
+
+  void setDetails(Widget? details) {
+    if (mounted) setState(() => _details = details);
+  }
 
   Future<void> setContent({
     required BottomDrawerItems content,
@@ -305,6 +315,7 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
   }) async {
     drawerItems ??= [];
     try {
+      if (content != _content) _details = null; // they were the last screen's
       _content = content;
       _openPointOfInterest = openPointOfInterest;
       _openHeader = openHeader;
@@ -913,6 +924,24 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
                   },
                 ),
               ],
+              // The drawer screen's details, over the page to the right
+              if (_details != null && width > 10)
+                Expanded(
+                  child: PointerInterceptor(
+                    child: Container(
+                      height: mapHeight,
+                      color: Colors.blue,
+                      padding: const EdgeInsets.fromLTRB(10, 1, 10, 1),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: Container(
+                          color: const Color.fromRGBO(54, 143, 244, 0.411),
+                          child: _details,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
             ],
           ),
         ),
