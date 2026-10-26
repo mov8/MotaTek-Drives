@@ -616,6 +616,7 @@ enum BottomDrawerItems {
   cached,
   planner, // <-- AI assist: the request and the suggested trip
   clubs, // <-- My clubs: invitations, my clubs, finding one, running one
+  console, // <-- staff: every club - contact, payment, members, AI usage
 }
 
 /// This list ensures that the overflow popup menu options are
@@ -717,6 +718,14 @@ List<Map<String, dynamic>> drawerOptions = [
       markdownData: {},
       dataType: 'shop',
     ) //Shop()
+  },
+  {
+    'key': 'console',
+    'text': 'Clubs console',
+    'iconData': Icon(Icons.admin_panel_settings_outlined, size: 30),
+    'method': BottomDrawerItems.settings.index,
+    'drawer': BottomDrawerItems.console,
+    'screen': ConsoleForm(),
   },
   {
     'key': 'deleteTrips',
@@ -854,6 +863,7 @@ const double yardsToMiles = 0.000568182;
 
 const String urlDocs = 'http://127.0.0.1:1313/docs/'; // <- localhost
 const String urlClub = '${urlBase}v1/club';
+const String urlConsole = '${urlBase}v1/console';
 const String urlDrive = '${urlBase}v1/drive';
 const String urlDriveImages = '${urlBase}v1/drive/images';
 const String urlDriveRating = '${urlBase}v1/drive_rating';

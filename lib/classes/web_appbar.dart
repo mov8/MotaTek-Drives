@@ -378,7 +378,7 @@ class _WebAppBarState extends State<WebAppBar> {
         drawerOptions // <-- Links enum BottomDrawerItems with menuItems
             .where((map) =>
                 // the admin tools are only for admins
-                !(['deleteTrips', 'deleteUser'].contains(map['key']) &&
+                !(['deleteTrips', 'deleteUser', 'console'].contains(map['key']) &&
                     Setup().user.type < 3) &&
                 (map['iconData'] ?? '') != '' &&
                     //   !['home', 'shop'].contains(map['key']) ||

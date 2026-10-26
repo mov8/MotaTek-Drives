@@ -114,12 +114,15 @@ class ClubService extends ChangeNotifier {
   // ---- finding, joining and running clubs (/v1/club/...) ------------------
   // Each returns (what came back, null) or (null, why not).
 
-  static const String _offline = "Couldn't reach Drives - check your connection";
+  static const String _offline =
+      "Couldn't reach Drives - check your connection";
 
   Future<(dynamic, String?)> _call(String path,
-      {Map<String, dynamic>? body, bool post = false}) async {
+      {Map<String, dynamic>? body,
+      bool post = false,
+      String base = urlClub}) async {
     try {
-      Uri uri = Uri.parse('$urlClub/$path');
+      Uri uri = Uri.parse('$base/$path');
       http.Response response = post || body != null
           ? await postWebData(uri: uri, body: jsonEncode(body ?? {}))
           : await getWebData(uri: uri, secure: Setup().jwt.isNotEmpty);
@@ -128,7 +131,10 @@ class ClubService extends ChangeNotifier {
       if ([401, 407, 408].contains(response.statusCode)) {
         return (null, 'Log in first, please');
       }
-      return (null, (data is Map ? data['msg'] : null)?.toString() ?? 'That didn\'t work');
+      return (
+        null,
+        (data is Map ? data['msg'] : null)?.toString() ?? 'That didn\'t work'
+      );
     } catch (e) {
       developer.log('ClubService $path: ${e.toString()}', name: 'error');
       return (null, _offline);
@@ -163,8 +169,7 @@ class ClubService extends ChangeNotifier {
           String clubId, Map<String, dynamic> changes) =>
       _call(clubId, body: changes);
 
-  Future<(dynamic, String?)> members(String clubId) =>
-      _call('$clubId/members');
+  Future<(dynamic, String?)> members(String clubId) => _call('$clubId/members');
 
   Future<(dynamic, String?)> setRole(
           String clubId, String userId, String role) =>
@@ -191,20 +196,45 @@ class ClubService extends ChangeNotifier {
   Future<(dynamic, String?)> withdraw(String clubId, String invitationId) =>
       _call('$clubId/invitations/$invitationId/withdraw', post: true);
 
+  /// To every member - comes back as {sent}
+  Future<(dynamic, String?)> emailMembers(
+          String clubId, String subject, String message) =>
+      _call('$clubId/email', body: {'subject': subject, 'message': message});
+
+  // Drives staff: every club (/v1/console/...) - each comes back as the list
+
+  Future<(dynamic, String?)> consoleClubs() => _call('clubs', base: urlConsole);
+
+  Future<(dynamic, String?)> newClub(String name) =>
+      _call('clubs', body: {'name': name}, base: urlConsole);
+
+  /// contact_name, contact_email, contact_phone, payment_note and
+  /// paid_until (YYYY-MM-DD, or null for not paid)
+  Future<(dynamic, String?)> updateClub(
+          String clubId, Map<String, dynamic> changes) =>
+      _call('clubs/$clubId', body: changes, base: urlConsole);
+
+  Future<(dynamic, String?)> appointAdmin(String clubId, String email) =>
+      _call('clubs/$clubId/admins', body: {'email': email}, base: urlConsole);
+
   Future<(dynamic, String?)> uploadLogo(
       String clubId, List<int> bytes, String filename) async {
     try {
       http.MultipartRequest request =
           http.MultipartRequest('POST', Uri.parse('$urlClub/$clubId/logo'));
       request.headers['Authorization'] = 'Bearer ${Setup().jwt}';
-      request.files.add(
-          http.MultipartFile.fromBytes('logo', bytes, filename: filename));
+      request.files
+          .add(http.MultipartFile.fromBytes('logo', bytes, filename: filename));
       http.Response response =
           await http.Response.fromStream(await request.send());
       dynamic data = response.body.isEmpty ? null : jsonDecode(response.body);
       return response.statusCode == 200
           ? (data, null)
-          : (null, (data is Map ? data['msg'] : null)?.toString() ?? 'That didn\'t work');
+          : (
+              null,
+              (data is Map ? data['msg'] : null)?.toString() ??
+                  'That didn\'t work'
+            );
     } catch (e) {
       developer.log('ClubService logo: ${e.toString()}', name: 'error');
       return (null, _offline);

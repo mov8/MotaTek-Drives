@@ -127,9 +127,8 @@ class _ClubsFormState extends State<ClubsForm> {
                   ? Icons.admin_panel_settings_outlined
                   : Icons.groups_outlined),
               title: Text(club.name),
-              subtitle: Text(club.isAdmin
-                  ? 'You look after this club'
-                  : 'Member'),
+              subtitle:
+                  Text(club.isAdmin ? 'You look after this club' : 'Member'),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => _openClub(club.id),
             ),
@@ -368,6 +367,10 @@ class _ClubAdminPanelState extends State<ClubAdminPanel> {
       TextEditingController(text: widget.club['contact_email'] ?? '');
   final TextEditingController _emails = TextEditingController();
   final TextEditingController _message = TextEditingController();
+  final TextEditingController _subject = TextEditingController();
+  final TextEditingController _news = TextEditingController();
+  bool _sending = false;
+  String _emailed = '';
   List _members = [];
   List _requests = [];
   List _outstanding = [];
@@ -388,7 +391,9 @@ class _ClubAdminPanelState extends State<ClubAdminPanel> {
       _website,
       _contact,
       _emails,
-      _message
+      _message,
+      _subject,
+      _news
     ]) {
       c.dispose();
     }
@@ -418,7 +423,7 @@ class _ClubAdminPanelState extends State<ClubAdminPanel> {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 4,
+      length: 5,
       child: Column(children: [
         Material(
           color: Colors.white,
@@ -427,6 +432,7 @@ class _ClubAdminPanelState extends State<ClubAdminPanel> {
             Tab(text: 'Members (${_members.length})'),
             Tab(text: 'Requests (${_requests.length})'),
             const Tab(text: 'Invite'),
+            const Tab(text: 'Email members'),
           ]),
         ),
         Expanded(
@@ -435,6 +441,7 @@ class _ClubAdminPanelState extends State<ClubAdminPanel> {
             _membersTab(),
             _requestsTab(),
             _inviteTab(),
+            _emailTab(),
           ]),
         ),
       ]),
@@ -448,7 +455,8 @@ class _ClubAdminPanelState extends State<ClubAdminPanel> {
       labelText: label,
       hintText: hint);
 
-  Widget _profileTab() => ListView(padding: const EdgeInsets.all(10), children: [
+  Widget _profileTab() =>
+      ListView(padding: const EdgeInsets.all(10), children: [
         Row(children: [
           _logo(widget.club, 64),
           const SizedBox(width: 12),
@@ -463,8 +471,8 @@ class _ClubAdminPanelState extends State<ClubAdminPanel> {
             controller: _description,
             maxLines: 4,
             maxLength: 2000,
-            decoration: _field('About the club',
-                'What people see when they find the club')),
+            decoration: _field(
+                'About the club', 'What people see when they find the club')),
         const SizedBox(height: 8),
         TextField(controller: _website, decoration: _field('Website')),
         const SizedBox(height: 8),
@@ -475,7 +483,8 @@ class _ClubAdminPanelState extends State<ClubAdminPanel> {
         const SizedBox(height: 8),
         Align(
           alignment: Alignment.centerLeft,
-          child: FilledButton(onPressed: _saveProfile, child: const Text('Save')),
+          child:
+              FilledButton(onPressed: _saveProfile, child: const Text('Save')),
         ),
         _note("The club's name is set by Drives - contact us to change it."),
       ]);
@@ -500,7 +509,8 @@ class _ClubAdminPanelState extends State<ClubAdminPanel> {
     if (club is Map) widget.onChanged({...club, 'role': 'admin'});
   }
 
-  Widget _membersTab() => ListView(padding: const EdgeInsets.all(10), children: [
+  Widget _membersTab() =>
+      ListView(padding: const EdgeInsets.all(10), children: [
         if (_members.isEmpty) _note('No members yet - invite some.'),
         for (Map member in _members)
           Card(
@@ -508,18 +518,21 @@ class _ClubAdminPanelState extends State<ClubAdminPanel> {
               leading: Icon(member['role'] == 'admin'
                   ? Icons.admin_panel_settings_outlined
                   : Icons.person_outline),
-              title: Text('${member['forename'] ?? ''} ${member['surname'] ?? ''}'
-                  .trim()),
+              title: Text(
+                  '${member['forename'] ?? ''} ${member['surname'] ?? ''}'
+                      .trim()),
               subtitle: Text(
                   '${member['email']}${member['role'] == 'admin' ? ' - admin' : ''}'),
               trailing: PopupMenuButton<String>(
                 onSelected: (action) => _memberAction(member, action),
                 itemBuilder: (_) => [
                   if (member['role'] != 'admin')
-                    const PopupMenuItem(value: 'admin', child: Text('Make admin'))
+                    const PopupMenuItem(
+                        value: 'admin', child: Text('Make admin'))
                   else
                     const PopupMenuItem(
-                        value: 'member', child: Text('Make an ordinary member')),
+                        value: 'member',
+                        child: Text('Make an ordinary member')),
                   const PopupMenuItem(
                       value: 'remove', child: Text('Remove from the club')),
                 ],
@@ -544,8 +557,9 @@ class _ClubAdminPanelState extends State<ClubAdminPanel> {
         for (Map request in _requests)
           Card(
             child: ListTile(
-              title: Text('${request['forename'] ?? ''} ${request['surname'] ?? ''}'
-                  .trim()),
+              title: Text(
+                  '${request['forename'] ?? ''} ${request['surname'] ?? ''}'
+                      .trim()),
               subtitle: Text([
                 request['email'] ?? '',
                 if ((request['message'] ?? '').isNotEmpty)
@@ -644,5 +658,67 @@ class _ClubAdminPanelState extends State<ClubAdminPanel> {
         await ClubService().withdraw(_id, invitation['id']);
     _say(problem);
     if (outstanding is List) setState(() => _outstanding = outstanding);
+  }
+
+  Widget _emailTab() => ListView(padding: const EdgeInsets.all(10), children: [
+        _note('An email to every member of ${widget.club['name']} - news, '
+            'or an event, alongside your newsletter. It comes from Drives, '
+            'with your name at the bottom. A few a day at most.'),
+        TextField(
+            controller: _subject,
+            maxLength: 150,
+            decoration: _field('Subject')),
+        TextField(
+            controller: _news,
+            minLines: 6,
+            maxLines: 16,
+            maxLength: 5000,
+            keyboardType: TextInputType.multiline,
+            decoration: _field('Message')),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: FilledButton.icon(
+            icon: const Icon(Icons.send_outlined),
+            label: Text(
+                'Send to ${_members.length} member${_members.length == 1 ? '' : 's'}'),
+            onPressed: _sending ? null : _emailMembers,
+          ),
+        ),
+        if (_emailed.isNotEmpty) _note(_emailed),
+      ]);
+
+  Future<void> _emailMembers() async {
+    if (_subject.text.trim().isEmpty || _news.text.trim().isEmpty) {
+      return _say('The email needs a subject and a message');
+    }
+    bool send = await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+                  title: const Text('Email every member?'),
+                  content: Text(
+                      '"${_subject.text.trim()}" goes to ${_members.length} member${_members.length == 1 ? '' : 's'}.'),
+                  actions: [
+                    TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: const Text('Cancel')),
+                    FilledButton(
+                        onPressed: () => Navigator.pop(context, true),
+                        child: const Text('Send')),
+                  ],
+                )) ??
+        false;
+    if (!send) return;
+    setState(() => _sending = true);
+    var (result, problem) =
+        await ClubService().emailMembers(_id, _subject.text, _news.text);
+    if (!mounted) return;
+    setState(() => _sending = false);
+    if (problem != null) return _say(problem);
+    setState(() {
+      _emailed =
+          'Sent to ${result['sent']} member${result['sent'] == 1 ? '' : 's'}';
+      _subject.clear();
+      _news.clear();
+    });
   }
 }
