@@ -6,6 +6,7 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:markdown/markdown.dart' as md;
 import '/constants.dart';
 import '/models/other_models.dart';
+import '/classes/club_picker.dart';
 import '/services/services.dart' hide getPosition;
 import '/helpers/helpers.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
@@ -30,6 +31,9 @@ class HomeController {
 
   /// Web: puts the summary tiles back in the SideDrawer on returning to Home
   void fillSideDrawer() => _homeState?.sideBarItems(force: true);
+
+  /// The user chose another club's pages (ClubPicker)
+  void reload() => _homeState?.reload();
 }
 
 class Home extends StatefulWidget {
@@ -46,6 +50,10 @@ class _HomeState extends State<Home> {
 
   late Future<bool> _dataLoaded;
   bool _sideDrawerLoaded = false;
+
+  /// What Home shows with no items - kept, as a club with none follows one
+  /// with some
+  late final String _noItems;
   int _index = 0;
 
   /// _handleExternalScroll executes the scrolling of the page content triggered by
@@ -73,6 +81,7 @@ class _HomeState extends State<Home> {
     if (MapService().homeController != null) {
       MapService().homeController!._addState(this);
     }
+    _noItems = mdData; // before the first items replace it
     _dataLoaded = _getHomeData();
     _styleSheet = MdStyleSheet();
   }
@@ -93,6 +102,7 @@ class _HomeState extends State<Home> {
         mdData = homeItems[0].markdown;
         _styleSheet = MdStyleSheet.fromJson(json: homeItems[0].style);
       } else {
+        mdData = _noItems;
         homeItems = [
           HomeItem(
               heading: 'Drives trip planning app',
@@ -217,6 +227,16 @@ main() {
 ```
 ''';
 
+  Future<void> reload() async {
+    if (!mounted) return;
+    setState(() {
+      homeItems = [];
+      _dataLoaded = _getHomeData();
+    });
+    await _dataLoaded;
+    sideBarItems(force: true);
+  }
+
   void updateData(Map<String, dynamic> data) {
     try {
       setState(() {
@@ -233,6 +253,14 @@ main() {
   Widget _getPortraitBody() {
     double leftPadding =
         MediaQuery.of(context).size.width * (kIsWeb ? 0.38 : 0);
+    // On a phone, whose pages these are - on the web it heads the SideDrawer
+    return Column(children: [
+      if (!kIsWeb) const ClubPicker(),
+      Expanded(child: _page(leftPadding)),
+    ]);
+  }
+
+  Widget _page(double leftPadding) {
     return Padding(
       padding: EdgeInsets.fromLTRB(leftPadding + 10, 5, 10, 5), //   all(8.0),
       child: // Card(

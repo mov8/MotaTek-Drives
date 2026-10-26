@@ -6,6 +6,7 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:markdown/markdown.dart' as md;
 import '/constants.dart';
 import '/models/other_models.dart';
+import '/classes/club_picker.dart';
 import '/services/services.dart' hide getPosition;
 import '/helpers/helpers.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
@@ -30,6 +31,9 @@ class ShopController {
 
   /// Web: puts the summary tiles back in the SideDrawer on returning to Shop
   void fillSideDrawer() => _shopState?.sideBarItems();
+
+  /// The user chose another club's pages (ClubPicker)
+  void reload() => _shopState?.reload();
 }
 
 class Shop extends StatefulWidget {
@@ -43,6 +47,10 @@ class _ShopState extends State<Shop> {
   final ItemScrollController _itemScrollController = ItemScrollController();
   late MdStyleSheet _styleSheet;
   List<ShopItem> shopItems = [];
+
+  /// What Shop shows with no items - kept, as a club with none follows one
+  /// with some
+  late final String _noItems;
   final List<Widget> _sideBarContents = [];
   int _index = 0;
   late Future<bool> _dataLoaded;
@@ -75,6 +83,7 @@ class _ShopState extends State<Shop> {
     if (MapService().shopController != null) {
       MapService().shopController!._addState(this);
     }
+    _noItems = mdData; // before the first items replace it
     _dataLoaded = _getShopData();
   }
 
@@ -105,6 +114,8 @@ class _ShopState extends State<Shop> {
       if (shopItems.isNotEmpty) {
         mdData = shopItems[0].markdown;
         _styleSheet = MdStyleSheet.fromJson(json: shopItems[0].style);
+      } else {
+        mdData = _noItems;
       }
     } catch (e) {
       developer.log('Error Shop()_getShopData() : ${e.toString()}',
@@ -236,9 +247,27 @@ main() {
     }
   }
 
+  Future<void> reload() async {
+    if (!mounted) return;
+    setState(() {
+      shopItems = [];
+      _dataLoaded = _getShopData();
+    });
+    await _dataLoaded;
+    sideBarItems();
+  }
+
   Widget _getPortraitBody() {
     double leftPadding =
         MediaQuery.of(context).size.width * (kIsWeb ? 0.38 : 0);
+    // On a phone, whose pages these are - on the web it heads the SideDrawer
+    return Column(children: [
+      if (!kIsWeb) const ClubPicker(),
+      Expanded(child: _page(leftPadding)),
+    ]);
+  }
+
+  Widget _page(double leftPadding) {
 
     return Padding(
       padding: EdgeInsets.fromLTRB(leftPadding + 10, 5, 10, 5), //   all(8.0),

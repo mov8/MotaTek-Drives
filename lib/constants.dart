@@ -844,6 +844,7 @@ const double yardsToMiles = 0.000568182;
 // const urlBase = 'https://drives.motatek.com/';
 
 const String urlDocs = 'http://127.0.0.1:1313/docs/'; // <- localhost
+const String urlClub = '${urlBase}v1/club';
 const String urlDrive = '${urlBase}v1/drive';
 const String urlDriveImages = '${urlBase}v1/drive/images';
 const String urlDriveRating = '${urlBase}v1/drive_rating';

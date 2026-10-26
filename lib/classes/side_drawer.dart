@@ -312,7 +312,7 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
         case BottomDrawerItems.home:
           try {
             _tiles = shredMarkdownItems('home');
-            if (Setup().user.type >= 3) {
+            if (ClubService().canEditPages) {
               _screenCache = _tiles;
             }
           } catch (e) {
@@ -398,7 +398,7 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
           break;
         case BottomDrawerItems.shop:
           _tiles = shredMarkdownItems('shop');
-          if (Setup().user.type >= 3) {
+          if (ClubService().canEditPages) {
             _offerRestore = true;
             _screenCache = _tiles;
           }
@@ -588,6 +588,7 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
     // Nothing to show - the image and message fill the drawer
     if (_drawerItems!.isEmpty) {
       return [
+        const ClubPicker(), // whose pages these are, for someone in a club
         type == 'home'
             ? const PageEmptyView(
                 image: 'assets/images/meeting.png',
@@ -608,6 +609,7 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
       ];
     }
 
+    tiles.add(const ClubPicker()); // whose pages these are
     for (int i = 0; i < _drawerItems!.length; i++) {
       tiles.add(
         Padding(

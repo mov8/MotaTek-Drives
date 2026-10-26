@@ -235,6 +235,7 @@ Future<void> getUserDetails({required String email}) async {
       Setup().user.email = email;
       Setup().user.phone = data['phone'] ?? '';
       Setup().user.type = data['type'] ?? 1;
+      ClubService().read(data); // their clubs
     } catch (e) {
       debugPrint('Error retrieving user data: ${e.toString()}');
     }
@@ -275,6 +276,7 @@ Future<Map<String, dynamic>> tryLogin({required User user}) async {
         Setup().user.phone = map['phone'];
         Setup().user.type = map['type'];
         Setup().jwt = map['token'];
+        ClubService().read(map); // their clubs
         Setup().saveUser();
         Setup().save();
         PushService().refresh(); // this device's notifications are theirs now

@@ -383,7 +383,8 @@ class _WebAppBarState extends State<WebAppBar> {
                 (map['iconData'] ?? '') != '' &&
                     //   !['home', 'shop'].contains(map['key']) ||
                     !['markdownHome', 'markdownShop'].contains(map['key']) ||
-                Setup().user.type >= 3 &&
+                // a club's admin edits its pages; Drives staff, Drives' own
+                ClubService().canEditPages &&
                     ((map['key'] == 'markdownHome' && _selected == 0 ||
                         map['key'] == 'markdownShop' &&
                             _selected == 4))) // <- show only ones with Icons
