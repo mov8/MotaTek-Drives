@@ -1380,6 +1380,7 @@ class _CancelException implements Exception {
 /// neither their own plan nor their club's - is invited to sign up for it,
 /// on the website, where payments are taken
 Future<void> offerAiAssist() async {
+  if (urlSubscribe.isEmpty) return; // parked until the website is ready
   await PlannerService().checkAllowance();
   Map? plan = PlannerService().allowance;
   BuildContext? context = NavigationService().key.currentContext;

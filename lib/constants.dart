@@ -845,8 +845,10 @@ const double yardsToMiles = 0.000568182;
 const String urlDocs = 'http://127.0.0.1:1313/docs/'; // <- localhost
 const String urlClub = '${urlBase}v1/club';
 const String urlConsole = '${urlBase}v1/console';
-// Signing up for AI assist - on the website, where payments are taken
-const String urlSubscribe = 'https://motatek.com/';
+// Signing up for AI assist - on the website, where payments are taken.
+// Parked (empty) until the website is ready: setting it turns on the
+// invitation after registering and AI assist's Find out more.
+const String urlSubscribe = '';
 const String urlDrive = '${urlBase}v1/drive';
 const String urlDriveImages = '${urlBase}v1/drive/images';
 const String urlDriveRating = '${urlBase}v1/drive_rating';

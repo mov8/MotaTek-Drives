@@ -208,7 +208,7 @@ class _PlannerPanelState extends State<PlannerPanel> {
           child:
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(allowance['reason'] ?? "AI assist isn't available"),
-            if (allowance['subscribed'] == false)
+            if (allowance['subscribed'] == false && urlSubscribe.isNotEmpty)
               TextButton(
                   onPressed: () => launchUrl(Uri.parse(urlSubscribe),
                       mode: LaunchMode.externalApplication),
