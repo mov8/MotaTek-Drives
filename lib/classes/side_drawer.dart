@@ -474,6 +474,7 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
       _singleForm = _formContents.contains(content) ||
           (_tiles.length == 1 &&
               (_tiles.first is PageEmptyView ||
+                  _tiles.first is _EmptyPage ||
                   _tiles.first is MyTripsEmptyView));
       refreshList = true;
       // Show the new content - without this it only appeared when something
@@ -608,27 +609,29 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
         ? MapService().homeController
         : MapService().shopController;
 
-    // Nothing to show - the image and message fill the drawer
+    // Nothing to show - the image and message fill the drawer, under whose
+    // pages these are. One tile, so it's shown whole (_singleForm): as a
+    // second tile in the list the image had no height, and nothing showed.
     if (_drawerItems!.isEmpty) {
       return [
-        const ClubPicker(), // whose pages these are, for someone in a club
-        type == 'home'
-            ? const PageEmptyView(
-                image: 'assets/images/meeting.png',
-                lines: [
-                  'Welcome to Drives - there is always somewhere to go.',
-                  'News about Drives, and articles about great trips, will appear here.',
-                  'Use Explore to plan a trip, or see the trips other drivers have Published.',
-                ],
-              )
-            : const PageEmptyView(
-                image: 'assets/images/MobileMarketing.png',
-                lines: [
-                  'There are no offers in the shop just now.',
-                  "The shop is where businesses, clubs and events for motorists offer things that'll make your trips even better.",
-                  'Please check back soon.',
-                ],
-              ),
+        _EmptyPage(
+            view: type == 'home'
+                ? const PageEmptyView(
+                    image: 'assets/images/meeting.png',
+                    lines: [
+                      'Welcome to Drives - there is always somewhere to go.',
+                      'News about Drives, and articles about great trips, will appear here.',
+                      'Use Explore to plan a trip, or see the trips other drivers have Published.',
+                    ],
+                  )
+                : const PageEmptyView(
+                    image: 'assets/images/MobileMarketing.png',
+                    lines: [
+                      'There are no offers in the shop just now.',
+                      "The shop is where businesses, clubs and events for motorists offer things that'll make your trips even better.",
+                      'Please check back soon.',
+                    ],
+                  )),
       ];
     }
 
@@ -951,4 +954,15 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
       ),
     );
   }
+}
+
+/// Home or Shop with nothing to show: whose pages these are (for someone with
+/// a choice), above the page's image and message, filling the drawer
+class _EmptyPage extends StatelessWidget {
+  final Widget view;
+  const _EmptyPage({required this.view});
+
+  @override
+  Widget build(BuildContext context) =>
+      Column(children: [const ClubPicker(), Expanded(child: view)]);
 }
