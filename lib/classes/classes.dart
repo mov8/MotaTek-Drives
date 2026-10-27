@@ -3,7 +3,6 @@ export 'animated_fabs.dart';
 export 'autocomplete_widget.dart';
 export 'bottom_drawer.dart';
 export 'caches.dart';
-export 'club_picker.dart';
 export 'sound_repository.dart';
 export 'compact_dropdown.dart';
 export 'create_trip_chips.dart';

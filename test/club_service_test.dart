@@ -4,7 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 /// The user's clubs, as the server sends them (api.clubs.summary) - what the
 /// club picker shows, and whether the Markdown editor is offered
 void main() {
-  Map<String, dynamic> summary({String showing = 'mg', bool canEdit = true}) => {
+  Map<String, dynamic> summary({String showing = 'mg', bool canEdit = true}) =>
+      {
         'clubs': [
           {'id': 'mg', 'name': 'MG Car Club', 'role': 'admin'},
           {'id': 'tr', 'name': 'Triumph Owners', 'role': 'member'},
@@ -38,16 +39,6 @@ void main() {
     expect(clubs.inAnyClub, isFalse);
     expect(clubs.showing, 'drives');
     expect(clubs.canEditPages, isFalse);
-  });
-
-  test("a club member doesn't get Drives' pages to choose; staff do", () {
-    ClubService clubs = ClubService()
-      ..read({...summary(), 'can_show_drives': false});
-    expect(clubs.canShowDrives, isFalse);
-    clubs.read({...summary(), 'can_show_drives': true});
-    expect(clubs.canShowDrives, isTrue);
-    clubs.clear();
-    expect(clubs.canShowDrives, isTrue); // nobody logged in: Drives' pages
   });
 
   test('a user in no club', () {

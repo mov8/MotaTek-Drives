@@ -23,12 +23,12 @@ class Club {
 /// The user's clubs (api.clubs on the server): which they're in and as
 /// what, whose Home and Shop pages they're looking at, and whether they may
 /// edit those pages (a club's admin, or Drives staff). Someone in a club
-/// sees a club's pages; people in no club, people not logged in, and Drives
-/// staff who choose to, see Drives' own pages.
+/// sees their club's pages; people in no club, and people not logged in,
+/// see Drives' own pages. There's no choosing - an account is in one club.
 ///
-/// The server keeps which club's pages the user sees, so Home and Shop are
-/// right before this has loaded; this is for the club picker (ClubPicker)
-/// and for offering the Markdown editor.
+/// The server works out whose pages the user sees, so Home and Shop are
+/// right before this has loaded; this is for offering the Markdown editor,
+/// and Home's welcome.
 class ClubService extends ChangeNotifier {
   static final ClubService _instance = ClubService._internal();
   factory ClubService() => _instance;
@@ -38,7 +38,6 @@ class ClubService extends ChangeNotifier {
   String showing = ''; // the club whose pages the user sees
   String drives = ''; // Drives' own pages
   bool canEditPages = false;
-  bool canShowDrives = true; // in no club, or Drives staff
 
   /// Done once the clubs are known - read, or cleared for nobody logged in
   final Completer<void> _known = Completer<void>();
@@ -60,7 +59,6 @@ class ClubService extends ChangeNotifier {
     showing = data['showing'] ?? '';
     drives = data['drives'] ?? '';
     canEditPages = data['can_edit_pages'] == true;
-    canShowDrives = data['can_show_drives'] != false;
     _showingChanged(was);
   }
 
@@ -73,7 +71,6 @@ class ClubService extends ChangeNotifier {
     clubs = [];
     showing = drives;
     canEditPages = false;
-    canShowDrives = true;
     _showingChanged(was);
   }
 
@@ -104,25 +101,6 @@ class ClubService extends ChangeNotifier {
       developer.log('ClubService.refresh(): ${e.toString()}', name: 'error');
     }
     _isKnown(); // offline - as they were
-  }
-
-  /// Shows the user one of their clubs' pages, or Drives' own - and
-  /// reloads Home and Shop (read). Null, or why it couldn't.
-  Future<String?> show(String clubId) async {
-    try {
-      http.Response response = await postWebData(
-          uri: Uri.parse('$urlClub/showing'),
-          body: jsonEncode({'club_id': clubId}));
-      Map body = response.body.isEmpty ? {} : jsonDecode(response.body);
-      if (response.statusCode != 200) {
-        return body['msg'] ?? "Couldn't change the club";
-      }
-      read(body);
-      return null;
-    } catch (e) {
-      developer.log('ClubService.show(): ${e.toString()}', name: 'error');
-      return "Couldn't reach Drives - check your connection";
-    }
   }
 
   // ---- finding, joining and running clubs (/v1/club/...) ------------------
