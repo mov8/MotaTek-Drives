@@ -14,6 +14,7 @@ export 'messages_detail.dart';
 export 'clubs.dart';
 export 'console.dart';
 export 'my_groups.dart';
+export 'offline_maps.dart';
 export 'painters.dart';
 export 'group_drives.dart';
 export 'setup.dart';

@@ -218,6 +218,26 @@ class _MainDrawerState extends State<MainDrawer> {
               );
             },
           ),
+          // the map along a saved trip, for where there's no signal
+          if (Setup().jwt.isNotEmpty && OfflineMapsService().supported)
+            ListTile(
+              leading:
+                  const Icon(Icons.download_for_offline_outlined, size: 30),
+              title: const Text(
+                'Offline maps',
+                style: TextStyle(
+                  color: Colors.blue,
+                  fontSize: 20,
+                ),
+              ),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const OfflineMapsScreen()),
+                );
+              },
+            ),
           ListTile(
             leading: const Icon(
               Icons.help_outline,

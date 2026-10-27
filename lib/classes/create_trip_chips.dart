@@ -675,6 +675,9 @@ class CreateTripChips extends StatelessWidget {
       // BottomDrawer was closed for the map image)
       updateControllers(items: BottomDrawerItems.trip);
       if (kIsWeb) MapService().sideDrawerController?.close();
+      // Saved - the chips follow (Save trip goes); on the web closing the
+      // drawer did this, on a phone nothing did
+      MapService().createTripStackController?.refresh();
     } catch (e) {
       developer.log('_saveTro() Error saving trip: ${e.toString()}',
           name: 'error');

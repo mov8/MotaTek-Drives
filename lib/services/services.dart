@@ -9,6 +9,7 @@ export 'group_drive_service.dart';
 export 'maplibre_service.dart';
 export 'markdown_service.dart';
 export 'navigation_service.dart';
+export 'offline_maps_service.dart';
 export 'planner_service.dart';
 export 'push_service.dart';
 export 'stream_data.dart';

@@ -20,6 +20,8 @@ import '../tiles/tiles.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:flutter/gestures.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:universal_io/io.dart' show File;
 
 /// OVERALL STRUCTURE
 /// 1 CurrentTripItem - singleton that looks after the persistent data - routes, waypoints etc
@@ -777,10 +779,23 @@ class MapService {
   /// Whether currentPosition is where the user is, not the default
   bool get hasPosition => _currentPosition != null;
 
+  /// The last style fetched, kept on the phone - without a signal the app
+  /// still has a map, and offline maps' tiles to draw it with
+  Future<File?> _savedStyleFile() async => kIsWeb
+      ? null
+      : File(
+          '${(await getApplicationDocumentsDirectory()).path}/map_style.json');
+
   Future<String> _fetchStyle() async {
     try {
-      _styleString =
-          waypointsAbovePointsOfInterest(await getStyle(url: urlTilerMapLibre));
+      String style = await getStyle(url: urlTilerMapLibre);
+      File? saved = await _savedStyleFile();
+      if (style.trimLeft().startsWith('{')) {
+        await saved?.writeAsString(style);
+      } else if (saved != null && await saved.exists()) {
+        style = await saved.readAsString(); // offline - the last one fetched
+      }
+      _styleString = waypointsAbovePointsOfInterest(style);
     } catch (e) {
       developer.log('Error getting style from api: ${e.toString()}',
           name: 'error');
