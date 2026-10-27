@@ -188,13 +188,11 @@ class _ConsoleFormState extends State<ConsoleForm> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (club)
-              Text(contact.isEmpty ? 'No contact' : contact,
+              Text(contact.isEmpty ? 'No admin - no contact' : contact,
                   style: contact.isEmpty ? TextStyle(color: _warning()) : null),
             Text('${row['scheme'] ?? 'No scheme'} - '
                 '${_plural(row['members'] ?? 0, 'member')}'),
             Text('Last payment ${_date(row['last_paid'])}'),
-            if (club && row['admins'] == null)
-              Text('No admin yet', style: TextStyle(color: _warning())),
           ],
         ),
         trailing: Column(
@@ -269,15 +267,8 @@ class _PayerDetails extends StatefulWidget {
 }
 
 class _PayerDetailsState extends State<_PayerDetails> {
-  late final Map<String, TextEditingController> _fields = {
-    for (String field in [
-      'contact_name',
-      'contact_email',
-      'contact_phone',
-      'payment_note'
-    ])
-      field: TextEditingController(text: widget.row[field] ?? '')
-  };
+  late final TextEditingController _note =
+      TextEditingController(text: widget.row['payment_note'] ?? '');
   final TextEditingController _admin = TextEditingController();
   late String? _schemeId = widget.row['scheme_id'];
   late String? _paidUntil = widget.row['paid_until'];
@@ -288,7 +279,7 @@ class _PayerDetailsState extends State<_PayerDetails> {
 
   @override
   void dispose() {
-    for (TextEditingController c in [..._fields.values, _admin]) {
+    for (TextEditingController c in [_note, _admin]) {
       c.dispose();
     }
     super.dispose();
@@ -314,19 +305,6 @@ class _PayerDetailsState extends State<_PayerDetails> {
         if (_club) ...[
           _contact(),
           _scheme(),
-          _section('Admin', [
-            Text(row['admins'] ??
-                'No admin yet - make a Drives user the club\'s admin, by '
-                    'their email'),
-            const SizedBox(height: 10),
-            Row(children: [
-              Expanded(
-                  child: TextField(
-                      controller: _admin,
-                      decoration: _field("A Drives user's email"))),
-              TextButton(onPressed: _appoint, child: const Text('Make admin')),
-            ]),
-          ]),
           _PaymentsCard(
               payer: 'clubs', id: row['id'], onRecorded: widget.reload),
         ],
@@ -351,16 +329,35 @@ class _PayerDetailsState extends State<_PayerDetails> {
         ]),
       );
 
-  Widget _contact() => _section('Contact', [
-        for (var (field, label) in [
-          ('contact_name', 'Name'),
-          ('contact_email', 'Email'),
-          ('contact_phone', 'Phone'),
-        ]) ...[
-          TextField(controller: _fields[field], decoration: _field(label)),
-          const SizedBox(height: 10),
+  /// The club's contact is its admin - their own details. Making someone
+  /// else admin hands the club over to them.
+  Widget _contact() => _section("Contact - the club's admin", [
+        if (row['admins'] == null)
+          Text('No admin yet', style: TextStyle(color: _warning()))
+        else ...[
+          _figure('Name', row['contact_name'] ?? ''),
+          _figure('Email', row['contact_email'] ?? ''),
+          _figure(
+              'Phone',
+              (row['contact_phone'] ?? '').isEmpty
+                  ? '-'
+                  : row['contact_phone']),
         ],
-        FilledButton(onPressed: _save, child: const Text('Save contact')),
+        const SizedBox(height: 10),
+        Row(children: [
+          Expanded(
+              child: TextField(
+                  controller: _admin,
+                  decoration: _field("A Drives user's email"))),
+          TextButton(
+              onPressed: _appoint,
+              child: Text(row['admins'] == null ? 'Make admin' : 'Hand over')),
+        ]),
+        Text(
+            row['admins'] == null
+                ? "They become the club's admin and contact."
+                : 'The new admin becomes the contact; the old one, a member.',
+            style: const TextStyle(fontSize: 12)),
       ]);
 
   Widget _scheme() {
@@ -402,9 +399,7 @@ class _PayerDetailsState extends State<_PayerDetails> {
             child: const Text('Change')),
       ]),
       TextField(
-          controller: _fields['payment_note'],
-          maxLines: 2,
-          decoration: _field('Payment note')),
+          controller: _note, maxLines: 2, decoration: _field('Payment note')),
       const SizedBox(height: 10),
       FilledButton(onPressed: _save, child: const Text('Save scheme')),
     ]);
@@ -412,7 +407,7 @@ class _PayerDetailsState extends State<_PayerDetails> {
 
   Future<void> _save() async {
     var result = await ConsoleService().updateClub(row['id'], {
-      for (var entry in _fields.entries) entry.key: entry.value.text,
+      'payment_note': _note.text,
       'scheme_id': _schemeId,
       if (_paidUntilChanged) 'paid_until': _paidUntil,
     });

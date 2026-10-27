@@ -221,8 +221,8 @@ class _ClubsFormState extends State<ClubsForm> {
                       color: Colors.blue,
                       decoration: TextDecoration.underline)),
             ),
-          if ((club['contact_email'] ?? '').isNotEmpty)
-            Text('Contact: ${club['contact_email']}'),
+          if ((club['contact'] ?? '').isNotEmpty)
+            Text('Run by ${club['contact']}'),
         ]),
       ),
     );
@@ -368,8 +368,6 @@ class _ClubAdminPanelState extends State<ClubAdminPanel> {
       TextEditingController(text: widget.club['description'] ?? '');
   late final TextEditingController _website =
       TextEditingController(text: widget.club['website'] ?? '');
-  late final TextEditingController _contact =
-      TextEditingController(text: widget.club['contact_email'] ?? '');
   final TextEditingController _emails = TextEditingController();
   final TextEditingController _message = TextEditingController();
   final TextEditingController _subject = TextEditingController();
@@ -394,7 +392,6 @@ class _ClubAdminPanelState extends State<ClubAdminPanel> {
     for (TextEditingController c in [
       _description,
       _website,
-      _contact,
       _emails,
       _message,
       _subject,
@@ -483,17 +480,14 @@ class _ClubAdminPanelState extends State<ClubAdminPanel> {
         const SizedBox(height: 8),
         TextField(controller: _website, decoration: _field('Website')),
         const SizedBox(height: 8),
-        TextField(
-            controller: _contact,
-            keyboardType: TextInputType.emailAddress,
-            decoration: _field('Contact email')),
-        const SizedBox(height: 8),
         Align(
           alignment: Alignment.centerLeft,
           child:
               FilledButton(onPressed: _saveProfile, child: const Text('Save')),
         ),
-        _note("The club's name is set by Drives - contact us to change it."),
+        _note("The club's name is set by Drives - contact us to change it. "
+            "As the club's admin you're its contact for Drives; if someone "
+            'else takes it on, hand the club over to them on the Members tab.'),
       ]);
 
   /// How the club stands with Drives - its members on the app, and its
@@ -524,7 +518,6 @@ class _ClubAdminPanelState extends State<ClubAdminPanel> {
     var (club, problem) = await ClubService().updateProfile(_id, {
       'description': _description.text,
       'website': _website.text,
-      'contact_email': _contact.text,
     });
     _say(problem, 'Saved');
     if (club is Map) widget.onChanged({...club, 'role': 'admin'});
@@ -554,31 +547,52 @@ class _ClubAdminPanelState extends State<ClubAdminPanel> {
                       .trim()),
               subtitle: Text(
                   '${member['email']}${member['role'] == 'admin' ? ' - admin' : ''}'),
-              trailing: PopupMenuButton<String>(
-                onSelected: (action) => _memberAction(member, action),
-                itemBuilder: (_) => [
-                  if (member['role'] != 'admin')
-                    const PopupMenuItem(
-                        value: 'admin', child: Text('Make admin'))
-                  else
-                    const PopupMenuItem(
-                        value: 'member',
-                        child: Text('Make an ordinary member')),
-                  const PopupMenuItem(
-                      value: 'remove', child: Text('Remove from the club')),
-                ],
-              ),
+              // the admin hands over by making someone else admin
+              trailing: member['role'] == 'admin'
+                  ? null
+                  : PopupMenuButton<String>(
+                      onSelected: (action) => _memberAction(member, action),
+                      itemBuilder: (_) => const [
+                        PopupMenuItem(
+                            value: 'admin',
+                            child: Text('Hand the club over to them')),
+                        PopupMenuItem(
+                            value: 'remove',
+                            child: Text('Remove from the club')),
+                      ],
+                    ),
             ),
           ),
       ]);
 
   Future<void> _memberAction(Map member, String action) async {
+    if (action == 'admin' && !await _handOverConfirmed(member)) return;
     var (members, problem) = action == 'remove'
         ? await ClubService().remove(_id, member['id'])
         : await ClubService().setRole(_id, member['id'], action);
     _say(problem);
     if (members is List) setState(() => _members = members);
   }
+
+  Future<bool> _handOverConfirmed(Map member) async =>
+      await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text('Hand the club over to ${member['forename'] ?? 'them'}?'),
+          content: const Text(
+              "They'll be the club's admin, and its contact for Drives - and "
+              "you'll be an ordinary member, without these admin tabs."),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel')),
+            FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Hand it over')),
+          ],
+        ),
+      ) ??
+      false;
 
   Widget _requestsTab() =>
       ListView(padding: const EdgeInsets.all(10), children: [
