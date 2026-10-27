@@ -195,8 +195,18 @@ class _PlannerPanelState extends State<PlannerPanel> {
     );
   }
 
-  /// Before a request is written: they've had all their plans for now
+  /// Before a request is written: they aren't paid up (api/payments.py),
+  /// or they've had all their plans for now
   Widget _noneLeft(BuildContext context, Map allowance) {
+    if (allowance['entitled'] == false) {
+      return Card(
+        color: Theme.of(context).colorScheme.errorContainer,
+        margin: const EdgeInsets.only(bottom: 12),
+        child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Text(allowance['reason'] ?? "AI assist isn't available")),
+      );
+    }
     DateTime? next = DateTime.tryParse(allowance['next'] ?? '');
     String when = next == null
         ? 'later'

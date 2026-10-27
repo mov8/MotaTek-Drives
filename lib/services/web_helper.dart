@@ -235,10 +235,25 @@ Future<void> getUserDetails({required String email}) async {
       Setup().user.email = email;
       Setup().user.phone = data['phone'] ?? '';
       Setup().user.type = data['type'] ?? 1;
+      Setup().user.newsEmails = data['news_emails'] != false;
       ClubService().read(data); // their clubs
     } catch (e) {
       debugPrint('Error retrieving user data: ${e.toString()}');
     }
+  }
+}
+
+/// Turns MotaTek's news emails on or off for the user - null, or why not
+Future<String?> setNewsEmails(bool on) async {
+  try {
+    final http.Response response = await postWebData(
+        uri: Uri.parse('$urlUser/news'), body: jsonEncode({'on': on}));
+    if (response.statusCode != 200) return "Couldn't change that just now";
+    Setup().user.newsEmails = jsonDecode(response.body)['news_emails'] == true;
+    return null;
+  } catch (e) {
+    developer.log('setNewsEmails(): ${e.toString()}', name: 'error');
+    return "Couldn't reach Drives - check your connection";
   }
 }
 
@@ -275,6 +290,7 @@ Future<Map<String, dynamic>> tryLogin({required User user}) async {
         Setup().user.surname = map['surname'];
         Setup().user.phone = map['phone'];
         Setup().user.type = map['type'];
+        Setup().user.newsEmails = map['news_emails'] != false;
         Setup().jwt = map['token'];
         ClubService().read(map); // their clubs
         Setup().saveUser();

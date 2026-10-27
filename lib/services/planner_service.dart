@@ -54,7 +54,8 @@ class PlannerService extends ChangeNotifier {
   /// write a request, not after
   bool get canPlan =>
       allowance == null ||
-      (allowance!['used'] ?? 0) < (allowance!['limit'] ?? 1);
+      (allowance!['entitled'] != false &&
+          (allowance!['used'] ?? 0) < (allowance!['limit'] ?? 1));
 
   /// What was understood, as the user has changed it with the chips
   Map<String, dynamic>? fields;

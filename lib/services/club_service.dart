@@ -132,11 +132,9 @@ class ClubService extends ChangeNotifier {
       "Couldn't reach Drives - check your connection";
 
   Future<(dynamic, String?)> _call(String path,
-      {Map<String, dynamic>? body,
-      bool post = false,
-      String base = urlClub}) async {
+      {Map<String, dynamic>? body, bool post = false}) async {
     try {
-      Uri uri = Uri.parse('$base/$path');
+      Uri uri = Uri.parse('$urlClub/$path');
       http.Response response = post || body != null
           ? await postWebData(uri: uri, body: jsonEncode(body ?? {}))
           : await getWebData(uri: uri, secure: Setup().jwt.isNotEmpty);
@@ -214,22 +212,6 @@ class ClubService extends ChangeNotifier {
   Future<(dynamic, String?)> emailMembers(
           String clubId, String subject, String message) =>
       _call('$clubId/email', body: {'subject': subject, 'message': message});
-
-  // Drives staff: every club (/v1/console/...) - each comes back as the list
-
-  Future<(dynamic, String?)> consoleClubs() => _call('clubs', base: urlConsole);
-
-  Future<(dynamic, String?)> newClub(String name) =>
-      _call('clubs', body: {'name': name}, base: urlConsole);
-
-  /// contact_name, contact_email, contact_phone, payment_note and
-  /// paid_until (YYYY-MM-DD, or null for not paid)
-  Future<(dynamic, String?)> updateClub(
-          String clubId, Map<String, dynamic> changes) =>
-      _call('clubs/$clubId', body: changes, base: urlConsole);
-
-  Future<(dynamic, String?)> appointAdmin(String clubId, String email) =>
-      _call('clubs/$clubId/admins', body: {'email': email}, base: urlConsole);
 
   Future<(dynamic, String?)> uploadLogo(
       String clubId, List<int> bytes, String filename) async {

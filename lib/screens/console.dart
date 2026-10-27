@@ -3,11 +3,14 @@ import 'package:intl/intl.dart';
 import '/classes/classes.dart';
 import '/services/services.dart';
 
-/// Drives staff (web): every club, as summary tiles in the SideDrawer - so
-/// a club that hasn't paid, has no admin, or has used a lot of AI stands
-/// out - sorted as chosen. The selected club's details are to the right
-/// (SideDrawerController.setDetails), where its contact, payment and admin
-/// are changed. See api/v1/console.py.
+/// The control panel - Drives staff (web). In the SideDrawer, a summary of
+/// all of Drives, of private users (as one big club) and of each club: its
+/// contact, scheme, last payment and balance (this month's income from its
+/// scheme less its AI). To the right (SideDrawerController.setDetails), the
+/// selected one's details - a club's contact, scheme, payments and admin,
+/// the private users who pay - and its last year month by month; or the
+/// schemes; or an email to everyone or the clubs' admins. See
+/// api/v1/console.py, api/reports.py and api/payments.py.
 class ConsoleForm extends StatefulWidget {
   const ConsoleForm({super.key});
 
@@ -15,37 +18,74 @@ class ConsoleForm extends StatefulWidget {
   State<ConsoleForm> createState() => _ConsoleFormState();
 }
 
+final NumberFormat _pounds = NumberFormat.currency(symbol: '£');
 final NumberFormat _dollars = NumberFormat.currency(symbol: '\$');
+final DateFormat _day = DateFormat('d MMM yyyy');
 
 String _plural(int count, String word) =>
     '$count $word${count == 1 ? '' : 's'}';
 
-class _ConsoleFormState extends State<ConsoleForm> {
-  List<Map> _clubs = [];
-  String? _problem;
-  String _sortBy = 'name';
-  String? _selected; // the club whose details are showing
+String _date(String? iso) =>
+    iso == null ? '-' : _day.format(DateTime.parse(iso));
 
-  // what each sort puts first
-  static final Map<String, (String, int Function(Map, Map))> _sorts = {
-    'name': (
-      'Name',
-      (a, b) => (a['name'] ?? '')
-          .toString()
-          .toLowerCase()
-          .compareTo((b['name'] ?? '').toString().toLowerCase())
-    ),
-    'unpaid': (
-      'Not paid',
-      (a, b) => (a['paid_until'] ?? '').compareTo(b['paid_until'] ?? '')
-    ),
-    'members': ('Members', (a, b) => (b['members'] ?? 0) - (a['members'] ?? 0)),
-    'ai': (
-      'AI this month',
-      (a, b) => ((b['ai_month_cost'] ?? 0) as num)
-          .compareTo((a['ai_month_cost'] ?? 0) as num)
-    ),
-  };
+Color _warning() => Colors.red.shade700;
+
+InputDecoration _field(String label) => InputDecoration(
+    filled: true,
+    fillColor: Colors.white,
+    border: const OutlineInputBorder(),
+    isDense: true,
+    labelText: label);
+
+Widget _section(String heading, List<Widget> children, {double width = 380}) =>
+    SizedBox(
+      width: width,
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(heading,
+                  style: const TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 10),
+              ...children,
+            ],
+          ),
+        ),
+      ),
+    );
+
+Widget _heading(String words) => Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(words,
+          style: const TextStyle(
+              fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white)),
+    );
+
+void _say(BuildContext context, String? words) {
+  if (words != null && words.isNotEmpty && context.mounted) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(words)));
+  }
+}
+
+Future<String?> _pickDate(BuildContext context, String? current) async {
+  DateTime now = DateTime.now();
+  DateTime? chosen = await showDatePicker(
+    context: context,
+    initialDate: current == null ? now : DateTime.parse(current),
+    firstDate: DateTime(now.year - 5),
+    lastDate: DateTime(now.year + 10),
+  );
+  return chosen == null ? null : DateFormat('yyyy-MM-dd').format(chosen);
+}
+
+class _ConsoleFormState extends State<ConsoleForm> {
+  List<Map> _rows = [];
+  List<Map> _schemes = [];
+  String? _problem;
+  String _selected = 'all';
 
   @override
   void initState() {
@@ -53,110 +93,125 @@ class _ConsoleFormState extends State<ConsoleForm> {
     _load();
   }
 
-  Future<void> _load() async => _show(await ClubService().consoleClubs());
+  Future<void> _load() async {
+    var (schemes, _) = await ConsoleService().schemes();
+    if (schemes is List) _schemes = List<Map>.from(schemes);
+    _showRows(await ConsoleService().overview());
+  }
 
-  /// Every console call comes back as the whole list
-  void _show((dynamic, String?) result, {String? select}) {
-    var (clubs, problem) = result;
+  /// Every change comes back as the summaries
+  void _showRows((dynamic, String?) result, {String? select}) {
+    var (rows, problem) = result;
     if (!mounted) return;
     setState(() {
       _problem = problem;
-      if (clubs is List) {
-        _clubs = List<Map>.from(clubs)..sort(_sorts[_sortBy]!.$2);
-      }
+      if (rows is List) _rows = List<Map>.from(rows);
     });
-    String? id = select ?? _selected;
-    if (_clubs.isEmpty) {
-      return MapService().sideDrawerController?.setDetails(null);
-    }
-    _select(_clubs.firstWhere((club) => club['id'] == id,
-        orElse: () => _clubs.first));
+    _select(select ?? _selected);
   }
 
-  void _select(Map club) {
-    setState(() => _selected = club['id']);
-    MapService().sideDrawerController?.setDetails(_ClubDetails(
-          key: ValueKey(club['id']),
-          club: club,
-          onChanged: (result) => _show(result, select: club['id']),
-        ));
-  }
-
-  void _say(String? problem) {
-    if (problem != null && mounted) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(problem)));
-    }
+  void _select(String id) {
+    setState(() => _selected = id);
+    Widget details = switch (id) {
+      'schemes' => _SchemesDetails(
+          key: const ValueKey('schemes'),
+          schemes: _schemes,
+          onChanged: (schemes) {
+            _schemes = schemes;
+            _load();
+          }),
+      'email' => const _EmailDetails(key: ValueKey('email')),
+      _ => _PayerDetails(
+          key: ValueKey('$id${_rows.length}${DateTime.now().millisecond}'),
+          row: _rows.firstWhere((row) => row['id'] == id,
+              orElse: () => _rows.isEmpty ? {} : _rows.first),
+          schemes: _schemes,
+          onChanged: (result) => _showRows(result, select: id),
+          reload: () async =>
+              _showRows(await ConsoleService().overview(), select: id)),
+    };
+    MapService().sideDrawerController?.setDetails(details);
   }
 
   @override
   Widget build(BuildContext context) {
-    int unpaid = _clubs.where((club) => club['paid'] != true).length;
-    double aiMonth =
-        _clubs.fold(0.0, (total, club) => total + (club['ai_month_cost'] ?? 0));
     return ScreensAppBarBottom(
-      heading: 'Clubs console',
-      prompt: 'Every club - payment, members, AI usage',
+      heading: 'Control panel',
+      prompt: 'How Drives is doing - clubs, payments, AI',
       textColor: const Color.fromRGBO(1, 29, 51, 1),
       content: RefreshIndicator(
         onRefresh: _load,
         child: ListView(padding: const EdgeInsets.all(10), children: [
-          Row(children: [
-            Expanded(
-              child: Text(
-                  _problem ??
-                      '${_plural(_clubs.length, 'club')}, $unpaid not paid. '
-                          'AI this month ${_dollars.format(aiMonth)}',
-                  style: const TextStyle(fontSize: 15)),
-            ),
+          Wrap(spacing: 8, runSpacing: 6, children: [
+            _button('schemes', Icons.sell_outlined, 'Schemes'),
+            _button('email', Icons.mail_outline, 'Email'),
             FilledButton.icon(
               icon: const Icon(Icons.add),
               label: const Text('New club'),
               onPressed: _newClub,
             ),
           ]),
-          const SizedBox(height: 8),
-          Wrap(spacing: 6, runSpacing: 4, children: [
-            for (var MapEntry(key: key, value: (label, _)) in _sorts.entries)
-              ChoiceChip(
-                label: Text(label),
-                selected: _sortBy == key,
-                onSelected: (_) => setState(() {
-                  _sortBy = key;
-                  _clubs.sort(_sorts[key]!.$2);
-                }),
-              ),
-          ]),
+          if (_problem != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(_problem!, style: TextStyle(color: _warning())),
+            ),
           const SizedBox(height: 6),
-          for (Map club in _clubs) _tile(club),
+          for (Map row in _rows) _tile(row),
         ]),
       ),
     );
   }
 
-  Widget _tile(Map club) {
-    bool paid = club['paid'] == true;
-    TextStyle warning = TextStyle(color: Colors.red.shade700);
+  Widget _button(String id, IconData icon, String label) => OutlinedButton.icon(
+        style: _selected == id
+            ? OutlinedButton.styleFrom(backgroundColor: Colors.blue.shade50)
+            : null,
+        icon: Icon(icon),
+        label: Text(label),
+        onPressed: () => _select(id),
+      );
+
+  Widget _tile(Map row) {
+    bool club = row['kind'] == 'club';
+    double balance = (row['balance'] ?? 0).toDouble();
+    String contact = [row['contact_name'], row['contact_email']]
+        .where((part) => (part ?? '').toString().isNotEmpty)
+        .join(', ');
     return Card(
-      color: club['id'] == _selected ? Colors.blue.shade50 : null,
+      color: row['id'] == _selected ? Colors.blue.shade50 : null,
       child: ListTile(
-        onTap: () => _select(club),
-        title: Text(club['name'] ?? '',
+        onTap: () => _select(row['id']),
+        title: Text(row['name'] ?? '',
             style: const TextStyle(fontWeight: FontWeight.bold)),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('${_plural(club['members'] ?? 0, 'member')} - AI '
-                '${_dollars.format(club['ai_month_cost'] ?? 0)} this month'),
-            if (club['admins'] == null) Text('No admin yet', style: warning),
+            if (club)
+              Text(contact.isEmpty ? 'No contact' : contact,
+                  style: contact.isEmpty ? TextStyle(color: _warning()) : null),
+            Text('${row['scheme'] ?? 'No scheme'} - '
+                '${_plural(row['members'] ?? 0, 'member')}'),
+            Text('Last payment ${_date(row['last_paid'])}'),
+            if (club && row['admins'] == null)
+              Text('No admin yet', style: TextStyle(color: _warning())),
           ],
         ),
-        trailing: Chip(
-          label: Text(paid ? 'Paid' : 'Not paid',
-              style: TextStyle(
-                  color: paid ? Colors.green.shade800 : Colors.red.shade700)),
-          side: BorderSide(
-              color: paid ? Colors.green.shade800 : Colors.red.shade700),
+        trailing: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(_pounds.format(balance),
+                style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: balance < 0 ? _warning() : Colors.green.shade800)),
+            if (club)
+              Text(row['paid'] == true ? 'Paid' : 'Not paid',
+                  style: TextStyle(
+                      color: row['paid'] == true
+                          ? Colors.green.shade800
+                          : _warning())),
+          ],
         ),
       ),
     );
@@ -171,8 +226,7 @@ class _ConsoleFormState extends State<ConsoleForm> {
         content: TextField(
           controller: name,
           autofocus: true,
-          decoration: const InputDecoration(
-              border: OutlineInputBorder(), labelText: "The club's name"),
+          decoration: _field("The club's name"),
           onSubmitted: (text) => Navigator.pop(context, text),
         ),
         actions: [
@@ -187,29 +241,34 @@ class _ConsoleFormState extends State<ConsoleForm> {
     );
     name.dispose();
     if ((chosen ?? '').trim().isEmpty) return;
-    var result = await ClubService().newClub(chosen!.trim());
-    _say(result.$2);
-    String? id = result.$1 is List
-        ? (result.$1 as List).firstWhere(
-            (club) => club['name'] == chosen.trim(),
-            orElse: () => {})['id']
-        : null;
-    _show(result, select: id);
+    var (result, problem) = await ConsoleService().newClub(chosen!.trim());
+    if (!mounted) return;
+    _say(context, problem);
+    if (result is Map) {
+      _showRows((result['summaries'], null), select: result['id']);
+    }
   }
 }
 
-/// The selected club, to the right of the drawer: how it's doing, and its
-/// contact, payment and admin to change
-class _ClubDetails extends StatefulWidget {
-  final Map club;
-  final Function((dynamic, String?)) onChanged; // the list, changed
-  const _ClubDetails({super.key, required this.club, required this.onChanged});
+// ---- a club, private users, or all of Drives -------------------------------------
+
+class _PayerDetails extends StatefulWidget {
+  final Map row;
+  final List<Map> schemes;
+  final Function((dynamic, String?)) onChanged; // the summaries, changed
+  final Future<void> Function() reload;
+  const _PayerDetails(
+      {super.key,
+      required this.row,
+      required this.schemes,
+      required this.onChanged,
+      required this.reload});
 
   @override
-  State<_ClubDetails> createState() => _ClubDetailsState();
+  State<_PayerDetails> createState() => _PayerDetailsState();
 }
 
-class _ClubDetailsState extends State<_ClubDetails> {
+class _PayerDetailsState extends State<_PayerDetails> {
   late final Map<String, TextEditingController> _fields = {
     for (String field in [
       'contact_name',
@@ -217,16 +276,15 @@ class _ClubDetailsState extends State<_ClubDetails> {
       'contact_phone',
       'payment_note'
     ])
-      field: TextEditingController(text: widget.club[field] ?? '')
+      field: TextEditingController(text: widget.row[field] ?? '')
   };
   final TextEditingController _admin = TextEditingController();
-  late String? _paidUntil = widget.club['paid_until'];
-  String? _problem;
-  String _saved = '';
+  late String? _schemeId = widget.row['scheme_id'];
+  late String? _paidUntil = widget.row['paid_until'];
+  bool _paidUntilChanged = false; // sent only then - a scheme's trial sets it
 
-  static final DateFormat _day = DateFormat('d MMMM yyyy');
-
-  Map get club => widget.club;
+  Map get row => widget.row;
+  bool get _club => row['kind'] == 'club';
 
   @override
   void dispose() {
@@ -236,181 +294,697 @@ class _ClubDetailsState extends State<_ClubDetails> {
     super.dispose();
   }
 
-  InputDecoration _field(String label) => InputDecoration(
-      filled: true,
-      fillColor: Colors.white,
-      border: const OutlineInputBorder(),
-      isDense: true,
-      labelText: label);
-
-  Widget _section(String heading, List<Widget> children) => Card(
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(heading,
-                  style: const TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 10),
-              ...children,
-            ],
-          ),
-        ),
-      );
+  @override
+  Widget build(BuildContext context) {
+    double balance = (row['balance'] ?? 0).toDouble();
+    return ListView(padding: const EdgeInsets.all(12), children: [
+      _heading(row['name'] ?? ''),
+      Wrap(spacing: 12, runSpacing: 12, children: [
+        _section('This month', [
+          _figure('Members', '${row['members'] ?? 0}'),
+          _figure('AI so far', _dollars.format(row['ai_month_cost'] ?? 0)),
+          _figure('Income', _pounds.format(row['income_month'] ?? 0)),
+          _figure('Balance', _pounds.format(balance), warn: balance < 0),
+          if (_club) ...[
+            _figure('Paid until', _date(row['paid_until']),
+                warn: row['paid'] != true),
+            _figure('Last payment', _date(row['last_paid'])),
+          ],
+        ]),
+        if (_club) ...[
+          _contact(),
+          _scheme(),
+          _section('Admin', [
+            Text(row['admins'] ??
+                'No admin yet - make a Drives user the club\'s admin, by '
+                    'their email'),
+            const SizedBox(height: 10),
+            Row(children: [
+              Expanded(
+                  child: TextField(
+                      controller: _admin,
+                      decoration: _field("A Drives user's email"))),
+              TextButton(onPressed: _appoint, child: const Text('Make admin')),
+            ]),
+          ]),
+          _PaymentsCard(
+              payer: 'clubs', id: row['id'], onRecorded: widget.reload),
+        ],
+        if (row['kind'] == 'private')
+          _PayingUsers(schemes: widget.schemes, onChanged: widget.reload),
+      ]),
+      const SizedBox(height: 12),
+      _MonthsTable(scope: row['id'] ?? 'all', everyone: row['kind'] == 'all'),
+    ]);
+  }
 
   Widget _figure(String label, String value, {bool warn = false}) => Padding(
         padding: const EdgeInsets.only(bottom: 4),
         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          SizedBox(width: 170, child: Text(label)),
+          SizedBox(width: 130, child: Text(label)),
           Expanded(
             child: Text(value,
                 style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: warn ? Colors.red.shade700 : null)),
+                    color: warn ? _warning() : null)),
           ),
         ]),
       );
 
-  @override
-  Widget build(BuildContext context) {
-    bool paid = club['paid'] == true;
-    return ListView(padding: const EdgeInsets.all(12), children: [
-      Text(club['name'] ?? '',
-          style: const TextStyle(
-              fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white)),
-      const SizedBox(height: 8),
-      Wrap(spacing: 12, runSpacing: 12, children: [
-        SizedBox(
-          width: 380,
-          child: _section('How it is doing', [
-            _figure('Members on Drives', '${club['members'] ?? 0}'),
-            _figure('Admin', club['admins'] ?? 'none yet',
-                warn: club['admins'] == null),
-            _figure('AI this month',
-                '${_dollars.format(club['ai_month_cost'] ?? 0)} (${_plural(club['ai_month_requests'] ?? 0, 'request')})'),
-            _figure('AI in all', _dollars.format(club['ai_cost'] ?? 0)),
-            _figure('Emails this month', '${club['emails_month'] ?? 0}'),
-            _figure(
-                'Subscription',
-                club['paid_until'] == null
-                    ? 'not paid'
-                    : '${paid ? 'paid until' : 'ended'} ${_day.format(DateTime.parse(club['paid_until']))}',
-                warn: !paid),
-          ]),
-        ),
-        SizedBox(
-          width: 380,
-          child: _section('Contact', [
-            for (var (field, label) in [
-              ('contact_name', 'Name'),
-              ('contact_email', 'Email'),
-              ('contact_phone', 'Phone'),
-            ]) ...[
-              TextField(controller: _fields[field], decoration: _field(label)),
-              const SizedBox(height: 10),
-            ],
-          ]),
-        ),
-        SizedBox(
-          width: 380,
-          child: _section('Payment', [
-            Row(children: [
-              Expanded(
+  Widget _contact() => _section('Contact', [
+        for (var (field, label) in [
+          ('contact_name', 'Name'),
+          ('contact_email', 'Email'),
+          ('contact_phone', 'Phone'),
+        ]) ...[
+          TextField(controller: _fields[field], decoration: _field(label)),
+          const SizedBox(height: 10),
+        ],
+        FilledButton(onPressed: _save, child: const Text('Save contact')),
+      ]);
+
+  Widget _scheme() {
+    List<Map> offered = widget.schemes
+        .where((s) =>
+            s['for_clubs'] == true &&
+            (s['retired'] != true || s['id'] == _schemeId))
+        .toList();
+    return _section('Scheme and payment', [
+      DropdownButtonFormField<String?>(
+        initialValue: _schemeId,
+        decoration: _field('Scheme'),
+        items: [
+          const DropdownMenuItem(value: null, child: Text('None')),
+          for (Map s in offered)
+            DropdownMenuItem(
+                value: s['id'],
                 child: Text(
-                    _paidUntil == null
-                        ? 'Not paid'
-                        : 'Paid until ${_day.format(DateTime.parse(_paidUntil!))}',
-                    style: const TextStyle(fontSize: 16)),
-              ),
-              TextButton(
-                  onPressed: _choosePaidUntil, child: const Text('Change')),
-              if (_paidUntil != null)
-                TextButton(
-                    onPressed: () => setState(() => _paidUntil = null),
-                    child: const Text('Not paid')),
-            ]),
-            const SizedBox(height: 6),
-            TextField(
-                controller: _fields['payment_note'],
-                maxLines: 2,
-                decoration: _field('Payment note')),
-          ]),
-        ),
-        SizedBox(
-          width: 380,
-          child: _section('Admin', [
-            Text(club['admins'] ??
-                'No admin yet - make a member of the club '
-                    'its admin, by their email'),
-            const SizedBox(height: 10),
-            Row(children: [
-              Expanded(
-                child: TextField(
-                    controller: _admin,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: _field("A Drives user's email")),
-              ),
-              TextButton(onPressed: _appoint, child: const Text('Make admin')),
-            ]),
-          ]),
-        ),
-      ]),
-      const SizedBox(height: 12),
+                    '${s['name']} - ${_pounds.format(s['price_pence'] / 100)} '
+                    'a ${s['period']}')),
+        ],
+        onChanged: (id) => setState(() => _schemeId = id),
+      ),
+      const SizedBox(height: 10),
       Row(children: [
-        FilledButton.icon(
-          icon: const Icon(Icons.save_outlined),
-          label: const Text('Save contact and payment'),
-          onPressed: _save,
-        ),
-        const SizedBox(width: 12),
-        if (_problem != null || _saved.isNotEmpty)
-          Flexible(
-            child: Text(_problem ?? _saved,
-                style: TextStyle(
-                    color:
-                        _problem != null ? Colors.red.shade100 : Colors.white,
-                    fontSize: 15)),
-          ),
+        Expanded(
+            child: Text('Paid until ${_date(_paidUntil)}',
+                style: const TextStyle(fontSize: 16))),
+        TextButton(
+            onPressed: () async {
+              String? chosen = await _pickDate(context, _paidUntil);
+              if (chosen != null) {
+                setState(() {
+                  _paidUntil = chosen;
+                  _paidUntilChanged = true;
+                });
+              }
+            },
+            child: const Text('Change')),
       ]),
+      TextField(
+          controller: _fields['payment_note'],
+          maxLines: 2,
+          decoration: _field('Payment note')),
+      const SizedBox(height: 10),
+      FilledButton(onPressed: _save, child: const Text('Save scheme')),
     ]);
   }
 
-  Future<void> _choosePaidUntil() async {
-    DateTime now = DateTime.now();
-    DateTime? chosen = await showDatePicker(
-      context: context,
-      initialDate: _paidUntil == null
-          ? DateTime(now.year + 1, now.month, now.day)
-          : DateTime.parse(_paidUntil!),
-      firstDate: DateTime(now.year - 2),
-      lastDate: DateTime(now.year + 10),
-    );
-    if (chosen != null) {
-      setState(() => _paidUntil = DateFormat('yyyy-MM-dd').format(chosen));
-    }
+  Future<void> _save() async {
+    var result = await ConsoleService().updateClub(row['id'], {
+      for (var entry in _fields.entries) entry.key: entry.value.text,
+      'scheme_id': _schemeId,
+      if (_paidUntilChanged) 'paid_until': _paidUntil,
+    });
+    if (!mounted) return;
+    _say(context, result.$2 ?? 'Saved');
+    if (result.$2 == null) widget.onChanged(result);
   }
 
   Future<void> _appoint() async {
     if (!_admin.text.contains('@')) return;
     var result =
-        await ClubService().appointAdmin(club['id'], _admin.text.trim());
+        await ConsoleService().appointAdmin(row['id'], _admin.text.trim());
     if (!mounted) return;
-    if (result.$2 != null) return setState(() => _problem = result.$2);
-    widget.onChanged(result);
+    _say(context, result.$2);
+    if (result.$2 == null) widget.onChanged(result);
+  }
+}
+
+/// A payer's payments, and recording one - paid until moves on a period of
+/// their scheme (or to the date given)
+class _PaymentsCard extends StatefulWidget {
+  final String payer; // clubs or payers
+  final String id;
+  final Future<void> Function() onRecorded;
+  final double width;
+  const _PaymentsCard(
+      {required this.payer,
+      required this.id,
+      required this.onRecorded,
+      this.width = 380});
+
+  @override
+  State<_PaymentsCard> createState() => _PaymentsCardState();
+}
+
+class _PaymentsCardState extends State<_PaymentsCard> {
+  List<Map> _payments = [];
+  final TextEditingController _amount = TextEditingController();
+  final TextEditingController _reference = TextEditingController();
+  String _paid = DateFormat('yyyy-MM-dd').format(DateTime.now());
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void dispose() {
+    _amount.dispose();
+    _reference.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    var (payments, _) =
+        await ConsoleService().payments(widget.payer, widget.id);
+    if (mounted && payments is List) {
+      setState(() => _payments = List<Map>.from(payments));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _section('Payments', width: widget.width, [
+      if (_payments.isEmpty) const Text('None recorded yet'),
+      for (Map p in _payments.take(6))
+        Padding(
+          padding: const EdgeInsets.only(bottom: 4),
+          child: Text('${_date(p['paid'])}: ${_pounds.format(p['amount'])}'
+              '${(p['reference'] ?? '').isEmpty ? '' : ' (${p['reference']})'}'
+              ' - to ${_date(p['paid_until'])}'),
+        ),
+      const Divider(),
+      Row(children: [
+        Expanded(
+            child: TextField(
+                controller: _amount,
+                keyboardType: TextInputType.number,
+                decoration: _field('Amount £'))),
+        const SizedBox(width: 8),
+        TextButton(
+            onPressed: () async {
+              String? chosen = await _pickDate(context, _paid);
+              if (chosen != null) setState(() => _paid = chosen);
+            },
+            child: Text(_date(_paid))),
+      ]),
+      const SizedBox(height: 8),
+      TextField(
+          controller: _reference,
+          decoration: _field('Reference, e.g. a bank transfer')),
+      const SizedBox(height: 8),
+      FilledButton(onPressed: _record, child: const Text('Record payment')),
+    ]);
+  }
+
+  Future<void> _record() async {
+    var (payments, problem) =
+        await ConsoleService().recordPayment(widget.payer, widget.id, {
+      'amount': _amount.text.replaceAll('£', '').trim(),
+      'paid': _paid,
+      'reference': _reference.text,
+    });
+    if (!mounted) return;
+    _say(context, problem ?? 'Payment recorded');
+    if (payments is List) {
+      setState(() {
+        _payments = List<Map>.from(payments);
+        _amount.clear();
+        _reference.clear();
+      });
+      widget.onRecorded();
+    }
+  }
+}
+
+/// Private users on a scheme - the individuals who pay - adding one, and
+/// each one's payments
+class _PayingUsers extends StatefulWidget {
+  final List<Map> schemes;
+  final Future<void> Function() onChanged;
+  const _PayingUsers({required this.schemes, required this.onChanged});
+
+  @override
+  State<_PayingUsers> createState() => _PayingUsersState();
+}
+
+class _PayingUsersState extends State<_PayingUsers> {
+  List<Map> _payers = [];
+  String? _open; // whose payments are showing
+  final TextEditingController _email = TextEditingController();
+  String? _schemeId;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void dispose() {
+    _email.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load() async => _show(await ConsoleService().payers());
+
+  void _show((dynamic, String?) result) {
+    var (payers, problem) = result;
+    if (!mounted) return;
+    _say(context, problem);
+    if (payers is List) setState(() => _payers = List<Map>.from(payers));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    List<Map> offered = widget.schemes
+        .where((s) => s['for_clubs'] != true && s['retired'] != true)
+        .toList();
+    return _section('Private users who pay', width: 500, [
+      if (_payers.isEmpty) const Text('Nobody yet'),
+      for (Map p in _payers) ...[
+        ListTile(
+          dense: true,
+          contentPadding: EdgeInsets.zero,
+          title: Text(p['email'] ?? ''),
+          subtitle: Text('${p['scheme']} - paid until ${_date(p['paid_until'])}'
+              ' - last paid ${_date(p['last_paid'])}'),
+          trailing: Icon(
+              _open == p['id'] ? Icons.expand_less : Icons.expand_more,
+              color: p['paid'] == true ? null : _warning()),
+          onTap: () =>
+              setState(() => _open = _open == p['id'] ? null : p['id']),
+        ),
+        if (_open == p['id'])
+          _PaymentsCard(
+              payer: 'payers',
+              id: p['id'],
+              width: 470,
+              onRecorded: () async {
+                await _load();
+                await widget.onChanged();
+              }),
+      ],
+      const Divider(),
+      TextField(
+          controller: _email, decoration: _field("A Drives user's email")),
+      const SizedBox(height: 8),
+      DropdownButtonFormField<String?>(
+        initialValue: _schemeId,
+        decoration: _field('Scheme'),
+        items: [
+          for (Map s in offered)
+            DropdownMenuItem(
+                value: s['id'],
+                child: Text(
+                    '${s['name']} - ${_pounds.format(s['price_pence'] / 100)} '
+                    'a ${s['period']}')),
+        ],
+        onChanged: (id) => setState(() => _schemeId = id),
+      ),
+      const SizedBox(height: 8),
+      FilledButton(
+          onPressed: () async {
+            if (!_email.text.contains('@') || _schemeId == null) return;
+            _show(
+                await ConsoleService().setPayer(_email.text.trim(), _schemeId));
+            _email.clear();
+            await widget.onChanged();
+          },
+          child: const Text('Put them on the scheme')),
+    ]);
+  }
+}
+
+/// The last year, month by month
+class _MonthsTable extends StatefulWidget {
+  final String scope;
+  final bool everyone;
+  const _MonthsTable({required this.scope, this.everyone = false});
+
+  @override
+  State<_MonthsTable> createState() => _MonthsTableState();
+}
+
+class _MonthsTableState extends State<_MonthsTable> {
+  List<Map> _months = [];
+
+  @override
+  void initState() {
+    super.initState();
+    ConsoleService().months(widget.scope).then((result) {
+      if (mounted && result.$1 is List) {
+        setState(() => _months = List<Map>.from(result.$1));
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    List<(String, String Function(Map))> columns = [
+      (
+        'Month',
+        (m) => DateFormat('MMM yyyy').format(DateTime.parse('${m['month']}-01'))
+      ),
+      ('Members', (m) => '${m['members']}'),
+      if (widget.everyone) ('New users', (m) => '${m['new_users'] ?? 0}'),
+      ('AI', (m) => '${_dollars.format(m['ai_cost'])} (${m['ai_plans']})'),
+      ('Trips added', (m) => '${m['trips_added']} (${m['trips_added_ai']} AI)'),
+      ('Published', (m) => '${m['trips_published']}'),
+      ('Driven', (m) => '${m['trips_driven']}'),
+      ('Messages', (m) => '${m['messages']}'),
+      ('Emails', (m) => '${m['emails']}'),
+      if (widget.everyone) ('Unsubscribed', (m) => '${m['unsubscribed'] ?? 0}'),
+    ];
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('Month by month',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: DataTable(
+              columnSpacing: 22,
+              dataRowMinHeight: 32,
+              dataRowMaxHeight: 36,
+              columns: [
+                for (var (label, _) in columns)
+                  DataColumn(label: Text(label), numeric: label != 'Month')
+              ],
+              rows: [
+                for (Map m in _months)
+                  DataRow(cells: [
+                    for (var (_, value) in columns) DataCell(Text(value(m)))
+                  ])
+              ],
+            ),
+          ),
+        ]),
+      ),
+    );
+  }
+}
+
+// ---- schemes ----------------------------------------------------------------------
+
+class _SchemesDetails extends StatefulWidget {
+  final List<Map> schemes;
+  final Function(List<Map>) onChanged;
+  const _SchemesDetails(
+      {super.key, required this.schemes, required this.onChanged});
+
+  @override
+  State<_SchemesDetails> createState() => _SchemesDetailsState();
+}
+
+class _SchemesDetailsState extends State<_SchemesDetails> {
+  bool _adding = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(padding: const EdgeInsets.all(12), children: [
+      Row(children: [
+        Expanded(child: _heading('Schemes')),
+        FilledButton.icon(
+          icon: const Icon(Icons.add),
+          label: const Text('New scheme'),
+          onPressed: () => setState(() => _adding = true),
+        ),
+      ]),
+      Wrap(spacing: 12, runSpacing: 12, children: [
+        if (_adding)
+          _SchemeCard(
+              key: const ValueKey('new'),
+              scheme: const {},
+              onChanged: (schemes) {
+                setState(() => _adding = false);
+                widget.onChanged(schemes);
+              }),
+        for (Map scheme in widget.schemes)
+          _SchemeCard(
+              key: ValueKey(scheme['id']),
+              scheme: scheme,
+              onChanged: widget.onChanged),
+      ]),
+    ]);
+  }
+}
+
+class _SchemeCard extends StatefulWidget {
+  final Map scheme;
+  final Function(List<Map>) onChanged;
+  const _SchemeCard({super.key, required this.scheme, required this.onChanged});
+
+  @override
+  State<_SchemeCard> createState() => _SchemeCardState();
+}
+
+class _SchemeCardState extends State<_SchemeCard> {
+  late final Map scheme = widget.scheme;
+  late final TextEditingController _name =
+      TextEditingController(text: scheme['name'] ?? '');
+  late final TextEditingController _description =
+      TextEditingController(text: scheme['description'] ?? '');
+  late final TextEditingController _price = TextEditingController(
+      text: scheme['price_pence'] == null
+          ? ''
+          : (scheme['price_pence'] / 100).toStringAsFixed(2));
+  late final TextEditingController _trial =
+      TextEditingController(text: '${scheme['trial_days'] ?? 0}');
+  late final TextEditingController _plans =
+      TextEditingController(text: '${scheme['ai_plans_per_day'] ?? 10}');
+  late final TextEditingController _budget = TextEditingController(
+      text: scheme['ai_monthly_budget'] == null
+          ? ''
+          : '${scheme['ai_monthly_budget']}');
+  late bool _forClubs = scheme['for_clubs'] ?? true;
+  late String _period = scheme['period'] ?? 'month';
+
+  @override
+  void dispose() {
+    for (TextEditingController c in [
+      _name,
+      _description,
+      _price,
+      _trial,
+      _plans,
+      _budget
+    ]) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    String inUse = scheme['id'] == null
+        ? ''
+        : ' - ${_plural(scheme['clubs'] ?? 0, 'club')}, '
+            '${_plural(scheme['users'] ?? 0, 'user')}';
+    return _section(
+        scheme['id'] == null
+            ? 'A new scheme'
+            : '${scheme['name']}${scheme['retired'] == true ? ' (retired)' : ''}$inUse',
+        [
+          TextField(controller: _name, decoration: _field('Name')),
+          const SizedBox(height: 8),
+          TextField(
+              controller: _description,
+              maxLines: 2,
+              decoration: _field('Description')),
+          const SizedBox(height: 8),
+          SegmentedButton<bool>(
+            segments: const [
+              ButtonSegment(value: true, label: Text('For clubs')),
+              ButtonSegment(value: false, label: Text('For private users')),
+            ],
+            selected: {_forClubs},
+            onSelectionChanged: (chosen) =>
+                setState(() => _forClubs = chosen.first),
+          ),
+          const SizedBox(height: 8),
+          Row(children: [
+            Expanded(
+                child: TextField(
+                    controller: _price, decoration: _field('Price £'))),
+            const SizedBox(width: 8),
+            DropdownButton<String>(
+              value: _period,
+              items: const [
+                DropdownMenuItem(value: 'month', child: Text('a month')),
+                DropdownMenuItem(value: 'year', child: Text('a year')),
+              ],
+              onChanged: (period) =>
+                  setState(() => _period = period ?? _period),
+            ),
+          ]),
+          const SizedBox(height: 8),
+          Row(children: [
+            Expanded(
+                child: TextField(
+                    controller: _trial, decoration: _field('Trial days'))),
+            const SizedBox(width: 8),
+            Expanded(
+                child: TextField(
+                    controller: _plans, decoration: _field('AI plans a day'))),
+          ]),
+          if (_forClubs) ...[
+            const SizedBox(height: 8),
+            TextField(
+                controller: _budget,
+                decoration:
+                    _field("Club's AI budget, \$ a month (blank: no cap)")),
+          ],
+          const SizedBox(height: 10),
+          Row(children: [
+            FilledButton(onPressed: _save, child: const Text('Save')),
+            const SizedBox(width: 8),
+            if (scheme['id'] != null)
+              TextButton(
+                  onPressed: _delete,
+                  child: Text('Delete',
+                      style: TextStyle(color: Colors.red.shade700))),
+          ]),
+        ]);
   }
 
   Future<void> _save() async {
-    var result = await ClubService().updateClub(club['id'], {
-      for (var entry in _fields.entries) entry.key: entry.value.text,
-      'paid_until': _paidUntil,
+    var (schemes, problem) = await ConsoleService().saveScheme(scheme['id'], {
+      'name': _name.text,
+      'description': _description.text,
+      'for_clubs': _forClubs,
+      'price': _price.text.replaceAll('£', '').trim(),
+      'period': _period,
+      'trial_days': _trial.text.trim(),
+      'ai_plans_per_day': _plans.text.trim(),
+      'ai_monthly_budget': _forClubs ? _budget.text.trim() : '',
     });
     if (!mounted) return;
-    if (result.$2 != null) return setState(() => _problem = result.$2);
-    setState(() {
-      _problem = null;
-      _saved = 'Saved';
-    });
-    widget.onChanged(result);
+    _say(context, problem ?? 'Saved');
+    if (schemes is List) widget.onChanged(List<Map>.from(schemes));
+  }
+
+  Future<void> _delete() async {
+    var (result, problem) = await ConsoleService().deleteScheme(scheme['id']);
+    if (!mounted) return;
+    _say(
+        context,
+        problem ??
+            (result['done'] == 'retired'
+                ? "It's in use, so it's retired - it stays for those on it"
+                : 'Deleted'));
+    if (result is Map) widget.onChanged(List<Map>.from(result['schemes']));
+  }
+}
+
+// ---- email ------------------------------------------------------------------------
+
+class _EmailDetails extends StatefulWidget {
+  const _EmailDetails({super.key});
+
+  @override
+  State<_EmailDetails> createState() => _EmailDetailsState();
+}
+
+class _EmailDetailsState extends State<_EmailDetails> {
+  String _to = 'all';
+  final TextEditingController _subject = TextEditingController();
+  final TextEditingController _message = TextEditingController();
+  bool _sending = false;
+
+  @override
+  void dispose() {
+    _subject.dispose();
+    _message.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(padding: const EdgeInsets.all(12), children: [
+      _heading('Email'),
+      _section('To', width: 600, [
+        SegmentedButton<String>(
+          segments: const [
+            ButtonSegment(value: 'all', label: Text('Every Drives user')),
+            ButtonSegment(
+                value: 'club_admins', label: Text("Every club's admin")),
+          ],
+          selected: {_to},
+          onSelectionChanged: (chosen) => setState(() => _to = chosen.first),
+        ),
+        const SizedBox(height: 8),
+        Text(_to == 'all'
+            ? "News, to everyone who hasn't unsubscribed - each email has a "
+                'link to stop them.'
+            : 'About running their club - to the admin of every club.'),
+        const SizedBox(height: 12),
+        TextField(
+            controller: _subject,
+            maxLength: 150,
+            decoration: _field('Subject')),
+        TextField(
+            controller: _message,
+            minLines: 8,
+            maxLines: 20,
+            maxLength: 5000,
+            decoration: _field('Message')),
+        const SizedBox(height: 8),
+        FilledButton.icon(
+          icon: const Icon(Icons.send_outlined),
+          label: const Text('Send'),
+          onPressed: _sending ? null : _send,
+        ),
+      ]),
+    ]);
+  }
+
+  Future<void> _send() async {
+    if (_subject.text.trim().isEmpty || _message.text.trim().isEmpty) {
+      return _say(context, 'The email needs a subject and a message');
+    }
+    bool send = await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+                  title: Text(_to == 'all'
+                      ? 'Email every Drives user?'
+                      : "Email every club's admin?"),
+                  content: Text('"${_subject.text.trim()}"'),
+                  actions: [
+                    TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: const Text('Cancel')),
+                    FilledButton(
+                        onPressed: () => Navigator.pop(context, true),
+                        child: const Text('Send')),
+                  ],
+                )) ??
+        false;
+    if (!send) return;
+    setState(() => _sending = true);
+    var (result, problem) =
+        await ConsoleService().email(_to, _subject.text, _message.text);
+    if (!mounted) return;
+    setState(() => _sending = false);
+    _say(context,
+        problem ?? 'Sent to ${_plural(result['sent'] ?? 0, 'person')}');
+    if (problem == null) {
+      _subject.clear();
+      _message.clear();
+    }
   }
 }

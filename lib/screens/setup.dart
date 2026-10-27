@@ -6,6 +6,7 @@ import '/classes/classes.dart';
 import '/helpers/edit_helpers.dart';
 import '/helpers/hive_helpers.dart' show UserRepository;
 import '/services/push_service.dart';
+import '/services/web_helper.dart' show setNewsEmails;
 
 class SetupForm extends StatefulWidget {
   Function(bool)? onChange;
@@ -15,7 +16,6 @@ class SetupForm extends StatefulWidget {
 }
 
 class _SetupFormState extends State<SetupForm> {
-
   /// The settings when the screen opened. The switches change Setup()
   /// directly, so this detects changes and puts the settings back if the
   /// user ignores them.
@@ -152,10 +152,21 @@ class _SetupViewState extends State<SetupView> {
           .showSnackBar(SnackBar(content: Text(problem)));
     }
   }
+
+  /// MotaTek's news emails - straight away, not on Save, as the server
+  /// keeps it (each email has an unsubscribe link too)
+  Future<void> _setNewsEmails(bool on) async {
+    String? problem = await setNewsEmails(on);
+    if (!mounted) return;
+    setState(() {});
+    if (problem != null) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(problem)));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    // TODO: implement build
-
     return SingleChildScrollView(
       child: Column(
         children: [
@@ -169,6 +180,16 @@ class _SetupViewState extends State<SetupView> {
             secondary: Icon(Icons.notifications_on_outlined,
                 size: 30, color: _textColor),
           ),
+          if (Setup().jwt.isNotEmpty)
+            SwitchListTile(
+              title: Text('News emails from MotaTek',
+                  style: textStyle(context: context, color: _textColor)),
+              subtitle: Text("What's new in Drives, now and then",
+                  style: TextStyle(color: _textColor)),
+              value: Setup().user.newsEmails,
+              onChanged: _setNewsEmails,
+              secondary: Icon(Icons.mail_outline, size: 30, color: _textColor),
+            ),
           SwitchListTile(
             title: Text('Help verify trips you drive',
                 style: textStyle(context: context, color: _textColor)),

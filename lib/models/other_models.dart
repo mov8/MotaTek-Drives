@@ -1143,6 +1143,9 @@ class User {
   String imageUrl;
   int type;
 
+  /// Whether they get MotaTek's news emails - from the server at login
+  bool newsEmails = true;
+
   User({
     this.id = 0,
     this.forename = '',

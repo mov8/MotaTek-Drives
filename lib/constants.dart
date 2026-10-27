@@ -597,7 +597,7 @@ enum BottomDrawerItems {
   planner, // <-- AI assist: the request and the suggested trip
   tripDetails, // <-- AI assist: naming and describing the trip, to save it
   clubs, // <-- My clubs: invitations, my clubs, finding one, running one
-  console, // <-- staff: every club - contact, payment, members, AI usage
+  console, // <-- staff: the control panel - clubs, payments, AI, usage
 }
 
 /// This list ensures that the overflow popup menu options are
@@ -702,7 +702,7 @@ List<Map<String, dynamic>> drawerOptions = [
   },
   {
     'key': 'console',
-    'text': 'Clubs console',
+    'text': 'Control panel',
     'iconData': Icon(Icons.admin_panel_settings_outlined, size: 30),
     'method': BottomDrawerItems.settings.index,
     'drawer': BottomDrawerItems.console,
