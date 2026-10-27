@@ -369,44 +369,63 @@ class _WebAppBarState extends State<WebAppBar> {
     }
   }
 
-  /// For the popup menu only want to include those drawerOptions that have an icon
-  /// Also want to only allow the Home option if the _selected == 0 and the user canEdit
-  /// and want to only allow Shop option is _selected == 4 and the user canEdit
+  /// Opens a menu option in the SideDrawer. An editor shows its changes on
+  /// its page, so that page first - shown, and its drawer filled - then the
+  /// editor.
+  Future<void> _openOption(Map option) async {
+    int? page = switch (option['key']) {
+      'markdownHome' => 0,
+      'markdownShop' => 4,
+      _ => null,
+    };
+    if (page != null && NavigationService().page != page) {
+      MapService().baseShellController?.selectPage(page);
+      bool attached() => page == 0
+          ? MapService().homeController?.isAttached ?? false
+          : MapService().shopController?.isAttached ?? false;
+      for (int i = 0; i < 30 && !attached(); i++) {
+        await Future.delayed(const Duration(milliseconds: 100));
+      }
+      await Future.delayed(const Duration(milliseconds: 600));
+    }
+    setSideDrawerContent(content: option['drawer']);
+  }
+
+  /// The overflow menu: the drawerOptions with an icon. MotaTek staff also
+  /// get the control panel (and removing trips and users); whoever looks
+  /// after the pages shown - a club's admin, or MotaTek staff for Drives'
+  /// own - gets Edit Home page and Edit Shop page, from any page.
   List<PopupMenuEntry<String>> getPopupMenuItems() {
     _menuExists = true;
-    List<PopupMenuEntry<String>> menuItems =
-        drawerOptions // <-- Links enum BottomDrawerItems with menuItems
-            .where((map) =>
-                // the admin tools are only for admins
-                !(['deleteTrips', 'deleteUser', 'console'].contains(map['key']) &&
-                    Setup().user.type < 3) &&
-                (map['iconData'] ?? '') != '' &&
-                    //   !['home', 'shop'].contains(map['key']) ||
-                    !['markdownHome', 'markdownShop'].contains(map['key']) ||
-                // a club's admin edits its pages; Drives staff, Drives' own
-                ClubService().canEditPages &&
-                    ((map['key'] == 'markdownHome' && _selected == 0 ||
-                        map['key'] == 'markdownShop' &&
-                            _selected == 4))) // <- show only ones with Icons
-            .map<PopupMenuEntry<String>>(
-              (e) => PopupMenuItem(
-                onTap: () {
-                  setSideDrawerContent(content: e['drawer']);
-                },
-                value: e['key'],
-                child: Row(
-                  key: Key('pmi${e['key']}'),
-                  children: [
-                    e['iconData'],
-                    SizedBox(
-                      width: 10,
-                    ),
-                    Text(e['text']),
-                  ],
+    bool staff = Setup().user.type >= 3;
+    List<PopupMenuEntry<String>> menuItems = drawerOptions
+        .where((map) {
+          if ((map['iconData'] ?? '') == '') return false;
+          if (['deleteTrips', 'deleteUser', 'console'].contains(map['key'])) {
+            return staff;
+          }
+          if (['markdownHome', 'markdownShop'].contains(map['key'])) {
+            return ClubService().canEditPages;
+          }
+          return true;
+        })
+        .map<PopupMenuEntry<String>>(
+          (e) => PopupMenuItem(
+            onTap: () => _openOption(e),
+            value: e['key'],
+            child: Row(
+              key: Key('pmi${e['key']}'),
+              children: [
+                e['iconData'],
+                SizedBox(
+                  width: 10,
                 ),
-              ),
-            )
-            .toList();
+                Text(e['text']),
+              ],
+            ),
+          ),
+        )
+        .toList();
 
     /// Add the restore option to set Side Drawer content back to original page data.
     if (widget.sideDrawerController!.screenCache.isNotEmpty &&

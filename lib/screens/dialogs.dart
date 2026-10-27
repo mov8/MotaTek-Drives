@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'dart:async';
+import 'package:url_launcher/url_launcher.dart';
 import '/constants.dart';
 import '/services/services.dart';
 import '/helpers/helpers.dart';
@@ -1373,6 +1374,47 @@ class _DebounceTimer {
 // An exception indicating that the timer was canceled.
 class _CancelException implements Exception {
   const _CancelException();
+}
+
+/// After registering, or changing their details: someone without AI assist -
+/// neither their own plan nor their club's - is invited to sign up for it,
+/// on the website, where payments are taken
+Future<void> offerAiAssist() async {
+  await PlannerService().checkAllowance();
+  Map? plan = PlannerService().allowance;
+  BuildContext? context = NavigationService().key.currentContext;
+  if (plan == null ||
+      plan['subscribed'] != false ||
+      context == null ||
+      !context.mounted) {
+    return;
+  }
+  bool? more = await showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      icon: const Icon(Icons.auto_awesome),
+      title: const Text('Plan trips with AI assist'),
+      content: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420),
+        child: const Text(
+            "Say what sort of drive you'd like - \"a two hour loop with "
+            'something to see, and a pub halfway" - and AI assist plans it '
+            'on the map, for you to change and save. It comes with a Drives '
+            'subscription, on our website.'),
+      ),
+      actions: [
+        TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Not now')),
+        FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Find out more')),
+      ],
+    ),
+  );
+  if (more == true) {
+    launchUrl(Uri.parse(urlSubscribe), mode: LaunchMode.externalApplication);
+  }
 }
 
 /// Why a rating wasn't kept - e.g. only people who've driven a trip can

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '/constants.dart';
 import '/models/models.dart';
 import '/services/services.dart';
 
@@ -203,8 +204,17 @@ class _PlannerPanelState extends State<PlannerPanel> {
         color: Theme.of(context).colorScheme.errorContainer,
         margin: const EdgeInsets.only(bottom: 12),
         child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Text(allowance['reason'] ?? "AI assist isn't available")),
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(allowance['reason'] ?? "AI assist isn't available"),
+            if (allowance['subscribed'] == false)
+              TextButton(
+                  onPressed: () => launchUrl(Uri.parse(urlSubscribe),
+                      mode: LaunchMode.externalApplication),
+                  child: const Text('Find out more')),
+          ]),
+        ),
       );
     }
     DateTime? next = DateTime.tryParse(allowance['next'] ?? '');

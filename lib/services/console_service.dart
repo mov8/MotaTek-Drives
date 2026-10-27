@@ -7,7 +7,8 @@ import '/services/services.dart';
 
 /// The control panel's calls (/v1/console/... - api/v1/console.py), for
 /// Drives staff: the summaries and months (api/reports.py), the clubs'
-/// contacts, schemes and payments, private users who pay, the schemes, and
+/// contacts, schemes and payments, private users' counts and exceptions,
+/// the schemes, and
 /// emailing everyone or the clubs' admins. Each returns (what came back,
 /// null) or (null, why not).
 class ConsoleService {
@@ -53,7 +54,7 @@ class ConsoleService {
   Future<(dynamic, String?)> appointAdmin(String clubId, String email) =>
       _call('clubs/$clubId/admins', body: {'email': email});
 
-  /// A club's payments - or a private user's (payer is 'clubs' or 'payers')
+  /// A club's payments (payer is 'clubs')
   Future<(dynamic, String?)> payments(String payer, String id) =>
       _call('$payer/$id/payments');
 
@@ -62,11 +63,8 @@ class ConsoleService {
           String payer, String id, Map<String, dynamic> payment) =>
       _call('$payer/$id/payments', body: payment);
 
-  Future<(dynamic, String?)> payers() => _call('payers');
-
-  /// Puts a private user on a scheme (or none, with a null scheme_id)
-  Future<(dynamic, String?)> setPayer(String email, String? schemeId) =>
-      _call('payers', body: {'email': email, 'scheme_id': schemeId});
+  /// Private users: counts, and the exceptions to look into
+  Future<(dynamic, String?)> privateUsers() => _call('private');
 
   Future<(dynamic, String?)> schemes() => _call('schemes');
 

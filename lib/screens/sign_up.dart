@@ -557,6 +557,9 @@ class _SignupFormState extends State<SignupForm> {
           saveUserLocally(Setup().user);
           Setup().save();
           response = 'Ok';
+          // registered, or their details changed - AI assist, if they
+          // haven't got it
+          Future.delayed(const Duration(milliseconds: 500), offerAiAssist);
           break;
 
         case 400:

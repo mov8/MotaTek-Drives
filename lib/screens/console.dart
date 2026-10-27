@@ -7,8 +7,8 @@ import '/services/services.dart';
 /// all of Drives, of private users (as one big club) and of each club: its
 /// contact, scheme, last payment and balance (this month's income from its
 /// scheme less its AI). To the right (SideDrawerController.setDetails), the
-/// selected one's details - a club's contact, scheme, payments and admin,
-/// the private users who pay - and its last year month by month; or the
+/// selected one's details - a club's contact, scheme and payments, private
+/// users as counts and exceptions - and its last year month by month; or the
 /// schemes; or an email to everyone or the clubs' admins. See
 /// api/v1/console.py, api/reports.py and api/payments.py.
 class ConsoleForm extends StatefulWidget {
@@ -308,8 +308,7 @@ class _PayerDetailsState extends State<_PayerDetails> {
           _PaymentsCard(
               payer: 'clubs', id: row['id'], onRecorded: widget.reload),
         ],
-        if (row['kind'] == 'private')
-          _PayingUsers(schemes: widget.schemes, onChanged: widget.reload),
+        if (row['kind'] == 'private') const _PrivateUsers(),
       ]),
       const SizedBox(height: 12),
       _MonthsTable(scope: row['id'] ?? 'all', everyone: row['kind'] == 'all'),
@@ -429,15 +428,11 @@ class _PayerDetailsState extends State<_PayerDetails> {
 /// A payer's payments, and recording one - paid until moves on a period of
 /// their scheme (or to the date given)
 class _PaymentsCard extends StatefulWidget {
-  final String payer; // clubs or payers
+  final String payer; // clubs
   final String id;
   final Future<void> Function() onRecorded;
-  final double width;
   const _PaymentsCard(
-      {required this.payer,
-      required this.id,
-      required this.onRecorded,
-      this.width = 380});
+      {required this.payer, required this.id, required this.onRecorded});
 
   @override
   State<_PaymentsCard> createState() => _PaymentsCardState();
@@ -472,7 +467,7 @@ class _PaymentsCardState extends State<_PaymentsCard> {
 
   @override
   Widget build(BuildContext context) {
-    return _section('Payments', width: widget.width, [
+    return _section('Payments', [
       if (_payments.isEmpty) const Text('None recorded yet'),
       for (Map p in _payments.take(6))
         Padding(
@@ -525,101 +520,97 @@ class _PaymentsCardState extends State<_PaymentsCard> {
   }
 }
 
-/// Private users on a scheme - the individuals who pay - adding one, and
-/// each one's payments
-class _PayingUsers extends StatefulWidget {
-  final List<Map> schemes;
-  final Future<void> Function() onChanged;
-  const _PayingUsers({required this.schemes, required this.onChanged});
+/// Private users - too many to list - as counts, and the exceptions to look
+/// into: heavy AI users this month, those often at their daily limit,
+/// payments lapsed, and bursts of messages. They join, and pay, themselves.
+class _PrivateUsers extends StatefulWidget {
+  const _PrivateUsers();
 
   @override
-  State<_PayingUsers> createState() => _PayingUsersState();
+  State<_PrivateUsers> createState() => _PrivateUsersState();
 }
 
-class _PayingUsersState extends State<_PayingUsers> {
-  List<Map> _payers = [];
-  String? _open; // whose payments are showing
-  final TextEditingController _email = TextEditingController();
-  String? _schemeId;
+class _PrivateUsersState extends State<_PrivateUsers> {
+  Map? _seen;
 
   @override
   void initState() {
     super.initState();
-    _load();
-  }
-
-  @override
-  void dispose() {
-    _email.dispose();
-    super.dispose();
-  }
-
-  Future<void> _load() async => _show(await ConsoleService().payers());
-
-  void _show((dynamic, String?) result) {
-    var (payers, problem) = result;
-    if (!mounted) return;
-    _say(context, problem);
-    if (payers is List) setState(() => _payers = List<Map>.from(payers));
+    ConsoleService().privateUsers().then((result) {
+      if (mounted && result.$1 is Map) setState(() => _seen = result.$1);
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    List<Map> offered = widget.schemes
-        .where((s) => s['for_clubs'] != true && s['retired'] != true)
-        .toList();
-    return _section('Private users who pay', width: 500, [
-      if (_payers.isEmpty) const Text('Nobody yet'),
-      for (Map p in _payers) ...[
-        ListTile(
-          dense: true,
-          contentPadding: EdgeInsets.zero,
-          title: Text(p['email'] ?? ''),
-          subtitle: Text('${p['scheme']} - paid until ${_date(p['paid_until'])}'
-              ' - last paid ${_date(p['last_paid'])}'),
-          trailing: Icon(
-              _open == p['id'] ? Icons.expand_less : Icons.expand_more,
-              color: p['paid'] == true ? null : _warning()),
-          onTap: () =>
-              setState(() => _open = _open == p['id'] ? null : p['id']),
-        ),
-        if (_open == p['id'])
-          _PaymentsCard(
-              payer: 'payers',
-              id: p['id'],
-              width: 470,
-              onRecorded: () async {
-                await _load();
-                await widget.onChanged();
-              }),
-      ],
-      const Divider(),
-      TextField(
-          controller: _email, decoration: _field("A Drives user's email")),
-      const SizedBox(height: 8),
-      DropdownButtonFormField<String?>(
-        initialValue: _schemeId,
-        decoration: _field('Scheme'),
-        items: [
-          for (Map s in offered)
-            DropdownMenuItem(
-                value: s['id'],
-                child: Text(
-                    '${s['name']} - ${_pounds.format(s['price_pence'] / 100)} '
-                    'a ${s['period']}')),
-        ],
-        onChanged: (id) => setState(() => _schemeId = id),
-      ),
-      const SizedBox(height: 8),
-      FilledButton(
-          onPressed: () async {
-            if (!_email.text.contains('@') || _schemeId == null) return;
-            _show(
-                await ConsoleService().setPayer(_email.text.trim(), _schemeId));
-            _email.clear();
-            await widget.onChanged();
-          },
-          child: const Text('Put them on the scheme')),
+    Map? seen = _seen;
+    if (seen == null) return const SizedBox.shrink();
+    Map counts = seen['counts'] ?? {};
+    Map limits = seen['thresholds'] ?? {};
+    String name(Map u) =>
+        '${u['forename'] ?? ''} ${u['surname'] ?? ''}'.trim().isEmpty
+            ? u['email']
+            : '${u['forename'] ?? ''} ${u['surname'] ?? ''} - ${u['email']}';
+    return Wrap(spacing: 12, runSpacing: 12, children: [
+      _section('Private users', [
+        for (var (label, key) in [
+          ('Users', 'users'),
+          ('Paying', 'paying'),
+          ('Lapsed', 'lapsed'),
+          ('New this month', 'new_this_month'),
+          ('Unsubscribed this month', 'unsubscribed_this_month'),
+        ])
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Row(children: [
+              SizedBox(width: 190, child: Text(label)),
+              Text('${counts[key] ?? 0}',
+                  style: const TextStyle(fontWeight: FontWeight.bold)),
+            ]),
+          ),
+      ]),
+      _exception(
+          'Heavy AI users this month',
+          'At least ${_dollars.format(limits['heavy_ai_dollars'] ?? 2)}',
+          seen['heavy_ai'],
+          (u) => '${name(u)}: ${_dollars.format(u['ai_cost'])} '
+              '(${_plural(u['plans'] ?? 0, 'plan')})'),
+      _exception(
+          'Often at their daily AI limit',
+          'On ${limits['limit_days'] ?? 3} days or more this month - a '
+              'scheme with more?',
+          seen['at_limit'],
+          (u) => '${name(u)}: ${_plural(u['days'] ?? 0, 'day')}'),
+      _exception(
+          'Payments lapsed',
+          'On a scheme, past their paid until',
+          seen['lapsed'],
+          (u) => '${name(u)}: ${u['scheme']}, paid until '
+              '${_date(u['paid_until'])}'),
+      _exception(
+          'Bursts of messages',
+          '${limits['busy_messages'] ?? 100} or more in a day - spam?',
+          seen['busy'],
+          (u) => '${name(u)}: up to ${u['messages']} a day, '
+              '${_plural(u['days'] ?? 0, 'day')}'),
+    ]);
+  }
+
+  /// One exception: how many, and the first of them
+  Widget _exception(
+      String heading, String what, Map? found, String Function(Map) line) {
+    int count = found?['count'] ?? 0;
+    List users = found?['users'] ?? [];
+    return _section('$heading ($count)', [
+      Text(what, style: const TextStyle(fontSize: 12)),
+      const SizedBox(height: 6),
+      if (count == 0) const Text('Nobody - nothing to look into'),
+      for (Map u in users)
+        Padding(
+            padding: const EdgeInsets.only(bottom: 3), child: Text(line(u))),
+      if (count > users.length)
+        Text('... and ${count - users.length} more',
+            style: const TextStyle(fontStyle: FontStyle.italic)),
     ]);
   }
 }
