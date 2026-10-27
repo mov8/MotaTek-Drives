@@ -353,6 +353,9 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
           _tiles = [const PlannerPanel()];
           _offerRestore = true;
           break;
+        case BottomDrawerItems.tripDetails:
+          _tiles = [const TripDetailsPanel()];
+          break;
         case BottomDrawerItems.cached:
           _tiles = _screenCache;
           break;

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '/classes/classes.dart'; //   my_trip_item.dart';
 import '/constants.dart';
-import '/helpers/edit_helpers.dart';
+import 'package:flutter/foundation.dart';
 import 'dart:developer' as developer;
 import 'package:maplibre_gl/maplibre_gl.dart' show LatLng;
 import '/services/services.dart';
@@ -88,159 +88,33 @@ class TripHeaderTile extends StatefulWidget {
   State<TripHeaderTile> createState() => _TripHeaderTileState();
 }
 
+/// The trip being planned or followed: its name, and to read, its summary
+/// and details. They're written in AI assist's TripDetailsPanel - Edit
+/// details opens it, as Save trip does.
 class _TripHeaderTileState extends State<TripHeaderTile> {
-  late final FocusNode fn1;
-  late final FocusNode fn2;
-  late final FocusNode fn3;
-  bool setFocus = false;
-  ExpansibleController _expandController = ExpansibleController();
-  final TextEditingController _textEditingControllerTitle =
-      TextEditingController();
-  final TextEditingController _textEditingControllerSubTitle =
-      TextEditingController();
-  final TextEditingController _textEditingControllerBody =
-      TextEditingController();
+  final ExpansibleController _expandController = ExpansibleController();
 
+  @override
   void initState() {
     super.initState();
-    if (widget.controller != null) {
-      widget.controller!._addState(this);
-    }
-    fn1 = FocusNode();
-    fn2 = FocusNode();
-    fn3 = FocusNode();
-
-    _textEditingControllerTitle.text = CurrentTripItem().title;
-    _textEditingControllerSubTitle.text = CurrentTripItem().subTitle;
-    _textEditingControllerBody.text = CurrentTripItem().body;
-    // Opened for its details (a save needs them) - ready to type the name.
-    // It used to open itself, and take the keyboard, whenever the name or
-    // summary was empty.
-    if (widget.expanded) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) fn1.requestFocus();
-      });
-    }
+    widget.controller?._addState(this);
   }
 
   @override
   void dispose() {
-    fn1.dispose();
-    fn2.dispose();
-    fn3.dispose();
     _expandController.dispose();
-    _textEditingControllerTitle.dispose();
-    _textEditingControllerSubTitle.dispose();
-    _textEditingControllerBody.dispose();
     super.dispose();
   }
 
-  /// Controller.edit() sets the setFocus flag and calls a setState()
-  /// which rebuilds the Widget. With the setFocus flag to true the
-  /// rebuild calls fn1.requestFocus();
+  void refresh() => setState(() {});
 
-  void refresh() {
-    setState(() {});
-  }
+  void clear() => setState(() {});
 
-  void clear() {
-    setState(() {
-      _textEditingControllerTitle.text = '';
-      _textEditingControllerSubTitle.text = '';
-      _textEditingControllerBody.text = '';
-    });
-  }
+  void collapse() => _expandController.collapse();
 
-  void collapse() {
-    _expandController.collapse();
-  }
+  void expand() => _expandController.expand();
 
-  void expand() {
-    _expandController.expand();
-  }
-
-  void dismissKeyboard() {
-    if (mounted) {
-      try {
-        setState(() {
-          fn1.unfocus();
-          fn2.unfocus();
-          fn3.unfocus();
-          collapse();
-          FocusManager.instance.primaryFocus?.unfocus();
-        });
-      } catch (e) {
-        developer.log(
-            'Error trip_header_tile.dart dismissKeyboard(): ${e.toString}',
-            name: 'error');
-      }
-    }
-  }
-
-  void checkComplete() async {
-    if (CurrentTripItem().title.isNotEmpty &&
-        CurrentTripItem().subTitle.isNotEmpty &&
-        CurrentTripItem().body.isNotEmpty) {
-      widget.onUpdate(true);
-    }
-  }
-
-  /// Problem with TextFormField change focus with the keyboard next / done
-  /// For some reason entering the 3rd field would cause the keyboard to
-  /// disappear. The only way round it according to Gemini is to explicitly
-  /// set the focus for the next TextFormField using RequestFocus()
-  /// According to Gemini TextAction.Next / Done is "fragile"
-
-  bool _writing = false;
-
-  /// "Write it for me" - Drives writes the name, summary and details from
-  /// the trip as it is now: its route (the towns and roads) and its points
-  /// of interest, as the user described them
-  Future<void> _writeItForMe() async {
-    CurrentTripItem trip = CurrentTripItem();
-    bool written = trip.title.isNotEmpty ||
-        trip.subTitle.isNotEmpty ||
-        trip.body.isNotEmpty;
-    if (written && !await _replaceConfirmed()) return;
-    setState(() => _writing = true);
-    var (fields, problem) = await describeTrip(trip);
-    if (!mounted) return;
-    setState(() => _writing = false);
-    if (fields == null) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(problem ?? '')));
-      return;
-    }
-    setState(() {
-      trip.title = fields['title'] ?? trip.title;
-      trip.subTitle = fields['summary'] ?? trip.subTitle;
-      trip.body = fields['description'] ?? trip.body;
-    });
-    trip.isSaved = false; // offers Save trip
-    MapService().createTripStackController?.refresh();
-    // (not checkComplete() - that closes the drawer, and the user will want
-    // to read what was written)
-  }
-
-  Future<bool> _replaceConfirmed() async =>
-      await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Replace the trip details?'),
-          content: const Text(
-              'Drives will write a new name, summary and details from the '
-              "trip as it is now. What's there now will be replaced."),
-          actions: [
-            TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('Cancel')),
-            FilledButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: const Text('Write it')),
-          ],
-        ),
-      ) ??
-      false;
+  void dismissKeyboard() => FocusManager.instance.primaryFocus?.unfocus();
 
   void _showStart() {
     var routes = widget.tripItem.routes;
@@ -250,161 +124,54 @@ class _TripHeaderTileState extends State<TripHeaderTile> {
     }
   }
 
+  /// AI assist's panel, to write or change the details
+  void _editDetails() {
+    PlannerService().saving = null; // Done, not Save trip
+    BottomDrawerItems details = BottomDrawerItems.tripDetails;
+    kIsWeb
+        ? MapService().sideDrawerController?.setContent(content: details)
+        : MapService().bottomDrawerController?.setContent(content: details);
+  }
+
   @override
   Widget build(BuildContext context) {
-    _textEditingControllerTitle.text = CurrentTripItem().title;
-    _textEditingControllerSubTitle.text = CurrentTripItem().subTitle;
-    _textEditingControllerBody.text = CurrentTripItem().body;
+    CurrentTripItem trip = CurrentTripItem();
+    TextStyle? small = Theme.of(context).textTheme.bodyMedium;
     return RrExpansionTile(
         context: context,
         child: ExpansionTile(
-          leading: Icon(Icons.directions_car_filled_outlined,
+          leading: const Icon(Icons.directions_car_filled_outlined,
               size: 30, color: Colors.black),
           collapsedBackgroundColor: Colors.white,
           controller: _expandController,
           backgroundColor: Colors.white,
-          title: Text('Trip details'),
-          initiallyExpanded: widget.expanded, //_initiallyExpanded,
+          title: Text(trip.title.isEmpty ? 'Trip details' : trip.title),
+          subtitle: trip.subTitle.isEmpty
+              ? null
+              : Text(trip.subTitle,
+                  maxLines: 2, overflow: TextOverflow.ellipsis),
+          initiallyExpanded: widget.expanded,
           // Shows the start of the trip being planned
           onExpansionChanged: (expanded) {
             if (expanded) _showStart();
           },
+          expandedCrossAxisAlignment: CrossAxisAlignment.start,
+          childrenPadding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
-              child: TextFormField(
-                key: Key('tff1'),
-                readOnly: widget.appState == AppState.driveTrip,
-                focusNode: fn1,
-                controller: _textEditingControllerTitle,
-                textAlign: TextAlign.start,
-                keyboardType: TextInputType.streetAddress,
-                textCapitalization: TextCapitalization.words,
-                inputFormatters: [
-                  TitleCaseFormatter()
-                ], // <-- Custom extension for Web
-                textInputAction: TextInputAction.next,
-                decoration: InputDecoration(
-                  border: OutlineInputBorder(),
-                  hintText: 'Give your trip a name...',
-                  labelText: 'Trip name',
-                  hintStyle:
-                      textStyle(context: context, color: Colors.black, size: 2),
-                  labelStyle:
-                      textStyle(context: context, color: Colors.black, size: 2),
-                ),
-                style:
-                    textStyle(context: context, color: Colors.black, size: 2),
-                onChanged: (text) {
-                  CurrentTripItem().title = text;
-                }, //widget.tripItem.title = text,
-                onFieldSubmitted: (text) {
-                  CurrentTripItem().title = _textEditingControllerTitle.text;
-                  checkComplete();
-                  FocusScope.of(context).requestFocus(fn2);
-                },
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-              child: TextFormField(
-                focusNode: fn2,
-                key: Key('tff2'),
-                controller: _textEditingControllerSubTitle,
-                readOnly: widget.appState == AppState.driveTrip,
-                textAlign: TextAlign.start,
-                keyboardType: TextInputType.multiline,
-                maxLines: null,
-                textCapitalization: TextCapitalization.sentences,
-                textInputAction: TextInputAction.next,
-                inputFormatters: [SentenceCaseFormatter()],
-                decoration: InputDecoration(
-                  border: OutlineInputBorder(),
-                  hintText: 'Enter a short summary of your trip...',
-                  labelText: 'Trip summary',
-                  hintStyle:
-                      textStyle(context: context, color: Colors.black, size: 2),
-                  labelStyle:
-                      textStyle(context: context, color: Colors.black, size: 2),
-                ),
-                style:
-                    textStyle(context: context, color: Colors.black, size: 2),
-                autovalidateMode: AutovalidateMode.onUserInteraction,
-                onChanged: (text) => CurrentTripItem().subTitle = text,
-                onFieldSubmitted: (text) {
-                  CurrentTripItem().subTitle =
-                      _textEditingControllerSubTitle.text;
-                  checkComplete();
-
-                  FocusScope.of(context).requestFocus(fn3);
-                },
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-              child: TextFormField(
-                key: Key('tff3'),
-                readOnly: widget.appState == AppState.driveTrip,
-                controller: _textEditingControllerBody,
-                focusNode: fn3,
-                textAlign: TextAlign.start,
-                maxLines: null,
-                keyboardType: TextInputType.multiline,
-                textCapitalization: TextCapitalization.sentences,
-                inputFormatters: [SentenceCaseFormatter()],
-                textInputAction: TextInputAction.done,
-                decoration: InputDecoration(
-                  border: OutlineInputBorder(),
-                  hintText: 'Describe details of your trip...',
-                  labelText: 'Trip details',
-                  hintStyle:
-                      textStyle(context: context, color: Colors.black, size: 2),
-                  labelStyle:
-                      textStyle(context: context, color: Colors.black, size: 2),
-                ),
-                style:
-                    textStyle(context: context, color: Colors.black, size: 2),
-                autovalidateMode: AutovalidateMode.onUserInteraction,
-                onChanged: (text) => CurrentTripItem().body =
-                    text, //widget.tripItem.body = text,
-                onFieldSubmitted: (text) {
-                  CurrentTripItem().body = _textEditingControllerBody.text;
-                  checkComplete();
-                },
-              ),
-            ),
+            if (trip.body.isNotEmpty) Text(trip.body, style: small),
+            if (trip.headerComplete() == 0)
+              Text('Not named or described yet - Save trip will ask for them.',
+                  style: small),
             if (widget.appState != AppState.driveTrip)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-                child: Row(children: [
-                  Expanded(
-                    child: Text(
-                        'Drives can write these from the route and its points '
-                        'of interest - check them before you publish.',
-                        style: Theme.of(context).textTheme.bodySmall),
-                  ),
-                  const SizedBox(width: 8),
-                  TextButton.icon(
-                    icon: _writing
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2))
-                        : const Icon(Icons.auto_awesome),
-                    label: Text(_writing ? 'Writing...' : 'Write it for me'),
-                    onPressed: _writing ? null : _writeItForMe,
-                  ),
-                ]),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  icon: const Icon(Icons.auto_awesome),
+                  label: const Text('Edit details'),
+                  onPressed: _editDetails,
+                ),
               ),
           ],
         ));
-  }
-
-  onExpandChanged(value) {
-    if (value == true) {
-      _expandController.expand();
-    } else {
-      _expandController.collapse();
-    }
   }
 }

@@ -231,24 +231,11 @@ enum ChangedFeatures {
 ///   2 completed the user has added the data now update the map
 ///
 
-enum Warning {
-  none,
-  headingIncomplete,
-  tripSaved,
-  tripDownloaded,
-  checkDetails
-}
+enum Warning { none, tripSaved, tripDownloaded }
 
 // A getter, so each message has the trip's title as it is now - as a list
 // it was made once, keeping the first trip's title
 List<Map<String, dynamic>> get warnings => [
-  {
-    'message':
-        'The trip details are incomplete. before saving please add the missing details',
-    'color': Colors.white,
-    'iconData': Icons.rule_outlined,
-    'iconSize': 40,
-  },
   {
     'message':
         "Your trip ${CurrentTripItem().title} has been saved ${kIsWeb ? 'in your browser' : 'on your device'} in Favourites.",
@@ -261,13 +248,6 @@ List<Map<String, dynamic>> get warnings => [
         "Published trip ${CurrentTripItem().title} has been downloaded OK for you to edit, follow or save ${kIsWeb ? 'in your browser' : 'on your device'}.",
     'color': Colors.white,
     'iconData': Icons.library_add_check_rounded,
-    'iconSize': 40,
-  },
-  {
-    'message':
-        'Check the name, summary and details AI assist wrote - change anything you like - then Save trip again.',
-    'color': Colors.white,
-    'iconData': Icons.auto_awesome,
     'iconSize': 40,
   }
 ];
@@ -615,6 +595,7 @@ enum BottomDrawerItems {
   deleteUser, // <-- admin: stop a user using Drives (web)
   cached,
   planner, // <-- AI assist: the request and the suggested trip
+  tripDetails, // <-- AI assist: naming and describing the trip, to save it
   clubs, // <-- My clubs: invitations, my clubs, finding one, running one
   console, // <-- staff: every club - contact, payment, members, AI usage
 }

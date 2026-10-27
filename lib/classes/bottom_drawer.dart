@@ -247,6 +247,8 @@ class _BottomDrawerState extends State<BottomDrawer>
           _tiles = shredTrips();
         case BottomDrawerItems.planner:
           _tiles = [const PlannerPanel()];
+        case BottomDrawerItems.tripDetails:
+          _tiles = [const TripDetailsPanel()];
         default:
           _tiles = shredCurrentTripItemData();
           break;

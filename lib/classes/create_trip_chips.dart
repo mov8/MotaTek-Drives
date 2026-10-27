@@ -151,10 +151,11 @@ const Map<PlanPhase, List<TripChip>> chipsForPhase = {
     TripChip.clear,
   ],
   // A saved trip, e.g. loaded from My Trips. Group / Messages only show for a
-  // group drive (resolveChip)
+  // group drive, and Save trip once its details have changed (resolveChip)
   PlanPhase.loaded: [
     TripChip.follow,
     TripChip.editRoute,
+    TripChip.saveTrip,
     TripChip.group,
     TripChip.messages,
   ],
@@ -633,21 +634,17 @@ class CreateTripChips extends StatelessWidget {
     return;
   }
 
-  void _saveTrip() async {
-    if (CurrentTripItem().headerComplete() != 7) {
-      MapService()
-          .messageBoxController
-          ?.message(message: Warning.headingIncomplete);
-      _getTripDescriptions();
-      return;
-    }
-    // AI assist wrote the details - the user sees them before it's saved
-    if (CurrentTripItem().aiSuggestion && !CurrentTripItem().aiDetailsChecked) {
-      CurrentTripItem().aiDetailsChecked = true;
-      MapService().messageBoxController?.message(message: Warning.checkDetails);
-      _getTripDescriptions();
-      return;
-    }
+  /// Save trip: first AI assist's TripDetailsPanel, to name and describe
+  /// the trip as it is now (Write it for me) - its Save trip saves it
+  void _saveTrip() {
+    PlannerService().saving = _commitSave;
+    updateControllers(items: BottomDrawerItems.tripDetails, open: true);
+    CurrentTripItem().tripActions = TripActions.none;
+  }
+
+  /// Saves the trip, named and described - from the TripDetailsPanel
+  Future<void> _commitSave() async {
+    PlannerService().saving = null;
     await _createMapImage();
     debugPrint('[_save_] map image done, saving trip ${CurrentTripItem().uri}');
     try {
@@ -674,7 +671,9 @@ class CreateTripChips extends StatelessWidget {
       CurrentTripItem().tripValues.editing();
       MapService().messageBoxController?.message(message: Warning.tripSaved);
       MapService().myTripsController?.refresh();
-      // The details are done - the BottomDrawer was closed for the map image
+      // The details are done - the drawer shows the trip again, closed (the
+      // BottomDrawer was closed for the map image)
+      updateControllers(items: BottomDrawerItems.trip);
       if (kIsWeb) MapService().sideDrawerController?.close();
     } catch (e) {
       developer.log('_saveTro() Error saving trip: ${e.toString()}',
@@ -768,13 +767,6 @@ class CreateTripChips extends StatelessWidget {
       developer.log('Error in updateControllers(): ${e.toString()}',
           name: 'error');
     }
-  }
-
-  /// A save needs the trip's details - open the drawer at them
-  void _getTripDescriptions() {
-    updateControllers(
-        items: BottomDrawerItems.trip, open: true, openHeader: true);
-    CurrentTripItem().tripActions = TripActions.none;
   }
 
   /// Captures the map showing the whole route and keeps it in Hive as the

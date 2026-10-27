@@ -36,8 +36,19 @@ class PlannerService extends ChangeNotifier {
   Map<String, dynamic>? result;
 
   /// How many plans the user has had in the last 24 hours, of how many,
-  /// and when they can next have one - null until known (or offline)
+  /// and when they can next have one - null until known (or offline) - and
+  /// the same for Write it for me
   Map<String, dynamic>? allowance;
+  Map<String, dynamic>? describeAllowance;
+
+  bool get canDescribe =>
+      describeAllowance == null ||
+      (describeAllowance!['used'] ?? 0) < (describeAllowance!['limit'] ?? 1);
+
+  /// Saving a trip: Save trip opens the TripDetailsPanel to name and
+  /// describe it, and leaves here what saves it - the panel's Save trip
+  /// calls it. Null when the panel was opened just to edit the details.
+  VoidCallback? saving;
 
   /// Whether they can plan a trip now - so the panel can say so before they
   /// write a request, not after
@@ -135,7 +146,9 @@ class PlannerService extends ChangeNotifier {
       http.Response response = await getWebData(
           uri: Uri.parse('$urlPlanner/allowance'), secure: true);
       if (response.statusCode != 200) return;
-      allowance = Map<String, dynamic>.from(jsonDecode(response.body)['plan']);
+      Map body = jsonDecode(response.body);
+      allowance = Map<String, dynamic>.from(body['plan']);
+      describeAllowance = Map<String, dynamic>.from(body['describe']);
       notifyListeners();
     } catch (e) {
       developer.log('PlannerService.checkAllowance(): ${e.toString()}',

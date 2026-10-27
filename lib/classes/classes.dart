@@ -30,6 +30,7 @@ export 'notifiers.dart';
 export 'other_classes.dart';
 export 'photo_carousel.dart';
 export 'planner_panel.dart';
+export 'trip_details_panel.dart';
 export 'route.dart';
 export 'screens_appbar.dart';
 export 'side_drawer.dart';
