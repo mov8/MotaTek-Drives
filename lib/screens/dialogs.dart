@@ -1375,6 +1375,24 @@ class _CancelException implements Exception {
   const _CancelException();
 }
 
+/// Why a rating wasn't kept - e.g. only people who've driven a trip can
+/// rate it
+Future<void> cantRateDialog(BuildContext context, String why,
+        {String title = 'Drive it first'}) =>
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        icon: const Icon(Icons.star_border),
+        title: Text(title),
+        content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420), child: Text(why)),
+        actions: [
+          FilledButton(
+              onPressed: () => Navigator.pop(context), child: const Text('OK')),
+        ],
+      ),
+    );
+
 /// After following a trip: the points of interest the user stopped at, to
 /// rate - ratings from people who were there
 Future<void> rateStopsDialog(
@@ -1400,8 +1418,15 @@ Future<void> rateStopsDialog(
                     style: const TextStyle(fontWeight: FontWeight.bold)),
               StarRating(
                 rating: rated[stop.uuid] ?? 0,
-                onRatingChanged: (value) {
-                  putPointOfInterestRating(stop.uuid, value.toDouble());
+                onRatingChanged: (value) async {
+                  String? why = await putPointOfInterestRating(
+                      stop.uuid, value.toDouble());
+                  if (why != null) {
+                    if (context.mounted) {
+                      cantRateDialog(context, why, title: 'Stop there first');
+                    }
+                    return;
+                  }
                   setState(() => rated[stop.uuid] = value.toDouble());
                 },
               ),

@@ -11,6 +11,7 @@ import '/services/services.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'dart:developer' as developer;
 import 'package:maplibre_gl/maplibre_gl.dart';
+import '/screens/dialogs.dart' show cantRateDialog;
 
 /// An example of a widget with a controller.
 /// The controller allows to the widget to be controlled externally
@@ -786,9 +787,15 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
     return SizedBox(width: 160, child: Image.file(File(url)));
   }
 
-  changeRating(value) {
+  /// Kept only if they've stopped there - otherwise they're told why
+  Future<void> changeRating(value) async {
     if (widget.pointOfInterest.uuid.isNotEmpty) {
-      putPointOfInterestRating(widget.pointOfInterest.uuid, value);
+      String? why = await putPointOfInterestRating(
+          widget.pointOfInterest.uuid, value.toDouble());
+      if (!mounted) return;
+      if (why != null) {
+        return cantRateDialog(context, why, title: 'Stop there first');
+      }
       if (widget.onRated != null) {
         widget.onRated!(value, widget.index);
       }

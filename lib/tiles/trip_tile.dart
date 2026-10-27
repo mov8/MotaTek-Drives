@@ -291,7 +291,8 @@ class _TripTileState extends State<TripTile> {
                             ? const SizedBox(
                                 width: 20,
                                 height: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2))
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2))
                             : const Icon(Icons.download),
                         label: const Text('Download',
                             style: TextStyle(fontSize: 18)),
@@ -324,9 +325,12 @@ class _TripTileState extends State<TripTile> {
     );
   }
 
-  changeRating(value) {
+  /// Kept only if they've driven it - otherwise they're told why
+  Future<void> changeRating(value) async {
     if (widget.tripItem.uri.isNotEmpty) {
-      putDriveRating(widget.tripItem.uri, value);
+      String? why = await putDriveRating(widget.tripItem.uri, value);
+      if (!mounted) return;
+      if (why != null) return cantRateDialog(context, why);
       if (widget.onRatingChanged != null) {
         widget.onRatingChanged!(value, widget.index);
       }

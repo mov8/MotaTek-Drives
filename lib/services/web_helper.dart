@@ -677,34 +677,30 @@ Future<void> getAndSaveImage(
   return;
 }
 
-putDriveRating(String uri, int score) async {
-  Map<String, dynamic> map = {
-    'drive_id': uri,
-    'rating': score,
-    'comment': '',
-    'rated': DateTime.now().toString()
-  };
-  final http.Response response = await http.post(
-      Uri.parse('$urlDriveRating/add'),
-      headers: webHeader(secure: true),
-      body: jsonEncode(map));
-  if ([200, 201].contains(response.statusCode)) {}
+/// A rating - null when it's kept, otherwise why not, to show: only people
+/// who've driven a trip, or stopped at a point of interest, can rate it
+Future<String?> _rate(Uri uri, Map<String, dynamic> rating) async {
+  if (Setup().jwt.isEmpty) return 'Log in to rate trips and places.';
+  try {
+    final http.Response response = await http.post(uri,
+        headers: webHeader(secure: true), body: jsonEncode(rating));
+    if ([200, 201].contains(response.statusCode)) return null;
+    dynamic body = response.body.isEmpty ? null : jsonDecode(response.body);
+    return (body is Map ? body['msg'] : null) ?? "Your rating couldn't be kept";
+  } catch (e) {
+    developer.log('_rate(): ${e.toString()}', name: 'error');
+    return "Couldn't reach Drives - check your connection";
+  }
 }
 
-putPointOfInterestRating(String uri, double score) async {
-  uri = uri.substring(uri.indexOf('/') + 1);
-  Map<String, dynamic> map = {
-    'point_of_interest_id': uri,
-    'rating': score,
-    'comment': '',
-    'rated': DateTime.now().toString()
-  };
-  final http.Response response = await http.post(
-      Uri.parse('$urlPointOfInterestRating/add'),
-      headers: webHeader(secure: true),
-      body: jsonEncode(map));
-  if ([200, 201].contains(response.statusCode)) {}
-}
+Future<String?> putDriveRating(String uri, int score) =>
+    _rate(Uri.parse('$urlDriveRating/add'), {'drive_id': uri, 'rating': score});
+
+Future<String?> putPointOfInterestRating(String uri, double score) =>
+    _rate(Uri.parse('$urlPointOfInterestRating/add'), {
+      'point_of_interest_id': uri.substring(uri.indexOf('/') + 1),
+      'rating': score
+    });
 
 /// Gets all the information about a trip in one json object from the api
 /// Drive - {id, title, sub_title, body, added, images, score, scored, distance, [routes], [maneuvers], [pointsOfInterest]}
