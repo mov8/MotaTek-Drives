@@ -261,6 +261,10 @@ class _ClubsFormState extends State<ClubsForm> {
         )
       else if (!_loggedIn)
         _note('Log in to ask to join the club.')
+      else if (ClubService().inAnyClub)
+        _note("You're in ${ClubService().clubs.first.name}. A Drives account "
+            'can be in one club - to join another, use a separate account, '
+            'with another email address, as with any app.')
       else if (club['invitation'] != null)
         _note("You've been invited - see Invitations waiting in My clubs.")
       else if (club['request'] == 'pending')
@@ -671,6 +675,9 @@ class _ClubAdminPanelState extends State<ClubAdminPanel> {
           '${count('already_invited')} invited again',
         if (count('already_members') > 0)
           '${count('already_members')} already members',
+        if (count('in_another_club') > 0)
+          "${count('in_another_club')} in another club (they'd need another "
+              'account)',
       ].join(', ');
       _emails.clear();
     });

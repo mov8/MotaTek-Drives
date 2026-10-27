@@ -514,7 +514,8 @@ Future<List<TripSummary>> getTripSummaries() async {
         summaries.add(TripSummary.fromMap(map: trip));
       }
     } else {
-      developer.log('getTripSummaries(): ${response.statusCode}', name: 'error');
+      developer.log('getTripSummaries(): ${response.statusCode}',
+          name: 'error');
     }
   } catch (e) {
     developer.log('getTripSummaries(): ${e.toString()}', name: 'error');
@@ -701,13 +702,16 @@ putPointOfInterestRating(String uri, double score) async {
 /// summary, description}, null), or (null, why not)
 Future<(Map<String, dynamic>?, String?)> describeTrip(MyTripItem trip) async {
   List<List<double>> waypoints = [
-    for (Waypoint waypoint in trip.routes.isEmpty ? [] : trip.routes.first.waypoints)
+    for (Waypoint waypoint
+        in trip.routes.isEmpty ? [] : trip.routes.first.waypoints)
       if (!waypoint.revisit || waypoint == trip.routes.first.waypoints.last)
         [waypoint.point.y.toDouble(), waypoint.point.x.toDouble()]
   ];
   if (waypoints.length < 2) {
     // A tracked trip has only its line - every so many points of it
-    List<List<double>> line = [for (mt.Route route in trip.routes) ...route.lines];
+    List<List<double>> line = [
+      for (mt.Route route in trip.routes) ...route.lines
+    ];
     int step = max(1, line.length ~/ 40);
     waypoints = [
       for (int i = 0; i < line.length; i += step) [line[i][1], line[i][0]],
@@ -729,7 +733,8 @@ Future<(Map<String, dynamic>?, String?)> describeTrip(MyTripItem trip) async {
   try {
     final http.Response response = await postWebData(
         uri: Uri.parse('$urlPlanner/describe'),
-        body: jsonEncode({'waypoints': waypoints, 'points_of_interest': places}),
+        body:
+            jsonEncode({'waypoints': waypoints, 'points_of_interest': places}),
         timeout: 60);
     Map<String, dynamic> body =
         response.body.isEmpty ? {} : jsonDecode(response.body);
@@ -742,12 +747,29 @@ Future<(Map<String, dynamic>?, String?)> describeTrip(MyTripItem trip) async {
     );
   } catch (e) {
     developer.log('describeTrip(): ${e.toString()}', name: 'error');
-    return (null, "Couldn't reach Drives - check your connection and try again");
+    return (
+      null,
+      "Couldn't reach Drives - check your connection and try again"
+    );
   }
 }
 
 /// The summary of following a published trip (DrivenLog) - then, for any
 /// of its points of interest the user stopped at, the offer to rate them
+/// A trip was saved on this phone or browser for the first time - counted
+/// by the server, by club, as saved trips never reach it. Nothing about the
+/// trip is sent, only whether AI assist planned it. Logged in or not.
+Future<void> countTripSaved({bool ai = false}) async {
+  try {
+    await postWebData(
+        uri: Uri.parse('$urlDrive/saved'),
+        body: jsonEncode({'ai': ai}),
+        secure: Setup().jwt.isNotEmpty);
+  } catch (e) {
+    developer.log('countTripSaved(): ${e.toString()}', name: 'error');
+  }
+}
+
 Future<void> sendDriven(DrivenLog log) async {
   try {
     final http.Response response = await postWebData(

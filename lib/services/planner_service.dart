@@ -35,6 +35,16 @@ class PlannerService extends ChangeNotifier {
   String message = ''; // why there's no trip - refused or failed
   Map<String, dynamic>? result;
 
+  /// How many plans the user has had in the last 24 hours, of how many,
+  /// and when they can next have one - null until known (or offline)
+  Map<String, dynamic>? allowance;
+
+  /// Whether they can plan a trip now - so the panel can say so before they
+  /// write a request, not after
+  bool get canPlan =>
+      allowance == null ||
+      (allowance!['used'] ?? 0) < (allowance!['limit'] ?? 1);
+
   /// What was understood, as the user has changed it with the chips
   Map<String, dynamic>? fields;
   bool edited = false;
@@ -117,6 +127,22 @@ class PlannerService extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Asks the server for the user's allowance - when the panel opens, and
+  /// after each plan is asked for
+  Future<void> checkAllowance() async {
+    if (Setup().jwt.isEmpty) return;
+    try {
+      http.Response response = await getWebData(
+          uri: Uri.parse('$urlPlanner/allowance'), secure: true);
+      if (response.statusCode != 200) return;
+      allowance = Map<String, dynamic>.from(jsonDecode(response.body)['plan']);
+      notifyListeners();
+    } catch (e) {
+      developer.log('PlannerService.checkAllowance(): ${e.toString()}',
+          name: 'error');
+    }
+  }
+
   Future<void> _start({Map<String, dynamic>? changed}) async {
     if (request.isEmpty) return;
     _poll?.cancel();
@@ -141,6 +167,7 @@ class PlannerService extends ChangeNotifier {
           }));
       Map body = response.body.isEmpty ? {} : jsonDecode(response.body);
       if (response.statusCode != 202) {
+        if (response.statusCode == 429) checkAllowance();
         _end(
             PlannerStatus.failed,
             [401, 407, 408].contains(response.statusCode)
@@ -150,6 +177,7 @@ class PlannerService extends ChangeNotifier {
       }
       _jobId = body['id'];
       _polls = 0;
+      checkAllowance();
       _poll = Timer.periodic(_pollEvery, (_) => _check());
     } catch (e) {
       developer.log('PlannerService._start(): ${e.toString()}', name: 'error');
@@ -294,20 +322,25 @@ class PlannerService extends ChangeNotifier {
     if (controller == null) return;
     Iterable<num> lngs = waypoints.map((w) => w.point.x);
     Iterable<num> lats = waypoints.map((w) => w.point.y);
-    double side = kIsWeb ? MapService().sideDrawerController?.getWidth() ?? 0 : 0;
-    double below = kIsWeb ? 0 : MapService().bottomDrawerController?.getHeight() ?? 0;
+    double side =
+        kIsWeb ? MapService().sideDrawerController?.getWidth() ?? 0 : 0;
+    double below =
+        kIsWeb ? 0 : MapService().bottomDrawerController?.getHeight() ?? 0;
     try {
       await controller.animateCamera(CameraUpdate.newLatLngBounds(
           LatLngBounds(
-              southwest: LatLng(lats.reduce(min).toDouble(), lngs.reduce(min).toDouble()),
-              northeast: LatLng(lats.reduce(max).toDouble(), lngs.reduce(max).toDouble())),
+              southwest: LatLng(
+                  lats.reduce(min).toDouble(), lngs.reduce(min).toDouble()),
+              northeast: LatLng(
+                  lats.reduce(max).toDouble(), lngs.reduce(max).toDouble())),
           left: 40 + side,
           top: 100,
           right: 40,
           // and above the chips
           bottom: 40 + below + (kIsWeb ? 100 : 0)));
     } catch (e) {
-      developer.log('PlannerService._fitTrip(): ${e.toString()}', name: 'error');
+      developer.log('PlannerService._fitTrip(): ${e.toString()}',
+          name: 'error');
     }
   }
 

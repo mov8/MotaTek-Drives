@@ -642,8 +642,7 @@ class CreateTripChips extends StatelessWidget {
       return;
     }
     // AI assist wrote the details - the user sees them before it's saved
-    if (CurrentTripItem().aiSuggestion &&
-        !CurrentTripItem().aiDetailsChecked) {
+    if (CurrentTripItem().aiSuggestion && !CurrentTripItem().aiDetailsChecked) {
       CurrentTripItem().aiDetailsChecked = true;
       MapService().messageBoxController?.message(message: Warning.checkDetails);
       _getTripDescriptions();
@@ -654,7 +653,8 @@ class CreateTripChips extends StatelessWidget {
     try {
       CurrentTripItem().imageRepository ??= ImageRepository();
       // My Trips shows "Saved on" - it was never set, so it was blank
-      if (CurrentTripItem().added.isEmpty) {
+      bool firstSave = CurrentTripItem().added.isEmpty;
+      if (firstSave) {
         CurrentTripItem().added = dateFormat.format(DateTime.now());
       }
       TripRepository tripRepository = TripRepository();
@@ -662,6 +662,8 @@ class CreateTripChips extends StatelessWidget {
       // Awaited so My Trips (refreshed below) reads the trip just saved
       await tripRepository.saveTrip(CurrentTripItem());
       CurrentTripItem().markSaved();
+      // Drives counts trips saved, by club - nothing about the trip itself
+      if (firstSave) countTripSaved(ai: CurrentTripItem().aiSuggestion);
       if (CurrentTripItem().aiSuggestion) {
         // The user's trip now - in the route colour, without the other finds
         CurrentTripItem().aiSuggestion = false;

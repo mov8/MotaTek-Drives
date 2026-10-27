@@ -100,6 +100,12 @@ class _PlannerPanelState extends State<PlannerPanel> {
       TextEditingController(text: PlannerService().request);
 
   @override
+  void initState() {
+    super.initState();
+    PlannerService().checkAllowance();
+  }
+
+  @override
   void dispose() {
     _request.dispose();
     super.dispose();
@@ -131,9 +137,10 @@ class _PlannerPanelState extends State<PlannerPanel> {
               else if (planner.status == PlannerStatus.choose)
                 ..._choose(context, planner)
               else ...[
+                if (!planner.canPlan) _noneLeft(context, planner.allowance!),
                 TextField(
                   controller: _request,
-                  enabled: !working,
+                  enabled: !working && planner.canPlan,
                   minLines: 3,
                   maxLines: 6,
                   maxLength: 1000,
@@ -153,7 +160,7 @@ class _PlannerPanelState extends State<PlannerPanel> {
                 FilledButton.icon(
                   icon: const Icon(Icons.auto_awesome),
                   label: const Text('Plan my trip'),
-                  onPressed: working
+                  onPressed: working || !planner.canPlan
                       ? null
                       : () {
                           FocusScope.of(context).unfocus();
@@ -172,12 +179,13 @@ class _PlannerPanelState extends State<PlannerPanel> {
                   ])
                 else if (planner.message.isNotEmpty)
                   Text(planner.message,
-                      style: TextStyle(
-                          color: Theme.of(context).colorScheme.error))
+                      style:
+                          TextStyle(color: Theme.of(context).colorScheme.error))
                 else
                   Text(
                       'It starts from where you are unless you name a town. '
-                      'Places come from OpenStreetMap and Drives users.',
+                      'Places come from OpenStreetMap and Drives users.'
+                      '${_left(planner.allowance)}',
                       style: Theme.of(context).textTheme.bodySmall),
               ],
             ],
@@ -185,6 +193,33 @@ class _PlannerPanelState extends State<PlannerPanel> {
         );
       },
     );
+  }
+
+  /// Before a request is written: they've had all their plans for now
+  Widget _noneLeft(BuildContext context, Map allowance) {
+    DateTime? next = DateTime.tryParse(allowance['next'] ?? '');
+    String when = next == null
+        ? 'later'
+        : '${next.day == DateTime.now().day ? 'at' : 'tomorrow at'} '
+            '${next.hour.toString().padLeft(2, '0')}:'
+            '${next.minute.toString().padLeft(2, '0')}';
+    return Card(
+      color: Theme.of(context).colorScheme.errorContainer,
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Text(
+            "You've had all ${allowance['limit']} of your AI trip plans for "
+            'the last 24 hours. You can plan another $when.'),
+      ),
+    );
+  }
+
+  /// How many plans are left, once some have been used
+  String _left(Map? allowance) {
+    if (allowance == null || (allowance['used'] ?? 0) == 0) return '';
+    int left = (allowance['limit'] ?? 0) - (allowance['used'] ?? 0);
+    return ' You have $left AI trip plan${left == 1 ? '' : 's'} left for now.';
   }
 
   /// The user's route preferences before planning - their settings, which
@@ -287,7 +322,8 @@ class _PlannerPanelState extends State<PlannerPanel> {
     return [
       Text(planner.message, style: text.titleMedium),
       for (String key in ['start', 'finish'])
-        if (planner.fields?[key] case Map place when place['unsure'] == true) ...[
+        if (planner.fields?[key] case Map place
+            when place['unsure'] == true) ...[
           const SizedBox(height: 8),
           Text(key == 'start' ? 'To start from:' : 'To finish at:',
               style: text.titleSmall),
@@ -328,8 +364,7 @@ class _PlannerPanelState extends State<PlannerPanel> {
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       Row(children: [
         Expanded(
-            child: _figure(
-                'Driving', _duration(trip['minutes'] ?? 0), text)),
+            child: _figure('Driving', _duration(trip['minutes'] ?? 0), text)),
         Expanded(
             child:
                 _figure('Distance', '${_miles(trip['km'] ?? 0)} miles', text)),
@@ -344,7 +379,8 @@ class _PlannerPanelState extends State<PlannerPanel> {
               for (var (kind, _, colour) in _roadTypes)
                 if ((types[kind] ?? 0) > 0)
                   Expanded(
-                      flex: ((types[kind] as num) * 10).round().clamp(1, 1 << 20),
+                      flex:
+                          ((types[kind] as num) * 10).round().clamp(1, 1 << 20),
                       child: ColoredBox(color: colour)),
             ]),
           ),
@@ -400,7 +436,8 @@ class _PlannerPanelState extends State<PlannerPanel> {
       line(Container(width: 18, height: 4, color: ai),
           'The suggested route - in this colour until you save it'),
       line(dot(16), 'Bigger dots: the other choices of places to stop'),
-      line(dot(10),
+      line(
+          dot(10),
           'Small dots: other places AI assist found. Move the crosshair onto '
           'one and the Status Bar says what it is - Waypoint adds it'),
     ]);
@@ -444,8 +481,8 @@ class _PlannerPanelState extends State<PlannerPanel> {
                 for (Map option in options)
                   PopupMenuItem(
                       value: option,
-                      child: Text(
-                          '${option['name']} - ${_placeDetail(option)}')),
+                      child:
+                          Text('${option['name']} - ${_placeDetail(option)}')),
               ],
               child: chip,
             );
@@ -583,8 +620,8 @@ class _PlannerPanelState extends State<PlannerPanel> {
               Text(what, style: text.bodySmall),
               if ((place['why'] ?? '').toString().isNotEmpty)
                 Text('Chosen because: ${place['why']}',
-                    style: text.bodySmall
-                        ?.copyWith(fontStyle: FontStyle.italic)),
+                    style:
+                        text.bodySmall?.copyWith(fontStyle: FontStyle.italic)),
               if (about.isNotEmpty) ...[
                 const SizedBox(height: 4),
                 Text(about,
