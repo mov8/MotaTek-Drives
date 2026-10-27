@@ -188,7 +188,7 @@ class _ConsoleFormState extends State<ConsoleForm> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (club)
-              Text(contact.isEmpty ? 'No admin - no contact' : contact,
+              Text(contact.isEmpty ? 'No contact yet' : contact,
                   style: contact.isEmpty ? TextStyle(color: _warning()) : null),
             Text('${row['scheme'] ?? 'No scheme'} - '
                 '${_plural(row['members'] ?? 0, 'member')}'),
@@ -329,11 +329,11 @@ class _PayerDetailsState extends State<_PayerDetails> {
         ]),
       );
 
-  /// The club's contact is its admin - their own details. Making someone
-  /// else admin hands the club over to them.
-  Widget _contact() => _section("Contact - the club's admin", [
+  /// The club's contact - its admin, who looks after its pages - and their
+  /// own details. A new contact takes the club over (api clubs.make_admin).
+  Widget _contact() => _section('Contact', [
         if (row['admins'] == null)
-          Text('No admin yet', style: TextStyle(color: _warning()))
+          Text('No contact yet', style: TextStyle(color: _warning()))
         else ...[
           _figure('Name', row['contact_name'] ?? ''),
           _figure('Email', row['contact_email'] ?? ''),
@@ -348,16 +348,16 @@ class _PayerDetailsState extends State<_PayerDetails> {
           Expanded(
               child: TextField(
                   controller: _admin,
-                  decoration: _field("A Drives user's email"))),
+                  decoration: _field("The contact's email (a Drives user)"))),
           TextButton(
               onPressed: _appoint,
-              child: Text(row['admins'] == null ? 'Make admin' : 'Hand over')),
+              child: Text(
+                  row['admins'] == null ? 'Set contact' : 'Change contact')),
         ]),
-        Text(
-            row['admins'] == null
-                ? "They become the club's admin and contact."
-                : 'The new admin becomes the contact; the old one, a member.',
-            style: const TextStyle(fontSize: 12)),
+        const Text(
+            "The contact looks after the club's pages in Drives. A new "
+            'contact takes over; the old one stays a member.',
+            style: TextStyle(fontSize: 12)),
       ]);
 
   Widget _scheme() {
