@@ -116,6 +116,7 @@ DON'T FORGET TO CHANGE CONFIG.PY IF GOING FROM LOCAL TO REMOTE HOST
 11 docker-compose up -d  to start the backend running.
 12 Don't forget any changes to nginx.conf must be followed by building the nginx container.
 
+docker exec root-api-1 ls -la /api/secrets <-- Shows the content of folder /api/secrets
 
 docker exec -it root-db-1 /bin/bash     <-- get inside drives-db-1 container
 mariadb -uroot -pmysecret               <-- start mariadb in db container
@@ -134,7 +135,29 @@ git rm --cached -r directory_to_remove <-- remove a directory recursively
 git ls-tree -r master --name-only <-- Show all files in master branch 
 git git clone -b <branch> --single-branch https://github.com/<repository.git>
 git remote -v shows the remote uri 
+git remote remove origin  removes an incorrect repository check it's empty with get remote -v1
+git remote add origin <repository url from GitHub> 
+delete the .git file then git init   clears the git history
 
+
+if GitHub wants a username and password, but won't let you log in:
+git config --global credential.helper "/mnt/c/Program\ Files/Git/mingw64/bin/git-credential-manager.exe"
+
+Claude Migrate
+1 Connects to whichever database config.py points at.
+2 Reads schema_migrations to see which changes this database already has.
+3 Lists the files in migrations/ in number order.
+4 Runs each file that isn't recorded yet, and records it.
+5 Skips everything already recorded, which is why a second run just says up to date.
+
+
+In WSL Python-3.10.0
+ensure the configuration file is set to WSL 
+source ../motatek/venv/bin/activate  <- Run from venv
+python -m api.db.schema migrate <- now run the migration
+
+in the Droplet
+docker exec -it root-api-1 python -m api.db.schema migrate
 
 Todo-Tree: Failed to find vscode-ripgrep - please install ripgrep manually and set 'todo-tree.ripgrep' to point to the executable
 
@@ -143,3 +166,16 @@ Adding waypoints to the map became very slow
 1 Test using curl:
     curl "https://drives.motatek.com/router/route/v1/driving/-0.5167664999999602,51.436069199999956;-0.5469509104114536,51.435485744846865;-0.5619807402775052,51.428639345443905;-0.5767611051253141,51.420702467696685;-0.594534947246558,51.40875565252129?steps=true&annotations=true&geometries=geojson&overview=full"
 
+The Firebase files, again:
+
+Go to console.firebase.google.com and choose Add project, named "Drives". You can switchroid, with package name com.motatek.drives. Skip the SHA-1.
+
+Download google-services.json and put it in the app at android/app/google-services.json. It's already in the app's ignore list.
+
+In Project settings → Service accounts, choose Generate new private key. This downloads a JSON file, and it's a secret: never put it in chat, email or git. Save it as firebase_key.json in:
+
+/home/james/Python-3.10.0/Drives/api/config/, for dev;
+/root/app/secrets/ on the Droplet, for live.
+Both places are already in the ignore lists.
+
+In Project settings → Cloud Messaging, check that "Firebase Cloud Messaging API (V1)" shows Enabled.
