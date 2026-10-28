@@ -61,7 +61,7 @@ enum LoginStatus {
   passwordValid,
   passwordUnknown,
   passwordTooShort,
-  emailHasChars,
+  loginFailed, // the server couldn't log them in - not a wrong password
 }
 
 enum LoginError {

@@ -327,7 +327,7 @@ Future<Map<String, dynamic>> tryLogin({required User user}) async {
         return {'msg': map['msg'] ?? 'error', 'response_status_code': code};
       }
     } else {
-      return {'msg': 'Data is empty'};
+      return {'msg': 'Data is empty', 'response_status_code': code};
     }
   } catch (e) {
     developer.log(
@@ -335,8 +335,16 @@ Future<Map<String, dynamic>> tryLogin({required User user}) async {
         name: 'error');
     return {'msg': map['msg'] ?? 'error', 'response_status_code': code};
   }
-  return {'msg': 'Data is empty'};
+  return {'msg': 'Data is empty', 'response_status_code': code};
 }
+
+/// Why a login didn't work: the wrong password only when the server says so
+/// (401, or 204 - no such user). Anything else - the server failing, no
+/// connection - is worth another try, not a password reset.
+LoginStatus loginRefused(Map<String, dynamic> response) =>
+    [204, 401].contains(response['response_status_code'])
+        ? LoginStatus.passwordUnknown
+        : LoginStatus.loginFailed;
 
 Future<Map<String, dynamic>> getSetup(int id) async {
   var uri = Uri.parse('$urlUser/settings');

@@ -715,6 +715,11 @@ Future<LoginState> loginDialog(BuildContext context,
       'button': '',
       'error': false
     }, // passwordTooShort
+    {
+      'hint': "couldn't log in just now - please try again",
+      'button': 'Login',
+      'error': true
+    }, // loginFailed
   ];
 
   LoginStatus loginStatus = LoginStatus.noData;
@@ -859,8 +864,8 @@ Future<LoginState> loginDialog(BuildContext context,
                               Setup().saveUser();
                               Navigator.pop(context, LoginState.login);
                             } else {
-                              setState(() =>
-                                  loginStatus = LoginStatus.passwordUnknown);
+                              setState(
+                                  () => loginStatus = loginRefused(response));
                             }
                           }
                         }),
@@ -906,10 +911,8 @@ Future<LoginState> loginDialog(BuildContext context,
                     Setup().user = user;
                     Setup().saveUser();
                     Navigator.pop(context, LoginState.login);
-                  }
-                  if ([204, 401].contains(response["response_status_code"])) {
-                    loginStatus = LoginStatus.passwordUnknown;
-                    setState(() => loginStatus == LoginStatus.passwordUnknown);
+                  } else {
+                    setState(() => loginStatus = loginRefused(response));
                   }
                 }
               },

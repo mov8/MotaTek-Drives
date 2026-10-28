@@ -1,4 +1,3 @@
-import 'dart:developer' as developer;
 import '/models/models.dart';
 import 'package:flutter/material.dart';
 import '/services/services.dart';
@@ -62,6 +61,11 @@ class _LoginScreen extends State<LoginScreen> {
       'button': 'Cancel',
       'error': false
     }, // passwordTooShort
+    {
+      'hint': "couldn't log in just now - please try again",
+      'button': 'Login',
+      'error': true
+    }, // loginFailed
   ];
   User user = Setup().user;
 
@@ -288,8 +292,8 @@ class _LoginScreen extends State<LoginScreen> {
                                 Setup().saveUser();
                                 _close(LoginState.login);
                               } else {
-                                setState(() =>
-                                    loginStatus = LoginStatus.passwordUnknown);
+                                setState(
+                                    () => loginStatus = loginRefused(response));
                               }
                             }
                           }),
@@ -394,15 +398,9 @@ class _LoginScreen extends State<LoginScreen> {
                           if (context.mounted && status == 'OK') {
                             MapService().persistentAppBarController?.update('');
                             _close(LoginState.login);
-                          } else if ([204, 401]
-                              .contains(response["response_status_code"])) {
-                            loginStatus = LoginStatus.passwordUnknown;
-                            setState(() =>
-                                loginStatus == LoginStatus.passwordUnknown);
                           } else {
-                            developer.log(
-                                'Error loggin in return code from api: ${response["response_status_code"]}',
-                                name: 'error');
+                            setState(
+                                () => loginStatus = loginRefused(response));
                           }
                         }
                       },
