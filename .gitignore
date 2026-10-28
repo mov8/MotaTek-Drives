@@ -55,3 +55,9 @@ app.*.map.json
 # Firebase - identifies the app to Firebase (Android push); kept out of the
 # public repository
 android/app/google-services.json
+
+# the release signing key and its password - never in git, anywhere in the repo
+drives-keys/
+*.jks
+*.keystore
+key.properties
