@@ -598,6 +598,7 @@ enum BottomDrawerItems {
   tripDetails, // <-- AI assist: naming and describing the trip, to save it
   clubs, // <-- My clubs: invitations, my clubs, finding one, running one
   console, // <-- staff: the control panel - clubs, payments, AI, usage
+  feedback, // <-- Send feedback: a problem, an idea or a question
 }
 
 /// This list ensures that the overflow popup menu options are
@@ -699,6 +700,14 @@ List<Map<String, dynamic>> drawerOptions = [
       markdownData: {},
       dataType: 'shop',
     ) //Shop()
+  },
+  {
+    'key': 'feedback',
+    'text': 'Send feedback',
+    'iconData': Icon(Icons.feedback_outlined, size: 30),
+    'method': BottomDrawerItems.settings.index,
+    'drawer': BottomDrawerItems.feedback,
+    'screen': FeedbackForm(),
   },
   {
     'key': 'console',
@@ -842,7 +851,9 @@ const double yardsToMiles = 0.000568182;
 // const urlBase = 'http://192.168.1.109:5001/';
 // const urlBase = 'https://drives.motatek.com/';
 
-const String urlDocs = 'http://127.0.0.1:1313/docs/'; // <- localhost
+// The documentation (the Hugo site's docs pages) - the ? on each main page
+// opens its page here
+const String urlDocs = 'https://motatek.com/docs/';
 const String urlClub = '${urlBase}v1/club';
 const String urlConsole = '${urlBase}v1/console';
 // Signing up for AI assist - on the website, where payments are taken.

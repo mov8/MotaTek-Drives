@@ -28,6 +28,7 @@ export 'my_trip_item.dart';
 export 'notifiers.dart';
 export 'other_classes.dart';
 export 'photo_carousel.dart';
+export 'help_button.dart';
 export 'planner_panel.dart';
 export 'trip_details_panel.dart';
 export 'route.dart';

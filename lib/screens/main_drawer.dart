@@ -238,6 +238,23 @@ class _MainDrawerState extends State<MainDrawer> {
                 );
               },
             ),
+          // a problem, an idea or a question, to the Drives team
+          ListTile(
+            leading: const Icon(Icons.feedback_outlined, size: 30),
+            title: const Text(
+              'Send feedback',
+              style: TextStyle(
+                color: Colors.blue,
+                fontSize: 20,
+              ),
+            ),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const FeedbackForm()),
+              );
+            },
+          ),
           ListTile(
             leading: const Icon(
               Icons.help_outline,

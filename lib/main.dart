@@ -595,6 +595,7 @@ class _PersistentAppBarState extends State<PersistentAppBar> {
         // Messages: add a contact, write a message
         if (NavigationService().page == 5)
           ...?MapService().messagesController?.actions(),
+        const HelpButton(size: 35), // this page's documentation
         IconButton(
           onPressed: () => {
             if (Setup().jwt.isEmpty) {context.push('/login')},

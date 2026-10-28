@@ -3,6 +3,7 @@ export 'delete_trips.dart';
 export 'delete_user.dart';
 export 'dialogs.dart';
 export 'documentation.dart';
+export 'feedback.dart';
 export 'group.dart';
 export 'markdown.dart';
 export 'import_export.dart';

@@ -243,6 +243,32 @@ Future<void> getUserDetails({required String email}) async {
   }
 }
 
+/// Send feedback - to the control panel's inbox. Null, or why not.
+Future<String?> sendFeedback(
+    {required String category,
+    required String message,
+    required String appVersion,
+    required String platform,
+    required String screen}) async {
+  try {
+    final http.Response response = await postWebData(
+        uri: Uri.parse('$urlUser/app_feedback'),
+        body: jsonEncode({
+          'category': category,
+          'message': message,
+          'app_version': appVersion,
+          'platform': platform,
+          'screen': screen
+        }));
+    if (response.statusCode == 201) return null;
+    dynamic body = response.body.isEmpty ? null : jsonDecode(response.body);
+    return (body is Map ? body['msg'] : null) ?? "Couldn't send it just now";
+  } catch (e) {
+    developer.log('sendFeedback(): ${e.toString()}', name: 'error');
+    return "Couldn't reach Drives - check your connection";
+  }
+}
+
 /// Turns MotaTek's news emails on or off for the user - null, or why not
 Future<String?> setNewsEmails(bool on) async {
   try {
@@ -841,8 +867,7 @@ Future<String> getSpeech(
 }
 
 Future<String> getDocs() async {
-  final response = await http.get(Uri.parse(
-      'http://127.0.0.1:1313/docs/')); //Uri.parse(urlDocs)); //'https://motatek.com'));
+  final response = await http.get(Uri.parse(urlDocs));
 
   if (response.statusCode == 200) {
     return response.body;

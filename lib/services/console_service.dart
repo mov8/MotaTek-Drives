@@ -66,6 +66,15 @@ class ConsoleService {
   /// Private users: counts, and the exceptions to look into
   Future<(dynamic, String?)> privateUsers() => _call('private');
 
+  /// The feedback inbox - open (new and acknowledged) or all - with counts
+  Future<(dynamic, String?)> feedback({bool all = false}) =>
+      _call('feedback${all ? '?show=all' : ''}');
+
+  /// {status, note}
+  Future<(dynamic, String?)> updateFeedback(
+          String id, Map<String, dynamic> changes) =>
+      _call('feedback/$id', body: changes);
+
   Future<(dynamic, String?)> schemes() => _call('schemes');
 
   /// A new scheme (no id), or a change to one - back come them all

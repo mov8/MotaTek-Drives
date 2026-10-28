@@ -283,6 +283,7 @@ class _WebAppBarState extends State<WebAppBar> {
                             // Messages: add a contact, write a message
                             if (NavigationService().page == 5)
                               ...?MapService().messagesController?.actions(),
+                            const HelpButton(), // this page's documentation
                           ],
                         ),
                       ),

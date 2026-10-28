@@ -9,7 +9,8 @@ import '/services/services.dart';
 /// scheme less its AI). To the right (SideDrawerController.setDetails), the
 /// selected one's details - a club's contact, scheme and payments, private
 /// users as counts and exceptions - and its last year month by month; or the
-/// schemes; or an email to everyone or the clubs' admins. See
+/// schemes; or an email to everyone or the clubs' admins; or the feedback
+/// inbox. See
 /// api/v1/console.py, api/reports.py and api/payments.py.
 class ConsoleForm extends StatefulWidget {
   const ConsoleForm({super.key});
@@ -121,6 +122,7 @@ class _ConsoleFormState extends State<ConsoleForm> {
             _load();
           }),
       'email' => const _EmailDetails(key: ValueKey('email')),
+      'feedback' => const _FeedbackDetails(key: ValueKey('feedback')),
       _ => _PayerDetails(
           key: ValueKey('$id${_rows.length}${DateTime.now().millisecond}'),
           row: _rows.firstWhere((row) => row['id'] == id,
@@ -145,6 +147,7 @@ class _ConsoleFormState extends State<ConsoleForm> {
           Wrap(spacing: 8, runSpacing: 6, children: [
             _button('schemes', Icons.sell_outlined, 'Schemes'),
             _button('email', Icons.mail_outline, 'Email'),
+            _button('feedback', Icons.feedback_outlined, 'Feedback'),
             FilledButton.icon(
               icon: const Icon(Icons.add),
               label: const Text('New club'),
@@ -972,5 +975,156 @@ class _EmailDetailsState extends State<_EmailDetails> {
       _subject.clear();
       _message.clear();
     }
+  }
+}
+
+// ---- feedback ---------------------------------------------------------------------
+
+/// The feedback inbox - from the app and the website - newest first: open
+/// (new and acknowledged) or all, each moved on with a status and a note
+class _FeedbackDetails extends StatefulWidget {
+  const _FeedbackDetails({super.key});
+
+  @override
+  State<_FeedbackDetails> createState() => _FeedbackDetailsState();
+}
+
+class _FeedbackDetailsState extends State<_FeedbackDetails> {
+  static const List<String> _statuses = [
+    'new',
+    'acknowledged',
+    'fixed',
+    'closed'
+  ];
+  bool _all = false;
+  List<Map> _items = [];
+  Map _counts = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    var (inbox, problem) = await ConsoleService().feedback(all: _all);
+    if (!mounted) return;
+    _say(context, problem);
+    if (inbox is Map) {
+      setState(() {
+        _items = List<Map>.from(inbox['items'] ?? []);
+        _counts = Map.from(inbox['counts'] ?? {});
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    int open = (_counts['new'] ?? 0) + (_counts['acknowledged'] ?? 0);
+    return ListView(padding: const EdgeInsets.all(12), children: [
+      _heading('Feedback'),
+      Wrap(spacing: 8, runSpacing: 6, children: [
+        ChoiceChip(
+            label: Text('Open ($open)'),
+            selected: !_all,
+            onSelected: (_) {
+              _all = false;
+              _load();
+            }),
+        ChoiceChip(
+            label: const Text('All'),
+            selected: _all,
+            onSelected: (_) {
+              _all = true;
+              _load();
+            }),
+      ]),
+      const SizedBox(height: 12),
+      if (_items.isEmpty)
+        const Text('Nothing to look at', style: TextStyle(color: Colors.white)),
+      Wrap(spacing: 12, runSpacing: 12, children: [
+        for (Map item in _items)
+          _FeedbackCard(
+              key: ValueKey('${item['id']}${item['status']}'),
+              item: item,
+              statuses: _statuses,
+              onChanged: _load),
+      ]),
+    ]);
+  }
+}
+
+class _FeedbackCard extends StatefulWidget {
+  final Map item;
+  final List<String> statuses;
+  final Future<void> Function() onChanged;
+  const _FeedbackCard(
+      {super.key,
+      required this.item,
+      required this.statuses,
+      required this.onChanged});
+
+  @override
+  State<_FeedbackCard> createState() => _FeedbackCardState();
+}
+
+class _FeedbackCardState extends State<_FeedbackCard> {
+  late final TextEditingController _note =
+      TextEditingController(text: widget.item['note'] ?? '');
+  late String _status = widget.item['status'] ?? 'new';
+
+  @override
+  void dispose() {
+    _note.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    Map item = widget.item;
+    String who = (item['name'] ?? '').toString().isEmpty
+        ? (item['email'] ?? 'Someone')
+        : '${item['name']} - ${item['email'] ?? ''}';
+    String where = [
+      item['source'] == 'app' ? 'the app' : 'the website',
+      item['screen'],
+      item['platform'],
+      item['app_version'],
+    ].where((part) => (part ?? '').toString().isNotEmpty).join(', ');
+    return _section(
+        '${(item['category'] ?? 'feedback').toString()[0].toUpperCase()}'
+        '${(item['category'] ?? 'feedback').toString().substring(1)}'
+        ' - ${item['added'] == null ? '' : _day.format(DateTime.parse(item['added']))}',
+        width: 460,
+        [
+          Text(who, style: const TextStyle(fontWeight: FontWeight.bold)),
+          Text('From $where', style: const TextStyle(fontSize: 12)),
+          const SizedBox(height: 8),
+          Text(item['message'] ?? ''),
+          const SizedBox(height: 12),
+          Row(children: [
+            DropdownButton<String>(
+              value: _status,
+              items: [
+                for (String s in widget.statuses)
+                  DropdownMenuItem(value: s, child: Text(s))
+              ],
+              onChanged: (s) => setState(() => _status = s ?? _status),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+                child: TextField(
+                    controller: _note, decoration: _field('Our note'))),
+            TextButton(onPressed: _save, child: const Text('Save')),
+          ]),
+        ]);
+  }
+
+  Future<void> _save() async {
+    var (_, problem) = await ConsoleService().updateFeedback(
+        widget.item['id'], {'status': _status, 'note': _note.text});
+    if (!mounted) return;
+    _say(context, problem ?? 'Saved');
+    if (problem == null) widget.onChanged();
   }
 }
