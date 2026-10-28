@@ -1045,7 +1045,9 @@ Future<Map<String, dynamic>> updateGroups(
   return {'msg': 'error'};
 }
 
-Future<List<MailItem>> getMessagesByGroup() async {
+/// The user's conversations - null when the server couldn't be reached, so
+/// Messages can say so rather than show none
+Future<List<MailItem>?> getMessagesByGroup() async {
   List<MailItem> mailItems = [];
   try {
     final http.Response response = await getWebData(
@@ -1060,11 +1062,11 @@ Future<List<MailItem>> getMessagesByGroup() async {
       developer.log(
           'getMessagesByGroup(): ${response.statusCode} ${response.body}',
           name: 'error');
-      return mailItems;
+      return null;
     }
   } catch (e) {
     debugPrint("Can't access message data on the web ${e.toString()}");
-    return mailItems;
+    return null;
   }
 }
 

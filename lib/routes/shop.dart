@@ -116,11 +116,32 @@ class _ShopState extends State<Shop> {
     } catch (e) {
       developer.log('Error Shop()_getShopData() : ${e.toString()}',
           name: 'error');
+      mdData = _unreachable;
+      // a tile in the drawer too, rather than "no offers"
+      shopItems = [
+        ShopItem(
+            heading: "Can't reach Drives",
+            subheading: 'just now - check your connection',
+            markdown: _unreachable,
+            style: _styleSheet.toJson())
+      ];
     }
     return true;
   }
 
   String mdData = '';
+
+  /// The server couldn't be reached - so the page says so, rather than
+  /// staying blank
+  static const String _unreachable = '''
+
+# Can't reach Drives just now
+
+---
+
+Check your connection - or the Drives server may be down for a moment.
+This page fills in when Drives can be reached again.
+''';
 
   /// Shop with no offers - on Drives' own pages or a club's
   static const String _noOffers = '''

@@ -66,6 +66,14 @@ class _MessagesState extends State<Messages> {
   late int _tileSelected; // = -1;
   bool _addContact = false;
   bool _writing = false; // the box to write a message in is showing
+  bool _unreachable = false; // the server couldn't be reached
+
+  /// The conversations - or none, noting the server couldn't be reached
+  Future<void> _loadConversations() async {
+    List<MailItem>? items = await getMessagesByGroup();
+    _unreachable = items == null;
+    _mailItems = items ?? [];
+  }
 
   sio.Socket socket = sio.io(urlBase, <String, dynamic>{
     // sio.Socket socket = sio.io('http://192.168.1.10:5000', <String, dynamic>{
@@ -113,7 +121,7 @@ class _MessagesState extends State<Messages> {
       Map<String, dynamic> map = Map<String, dynamic>.from(data);
       bool open = _tileSelected > -1 && _tileSelected < _mailItems.length;
       if (!open) {
-        _mailItems = await getMessagesByGroup();
+        await _loadConversations();
         if (mounted) setState(() {});
         return;
       }
@@ -135,7 +143,7 @@ class _MessagesState extends State<Messages> {
   Future<bool> getMessages() async {
     if (Setup().jwt.isEmpty) return true; // the invitation to log in
     if (_tileSelected == -1) {
-      _mailItems = await getMessagesByGroup();
+      await _loadConversations();
       return true;
     } else {
       try {
@@ -173,10 +181,32 @@ class _MessagesState extends State<Messages> {
     );
   }
 
+  /// The server couldn't be reached: say so, with a way to try again - the
+  /// whole screen on a phone, the whole SideDrawer on the web
+  Widget _unreachableView() {
+    return PageEmptyView(
+      image: 'assets/images/message.png',
+      lines: const [
+        "Can't reach Drives just now.",
+        'Check your connection - or the Drives server may be down for a '
+            'moment. Your messages will be here when Drives can be reached.',
+      ],
+      buttonLabel: 'Try again',
+      onButton: () {
+        if (kIsWeb) {
+          refresh();
+        } else {
+          setState(() => _dataLoaded = getMessages());
+        }
+      },
+    );
+  }
+
   Widget _getPortraitBody() {
     if (Setup().jwt.isEmpty) {
       return _loggedOutView();
     }
+    if (_unreachable && _tileSelected == -1) return _unreachableView();
     // Scrolls - the keyboard takes half the screen
     return SingleChildScrollView(
       child: _tileSelected == -1
@@ -236,7 +266,7 @@ class _MessagesState extends State<Messages> {
   /// Web: each visit fetches the conversations again - the user may have
   /// logged in, or been sent messages, since the page was built
   Future<void> refresh() async {
-    if (Setup().jwt.isNotEmpty) _mailItems = await getMessagesByGroup();
+    if (Setup().jwt.isNotEmpty) await _loadConversations();
     if (!mounted) return;
     // Like the other pages, the first conversation shows straight away
     if (kIsWeb &&
@@ -300,30 +330,32 @@ class _MessagesState extends State<Messages> {
     if (_tileSelected == -1) await _dataLoaded; // the conversations
     Widget content = Setup().jwt.isEmpty
         ? _loggedOutView()
-        : Container(
-            color: Colors.white,
-            child: Column(children: [
-              const ListTile(
-                title: Text('Messages',
-                    style:
-                        TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-              ),
-              Expanded(
-                child: SingleChildScrollView(
-                  child: MessagesSummaryForm(
-                    mailItems: _mailItems,
-                    selected: _tileSelected,
-                    onTap: (index) => select(index),
-                    onNewContact: () {
-                      _addContact = false;
-                      sideBarItems();
-                    },
-                    addContact: _addContact,
+        : _unreachable
+            ? _unreachableView()
+            : Container(
+                color: Colors.white,
+                child: Column(children: [
+                  const ListTile(
+                    title: Text('Messages',
+                        style: TextStyle(
+                            fontSize: 22, fontWeight: FontWeight.bold)),
                   ),
-                ),
-              ),
-            ]),
-          );
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: MessagesSummaryForm(
+                        mailItems: _mailItems,
+                        selected: _tileSelected,
+                        onTap: (index) => select(index),
+                        onNewContact: () {
+                          _addContact = false;
+                          sideBarItems();
+                        },
+                        addContact: _addContact,
+                      ),
+                    ),
+                  ),
+                ]),
+              );
     MapService().sideDrawerController!.open();
     MapService().sideDrawerController!.setContent(
         content: BottomDrawerItems.messages, drawerItems: [content]);

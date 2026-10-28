@@ -121,13 +121,34 @@ class _HomeState extends State<Home> {
         ];
       }
     } catch (e) {
-      developer.log('Error Shop()_getShopData() : ${e.toString()}',
+      developer.log('Error Home()._getHomeData() : ${e.toString()}',
           name: 'error');
+      mdData = _unreachable;
+      // a tile in the drawer too, as the welcome has
+      homeItems = [
+        HomeItem(
+            heading: "Can't reach Drives",
+            subheading: 'just now - check your connection',
+            markdown: _unreachable,
+            style: _styleSheet.toJson())
+      ];
     }
     return true;
   }
 
   String mdData = '';
+
+  /// The server couldn't be reached - so the page says so, rather than
+  /// staying blank
+  static const String _unreachable = '''
+
+# Can't reach Drives just now
+
+---
+
+Check your connection - or the Drives server may be down for a moment.
+This page fills in when Drives can be reached again.
+''';
 
   /// Home with nothing published on Drives' own pages
   static const String _drivesWelcome = '''
