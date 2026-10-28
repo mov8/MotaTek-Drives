@@ -181,6 +181,25 @@ class _MessagesState extends State<Messages> {
     );
   }
 
+  /// Logged in, with no conversations yet: the image and a way to start one -
+  /// the whole screen on a phone, the whole SideDrawer on the web
+  Widget _noConversationsView() {
+    return PageEmptyView(
+      image: 'assets/images/message.png',
+      lines: const [
+        "You haven't any messages yet.",
+        'Messaging keeps you in touch with other Drives users - one at a time, '
+            'or a whole group driving together.',
+        'Add a contact to start a conversation:',
+      ],
+      buttonLabel: 'Add a contact',
+      onButton: () {
+        _addContact = true;
+        kIsWeb ? sideBarItems() : setState(() {});
+      },
+    );
+  }
+
   /// The server couldn't be reached: say so, with a way to try again - the
   /// whole screen on a phone, the whole SideDrawer on the web
   Widget _unreachableView() {
@@ -207,6 +226,7 @@ class _MessagesState extends State<Messages> {
       return _loggedOutView();
     }
     if (_unreachable && _tileSelected == -1) return _unreachableView();
+    if (_mailItems.isEmpty && !_addContact) return _noConversationsView();
     // Scrolls - the keyboard takes half the screen
     return SingleChildScrollView(
       child: _tileSelected == -1
@@ -332,30 +352,32 @@ class _MessagesState extends State<Messages> {
         ? _loggedOutView()
         : _unreachable
             ? _unreachableView()
-            : Container(
-                color: Colors.white,
-                child: Column(children: [
-                  const ListTile(
-                    title: Text('Messages',
-                        style: TextStyle(
-                            fontSize: 22, fontWeight: FontWeight.bold)),
-                  ),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      child: MessagesSummaryForm(
-                        mailItems: _mailItems,
-                        selected: _tileSelected,
-                        onTap: (index) => select(index),
-                        onNewContact: () {
-                          _addContact = false;
-                          sideBarItems();
-                        },
-                        addContact: _addContact,
+            : _mailItems.isEmpty && !_addContact
+                ? _noConversationsView()
+                : Container(
+                    color: Colors.white,
+                    child: Column(children: [
+                      const ListTile(
+                        title: Text('Messages',
+                            style: TextStyle(
+                                fontSize: 22, fontWeight: FontWeight.bold)),
                       ),
-                    ),
-                  ),
-                ]),
-              );
+                      Expanded(
+                        child: SingleChildScrollView(
+                          child: MessagesSummaryForm(
+                            mailItems: _mailItems,
+                            selected: _tileSelected,
+                            onTap: (index) => select(index),
+                            onNewContact: () {
+                              _addContact = false;
+                              sideBarItems();
+                            },
+                            addContact: _addContact,
+                          ),
+                        ),
+                      ),
+                    ]),
+                  );
     MapService().sideDrawerController!.open();
     MapService().sideDrawerController!.setContent(
         content: BottomDrawerItems.messages, drawerItems: [content]);

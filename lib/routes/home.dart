@@ -8,6 +8,7 @@ import '/constants.dart';
 import '/models/other_models.dart';
 import '/services/services.dart' hide getPosition;
 import '/helpers/helpers.dart';
+import '/classes/page_empty_view.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 
@@ -94,6 +95,7 @@ class _HomeState extends State<Home> {
       for (int i = 0; i < items.length; i++) {
         homeItems.add(HomeItem.fromMap(map: items[i]));
       }
+      _backdrop = homeItems.isEmpty ? _placeholderImage : null;
       if (homeItems.isNotEmpty) {
         mdData = homeItems[0].markdown;
         _styleSheet = MdStyleSheet.fromJson(json: homeItems[0].style);
@@ -124,6 +126,7 @@ class _HomeState extends State<Home> {
       developer.log('Error Home()._getHomeData() : ${e.toString()}',
           name: 'error');
       mdData = _unreachable;
+      _backdrop = _placeholderImage;
       // a tile in the drawer too, as the welcome has
       homeItems = [
         HomeItem(
@@ -137,6 +140,11 @@ class _HomeState extends State<Home> {
   }
 
   String mdData = '';
+
+  /// The image behind the page while it has nothing published to show - the
+  /// welcome, or can't reach Drives
+  String? _backdrop;
+  static const String _placeholderImage = 'assets/images/aiaston.png';
 
   /// The server couldn't be reached - so the page says so, rather than
   /// staying blank
@@ -219,48 +227,54 @@ Drives helps you organise your club communications. It can act as a blog updatin
   }
 
   Widget _page(double leftPadding) {
+    Widget page = MarkdownBody(
+      data: mdData,
+
+      ///
+      /// by defalt = false Markdown expects two spaces for a line break
+      softLineBreak: true,
+
+      ///
+      /// gitHubFlavored is essential to display tables checklists etc
+      extensionSet: md.ExtensionSet.gitHubFlavored,
+
+      ///
+      /// inlineSyntaxes: define the match strings to allow MarkdownBody
+      /// to recognise the block to be built with the builders
+      inlineSyntaxes: [ShortcodeSyntax()], //, LineBreakSyntax()],
+      ///
+      /// The builders: when they find the inlineSyntaxes pattern will
+      /// then convert the syntax to Dart
+      builders: {
+        'shortcode': SpaceShortcodeBuilder(),
+      },
+
+      ///
+      /// imageBuilder: looks at the data: mdData and using the standard markdown
+      /// syntax ![alt ](uri) executes this builder - the uri must be a valid uri.
+      /// the alt is used to hold the caption, align, width and rotation.
+      imageBuilder: (Uri uri, String? title, String? alt) =>
+          imageBuilder(uri, title, alt),
+      styleSheet: _backdrop == null
+          ? _styleSheet.markdownStyleSheet
+          : onImageStyleSheet(context),
+    );
     return Padding(
       padding: EdgeInsets.fromLTRB(leftPadding + 10, 5, 10, 5), //   all(8.0),
-      child: // Card(
-          ClipRRect(
+      child: ClipRRect(
         borderRadius: BorderRadiusGeometry.all(Radius.circular(10.0)),
         child: Container(
           color: const Color.fromRGBO(54, 143, 244, 0.411),
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(0, 0, 0, 5),
-            child: SingleChildScrollView(
-              child: MarkdownBody(
-                data: mdData,
-
-                ///
-                /// by defalt = false Markdown expects two spaces for a line break
-                softLineBreak: true,
-
-                ///
-                /// gitHubFlavored is essential to display tables checklists etc
-                extensionSet: md.ExtensionSet.gitHubFlavored,
-
-                ///
-                /// inlineSyntaxes: define the match strings to allow MarkdownBody
-                /// to recognise the block to be built with the builders
-                inlineSyntaxes: [ShortcodeSyntax()], //, LineBreakSyntax()],
-                ///
-                /// The builders: when they find the inlineSyntaxes pattern will
-                /// then convert the syntax to Dart
-                builders: {
-                  'shortcode': SpaceShortcodeBuilder(),
-                },
-
-                ///
-                /// imageBuilder: looks at the data: mdData and using the standard markdown
-                /// syntax ![alt ](uri) executes this builder - the uri must be a valid uri.
-                /// the alt is used to hold the caption, align, width and rotation.
-                imageBuilder: (Uri uri, String? title, String? alt) =>
-                    imageBuilder(uri, title, alt),
-                styleSheet: _styleSheet.markdownStyleSheet,
-              ),
-            ),
-          ),
+          child: _backdrop == null
+              ? Padding(
+                  padding: EdgeInsets.fromLTRB(0, 0, 0, 5),
+                  child: SingleChildScrollView(child: page),
+                )
+              : ImageBackdrop(
+                  image: _backdrop!,
+                  child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(20), child: page),
+                ),
         ),
       ),
     );

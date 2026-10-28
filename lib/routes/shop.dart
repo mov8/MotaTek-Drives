@@ -8,6 +8,7 @@ import '/constants.dart';
 import '/models/other_models.dart';
 import '/services/services.dart' hide getPosition;
 import '/helpers/helpers.dart';
+import '/classes/page_empty_view.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 class ShopController {
@@ -107,6 +108,7 @@ class _ShopState extends State<Shop> {
       for (int i = 0; i < items.length; i++) {
         shopItems.add(ShopItem.fromMap(map: items[i]));
       }
+      _backdrop = shopItems.isEmpty ? _placeholderImage : null;
       if (shopItems.isNotEmpty) {
         mdData = shopItems[0].markdown;
         _styleSheet = MdStyleSheet.fromJson(json: shopItems[0].style);
@@ -117,6 +119,7 @@ class _ShopState extends State<Shop> {
       developer.log('Error Shop()_getShopData() : ${e.toString()}',
           name: 'error');
       mdData = _unreachable;
+      _backdrop = _placeholderImage;
       // a tile in the drawer too, rather than "no offers"
       shopItems = [
         ShopItem(
@@ -130,6 +133,11 @@ class _ShopState extends State<Shop> {
   }
 
   String mdData = '';
+
+  /// The image behind the page while it has nothing published to show - the
+  /// welcome, or can't reach Drives
+  String? _backdrop;
+  static const String _placeholderImage = 'assets/images/MobileMarketing.png';
 
   /// The server couldn't be reached - so the page says so, rather than
   /// staying blank
@@ -229,30 +237,36 @@ main() {
   }
 
   Widget _page(double leftPadding) {
+    Widget page = MarkdownBody(
+      data: mdData,
+      extensionSet: md.ExtensionSet.gitHubFlavored,
+      builders: {
+        /// shortcode is the parser name in ShortcodeSyntax()
+        'shortcode': SpaceShortcodeBuilder(),
+      },
+      inlineSyntaxes: [ShortcodeSyntax()],
+      imageBuilder: (Uri uri, String? title, String? alt) =>
+          imageBuilder(uri, title, alt),
+      styleSheet: _backdrop == null
+          ? _styleSheet.markdownStyleSheet
+          : onImageStyleSheet(context),
+    );
     return Padding(
       padding: EdgeInsets.fromLTRB(leftPadding + 10, 5, 10, 5), //   all(8.0),
-      child: // Card(
-          ClipRRect(
+      child: ClipRRect(
         borderRadius: BorderRadiusGeometry.all(Radius.circular(10.0)),
         child: Container(
           color: const Color.fromRGBO(54, 143, 244, 0.411),
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(0, 0, 0, 5),
-            child: SingleChildScrollView(
-              child: MarkdownBody(
-                data: mdData,
-                extensionSet: md.ExtensionSet.gitHubFlavored,
-                builders: {
-                  /// shortcode is the parser name in ShortcodeSyntax()
-                  'shortcode': SpaceShortcodeBuilder(),
-                },
-                inlineSyntaxes: [ShortcodeSyntax()],
-                imageBuilder: (Uri uri, String? title, String? alt) =>
-                    imageBuilder(uri, title, alt),
-                styleSheet: _styleSheet.markdownStyleSheet,
-              ),
-            ),
-          ),
+          child: _backdrop == null
+              ? Padding(
+                  padding: EdgeInsets.fromLTRB(0, 0, 0, 5),
+                  child: SingleChildScrollView(child: page),
+                )
+              : ImageBackdrop(
+                  image: _backdrop!,
+                  child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(20), child: page),
+                ),
         ),
       ),
     );
