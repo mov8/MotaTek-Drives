@@ -36,6 +36,21 @@
             // Below 49152: Windows reserves blocks of the ports above that
             // (Hyper-V / WSL), which change on reboot - 56684 got caught
             "args": ["--web-port", "8090"]
+        },
+        // The live server (the Droplet) - the configurations above use the
+        // dev server, wifiIpAddress in constants.dart
+        {
+            "name": "drives (live server)",
+            "request": "launch",
+            "type": "dart",
+            "args": ["--dart-define=DRIVES_API=https://drives.motatek.com/"]
+        },
+        {
+            "name": "drives (web mode, live server)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "debug",
+            "args": ["--web-port", "8090", "--dart-define=DRIVES_API=https://drives.motatek.com/"]
         }
     ]
 }
