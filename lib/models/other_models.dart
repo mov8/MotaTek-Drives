@@ -1439,6 +1439,39 @@ String handleWebImages(String urls) {
   return mappedUrls;
 }
 
+/// A Home or Shop item's images, each {url, caption, ...} - however the API
+/// kept them: a list of maps; of maps written as strings (older items, as on
+/// the live server); or of plain file names (older still)
+List<Map<String, dynamic>> decodeItemImages(dynamic raw) {
+  List<Map<String, dynamic>> images = [{}];
+  dynamic list = raw is String ? (raw.isEmpty ? [] : jsonDecode(raw)) : raw;
+  for (dynamic image in list is List ? list : []) {
+    if (image is String) {
+      String text = image;
+      try {
+        image = jsonDecode(text);
+      } catch (_) {} // a file name
+      if (image is! Map) image = {'url': text, 'caption': ''};
+    }
+    if (image is Map) images.add(Map<String, dynamic>.from(image));
+  }
+  return images;
+}
+
+/// A Home or Shop item's style - null, the default look, when it has none
+Map<String, dynamic>? decodeItemStyle(dynamic raw) {
+  dynamic style = raw;
+  try {
+    // (some were written as a string of a string)
+    for (int i = 0; i < 2 && style is String && style.isNotEmpty; i++) {
+      style = jsonDecode(style);
+    }
+  } catch (_) {
+    return null;
+  }
+  return style is Map ? Map<String, dynamic>.from(style) : null;
+}
+
 class HomeItem {
   int id;
   String markdown;
@@ -1466,22 +1499,17 @@ class HomeItem {
 
   factory HomeItem.fromMap({required Map<String, dynamic> map}) {
     try {
-      List<Map<String, dynamic>> images = [{}];
-      if (map['images'].isNotEmpty) {
-        List dynamicMap = jsonDecode(map['images']);
-        for (Map image in dynamicMap) {
-          images.add(Map<String, dynamic>.from(image));
-        }
-      }
+      List<Map<String, dynamic>> images = decodeItemImages(map['images']);
       HomeItem homeItem = HomeItem(
           url: map['id'], //<-- on api the uri is id the primary column
-          heading: map['heading'],
-          subheading: map['subheading'],
-          markdown: map['markdown'],
-          style: Map<String, dynamic>.from(jsonDecode(map['style'])),
+          heading: map['heading'] ?? '',
+          subheading: map['subheading'] ?? '',
+          markdown: map['markdown'] ?? '',
+          style: decodeItemStyle(map['style']),
           images: images,
-          added: dateFormatDoc.format(DateTime.parse(map['added'])),
-          author: map['author'],
+          added: dateFormatDoc.format(
+              DateTime.tryParse(map['added'] ?? '') ?? DateTime.now()),
+          author: map['author'] ?? '',
           score: map['score'] ?? 5);
       return homeItem;
     } catch (e) {
@@ -1538,22 +1566,17 @@ class ShopItem {
 
   factory ShopItem.fromMap({required Map<String, dynamic> map}) {
     try {
-      List<Map<String, dynamic>> images = [{}];
-      if (map['images'].isNotEmpty) {
-        List dynamicMap = jsonDecode(map['images']);
-        for (Map image in dynamicMap) {
-          images.add(Map<String, dynamic>.from(image));
-        }
-      }
+      List<Map<String, dynamic>> images = decodeItemImages(map['images']);
       ShopItem shopItem = ShopItem(
           url: map['id'], //<-- on api the uri is id the primary column
-          heading: map['heading'],
-          subheading: map['subheading'],
-          markdown: map['markdown'],
-          style: Map<String, dynamic>.from(jsonDecode(map['style'])),
+          heading: map['heading'] ?? '',
+          subheading: map['subheading'] ?? '',
+          markdown: map['markdown'] ?? '',
+          style: decodeItemStyle(map['style']),
           images: images,
-          added: dateFormatDoc.format(DateTime.parse(map['added'])),
-          author: map['author'],
+          added: dateFormatDoc.format(
+              DateTime.tryParse(map['added'] ?? '') ?? DateTime.now()),
+          author: map['author'] ?? '',
           score: map['score'] ?? 5);
       return shopItem;
     } catch (e) {
