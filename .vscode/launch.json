@@ -10,23 +10,28 @@
             "request": "launch",
             "type": "dart"
         },
+        // Profile and release builds need --no-tree-shake-icons: some icons
+        // are made from data, and without it the build fails - and the phone
+        // is left running the last APK that did build
         {
             "name": "drives (profile mode)",
             "request": "launch",
             "type": "dart",
-            "flutterMode": "profile"
+            "flutterMode": "profile",
+            "args": ["--no-tree-shake-icons"]
         },
         {
             "name": "drives (debug mode)",
             "request": "launch",
             "type": "dart",
-            "flutterMode": "debug"
+            "flutterMode": "debug",
         },        
         {
             "name": "drives (release mode)",
             "request": "launch",
             "type": "dart",
-            "flutterMode": "release"
+            "flutterMode": "release",
+            "args": ["--no-tree-shake-icons"]
         },
         {
             "name": "drives (web mode)",
@@ -44,6 +49,14 @@
             "request": "launch",
             "type": "dart",
             "args": ["--dart-define=DRIVES_API=https://drives.motatek.com/"]
+        },
+        // As testers get it: release, signed with the release key
+        {
+            "name": "drives (release mode, live server)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release",
+            "args": ["--no-tree-shake-icons", "--dart-define=DRIVES_API=https://drives.motatek.com/"]
         },
         {
             "name": "drives (web mode, live server)",

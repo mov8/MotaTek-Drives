@@ -38,8 +38,10 @@ ThemeData drivesTheme([DrivesColours? colours]) {
       actionsIconTheme: const IconThemeData(color: Colors.white),
       titleTextStyle: const TextStyle(
           fontSize: 20, color: Colors.white, fontWeight: FontWeight.w700),
-      // light status bar icons, over the app bar
-      systemOverlayStyle: SystemUiOverlayStyle.light,
+      // light status bar icons, over the app bar's own colour (left to
+      // Android, the status bar is a darker shade)
+      systemOverlayStyle: SystemUiOverlayStyle.light
+          .copyWith(statusBarColor: Colors.transparent),
     ),
   );
 }

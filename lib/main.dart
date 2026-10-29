@@ -725,10 +725,10 @@ class _BottomNavState extends State<BottomNav> {
               color: Colors.blue,
             );
           }
-          // Default style for unselected tabs:
-          return const TextStyle(
+          // Unselected tabs: the colour of their icons
+          return TextStyle(
             fontSize: 10,
-            color: Colors.deepPurple,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
           );
         },
       ),
