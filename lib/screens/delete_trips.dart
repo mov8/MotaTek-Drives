@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '/classes/classes.dart';
 import '/models/other_models.dart';
 import '/services/services.dart';
+import '/theme.dart';
 
 /// Admin (web only): removes published trips from the server for good.
 /// Shown in the SideDrawer from the overflow menu.
@@ -35,7 +36,7 @@ class _DeleteTripsFormState extends State<DeleteTripsForm> {
     return ScreensAppBarBottom(
       heading: 'Remove trips',
       prompt: 'Remove trips permanently from the server',
-      textColor: const Color.fromRGBO(1, 29, 51, 1),
+      textColor: DrivesColours.current.ink,
       content: FutureBuilder<bool>(
         future: _loaded,
         builder: (context, snapshot) => snapshot.hasData
@@ -68,8 +69,7 @@ class _DeleteTripsFormState extends State<DeleteTripsForm> {
                     if (_drives[index].author.isNotEmpty)
                       Text('by ${_drives[index].author}'),
                     StarRating(
-                        onRatingChanged: (_) {},
-                        rating: _drives[index].score),
+                        onRatingChanged: (_) {}, rating: _drives[index].score),
                   ],
                 ),
                 value: _drives[index].id == 1,
@@ -89,7 +89,8 @@ class _DeleteTripsFormState extends State<DeleteTripsForm> {
           child: ActionChip(
             onPressed: selected == 0 ? null : _confirmDelete,
             backgroundColor: Colors.blue,
-            disabledColor: Colors.blue.shade200, // until there's something to remove
+            disabledColor:
+                Colors.blue.shade200, // until there's something to remove
             avatar: const Icon(Icons.delete, color: Colors.white),
             label: Text('Remove $selected trip${selected == 1 ? '' : 's'}',
                 style: const TextStyle(fontSize: 18, color: Colors.white)),

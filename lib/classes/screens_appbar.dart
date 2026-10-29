@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import '/helpers/edit_helpers.dart';
 import '../services/services.dart';
+import '/theme.dart';
 
 /// Use VoidCallback rather than Function to get a stateless Widget
 /// to execute a parent method. To exucute the method in the stateless
@@ -328,7 +329,7 @@ Future<bool> updateDialog(
             title: Text(
               'Save changes?',
               style: headlineStyle(
-                  context: context, color: Colors.deepOrange, size: 1),
+                  context: context, color: DrivesColours.current.ink, size: 1),
             ),
             content: SizedBox(
               height: 120,

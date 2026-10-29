@@ -10,6 +10,7 @@ import '/constants.dart';
 import '/models/models.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:go_router/go_router.dart';
+import '/theme.dart';
 
 /// full: the expansion tile (phone). On the web My Trips is split like Home
 /// and Shop - the summary in the SideDrawer, the details to its right.
@@ -163,7 +164,9 @@ class _MyTripTileState extends State<MyTripTile> {
             flex: 8,
             child: Text('Saved on ${widget.myTripItem.added}',
                 style: textStyle(
-                    context: context, color: Colors.blueGrey, size: 3)),
+                    context: context,
+                    color: DrivesColours.current.neutral,
+                    size: 3)),
           ),
         ]),
       ],

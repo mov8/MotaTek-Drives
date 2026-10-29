@@ -3,6 +3,7 @@ import 'package:drives/helpers/edit_helpers.dart';
 import 'package:flutter/material.dart';
 import 'package:drives/models/other_models.dart';
 import 'package:drives/classes/classes.dart';
+import '/theme.dart';
 
 /// Groups is the class that organises driving groups it handles:
 ///
@@ -155,7 +156,7 @@ class _GroupTileState extends State<GroupTile> {
 
                 setState(() => widget.group.removeMember(index));
               },
-              background: Container(color: Colors.blueGrey),
+              background: Container(color: DrivesColours.current.neutral),
               child: Card(
                 borderOnForeground: true,
                 surfaceTintColor: cardColor,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '/models/other_models.dart';
 import '/classes/utilities.dart';
 import '/helpers/edit_helpers.dart';
+import '/theme.dart';
 
 class WriteMessageTile extends StatefulWidget {
   final Message message;
@@ -65,7 +66,7 @@ class _WriteMessageTileState extends State<WriteMessageTile> {
           widget.onDismiss(
               widget.index, direction == DismissDirection.endToStart ? 0 : 1);
         },
-        background: Container(color: Colors.blueGrey),
+        background: Container(color: DrivesColours.current.neutral),
         child: Card(
           color: widget.message.sent && widget.readOnly ? Colors.blue : null,
           elevation: 5,
@@ -133,7 +134,7 @@ class _WriteMessageTileState extends State<WriteMessageTile> {
                                   border: const OutlineInputBorder(),
                                   contentPadding: const EdgeInsets.fromLTRB(
                                       10.0, 0.0, 10.0, 10.0),
-                                  focusColor: Colors.blueGrey,
+                                  focusColor: DrivesColours.current.neutral,
                                   hintText: 'write your message.',
                                   hintStyle: hintStyle(context: context),
                                   labelText:

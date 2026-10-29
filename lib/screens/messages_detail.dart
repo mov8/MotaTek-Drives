@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '/models/other_models.dart';
 import '/tiles/tiles.dart';
 import 'package:socket_io_client/socket_io_client.dart' as sio;
+import '/theme.dart';
 
 class MessageDetailsForm extends StatefulWidget {
   final List<Message> messages;
@@ -69,7 +70,7 @@ class _MessageDetailsFormState extends State<MessageDetailsForm> {
             key: UniqueKey(), // Key('gmlt$index'),
             direction: DismissDirection.endToStart,
             onDismissed: (direction) {},
-            background: Container(color: Colors.blueGrey),
+            background: Container(color: DrivesColours.current.neutral),
             child: WriteMessageTile(
               index: index,
               message: widget.messages[index],
@@ -90,8 +91,10 @@ class _MessageDetailsFormState extends State<MessageDetailsForm> {
   void sendMessage(int index) {
     widget.messages.last.dated = dateFormatDoc.format(DateTime.now());
     if (widget.isGroup) {
-      widget.socket.emit('group_message',
-          {'group_id': widget.groupId, 'message': widget.messages.last.message});
+      widget.socket.emit('group_message', {
+        'group_id': widget.groupId,
+        'message': widget.messages.last.message
+      });
     } else {
       try {
         widget.socket.emit('user_message', {

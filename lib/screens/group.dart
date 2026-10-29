@@ -7,6 +7,7 @@ import '/services/services.dart';
 import '/classes/classes.dart';
 import 'package:uuid/uuid.dart';
 import 'dart:developer' as developer;
+import '/theme.dart';
 
 class GroupForm extends StatefulWidget {
   const GroupForm({super.key, setup});
@@ -83,7 +84,7 @@ class _GroupFormState extends State<GroupForm> {
             : ['Add group'],
         overflowMethods: _expanded ? [addMember, editGroup] : [addGroup],
         showOverflow: true,
-        textColor: const Color.fromRGBO(1, 29, 51, 1),
+        textColor: DrivesColours.current.ink,
         updateMethod: (update) => upLoad(update: update),
         content: FutureBuilder<bool>(
           future: _dataLoaded,

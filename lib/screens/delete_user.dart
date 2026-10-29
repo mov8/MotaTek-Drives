@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '/classes/classes.dart';
 import '/services/services.dart';
+import '/theme.dart';
 
 /// Admin (web only): stops a user using Drives. The API disables the
 /// account - the email and login are scrambled, so they can't log in -
@@ -37,7 +38,7 @@ class _DeleteUserFormState extends State<DeleteUserForm> {
     return ScreensAppBarBottom(
       heading: 'Remove user',
       prompt: 'Stop a user using Drives',
-      textColor: const Color.fromRGBO(1, 29, 51, 1),
+      textColor: DrivesColours.current.ink,
       content: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(20, 30, 20, 10),
         child: Column(
@@ -66,8 +67,10 @@ class _DeleteUserFormState extends State<DeleteUserForm> {
             ActionChip(
               onPressed: _email.contains('@') ? _confirmRemove : null,
               backgroundColor: Colors.blue,
-              disabledColor: Colors.blue.shade200, // until there's something to remove
-              avatar: const Icon(Icons.person_off_outlined, color: Colors.white),
+              disabledColor:
+                  Colors.blue.shade200, // until there's something to remove
+              avatar:
+                  const Icon(Icons.person_off_outlined, color: Colors.white),
               label: const Text('Remove user',
                   style: TextStyle(fontSize: 18, color: Colors.white)),
             ),

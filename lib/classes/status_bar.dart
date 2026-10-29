@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/services.dart';
 import '../screens/screens.dart';
+import '/theme.dart';
 
 class StatusBarController {
   _StatusBarState? _statusBarState;
@@ -42,7 +43,7 @@ class StatusBar extends StatefulWidget {
     Color? color,
     TextStyle? style,
     this.controller,
-  })  : color = color ?? Colors.blueAccent,
+  })  : color = color ?? DrivesColours.current.brand,
         style = style ?? TextStyle(color: Colors.white, fontSize: 12),
         items = items ?? <Widget>[];
   @override

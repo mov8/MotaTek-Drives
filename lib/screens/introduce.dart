@@ -5,6 +5,7 @@ import '/helpers/edit_helpers.dart';
 import '/services/web_helper.dart';
 import '/constants.dart';
 import '/classes/classes.dart';
+import '/theme.dart';
 
 class IntroduceForm extends StatefulWidget {
   const IntroduceForm({super.key, setup});
@@ -54,7 +55,7 @@ class _IntroduceFormState extends State<IntroduceForm> {
           update: _isComplete,
           updateMethod: (ok) => invite(update: ok),
           showAction: _isComplete,
-          textColor: const Color.fromRGBO(1, 29, 51, 1),
+          textColor: DrivesColours.current.ink,
           content: portraitView());
     } else {
       return Scaffold(

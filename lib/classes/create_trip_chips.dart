@@ -10,6 +10,7 @@ import '/helpers/helpers.dart';
 import '/models/models.dart';
 import 'package:maplibre_gl/maplibre_gl.dart'; // hide LatLng;
 import 'dart:developer' as developer;
+import '/theme.dart';
 
 /// PlanPhase is derived from CurrentTripItem() by phaseOf() - it's never stored -
 /// so the ActionChips can't get out of step with the trip. It's the only place
@@ -278,7 +279,7 @@ class CreateTripChips extends StatelessWidget {
       visualDensity: compact
           ? VisualDensity.compact
           : const VisualDensity(horizontal: 0.0, vertical: 0.5),
-      backgroundColor: Colors.blueAccent,
+      backgroundColor: DrivesColours.current.brand,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       label: Text(_label(chip),
           style: TextStyle(fontSize: compact ? 13 : 16, color: Colors.white)),

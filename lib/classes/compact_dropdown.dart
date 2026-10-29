@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '/theme.dart';
 
 class CompactDropdown<T> extends StatefulWidget {
   T value;
@@ -44,7 +45,7 @@ class _CompactDropdownState<T> extends State<CompactDropdown<T>> {
           isExpanded: true, // <--- ALLOWS TEXT TO TAKE ALL WIDTH
           onChanged: changed, // onChanged,
           menuMaxHeight: 400,
-          dropdownColor: const Color.fromRGBO(3, 1, 109, 0.337),
+          dropdownColor: DrivesColours.current.ink.withValues(alpha: 0.34),
           style: const TextStyle(
               fontSize: 12,
               color: Colors.white), // Smaller font for web/dialogs

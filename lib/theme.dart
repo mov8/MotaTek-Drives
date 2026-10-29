@@ -13,10 +13,22 @@ class DrivesColours {
   /// AI assist, and Write it for me - so what the AI does stands out
   final Color ai;
 
+  /// Quieter controls: the drawer's handle, swipe-to-delete, the web's page
+  /// buttons, hints
+  final Color neutral;
+
+  /// Headings and labels on white or pale backgrounds
+  final Color ink;
+
   const DrivesColours({
     this.brand = const Color(0xFF2196F3), // Colors.blue
     this.ai = const Color(0xFF673AB7), // Colors.deepPurple
+    this.neutral = const Color(0xFF607D8B), // Colors.blueGrey
+    this.ink = const Color(0xFF011D33),
   });
+
+  /// A page's panel over the brand background - the brand, see-through
+  Color get panel => brand.withValues(alpha: 0.41);
 
   static DrivesColours current = const DrivesColours();
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '/classes/classes.dart';
 import '/services/services.dart';
+import '/theme.dart';
 
 /// The control panel - Drives staff (web). In the SideDrawer, a summary of
 /// all of Drives, of private users (as one big club) and of each club: its
@@ -140,7 +141,7 @@ class _ConsoleFormState extends State<ConsoleForm> {
     return ScreensAppBarBottom(
       heading: 'Control panel',
       prompt: 'How Drives is doing - clubs, payments, AI',
-      textColor: const Color.fromRGBO(1, 29, 51, 1),
+      textColor: DrivesColours.current.ink,
       content: RefreshIndicator(
         onRefresh: _load,
         child: ListView(padding: const EdgeInsets.all(10), children: [

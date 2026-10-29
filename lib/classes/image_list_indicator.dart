@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '/models/other_models.dart';
+import '/theme.dart';
 
 class ImageListIndicatorController {
   _ImageListIndicatorState? _imageListIndicatorState;
@@ -23,7 +24,7 @@ class ImageListIndicatorController {
 
 class ImageListIndicator extends StatefulWidget {
   final ImageListIndicatorController controller;
-  final Color selectedColor;
+  final Color? selectedColor; // the brand colour, unless set
   final Color unSelectedColor;
   final List<Photo> photos;
 
@@ -31,7 +32,7 @@ class ImageListIndicator extends StatefulWidget {
       {super.key,
       required this.controller,
       required this.photos,
-      this.selectedColor = Colors.blueAccent,
+      this.selectedColor,
       this.unSelectedColor = Colors.grey});
   @override
   State<ImageListIndicator> createState() => _ImageListIndicatorState();
@@ -71,7 +72,8 @@ class _ImageListIndicatorState extends State<ImageListIndicator> {
                         width: 10,
                         decoration: BoxDecoration(
                           color: i == imageIndex
-                              ? widget.selectedColor
+                              ? widget.selectedColor ??
+                                  DrivesColours.current.brand
                               : widget.unSelectedColor,
                           borderRadius: BorderRadius.circular(5),
                         ),

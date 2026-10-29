@@ -12,6 +12,7 @@ import '/models/models.dart';
 import '/classes/classes.dart';
 import '/tiles/tiles.dart';
 import 'package:socket_io_client/socket_io_client.dart' as sio;
+import '/theme.dart';
 
 const Duration fakeAPIDuration = Duration(seconds: 1);
 const Duration debounceDuration = Duration(milliseconds: 500);
@@ -42,12 +43,12 @@ List<TextButton> actionButtons(
             padding: const EdgeInsets.all(16.0),
             textStyle: labelStyle(
                 context: context,
-                color: Colors.deepPurple,
+                color: DrivesColours.current.brand,
                 size: 3) //const TextStyle(fontSize: 30),
             ),
         child: Text(buttonTexts[i],
             style: titleStyle(
-                context: context, color: Colors.deepPurple, size: 2)),
+                context: context, color: DrivesColours.current.brand, size: 2)),
         onPressed: () {
           if (callbacks.isNotEmpty && callbacks.length > i) {
             callbacks[i]();

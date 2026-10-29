@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import '/services/services.dart';
 import '/classes/classes.dart';
 import '/helpers/helpers.dart';
+import '/theme.dart';
 
 String mdData = '''
 # Drives Free Trip Planning App
@@ -435,7 +436,7 @@ class _MarkdownFormState extends State<MarkdownForm> {
           uploadPressed: onUploadPressed,
         ),
         update: false,
-        textColor: const Color.fromRGBO(1, 29, 51, 1),
+        textColor: DrivesColours.current.ink,
         content: portraitView(),
       );
     } else {

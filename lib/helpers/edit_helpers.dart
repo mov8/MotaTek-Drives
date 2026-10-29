@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '/theme.dart';
 
-TextStyle hintStyle({required BuildContext context, color = Colors.blueGrey}) {
+TextStyle hintStyle({required BuildContext context, Color? color}) {
+  color ??= DrivesColours.current.neutral;
   return Theme.of(context).textTheme.bodySmall!.copyWith(color: color);
 }
 
@@ -46,8 +48,8 @@ TextStyle textStyle({
   }
 }
 
-TextStyle labelStyle(
-    {required BuildContext context, color = Colors.deepPurple, size = 3}) {
+TextStyle labelStyle({required BuildContext context, Color? color, size = 3}) {
+  color ??= DrivesColours.current.ink;
   switch (size) {
     case 1:
       return Theme.of(context).textTheme.bodyLarge!.copyWith(color: color);

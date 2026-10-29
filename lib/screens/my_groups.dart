@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '/models/other_models.dart';
 import '/services/services.dart';
 import '/classes/classes.dart';
+import '/theme.dart';
 
 class MyGroupsForm extends StatefulWidget {
   const MyGroupsForm({super.key, setup});
@@ -40,7 +41,7 @@ class _MyGroupsFormState extends State<MyGroupsForm> {
     if (kIsWeb) {
       return ScreensAppBarBottom(
         prompt: prompt,
-        textColor: Color.fromRGBO(1, 29, 51, 1),
+        textColor: DrivesColours.current.ink,
         content: FutureBuilder<bool>(
           future: dataloaded,
           builder: (BuildContext context, snapshot) {
@@ -149,7 +150,7 @@ class _MyGroupsFormState extends State<MyGroupsForm> {
             child: Dismissible(
               key: UniqueKey(),
               direction: DismissDirection.endToStart,
-              background: Container(color: Colors.blueGrey),
+              background: Container(color: DrivesColours.current.neutral),
               onDismissed: (direction) {
                 if (direction == DismissDirection.endToStart) {
                   _dismissed.add(Group(id: groups[idx].id, name: ''));

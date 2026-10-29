@@ -9,6 +9,7 @@ import '../constants.dart';
 import 'dart:developer' as developer;
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
+import '/theme.dart';
 
 /// The Map pages BottomDrawer is to allow the following data
 /// Trip details on planning and saving
@@ -492,7 +493,7 @@ class _BottomDrawerState extends State<BottomDrawer>
           },
           child: Container(
             width: double.infinity,
-            color: Colors.blueGrey,
+            color: DrivesColours.current.neutral,
             // .transparent, // Ensures the entire bar width is interactive
             padding: const EdgeInsets.symmetric(vertical: 14),
             child: Center(

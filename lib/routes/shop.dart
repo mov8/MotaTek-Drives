@@ -10,6 +10,7 @@ import '/services/services.dart' hide getPosition;
 import '/helpers/helpers.dart';
 import '/classes/page_empty_view.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
+import '/theme.dart';
 
 class ShopController {
   _ShopState? _shopState;
@@ -256,7 +257,7 @@ main() {
       child: ClipRRect(
         borderRadius: BorderRadiusGeometry.all(Radius.circular(10.0)),
         child: Container(
-          color: const Color.fromRGBO(54, 143, 244, 0.411),
+          color: DrivesColours.current.panel,
           child: _backdrop == null
               ? Padding(
                   padding: EdgeInsets.fromLTRB(0, 0, 0, 5),

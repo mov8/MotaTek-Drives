@@ -12,6 +12,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'dart:developer' as developer;
 import 'package:maplibre_gl/maplibre_gl.dart';
 import '/screens/dialogs.dart' show cantRateDialog;
+import '/theme.dart';
 
 /// An example of a widget with a controller.
 /// The controller allows to the widget to be controlled externally
@@ -715,7 +716,7 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
       avatar:
           const Icon(Icons.perm_media_outlined, size: 20, color: Colors.white),
       onPressed: () => loadImage(index),
-      backgroundColor: Colors.blueAccent,
+      backgroundColor: DrivesColours.current.brand,
     );
   }
 
@@ -742,7 +743,7 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
         }
         setState(() => _memoPlaying = !_memoPlaying);
       },
-      backgroundColor: Colors.blueAccent,
+      backgroundColor: DrivesColours.current.brand,
     );
   }
 
@@ -758,7 +759,7 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
           widget.onDelete!(widget.index, widget.listIndex ?? -1);
         }
       },
-      backgroundColor: Colors.blueAccent,
+      backgroundColor: DrivesColours.current.brand,
     );
   }
 
@@ -772,7 +773,7 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
           size: 20, color: Colors.white),
       onPressed: () =>
           CurrentTripItem().refreshMap(change: MapUpdates.pointsOfInterest),
-      backgroundColor: Colors.blueAccent,
+      backgroundColor: DrivesColours.current.brand,
     );
   }
 

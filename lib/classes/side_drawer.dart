@@ -2,7 +2,6 @@ import 'dart:math';
 import 'package:drives/screens/screens.dart';
 import '../routes/my_trips.dart';
 import '../classes/classes.dart';
-import '../models/models.dart';
 import '../tiles/tiles.dart';
 import '../services/services.dart';
 import 'package:flutter/material.dart' hide Route;
@@ -13,6 +12,7 @@ import 'dart:developer' as developer;
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:pointer_interceptor/pointer_interceptor.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
+import '/theme.dart';
 
 /// The Map pages SideDrawer is to allow the following data
 /// Trip details on planning and saving
@@ -861,7 +861,7 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
                             child: Container(
                               width: width,
                               height: mapHeight,
-                              color: const Color.fromRGBO(54, 143, 244, 0.411),
+                              color: DrivesColours.current.panel,
                               child: _singleForm && _tiles.isNotEmpty
                                   ? _tiles.first
                                   : ScrollablePositionedList.builder(
@@ -897,7 +897,7 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
                           child: Icon(
                             Icons.arrow_circle_right_outlined,
                             size: dividerWidth,
-                            color: Colors.blueAccent,
+                            color: DrivesColours.current.brand,
                           ),
                         ),
                       ),
@@ -941,7 +941,7 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(10),
                         child: Container(
-                          color: const Color.fromRGBO(54, 143, 244, 0.411),
+                          color: DrivesColours.current.panel,
                           child: _details,
                         ),
                       ),

@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '/classes/classes.dart';
 import '/models/other_models.dart';
 import '/services/services.dart';
+import '/theme.dart';
 
 /// My clubs: invitations waiting, the clubs you're in, and finding a club to
 /// ask to join. A club opens on its own page - with the admin's tabs
@@ -74,7 +75,7 @@ class _ClubsFormState extends State<ClubsForm> {
     if (kIsWeb) {
       return ScreensAppBarBottom(
           prompt: prompt,
-          textColor: const Color.fromRGBO(1, 29, 51, 1),
+          textColor: DrivesColours.current.ink,
           content: content);
     }
     return Scaffold(

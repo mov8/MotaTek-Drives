@@ -12,6 +12,7 @@ import '/tiles/tiles.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:maplibre_gl/maplibre_gl.dart'; // hide LatLng;
+import '/theme.dart';
 
 class CreateTripStackController {
   _CreateTripStackState? _createTripStackState;
@@ -170,14 +171,16 @@ class _CreateTripStackState extends State<CreateTripStack>
           Positioned(
             top: 0,
             // On the web, clear of the SideDrawer
-            left: kIsWeb ? MapService().sideDrawerController?.getWidth() ?? 0 : 0,
+            left:
+                kIsWeb ? MapService().sideDrawerController?.getWidth() ?? 0 : 0,
             right: 0,
             child: _messageBox,
           ),
           Positioned(
             // On the web, clear of the SideDrawer - e.g. AI assist's - so the
             // trip can be edited with it open
-            left: kIsWeb ? MapService().sideDrawerController?.getWidth() ?? 0 : 0,
+            left:
+                kIsWeb ? MapService().sideDrawerController?.getWidth() ?? 0 : 0,
             right: 0,
             bottom: 0,
             child: Align(
@@ -192,7 +195,8 @@ class _CreateTripStackState extends State<CreateTripStack>
                     createTripController: MapService().createTripController,
                     onUpdate: (_) {},
                     compact: kIsWeb &&
-                        (MapService().sideDrawerController?.getWidth() ?? 0) > 0,
+                        (MapService().sideDrawerController?.getWidth() ?? 0) >
+                            0,
                   ),
                 ),
               ),
@@ -246,7 +250,7 @@ class _CreateTripStackState extends State<CreateTripStack>
               painter: HighlightPainter(
                 boundary: MapService().mapSize(),
                 proportion: 0.6,
-                color: Colors.blueGrey,
+                color: DrivesColours.current.neutral,
               ),
             ),
           ],

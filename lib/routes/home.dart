@@ -11,6 +11,7 @@ import '/helpers/helpers.dart';
 import '/classes/page_empty_view.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
+import '/theme.dart';
 
 class HomeController {
   _HomeState? _homeState;
@@ -264,7 +265,7 @@ Drives helps you organise your club communications. It can act as a blog updatin
       child: ClipRRect(
         borderRadius: BorderRadiusGeometry.all(Radius.circular(10.0)),
         child: Container(
-          color: const Color.fromRGBO(54, 143, 244, 0.411),
+          color: DrivesColours.current.panel,
           child: _backdrop == null
               ? Padding(
                   padding: EdgeInsets.fromLTRB(0, 0, 0, 5),

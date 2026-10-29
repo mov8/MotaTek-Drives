@@ -450,7 +450,6 @@ DateFormat dateFormatSQL = DateFormat('yyyy-MM-dd HH:mm:ss');
 DateFormat dateFormatDoc = DateFormat('E dd/MM/yyyy');
 DateFormat dateFormatDocTime = DateFormat('E dd/MM/yyyy hh:mm:ss');
 
-Color backgroundColour = Color.fromRGBO(2, 46, 75, 0);
 
 /// Constants for Markdown helpers
 Map<String, Color> colour = {

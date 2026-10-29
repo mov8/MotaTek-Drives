@@ -7,6 +7,7 @@ import '/classes/classes.dart';
 import '/models/models.dart';
 import '/services/services.dart';
 import '/helpers/helpers.dart';
+import '/theme.dart';
 
 class GroupDriveForm extends StatefulWidget {
   const GroupDriveForm({super.key, setup});
@@ -81,7 +82,7 @@ class _GroupDriveFormState extends State<GroupDriveForm>
         overflowMethods: _overflowMethods,
         showOverflow: true,
         update: _changed == true,
-        textColor: const Color.fromRGBO(1, 29, 51, 1),
+        textColor: DrivesColours.current.ink,
         showAction: _changed == true,
         updateMethod: (update) => checkInvitations(update),
         content: FutureBuilder<bool>(
@@ -155,8 +156,8 @@ class _GroupDriveFormState extends State<GroupDriveForm>
             unselectedLabelStyle: labelStyle(context: context),
             indicatorWeight: 4,
             labelColor: textColor,
-            unselectedLabelColor: Colors.deepPurple,
-            indicatorColor: Colors.deepOrange,
+            unselectedLabelColor: DrivesColours.current.neutral,
+            indicatorColor: DrivesColours.current.brand,
             tabs: [
               Tab(
                   icon: Icon(
@@ -466,7 +467,7 @@ class _GroupDriveFormState extends State<GroupDriveForm>
                           border: const OutlineInputBorder(),
                           contentPadding:
                               const EdgeInsets.fromLTRB(10.0, 0.0, 10.0, 10.0),
-                          focusColor: Colors.blueGrey,
+                          focusColor: DrivesColours.current.neutral,
                           hintText: 'Enter any instruction for trip',
                           labelText: 'Instructions',
                           labelStyle: labelStyle(

@@ -10,7 +10,7 @@ class PhotoCarousel extends StatefulWidget {
   final int webUrlMaxLength;
   final double height;
   final double width;
-  final Color selectedColor;
+  final Color? selectedColor; // the brand colour, unless set
   final Color unSelectedColor;
   final ImageRepository imageRepository;
 
@@ -23,7 +23,7 @@ class PhotoCarousel extends StatefulWidget {
       this.webUrlMaxLength = 40,
       this.height = 450,
       this.width = 100,
-      this.selectedColor = Colors.blueAccent,
+      this.selectedColor,
       this.unSelectedColor = Colors.grey});
 
   @override

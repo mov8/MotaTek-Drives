@@ -6,6 +6,7 @@ import '../services/services.dart';
 import 'dart:developer' as developer;
 import 'classes.dart';
 import '../constants.dart';
+import '/theme.dart';
 
 /// There is a bit of a design inconsistency between the way the Web app and mobile app does. In the
 /// mobile app all six screens are separate routes, so the bottom nav does a simple route load for each.
@@ -254,8 +255,10 @@ class _WebAppBarState extends State<WebAppBar> {
                                           color: _selected == i
                                               ? Color.fromRGBO(173, 215, 255, 1)
                                               : Colors.white),
-                                      backgroundColor: Colors.blueGrey,
-                                      disabledColor: Colors.blueGrey,
+                                      backgroundColor:
+                                          DrivesColours.current.neutral,
+                                      disabledColor:
+                                          DrivesColours.current.neutral,
                                       shadowColor: _selected != i
                                           ? Colors.grey.shade900
                                           : null,

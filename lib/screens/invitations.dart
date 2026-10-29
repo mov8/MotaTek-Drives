@@ -5,6 +5,7 @@ import '/models/models.dart';
 import '/classes/classes.dart';
 import '/services/services.dart';
 import '/helpers/helpers.dart';
+import '/theme.dart';
 
 class InvitationsScreen extends StatefulWidget {
   const InvitationsScreen({super.key, setup});
@@ -75,7 +76,7 @@ class _InvitationsScreenState extends State<InvitationsScreen> {
         showOverflow: true,
         showAction: _edited,
         updateMethod: (update) => _update(update: update),
-        textColor: const Color.fromRGBO(1, 29, 51, 1),
+        textColor: DrivesColours.current.ink,
         content: FutureBuilder<bool>(
           future: dataloaded,
           builder: (BuildContext context, snapshot) {
@@ -203,7 +204,7 @@ class _InvitationsScreenState extends State<InvitationsScreen> {
                     setState(() => invitations[index].accepted = 1);
                   }
                 },
-                background: Container(color: Colors.blueGrey),
+                background: Container(color: DrivesColours.current.neutral),
                 child: GroupDriveInvitationTile(
                   imageRepository: _imageRepository,
                   controller: GroupDriveInvitationTileController(),

@@ -713,8 +713,8 @@ class _BottomNavState extends State<BottomNav> {
     return NavigationBar(
       selectedIndex: currentPageIndex,
       onDestinationSelected: (int index) => selectPage(index),
-      surfaceTintColor: Colors.blue,
-      indicatorColor: Colors.lightBlue,
+      surfaceTintColor: DrivesColours.current.brand,
+      indicatorColor: DrivesColours.current.brand,
       labelTextStyle: WidgetStateProperty.resolveWith<TextStyle>(
         (Set<WidgetState> states) {
           // If the tab is currently selected:

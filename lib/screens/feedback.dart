@@ -5,6 +5,7 @@ import '/classes/classes.dart';
 import '/constants.dart';
 import '/models/models.dart';
 import '/services/services.dart';
+import '/theme.dart';
 
 /// Send feedback: a problem, an idea or a question, to the Drives team - with
 /// the app version, platform and the page it was sent from filled in, so
@@ -113,7 +114,7 @@ class _FeedbackFormState extends State<FeedbackForm> {
       return ScreensAppBarBottom(
           heading: 'Send feedback',
           prompt: 'A problem, an idea or a question',
-          textColor: const Color.fromRGBO(1, 29, 51, 1),
+          textColor: DrivesColours.current.ink,
           content: content);
     }
     return Scaffold(

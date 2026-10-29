@@ -4,6 +4,7 @@ import '/models/other_models.dart';
 import '/classes/classes.dart';
 import '/constants.dart';
 import '/helpers/edit_helpers.dart';
+import '/theme.dart';
 
 class OsmReviewTile extends StatefulWidget {
   final int index;
@@ -256,7 +257,7 @@ class _OsmReviewTileState extends State<OsmReviewTile>
                     setState(() => photos = photosFromJson(
                         photoString: widget.reviewData['imageUrls']));
                   },
-                  backgroundColor: Colors.blueAccent,
+                  backgroundColor: DrivesColours.current.brand,
                 ),
               ),
             ),
