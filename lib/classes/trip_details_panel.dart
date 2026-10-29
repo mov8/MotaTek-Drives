@@ -2,8 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '/classes/classes.dart';
 import '/constants.dart';
+import '/theme.dart';
 import '/helpers/edit_helpers.dart';
-import '/models/models.dart';
 import '/services/services.dart';
 
 /// AI assist, to save a trip: its name, summary and details - written by
@@ -65,8 +65,7 @@ class _TripDetailsPanelState extends State<TripDetailsPanel> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Row(children: [
-                Icon(Icons.auto_awesome,
-                    color: colourList[Setup().aiRouteColour]),
+                Icon(Icons.auto_awesome, color: DrivesColours.current.ai),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -117,16 +116,20 @@ class _TripDetailsPanelState extends State<TripDetailsPanel> {
               ),
               const SizedBox(height: 12),
               Wrap(spacing: 10, runSpacing: 8, children: [
-                OutlinedButton.icon(
-                  icon: _writing
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2))
-                      : const Icon(Icons.auto_awesome),
-                  label: Text(_writing ? 'Writing...' : 'Write it for me'),
-                  onPressed:
-                      _writing || !planner.canDescribe ? null : _writeItForMe,
+                // AI's own colours
+                Theme(
+                  data: aiTheme(Theme.of(context)),
+                  child: OutlinedButton.icon(
+                    icon: _writing
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Icon(Icons.auto_awesome),
+                    label: Text(_writing ? 'Writing...' : 'Write it for me'),
+                    onPressed:
+                        _writing || !planner.canDescribe ? null : _writeItForMe,
+                  ),
                 ),
                 FilledButton.icon(
                   icon: Icon(saving ? Icons.save : Icons.check),

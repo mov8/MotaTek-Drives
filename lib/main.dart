@@ -15,6 +15,7 @@ import '/screens/login_screen.dart';
 import '/screens/import_export.dart';
 import '/screens/main_drawer.dart';
 import '/screens/dialogs.dart' show Utility;
+import '/theme.dart';
 
 /// Don't want these to be recreated on every build
 /// The router's root navigator uses NavigationService().key, which screens
@@ -44,6 +45,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
       title: 'MapLibre Web App',
+      theme: drivesTheme(),
       routerConfig:
           appRouter, // Injects your clean browser navigation configuration
     );

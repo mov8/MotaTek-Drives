@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '/constants.dart';
+import '/theme.dart';
 import '/models/models.dart';
 import '/services/services.dart';
 
@@ -114,85 +115,88 @@ class _PlannerPanelState extends State<PlannerPanel> {
 
   @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: PlannerService(),
-      builder: (context, _) {
-        PlannerService planner = PlannerService();
-        bool working = planner.status == PlannerStatus.working;
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(children: [
-                Icon(Icons.auto_awesome,
-                    color: colourList[Setup().aiRouteColour]),
-                const SizedBox(width: 8),
-                Text('AI assist',
-                    style: Theme.of(context).textTheme.titleLarge),
-              ]),
-              const SizedBox(height: 12),
-              if (planner.status == PlannerStatus.done)
-                ..._result(context, planner)
-              else if (planner.status == PlannerStatus.choose)
-                ..._choose(context, planner)
-              else ...[
-                if (!planner.canPlan) _noneLeft(context, planner.allowance!),
-                TextField(
-                  controller: _request,
-                  enabled: !working && planner.canPlan,
-                  minLines: 3,
-                  maxLines: 6,
-                  maxLength: 1000,
-                  textCapitalization: TextCapitalization.sentences,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    hintText: "Describe the drive you'd like - e.g. a two "
-                        'hour loop from Boston with some interesting places '
-                        'to see, and a pub about halfway',
+    // AI assist's own colours, for everything in it
+    return Theme(
+      data: aiTheme(Theme.of(context)),
+      child: ListenableBuilder(
+        listenable: PlannerService(),
+        builder: (context, _) {
+          PlannerService planner = PlannerService();
+          bool working = planner.status == PlannerStatus.working;
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(children: [
+                  Icon(Icons.auto_awesome, color: DrivesColours.current.ai),
+                  const SizedBox(width: 8),
+                  Text('AI assist',
+                      style: Theme.of(context).textTheme.titleLarge),
+                ]),
+                const SizedBox(height: 12),
+                if (planner.status == PlannerStatus.done)
+                  ..._result(context, planner)
+                else if (planner.status == PlannerStatus.choose)
+                  ..._choose(context, planner)
+                else ...[
+                  if (!planner.canPlan) _noneLeft(context, planner.allowance!),
+                  TextField(
+                    controller: _request,
+                    enabled: !working && planner.canPlan,
+                    minLines: 3,
+                    maxLines: 6,
+                    maxLength: 1000,
+                    textCapitalization: TextCapitalization.sentences,
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      hintText: "Describe the drive you'd like - e.g. a two "
+                          'hour loop from Boston with some interesting places '
+                          'to see, and a pub about halfway',
+                    ),
                   ),
-                ),
-                Text('Your route preferences (as in Settings)',
-                    style: Theme.of(context).textTheme.titleSmall),
-                const SizedBox(height: 4),
-                _preferences(working),
-                const SizedBox(height: 10),
-                FilledButton.icon(
-                  icon: const Icon(Icons.auto_awesome),
-                  label: const Text('Plan my trip'),
-                  onPressed: working || !planner.canPlan
-                      ? null
-                      : () {
-                          FocusScope.of(context).unfocus();
-                          planner.plan(_request.text);
-                        },
-                ),
-                const SizedBox(height: 8),
-                if (working)
-                  Row(children: [
-                    const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2)),
-                    const SizedBox(width: 12),
-                    Expanded(child: Text(planner.progress)),
-                  ])
-                else if (planner.message.isNotEmpty)
-                  Text(planner.message,
-                      style:
-                          TextStyle(color: Theme.of(context).colorScheme.error))
-                else
-                  Text(
-                      'It starts from where you are unless you name a town. '
-                      'Places come from OpenStreetMap and Drives users.'
-                      '${_left(planner.allowance)}',
-                      style: Theme.of(context).textTheme.bodySmall),
+                  Text('Your route preferences (as in Settings)',
+                      style: Theme.of(context).textTheme.titleSmall),
+                  const SizedBox(height: 4),
+                  _preferences(working),
+                  const SizedBox(height: 10),
+                  FilledButton.icon(
+                    icon: const Icon(Icons.auto_awesome),
+                    label: const Text('Plan my trip'),
+                    onPressed: working || !planner.canPlan
+                        ? null
+                        : () {
+                            FocusScope.of(context).unfocus();
+                            planner.plan(_request.text);
+                          },
+                  ),
+                  const SizedBox(height: 8),
+                  if (working)
+                    Row(children: [
+                      const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2)),
+                      const SizedBox(width: 12),
+                      Expanded(child: Text(planner.progress)),
+                    ])
+                  else if (planner.message.isNotEmpty)
+                    Text(planner.message,
+                        style: TextStyle(
+                            color: Theme.of(context).colorScheme.error))
+                  else
+                    Text(
+                        'It starts from where you are unless you name a town. '
+                        'Places come from OpenStreetMap and Drives users.'
+                        '${_left(planner.allowance)}',
+                        style: Theme.of(context).textTheme.bodySmall),
+                ],
               ],
-            ],
-          ),
-        );
-      },
+            ),
+          );
+        },
+      ),
     );
   }
 
