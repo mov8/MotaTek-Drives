@@ -4,7 +4,6 @@ import 'package:flutter/foundation.dart';
 import '/screens/screens.dart';
 import '/services/services.dart';
 import '/models/other_models.dart';
-import '/helpers/hive_helpers.dart';
 
 class MainDrawer extends StatefulWidget {
   const MainDrawer({super.key});
@@ -135,25 +134,6 @@ class _MainDrawerState extends State<MainDrawer> {
           ),
           ListTile(
             leading: const Icon(
-              Icons.diversity_3_outlined,
-              size: 30,
-            ),
-            title: const Text(
-              'My clubs',
-              style: TextStyle(
-                color: Colors.blue,
-                fontSize: 20,
-              ),
-            ),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const ClubsForm()),
-              );
-            },
-          ),
-          ListTile(
-            leading: const Icon(
               Icons.person_add_outlined,
               size: 30,
             ),
@@ -253,69 +233,6 @@ class _MainDrawerState extends State<MainDrawer> {
                 context,
                 MaterialPageRoute(builder: (context) => const FeedbackForm()),
               );
-            },
-          ),
-          ListTile(
-            leading: const Icon(
-              Icons.help_outline,
-              size: 30,
-            ),
-            title: const Text(
-              'Drives documentation',
-              style: TextStyle(
-                color: Colors.blue,
-                fontSize: 20,
-              ),
-            ),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (context) => const DocumentationForm()),
-              );
-            },
-          ),
-          ListTile(
-            leading: const Icon(
-              Icons.password_outlined,
-              size: 30,
-            ),
-            title: const Text(
-              'Log in',
-              style: TextStyle(
-                color: Colors.blue,
-                fontSize: 20,
-              ),
-            ),
-            onTap: () async {
-              await loadUserLocally();
-
-              if (context.mounted) {
-                LoginState loginState =
-                    await loginDialog(context, user: Setup().user);
-                if (loginState == LoginState.register) {
-                  Setup().user.forename = '';
-                  Setup().user.surname = '';
-                  Setup().user.phone = '';
-                  Setup().user.password = '';
-                  Setup().jwt = '';
-                  if (Setup().user.email.isNotEmpty) {
-                    await postValidateUser(user: Setup().user);
-                  }
-                  if (context.mounted) {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (BuildContext context) =>
-                              SignupForm(loginState: loginState)),
-                    );
-                  }
-                } else if (loginState == LoginState.login) {
-                  await saveUserLocally(Setup().user);
-                  Setup().save();
-                }
-              }
-              setState(() {});
             },
           ),
         ],
