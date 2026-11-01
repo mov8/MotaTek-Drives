@@ -280,6 +280,15 @@ class _PlannerPanelState extends State<PlannerPanel> {
       Text(trip['title'] ?? '', style: text.titleMedium),
       const SizedBox(height: 4),
       Text(trip['summary'] ?? ''),
+      if ((trip['guide'] ?? '').toString().isNotEmpty)
+        ExpansionTile(
+          title: Text('Guide to the drive', style: text.titleSmall),
+          initiallyExpanded: true,
+          tilePadding: EdgeInsets.zero,
+          childrenPadding: const EdgeInsets.only(bottom: 8),
+          expandedCrossAxisAlignment: CrossAxisAlignment.start,
+          children: [Text(trip['guide'])],
+        ),
       const SizedBox(height: 12),
       _roads(trip, text),
       const SizedBox(height: 10),
@@ -603,8 +612,22 @@ class _PlannerPanelState extends State<PlannerPanel> {
         : '${names.$1} $when';
   }
 
+  /// A link under a stop: where something came from
+  Widget _link(String words, String url, TextTheme text) => InkWell(
+        onTap: () =>
+            launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication),
+        child: Padding(
+          padding: const EdgeInsets.only(top: 2),
+          child: Text(words,
+              style: text.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.primary,
+                  decoration: TextDecoration.underline)),
+        ),
+      );
+
   /// A stop or choice: what it is, why it was chosen, its rating, what
-  /// users said and what Wikipedia says - and a button to show it on the map
+  /// users said, its story with where that came from, and what Wikipedia
+  /// says - and a button to show it on the map
   Widget _place(Map place) {
     TextTheme text = Theme.of(context).textTheme;
     String what = placeWhat(place);
@@ -615,6 +638,7 @@ class _PlannerPanelState extends State<PlannerPanel> {
     List reviews = place['reviews'] ?? [];
     Map? wikipedia = place['wikipedia'];
     String thumbnail = wikipedia?['thumbnail'] ?? '';
+    String story = place['story'] ?? '';
     String about = wikipedia?['extract'] ??
         (reviews.isNotEmpty
             ? '"${reviews.first['comment']}"'
@@ -646,6 +670,13 @@ class _PlannerPanelState extends State<PlannerPanel> {
                 Text('Chosen because: ${place['why']}',
                     style:
                         text.bodySmall?.copyWith(fontStyle: FontStyle.italic)),
+              if (story.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(story, style: text.bodySmall),
+                for (Map source in place['sources'] ?? [])
+                  _link('Source: ${sourceName(source['url'])}', source['url'],
+                      text),
+              ],
               if (about.isNotEmpty) ...[
                 const SizedBox(height: 4),
                 Text(about,
@@ -654,16 +685,7 @@ class _PlannerPanelState extends State<PlannerPanel> {
                     style: text.bodySmall),
               ],
               if ((wikipedia?['url'] ?? '').toString().isNotEmpty)
-                InkWell(
-                  onTap: () => launchUrl(Uri.parse(wikipedia!['url'])),
-                  child: Padding(
-                    padding: const EdgeInsets.only(top: 2),
-                    child: Text('From Wikipedia',
-                        style: text.bodySmall?.copyWith(
-                            color: Theme.of(context).colorScheme.primary,
-                            decoration: TextDecoration.underline)),
-                  ),
-                ),
+                _link('From Wikipedia', wikipedia!['url'], text),
             ]),
           ),
           IconButton(

@@ -323,7 +323,10 @@ class PlannerService extends ChangeNotifier {
       subTitle: (suggested['tagline'] ?? '').toString().isNotEmpty
           ? suggested['tagline']
           : 'Planned with AI assist',
-      body: suggested['summary'] ?? '',
+      // the guide, if it wrote one; they can change it before they save
+      body: (suggested['guide'] ?? '').toString().isNotEmpty
+          ? suggested['guide']
+          : suggested['summary'] ?? '',
     );
     MapService().leadingWidgetController.changeWidget(1);
     await _showCandidates();
@@ -518,8 +521,13 @@ String placeLabel(Map place) {
   return '${place['name'] ?? ''} (${placeWhat(place)})$rating';
 }
 
+/// Where a source is, for a link: example.co.uk
+String sourceName(String url) =>
+    (Uri.tryParse(url)?.host ?? url).replaceFirst(RegExp(r'^www\.'), '');
+
 /// A stop's description: what it is, why AI assist chose it, its rating,
-/// what users said and what Wikipedia says
+/// what users said, what's known about it and where that came from - kept
+/// with the trip's point of interest when it's saved
 String describePlace(Map place) {
   List<String> lines = [placeWhat(place)];
   if ((place['why'] ?? '').toString().isNotEmpty) {
@@ -535,6 +543,12 @@ String describePlace(Map place) {
   }
   for (Map review in place['reviews'] ?? []) {
     lines.add('"${review['comment']}"');
+  }
+  if ((place['story'] ?? '').toString().isNotEmpty) {
+    lines.add(place['story']);
+    for (Map source in place['sources'] ?? []) {
+      lines.add('Source: ${source['url']}');
+    }
   }
   if (place['wikipedia'] case Map wikipedia) {
     lines.add('${wikipedia['extract']} (From Wikipedia)');
