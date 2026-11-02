@@ -50,12 +50,21 @@ class PlannerService extends ChangeNotifier {
   /// calls it. Null when the panel was opened just to edit the details.
   VoidCallback? saving;
 
+  /// Not logged in, or the server no longer accepts their login
+  bool get needsLogin => Setup().jwt.isEmpty || _loginRefused;
+  bool _loginRefused = false;
+
+  /// What the server made of their login, from a reply's status code
+  void refused(int statusCode) =>
+      _loginRefused = [401, 407, 408].contains(statusCode);
+
   /// Whether they can plan a trip now - so the panel can say so before they
   /// write a request, not after
   bool get canPlan =>
-      allowance == null ||
-      (allowance!['entitled'] != false &&
-          (allowance!['used'] ?? 0) < (allowance!['limit'] ?? 1));
+      !needsLogin &&
+      (allowance == null ||
+          (allowance!['entitled'] != false &&
+              (allowance!['used'] ?? 0) < (allowance!['limit'] ?? 1)));
 
   /// What was understood, as the user has changed it with the chips
   Map<String, dynamic>? fields;
@@ -146,7 +155,11 @@ class PlannerService extends ChangeNotifier {
     try {
       http.Response response = await getWebData(
           uri: Uri.parse('$urlPlanner/allowance'), secure: true);
-      if (response.statusCode != 200) return;
+      refused(response.statusCode);
+      if (response.statusCode != 200) {
+        notifyListeners();
+        return;
+      }
       Map body = jsonDecode(response.body);
       allowance = Map<String, dynamic>.from(body['plan']);
       describeAllowance = Map<String, dynamic>.from(body['describe']);

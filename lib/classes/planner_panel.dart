@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '/constants.dart';
@@ -141,7 +143,10 @@ class _PlannerPanelState extends State<PlannerPanel> {
                 else if (planner.status == PlannerStatus.choose)
                   ..._choose(context, planner)
                 else ...[
-                  if (!planner.canPlan) _noneLeft(context, planner.allowance!),
+                  if (planner.needsLogin)
+                    _logIn(context)
+                  else if (!planner.canPlan)
+                    _noneLeft(context, planner.allowance!),
                   TextField(
                     controller: _request,
                     enabled: !working && planner.canPlan,
@@ -196,6 +201,35 @@ class _PlannerPanelState extends State<PlannerPanel> {
             ),
           );
         },
+      ),
+    );
+  }
+
+  /// Before a request is written: AI assist needs a login. The login screen
+  /// is in the SideDrawer on the web, and goes back to the page when it
+  /// closes; on a phone they come back here.
+  Widget _logIn(BuildContext context) {
+    return Card(
+      color: Theme.of(context).colorScheme.errorContainer,
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('Log in to use AI assist'),
+          TextButton(
+              onPressed: () async {
+                if (kIsWeb) {
+                  MapService()
+                      .sideDrawerController
+                      ?.setContent(content: BottomDrawerItems.login);
+                  return;
+                }
+                await context.push('/login');
+                await PlannerService().checkAllowance();
+                if (mounted) setState(() {});
+              },
+              child: const Text('Log in')),
+        ]),
       ),
     );
   }

@@ -1,10 +1,47 @@
 import 'package:drives/classes/planner_panel.dart';
+import 'package:drives/models/models.dart';
 import 'package:drives/services/planner_service.dart';
 import 'package:drives/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  group('before a request is written', () {
+    Future<void> showPanel(WidgetTester tester) async {
+      PlannerService().status = PlannerStatus.idle;
+      await tester.pumpWidget(MaterialApp(
+          theme: drivesTheme(),
+          home: const Scaffold(
+              body: SingleChildScrollView(child: PlannerPanel()))));
+      await tester.pump();
+    }
+
+    tearDown(() => Setup().jwt = '');
+
+    testWidgets('someone not logged in is told first', (tester) async {
+      Setup().jwt = '';
+      await showPanel(tester);
+      expect(find.text('Log in to use AI assist'), findsOneWidget);
+      expect(find.widgetWithText(TextButton, 'Log in'), findsOneWidget);
+      TextField request = tester.widget(find.byType(TextField));
+      expect(request.enabled, isFalse);
+      FilledButton plan = tester.widget(find.byWidgetPredicate(
+          (widget) => widget is FilledButton && widget.onPressed == null));
+      expect(plan.onPressed, isNull);
+    });
+
+    test('a token the server has refused means logging in again', () {
+      Setup().jwt = 'expired';
+      PlannerService planner = PlannerService();
+      expect(planner.needsLogin, isFalse);
+      planner.refused(401);
+      expect(planner.needsLogin, isTrue);
+      expect(planner.canPlan, isFalse);
+      planner.refused(200);
+      expect(planner.needsLogin, isFalse);
+    });
+  });
+
   testWidgets('a plan shows its guide, and each stop its story and sources',
       (tester) async {
     tester.view.physicalSize = const Size(1080, 2340);
@@ -34,7 +71,8 @@ void main() {
             'story': 'It was the local of 617 Squadron.',
             'sources': [
               {
-                'url': 'https://www.visitlincolnshire.com/food-drink/blue-bell-inn/',
+                'url':
+                    'https://www.visitlincolnshire.com/food-drink/blue-bell-inn/',
                 'title': 'Blue Bell Inn'
               }
             ],

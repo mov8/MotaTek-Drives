@@ -58,7 +58,7 @@ class MyApp extends StatelessWidget {
 ///   1 context.go('/screen') Replaces the whole navigation stack - top-level navigation
 ///   2 context.push('/screen') Pushes onto the stack - can then use pop to go back
 ///   3 context.pushReplacement('/screen') for one-off transition ie. from login screen to home screen
-///
+/// docker exec root-api-1 python -m api.db.schema migrate
 
 final GoRouter appRouter = GoRouter(
   navigatorKey: rootNavigatorKey,
@@ -95,7 +95,7 @@ final GoRouter appRouter = GoRouter(
           navigatorKey: mapBranchKey,
           routes: [
             GoRoute(
-              path: '/map',
+              path: '/explore',
               builder: (context, state) => const CreateTrip(mapType: 'explore'),
             ),
           ],
@@ -265,6 +265,7 @@ class _BaseShellScreen extends State<BaseShellScreen> {
         statusBarController: MapService().statusBarController,
         homeController: MapService().homeController,
         onSelect: _webSelect,
+        selected: widget.navigationShell.currentIndex,
       ),
       body: Stack(
         children: [
@@ -384,6 +385,14 @@ class _BaseShellScreen extends State<BaseShellScreen> {
       developer.log(
           'Main().initialise() Hive.initFlutter() error: ${e.toString()}',
           name: 'error');
+    }
+    // A link straight to a page, e.g. the website's .../#/explore, or a
+    // reload: the router has gone there, but nothing has set the page up,
+    // and it's Home that takes the splash screen away
+    if (kIsWeb && widget.navigationShell.currentIndex != 0) {
+      FlutterNativeSplash.remove();
+      WidgetsBinding.instance.addPostFrameCallback(
+          (_) => _webSelect(widget.navigationShell.currentIndex));
     }
     return true;
   }

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:material_symbols_icons/get.dart';
 import 'package:flutter/foundation.dart';
 import '/models/other_models.dart';
 import '/classes/classes.dart';
@@ -120,8 +119,6 @@ class SetupView extends StatefulWidget {
 }
 
 class _SetupViewState extends State<SetupView> {
-  final iconFlyover = SymbolsGet.get('flyover', SymbolStyle.sharp);
-  final iconRoad = SymbolsGet.get('road', SymbolStyle.sharp);
   final Color _textColor = kIsWeb ? Colors.black : Colors.white;
 
   /// Whether this browser or phone has notifications on. They change
@@ -251,7 +248,7 @@ class _SetupViewState extends State<SetupView> {
                 },
               );
             },
-            secondary: Icon(iconFlyover, size: 30, color: _textColor),
+            secondary: Icon(Icons.remove_road, size: 30, color: _textColor),
           ),
           SwitchListTile(
             title: Text('Avoid main roads',

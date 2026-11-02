@@ -512,34 +512,37 @@ class _BottomDrawerState extends State<BottomDrawer>
         // 4. THE DATA CONTENT ZONE
         // AnimatedCrossFade handles animating your list smoothly out of view
         // without leaving weird data text fragments visible when closed.
-        AnimatedCrossFade(
-          duration: const Duration(milliseconds: 500),
-          crossFadeState: _isSheetContentExpanded
-              ? CrossFadeState.showFirst
-              : CrossFadeState.showSecond,
-          // WHAT SHOWS WHEN EXPANDED: Your full scrolling API list data
-          firstChild: Container(
-            constraints: BoxConstraints(
-              // Locks the drawer to exactly 45% of whatever screen height they have
-              maxHeight: MediaQuery.of(context).size.height * 0.45,
+        // Flexible: a tall keyboard can leave less room than the 45% below
+        Flexible(
+          child: AnimatedCrossFade(
+            duration: const Duration(milliseconds: 500),
+            crossFadeState: _isSheetContentExpanded
+                ? CrossFadeState.showFirst
+                : CrossFadeState.showSecond,
+            // WHAT SHOWS WHEN EXPANDED: Your full scrolling API list data
+            firstChild: Container(
+              constraints: BoxConstraints(
+                // Locks the drawer to exactly 45% of whatever screen height they have
+                maxHeight: MediaQuery.of(context).size.height * 0.45,
+              ),
+              // Can scroll to a tile - e.g. a trip tapped on the map
+              child: ScrollablePositionedList.builder(
+                  shrinkWrap: true,
+                  itemScrollController: _itemScrollController,
+                  itemCount: _tiles.length,
+                  itemBuilder: (context, index) => _tiles[index]),
             ),
-            // Can scroll to a tile - e.g. a trip tapped on the map
-            child: ScrollablePositionedList.builder(
-                shrinkWrap: true,
-                itemScrollController: _itemScrollController,
-                itemCount: _tiles.length,
-                itemBuilder: (context, index) => _tiles[index]),
+            // WHAT SHOWS WHEN CLOSED: Absolutely nothing (SizedBox with 0 height)
+            // This makes the drag bar sit flush right against your bottom navigation bar!
+            secondChild: const SizedBox.shrink(),
+            onEnd: () {
+              if (!_isSheetContentExpanded) {
+                MapService().fabsController?.show();
+              } else {
+                MapService().fabsController?.hide();
+              }
+            },
           ),
-          // WHAT SHOWS WHEN CLOSED: Absolutely nothing (SizedBox with 0 height)
-          // This makes the drag bar sit flush right against your bottom navigation bar!
-          secondChild: const SizedBox.shrink(),
-          onEnd: () {
-            if (!_isSheetContentExpanded) {
-              MapService().fabsController?.show();
-            } else {
-              MapService().fabsController?.hide();
-            }
-          },
         ),
       ],
     );
