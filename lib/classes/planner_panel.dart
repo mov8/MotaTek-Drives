@@ -31,6 +31,13 @@ const Map<String, String> _interests = {
   'nature': 'Nature',
   'birdwatching': 'Bird watching',
   'village': 'Villages',
+  'park': 'Parks and gardens',
+  'woods': 'Woods and forests',
+  'coast': 'The coast',
+  'zoo': 'Zoos and wildlife parks',
+  'railway': 'Heritage railways',
+  'motorsport': 'Motor racing',
+  'picnic': 'Picnic spots',
   'pub': 'Pubs',
   'cafe': 'Cafés',
   'restaurant': 'Restaurants',
@@ -41,6 +48,7 @@ const Map<String, (String, String)> _stops = {
   'pub': ('Pub', 'pubs'),
   'cafe': ('Café', 'cafés'),
   'restaurant': ('Restaurant', 'restaurants'),
+  'picnic': ('Picnic spot', 'picnic spots'),
   'fuel': ('Fuel', 'fuel stops'),
   'toilets': ('Toilets', 'toilets'),
 };
@@ -96,6 +104,13 @@ IconData _iconOf(String? kind) => switch (kind) {
       'nature' || 'birdwatching' => Icons.park,
       'village' || 'town' => Icons.holiday_village,
       'attraction' => Icons.attractions,
+      'park' => Icons.local_florist,
+      'woods' => Icons.forest,
+      'coast' => Icons.beach_access,
+      'zoo' => Icons.pets,
+      'railway' => Icons.train,
+      'motorsport' => Icons.sports_score,
+      'picnic' => Icons.deck,
       _ => Icons.place,
     };
 
@@ -310,51 +325,65 @@ class _PlannerPanelState extends State<PlannerPanel> {
     Map<String, dynamic> trip = planner.trip;
     TextTheme text = Theme.of(context).textTheme;
     Map? published = trip['published_trip'];
+    List stops = trip['stops'] ?? [];
+    List choices = trip['choices'] ?? [];
+    num minutes = trip['minutes'] ?? 0;
+    // The overview shows at once - is it the sort of drive they want? - and
+    // the rest is there to open
     return [
       Text(trip['title'] ?? '', style: text.titleMedium),
+      if ((trip['tagline'] ?? '').toString().isNotEmpty)
+        Text(trip['tagline'],
+            style: text.bodyMedium?.copyWith(fontStyle: FontStyle.italic)),
       const SizedBox(height: 4),
       Text(trip['summary'] ?? ''),
-      if ((trip['guide'] ?? '').toString().isNotEmpty)
-        ExpansionTile(
-          title: Text('Guide to the drive', style: text.titleSmall),
-          initiallyExpanded: true,
-          tilePadding: EdgeInsets.zero,
-          childrenPadding: const EdgeInsets.only(bottom: 8),
-          expandedCrossAxisAlignment: CrossAxisAlignment.start,
-          children: [Text(trip['guide'])],
-        ),
       const SizedBox(height: 12),
       _roads(trip, text),
-      const SizedBox(height: 10),
-      _key(text),
-      const SizedBox(height: 16),
-      Text('What AI assist understood', style: text.titleSmall),
-      const SizedBox(height: 6),
-      _understood(planner),
-      const SizedBox(height: 8),
-      Wrap(spacing: 8, children: [
-        FilledButton.icon(
-          icon: const Icon(Icons.refresh),
-          label: const Text('Plan again'),
-          onPressed: planner.edited ? planner.planAgain : null,
-        ),
-        TextButton(
+      if ((trip['checks'] ?? []).isNotEmpty) ...[
+        const SizedBox(height: 14),
+        Text('What you asked for', style: text.titleSmall),
+        const SizedBox(height: 4),
+        for (Map check in trip['checks']) _check(check, text),
+      ],
+      Align(
+        alignment: Alignment.centerLeft,
+        child: TextButton(
           onPressed: planner.newRequest,
           child: const Text('Ask for something else'),
         ),
-      ]),
-      if ((trip['stops'] ?? []).isNotEmpty) ...[
-        const SizedBox(height: 12),
+      ),
+      if (stops.isNotEmpty) ...[
         Text('Stops', style: text.titleSmall),
-        for (Map stop in trip['stops']) _place(stop),
+        for (Map stop in stops) _place(stop, minutes),
       ],
-      if ((trip['choices'] ?? []).isNotEmpty) ...[
-        const SizedBox(height: 12),
-        Text('Or choose instead', style: text.titleSmall),
-        Text('Put the crosshair on one and tap Waypoint to add it.',
-            style: text.bodySmall),
-        for (Map choice in trip['choices']) _place(choice),
-      ],
+      if (choices.isNotEmpty)
+        _section(
+            'Or stop instead (${choices.length})',
+            [
+              Text('Put the crosshair on one and tap Waypoint to add it.',
+                  style: text.bodySmall),
+              for (Map choice in choices) _place(choice, minutes),
+            ],
+            text),
+      if ((trip['guide'] ?? '').toString().isNotEmpty)
+        _section('Guide to the drive', [Text(trip['guide'])], text),
+      _section(
+          'Change what you asked for',
+          [
+            _understood(planner),
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: FilledButton.icon(
+                icon: const Icon(Icons.refresh),
+                label: const Text('Plan again'),
+                onPressed: planner.edited ? planner.planAgain : null,
+              ),
+            ),
+          ],
+          text,
+          open: planner.edited),
+      _section("What's on the map", [_key(text)], text),
       if (published != null) ...[
         const SizedBox(height: 12),
         Card(
@@ -659,79 +688,114 @@ class _PlannerPanelState extends State<PlannerPanel> {
         ),
       );
 
-  /// A stop or choice: what it is, why it was chosen, its rating, what
-  /// users said, its story with where that came from, and what Wikipedia
-  /// says - and a button to show it on the map
-  Widget _place(Map place) {
+  /// Something asked for, and whether the trip does it - the server checks
+  /// it from what was measured and found, not from what AI assist says
+  Widget _check(Map check, TextTheme text) {
+    ColorScheme colours = Theme.of(context).colorScheme;
+    bool ok = check['ok'] == true;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Icon(ok ? Icons.check_circle : Icons.cancel_outlined,
+            size: 20, color: ok ? colours.primary : colours.error),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text.rich(TextSpan(children: [
+            TextSpan(text: '${check['wanted']}: ', style: text.bodyMedium),
+            TextSpan(
+                text: check['got'] ?? '',
+                style: text.bodyMedium?.copyWith(
+                    color: ok ? null : colours.error,
+                    fontWeight: FontWeight.w500)),
+          ])),
+        ),
+      ]),
+    );
+  }
+
+  /// A part of the result that opens when wanted
+  Widget _section(String title, List<Widget> children, TextTheme text,
+          {bool open = false}) =>
+      ExpansionTile(
+        title: Text(title, style: text.titleSmall),
+        initiallyExpanded: open,
+        tilePadding: EdgeInsets.zero,
+        shape: const Border(),
+        childrenPadding: const EdgeInsets.only(bottom: 8),
+        expandedCrossAxisAlignment: CrossAxisAlignment.start,
+        children: children,
+      );
+
+  /// A stop or choice: closed, its name, what it is, where it is in the trip
+  /// and its rating; opened, why it was chosen, its story with where that
+  /// came from, what Wikipedia says, what users said, and showing it on
+  /// the map
+  Widget _place(Map place, num tripMinutes) {
     TextTheme text = Theme.of(context).textTheme;
-    String what = placeWhat(place);
+    List<String> facts = [placeWhat(place)];
+    if (place['along'] != null && tripMinutes > 0) {
+      facts.add('about ${_duration((place['along'] as num) * tripMinutes)} in');
+    }
     if ((place['ratings'] ?? 0) > 0) {
-      what += ' · ★ ${(place['rating'] ?? 0).toStringAsFixed(1)} '
-          '(${place['ratings']})';
+      facts.add('★ ${(place['rating'] ?? 0).toStringAsFixed(1)} '
+          '(${place['ratings']})');
     }
     List reviews = place['reviews'] ?? [];
     Map? wikipedia = place['wikipedia'];
     String thumbnail = wikipedia?['thumbnail'] ?? '';
     String story = place['story'] ?? '';
-    String about = wikipedia?['extract'] ??
-        (reviews.isNotEmpty
-            ? '"${reviews.first['comment']}"'
-            : place['description'] ?? '');
+    String about = wikipedia?['extract'] ?? place['description'] ?? '';
+    Widget icon =
+        SizedBox(width: 44, child: Icon(_iconOf(place['kind']), size: 28));
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 4),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 8, 4, 8),
-        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          thumbnail.isEmpty
-              ? SizedBox(
-                  width: 56, child: Icon(_iconOf(place['kind']), size: 32))
-              : ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: Image.network(thumbnail,
-                      width: 56,
-                      height: 56,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => SizedBox(
-                          width: 56,
-                          child: Icon(_iconOf(place['kind']), size: 32)))),
-          const SizedBox(width: 12),
-          Expanded(
-            child:
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(place['name'] ?? '', style: text.titleSmall),
-              Text(what, style: text.bodySmall),
-              if ((place['why'] ?? '').toString().isNotEmpty)
-                Text('Chosen because: ${place['why']}',
-                    style:
-                        text.bodySmall?.copyWith(fontStyle: FontStyle.italic)),
-              if (story.isNotEmpty) ...[
-                const SizedBox(height: 4),
-                Text(story, style: text.bodySmall),
-                for (Map source in place['sources'] ?? [])
-                  _link('Source: ${sourceName(source['url'])}', source['url'],
-                      text),
-              ],
-              if (about.isNotEmpty) ...[
-                const SizedBox(height: 4),
-                Text(about,
-                    maxLines: 4,
-                    overflow: TextOverflow.ellipsis,
-                    style: text.bodySmall),
-              ],
-              if ((wikipedia?['url'] ?? '').toString().isNotEmpty)
-                _link('From Wikipedia', wikipedia!['url'], text),
-            ]),
-          ),
-          IconButton(
-            icon: const Icon(Icons.center_focus_strong),
-            tooltip: 'Show on the map',
-            onPressed: place['lat'] == null
-                ? null
-                : () => MapService().showInView(LatLng(
-                    (place['lat'] as num).toDouble(),
-                    (place['lng'] as num).toDouble())),
-          ),
-        ]),
+      child: ExpansionTile(
+        shape: const Border(),
+        tilePadding: const EdgeInsets.only(left: 8, right: 8),
+        childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+        expandedCrossAxisAlignment: CrossAxisAlignment.start,
+        leading: thumbnail.isEmpty
+            ? icon
+            : ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: Image.network(thumbnail,
+                    width: 44,
+                    height: 44,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => icon)),
+        title: Text(place['name'] ?? '', style: text.titleSmall),
+        subtitle: Text(facts.join(' · '), style: text.bodySmall),
+        children: [
+          if ((place['why'] ?? '').toString().isNotEmpty)
+            Text('Chosen because: ${place['why']}',
+                style: text.bodySmall?.copyWith(fontStyle: FontStyle.italic)),
+          if (story.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(story, style: text.bodySmall),
+            for (Map source in place['sources'] ?? [])
+              _link(
+                  'Source: ${sourceName(source['url'])}', source['url'], text),
+          ],
+          if (about.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(about, style: text.bodySmall),
+          ],
+          if ((wikipedia?['url'] ?? '').toString().isNotEmpty)
+            _link('From Wikipedia', wikipedia!['url'], text),
+          for (Map review in reviews.take(2)) ...[
+            const SizedBox(height: 6),
+            Text('"${review['comment']}"',
+                style: text.bodySmall?.copyWith(fontStyle: FontStyle.italic)),
+          ],
+          if (place['lat'] != null)
+            TextButton.icon(
+              icon: const Icon(Icons.center_focus_strong),
+              label: const Text('Show on the map'),
+              onPressed: () => MapService().showInView(LatLng(
+                  (place['lat'] as num).toDouble(),
+                  (place['lng'] as num).toDouble())),
+            ),
+        ],
       ),
     );
   }

@@ -604,10 +604,9 @@ class MapService {
           styleString: _styleString,
           compassViewPosition: CompassViewPosition.topLeft,
           onMapCreated: onMapUpdated,
-          initialCameraPosition: CameraPosition(
-              target:
-                  LatLng(currentPosition.latitude, currentPosition.longitude),
-              zoom: 11),
+          initialCameraPosition: hasPosition
+              ? CameraPosition(target: currentPosition, zoom: 11)
+              : britain,
           trackCameraPosition: true,
           onCameraMove: onCameraMove,
           onMapClick: onTap,
@@ -686,7 +685,8 @@ class MapService {
             12.0,
           ),
         );
-      } else {
+      } else if (hasPosition) {
+        // without a fix yet it stays on Britain - locate() moves it later
         await controller?.moveCamera(
           CameraUpdate.newLatLngZoom(
             currentPosition,
@@ -801,18 +801,55 @@ class MapService {
           name: 'error');
       return '';
     }
-    // No location (refused, switched off, or slow to come) leaves the map
-    // at currentPosition's default - it used to lose the style too
+    // Where the phone last was, if it may say - instant, so the map starts
+    // there. A browser can't say.
+    if (!kIsWeb) {
+      try {
+        LocationPermission permission = await Geolocator.checkPermission();
+        if ([LocationPermission.always, LocationPermission.whileInUse]
+            .contains(permission)) {
+          Position? last = await Geolocator.getLastKnownPosition();
+          if (last != null) {
+            _currentPosition = LatLng(last.latitude, last.longitude);
+          }
+        }
+      } catch (e) {
+        developer.log('No last position: ${e.toString()}', name: 'error');
+      }
+    }
+    // The app doesn't wait for the location: the prompt may not be answered
+    // for a while (a browser's is easy to miss), and a fix can take seconds
+    unawaited(locate());
+    return _styleString;
+  }
+
+  /// The map's view before there's a fix: Great Britain
+  static const CameraPosition britain =
+      CameraPosition(target: LatLng(54.0, -2.5), zoom: 5);
+
+  /// Asks for the user's position, and when the first fix comes moves the
+  /// map there - unless they've moved it already, or a trip is on it.
+  /// Refused, switched off or never answered, the map stays where it is.
+  Future<void> locate() async {
     try {
       await getPermission().timeout(const Duration(seconds: 30));
     } catch (e) {
       developer.log('Location permission: ${e.toString()}', name: 'error');
     }
     Position? position = await currentPositionOrNull();
-    if (position != null) {
-      _currentPosition = LatLng(position.latitude, position.longitude);
+    if (position == null) return;
+    LatLng? start = _currentPosition;
+    _currentPosition = LatLng(position.latitude, position.longitude);
+    MapLibreMapController map = await mapFuture; // the map page may come later
+    LatLng? showing = map.cameraPosition?.target;
+    LatLng expected = start ?? britain.target;
+    bool untouched = showing == null ||
+        ((showing.latitude - expected.latitude).abs() < 0.01 &&
+            (showing.longitude - expected.longitude).abs() < 0.01);
+    if (untouched && CurrentTripItem().pointsOfInterest.isEmpty) {
+      await map.animateCamera(CameraUpdate.newLatLngZoom(_currentPosition!, 11),
+          duration: const Duration(seconds: 2));
     }
-    return _styleString;
   }
 
   Future<LatLngBounds> get bounds async => (await controller!

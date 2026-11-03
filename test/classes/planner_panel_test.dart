@@ -42,8 +42,9 @@ void main() {
     });
   });
 
-  testWidgets('a plan shows its guide, and each stop its story and sources',
-      (tester) async {
+  testWidgets(
+      'a plan shows its overview and what was asked for; the guide and each '
+      "stop's story and sources open when wanted", (tester) async {
     tester.view.physicalSize = const Size(1080, 2340);
     addTearDown(tester.view.resetPhysicalSize);
     PlannerService planner = PlannerService();
@@ -57,6 +58,19 @@ void main() {
             'Look up to see the airmen\'s signatures on the ceiling.',
         'road_types': {'motorway': 0, 'a_road': 10, 'b_road': 26, 'minor': 41},
         'a_roads': 13,
+        'checks': [
+          {'wanted': 'About 1 h 30 min', 'got': '1 h 24 min', 'ok': true},
+          {
+            'wanted': 'A pub about halfway',
+            'got': 'Blue Bell Inn, about 40 min in',
+            'ok': true
+          },
+          {
+            'wanted': 'Through Gibralta Point',
+            'got': 'not on this route',
+            'ok': false
+          },
+        ],
         'minutes': 84,
         'km': 77,
         'stops': [
@@ -68,6 +82,7 @@ void main() {
             'lat': 53.1,
             'lng': -0.2,
             'why': "The Dambusters' local",
+            'along': 0.47,
             'story': 'It was the local of 617 Squadron.',
             'sources': [
               {
@@ -97,11 +112,31 @@ void main() {
             body: SingleChildScrollView(child: PlannerPanel()))));
     await tester.pump();
 
-    expect(find.text('Guide to the drive'), findsOneWidget);
-    expect(find.textContaining('B road through Langrick'), findsOneWidget);
+    // the overview: is it the sort of drive they want?
+    expect(find.text('Fens, Castles and Dambusters'), findsOneWidget);
+    expect(find.text('What you asked for'), findsOneWidget);
+    expect(find.byIcon(Icons.check_circle), findsNWidgets(2));
+    expect(find.byIcon(Icons.cancel_outlined), findsOneWidget);
+    expect(find.textContaining('not on this route', findRichText: true),
+        findsOneWidget);
+    // each stop in a line or two
+    expect(find.text('Blue Bell Inn'), findsOneWidget);
+    expect(find.text('pub · about 39 min in'), findsOneWidget);
+    expect(find.text('Old Mill'), findsOneWidget);
+    // the details wait to be opened
+    expect(find.text('It was the local of 617 Squadron.'), findsNothing);
+    expect(find.textContaining('B road through Langrick'), findsNothing);
+
+    await tester.tap(find.text('Blue Bell Inn'));
+    await tester.pumpAndSettle();
     expect(find.text('It was the local of 617 Squadron.'), findsOneWidget);
     expect(find.text('Source: visitlincolnshire.com'), findsOneWidget);
-    expect(find.text('Old Mill'), findsOneWidget);
+    expect(find.text("Chosen because: The Dambusters' local"), findsOneWidget);
+
+    await tester.ensureVisible(find.text('Guide to the drive'));
+    await tester.tap(find.text('Guide to the drive'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('B road through Langrick'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }
