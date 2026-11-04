@@ -63,13 +63,18 @@ class MyApp extends StatelessWidget {
 /// A link to Explore - .../#/explore, the website's "Plan a drive". Published
 /// and Explore are one page (both branches' route is /map: two pages would
 /// each want the one map, and the second showed none), so the link goes to
-/// /map and the page is set up in Explore's mode.
-final bool exploreLink = kIsWeb && Uri.base.fragment.startsWith('/explore');
+/// /map and the page is set up in Explore's mode. Set by the redirect: the
+/// address is /map long before the app has started.
+bool exploreLink = false;
 
 final GoRouter appRouter = GoRouter(
   navigatorKey: rootNavigatorKey,
   initialLocation: '/home',
-  redirect: (context, state) => state.uri.path == '/explore' ? '/map' : null,
+  redirect: (context, state) {
+    if (state.uri.path != '/explore') return null;
+    exploreLink = true;
+    return '/map';
+  },
   routes: [
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) {
@@ -315,6 +320,9 @@ class _BaseShellScreen extends State<BaseShellScreen> {
     NavigationService().selected(index);
     // Highlights the button when the page change didn't come from it
     MapService().webAppBarController?.changeButton(index);
+    // Published and Explore are one branch, so changing between them doesn't
+    // rebuild the shell - and the WebAppBar only shows its new page when it is
+    if (mounted) setState(() {});
     // After the branch is built, so its page is attached
     WidgetsBinding.instance.addPostFrameCallback((_) => _fillSideDrawer(index));
   }
