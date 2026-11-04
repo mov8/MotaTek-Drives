@@ -18,9 +18,9 @@ enum PlannerStatus { idle, working, choose, done, refused, failed }
 /// follows the plan's progress, then makes the suggested trip the trip
 /// being planned: the user changes it like any other (Edit mode, anchors
 /// and undo) and saves it. Until it's saved it's drawn in the AI colour, and
-/// everything else the planner found - the candidates - shows as dots; the
-/// Status Bar names one under the crosshair (candidateAt()), so the user can
-/// add it with the Waypoint chip.
+/// everything else the planner found - the candidates - shows as dots; one
+/// under the crosshair is named there and in the Status Bar (candidateAt()),
+/// so the user can add it with the Waypoint chip.
 ///
 /// The PlannerPanel (in the drawer) shows the request, the progress, what
 /// was understood as chips the user can change, and the result.
@@ -480,6 +480,7 @@ class PlannerService extends ChangeNotifier {
   }
 
   Future<void> _clearCandidates() async {
+    placeUnderCrosshair.value = null;
     if (!_layerAdded) return;
     try {
       await MapService().controller?.setGeoJsonSource(
@@ -487,26 +488,45 @@ class PlannerService extends ChangeNotifier {
     } catch (_) {}
   }
 
+  /// The candidate under the crosshair, in a line - shown under the
+  /// crosshair (CreateTripStack), where the user is looking
+  final ValueNotifier<String?> placeUnderCrosshair = ValueNotifier(null);
+
   /// A candidate under the crosshair, in a line - or null. The Status Bar
   /// shows it with what the chips will do there (MapService().onIdle()).
+  /// The nearest, as dots can be close together - the first found was often
+  /// its neighbour.
   Future<String?> candidateAt(MapLibreMapController controller) async {
-    if (result == null || !CurrentTripItem().aiSuggestion) return null;
-    try {
-      await _addLayer();
-      Point<num> centre =
-          await controller.toScreenLocation(controller.cameraPosition!.target);
-      Rect rect = Rect.fromCenter(
-          center: Offset(centre.x.toDouble(), centre.y.toDouble()),
-          width: 24,
-          height: 24);
-      List features =
-          await controller.queryRenderedFeaturesInRect(rect, [_layer], null);
-      return features.isEmpty ? null : features.first['properties']['label'];
-    } catch (e) {
-      developer.log('PlannerService.candidateAt(): ${e.toString()}',
-          name: 'error');
-      return null;
+    String? place;
+    if (result != null && CurrentTripItem().aiSuggestion) {
+      try {
+        await _addLayer();
+        LatLng target = controller.cameraPosition!.target;
+        Point<num> centre = await controller.toScreenLocation(target);
+        Rect rect = Rect.fromCenter(
+            center: Offset(centre.x.toDouble(), centre.y.toDouble()),
+            width: 24,
+            height: 24);
+        List features =
+            await controller.queryRenderedFeaturesInRect(rect, [_layer], null);
+        double away(feature) {
+          List at = feature['geometry']['coordinates'];
+          return (pow(at[0] - target.longitude, 2) +
+                  pow(at[1] - target.latitude, 2))
+              .toDouble();
+        }
+
+        if (features.isNotEmpty) {
+          place = features.reduce((a, b) => away(a) <= away(b) ? a : b)[
+              'properties']['label'];
+        }
+      } catch (e) {
+        developer.log('PlannerService.candidateAt(): ${e.toString()}',
+            name: 'error');
+      }
     }
+    placeUnderCrosshair.value = place;
+    return place;
   }
 }
 

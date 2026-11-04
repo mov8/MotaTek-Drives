@@ -127,7 +127,7 @@ flutter:
   assets:
     - assets/images/map.png
     - assets/images/MobileMarketing.png
-  #  - assets/images/aiaston.png
+    - assets/images/aiaston.png # Home's backdrop, with nothing published
     - assets/images/meeting.png
     - assets/images/message.png
   #  - assets/images/Cheddar_Gorge.png

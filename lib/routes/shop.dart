@@ -31,7 +31,7 @@ class ShopController {
   MdStyleSheet getStyle() => _shopState!._styleSheet;
 
   /// Web: puts the summary tiles back in the SideDrawer on returning to Shop
-  void fillSideDrawer() => _shopState?.sideBarItems();
+  void fillSideDrawer() => _shopState?.sideBarItems(force: true);
 
   /// The pages shown changed - logging in or out, or joining or leaving a
   /// club (ClubService)
@@ -53,6 +53,7 @@ class _ShopState extends State<Shop> {
   final List<Widget> _sideBarContents = [];
   int _index = 0;
   late Future<bool> _dataLoaded;
+  bool _sideDrawerLoaded = false;
 
   List<Map<String, dynamic>> _images = [];
 
@@ -212,6 +213,7 @@ main() {
       setState(() {
         _index = data['index'] ?? _index;
         mdData = data['data'] ?? '';
+        _backdrop = null; // what's being written, as it'll be published
         _styleSheet = data['style'] ?? _styleSheet;
         _images = data['images'] ?? _images;
       });
@@ -228,7 +230,7 @@ main() {
       _dataLoaded = _getShopData();
     });
     await _dataLoaded;
-    sideBarItems();
+    sideBarItems(force: true);
   }
 
   Widget _getPortraitBody() {
@@ -260,7 +262,8 @@ main() {
           color: DrivesColours.current.panel,
           child: _backdrop == null
               ? Padding(
-                  padding: EdgeInsets.fromLTRB(0, 0, 0, 5),
+                  // a margin from the drawer, as on the backdrop
+                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 5),
                   child: SingleChildScrollView(child: page),
                 )
               : ImageBackdrop(
@@ -310,10 +313,14 @@ main() {
     );
   }
 
-  void sideBarItems() async {
+  /// force refills it when returning to Shop - otherwise only the first
+  /// build fills it, as build() calls this on every rebuild, and each
+  /// rebuild put the summaries back over Edit Shop page's editor
+  void sideBarItems({bool force = false}) async {
     await _dataLoaded;
     // Even with no items - otherwise the last page's summaries stayed
-    if (kIsWeb && mounted) {
+    if (kIsWeb && mounted && (force || !_sideDrawerLoaded)) {
+      _sideDrawerLoaded = true;
       MapService().sideDrawerController!.open();
       MapService()
           .sideDrawerController!

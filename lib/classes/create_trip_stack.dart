@@ -219,7 +219,38 @@ class _CreateTripStackState extends State<CreateTripStack>
                       // The user's great road colour, like the route
                       ? colourList[Setup().goodRouteColour]
                       : Colors.black),
-            )
+            ),
+            // A place AI assist found, under the crosshair - Waypoint adds it
+            ValueListenableBuilder<String?>(
+              valueListenable: PlannerService().placeUnderCrosshair,
+              builder: (context, place, _) => place == null
+                  ? const SizedBox.shrink()
+                  : Positioned(
+                      top: MapService().mapMiddle.y.toDouble() + 32,
+                      left: 0,
+                      right: 0,
+                      child: IgnorePointer(
+                        child: Center(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: const [
+                                BoxShadow(color: Colors.black26, blurRadius: 4)
+                              ],
+                            ),
+                            child: Text(place,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.copyWith(color: Colors.black)),
+                          ),
+                        ),
+                      ),
+                    ),
+            ),
           ],
           // The position marker is a map layer - MapService().showLocation()
           // Speed while moving when tracking or following - PositionService

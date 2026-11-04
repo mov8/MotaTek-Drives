@@ -189,6 +189,12 @@ class MapService {
         duration: const Duration(seconds: 1));
   }
 
+  /// Puts a point under the crosshair - the middle of the whole map, drawer
+  /// or not - so the Status Bar says what's there and Waypoint adds it
+  void showUnderCrosshair(LatLng point) => controller?.animateCamera(
+      CameraUpdate.newLatLng(point),
+      duration: const Duration(seconds: 1));
+
   /// Switches the map page's mode - Published (1) or Explore (2) - once the
   /// map and its style are ready. They're the same page, so this is what
   /// tells them apart.
@@ -462,6 +468,7 @@ class MapService {
     if (![TripState.editing, TripState.manual].contains(trip.tripState)) {
       if (_hinting) statusBarController!.clear();
       _hinting = false;
+      PlannerService().placeUnderCrosshair.value = null;
       return;
     }
     List<Waypoint> waypoints =

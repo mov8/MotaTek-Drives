@@ -627,8 +627,15 @@ class CreateTripChips extends StatelessWidget {
         return;
 
       default:
-        // Keep the drawer's contents current, without opening it
-        updateControllers(items: BottomDrawerItems.trip);
+        // Keep the drawer's contents current, without opening it - but
+        // leave AI assist's panel: adding a place it found as a waypoint
+        // replaced it with the trip's points of interest
+        BottomDrawerItems? showing = kIsWeb
+            ? MapService().sideDrawerController?.content
+            : MapService().bottomDrawerController?.content;
+        if (showing != BottomDrawerItems.planner) {
+          updateControllers(items: BottomDrawerItems.trip);
+        }
         CurrentTripItem().tripActions = TripActions.none;
         onUpdate!(MyTripActions.none);
     }

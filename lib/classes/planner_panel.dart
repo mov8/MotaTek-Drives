@@ -535,7 +535,7 @@ class _PlannerPanelState extends State<PlannerPanel> {
       line(
           dot(10),
           'Small dots: other places AI assist found. Move the crosshair onto '
-          'one and the Status Bar says what it is - Waypoint adds it'),
+          'one and its name shows under the crosshair - Waypoint adds it'),
     ]);
   }
 
@@ -791,7 +791,7 @@ class _PlannerPanelState extends State<PlannerPanel> {
             TextButton.icon(
               icon: const Icon(Icons.center_focus_strong),
               label: const Text('Show on the map'),
-              onPressed: () => MapService().showInView(LatLng(
+              onPressed: () => MapService().showUnderCrosshair(LatLng(
                   (place['lat'] as num).toDouble(),
                   (place['lng'] as num).toDouble())),
             ),

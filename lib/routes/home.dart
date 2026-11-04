@@ -212,6 +212,7 @@ Drives helps you organise your club communications. It can act as a blog updatin
     try {
       setState(() {
         mdData = data['data'] ?? '';
+        _backdrop = null; // what's being written, as it'll be published
         _styleSheet = data['style'];
         _index = data['index'] ?? _index;
       });
@@ -268,7 +269,8 @@ Drives helps you organise your club communications. It can act as a blog updatin
           color: DrivesColours.current.panel,
           child: _backdrop == null
               ? Padding(
-                  padding: EdgeInsets.fromLTRB(0, 0, 0, 5),
+                  // a margin from the drawer, as on the backdrop
+                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 5),
                   child: SingleChildScrollView(child: page),
                 )
               : ImageBackdrop(
