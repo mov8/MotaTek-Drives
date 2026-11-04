@@ -70,6 +70,12 @@ class _LoginScreen extends State<LoginScreen> {
   User user = Setup().user;
 
   void _close([LoginState? state]) {
+    // Logged in by either button or the keyboard's Done: the app bars'
+    // account icon shows it, wherever the login screen was opened from
+    if (state == LoginState.login) {
+      MapService().persistentAppBarController?.refresh();
+      MapService().webAppBarController?.update();
+    }
     if (widget.onClose != null) {
       widget.onClose!();
     } else {
