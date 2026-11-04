@@ -16,6 +16,8 @@
   <!-- base href="./"-->
 
   <meta charset="UTF-8">
+  <!-- The app's code, 1.4MB, starts downloading now, alongside MapLibre -->
+  <link rel="preload" href="main.dart.js" as="script">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="description" content="A new Flutter project.">
 
@@ -53,12 +55,6 @@
   <title>drives</title>
   <link rel="manifest" href="manifest.json">
 
-  <script>
-    // The value below is injected by flutter build, do not touch.
-    var serviceWorkerVersion = null;
-  </script>
-  <!-- This script adds the flutter initialization JS code -->
-  <script src="flutter.js" defer=""></script>
   <!-- Push notifications - lib/services/push_web.dart uses it -->
   <script src="push.js"></script>
 
@@ -186,21 +182,11 @@
   
   
   
-  <script>
-    window.addEventListener('load', function(ev) {
-      // Download main.dart.js
-      _flutter.loader.loadEntrypoint({
-        serviceWorker: {
-          serviceWorkerVersion: serviceWorkerVersion,
-        },
-        onEntrypointLoaded: function(engineInitializer) {
-          engineInitializer.initializeEngine().then(function(appRunner) {
-            appRunner.runApp();
-          });
-        }
-      });
-    });
-  </script>
+  <!-- Starts the app, made by flutter build: it downloads the app's code and
+    Flutter's engine (CanvasKit) side by side. It used to wait for the page's
+    load event and then fetch the engine only after the app's code. After
+    MapLibre's script above, which the app needs. -->
+  <script src="flutter_bootstrap.js"></script>
 
 
 
