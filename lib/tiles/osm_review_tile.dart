@@ -179,7 +179,7 @@ class _OsmReviewTileState extends State<OsmReviewTile>
             Expanded(
               flex: 2,
               child: Icon(
-                IconData(widget.iconCodepoint, fontFamily: 'MaterialIcons'),
+                materialIcon(widget.iconCodepoint),
                 color: Colors.black,
                 size: 40,
               ),

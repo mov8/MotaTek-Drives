@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '/classes/classes.dart';
 import 'package:flutter/services.dart';
+import '/constants.dart' show materialIcon;
 
 class AutoCompleteAsyncController {
   _AutocompleteAsyncState? _autocompleteAsyncState;
@@ -296,10 +297,7 @@ class _AutocompletePlace extends State<AutocompletePlace> {
                       style:
                           TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   subtitle: Text('${option.street} ${option.town}'),
-                  leading: Icon(
-                      IconData(option.iconData, //option.iconData,
-                          fontFamily: 'MaterialIcons'),
-                      size: 30), // Icon(Icons
+                  leading: Icon(materialIcon(option.iconData), size: 30),
                   onTap: () {
                     onSelected(option);
                   },

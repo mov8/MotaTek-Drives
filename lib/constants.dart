@@ -904,6 +904,48 @@ const Map<String, int> iconMap = {
   "hamlet": 0xe19b
 };
 
+/// The Material icon for a code point from poiTypes or iconMap. Each is a
+/// constant here so that release builds can drop the font's other icons
+/// (tree shaking): an IconData made from a number as the app runs stops a
+/// release build unless it's told --no-tree-shake-icons, which flutter run
+/// (and so VS Code) can't be.
+const Map<int, IconData> _materialIcons = {
+  0xe040: IconData(0xe040, fontFamily: 'MaterialIcons'),
+  0xe059: IconData(0xe059, fontFamily: 'MaterialIcons'),
+  0xe0ad: IconData(0xe0ad, fontFamily: 'MaterialIcons'),
+  0xe0af: IconData(0xe0af, fontFamily: 'MaterialIcons'),
+  0xe19b: IconData(0xe19b, fontFamily: 'MaterialIcons'),
+  0xe1d7: IconData(0xe1d7, fontFamily: 'MaterialIcons'),
+  0xe25a: IconData(0xe25a, fontFamily: 'MaterialIcons'),
+  0xe317: IconData(0xe317, fontFamily: 'MaterialIcons'),
+  0xe331: IconData(0xe331, fontFamily: 'MaterialIcons'),
+  0xe38c: IconData(0xe38c, fontFamily: 'MaterialIcons'),
+  0xe38d: IconData(0xe38d, fontFamily: 'MaterialIcons'),
+  0xe391: IconData(0xe391, fontFamily: 'MaterialIcons'),
+  0xe39d: IconData(0xe39d, fontFamily: 'MaterialIcons'),
+  0xe3a8: IconData(0xe3a8, fontFamily: 'MaterialIcons'),
+  0xe410: IconData(0xe410, fontFamily: 'MaterialIcons'),
+  0xe414: IconData(0xe414, fontFamily: 'MaterialIcons'),
+  0xe41b: IconData(0xe41b, fontFamily: 'MaterialIcons'),
+  0xe45f: IconData(0xe45f, fontFamily: 'MaterialIcons'),
+  0xe478: IconData(0xe478, fontFamily: 'MaterialIcons'),
+  0xe4c7: IconData(0xe4c7, fontFamily: 'MaterialIcons'),
+  0xe532: IconData(0xe532, fontFamily: 'MaterialIcons'),
+  0xe5e4: IconData(0xe5e4, fontFamily: 'MaterialIcons'),
+  0xe5f1: IconData(0xe5f1, fontFamily: 'MaterialIcons'),
+  0xe671: IconData(0xe671, fontFamily: 'MaterialIcons'),
+  0xe696: IconData(0xe696, fontFamily: 'MaterialIcons'),
+  0xe6dc: IconData(0xe6dc, fontFamily: 'MaterialIcons'),
+  0xe939: IconData(0xe939, fontFamily: 'MaterialIcons'),
+  0xea8e: IconData(0xea8e, fontFamily: 'MaterialIcons'),
+  0xee48: IconData(0xee48, fontFamily: 'MaterialIcons'),
+  0xee9e: IconData(0xee9e, fontFamily: 'MaterialIcons'),
+  0xf02e5: IconData(0xf02e5, fontFamily: 'MaterialIcons'),
+};
+
+IconData materialIcon(int codePoint) =>
+    _materialIcons[codePoint] ?? Icons.place;
+
 const Map<String, String> amenitiesMap = {
   "pubs": "'pub', 'bar', 'biergarten'",
   "restaurants": "'restaurant', 'cafe', 'fast_food', 'ice_cream', 'food_court'",

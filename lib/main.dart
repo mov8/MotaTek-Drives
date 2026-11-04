@@ -60,9 +60,16 @@ class MyApp extends StatelessWidget {
 ///   3 context.pushReplacement('/screen') for one-off transition ie. from login screen to home screen
 /// docker exec root-api-1 python -m api.db.schema migrate
 
+/// A link to Explore - .../#/explore, the website's "Plan a drive". Published
+/// and Explore are one page (both branches' route is /map: two pages would
+/// each want the one map, and the second showed none), so the link goes to
+/// /map and the page is set up in Explore's mode.
+final bool exploreLink = kIsWeb && Uri.base.fragment.startsWith('/explore');
+
 final GoRouter appRouter = GoRouter(
   navigatorKey: rootNavigatorKey,
   initialLocation: '/home',
+  redirect: (context, state) => state.uri.path == '/explore' ? '/map' : null,
   routes: [
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) {
@@ -95,7 +102,7 @@ final GoRouter appRouter = GoRouter(
           navigatorKey: mapBranchKey,
           routes: [
             GoRoute(
-              path: '/explore',
+              path: '/map',
               builder: (context, state) => const CreateTrip(mapType: 'explore'),
             ),
           ],
@@ -265,7 +272,8 @@ class _BaseShellScreen extends State<BaseShellScreen> {
         statusBarController: MapService().statusBarController,
         homeController: MapService().homeController,
         onSelect: _webSelect,
-        selected: widget.navigationShell.currentIndex,
+        // the page showing - it's rebuilt as the page changes
+        selected: NavigationService().page,
       ),
       body: Stack(
         children: [
@@ -358,6 +366,12 @@ class _BaseShellScreen extends State<BaseShellScreen> {
         });
   }
 
+  /// The page the app opened on - Explore from its link, which lands on
+  /// Published's route, the map page they share
+  int get _startPage => exploreLink && widget.navigationShell.currentIndex == 1
+      ? 2
+      : widget.navigationShell.currentIndex;
+
   /// initialise() loads the MapLibre style from the api, loads the data into Setup() using
   /// Setup().loaded, and initialises the Hive database, and initialises the web specific
   /// UI starting conditions through controllers. All this should happen when the
@@ -391,8 +405,8 @@ class _BaseShellScreen extends State<BaseShellScreen> {
     // and it's Home that takes the splash screen away
     if (kIsWeb && widget.navigationShell.currentIndex != 0) {
       FlutterNativeSplash.remove();
-      WidgetsBinding.instance.addPostFrameCallback(
-          (_) => _webSelect(widget.navigationShell.currentIndex));
+      int page = _startPage;
+      WidgetsBinding.instance.addPostFrameCallback((_) => _webSelect(page));
     }
     return true;
   }

@@ -268,8 +268,8 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
             },
             menuHeight: 200,
             leadingIcon: Icon(
-              IconData(poiTypes[widget.pointOfInterest.type]['iconMaterial'],
-                  fontFamily: 'MaterialIcons'),
+              materialIcon(
+                  poiTypes[widget.pointOfInterest.type]['iconMaterial']),
               color: Color(poiTypes[17]['colourMaterial']),
             ),
           ),
@@ -455,8 +455,8 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
 
   IconData getTypeIcon() {
     int type = _typeName.isEmpty ? 15 : widget.pointOfInterest.type;
-    setState(() => _typeIcon = IconData(poiTypes.toList()[type]['iconMaterial'],
-        fontFamily: 'MaterialIcons'));
+    setState(() =>
+        _typeIcon = materialIcon(poiTypes.toList()[type]['iconMaterial']));
     return _typeIcon;
   }
 
@@ -613,8 +613,7 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
               child: Row(
                 children: [
                   Icon(
-                    // Icons.access_alarms
-                    IconData(e['iconMaterial'], fontFamily: 'MaterialIcons'),
+                    materialIcon(e['iconMaterial']),
                     color: Color(e['colourMaterial']),
                   ),
                   Text(
@@ -646,7 +645,7 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
               value: e['id'].toString(),
               label: e['name'],
               leadingIcon: Icon(
-                IconData(e['iconMaterial'], fontFamily: 'MaterialIcons'),
+                materialIcon(e['iconMaterial']),
                 color: Color(e['colourMaterial']),
               ),
             ),
