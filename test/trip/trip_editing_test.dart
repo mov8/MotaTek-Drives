@@ -90,6 +90,26 @@ void main() {
       expect(markerTypes(trip), [17, 12, 18]);
     });
 
+    test('Extend both ends makes a round trip from the new point',
+        () async {
+      // a round trip: Staines, Egham, Windsor and back to Staines
+      await trip.addWaypoint(point: staines);
+      await trip.addWaypoint(point: egham);
+      await trip.addWaypoint(point: windsor);
+      await trip.addWaypoint(point: staines, revisit: true);
+      int routed = router.requests.length;
+      int history = trip.backBuffer.length;
+
+      await trip.addWaypoint(point: laleham, bothEnds: true);
+
+      expect(waypointsOf(trip), [laleham, staines, egham, windsor, staines, laleham]);
+      expect(trip.routes.last.waypoints.last.revisit, isTrue);
+      expect(markerTypes(trip).first, 17); // the new Start
+      // one change: routed once, undone in one step
+      expect(router.requests.length, routed + 1);
+      expect(trip.backBuffer.length, history + 1);
+    });
+
     test('a revisit goes on the end, flagged as a revisit', () async {
       await trip.addWaypoint(point: staines);
       await trip.addWaypoint(point: egham);

@@ -457,7 +457,14 @@ class _CreateTripState extends State<CreateTrip> with TickerProviderStateMixin {
     _tripArguments ??=
         TripArguments(activeChip: 2, appState: AppState.createTrip);
     return Stack(children: [
-      KeyboardSteadyMap(child: MapService().mlMap!),
+      KeyboardSteadyMap(
+        // On the web the map's cursor is Flutter's - see web/index.html.
+        // (Inside: KeyboardSteadyMap is Positioned, so must be the Stack's)
+        child: MouseRegion(
+          cursor: SystemMouseCursors.grab,
+          child: MapService().mlMap!,
+        ),
+      ),
       CreateTripStack(controller: MapService().createTripStackController)
     ]);
   }

@@ -3,32 +3,58 @@ import 'package:url_launcher/url_launcher.dart';
 import '/constants.dart';
 import '/services/services.dart';
 
-/// The ? on each main page: an overview of that page, from the documentation
-/// on the website (urlDocs) - one page each, named as the Hugo docs are
+/// The ? on each main page: what the page is for - its summary from the
+/// documentation on the website (HelpService) - with its full help there,
+/// one docs page each, named as the Hugo docs are (HelpService.mainPages)
 class HelpButton extends StatelessWidget {
   final double size;
   const HelpButton({super.key, this.size = 30});
 
-  // the main pages, in NavigationService().page order
-  static const List<String> _pages = [
-    'home',
-    'great_drives', // Published
-    'my_trip', // Explore
-    'my_drives', // Favourites
-    'shop',
-    'messages',
-  ];
-
   @override
   Widget build(BuildContext context) {
-    return IconButton(
-      tooltip: 'Help with this page',
-      icon: Icon(Icons.help_outline, size: size, color: Colors.white),
-      onPressed: () {
-        String page = _pages.elementAtOrNull(NavigationService().page) ?? '';
-        launchUrl(Uri.parse('$urlDocs${page.isEmpty ? '' : '$page/'}'),
-            mode: LaunchMode.externalApplication);
-      },
+    return HelpTip(
+      helpKey: 'bar.help',
+      child: IconButton(
+        icon: Icon(Icons.help_outline, size: size, color: Colors.white),
+        onPressed: () => _summary(context),
+      ),
     );
   }
+
+  void _summary(BuildContext context) {
+    String name =
+        HelpService.mainPages.elementAtOrNull(NavigationService().page) ?? '';
+    var page = HelpService().page(name);
+    Uri full =
+        page?.url ?? Uri.parse('$urlDocs${name.isEmpty ? '' : '$name/'}');
+    if (page == null || page.summary.isEmpty) {
+      _open(full); // no summary to show - the help itself
+      return;
+    }
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(page.title),
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480),
+          child: Text(page.summary, style: const TextStyle(fontSize: 16)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _open(full);
+            },
+            child: const Text('Read the full help'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _open(Uri url) => launchUrl(url, mode: LaunchMode.externalApplication);
 }

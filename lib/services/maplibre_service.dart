@@ -191,9 +191,9 @@ class MapService {
 
   /// Puts a point under the crosshair - the middle of the whole map, drawer
   /// or not - so the Status Bar says what's there and Waypoint adds it
-  void showUnderCrosshair(LatLng point) => controller?.animateCamera(
-      CameraUpdate.newLatLng(point),
-      duration: const Duration(seconds: 1));
+  void showUnderCrosshair(LatLng point) =>
+      controller?.animateCamera(CameraUpdate.newLatLng(point),
+          duration: const Duration(seconds: 1));
 
   /// Switches the map page's mode - Published (1) or Explore (2) - once the
   /// map and its style are ready. They're the same page, so this is what
@@ -368,7 +368,7 @@ class MapService {
 
           var filter = fenceFilter(bounds: bounds, proportion: 0.6);
           controller!.setFilter("good_roads_highlighted", filter);
-          controller!.setFilter("route-marker-layer", filter);
+          controller!.setFilter("route-marker-layer", shieldFilter(filter));
 
           /// Filter waypoints for TripStates manual, editing or goodRoadStart but only in Explore mode
           /// which is set when _CreateTripState is built
@@ -413,6 +413,7 @@ class MapService {
   ///   WaypointState.remove       crosshair is over an existing waypoint
   ///   WaypointState.extendStart  crosshair is beyond the start
   ///   WaypointState.extendEnd    crosshair is beyond the end
+  ///   WaypointState.extendBoth   crosshair is beyond both ends of a round trip
   ///   WaypointState.insert       anywhere else on a route of 2+ waypoints
   ///   WaypointState.none         fewer than 2 waypoints
   ///
@@ -431,8 +432,9 @@ class MapService {
   ///                     distance(end, last but one)
   /// An end is considered when it's the waypoint nearest the crosshair, or
   /// when the other end is nearest and it's next nearest. On a circular route
-  /// both ends are close together, so checking only the nearest would let the
-  /// start always win - if both tests pass the nearer end decides.
+  /// both ends are close together - often the same place - so checking only
+  /// the nearest would let the start always win. If both tests pass it's
+  /// WaypointState.extendBoth, and the user chooses: start, end or both.
   /// It won't be right every time, but undo lets the user try again.
   ///
 
@@ -493,6 +495,8 @@ class MapService {
         'Extend the start - a new first waypoint here',
       WaypointState.extendEnd when trip.tripState == TripState.editing =>
         'Extend the end - a new last waypoint here',
+      WaypointState.extendBoth when trip.tripState == TripState.editing =>
+        'Extend the start, the end, or both - from and back to here',
       _ => waypoints.isEmpty
           ? 'Waypoint - the start here'
           : 'Waypoint - waypoint ${waypoints.where((w) => !w.revisit).length + 1} here',
@@ -542,10 +546,9 @@ class MapService {
                   endXY: waypoints[last - 1].point);
 
       if (beyondStart && beyondEnd) {
-        // Circular route - the nearer end decides
-        state = nearest[0] == last
-            ? WaypointState.extendEnd
-            : WaypointState.extendStart;
+        // A round trip - the ends are close together, often the same place,
+        // so either could be meant: the chips offer start, end and both
+        state = WaypointState.extendBoth;
       } else if (beyondStart) {
         state = WaypointState.extendStart;
       } else if (beyondEnd) {
@@ -802,7 +805,7 @@ class MapService {
       } else if (saved != null && await saved.exists()) {
         style = await saved.readAsString(); // offline - the last one fetched
       }
-      _styleString = waypointsAbovePointsOfInterest(style);
+      _styleString = appStyle(style);
     } catch (e) {
       developer.log('Error getting style from api: ${e.toString()}',
           name: 'error');
@@ -920,9 +923,20 @@ class MapService {
   _tripsOnTap(tap) async {
     var foundFeatures;
     try {
-      foundFeatures = await controller!
-          .queryRenderedFeatures(tap, ["route-marker-layer"], null);
-      // A trip's label - its trip is in its properties
+      // A trip's label, or its route - its trip is in its properties
+      foundFeatures = await controller!.queryRenderedFeatures(
+          tap, ["route-marker-layer", "planned_routes_highlighted"], null);
+      if (foundFeatures.isEmpty) {
+        // A route is a few pixels wide - a near miss counts
+        Point p = tap as Point;
+        foundFeatures = await controller!.queryRenderedFeaturesInRect(
+            Rect.fromCenter(
+                center: Offset(p.x.toDouble(), p.y.toDouble()),
+                width: 24,
+                height: 24),
+            ["route-marker-layer", "planned_routes_highlighted"],
+            null);
+      }
       if (foundFeatures.isNotEmpty) {
         String uri = '${foundFeatures.first['properties']?['uri'] ?? ''}';
         if (kIsWeb) {
@@ -931,8 +945,10 @@ class MapService {
           bottomDrawerController?.showTrip(uri);
         }
         // Keep the trip in view beside the drawer that's just opened - the
-        // label's first point is the start of the trip
-        List points = foundFeatures.first['geometry']?['coordinates'] ?? [];
+        // label is at the start of the trip; a tapped route stays where it is
+        List points = foundFeatures.first['geometry']?['type'] == 'Point'
+            ? [foundFeatures.first['geometry']['coordinates']]
+            : const [];
         if (points.isNotEmpty && points.first is List) {
           // After the BottomDrawer has slid open (half a second), so its
           // height is the open height
@@ -992,7 +1008,7 @@ class MapService {
           await _tripRequest!.update(bounds: bounds, zoom: zoom);
         }
         var filter = fenceFilter(bounds: bounds, proportion: 0.6);
-        controller!.setFilter("route-marker-layer", filter);
+        controller!.setFilter("route-marker-layer", shieldFilter(filter));
         controller!.setFilter("good_roads_highlighted", filter);
         controller!.setFilter("roads_highlighted", filter);
         await controller!.animateCamera(CameraUpdate.zoomBy(0.000001));
@@ -1011,8 +1027,26 @@ class MapService {
   /// Empties the published trips and every layer of the current trip -
   /// before only the route and waypoints were cleared, so its great roads
   /// and points of interest showed over the published trips
+  /// A published trip opened on Published: its waypoints and points of
+  /// interest on the map (publishedTripLayers()) - or, with none, none
+  Future<void> showPublishedTrip(MyTripItem? trip) async {
+    try {
+      await controller?.setGeoJsonSource(
+          publishedTripSource,
+          trip == null
+              ? {"type": "FeatureCollection", "features": []}
+              : publishedTripToGeoJson(trip));
+    } catch (e) {
+      developer.log('showPublishedTrip(): ${e.toString()}', name: 'error');
+    }
+  }
+
   Future<void> clearGeoJson() async {
-    for (String source in ['published-data', ...mapSources.keys]) {
+    for (String source in [
+      'published-data',
+      publishedTripSource,
+      ...mapSources.keys
+    ]) {
       try {
         await controller!.setGeoJsonSource(
             source, {"type": "FeatureCollection", "features": []});

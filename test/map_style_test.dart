@@ -16,9 +16,8 @@ void main() {
         ],
       });
 
-  List<String> order(String style) => [
-        for (Map layer in jsonDecode(style)['layers']) layer['id'] as String
-      ];
+  List<String> order(String style) =>
+      [for (Map layer in jsonDecode(style)['layers']) layer['id'] as String];
 
   test('waypoint markers are drawn over the points of interest', () {
     String fixed = waypointsAbovePointsOfInterest(style([
@@ -64,6 +63,94 @@ void main() {
   test("a style that isn't JSON is passed on as it is", () {
     expect(waypointsAbovePointsOfInterest(''), '');
     expect(waypointsAbovePointsOfInterest('not json'), 'not json');
+  });
+
+  // Published (testing, 2026-11-05)
+  Map<String, dynamic> server() => {
+        'version': 8,
+        'sources': {
+          'motatek_uk': {'type': 'vector'},
+          'published-data': {'type': 'geojson'},
+        },
+        'layers': [
+          {'id': 'roads', 'type': 'line', 'source': 'motatek_uk'},
+          {
+            'id': 'planned_routes_highlighted',
+            'type': 'line',
+            'source': 'published-data',
+            'layout': {'visibility': 'visible'}
+          },
+          {
+            'id': 'route-marker-layer',
+            'type': 'symbol',
+            'source': 'published-data'
+          },
+          {
+            'id': 'point-of-interest-shield-layer',
+            'type': 'symbol',
+            'source': 'point-of-interest-data',
+            'minzoom': 8
+          },
+          {
+            'id': 'way-marker-layer',
+            'type': 'symbol',
+            'source': 'waypoint-data',
+            'minzoom': 8
+          },
+        ],
+      };
+  Map layer(Map style, String id) =>
+      (style['layers'] as List).firstWhere((l) => l['id'] == id);
+
+  test("trips' lines have round ends; the map's own roads are left alone", () {
+    Map fixed = jsonDecode(appStyle(jsonEncode(server())));
+    expect(layer(fixed, 'planned_routes_highlighted')['layout'],
+        {'visibility': 'visible', 'line-cap': 'round', 'line-join': 'round'});
+    expect(layer(fixed, 'roads')['layout'], isNull);
+  });
+
+  test("only a trip's shield is labelled, not its line", () {
+    Map fixed = jsonDecode(appStyle(jsonEncode(server())));
+    expect(layer(fixed, 'route-marker-layer')['filter'], [
+      '==',
+      ['get', 'group'],
+      'shield'
+    ]);
+    expect(shieldFilter(['all'])[1], [
+      '==',
+      ['get', 'group'],
+      'shield'
+    ]);
+  });
+
+  test(
+      "an opened published trip has its own source, and its waypoints show "
+      "from zoom 10", () {
+    Map fixed = jsonDecode(appStyle(jsonEncode(server())));
+    expect(fixed['sources'][publishedTripSource]['type'], 'geojson');
+    Map waypoints = layer(fixed, publishedTripWaypoints);
+    expect(waypoints['source'], publishedTripSource);
+    expect(waypoints['minzoom'], 10);
+    expect(layer(fixed, publishedTripPointsOfInterest)['source'],
+        publishedTripSource);
+    // Explore's own layers are untouched
+    expect(layer(fixed, 'way-marker-layer')['source'], 'waypoint-data');
+    expect(order(jsonEncode(fixed)).indexOf(publishedTripWaypoints),
+        greaterThan(order(jsonEncode(fixed)).indexOf('route-marker-layer')));
+  });
+
+  test("a published trip's waypoints are numbered; a revisit has no marker",
+      () {
+    MyTripItem trip = MyTripItem(title: 't', subTitle: '')
+      ..routes = [
+        Route(waypoints: [
+          Waypoint(point: const Point(0, 0)),
+          Waypoint(point: const Point(1, 0)),
+          Waypoint(point: const Point(0, 0), revisit: true),
+        ])
+      ];
+    List features = publishedTripToGeoJson(trip)['features'];
+    expect([for (Map f in features) f['properties']['number']], [1, 2]);
   });
 
   // The Status Bar names waypoints by the numbers on their markers

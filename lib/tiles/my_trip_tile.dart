@@ -47,6 +47,7 @@ class MyTripTile extends StatefulWidget {
 
 class _MyTripTileState extends State<MyTripTile> {
   Uint8List imageBytes = Uint8List(0);
+  bool _publishing = false; // the Publish button waits while it's sent
   @override
   void initState() {
     super.initState();
@@ -255,7 +256,9 @@ class _MyTripTileState extends State<MyTripTile> {
                     alignment: Alignment.topLeft,
                     child: Text(
                       widget.myTripItem.body,
-                      style: textStyle(context: context, color: Colors.black),
+                      // a little larger than body text - easier to read
+                      style: textStyle(
+                          context: context, color: Colors.black, size: 1),
                       textAlign: TextAlign.left,
                     ),
                   ),
@@ -314,25 +317,27 @@ class _MyTripTileState extends State<MyTripTile> {
                         flex: 1,
                         child: Padding(
                           padding: EdgeInsets.fromLTRB(webPadding, 0, 5, 10),
-                          child: TextButton(
-                            onPressed: () async => loadTrip(widget.index),
-                            child: Column(
-                              children: [
-                                Icon(
-                                  Icons.file_open_outlined,
-                                  size: 30,
+                          child: HelpTip(
+                              helpKey: 'trip.load',
+                              child: TextButton(
+                                onPressed: () async => loadTrip(widget.index),
+                                child: Column(
+                                  children: [
+                                    Icon(
+                                      Icons.file_open_outlined,
+                                      size: 30,
+                                    ),
+                                    Text(
+                                      'Load Trip',
+                                      style: textStyle(
+                                        context: context,
+                                        color: Colors.black,
+                                        size: 3,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                Text(
-                                  'Load Trip',
-                                  style: textStyle(
-                                    context: context,
-                                    color: Colors.black,
-                                    size: 3,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
+                              )),
                         ),
                       ),
                       Expanded(
@@ -340,65 +345,84 @@ class _MyTripTileState extends State<MyTripTile> {
                         child: Padding(
                           padding: EdgeInsets.fromLTRB(webPadding, 0, 5, 10),
                           child: Setup().jwt.isNotEmpty
-                              ? TextButton(
-                                  onPressed: () async => publishTrip(),
-                                  child: Column(
-                                    children: [
-                                      Icon(
-                                        Icons.cloud_upload_outlined,
-                                        size: 30,
-                                      ),
-                                      Text(
-                                        'Publish Trip',
-                                        style: labelStyle(
-                                          context: context,
-                                          color: Colors.black,
-                                          size: 3,
+                              ? HelpTip(
+                                  helpKey: 'trip.publish',
+                                  child: TextButton(
+                                    onPressed: _publishing
+                                        ? null
+                                        : () async => publishTrip(),
+                                    child: Column(
+                                      children: [
+                                        _publishing
+                                            ? const SizedBox(
+                                                width: 30,
+                                                height: 30,
+                                                child: Padding(
+                                                  padding: EdgeInsets.all(4),
+                                                  child:
+                                                      CircularProgressIndicator(
+                                                          strokeWidth: 3),
+                                                ),
+                                              )
+                                            : Icon(
+                                                Icons.cloud_upload_outlined,
+                                                size: 30,
+                                              ),
+                                        Text(
+                                          'Publish Trip',
+                                          style: labelStyle(
+                                            context: context,
+                                            color: Colors.black,
+                                            size: 3,
+                                          ),
                                         ),
-                                      ),
-                                    ],
-                                  ),
-                                )
-                              : TextButton(
-                                  onPressed: () async => synchroniseTrip(),
-                                  child: Column(
-                                    children: [
-                                      Icon(
-                                        Icons.import_export_outlined,
-                                        size: 30,
-                                      ),
-                                      Text(
-                                        'Synchronise Trip',
-                                        style: labelStyle(
-                                          context: context,
-                                          color: Colors.black,
-                                          size: 3,
+                                      ],
+                                    ),
+                                  ))
+                              : HelpTip(
+                                  helpKey: 'trip.synchronise',
+                                  child: TextButton(
+                                    onPressed: () async => synchroniseTrip(),
+                                    child: Column(
+                                      children: [
+                                        Icon(
+                                          Icons.import_export_outlined,
+                                          size: 30,
                                         ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
+                                        Text(
+                                          'Synchronise Trip',
+                                          style: labelStyle(
+                                            context: context,
+                                            color: Colors.black,
+                                            size: 3,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  )),
                         ),
                       ),
                       Expanded(
                         flex: 1,
                         child: Padding(
                           padding: EdgeInsets.fromLTRB(webPadding, 0, 5, 10),
-                          child: TextButton(
-                            onPressed: () => deleteTrip(widget.index),
-                            child: Column(
-                              children: [
-                                Icon(Icons.delete_forever, size: 30),
-                                Text(
-                                  'Delete Trip',
-                                  style: labelStyle(
-                                      context: context,
-                                      color: Colors.black,
-                                      size: 3),
-                                )
-                              ],
-                            ),
-                          ),
+                          child: HelpTip(
+                              helpKey: 'trip.delete',
+                              child: TextButton(
+                                onPressed: () => deleteTrip(widget.index),
+                                child: Column(
+                                  children: [
+                                    Icon(Icons.delete_forever, size: 30),
+                                    Text(
+                                      'Delete Trip',
+                                      style: labelStyle(
+                                          context: context,
+                                          color: Colors.black,
+                                          size: 3),
+                                    )
+                                  ],
+                                ),
+                              )),
                         ),
                       ),
                     ]),
@@ -513,13 +537,55 @@ class _MyTripTileState extends State<MyTripTile> {
   /// both the Web and Android version. The issue is likely to be how to
   /// handle images - Android is simple but the Web may be problematic.
 
+  /// Publishes the trip, and says whether it worked - the API's answers are
+  /// in its publish_trip() (api/v1/drive.py)
   Future<void> publishTrip() async {
+    setState(() => _publishing = true);
+    dynamic status;
     try {
-      await publish(widget.myTripItem);
+      status = await publish(widget.myTripItem);
     } catch (e) {
       developer.log('Error in my_trip_tile.dart publishTrip()', name: 'error');
     }
-    return;
+    if (!mounted) return;
+    setState(() => _publishing = false);
+    String name = widget.myTripItem.title.isEmpty
+        ? 'Your trip'
+        : '"${widget.myTripItem.title}"';
+    var (String title, String message) = switch (status) {
+      200 => (
+          'Published',
+          '$name is published - everyone can find it on the Published page.'
+        ),
+      403 => (
+          'Not published',
+          "This trip was published by someone else, so it can't be "
+              'published as yours.'
+        ),
+      408 => (
+          'Not published',
+          'Your login has run out. Log in again, then publish the trip.'
+        ),
+      400 => ('Not published', 'The trip has no route to publish.'),
+      _ => (
+          'Not published',
+          "Drives couldn't reach its server. Check your connection and try "
+              'again.'
+        ),
+    };
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text(message, style: const TextStyle(fontSize: 16)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 
   /// For users who haven't registered - they can't publish, but can pass

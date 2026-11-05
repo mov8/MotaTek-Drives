@@ -1216,24 +1216,6 @@ dynamic getPointsOfInterestGeoJson(
   return {};
 }
 
-dynamic getTripDetails({required String uuid}) async {
-  Uri uri = Uri.parse('$urlDrive/details/$uuid');
-  http.Response response = await getWebData(uri: uri);
-  var detail;
-  if ([200, 201].contains(response.statusCode)) {
-    try {
-      detail = jsonDecode(response.body);
-    } catch (e) {
-      debugPrint('error decoding json: ${e.toString()}');
-    }
-  } else {
-    developer.log(
-        'Error WebHelper getTripDetails() http error trying to fetch trip details status code: ${response.statusCode}',
-        name: 'error');
-  }
-  return detail;
-}
-
 Future<List<Map<String, dynamic>>> getMarkdownItems(
     {required String type}) async {
   String url = type == 'home' ? urlHomeItem : urlShopItem;

@@ -6,6 +6,7 @@ export '../helpers/image_helpers.dart';
 export 'club_service.dart';
 export 'console_service.dart';
 export 'group_drive_service.dart';
+export 'help_service.dart';
 export 'maplibre_service.dart';
 export 'markdown_service.dart';
 export 'navigation_service.dart';

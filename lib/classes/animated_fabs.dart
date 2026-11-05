@@ -33,7 +33,6 @@ class PlaceFinder extends StatefulWidget {
 
 class _PlaceFinderState extends State<PlaceFinder> {
   final List<Place> _places = [];
-  bool _expanded = false;
   double _width = 0;
   double _height = 0;
   @override
@@ -60,74 +59,75 @@ class _PlaceFinderState extends State<PlaceFinder> {
                 spreadRadius: 0)
           ]),
       curve: Curves.fastOutSlowIn,
-      onEnd: () => setState(() => _expanded = _width > _height),
-      child: _expanded
-          ? Row(
-              children: [
-                SizedBox(
-                  width: _width - _height,
-                  child: Padding(
-                    padding: EdgeInsets.fromLTRB(20, 5, 2, 5),
-                    child: AutocompletePlace(
-                      options: _places,
-                      optionsMaxHeight: 100,
-                      searchLength: 3,
-                      style: textStyle(context: context, color: Colors.black),
-                      decoration: InputDecoration(
-                        filled: true,
-                        fillColor: Colors.white,
-                        border: _width > _height ? OutlineInputBorder() : null,
-                        hintText: 'Enter place name...',
+      // The text box shows once the bar is wide enough for it - waiting for
+      // onEnd left the bar open and empty on the web, until clicked again
+      child: LayoutBuilder(
+        builder: (context, box) => _width > _height &&
+                box.maxWidth > _height * 3
+            ? Row(
+                children: [
+                  SizedBox(
+                    width: box.maxWidth - _height,
+                    child: Padding(
+                      padding: EdgeInsets.fromLTRB(20, 5, 2, 5),
+                      child: AutocompletePlace(
+                        options: _places,
+                        optionsMaxHeight: 100,
+                        searchLength: 3,
+                        style: textStyle(context: context, color: Colors.black),
+                        decoration: InputDecoration(
+                          filled: true,
+                          fillColor: Colors.white,
+                          border:
+                              _width > _height ? OutlineInputBorder() : null,
+                          hintText: 'Enter place name...',
+                        ),
+                        keyboardType: TextInputType.text,
+                        onSelect: (chosen) =>
+                            widget.onSelect!(LatLng(chosen.lat, chosen.lng)),
+                        onChange: (text) => (debugPrint('onChange: $text')),
+                        onUpdateOptionsRequest: (query) {
+                          debugPrint('Query: $query');
+                          getDropdownItems(query);
+                        },
                       ),
-                      keyboardType: TextInputType.text,
-                      onSelect: (chosen) =>
-                          widget.onSelect!(LatLng(chosen.lat, chosen.lng)),
-                      onChange: (text) => (debugPrint('onChange: $text')),
-                      onUpdateOptionsRequest: (query) {
-                        debugPrint('Query: $query');
-                        getDropdownItems(query);
-                      },
                     ),
                   ),
-                ),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: Padding(
-                    padding: EdgeInsets.fromLTRB(4, 4, 0, 0),
-                    child: IconButton(
-                      onPressed: () {
-                        setState(() => _width = _height);
-                        _expanded = false;
-                      },
-                      icon: Icon(
-                          _width > _height
-                              ? Icons.search_off_outlined
-                              : Icons.search_outlined,
-                          size: _height / 2,
-                          color: Colors.white),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Padding(
+                      padding: EdgeInsets.fromLTRB(4, 4, 0, 0),
+                      child: IconButton(
+                        onPressed: () => setState(() => _width = _height),
+                        icon: Icon(
+                            _width > _height
+                                ? Icons.search_off_outlined
+                                : Icons.search_outlined,
+                            size: _height / 2,
+                            color: Colors.white),
+                      ),
                     ),
                   ),
-                ),
-              ],
-            )
-          : Align(
-              alignment: Alignment.centerRight,
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(0, 0, 4, 0),
-                child: IconButton(
-                  onPressed: () {
-                    setState(() {
-                      _expanded = false;
-                      _width = kIsWeb
-                          ? MediaQuery.of(context).size.width * .4
-                          : MediaQuery.of(context).size.width - 40;
-                    });
-                  },
-                  icon: Icon(Icons.search,
-                      size: _height / 2, color: Colors.white),
+                ],
+              )
+            : Align(
+                alignment: Alignment.centerRight,
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(0, 0, 4, 0),
+                  child: IconButton(
+                    onPressed: () {
+                      setState(() {
+                        _width = kIsWeb
+                            ? MediaQuery.of(context).size.width * .4
+                            : MediaQuery.of(context).size.width - 40;
+                      });
+                    },
+                    icon: Icon(Icons.search,
+                        size: _height / 2, color: Colors.white),
+                  ),
                 ),
               ),
-            ),
+      ),
     );
   }
 

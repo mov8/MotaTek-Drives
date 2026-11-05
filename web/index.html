@@ -40,6 +40,18 @@
   <!-- Latest version that works v5.24.0 - v6.0.0 causes map to hang  -->
   <link href="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.css" rel="stylesheet">
   <script src="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.js"></script>
+  <style>
+    /* The buttons Flutter draws over the map aren't in the page, so the
+       browser took the cursor from the map underneath - always the grab
+       hand. The map's canvas takes Flutter's cursor instead: the map asks
+       for the grab hand itself (create_trip.dart), the buttons for the
+       pointing hand. The canvas's own cursor - a waypoint being dragged -
+       is set on it directly, so still wins. */
+    .maplibregl-canvas-container.maplibregl-interactive,
+    .maplibregl-canvas-container.maplibregl-interactive:active {
+      cursor: inherit;
+    }
+  </style>
 
   <!-- 
     TODO: Self-Hosting (The "Ultimate" Reliability)

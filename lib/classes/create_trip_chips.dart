@@ -86,6 +86,7 @@ enum TripChip {
   insertWaypoint('Insert waypoint', Icons.pin_drop),
   extendStart('Extend start', Icons.pin_drop),
   extendEnd('Extend end', Icons.pin_drop),
+  extendBoth('Extend both ends', Icons.pin_drop),
   removeWaypoint('Remove waypoint', Icons.wrong_location),
   revisitWaypoint('Revisit waypoint', Icons.wrong_location),
   pointOfInterest('Point of interest', Icons.add_photo_alternate),
@@ -159,6 +160,7 @@ const Map<PlanPhase, List<TripChip>> chipsForPhase = {
     TripChip.saveTrip,
     TripChip.group,
     TripChip.messages,
+    TripChip.clear,
   ],
   PlanPhase.following: [
     TripChip.stopFollowing,
@@ -196,6 +198,11 @@ List<TripChip> resolveChip(TripChip chip, CurrentTripItem trip) =>
           WaypointState.insert => [TripChip.insertWaypoint],
           WaypointState.extendStart => [TripChip.extendStart],
           WaypointState.extendEnd => [TripChip.extendEnd],
+          WaypointState.extendBoth => [
+              TripChip.extendStart,
+              TripChip.extendEnd,
+              TripChip.extendBoth
+            ],
           WaypointState.remove => _overLastWaypoint(trip)
               ? [TripChip.removeWaypoint]
               : [TripChip.removeWaypoint, TripChip.revisitWaypoint],
@@ -274,7 +281,12 @@ class CreateTripChips extends StatelessWidget {
     return chips;
   }
 
+  /// The chip, with its hint from the help - `chip.<its name>`
   Widget _actionChip(TripChip chip) {
+    return HelpTip(helpKey: 'chip.${chip.name}', child: _chip(chip));
+  }
+
+  Widget _chip(TripChip chip) {
     return ActionChip(
       visualDensity: compact
           ? VisualDensity.compact
@@ -322,6 +334,7 @@ class CreateTripChips extends StatelessWidget {
         TripChip.waypoint || TripChip.insertWaypoint => waypoint,
         TripChip.extendStart => extendStart,
         TripChip.extendEnd => extendEnd,
+        TripChip.extendBoth => extendBoth,
         TripChip.removeWaypoint => removeWaypoint,
         TripChip.revisitWaypoint => revisitWaypoint,
         TripChip.pointOfInterest => pointOfInterest,
@@ -405,6 +418,11 @@ class CreateTripChips extends StatelessWidget {
 
   Future<void> extendEnd() async {
     await CurrentTripItem().requestExtendEnd();
+    await _executeChipActions(tripActions: MyTripActions.addWaypoint);
+  }
+
+  Future<void> extendBoth() async {
+    await CurrentTripItem().requestExtendBoth();
     await _executeChipActions(tripActions: MyTripActions.addWaypoint);
   }
 
@@ -677,6 +695,8 @@ class CreateTripChips extends StatelessWidget {
       }
       CurrentTripItem().tripState = TripState.loaded;
       CurrentTripItem().tripValues.editing();
+      // Nothing can be added now - the crosshair comes back with Edit route
+      CurrentTripItem().tripValues.showTarget = false;
       MapService().messageBoxController?.message(message: Warning.tripSaved);
       MapService().myTripsController?.refresh();
       // The details are done - the drawer shows the trip again, closed (the

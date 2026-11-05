@@ -147,6 +147,143 @@ List tripStateFilter({TripState tripState = TripState.none}) {
   return filter;
 }
 
+/// The trip labels on Published: one per trip, at its start - the shield
+/// features only. Without the group test MapLibre labelled the route's line
+/// too, at its start, with an empty label ("miles long downloads").
+List shieldFilter(List fence) => [
+      "all",
+      [
+        "==",
+        ["get", "group"],
+        "shield"
+      ],
+      fence,
+    ];
+
+/// The sources the app fills - the trips, their waypoints and points of
+/// interest - as against the map's own (motatek_uk)
+const List<String> appSources = [
+  'published-data',
+  'route-data',
+  'good-road-data',
+  'user-data',
+  'streamed-data',
+  'waypoint-data',
+  'good-road-waypoint-data',
+  'point-of-interest-data',
+];
+
+/// The source and layers for a trip opened on Published - its waypoints and
+/// points of interest - added to the style here, as the style may become the
+/// user's own (see waypointsAbovePointsOfInterest())
+const String publishedTripSource = 'published-trip-data';
+const String publishedTripWaypoints = 'published-trip-waypoints';
+const String publishedTripPointsOfInterest =
+    'published-trip-points-of-interest';
+
+/// The map style as the app needs it, from the server's - see each change:
+/// waypointsAbovePointsOfInterest(), routeLayers(), publishedTripLayers()
+String appStyle(String style) =>
+    publishedTripLayers(routeLayers(waypointsAbovePointsOfInterest(style)));
+
+/// The trips' lines with round ends and corners - square ends looked odd -
+/// and the trip labels only for the trips (shieldFilter())
+String routeLayers(String style) {
+  try {
+    Map<String, dynamic> parsed = jsonDecode(style);
+    for (Map layer in parsed['layers']) {
+      if (layer['type'] == 'line' && appSources.contains(layer['source'])) {
+        layer['layout'] = {
+          ...?layer['layout'],
+          'line-cap': 'round',
+          'line-join': 'round',
+        };
+      }
+      if (layer['id'] == 'route-marker-layer') {
+        layer['filter'] = [
+          "==",
+          ["get", "group"],
+          "shield"
+        ];
+      }
+    }
+    return jsonEncode(parsed);
+  } catch (_) {
+    return style;
+  }
+}
+
+/// A published trip's waypoints and points of interest, drawn as Explore
+/// draws a trip's - copies of its layers, on a source of their own so
+/// Explore's trip is left alone. The waypoints only from zoom 10, where
+/// they're far enough apart to read.
+String publishedTripLayers(String style) {
+  try {
+    Map<String, dynamic> parsed = jsonDecode(style);
+    List layers = parsed['layers'];
+    Map? waypoints = layers.firstWhere((l) => l['id'] == 'way-marker-layer',
+        orElse: () => null);
+    Map? pointsOfInterest = layers.firstWhere(
+        (l) => l['id'] == 'point-of-interest-shield-layer',
+        orElse: () => null);
+    if (waypoints == null || pointsOfInterest == null) return style;
+    parsed['sources'][publishedTripSource] = {
+      'type': 'geojson',
+      'data': {'type': 'FeatureCollection', 'features': []},
+    };
+    Map copy(Map layer, String id, String group) =>
+        jsonDecode(jsonEncode(layer))
+          ..['id'] = id
+          ..['source'] = publishedTripSource
+          ..['filter'] = [
+            "==",
+            ["get", "group"],
+            group
+          ];
+    // Above the trip labels, and the waypoints above the points of interest
+    int at = layers.indexWhere((l) => l['id'] == 'route-marker-layer') + 1;
+    layers.insertAll(at == 0 ? layers.length : at, [
+      copy(
+          pointsOfInterest, publishedTripPointsOfInterest, 'point_of_interest'),
+      copy(waypoints, publishedTripWaypoints, 'waypoint')..['minzoom'] = 10,
+    ]);
+    return jsonEncode(parsed);
+  } catch (_) {
+    return style;
+  }
+}
+
+/// A published trip's waypoints - numbered from the start, revisits sharing
+/// the earlier one's marker - and its points of interest, for
+/// publishedTripSource
+Map<String, dynamic> publishedTripToGeoJson(MyTripItem trip) {
+  List<Map<String, dynamic>> features = [];
+  String colour = Setup().routeColourHex();
+  for (Route route in trip.routes) {
+    int number = 0;
+    for (Waypoint waypoint in route.waypoints) {
+      if (waypoint.revisit) continue;
+      number++;
+      features.add({
+        "type": "Feature",
+        "id": 'pwp$number',
+        "geometry": {
+          "type": "Point",
+          "coordinates": [waypoint.point.x, waypoint.point.y]
+        },
+        "properties": {
+          "group": 'waypoint',
+          "number": number,
+          "color": waypoint.isGoodRoad ? Setup().goodRouteColourHex() : colour,
+        }
+      });
+    }
+  }
+  features.addAll(
+      pointsOfInterestToGeoJson(pointsOfInterest: trip.pointsOfInterest));
+  return {"type": "FeatureCollection", "features": features};
+}
+
 /// The map style (from the server) with the waypoint markers moved above
 /// the points of interest, which hid them - most of AI assist's stops are
 /// waypoints too, and a hidden anchor seemed not to be highlighted. The
@@ -163,7 +300,8 @@ String waypointsAbovePointsOfInterest(String style) {
     Map<String, dynamic> parsed = jsonDecode(style);
     List layers = parsed['layers'];
     if (!layers.any((layer) => layer['id'] == pointsOfInterest)) return style;
-    List moved = layers.where((layer) => markers.contains(layer['id'])).toList();
+    List moved =
+        layers.where((layer) => markers.contains(layer['id'])).toList();
     for (Map layer in moved) {
       layer['layout'] = {
         ...?layer['layout'],
@@ -538,13 +676,13 @@ List<Map<String, dynamic>> waypointsToGeoJson(
               "number": number,
               // Highlights only mean something while editing - stops them
               // lingering after e.g. a save switches to TripState.loaded
-              "color": selected &&
-                      CurrentTripItem().tripState == TripState.editing
-                  ? indexColour
-                  // Great road waypoints are route waypoints in its colour
-                  : waypoints[i].isGoodRoad
-                      ? Setup().goodRouteColourHex()
-                      : colour,
+              "color":
+                  selected && CurrentTripItem().tripState == TripState.editing
+                      ? indexColour
+                      // Great road waypoints are route waypoints in its colour
+                      : waypoints[i].isGoodRoad
+                          ? Setup().goodRouteColourHex()
+                          : colour,
             }
           });
         }

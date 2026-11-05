@@ -23,18 +23,6 @@ const List<String> pageHeadings = [
   "Messages - keep in touch with the Drives community.",
 ];
 
-const List<String> toolTips = [
-  "Drives news - see what new trips have been posted, and what's going on the the Drives community.",
-  "Choose a drive to download. You can just enjoy it, or modify it for your own needs.",
-  "Create a new trip, edit an existing trip, follow an created trip, or use Drives to track a trip you're exploring.",
-  "All the trips that you have created or modified allowing you to follow or edit a trip.",
-  "Enjoy the offers our supporters have on offer.",
-  "Keep in contact with the Drives community.",
-  "You are logged in to your Drives account. You can share trips and have full access to all the Drive's features.",
-  "You are not logged in. To be able to share trips, and have access to all Drive's features please click to log in or create an account now.",
-  "Access further functionality - app settings, your details, driving groups, organise events, invite new users etc.",
-];
-
 enum SampleItem { itemOne, itemTwo, itemThree }
 
 class WebAppBarController {
@@ -224,10 +212,9 @@ class _WebAppBarState extends State<WebAppBar> {
                             spacing: 20,
                             children: [
                               for (int i = 0; i < 6; i++) ...[
-                                //  MouseRegion could be looked at as a way of showing tool tips on status bar
-                                MouseRegion(
-                                  onEnter: (_) => updateToolTips(true, i),
-                                  onExit: (_) => updateToolTips(false, i),
+                                // what the page is for - its help's summary
+                                HelpTip(
+                                  helpKey: 'page.${HelpService.mainPages[i]}',
                                   child: Padding(
                                     padding:
                                         EdgeInsetsGeometry.fromLTRB(0, 5, 5, 0),
@@ -265,7 +252,7 @@ class _WebAppBarState extends State<WebAppBar> {
                                       elevation: 5,
                                     ),
                                   ),
-                                ), // <-- MouseRegion
+                                ),
                               ],
                             ],
                           ),
@@ -275,30 +262,21 @@ class _WebAppBarState extends State<WebAppBar> {
                     SizedBox(width: 1),
                     Expanded(
                       flex: 2,
-                      child: MouseRegion(
-                        onEnter: (_) => updateToolTips(true,
-                            toolTips.length - (Setup().jwt.isEmpty ? 2 : 3)),
-                        onExit: (_) => updateToolTips(false,
-                            toolTips.length - (Setup().jwt.isEmpty ? 2 : 3)),
-                        child: Row(
-                          children: [
-                            ...CurrentTripItem().getActions(context: context),
-                            // Messages: add a contact, write a message
-                            if (NavigationService().page == 5)
-                              ...?MapService().messagesController?.actions(),
-                            const HelpButton(), // this page's documentation
-                          ],
-                        ),
+                      child: Row(
+                        children: [
+                          ...CurrentTripItem().getActions(context: context),
+                          // Messages: add a contact, write a message
+                          if (NavigationService().page == 5)
+                            ...?MapService().messagesController?.actions(),
+                          const HelpButton(), // this page's documentation
+                        ],
                       ),
                     ),
                     SizedBox(width: 1),
                     Expanded(
                       flex: 1,
-                      child: MouseRegion(
-                        onEnter: (_) => updateToolTips(true,
-                            toolTips.length - (Setup().jwt.isEmpty ? 2 : 3)),
-                        onExit: (_) => updateToolTips(false,
-                            toolTips.length - (Setup().jwt.isEmpty ? 2 : 3)),
+                      child: HelpTip(
+                        helpKey: 'bar.account',
                         child: IconButton(
                           // The phone's login screen, in the SideDrawer like the other forms
                           onPressed: () {
@@ -321,10 +299,13 @@ class _WebAppBarState extends State<WebAppBar> {
                     SizedBox(width: 1),
                     Expanded(
                       flex: 1,
-                      child: IconButton(
-                        key: _menuButtonKey,
-                        icon: Icon(Icons.more_vert, color: Colors.white),
-                        onPressed: () => _showCustomMenu(context),
+                      child: HelpTip(
+                        helpKey: 'bar.menu',
+                        child: IconButton(
+                          key: _menuButtonKey,
+                          icon: Icon(Icons.more_vert, color: Colors.white),
+                          onPressed: () => _showCustomMenu(context),
+                        ),
                       ),
                     ),
                   ],
@@ -417,15 +398,18 @@ class _WebAppBarState extends State<WebAppBar> {
           (e) => PopupMenuItem(
             onTap: () => _openOption(e),
             value: e['key'],
-            child: Row(
-              key: Key('pmi${e['key']}'),
-              children: [
-                e['iconData'],
-                SizedBox(
-                  width: 10,
-                ),
-                Text(e['text']),
-              ],
+            child: HelpTip(
+              helpKey: 'menu.${e['key']}',
+              child: Row(
+                key: Key('pmi${e['key']}'),
+                children: [
+                  e['iconData'],
+                  SizedBox(
+                    width: 10,
+                  ),
+                  Text(e['text']),
+                ],
+              ),
             ),
           ),
         )
@@ -494,20 +478,6 @@ class _WebAppBarState extends State<WebAppBar> {
 
   void setActionMessage(prompt) {
     setState(() => _actionMessage = prompt);
-  }
-
-  void updateToolTips(bool enter, int i) {
-    if (widget.statusBarController != null) {
-      try {
-        if (enter) {
-          widget.statusBarController!.update([toolTips[i]]);
-        } else {
-          widget.statusBarController!.clear();
-        }
-      } catch (e) {
-        debugPrint('whoops: ${e.toString()}');
-      }
-    }
   }
 
   /// navigate changes the pages for the app note:

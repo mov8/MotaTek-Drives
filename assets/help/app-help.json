@@ -1,0 +1,394 @@
+{
+  "help": {
+    "bar.account": {
+      "hint": "Logs you in to Drives - or, once you’re logged in, shows that you are.",
+      "page": "overview",
+      "title": "Your account",
+      "url": "/docs/overview/#bar-account"
+    },
+    "bar.addContact": {
+      "hint": "Adds someone to your messages, by the email address they use for Drives.",
+      "page": "messages",
+      "title": "Add a contact",
+      "url": "/docs/messages/#bar-addContact"
+    },
+    "bar.help": {
+      "hint": "Shows what the page is for, with a link to its full help on the website.",
+      "page": "overview",
+      "title": "Help",
+      "url": "/docs/overview/#bar-help"
+    },
+    "bar.menu": {
+      "hint": "Opens the Menu: your settings and details, groups, clubs, events and help.",
+      "page": "overview",
+      "title": "Menu",
+      "url": "/docs/overview/#bar-menu"
+    },
+    "bar.redo": {
+      "hint": "Puts back a change you’ve just undone.",
+      "page": "my_trip",
+      "title": "Redo",
+      "url": "/docs/my_trip/#bar-redo"
+    },
+    "bar.undo": {
+      "hint": "Takes back the last change to the trip, such as a waypoint added or removed.",
+      "page": "my_trip",
+      "title": "Undo",
+      "url": "/docs/my_trip/#bar-undo"
+    },
+    "bar.writeMessage": {
+      "hint": "Opens the box to write a message in, at the bottom of the conversation.",
+      "page": "messages",
+      "title": "Write a message",
+      "url": "/docs/messages/#bar-writeMessage"
+    },
+    "chip.addGreatRoad": {
+      "hint": "Starts a great road: the waypoints you add next are part of it, and the route between them is drawn in your great road colour.",
+      "page": "my_trip",
+      "title": "Great road mode",
+      "url": "/docs/my_trip/#chip-addGreatRoad"
+    },
+    "chip.aiAssist": {
+      "hint": "Plans a trip from a description of the drive you’d like.",
+      "page": "my_trip",
+      "title": "AI assist",
+      "url": "/docs/my_trip/#chip-aiAssist"
+    },
+    "chip.clear": {
+      "hint": "Clears the trip from the map, without saving it.",
+      "page": "my_trip",
+      "title": "Clear route",
+      "url": "/docs/my_trip/#chip-clear"
+    },
+    "chip.continueTracking": {
+      "hint": "Starts recording again after a pause.",
+      "page": "my_trip",
+      "title": "Continue tracking",
+      "url": "/docs/my_trip/#chip-continueTracking"
+    },
+    "chip.createManually": {
+      "hint": "Starts a trip that you plan yourself, waypoint by waypoint.",
+      "page": "my_trip",
+      "title": "Create manually",
+      "url": "/docs/my_trip/#chip-createManually"
+    },
+    "chip.editGreatRoad": {
+      "hint": "Opens the details of the great road under the cross-hairs, to change its description.",
+      "page": "my_trip",
+      "title": "Edit great road",
+      "url": "/docs/my_trip/#chip-editGreatRoad"
+    },
+    "chip.editRoute": {
+      "hint": "Lets you change a saved or recorded trip.",
+      "page": "my_trip",
+      "title": "Edit route",
+      "url": "/docs/my_trip/#chip-editRoute"
+    },
+    "chip.endTracking": {
+      "hint": "Ends the recording.",
+      "page": "my_trip",
+      "title": "End tracking",
+      "url": "/docs/my_trip/#chip-endTracking"
+    },
+    "chip.extendBoth": {
+      "hint": "Makes the spot under the cross-hairs the trip’s new start and its new end: the trip goes from here to its old start, round, and back here.",
+      "page": "my_trip",
+      "title": "Extend both ends",
+      "url": "/docs/my_trip/#chip-extendBoth"
+    },
+    "chip.extendEnd": {
+      "hint": "Makes the spot under the cross-hairs the trip’s new end.",
+      "page": "my_trip",
+      "title": "Extend end",
+      "url": "/docs/my_trip/#chip-extendEnd"
+    },
+    "chip.extendStart": {
+      "hint": "Makes the spot under the cross-hairs the trip’s new start.",
+      "page": "my_trip",
+      "title": "Extend start",
+      "url": "/docs/my_trip/#chip-extendStart"
+    },
+    "chip.follow": {
+      "hint": "Guides you round the trip, with the next turn shown at the top of the map and spoken, so you don’t miss it.",
+      "page": "my_trip",
+      "title": "Follow drive",
+      "url": "/docs/my_trip/#chip-follow"
+    },
+    "chip.greatRoadEnd": {
+      "hint": "Ends the great road at the last waypoint, and opens its details so you can say what makes it great.",
+      "page": "my_trip",
+      "title": "Normal road mode",
+      "url": "/docs/my_trip/#chip-greatRoadEnd"
+    },
+    "chip.group": {
+      "hint": "Lists the people on the group drive in the drawer, with the colour of their car on the map.",
+      "page": "my_trip",
+      "title": "Group",
+      "url": "/docs/my_trip/#chip-group"
+    },
+    "chip.insertWaypoint": {
+      "hint": "Adds a waypoint under the cross-hairs, between the two highlighted waypoints.",
+      "page": "my_trip",
+      "title": "Insert waypoint",
+      "url": "/docs/my_trip/#chip-insertWaypoint"
+    },
+    "chip.messages": {
+      "hint": "Shows the group drive’s messages in the drawer, where you can send one to everybody.",
+      "page": "my_trip",
+      "title": "Messages",
+      "url": "/docs/my_trip/#chip-messages"
+    },
+    "chip.pauseTracking": {
+      "hint": "Stops recording for a while - for a stop, or a stretch you don’t want in the trip.",
+      "page": "my_trip",
+      "title": "Pause tracking",
+      "url": "/docs/my_trip/#chip-pauseTracking"
+    },
+    "chip.pointOfInterest": {
+      "hint": "Adds a point of interest under the cross-hairs - somewhere worth stopping - and opens its details in the drawer.",
+      "page": "my_trip",
+      "title": "Point of interest",
+      "url": "/docs/my_trip/#chip-pointOfInterest"
+    },
+    "chip.removeWaypoint": {
+      "hint": "Removes the waypoint under the cross-hairs, and works the route out again without it.",
+      "page": "my_trip",
+      "title": "Remove waypoint",
+      "url": "/docs/my_trip/#chip-removeWaypoint"
+    },
+    "chip.reverseTrip": {
+      "hint": "Turns the trip round, so it starts at the end and finishes at the start - useful for a downloaded trip that’s nearer its end.",
+      "page": "my_trip",
+      "title": "Reverse trip",
+      "url": "/docs/my_trip/#chip-reverseTrip"
+    },
+    "chip.revisitWaypoint": {
+      "hint": "Goes back to the waypoint under the cross-hairs - for a trip that passes the same place twice, like a figure of eight.",
+      "page": "my_trip",
+      "title": "Revisit waypoint",
+      "url": "/docs/my_trip/#chip-revisitWaypoint"
+    },
+    "chip.saveTrip": {
+      "hint": "Saves the trip on your device, in Favourites.",
+      "page": "my_trip",
+      "title": "Save trip",
+      "url": "/docs/my_trip/#chip-saveTrip"
+    },
+    "chip.steps": {
+      "hint": "Shows every turn of the route in the drawer, as directions.",
+      "page": "my_trip",
+      "title": "Steps",
+      "url": "/docs/my_trip/#chip-steps"
+    },
+    "chip.stopFollowing": {
+      "hint": "Stops guiding you round the trip.",
+      "page": "my_trip",
+      "title": "Stop following",
+      "url": "/docs/my_trip/#chip-stopFollowing"
+    },
+    "chip.trackDrive": {
+      "hint": "Records your drive as you go: it starts the trip where you are, and adds a waypoint every two miles or so, so it’s easy to edit later.",
+      "page": "my_trip",
+      "title": "Track drive",
+      "url": "/docs/my_trip/#chip-trackDrive"
+    },
+    "chip.waypoint": {
+      "hint": "Adds a waypoint under the cross-hairs - a place the trip goes through.",
+      "page": "my_trip",
+      "title": "Waypoint",
+      "url": "/docs/my_trip/#chip-waypoint"
+    },
+    "fab.greatRoad": {
+      "hint": "Marks the road you’re on as a great road, from here.",
+      "page": "my_trip",
+      "title": "Great road",
+      "url": "/docs/my_trip/#fab-greatRoad"
+    },
+    "fab.location": {
+      "hint": "Centres the map on where you are.",
+      "page": "my_trip",
+      "title": "My location",
+      "url": "/docs/my_trip/#fab-location"
+    },
+    "fab.pointOfInterest": {
+      "hint": "Records a point of interest where you are.",
+      "page": "my_trip",
+      "title": "Point of interest",
+      "url": "/docs/my_trip/#fab-pointOfInterest"
+    },
+    "fab.preferences": {
+      "hint": "Sets how routes are worked out, and what’s shown on the map.",
+      "page": "my_trip",
+      "title": "Map preferences",
+      "url": "/docs/my_trip/#fab-preferences"
+    },
+    "fab.search": {
+      "hint": "Finds a place by its name and moves the map to it.",
+      "page": "my_trip",
+      "title": "Search",
+      "url": "/docs/my_trip/#fab-search"
+    },
+    "fab.zoom": {
+      "hint": "Zooms in for more detail or out to see more, one step at a time.",
+      "page": "my_trip",
+      "title": "Zoom",
+      "url": "/docs/my_trip/#fab-zoom"
+    },
+    "menu.clubs": {
+      "hint": "Your club: invitations to join one, finding a club and asking to join, and for its admin, running it.",
+      "page": "menu",
+      "title": "My clubs",
+      "url": "/docs/menu/#menu-clubs"
+    },
+    "menu.console": {
+      "hint": "Runs Drives: clubs, payments, AI assist’s use and the app’s use, and the feedback people send.",
+      "page": "menu",
+      "title": "Control panel",
+      "url": "/docs/menu/#menu-console"
+    },
+    "menu.deleteTrips": {
+      "hint": "Removes published trips from Drives for good.",
+      "page": "menu",
+      "title": "Remove trips",
+      "url": "/docs/menu/#menu-deleteTrips"
+    },
+    "menu.deleteUser": {
+      "hint": "Stops someone using Drives: their account is disabled, and their published trips stay until removed.",
+      "page": "menu",
+      "title": "Remove user",
+      "url": "/docs/menu/#menu-deleteUser"
+    },
+    "menu.docs": {
+      "hint": "Opens this help.",
+      "page": "menu",
+      "title": "Drives documentation",
+      "url": "/docs/menu/#menu-docs"
+    },
+    "menu.events": {
+      "hint": "Lists the group drives you’ve been invited to: swipe right to accept, left to decline.",
+      "page": "menu",
+      "title": "Events to which I've been invited",
+      "url": "/docs/menu/#menu-events"
+    },
+    "menu.feedback": {
+      "hint": "Tells us about a problem, an idea or a question.",
+      "page": "menu",
+      "title": "Send feedback",
+      "url": "/docs/menu/#menu-feedback"
+    },
+    "menu.groups": {
+      "hint": "Lists the groups you’re in.",
+      "page": "menu",
+      "title": "Groups to which I belong",
+      "url": "/docs/menu/#menu-groups"
+    },
+    "menu.invite": {
+      "hint": "Invites someone to join Drives, by email.",
+      "page": "menu",
+      "title": "Invite a new user",
+      "url": "/docs/menu/#menu-invite"
+    },
+    "menu.markdownHome": {
+      "hint": "Changes what the Home page says - for a club’s admin, their club’s page; for MotaTek, Drives’ own.",
+      "page": "home",
+      "title": "Edit Home page",
+      "url": "/docs/home/#menu-markdownHome"
+    },
+    "menu.markdownShop": {
+      "hint": "Changes the Shop page’s offers - for a club’s admin, their club’s page; for MotaTek, Drives’ own.",
+      "page": "shop",
+      "title": "Edit Shop page",
+      "url": "/docs/shop/#menu-markdownShop"
+    },
+    "menu.myEvents": {
+      "hint": "Organises group drives - a trip, and the members of a group invited to drive it with you - and lists those you’ve organised.",
+      "page": "menu",
+      "title": "Events I've organised",
+      "url": "/docs/menu/#menu-myEvents"
+    },
+    "menu.myGroups": {
+      "hint": "Sets up and runs your groups - of friends, or club members - to message and invite to events together.",
+      "page": "menu",
+      "title": "Groups I manage",
+      "url": "/docs/menu/#menu-myGroups"
+    },
+    "menu.register": {
+      "hint": "Registers you with Drives, or changes your details - your name, phone number and password.",
+      "page": "menu",
+      "title": "Register my details / Change my details",
+      "url": "/docs/menu/#menu-register"
+    },
+    "menu.settings": {
+      "hint": "Changes how the app works for you: the colours of routes and great roads, your route preferences, what OpenStreetMap shows on the map, and so on.",
+      "page": "menu",
+      "title": "App settings",
+      "url": "/docs/menu/#menu-settings"
+    },
+    "trip.delete": {
+      "hint": "Deletes the trip from your device, for good.",
+      "page": "my_drives",
+      "title": "Delete Trip",
+      "url": "/docs/my_drives/#trip-delete"
+    },
+    "trip.load": {
+      "hint": "Opens the trip on the Explore page, to follow it or change it.",
+      "page": "my_drives",
+      "title": "Load Trip",
+      "url": "/docs/my_drives/#trip-load"
+    },
+    "trip.publish": {
+      "hint": "Shares the trip on Drives, for everyone to see in Published - its route, points of interest, great roads and photos.",
+      "page": "my_drives",
+      "title": "Publish Trip",
+      "url": "/docs/my_drives/#trip-publish"
+    },
+    "trip.synchronise": {
+      "hint": "Passes the trip between the web version of Drives and your phone, without logging in.",
+      "page": "my_drives",
+      "title": "Synchronise Trip",
+      "url": "/docs/my_drives/#trip-synchronise"
+    }
+  },
+  "pages": {
+    "great_drives": {
+      "summary": "Published shows the trips Drives users have shared, on the map: their routes, points of interest and great roads, with their ratings. Tap a trip's label for its details, and download the ones you like to drive or change.",
+      "title": "Published",
+      "url": "/docs/great_drives/"
+    },
+    "home": {
+      "summary": "Home is the app's news page: trips worth driving, events and news. For most people MotaTek writes it; a club using Drives writes its own, for its members.",
+      "title": "Home",
+      "url": "/docs/home/"
+    },
+    "menu": {
+      "summary": "The Menu holds everything that isn't on the main pages: your settings and details, groups, clubs, events, and help. On a phone it's behind the Menu button at the top left; on a computer, in the Overflow Menu at the top right.",
+      "title": "Menu",
+      "url": "/docs/menu/"
+    },
+    "messages": {
+      "summary": "Messages is Drives' own messaging, for messages to other Drives users and to your groups. It works much like WhatsApp or Signal: messages arrive straight away while the app is open.",
+      "title": "Messages",
+      "url": "/docs/messages/"
+    },
+    "my_drives": {
+      "summary": "Favourites is your own library of trips, kept on your device. Open one on the Explore page to drive or change it, publish it for others to enjoy, or delete those you no longer want.",
+      "title": "Favourites",
+      "url": "/docs/my_drives/"
+    },
+    "my_trip": {
+      "summary": "Explore is where you plan a trip, edit it, save it and follow it. Plan one in any of three ways: ask AI assist for the sort of drive you'd like, place the waypoints yourself, or let Drives record a drive as you go. Move the map so the cross-hairs are where you want something, then tap a chip.",
+      "title": "Explore",
+      "url": "/docs/my_trip/"
+    },
+    "overview": {
+      "summary": "Drives is for planning, sharing and driving memorable trips - on your own, with friends or with your club. This page covers what it does, how the help is organised, the controls you'll meet, and your account.",
+      "title": "Overview",
+      "url": "/docs/overview/"
+    },
+    "shop": {
+      "summary": "Shop has offers for motorists - things to make your trips even better. You browse it when you want to: Drives never pushes adverts at you.",
+      "title": "Shop",
+      "url": "/docs/shop/"
+    }
+  }
+}

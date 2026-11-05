@@ -289,6 +289,10 @@ class _BaseShellScreen extends State<BaseShellScreen> {
             maxWidth: 0.7,
             controller: MapService().sideDrawerController,
             webAppBarController: MapService().webAppBarController,
+            // clear of the StatusBar below
+            bottom: [1, 2].contains(widget.navigationShell.currentIndex)
+                ? StatusBar.barHeight
+                : 0,
           ),
           // The map pages' hints for the buttons under the mouse, and the
           // map's scale

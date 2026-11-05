@@ -61,143 +61,162 @@ class _MainDrawerState extends State<MainDrawer> {
               ),
             ),
           ),
-          ListTile(
-            leading: const Icon(
-              Icons.settings_outlined,
-              size: 30,
-            ),
-            title: const Text('App Settings',
-                style: TextStyle(
-                  color: Colors.blue,
-                  fontSize: 20,
-                )),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => SetupForm()),
-              );
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.manage_accounts_outlined, size: 30),
-            title: Text(
-              Setup().jwt.isEmpty ? 'Register my details' : 'Change my details',
-              style: const TextStyle(
-                color: Colors.blue,
-                fontSize: 20,
-              ),
-            ),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const SignupForm()),
-              );
-            },
-          ),
-          ListTile(
-            leading: const Icon(
-              Icons.groups_outlined,
-              size: 30,
-            ),
-            title: const Text(
-              'Groups I manage',
-              style: TextStyle(
-                color: Colors.blue,
-                fontSize: 20,
-              ),
-            ),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const GroupForm()),
-              );
-            },
-          ),
-          ListTile(
-            leading: const Icon(
-              Icons.group_outlined,
-              size: 30,
-            ),
-            title: const Text(
-              "Groups to which I belong",
-              style: TextStyle(
-                color: Colors.blue,
-                fontSize: 20,
-              ),
-            ),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const MyGroupsForm()),
-              );
-            },
-          ),
-          ListTile(
-            leading: const Icon(
-              Icons.person_add_outlined,
-              size: 30,
-            ),
-            title: const Text(
-              'Introduce new user',
-              style: TextStyle(
-                color: Colors.blue,
-                fontSize: 20,
-              ),
-            ),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const IntroduceForm()),
-              );
-            },
-          ),
-          ListTile(
-            leading: const Icon(
-              Icons.directions_car_outlined,
-              size: 30,
-            ),
-            title: const Text("Events I've organised",
-                style: TextStyle(
-                  color: Colors.blue,
-                  fontSize: 20,
-                )),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const GroupDriveForm()),
-              );
-            },
-          ),
-          ListTile(
-            leading: Setup().tripCount > 0
-                ? Badge(
-                    label: Text(Setup()
-                        .tripCount
-                        .toString()), //widget.group.unreadMessages.toString()),
-                    child: Icon(
-                      Icons.mail_outline,
-                      size: 30,
-                    ),
-                  )
-                : const Icon(
-                    Icons.mail_outlined,
-                    size: 30,
+          HelpTip(
+              helpKey: 'menu.settings',
+              child: ListTile(
+                leading: const Icon(
+                  Icons.settings_outlined,
+                  size: 30,
+                ),
+                title: const Text('App Settings',
+                    style: TextStyle(
+                      color: Colors.blue,
+                      fontSize: 20,
+                    )),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => SetupForm()),
+                  );
+                },
+              )),
+          HelpTip(
+              helpKey: 'menu.register',
+              child: ListTile(
+                leading: const Icon(Icons.manage_accounts_outlined, size: 30),
+                title: Text(
+                  Setup().jwt.isEmpty
+                      ? 'Register my details'
+                      : 'Change my details',
+                  style: const TextStyle(
+                    color: Colors.blue,
+                    fontSize: 20,
                   ),
-            title: const Text(
-              'My invitations to events',
-              style: TextStyle(
-                color: Colors.blue,
-                fontSize: 20,
-              ),
-            ),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (context) => const InvitationsScreen()),
-              );
-            },
-          ),
+                ),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const SignupForm()),
+                  );
+                },
+              )),
+          HelpTip(
+              helpKey: 'menu.myGroups',
+              child: ListTile(
+                leading: const Icon(
+                  Icons.groups_outlined,
+                  size: 30,
+                ),
+                title: const Text(
+                  'Groups I manage',
+                  style: TextStyle(
+                    color: Colors.blue,
+                    fontSize: 20,
+                  ),
+                ),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const GroupForm()),
+                  );
+                },
+              )),
+          HelpTip(
+              helpKey: 'menu.groups',
+              child: ListTile(
+                leading: const Icon(
+                  Icons.group_outlined,
+                  size: 30,
+                ),
+                title: const Text(
+                  "Groups to which I belong",
+                  style: TextStyle(
+                    color: Colors.blue,
+                    fontSize: 20,
+                  ),
+                ),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => const MyGroupsForm()),
+                  );
+                },
+              )),
+          HelpTip(
+              helpKey: 'menu.invite',
+              child: ListTile(
+                leading: const Icon(
+                  Icons.person_add_outlined,
+                  size: 30,
+                ),
+                title: const Text(
+                  'Introduce new user',
+                  style: TextStyle(
+                    color: Colors.blue,
+                    fontSize: 20,
+                  ),
+                ),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => const IntroduceForm()),
+                  );
+                },
+              )),
+          HelpTip(
+              helpKey: 'menu.myEvents',
+              child: ListTile(
+                leading: const Icon(
+                  Icons.directions_car_outlined,
+                  size: 30,
+                ),
+                title: const Text("Events I've organised",
+                    style: TextStyle(
+                      color: Colors.blue,
+                      fontSize: 20,
+                    )),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => const GroupDriveForm()),
+                  );
+                },
+              )),
+          HelpTip(
+              helpKey: 'menu.events',
+              child: ListTile(
+                leading: Setup().tripCount > 0
+                    ? Badge(
+                        label: Text(Setup()
+                            .tripCount
+                            .toString()), //widget.group.unreadMessages.toString()),
+                        child: Icon(
+                          Icons.mail_outline,
+                          size: 30,
+                        ),
+                      )
+                    : const Icon(
+                        Icons.mail_outlined,
+                        size: 30,
+                      ),
+                title: const Text(
+                  'My invitations to events',
+                  style: TextStyle(
+                    color: Colors.blue,
+                    fontSize: 20,
+                  ),
+                ),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => const InvitationsScreen()),
+                  );
+                },
+              )),
           // the map along a saved trip, for where there's no signal
           if (Setup().jwt.isNotEmpty && OfflineMapsService().supported)
             ListTile(
@@ -219,22 +238,25 @@ class _MainDrawerState extends State<MainDrawer> {
               },
             ),
           // a problem, an idea or a question, to the Drives team
-          ListTile(
-            leading: const Icon(Icons.feedback_outlined, size: 30),
-            title: const Text(
-              'Send feedback',
-              style: TextStyle(
-                color: Colors.blue,
-                fontSize: 20,
-              ),
-            ),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const FeedbackForm()),
-              );
-            },
-          ),
+          HelpTip(
+              helpKey: 'menu.feedback',
+              child: ListTile(
+                leading: const Icon(Icons.feedback_outlined, size: 30),
+                title: const Text(
+                  'Send feedback',
+                  style: TextStyle(
+                    color: Colors.blue,
+                    fontSize: 20,
+                  ),
+                ),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => const FeedbackForm()),
+                  );
+                },
+              )),
         ],
       ),
     );

@@ -345,6 +345,15 @@ class _PlannerPanelState extends State<PlannerPanel> {
         const SizedBox(height: 4),
         for (Map check in trip['checks']) _check(check, text),
       ],
+      // In their own words - the checks are what was made of them
+      if (planner.request.isNotEmpty)
+        _section(
+            'Your request',
+            [
+              Text(planner.request,
+                  style: text.bodyMedium?.copyWith(fontStyle: FontStyle.italic))
+            ],
+            text),
       Align(
         alignment: Alignment.centerLeft,
         child: TextButton(

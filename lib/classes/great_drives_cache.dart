@@ -149,6 +149,18 @@ class DrivesRequest {
           for (int i = 0; i < jsonData["features"].length; i++) {
             // 'shield' layer contains properties to create TripItem
             if (jsonData['features'][i]['group'] == 'shield') {
+              // One label per trip, at its start - the API sends a point
+              // every mile or so, which crowded the map with the same label
+              List points =
+                  jsonData['features'][i]['geometry']?['coordinates'] ?? [];
+              List? start = starts['${jsonData['features'][i]['id']}'] ??
+                  (points.isNotEmpty && points.first is List
+                      ? points.first
+                      : null);
+              if (start != null) {
+                jsonData['features'][i]
+                    ['geometry'] = {'type': 'Point', 'coordinates': start};
+              }
               trips.add(TripItem.from3DCache(
                   map: jsonData['features'][i]['properties'],
                   uri: jsonData['features'][i]['id'])
@@ -168,13 +180,14 @@ class DrivesRequest {
               _3DCache["cache"][zLevel]["data"]["shields"]
                   .add(jsonData['features'][i]);
             } else {
+              // Its trip, for a tap on the route (MapLibre on the web
+              // replaces the ids)
+              (jsonData['features'][i]['properties'] ??= {})['uri'] =
+                  '${jsonData['features'][i]['id']}';
               _3DCache["cache"][zLevel]["data"]["lines"]
                   .add(jsonData['features'][i]);
             }
           }
-
-          _3DCache["cache"][zLevel]["data"]["lines"]
-              .addAll(jsonData['features']);
 
           _lastZoom = zoom;
           onUpdated(zoom.toInt());

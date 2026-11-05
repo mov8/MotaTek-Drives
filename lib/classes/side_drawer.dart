@@ -161,6 +161,10 @@ class SideDrawer extends StatefulWidget {
   final double width;
   final double closedTop;
   final double dividerWidth;
+
+  /// Kept clear at the bottom - the StatusBar on the map pages, which hid
+  /// the bottom of the drawer, e.g. a form's buttons
+  final double bottom;
   final CurrentTripItem? content;
   SideDrawerController? controller;
   WebAppBarController? webAppBarController;
@@ -180,6 +184,7 @@ class SideDrawer extends StatefulWidget {
       this.onOpened,
       this.onUpdate,
       this.dividerWidth = 30,
+      this.bottom = 0,
       this.content,
       this.imageRepository,
       MapLibreMapController? mapController})
@@ -811,9 +816,10 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
     _maxWidth = _mapWidth * widget.maxWidth;
     _openWidth = _mapWidth * widget.width;
     // Below the WebAppBar - the whole window height cut off the bottom of
-    // the drawer, e.g. a form's buttons
+    // the drawer, e.g. a form's buttons - and above the StatusBar
     double mapHeight = MediaQuery.of(context).size.height -
-        (Scaffold.maybeOf(context)?.appBarMaxHeight ?? 0);
+        (Scaffold.maybeOf(context)?.appBarMaxHeight ?? 0) -
+        widget.bottom;
 
     /// Ensure a fresh set of tiles is generated to ensure the initiallyExpanded value is
     /// set to reflect the completeness of the tile's content.
@@ -827,7 +833,8 @@ class _SideDrawerState extends State<SideDrawer> with TickerProviderStateMixin {
       child: Align(
         alignment: Alignment.bottomLeft,
         child: Padding(
-          padding: EdgeInsetsGeometry.fromLTRB(leftPadding, 0, 0, 0),
+          padding:
+              EdgeInsetsGeometry.fromLTRB(leftPadding, 0, 0, widget.bottom),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

@@ -699,31 +699,37 @@ class CurrentTripItem extends MyTripItem {
     if ([TripState.editing, TripState.manual].contains(tripState)) {
       if (backBuffer.length > 1) {
         actions.add(
-          IconButton(
-            onPressed: () async {
-              if (canUndo) {
-                await undo();
-                onUpdate?.call(true);
-              }
-            },
-            icon: Icon(
-              Icons.undo_outlined,
-              color: canUndo ? Colors.white : Colors.grey,
+          HelpTip(
+            helpKey: 'bar.undo',
+            child: IconButton(
+              onPressed: () async {
+                if (canUndo) {
+                  await undo();
+                  onUpdate?.call(true);
+                }
+              },
+              icon: Icon(
+                Icons.undo_outlined,
+                color: canUndo ? Colors.white : Colors.grey,
+              ),
             ),
           ),
         );
 
         actions.add(
-          IconButton(
-            onPressed: () async {
-              if (canRedo) {
-                await redo();
-                onUpdate?.call(true);
-              }
-            },
-            icon: Icon(
-              Icons.redo_outlined,
-              color: canRedo ? Colors.white : Colors.grey,
+          HelpTip(
+            helpKey: 'bar.redo',
+            child: IconButton(
+              onPressed: () async {
+                if (canRedo) {
+                  await redo();
+                  onUpdate?.call(true);
+                }
+              },
+              icon: Icon(
+                Icons.redo_outlined,
+                color: canRedo ? Colors.white : Colors.grey,
+              ),
             ),
           ),
         );
@@ -846,7 +852,8 @@ class CurrentTripItem extends MyTripItem {
     routes = [Route(waypoints: waypoints)];
     syncWaypointPointsOfInterest(waypoints: routes.last.waypoints);
     pointsOfInterest.addAll(stops);
-    List<Route> routed = await replaceRoutes(routes: routes, updateBuffer: false);
+    List<Route> routed =
+        await replaceRoutes(routes: routes, updateBuffer: false);
     if (routed.isNotEmpty) routes = routed;
     await syncGoodRoads();
     loadBackBuffer();
@@ -925,6 +932,21 @@ class CurrentTripItem extends MyTripItem {
     // Micro-nudge to update MapLibre the nudge causes the onIdle callback to be called
     MapService().createTripController!.update();
     await MapService().controller!.animateCamera(CameraUpdate.zoomBy(0.000001));
+  }
+
+  Future<void> requestExtendBoth() => _routeChange(_requestExtendBoth);
+
+  /// A round trip from somewhere new - the user's own front door, say: the
+  /// spot under the crosshair becomes the start, and the end comes back to it
+  Future<void> _requestExtendBoth() async {
+    tripActions = TripActions.none;
+    tripValues.beforeWaypoint();
+    await addWaypoint(bothEnds: true, point: tripValues.position);
+    tripValues.afterWaypoint();
+    // Micro-nudge to update MapLibre the nudge causes the onIdle callback to be called
+    MapService().createTripController!.update();
+    await MapService().controller!.animateCamera(CameraUpdate.zoomBy(0.000001));
+    isSaved = false;
   }
 
   Future<void> requestExtendEnd() => _routeChange(_requestExtendEnd);
@@ -1411,7 +1433,9 @@ class CurrentTripItem extends MyTripItem {
 
   /// addWaypoint() adds a new waypoint under the crosshairs - at the end, or
   /// at the start when atStart (Extend start), or after the selected waypoint
-  /// when waypointState is insert.
+  /// when waypointState is insert. bothEnds (Extend both ends) puts it at the
+  /// start, and a revisit of it at the end - one change, routed and undone
+  /// once.
   /// the call to replaceRoutes() ensures that everything is in
   /// the correct sequence.
   /// It generates the geoJSON data for the routes, waypoints and points of interest.
@@ -1422,11 +1446,12 @@ class CurrentTripItem extends MyTripItem {
     bool revisit = false,
     bool insert = false,
     bool atStart = false,
+    bool bothEnds = false,
   }) async {
     try {
       routes = routes.isEmpty ? [Route(waypoints: [])] : routes;
       int insertAt = routes.last.waypoints.length;
-      if (atStart) {
+      if (atStart || bothEnds) {
         insertAt = 0;
       } else if (waypointState == WaypointState.insert &&
           tripState == TripState.editing &&
@@ -1452,6 +1477,9 @@ class CurrentTripItem extends MyTripItem {
           isGoodRoad: isGoodRoad && tripState != TripState.tracking);
       // Set the mapUpdates flag
       routes.last.waypoints.insert(insertAt, waypoint);
+      if (bothEnds) {
+        routes.last.waypoints.add(Waypoint(point: point, revisit: true));
+      }
       // Start / Waypoint / End points of interest follow the new order -
       // previously a new End was always added, wrong for Extend start / Insert
       syncWaypointPointsOfInterest(waypoints: routes.last.waypoints);

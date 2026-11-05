@@ -9,15 +9,6 @@ import 'package:geolocator/geolocator.dart';
 import '../constants.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 
-const List<String> fabHints = [
-  "Search for a place by it's name, and zoom the map to centre on it.",
-  "Set the map's router preferences to navigate a route for you avoiding motorways for example and show reviewed features.",
-  "Record a point of interest to your trip, adding a description and any photos to help you or other users later.",
-  "Record the start and end of memorable stretches or road, for example where the scenery is beautiful.",
-  "Centre the map on your current position.",
-  "Zoom the map's size to show more detail for a smaller region, or less detail for a larger region."
-];
-
 class FabsController {
   _HandleCTFabsState? _handleCTFabsState;
 
@@ -152,17 +143,25 @@ class _HandleCTFabsState extends State<HandleCTFabs> {
                               TripState.following)
                             const SizedBox(height: 120),
                           if (MapService().controller != null)
-                            MouseRegion(
-                              onEnter: (_) => updateToolTips(true, 0),
-                              onExit: (_) => updateToolTips(false, 0),
+                            HelpTip(
+                              helpKey: 'fab.search',
                               child: PlaceFinder(
                                 height: _height,
                                 width: _width,
+                                // Zoomed in to it if the map was further
+                                // out - at zoom 5 the move was hard to see
                                 onSelect: (position) =>
                                     MapService().controller!.animateCamera(
-                                          CameraUpdate.newLatLng(
+                                          CameraUpdate.newLatLngZoom(
                                             LatLng(position.latitude,
                                                 position.longitude),
+                                            max(
+                                                MapService()
+                                                        .controller!
+                                                        .cameraPosition
+                                                        ?.zoom ??
+                                                    12,
+                                                12),
                                           ),
                                         ),
                               ),
@@ -170,77 +169,80 @@ class _HandleCTFabsState extends State<HandleCTFabs> {
                           const SizedBox(
                             height: 10,
                           ),
-                          MouseRegion(
-                            onEnter: (_) => updateToolTips(true, 1),
-                            onExit: (_) => updateToolTips(false, 1),
-                            child: FloatingChecklist(
-                              choices: [
-                                {'Avoid motorways': Setup().avoidMotorways},
-                                {'Avoid main roads': Setup().avoidAroads},
-                                {'Avoid ferries': Setup().avoidFerries},
-                                {'Avoid toll roads': Setup().avoidTollRoads},
-                                {'Show pubs and bars': Setup().osmPubs},
-                                {
-                                  'Show cafes and restaurants':
-                                      Setup().osmRestaurants
+                          // How routes are worked out - for planning, so
+                          // not on Published
+                          if (NavigationService().page != 1) ...[
+                            HelpTip(
+                              helpKey: 'fab.preferences',
+                              child: FloatingChecklist(
+                                choices: [
+                                  {'Avoid motorways': Setup().avoidMotorways},
+                                  {'Avoid main roads': Setup().avoidAroads},
+                                  {'Avoid ferries': Setup().avoidFerries},
+                                  {'Avoid toll roads': Setup().avoidTollRoads},
+                                  {'Show pubs and bars': Setup().osmPubs},
+                                  {
+                                    'Show cafes and restaurants':
+                                        Setup().osmRestaurants
+                                  },
+                                  {
+                                    'Show fuel and charging stations':
+                                        Setup().osmFuel
+                                  },
+                                  {'Show toilets': Setup().osmToilets},
+                                  {'Show ATMs': Setup().osmAtms},
+                                  {'Show historic sites': Setup().osmHistorical}
+                                ],
+                                maxWidth:
+                                    MediaQuery.of(context).size.width - 40,
+                                onCheck: (index, value) {
+                                  switch (index) {
+                                    case 0:
+                                      Setup().avoidMotorways = value;
+                                      break;
+                                    case 1:
+                                      Setup().avoidAroads = value;
+                                      break;
+                                    case 2:
+                                      Setup().avoidFerries = value;
+                                      break;
+                                    case 3:
+                                      Setup().avoidTollRoads = value;
+                                      break;
+                                    case 4:
+                                      Setup().osmPubs = value;
+                                      break;
+                                    case 5:
+                                      Setup().osmRestaurants = value;
+                                      break;
+                                    case 6:
+                                      Setup().osmFuel = value;
+                                      break;
+                                    case 7:
+                                      Setup().osmToilets = value;
+                                      break;
+                                    case 8:
+                                      Setup().osmAtms = value;
+                                      break;
+                                    case 9:
+                                      Setup().osmHistorical = value;
+                                      break;
+                                  }
+                                  osmIncludingChange = true;
                                 },
-                                {
-                                  'Show fuel and charging stations':
-                                      Setup().osmFuel
+                                onClose: (_) async {
+                                  if (osmIncludingChange) {
+                                    osmIncludingChange = false;
+                                  }
                                 },
-                                {'Show toilets': Setup().osmToilets},
-                                {'Show ATMs': Setup().osmAtms},
-                                {'Show historic sites': Setup().osmHistorical}
-                              ],
-                              maxWidth: MediaQuery.of(context).size.width - 40,
-                              onCheck: (index, value) {
-                                switch (index) {
-                                  case 0:
-                                    Setup().avoidMotorways = value;
-                                    break;
-                                  case 1:
-                                    Setup().avoidAroads = value;
-                                    break;
-                                  case 2:
-                                    Setup().avoidFerries = value;
-                                    break;
-                                  case 3:
-                                    Setup().avoidTollRoads = value;
-                                    break;
-                                  case 4:
-                                    Setup().osmPubs = value;
-                                    break;
-                                  case 5:
-                                    Setup().osmRestaurants = value;
-                                    break;
-                                  case 6:
-                                    Setup().osmFuel = value;
-                                    break;
-                                  case 7:
-                                    Setup().osmToilets = value;
-                                    break;
-                                  case 8:
-                                    Setup().osmAtms = value;
-                                    break;
-                                  case 9:
-                                    Setup().osmHistorical = value;
-                                    break;
-                                }
-                                osmIncludingChange = true;
-                              },
-                              onClose: (_) async {
-                                if (osmIncludingChange) {
-                                  osmIncludingChange = false;
-                                }
-                              },
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 10),
+                            const SizedBox(height: 10),
+                          ],
                           if ([TripState.tracking, TripState.following]
                               .contains(CurrentTripItem().tripState)) ...[
-                            MouseRegion(
-                              onEnter: (_) => updateToolTips(true, 2),
-                              onExit: (_) => updateToolTips(false, 2),
+                            HelpTip(
+                              helpKey: 'fab.pointOfInterest',
                               child: Material(
                                 child: FloatingTextEdit(
                                   key: Key('ftepoi'),
@@ -268,9 +270,8 @@ class _HandleCTFabsState extends State<HandleCTFabs> {
                             ),
                             if (CurrentTripItem().isGoodRoad) ...[
                               const SizedBox(height: 10),
-                              MouseRegion(
-                                onEnter: (_) => updateToolTips(true, 3),
-                                onExit: (_) => updateToolTips(false, 3),
+                              HelpTip(
+                                helpKey: 'fab.greatRoad',
                                 child: FloatingTextEdit(
                                   key: Key('ftegr'),
                                   maxWidth: 200,
@@ -304,9 +305,8 @@ class _HandleCTFabsState extends State<HandleCTFabs> {
                             ],
                             if (!CurrentTripItem().isGoodRoad) ...[
                               const SizedBox(height: 10),
-                              MouseRegion(
-                                onEnter: (_) => updateToolTips(true, 3),
-                                onExit: (_) => updateToolTips(false, 3),
+                              HelpTip(
+                                helpKey: 'fab.greatRoad',
                                 child: FloatingActionButton(
                                   onPressed: () => updateRouteType(),
                                   heroTag: 'goodRoadOn',
@@ -329,9 +329,8 @@ class _HandleCTFabsState extends State<HandleCTFabs> {
                               ),
                             ],
                           ],
-                          MouseRegion(
-                            onEnter: (_) => updateToolTips(true, 4),
-                            onExit: (_) => updateToolTips(false, 4),
+                          HelpTip(
+                            helpKey: 'fab.location',
                             child: FloatingActionButton(
                               onPressed: () => updatePosition(),
                               heroTag: 'mapCentre',
@@ -349,9 +348,8 @@ class _HandleCTFabsState extends State<HandleCTFabs> {
                           ),
                           const SizedBox(height: 10),
                           if (MapService().controller != null)
-                            MouseRegion(
-                              onEnter: (_) => updateToolTips(true, 5),
-                              onExit: (_) => updateToolTips(false, 5),
+                            HelpTip(
+                              helpKey: 'fab.zoom',
                               child: ZoomFab(
                                 controller: MapService().controller!,
                                 zfController: MapService().zoomFabController!,
@@ -401,20 +399,6 @@ class _HandleCTFabsState extends State<HandleCTFabs> {
     CurrentTripItem().isSaved = false;
     // Show its shield straight away (refreshMap() also micro-nudges)
     await CurrentTripItem().refreshMap(change: MapUpdates.pointsOfInterest);
-  }
-
-  void updateToolTips(bool enter, int i) {
-    if (MapService().statusBarController != null) {
-      try {
-        if (enter) {
-          MapService().statusBarController!.update([fabHints[i]]);
-        } else {
-          MapService().statusBarController!.clear();
-        }
-      } catch (e) {
-        debugPrint('whoops: ${e.toString()}');
-      }
-    }
   }
 
   void updatePosition() async {

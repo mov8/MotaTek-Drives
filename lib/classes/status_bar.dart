@@ -30,6 +30,8 @@ class StatusBarController {
 }
 
 class StatusBar extends StatefulWidget {
+  /// How tall it is - the SideDrawer stops above it
+  static const double barHeight = 20;
   Color? color;
   double height;
   List<Widget>? items;
@@ -99,7 +101,7 @@ class _StatusBarState extends State<StatusBar> {
     return Align(
       alignment: AlignmentGeometry.bottomStart,
       child: Container(
-        height: 20,
+        height: StatusBar.barHeight,
         color: Colors.blue,
         width: MediaQuery.of(context).size.width,
         child: Stack(children: [Row(children: children), MapKeyScale()]),

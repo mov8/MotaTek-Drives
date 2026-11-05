@@ -531,8 +531,10 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
                             padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
                             child: Text(
                               widget.pointOfInterest.description,
+                              // black - white was hard to read on the light
+                              // blue the trip's details give it
                               style:
-                                  TextStyle(fontSize: 20, color: Colors.white),
+                                  TextStyle(fontSize: 18, color: Colors.black),
                             ),
                           ),
                         ),

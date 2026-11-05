@@ -47,13 +47,13 @@ class _ZoomFabState extends State<ZoomFab> {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadiusGeometry.vertical(
-          top: Radius.circular(widget.width / 2),
-          bottom: Radius.circular(widget.width / 2)), //horizontal(left: R, ),
-
-      child: Container(
-        color: Colors.blue,
+    // Raised, with a shadow, like the FABs above it
+    return Material(
+      color: Colors.blue,
+      elevation: 6,
+      shape: const StadiumBorder(),
+      clipBehavior: Clip.antiAlias,
+      child: SizedBox(
         height: widget.height,
         width: widget.width,
         child: Column(

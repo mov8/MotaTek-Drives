@@ -7,7 +7,6 @@ import '/helpers/helpers.dart';
 import '/screens/dialogs.dart';
 import 'tiles.dart';
 import '/services/services.dart';
-import 'dart:developer' as developer;
 
 class TripTile extends StatefulWidget {
   final TripItem tripItem;
@@ -40,7 +39,12 @@ class _TripTileState extends State<TripTile> {
   bool _downloading = false;
   bool isExpanded = false;
   bool expanded = true;
-  final List<Card> _childCards = [];
+
+  /// The whole trip - its waypoints and its own points of interest - fetched
+  /// when the tile opens (not counted as a download)
+  MyTripItem? _trip;
+  bool _loading = false;
+  bool _descriptionOpen = false;
   @override
   void initState() {
     super.initState();
@@ -68,7 +72,9 @@ class _TripTileState extends State<TripTile> {
         if (widget.onExpand != null) {
           widget.onExpand!(widget.index);
         }
-      } else {}
+      } else if (_trip != null) {
+        MapService().showPublishedTrip(null);
+      }
     } catch (e) {
       debugPrint('Error tripTile expandChange: ${e.toString()} ');
     }
@@ -82,34 +88,89 @@ class _TripTileState extends State<TripTile> {
     }
   }
 
-  getDetails() async {
-    if (_childCards.isEmpty) {
-      try {
-        var details = await getTripDetails(uuid: widget.tripItem.uri);
-        for (int i = 0; i < details.length; i++) {
-          PointOfInterest pointOfInterest =
-              PointOfInterest.fromJson(map: details[i]);
-          if (![12, 17, 18].contains(pointOfInterest.type)) {
-            _childCards.add(
-              Card(
-                child: PointOfInterestTile(
-                  index: i,
-                  canEdit: false,
-                  pointOfInterest: pointOfInterest,
-                  imageRepository: widget.imageRepository,
-                  driveId: widget.tripItem.uri,
-                ),
-              ),
-            );
-          }
-        }
-      } catch (e) {
-        developer.log(
-            'Error TripTile().getDetails() getting trip details: ${e.toString()}',
-            name: 'error');
-      }
+  /// The whole trip, once: its figures, its points of interest for the list,
+  /// and its waypoints and points of interest on the map
+  Future<void> getDetails() async {
+    if (_trip == null && !_loading) {
+      _loading = true;
+      MyTripItem trip = await getMyTrip(widget.tripItem.uri);
+      _loading = false;
+      if (trip.routes.isNotEmpty) _trip = trip;
     }
-    return;
+    if (_trip != null) MapService().showPublishedTrip(_trip);
+  }
+
+  /// Its own points of interest - not its waypoints (or the Start and End
+  /// that mark them)
+  List<PointOfInterest> get _pointsOfInterest => [
+        for (PointOfInterest poi in _trip?.pointsOfInterest ?? [])
+          if (![12, 14, 17, 18].contains(poi.type)) poi
+      ];
+
+  /// The figures, as AI assist shows a trip's
+  Widget _stats(TextTheme text) {
+    MyTripItem? trip = _trip;
+    int waypoints = trip == null || trip.routes.isEmpty
+        ? 0
+        : trip.routes.first.waypoints.where((w) => !w.revisit).length;
+    List<(String, String)> figures = [
+      ('Distance', '${widget.tripItem.distance.toStringAsFixed(0)} miles'),
+      if (trip != null) ...[
+        ('Waypoints', '$waypoints'),
+        ('Points of interest', '${_pointsOfInterest.length}'),
+        if (trip.goodRoads.isNotEmpty)
+          ('Great roads', '${trip.goodRoads.length}'),
+      ],
+      ('Downloads', '${widget.tripItem.downloads}'),
+      if (widget.tripItem.driven > 0)
+        ('Driven by', '${widget.tripItem.driven}'),
+    ];
+    return Wrap(spacing: 20, runSpacing: 8, children: [
+      for (var (label, value) in figures)
+        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(label, style: text.bodySmall?.copyWith(color: Colors.black54)),
+          Text(value, style: text.titleMedium?.copyWith(color: Colors.black)),
+        ]),
+    ]);
+  }
+
+  /// Its summary and the start of its description; opened, the whole
+  /// description and its photos
+  Widget _description(TextTheme text) {
+    String body = widget.tripItem.body.trim();
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      child: ExpansionTile(
+        shape: const Border(),
+        tilePadding: const EdgeInsets.symmetric(horizontal: 10),
+        childrenPadding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
+        expandedCrossAxisAlignment: CrossAxisAlignment.start,
+        onExpansionChanged: (open) => setState(() => _descriptionOpen = open),
+        title: Text(
+            widget.tripItem.subTitle.isEmpty
+                ? 'About this trip'
+                : widget.tripItem.subTitle,
+            style: text.titleSmall
+                ?.copyWith(color: Colors.black, fontWeight: FontWeight.bold)),
+        subtitle: _descriptionOpen || body.isEmpty
+            ? null
+            : Text(body,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: text.bodyMedium?.copyWith(color: Colors.black87)),
+        children: [
+          if (widget.tripItem.imageUrls.isNotEmpty)
+            PhotoCarousel(
+              imageRepository: widget.imageRepository,
+              photos: widget.tripItem.tripPhotos,
+              height: 300,
+              width: MediaQuery.of(context).size.width - 50,
+            ),
+          const SizedBox(height: 8),
+          Text(body, style: text.bodyLarge?.copyWith(color: Colors.black)),
+        ],
+      ),
+    );
   }
 
   @override
@@ -222,103 +283,58 @@ class _TripTileState extends State<TripTile> {
           ),
         ),
         children: [
-          SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(5, 15, 5, 10),
-              child: Align(
-                alignment: Alignment.topLeft,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    if (widget.tripItem.imageUrls.isNotEmpty)
-                      Row(
-                        children: <Widget>[
-                          Expanded(
-                            flex: 1,
-                            child: SizedBox(
-                              child: PhotoCarousel(
-                                imageRepository: widget.imageRepository,
-                                photos: widget.tripItem.tripPhotos,
-                                height: 300,
-                                width: MediaQuery.of(context).size.width - 50,
-                              ),
-                            ),
-                          )
-                        ],
-                      ),
-                    const SizedBox(
-                      height: 10,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 4, 12, 10),
+            child: Builder(builder: (context) {
+              TextTheme text = Theme.of(context).textTheme;
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _stats(text),
+                  _description(text),
+                  // To follow, or change and keep as the user's own -
+                  // the bar's "Choose a drive to download"
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton.icon(
+                      icon: _downloading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2))
+                          : const Icon(Icons.download),
+                      label: const Text('Download',
+                          style: TextStyle(fontSize: 18)),
+                      onPressed: _downloading ? null : download,
                     ),
-                    SizedBox(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(5, 0, 5, 10),
-                        child: Align(
-                          alignment: Alignment.topLeft,
-                          child: Text(
-                            widget.tripItem.subTitle,
-                            style: const TextStyle(
-                              color: Colors.black,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            textAlign: TextAlign.left,
-                          ),
+                  ),
+                  if (_loading && _trip == null)
+                    const Padding(
+                      padding: EdgeInsets.all(8),
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
+                  if (_pointsOfInterest.isNotEmpty) ...[
+                    Text('Points of interest',
+                        style:
+                            titleStyle(context: context, color: Colors.black)),
+                    for (int i = 0; i < _pointsOfInterest.length; i++)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: PointOfInterestTile(
+                          key: Key('ppoi_${_pointsOfInterest[i].uuid}'),
+                          index: i,
+                          canEdit: false,
+                          pointOfInterest: _pointsOfInterest[i],
+                          imageRepository: widget.imageRepository,
+                          driveId: widget.tripItem.uri,
+                          backgroundColor:
+                              const Color.fromRGBO(10, 169, 243, 0.158),
                         ),
                       ),
-                    ),
-                    SizedBox(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(5, 0, 5, 10),
-                        child: Align(
-                          alignment: Alignment.topLeft,
-                          child: Text(
-                            widget.tripItem.body,
-                            style: const TextStyle(
-                              color: Colors.black,
-                              fontSize: 20,
-                            ),
-                            textAlign: TextAlign.left,
-                          ),
-                        ),
-                      ),
-                    ),
-                    // To follow, or change and keep as the user's own -
-                    // the bar's "Choose a drive to download"
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton.icon(
-                        icon: _downloading
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child:
-                                    CircularProgressIndicator(strokeWidth: 2))
-                            : const Icon(Icons.download),
-                        label: const Text('Download',
-                            style: TextStyle(fontSize: 18)),
-                        onPressed: _downloading ? null : download,
-                      ),
-                    ),
-                    if (_childCards.isNotEmpty)
-                      Row(
-                        children: [
-                          Padding(
-                            padding: EdgeInsets.fromLTRB(10, 0, 0, 0),
-                            child: Text(
-                              'Points of interest...',
-                              style: titleStyle(
-                                context: context,
-                                color: Colors.black,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ..._childCards,
                   ],
-                ),
-              ),
-            ),
+                ],
+              );
+            }),
           ),
         ],
       ),

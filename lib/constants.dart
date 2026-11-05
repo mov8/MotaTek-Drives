@@ -151,6 +151,8 @@ enum WaypointState {
   twoPlus,
   extendStart,
   extendEnd,
+  // A round trip: beyond its start and its end, which are close together
+  extendBoth,
   insert,
   revisit,
   remove

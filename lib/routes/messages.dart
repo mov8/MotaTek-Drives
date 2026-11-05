@@ -309,23 +309,27 @@ class _MessagesState extends State<Messages> {
     bool open = _tileSelected > -1 && _tileSelected < _mailItems.length;
     return [
       if (kIsWeb || !open)
-        IconButton(
-          tooltip: 'Add a contact',
-          icon: const Icon(Icons.person_add_outlined,
-              size: 30, color: Colors.white),
-          onPressed: () {
-            _addContact = true;
-            kIsWeb ? sideBarItems() : setState(() {});
-          },
+        HelpTip(
+          helpKey: 'bar.addContact',
+          child: IconButton(
+            icon: const Icon(Icons.person_add_outlined,
+                size: 30, color: Colors.white),
+            onPressed: () {
+              _addContact = true;
+              kIsWeb ? sideBarItems() : setState(() {});
+            },
+          ),
         ),
       if (open && !_writing)
-        IconButton(
-          tooltip: 'Write a message',
-          icon: const Icon(Icons.add, size: 30, color: Colors.white),
-          onPressed: () {
-            setState(() => _writing = true);
-            _refreshAppBar();
-          },
+        HelpTip(
+          helpKey: 'bar.writeMessage',
+          child: IconButton(
+            icon: const Icon(Icons.add, size: 30, color: Colors.white),
+            onPressed: () {
+              setState(() => _writing = true);
+              _refreshAppBar();
+            },
+          ),
         ),
     ];
   }
