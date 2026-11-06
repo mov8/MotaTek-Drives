@@ -105,6 +105,23 @@ class _DriveInvitationsState extends State<DriveInvitations>
                     ),
                   ]),
                   children: [
+                    // A large group needn't be ticked one by one
+                    if (_invitable(index).isNotEmpty)
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          TextButton.icon(
+                            icon: const Icon(Icons.check_box_outlined),
+                            label: const Text('Select all'),
+                            onPressed: () => _inviteAll(index, true),
+                          ),
+                          TextButton.icon(
+                            icon: const Icon(Icons.check_box_outline_blank),
+                            label: const Text('Deselect all'),
+                            onPressed: () => _inviteAll(index, false),
+                          ),
+                        ],
+                      ),
                     if (widget.groupDrivers[index].invitees.isNotEmpty)
                       ListView.builder(
                         itemCount: widget.groupDrivers[index].invitees.length,
@@ -171,51 +188,73 @@ class _DriveInvitationsState extends State<DriveInvitations>
           false;
       return Checkbox(
         value: value,
-        onChanged: (value) => setState(() {
-          widget.groupDrivers[groupIndex].selected = true;
-          widget.groupDrivers[groupIndex].invitees[driverIndex]['invite'] =
-              value;
-          int tripIndex = -1;
-          int inviteeIndex = -1;
-          for (int i = 0; i < _changes.length; i++) {
-            if (_changes[i]['myTripId'] == widget.myTripItem.id) {
-              tripIndex = i;
-              for (int j = 0; j < _changes[i]['invitees'].length; j++) {
-                if (_changes[i]['invitees'][j]['email'] ==
-                    widget.groupDrivers[groupIndex].invitees[driverIndex]
-                        ['email']) {
-                  inviteeIndex = j;
-                  break;
-                }
-              }
-              break;
-            }
-          }
-          if (value == false && inviteeIndex > -1) {
-            _changes[tripIndex]['invitees'].removeAt(inviteeIndex);
-          } else if (value == true && inviteeIndex == -1) {
-            if (tripIndex == -1) {
-              _changes.add({'myTripId': widget.myTripItem.id});
-              tripIndex = _changes.length - 1;
-              _changes[tripIndex]['invitees'] = [];
-            }
-            _changes[tripIndex]['invitees']
-                .add(widget.groupDrivers[groupIndex].invitees[driverIndex]);
-          }
-          if (value == false) {
-            for (int i = _changes.length - 1; i >= 0; i--) {
-              if (_changes[i]['invitees'].isEmpty) {
-                _changes.removeAt(i);
-              }
-            }
-          }
-
-          widget.onSelect!(_changes);
-          debugPrint('widget.onSelect: ${_changes.toString()}');
-        }),
+        onChanged: (value) {
+          setState(() => _setInvite(groupIndex, driverIndex, value ?? false));
+          widget.onSelect?.call(_changes);
+        },
       );
     } else {
       return Icon(inviteIcons[state]);
+    }
+  }
+
+  /// The group's members who can be invited - those not invited already
+  List<int> _invitable(int groupIndex) => [
+        for (int i = 0;
+            i < widget.groupDrivers[groupIndex].invitees.length;
+            i++)
+          if (int.tryParse(
+                  '${widget.groupDrivers[groupIndex].invitees[i]['state']}') ==
+              3)
+            i
+      ];
+
+  /// Ticks, or clears, every member of the group who can be invited
+  void _inviteAll(int groupIndex, bool invite) {
+    setState(() {
+      for (int i in _invitable(groupIndex)) {
+        _setInvite(groupIndex, i, invite);
+      }
+    });
+    widget.onSelect?.call(_changes);
+  }
+
+  /// One member ticked or cleared, and the changes to send updated
+  void _setInvite(int groupIndex, int driverIndex, bool value) {
+    widget.groupDrivers[groupIndex].selected = true;
+    widget.groupDrivers[groupIndex].invitees[driverIndex]['invite'] = value;
+    int tripIndex = -1;
+    int inviteeIndex = -1;
+    for (int i = 0; i < _changes.length; i++) {
+      if (_changes[i]['myTripId'] == widget.myTripItem.id) {
+        tripIndex = i;
+        for (int j = 0; j < _changes[i]['invitees'].length; j++) {
+          if (_changes[i]['invitees'][j]['email'] ==
+              widget.groupDrivers[groupIndex].invitees[driverIndex]['email']) {
+            inviteeIndex = j;
+            break;
+          }
+        }
+        break;
+      }
+    }
+    if (value == false && inviteeIndex > -1) {
+      _changes[tripIndex]['invitees'].removeAt(inviteeIndex);
+    } else if (value == true && inviteeIndex == -1) {
+      if (tripIndex == -1) {
+        _changes.add({'myTripId': widget.myTripItem.id});
+        tripIndex = _changes.length - 1;
+        _changes[tripIndex]['invitees'] = [];
+      }
+      _changes[tripIndex]['invitees']
+          .add(widget.groupDrivers[groupIndex].invitees[driverIndex]);
+    }
+    if (value == false) {
+      for (int i = _changes.length - 1; i >= 0; i--) {
+        if (_changes[i]['invitees'].isEmpty) {
+          _changes.removeAt(i);
+        }
+      }
     }
   }
 

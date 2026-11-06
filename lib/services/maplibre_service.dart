@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'dart:async';
+import 'dart:convert';
 import 'dart:ui' as ui;
 import 'dart:developer' as developer;
 import 'package:drives/classes/create_trip_stack.dart';
@@ -308,6 +309,7 @@ class MapService {
           await _drivesRequest!
               .update(bounds: bounds, zoom: zoom, force: !_idleCalled);
           _idleCalled = true;
+          _publishedFilters(bounds);
         } catch (e) {
           developer.log('Error setting published data: ${e.toString()}',
               name: 'error');
@@ -984,6 +986,87 @@ class MapService {
 
   Function(bool)? createTripOnMapIde;
 
+  /// Published's filters, for the view: every trip's label (shieldFilter()
+  /// with no fence) - they were limited to the middle of the view Published
+  /// opened with, and never changed, so labels went missing as the map
+  /// moved - and the highlight for the trips round the middle of the view.
+  void _publishedFilters(LatLngBounds bounds) {
+    var filter = fenceFilter(bounds: bounds, proportion: 0.6);
+    controller!.setFilter("route-marker-layer", [
+      "==",
+      ["get", "group"],
+      "shield"
+    ]);
+    controller!.setFilter("good_roads_highlighted", filter);
+    controller!.setFilter("roads_highlighted", filter);
+  }
+
+  /// A trip just published: the next time Published opens, the map shows
+  /// it, fetched again (see initialiseTrips())
+  MyTripItem? _justPublished;
+
+  void tripPublished(MyTripItem trip) {
+    _justPublished = trip;
+    _drivesRequest?.invalidate();
+    _publishedGreatRoads = null; // its great roads, on Explore
+  }
+
+  /// The great roads in published trips - fetched once, and again after
+  /// publishing. All of them: the API doesn't use the view yet.
+  List? _publishedGreatRoads;
+
+  /// Explore shows them, so a trip can be planned along them
+  Future<void> _showPublishedGreatRoads() async {
+    try {
+      if (_publishedGreatRoads == null) {
+        dynamic geoJson = await getGoodRoadsGeoJson();
+        var data = geoJson is String ? jsonDecode(geoJson) : null;
+        if (data is! Map) return; // not reached - tried again next time
+        _publishedGreatRoads = [
+          for (var feature in data['features'] ?? [])
+            if (feature['group'] == 'line') feature
+        ];
+      }
+      if (_page != 2) return; // Published opened meanwhile
+      await controller?.setGeoJsonSource(publishedGreatRoadSource,
+          {"type": "FeatureCollection", "features": _publishedGreatRoads});
+    } catch (e) {
+      developer.log('_showPublishedGreatRoads(): ${e.toString()}',
+          name: 'error');
+    }
+  }
+
+  /// The map moved to show the trip just published - its route's extent
+  Future<void> _showJustPublished() async {
+    MyTripItem? trip = _justPublished;
+    _justPublished = null;
+    if (trip == null || controller == null) return;
+    List<List<double>> points = [
+      for (var route in trip.routes)
+        for (List<double> point in route.lines)
+          if (point.length >= 2) point
+    ];
+    if (points.isEmpty) return;
+    double west = points.map((p) => p[0]).reduce(min);
+    double east = points.map((p) => p[0]).reduce(max);
+    double south = points.map((p) => p[1]).reduce(min);
+    double north = points.map((p) => p[1]).reduce(max);
+    try {
+      await controller!
+          .moveCamera(CameraUpdate.newLatLngBounds(
+              LatLngBounds(
+                  southwest: LatLng(south, west),
+                  northeast: LatLng(north, east)),
+              left: 40,
+              top: 40,
+              right: 40,
+              bottom: 40))
+          .timeout(const Duration(seconds: 3), onTimeout: () => null);
+    } catch (e) {
+      developer.log('_showJustPublished(): ${e.toString()}', name: 'error');
+    }
+  }
+
   Future<void> _tripsOnIdle({required int page, bool force = false}) async {
     Map geoJson = {};
     if (force || (_checkUpdates ?? false)) {
@@ -1007,10 +1090,7 @@ class MapService {
           /// on the map to correspond to the data.
           await _tripRequest!.update(bounds: bounds, zoom: zoom);
         }
-        var filter = fenceFilter(bounds: bounds, proportion: 0.6);
-        controller!.setFilter("route-marker-layer", shieldFilter(filter));
-        controller!.setFilter("good_roads_highlighted", filter);
-        controller!.setFilter("roads_highlighted", filter);
+        if (page == 1) _publishedFilters(bounds);
         await controller!.animateCamera(CameraUpdate.zoomBy(0.000001));
       } catch (e) {
         developer.log(
@@ -1030,6 +1110,8 @@ class MapService {
   /// A published trip opened on Published: its waypoints and points of
   /// interest on the map (publishedTripLayers()) - or, with none, none
   Future<void> showPublishedTrip(MyTripItem? trip) async {
+    // kept in the drawer's list while it's open, whatever the view
+    _drivesRequest?.openTrip = trip?.uri ?? '';
     try {
       await controller?.setGeoJsonSource(
           publishedTripSource,
@@ -1045,6 +1127,7 @@ class MapService {
     for (String source in [
       'published-data',
       publishedTripSource,
+      publishedGreatRoadSource,
       ...mapSources.keys
     ]) {
       try {
@@ -1070,6 +1153,7 @@ class MapService {
     }
     _tripsOnMapUpdate(); // <-- Initialise the Trips cache
     await clearGeoJson();
+    await _showJustPublished();
 
     await _tripsOnIdle(
         page: _page,
@@ -1086,6 +1170,7 @@ class MapService {
     await clearGeoJson();
     // Draw the trip being planned again - Published cleared it
     await CurrentTripItem().refreshMap();
+    _showPublishedGreatRoads(); // not waited for
     if (!kIsWeb) {
       // The trip's details, not Published's list - closed until wanted
       bottomDrawerController?.setContent(

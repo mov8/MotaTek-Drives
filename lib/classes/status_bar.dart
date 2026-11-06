@@ -63,11 +63,14 @@ class _StatusBarState extends State<StatusBar> {
     }
   }
 
+  // Not once it's gone - the map's idle refreshed it after a change of
+  // page had removed it, an uncaught error ("Error: Error") on the web
   void _refresh() async {
-    setState(() {});
+    if (mounted) setState(() {});
   }
 
   void _update(String message) {
+    if (!mounted) return;
     try {
       widget.items!.removeWhere((i) => i.runtimeType != MapKeyScale);
       setState(
@@ -82,6 +85,7 @@ class _StatusBarState extends State<StatusBar> {
   }
 
   void _clear() {
+    if (!mounted) return;
     try {
       widget.items!.removeWhere((i) => i.runtimeType != MapKeyScale);
       setState(

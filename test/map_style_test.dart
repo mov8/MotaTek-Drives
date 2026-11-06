@@ -81,9 +81,27 @@ void main() {
             'layout': {'visibility': 'visible'}
           },
           {
+            'id': 'published_good_roads',
+            'type': 'line',
+            'source': 'good-road-data',
+            'filter': [
+              '==',
+              ['get', 'group'],
+              'line'
+            ],
+          },
+          {
+            'id': 'planned_routes',
+            'type': 'line',
+            'source': 'route-data',
+          },
+          {
             'id': 'route-marker-layer',
             'type': 'symbol',
-            'source': 'published-data'
+            'source': 'published-data',
+            'layout': {
+              'text-font': ['Noto Sans Regular']
+            },
           },
           {
             'id': 'point-of-interest-shield-layer',
@@ -107,6 +125,13 @@ void main() {
     expect(layer(fixed, 'planned_routes_highlighted')['layout'],
         {'visibility': 'visible', 'line-cap': 'round', 'line-join': 'round'});
     expect(layer(fixed, 'roads')['layout'], isNull);
+  });
+
+  test("a trip's label keeps little space clear, so it isn't pushed off", () {
+    Map fixed = jsonDecode(appStyle(jsonEncode(server())));
+    expect(layer(fixed, 'route-marker-layer')['layout']['icon-padding'], 4);
+    expect(layer(fixed, 'route-marker-layer')['layout']['text-font'],
+        ['Noto Sans Regular']);
   });
 
   test("only a trip's shield is labelled, not its line", () {
@@ -137,6 +162,24 @@ void main() {
     expect(layer(fixed, 'way-marker-layer')['source'], 'waypoint-data');
     expect(order(jsonEncode(fixed)).indexOf(publishedTripWaypoints),
         greaterThan(order(jsonEncode(fixed)).indexOf('route-marker-layer')));
+  });
+
+  test(
+      "published great roads have their own source, under the trip being "
+      "planned, and named from zoom 10", () {
+    Map fixed = jsonDecode(appStyle(jsonEncode(server())));
+    expect(fixed['sources'][publishedGreatRoadSource]['type'], 'geojson');
+    Map line = layer(fixed, publishedGreatRoads);
+    expect(line['source'], publishedGreatRoadSource);
+    expect(line['layout']['line-cap'], 'round');
+    Map names = layer(fixed, publishedGreatRoadNames);
+    expect(names['minzoom'], 10);
+    expect(names['layout']['text-font'], ['Noto Sans Regular']);
+    List<String> ids = order(jsonEncode(fixed));
+    expect(ids.indexOf(publishedGreatRoads),
+        lessThan(ids.indexOf('planned_routes')));
+    // the trip's own great roads keep theirs
+    expect(layer(fixed, 'published_good_roads')['source'], 'good-road-data');
   });
 
   test("a published trip's waypoints are numbered; a revisit has no marker",

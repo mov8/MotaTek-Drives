@@ -85,9 +85,7 @@ class _MainDrawerState extends State<MainDrawer> {
               child: ListTile(
                 leading: const Icon(Icons.manage_accounts_outlined, size: 30),
                 title: Text(
-                  Setup().jwt.isEmpty
-                      ? 'Register my details'
-                      : 'Change my details',
+                  myDetailsLabel(),
                   style: const TextStyle(
                     color: Colors.blue,
                     fontSize: 20,

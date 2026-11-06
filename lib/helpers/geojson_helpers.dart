@@ -181,13 +181,90 @@ const String publishedTripWaypoints = 'published-trip-waypoints';
 const String publishedTripPointsOfInterest =
     'published-trip-points-of-interest';
 
+/// The great roads in published trips, on Explore - their source and layers
+/// (see publishedGreatRoadLayers())
+const String publishedGreatRoadSource = 'published-great-road-data';
+const String publishedGreatRoads = 'published-great-roads';
+const String publishedGreatRoadNames = 'published-great-road-names';
+
 /// The map style as the app needs it, from the server's - see each change:
-/// waypointsAbovePointsOfInterest(), routeLayers(), publishedTripLayers()
-String appStyle(String style) =>
-    publishedTripLayers(routeLayers(waypointsAbovePointsOfInterest(style)));
+/// waypointsAbovePointsOfInterest(), routeLayers(), publishedTripLayers(),
+/// publishedGreatRoadLayers()
+String appStyle(String style) => publishedGreatRoadLayers(
+    publishedTripLayers(routeLayers(waypointsAbovePointsOfInterest(style))));
+
+/// The great roads others have published, shown on Explore so a trip can be
+/// planned along them: a line like the trip's own great roads, a little
+/// see-through and under the trip being planned, with the great road's name
+/// along it from zoom 10. On a source of their own, as Explore's great road
+/// source is the trip's.
+String publishedGreatRoadLayers(String style) {
+  try {
+    Map<String, dynamic> parsed = jsonDecode(style);
+    List layers = parsed['layers'];
+    Map? greatRoads = layers.firstWhere(
+        (l) => l['id'] == 'published_good_roads',
+        orElse: () => null);
+    if (greatRoads == null) return style;
+    Map? labels = layers.firstWhere((l) => l['id'] == 'route-marker-layer',
+        orElse: () => null);
+    List font = labels?['layout']?['text-font'] ?? ['Noto Sans Regular'];
+    parsed['sources'][publishedGreatRoadSource] = {
+      'type': 'geojson',
+      'data': {'type': 'FeatureCollection', 'features': []},
+    };
+    Map line = jsonDecode(jsonEncode(greatRoads))
+      ..['id'] = publishedGreatRoads
+      ..['source'] = publishedGreatRoadSource
+      ..['filter'] = [
+        "==",
+        ["get", "group"],
+        "line"
+      ];
+    line['layout'] = {
+      ...?line['layout'],
+      'line-cap': 'round',
+      'line-join': 'round',
+    };
+    line['paint'] = {...?line['paint'], 'line-opacity': 0.7};
+    Map names = {
+      'id': publishedGreatRoadNames,
+      'type': 'symbol',
+      'source': publishedGreatRoadSource,
+      'minzoom': 10,
+      'filter': [
+        "==",
+        ["get", "group"],
+        "line"
+      ],
+      'layout': {
+        'symbol-placement': 'line',
+        'text-field': ["get", "title"],
+        'text-font': font,
+        'text-size': 13,
+      },
+      'paint': {
+        'text-color': '#011D33',
+        'text-halo-color': '#FFFFFF',
+        'text-halo-width': 1.5,
+      },
+    };
+    // Under the trip being planned, which is drawn over them
+    int at = layers.indexWhere((l) => l['id'] == 'planned_routes');
+    layers.insert(at < 0 ? layers.length : at, line);
+    int labelAt = layers.indexWhere((l) => l['id'] == 'route-marker-layer');
+    layers.insert(labelAt < 0 ? layers.length : labelAt, names);
+    return jsonEncode(parsed);
+  } catch (_) {
+    return style;
+  }
+}
 
 /// The trips' lines with round ends and corners - square ends looked odd -
-/// and the trip labels only for the trips (shieldFilter())
+/// and the trip labels only for the trips (shieldFilter()). A trip label
+/// keeps only a little space clear round it: it kept 100 pixels, from when a
+/// trip had a label every mile, so the trip's own points of interest pushed
+/// its one label off the map at some zooms.
 String routeLayers(String style) {
   try {
     Map<String, dynamic> parsed = jsonDecode(style);
@@ -205,6 +282,7 @@ String routeLayers(String style) {
           ["get", "group"],
           "shield"
         ];
+        layer['layout'] = {...?layer['layout'], 'icon-padding': 4};
       }
     }
     return jsonEncode(parsed);
@@ -608,6 +686,12 @@ List<Map<String, dynamic>> followersToGeoJson(
   }
   return features;
 }
+
+/// The stars for a rating - five empty ones if nobody has rated it yet. The
+/// server counts no ratings as five stars, so a trip just published looked
+/// top rated.
+String unratedStars(dynamic rated, dynamic stars) =>
+    (rated ?? 0) == 0 ? toStars(rating: 0) : '${stars ?? toStars(rating: 0)}';
 
 String toStars({double rating = 5}) {
   int rated = rating.toInt();

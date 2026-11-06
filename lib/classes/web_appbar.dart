@@ -1,6 +1,7 @@
 import 'package:drives/routes/create_trip.dart';
 import 'package:drives/routes/home.dart';
 import 'package:flutter/material.dart';
+import 'package:pointer_interceptor/pointer_interceptor.dart';
 import '../models/models.dart';
 import '../services/services.dart';
 import 'dart:developer' as developer;
@@ -345,6 +346,9 @@ class _WebAppBarState extends State<WebAppBar> {
         // 2. Use showMenu with the ROOT navigator's context
         await showMenu<String>(
           constraints: BoxConstraints(minWidth: 250),
+          // the items fill the menu, so the map underneath gets none of the
+          // mouse (see _overMap())
+          menuPadding: EdgeInsets.zero,
           context: context,
           position: position,
           items: getPopupMenuItems(),
@@ -392,23 +396,28 @@ class _WebAppBarState extends State<WebAppBar> {
           if (['markdownHome', 'markdownShop'].contains(map['key'])) {
             return ClubService().canEditPages;
           }
+          // Until how clubs work is settled (after the NEC show)
+          if (map['key'] == 'clubs') return false;
           return true;
         })
         .map<PopupMenuEntry<String>>(
           (e) => PopupMenuItem(
             onTap: () => _openOption(e),
             value: e['key'],
-            child: HelpTip(
-              helpKey: 'menu.${e['key']}',
-              child: Row(
-                key: Key('pmi${e['key']}'),
-                children: [
-                  e['iconData'],
-                  SizedBox(
-                    width: 10,
-                  ),
-                  Text(e['text']),
-                ],
+            padding: EdgeInsets.zero,
+            child: _overMap(
+              HelpTip(
+                helpKey: 'menu.${e['key']}',
+                child: Row(
+                  key: Key('pmi${e['key']}'),
+                  children: [
+                    e['iconData'],
+                    SizedBox(
+                      width: 10,
+                    ),
+                    Text(drawerOptionText(e)),
+                  ],
+                ),
               ),
             ),
           ),
@@ -427,21 +436,37 @@ class _WebAppBarState extends State<WebAppBar> {
             content: BottomDrawerItems.cached,
           ),
           value: 'cache',
-          child: Row(
-            key: Key('restore'),
-            children: [
-              Icon(Icons.restore_page_outlined, size: 30),
-              SizedBox(
-                width: 10,
-              ),
-              Text('Restore side drawer data'),
-            ],
+          padding: EdgeInsets.zero,
+          child: _overMap(
+            Row(
+              key: Key('restore'),
+              children: [
+                Icon(Icons.restore_page_outlined, size: 30),
+                SizedBox(
+                  width: 10,
+                ),
+                Text('Restore side drawer data'),
+              ],
+            ),
           ),
         ),
       );
     }
     return menuItems;
   }
+
+  /// A menu item over the map: the whole item takes the mouse, as the
+  /// SideDrawer does - the map underneath moved, and showed its hints, as
+  /// the mouse went over the menu
+  Widget _overMap(Widget child) => PointerInterceptor(
+        child: Container(
+          constraints: const BoxConstraints(
+              minWidth: 250, minHeight: kMinInteractiveDimension),
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          alignment: AlignmentDirectional.centerStart,
+          child: child,
+        ),
+      );
 
   Widget getActionMessage(
       {Color colour = Colors.white,
@@ -458,7 +483,7 @@ class _WebAppBarState extends State<WebAppBar> {
               prompt = _actionMessage;
             } else {
               _actionMessage = '';
-              prompt = drawerOptions[i]['text'];
+              prompt = drawerOptionText(drawerOptions[i]);
             }
             break;
           }

@@ -55,6 +55,9 @@ ThemeData drivesTheme([DrivesColours? colours]) {
       systemOverlayStyle: SystemUiOverlayStyle.light
           .copyWith(statusBarColor: Colors.transparent),
     ),
+    // The whole width - Material 3 stops bottom sheets at 640 wide, so on a
+    // tablet the BottomDrawer was narrower than the screen
+    bottomSheetTheme: const BottomSheetThemeData(constraints: BoxConstraints()),
   );
 }
 

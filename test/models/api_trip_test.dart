@@ -69,7 +69,9 @@ void main() {
 
       // 17 is the start, 18 the end, 15 a new point of interest
       expect(trip.pointsOfInterest.map((p) => p.type), [17, 18, 15]);
-      expect(trip.pointsOfInterest.first.score, 5.0);
+      // nobody has rated it - no stars, though the server says 5
+      expect(trip.pointsOfInterest.first.scored, 0);
+      expect(trip.pointsOfInterest.first.score, 0);
     });
 
     test("its photos are the server's copies", () {

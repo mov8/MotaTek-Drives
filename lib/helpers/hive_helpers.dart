@@ -65,7 +65,11 @@ class UserRepository {
 
 class TripRepository {
   /// Can't have anything here that's not 'late' else it gets called when class is used
-  late final Box _tripsBox;
+  /// The 'trips' box - one box, shared by every TripRepository, and left
+  /// open. Each read and save used to close it, and when two read at once
+  /// (Favourites and the drawer) the first closed it under the second - an
+  /// uncaught "Box has already been closed" ("Error: Error" on the web).
+  late Box _tripsBox;
   Future<bool> openBox() async {
     _tripsBox = await Hive.openBox('trips');
     return true;
@@ -81,7 +85,6 @@ class TripRepository {
       final String jsonString =
           jsonEncode(trip.toJson()); // <-- toJson is a MyTripIem method
       await _tripsBox.put(trip.uri, jsonString);
-      _tripsBox.close();
       debugPrint('[_save_] saved trip ${trip.uri} to Hive');
     } catch (e) {
       // Visible in the flutter run console - a failed save was silent
@@ -119,7 +122,6 @@ class TripRepository {
     final String? jsonString = _tripsBox.get(id);
     if (jsonString == null) return null;
     final Map<String, dynamic> jsonMap = jsonDecode(jsonString);
-    _tripsBox.close();
     return MyTripItem.fromJson(jsonObject: jsonMap);
   }
 
@@ -141,7 +143,6 @@ class TripRepository {
             name: 'error');
       }
     }
-    _tripsBox.close();
     return tripItems;
   }
 }

@@ -547,6 +547,8 @@ class _MyTripTileState extends State<MyTripTile> {
     } catch (e) {
       developer.log('Error in my_trip_tile.dart publishTrip()', name: 'error');
     }
+    // Published shows it the next time it's opened
+    if (status == 200) MapService().tripPublished(widget.myTripItem);
     if (!mounted) return;
     setState(() => _publishing = false);
     String name = widget.myTripItem.title.isEmpty

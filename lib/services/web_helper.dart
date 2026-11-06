@@ -232,7 +232,8 @@ Future<void> getUserDetails({required String email}) async {
       // logged you out)
       Setup().user.forename = data['forename'] ?? '';
       Setup().user.surname = data['surname'] ?? '';
-      Setup().user.email = email;
+      // the server's, as the device's can be missing
+      Setup().user.email = data['email'] ?? email;
       Setup().user.phone = data['phone'] ?? '';
       Setup().user.type = data['type'] ?? 1;
       Setup().user.newsEmails = data['news_emails'] != false;

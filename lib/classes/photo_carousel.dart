@@ -56,67 +56,54 @@ class _PhotoCarouselState extends State<PhotoCarousel> {
         .changeImageIndex(_pageController.page!.round()));
   }
 
+  /// The photos, their captions, and the dots for which is showing. Each
+  /// photo sits on the same line, its caption just below it and the dots
+  /// just below that - whatever the photo's shape. (A photo was pinned to
+  /// the top, so a landscape one left a gap above its caption and the dots.)
+  /// No wider than the space it's given - the web's drawer is narrower than
+  /// the screen.
   @override
   Widget build(BuildContext context) {
     screenWidth = MediaQuery.of(context).size.width;
-    return Column(children: [
-      SizedBox(
-        height: widget.height > 0 ? widget.height : null,
-        width: widget.width > 0 ? widget.width : null,
-        child: Row(
+    return LayoutBuilder(builder: (context, box) {
+      double width = widget.width > 0
+          ? (box.hasBoundedWidth
+              ? min(widget.width, box.maxWidth)
+              : widget.width)
+          : (box.hasBoundedWidth ? box.maxWidth : screenWidth);
+      return SizedBox(
+        height: widget.height > 0 ? widget.height : 450,
+        width: width,
+        child: Column(
           children: [
-            Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(5, 10, 5, 10),
-                  child: SizedBox(
-                    width: widget.width -
-                        15, // MediaQuery.of(context).size.width - 20,
-                    height: widget.height - 45,
-                    child: Row(
-                      children: <Widget>[
-                        Expanded(
-                          flex: 8,
-                          child: SizedBox(
-                            height: MediaQuery.of(context).size.width, // 375,
-                            child: FutureBuilder(
-                              future:
-                                  _imagesLoaded, //   getImageList(photos: widget.photos),
-                              builder: (context, snapshot) {
-                                if (snapshot.hasError) {
-                                  debugPrint(
-                                    'Snapshot error: ${snapshot.error.toString()}',
-                                  );
-                                  return const ImageMissing(width: 400);
-                                } else if (snapshot.hasData) {
-                                  return getPageView(
-                                      snapshot.data!, widget.photos);
-                                } else {
-                                  return const Center(
-                                    child: CircularProgressIndicator(),
-                                  );
-                                }
-                              },
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(
-                  height: 10,
-                ),
-                ImageListIndicator(
-                  controller: _imageListIndicatorController,
-                  photos: widget.photos,
-                ),
-              ],
+            Expanded(
+              child: FutureBuilder(
+                future: _imagesLoaded,
+                builder: (context, snapshot) {
+                  if (snapshot.hasError) {
+                    debugPrint(
+                      'Snapshot error: ${snapshot.error.toString()}',
+                    );
+                    return const ImageMissing(width: 400);
+                  } else if (snapshot.hasData) {
+                    return getPageView(snapshot.data!, widget.photos);
+                  } else {
+                    return const Center(
+                      child: CircularProgressIndicator(),
+                    );
+                  }
+                },
+              ),
+            ),
+            const SizedBox(height: 6),
+            ImageListIndicator(
+              controller: _imageListIndicatorController,
+              photos: widget.photos,
             ),
           ],
         ),
-      ),
-    ]);
+      );
+    });
   }
 
   Future<List<Image>> getImageList({required List<Photo> photos}) async {
@@ -147,24 +134,27 @@ class _PhotoCarouselState extends State<PhotoCarousel> {
     return images;
   }
 
+  /// Each page: the photo at the bottom of its space, so its bottom edge -
+  /// and the caption under it - are in the same place for every photo
   Widget getPageView(List<Image> imageList, List<Photo> photos) {
     return PageView.builder(
       itemCount: widget.photos.length,
       scrollDirection: Axis.horizontal,
       controller: _pageController,
       itemBuilder: (BuildContext context, int index) {
-        /// angle is in radians 2 Pi radians = 360 degrees clockwise 0.5 1 1.5
         return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Expanded(
-              flex: 11,
               child: Align(
-                alignment: AlignmentDirectional.topCenter,
-                child: Transform.rotate(
-                  angle: pi * photos[index].rotation * 0.5,
+                alignment: Alignment.bottomCenter,
+                // quarter turns - laid out turned, unlike Transform.rotate,
+                // so a turned photo's bottom is where it's drawn
+                child: RotatedBox(
+                  quarterTurns: photos[index].rotation,
                   child: InkWell(
                     onTap: () => _pageController.animateToPage(
-                        index == photos.length - 1 ? 0 : ++index,
+                        index == photos.length - 1 ? 0 : index + 1,
                         duration: Duration(milliseconds: 500),
                         curve: Curves.bounceInOut),
                     child: ClipRRect(
@@ -175,17 +165,17 @@ class _PhotoCarouselState extends State<PhotoCarousel> {
                 ),
               ),
             ),
-            Expanded(
-              flex: 1,
-              child: Align(
-                alignment: AlignmentDirectional.bottomStart,
-                child: Text(
-                  photos[index].caption,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                  ),
+            const SizedBox(height: 4),
+            SizedBox(
+              height: 20,
+              child: Text(
+                photos[index].caption,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
                 ),
               ),
             ),

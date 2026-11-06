@@ -531,7 +531,8 @@ class PointOfInterest {
       name: map['name'],
       description: map['description'],
       images: map['images'],
-      score: map['score'] ?? 0,
+      // none until it's rated - the server sends 5 for no ratings
+      score: (map['scored'] ?? 0) == 0 ? 0 : map['score'] ?? 0,
       scored: map["scored"] ?? 0,
       sounds: '',
     );
@@ -559,7 +560,7 @@ class PointOfInterest {
       name: map['name'] ?? '',
       description: map['description'] ?? '',
       images: map['images'] ?? '[]',
-      score: (map['rating'] ?? 0).toDouble(),
+      score: (map['rated'] ?? 0) == 0 ? 0 : (map['rating'] ?? 0).toDouble(),
       scored: map["rated"] ?? 0,
       sounds: '',
       photos: photos,
@@ -1766,11 +1767,11 @@ class TripItem {
       imageUrls: tripMap['images'] ?? '',
       //    imageUrls: imageUrls.isEmpty
       //        : imageUrls, // has to be calculated
-      rating: tripMap['average_rating'] ??
-          5.0, // tripMap['average_rating'].toDouble() ?? 5.0,
-      score:
-          "${'★' * (tripMap['average_rating'] ?? 5).toInt()}${'☆' * (5 - (tripMap['average_rating'] ?? 5)).toInt()}",
-      scored: tripMap['ratings_count'] ?? 1,
+      // Not rated yet - no stars (it showed five)
+      rating: (tripMap['average_rating'] ?? 0).toDouble(),
+      score: unratedStars(tripMap['ratings_count'] ?? 0,
+          "${'★' * (tripMap['average_rating'] ?? 0).toInt()}${'☆' * (5 - (tripMap['average_rating'] ?? 0)).toInt()}"),
+      scored: tripMap['ratings_count'] ?? 0,
       downloads: tripMap['downloads'] ?? 0,
     );
   }
@@ -1795,17 +1796,18 @@ class TripItem {
         id: -1,
         uri: uri,
         driveUri: '',
+        // Any of these can be missing (null) - the trip came through blank
         title: map['title'] ?? ' ',
-        subTitle: map['sub_title'], //'sub_title',
-        body: map['body'], //'body',
+        subTitle: map['sub_title'] ?? '',
+        body: map['body'] ?? '',
         author: map['author'] ?? '',
         published: true, //
-        added: map['published'], // ?? DateTime.now().toIso8601String(),
-        score: map['rating'], //.toDouble(),
-        distance: map['distance'],
-        pointsOfInterestCount: map['points_of_interest'],
+        added: map['published'] ?? '',
+        score: unratedStars(map['rated'], map['rating']),
+        distance: (map['distance'] ?? 0).toDouble(),
+        pointsOfInterestCount: map['points_of_interest'] ?? 0,
         closest: 0, // has to be calculated
-        scored: map['rated'],
+        scored: map['rated'] ?? 0,
         downloads: map['downloads'] ?? 0,
         driven: map['driven'] ?? 0,
       );

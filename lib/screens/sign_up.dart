@@ -7,6 +7,7 @@ import '/classes/classes.dart';
 import '/constants.dart';
 import '/helpers/edit_helpers.dart';
 import '/helpers/hive_helpers.dart';
+import '/theme.dart';
 
 class SignupForm extends StatefulWidget {
   final LoginState loginState;
@@ -16,8 +17,6 @@ class SignupForm extends StatefulWidget {
 }
 
 class _SignupFormState extends State<SignupForm> {
-  String email = 'james@eggxactly.com';
-  String password = 'ohmy10';
   int manufacturer = 0;
   int model = 0;
   bool carData = false;
@@ -67,10 +66,15 @@ class _SignupFormState extends State<SignupForm> {
     super.dispose();
   }
 
+  /// Logged in, their details from the server, so the boxes are filled in -
+  /// those kept on the device can be missing (e.g. the web, after a reload)
   Future<bool> checkUserData() async {
-    if (Setup().user.email.isNotEmpty && Setup().user.surname.isEmpty) {
+    if (Setup().jwt.isNotEmpty ||
+        (Setup().user.email.isNotEmpty && Setup().user.surname.isEmpty)) {
       try {
-        await getUserDetails(email: Setup().user.email);
+        // (the server ignores the email - it knows them by their login)
+        await getUserDetails(
+            email: Setup().user.email.isEmpty ? 'me' : Setup().user.email);
       } catch (e) {
         if (mounted) {
           Utility().showOkCancelDialog(
@@ -90,7 +94,8 @@ class _SignupFormState extends State<SignupForm> {
   Widget build(BuildContext context) {
     if (kIsWeb) {
       return ScreensAppBarBottom(
-        prompt: 'Please update your details.',
+        prompt: myDetailsLabel(),
+        textColor: DrivesColours.current.ink,
         updateHeading: 'You have changed your details.',
         updateSubHeading: 'Press Save to confirm the changes or Ignore',
         update: hasChanged && isComplete(),
@@ -101,7 +106,18 @@ class _SignupFormState extends State<SignupForm> {
             if (snapshot.hasError) {
               debugPrint('Snapshot error: ${snapshot.error}');
             } else if (snapshot.hasData) {
-              return portraitView();
+              // On a card, as the drawer's other forms are
+              return SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+                child: Card(
+                  elevation: 5,
+                  color: Colors.white,
+                  child: Column(children: [
+                    portraitView(scrolls: false),
+                    if (mode == 1) _saveButton(),
+                  ]),
+                ),
+              );
             } else {
               return const SizedBox(
                 width: double.infinity,
@@ -152,384 +168,404 @@ class _SignupFormState extends State<SignupForm> {
     }
   }
 
-  Widget portraitView() {
+  /// The web's Save - the phone's is the app bar's tick
+  Widget _saveButton() => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+        child: Align(
+          alignment: Alignment.centerRight,
+          child: FilledButton.icon(
+            icon: const Icon(Icons.save_outlined),
+            label: const Text('Save changes'),
+            onPressed: hasChanged && isComplete()
+                ? () async {
+                    String status = await register(update: true);
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                        content: Text(status == 'Ok'
+                            ? 'Your details are saved'
+                            : status)));
+                  }
+                : null,
+          ),
+        ),
+      );
+
+  Widget portraitView({bool scrolls = true}) {
     Color textColour = kIsWeb ? Colors.black : Colors.white;
-    return SingleChildScrollView(
-      child: Form(
-        key: _formKey,
-        autovalidateMode: AutovalidateMode.onUnfocus,
-        child: Column(
-          children: <Widget>[
+    Widget form = Form(
+      key: _formKey,
+      autovalidateMode: AutovalidateMode.onUnfocus,
+      child: Column(
+        children: <Widget>[
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+            child: Row(
+              children: [
+                Expanded(
+                  flex: 5,
+                  child: TextFormField(
+                      autofocus: true,
+                      decoration: InputDecoration(
+                          border: OutlineInputBorder(),
+                          hintText: 'Enter your forename',
+                          hintStyle: hintStyle(context: context),
+                          labelText: 'Forename',
+                          labelStyle: labelStyle(context: context)),
+                      textInputAction: TextInputAction.next,
+                      textCapitalization: TextCapitalization.words,
+                      textAlign: TextAlign.left,
+                      initialValue: Setup().user.forename.toString(),
+                      style: textStyle(context: context, color: textColour),
+                      onChanged: (text) {
+                        Setup().user.forename = text;
+                        hasChanged = true;
+                        if (isComplete() != complete) {
+                          setState(() => complete = !complete);
+                        }
+                      },
+                      validator: (val) {
+                        if (val == null || val.isEmpty) {
+                          return 'Please enter your forename';
+                        }
+                        return null;
+                      }),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  flex: 5,
+                  child: TextFormField(
+                      decoration: InputDecoration(
+                          border: OutlineInputBorder(),
+                          hintText: 'Enter surname',
+                          hintStyle: hintStyle(context: context),
+                          labelText: 'Surname',
+                          labelStyle: labelStyle(context: context)),
+                      textAlign: TextAlign.left,
+                      textInputAction: TextInputAction.next,
+                      textCapitalization: TextCapitalization.words,
+                      initialValue: Setup().user.surname.toString(),
+                      style: textStyle(context: context, color: textColour),
+                      onChanged: (text) {
+                        hasChanged = true;
+                        Setup().user.surname = text;
+                        if (isComplete() != complete) {
+                          setState(() => complete = !complete);
+                        }
+                      },
+                      validator: (val) {
+                        if (val == null || val.isEmpty) {
+                          return 'Please enter your surname';
+                        }
+                        return null;
+                      }),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+            child: TextFormField(
+                readOnly:
+                    mode != 0, //Only allow emails to be altered if new user
+                keyboardType: TextInputType.emailAddress,
+                decoration: InputDecoration(
+                    border: OutlineInputBorder(),
+                    hintText: 'Enter your email address',
+                    hintStyle: hintStyle(context: context),
+                    labelText: 'Email address',
+                    labelStyle: labelStyle(context: context)),
+                textInputAction: TextInputAction.next,
+                textAlign: TextAlign.left,
+                initialValue: Setup().user.email.toString(),
+                style: textStyle(context: context, color: textColour),
+                onChanged: (text) {
+                  hasChanged = true;
+                  Setup().user.email = text;
+                  if (isComplete() != complete) {
+                    setState(() => complete = !complete);
+                  }
+                },
+                validator: (val) {
+                  if (val == null || val.isEmpty) {
+                    return 'Please enter your email address';
+                  }
+                  return null;
+                }),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+            child: TextFormField(
+                keyboardType: TextInputType.phone,
+                decoration: InputDecoration(
+                    border: OutlineInputBorder(),
+                    hintText: 'Enter your phone number',
+                    hintStyle: hintStyle(context: context),
+                    labelText: 'Phone number',
+                    labelStyle: labelStyle(context: context)),
+                textInputAction: TextInputAction.next,
+                textAlign: TextAlign.left,
+                initialValue: Setup().user.phone.toString(),
+                style: textStyle(context: context, color: textColour),
+                onChanged: (text) {
+                  hasChanged = true;
+                  Setup().user.phone = text;
+                  if (isComplete() != complete) {
+                    setState(() => complete = !complete);
+                  }
+                },
+                validator: (val) {
+                  if (val == null || val.isEmpty) {
+                    return 'Please enter your phone number';
+                  }
+                  return null;
+                }),
+          ),
+          if (mode == 0) ...[
+            //(new User)
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
               child: Row(
                 children: [
                   Expanded(
-                    flex: 5,
-                    child: TextFormField(
-                        autofocus: true,
-                        decoration: InputDecoration(
-                            border: OutlineInputBorder(),
-                            hintText: 'Enter your forename',
-                            hintStyle: hintStyle(context: context),
-                            labelText: 'Forename',
-                            labelStyle: labelStyle(context: context)),
-                        textInputAction: TextInputAction.next,
-                        textCapitalization: TextCapitalization.words,
-                        textAlign: TextAlign.left,
-                        initialValue: Setup().user.forename.toString(),
-                        style: textStyle(context: context, color: textColour),
-                        onChanged: (text) {
-                          Setup().user.forename = text;
-                          hasChanged = true;
-                          if (isComplete() != complete) {
-                            setState(() => complete = !complete);
-                          }
-                        },
-                        validator: (val) {
-                          if (val == null || val.isEmpty) {
-                            return 'Please enter your forename';
-                          }
-                          return null;
-                        }),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    flex: 5,
-                    child: TextFormField(
-                        decoration: InputDecoration(
-                            border: OutlineInputBorder(),
-                            hintText: 'Enter surname',
-                            hintStyle: hintStyle(context: context),
-                            labelText: 'Surname',
-                            labelStyle: labelStyle(context: context)),
-                        textAlign: TextAlign.left,
-                        textInputAction: TextInputAction.next,
-                        textCapitalization: TextCapitalization.words,
-                        initialValue: Setup().user.surname.toString(),
-                        style: textStyle(context: context, color: textColour),
-                        onChanged: (text) {
-                          hasChanged = true;
-                          Setup().user.surname = text;
-                          if (isComplete() != complete) {
-                            setState(() => complete = !complete);
-                          }
-                        },
-                        validator: (val) {
-                          if (val == null || val.isEmpty) {
-                            return 'Please enter your surname';
-                          }
-                          return null;
-                        }),
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-              child: TextFormField(
-                  readOnly:
-                      mode != 0, //Only allow emails to be altered if new user
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: InputDecoration(
-                      border: OutlineInputBorder(),
-                      hintText: 'Enter your email address',
-                      hintStyle: hintStyle(context: context),
-                      labelText: 'Email address',
-                      labelStyle: labelStyle(context: context)),
-                  textInputAction: TextInputAction.next,
-                  textAlign: TextAlign.left,
-                  initialValue: Setup().user.email.toString(),
-                  style: textStyle(context: context, color: textColour),
-                  onChanged: (text) {
-                    hasChanged = true;
-                    Setup().user.email = text;
-                    if (isComplete() != complete) {
-                      setState(() => complete = !complete);
-                    }
-                  },
-                  validator: (val) {
-                    if (val == null || val.isEmpty) {
-                      return 'Please enter your email address';
-                    }
-                    return null;
-                  }),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-              child: TextFormField(
-                  keyboardType: TextInputType.phone,
-                  decoration: InputDecoration(
-                      border: OutlineInputBorder(),
-                      hintText: 'Enter your phone number',
-                      hintStyle: hintStyle(context: context),
-                      labelText: 'Phone number',
-                      labelStyle: labelStyle(context: context)),
-                  textInputAction: TextInputAction.next,
-                  textAlign: TextAlign.left,
-                  initialValue: Setup().user.phone.toString(),
-                  style: textStyle(context: context, color: textColour),
-                  onChanged: (text) {
-                    hasChanged = true;
-                    Setup().user.phone = text;
-                    if (isComplete() != complete) {
-                      setState(() => complete = !complete);
-                    }
-                  },
-                  validator: (val) {
-                    if (val == null || val.isEmpty) {
-                      return 'Please enter your phone number';
-                    }
-                    return null;
-                  }),
-            ),
-            if (mode == 0) ...[
-              //(new User)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-                child: Row(
-                  children: [
-                    Expanded(
-                      flex: 2,
-                      child: Column(
-                        children: [
-                          TextFormField(
-                              decoration: InputDecoration(
-                                  border: OutlineInputBorder(),
-                                  hintText: 'Enter your password',
-                                  hintStyle: hintStyle(context: context),
-                                  labelText: 'Password',
-                                  labelStyle: labelStyle(context: context)),
-                              textAlign: TextAlign.left,
-                              keyboardType: TextInputType.visiblePassword,
-                              textInputAction: TextInputAction.done,
-                              initialValue: Setup().user.password.toString(),
-                              style: textStyle(
-                                  context: context, color: textColour),
-                              validator: (val) =>
-                                  Setup().user.newPassword.length < 8 &&
-                                          isComplete()
-                                      ? 'Minimum password length is 8'
-                                      : null,
-                              onChanged: (text) {
-                                hasChanged = true;
-                                Setup().user.newPassword = text;
-                                if (isComplete() != complete) {
-                                  setState(() => complete = !complete);
-                                }
-                              }),
-                          SizedBox(height: 3),
-                          Align(
-                            alignment: Alignment.topRight,
-                            child: Text(
-                                isComplete()
-                                    ? ' '
-                                    : 'Minimum 8 caracters required',
-                                style: TextStyle(fontSize: 13),
-                                textAlign: TextAlign.end),
-                          ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(width: 10),
-                    Expanded(
-                      flex: 2,
-                      child: TextFormField(
-                        decoration: InputDecoration(
-                            border: OutlineInputBorder(),
-                            hintText: 'Validation code',
-                            hintStyle: hintStyle(context: context),
-                            labelText: 'Emailed code',
-                            labelStyle: labelStyle(context: context)),
-                        textAlign: TextAlign.left,
-                        maxLength: 6,
-                        keyboardType: TextInputType.number,
-                        textInputAction: TextInputAction.next,
-                        initialValue: '',
-                        style: textStyle(context: context, color: textColour),
-                        validator: (val) =>
-                            Setup().user.password.length < 6 && isComplete()
-                                ? 'Six digits needed'
-                                : null,
-                        onChanged: (text) {
-                          hasChanged = true;
-                          Setup().user.password = text;
-                          if (isComplete() != complete) {
-                            setState(() => complete = !complete);
-                          }
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-                child: Row(
-                  children: [
-                    Expanded(
-                      flex: 2,
-                      child: ActionChip(
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20)),
-                        onPressed: isComplete()
-                            ? () async {
-                                String status = await register(update: true);
-                                if (status == 'Ok' && mounted) {
-                                  Navigator.pop(context);
-                                } else {
-                                  DialogOkCancel(
-                                    id: 1,
-                                    title: 'Error',
-                                    body: status,
-                                    onConfirm: (_) {},
-                                  );
-                                }
-                              }
-                            : null,
-                        backgroundColor: Colors.blue,
-                        disabledColor: Colors.grey,
-                        avatar: Icon(
-                          Icons.refresh,
-                          color: Colors.white,
-                        ),
-                        label: Text('Register now',
-                            style:
-                                TextStyle(fontSize: 18, color: Colors.white)),
-                      ),
-                    ),
-                    SizedBox(width: 20),
-                    Expanded(
-                      flex: 2,
-                      child: ActionChip(
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20)),
-                        onPressed: () => postValidateUser(user: Setup().user),
-                        backgroundColor: Colors.blue,
-                        avatar: Icon(
-                          Icons.refresh,
-                          color: Colors.white,
-                        ),
-                        label: Text('Resend code',
-                            style:
-                                TextStyle(fontSize: 18, color: Colors.white)),
-                      ),
-                    ),
-                  ],
-                ),
-              )
-            ], // mode == 0
-
-            if (mode == 1) ...[
-              //(Update user details)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-                child: Row(children: [
-                  Expanded(
                     flex: 2,
-                    child: TextFormField(
-                      readOnly: true,
-                      decoration: InputDecoration(
-                          border: OutlineInputBorder(),
-                          hintText: '',
-                          labelText: 'Current Password',
-                          labelStyle: labelStyle(context: context)),
-                      textAlign: TextAlign.left,
-                      keyboardType: TextInputType.visiblePassword,
-                      textInputAction: TextInputAction.next,
-                      initialValue: Setup().user.password.toString(),
-                      onChanged: (text) => Setup().user.newPassword = text,
-                      style: textStyle(context: context, color: textColour),
+                    child: Column(
+                      children: [
+                        TextFormField(
+                            decoration: InputDecoration(
+                                border: OutlineInputBorder(),
+                                hintText: 'Enter your password',
+                                hintStyle: hintStyle(context: context),
+                                labelText: 'Password',
+                                labelStyle: labelStyle(context: context)),
+                            textAlign: TextAlign.left,
+                            keyboardType: TextInputType.visiblePassword,
+                            textInputAction: TextInputAction.done,
+                            initialValue: Setup().user.password.toString(),
+                            style:
+                                textStyle(context: context, color: textColour),
+                            validator: (val) =>
+                                Setup().user.newPassword.length < 8 &&
+                                        isComplete()
+                                    ? 'Minimum password length is 8'
+                                    : null,
+                            onChanged: (text) {
+                              hasChanged = true;
+                              Setup().user.newPassword = text;
+                              if (isComplete() != complete) {
+                                setState(() => complete = !complete);
+                              }
+                            }),
+                        SizedBox(height: 3),
+                        Align(
+                          alignment: Alignment.topRight,
+                          child: Text(
+                              isComplete()
+                                  ? ' '
+                                  : 'Minimum 8 caracters required',
+                              style: TextStyle(fontSize: 13),
+                              textAlign: TextAlign.end),
+                        ),
+                      ],
                     ),
                   ),
                   SizedBox(width: 10),
                   Expanded(
                     flex: 2,
                     child: TextFormField(
-                      readOnly: false,
                       decoration: InputDecoration(
-                        border: OutlineInputBorder(),
-                        hintText: '',
-                        hintStyle: hintStyle(context: context),
-                        labelText: 'New Password',
-                        labelStyle: labelStyle(context: context),
-                      ),
+                          border: OutlineInputBorder(),
+                          hintText: 'Validation code',
+                          hintStyle: hintStyle(context: context),
+                          labelText: 'Emailed code',
+                          labelStyle: labelStyle(context: context)),
                       textAlign: TextAlign.left,
-                      keyboardType: TextInputType.visiblePassword,
+                      maxLength: 6,
+                      keyboardType: TextInputType.number,
                       textInputAction: TextInputAction.next,
-                      initialValue: Setup().user.newPassword.toString(),
-                      onChanged: (text) => Setup().user.newPassword = text,
+                      initialValue: '',
                       style: textStyle(context: context, color: textColour),
+                      validator: (val) =>
+                          Setup().user.password.length < 6 && isComplete()
+                              ? 'Six digits needed'
+                              : null,
+                      onChanged: (text) {
+                        hasChanged = true;
+                        Setup().user.password = text;
+                        if (isComplete() != complete) {
+                          setState(() => complete = !complete);
+                        }
+                      },
                     ),
                   ),
-                ]),
+                ],
               ),
-            ],
-            if (carData) ...[
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-                child: DropdownButtonFormField<String>(
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    labelText: 'Car Manufacturer',
+            ),
+
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+              child: Row(
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: ActionChip(
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20)),
+                      onPressed: isComplete()
+                          ? () async {
+                              String status = await register(update: true);
+                              if (status == 'Ok' && mounted) {
+                                Navigator.pop(context);
+                              } else {
+                                DialogOkCancel(
+                                  id: 1,
+                                  title: 'Error',
+                                  body: status,
+                                  onConfirm: (_) {},
+                                );
+                              }
+                            }
+                          : null,
+                      backgroundColor: Colors.blue,
+                      disabledColor: Colors.grey,
+                      avatar: Icon(
+                        Icons.refresh,
+                        color: Colors.white,
+                      ),
+                      label: Text('Register now',
+                          style: TextStyle(fontSize: 18, color: Colors.white)),
+                    ),
                   ),
-                  initialValue: manufacturers[0],
-                  items: manufacturers
-                      .map(
-                        (item) => DropdownMenuItem<String>(
+                  SizedBox(width: 20),
+                  Expanded(
+                    flex: 2,
+                    child: ActionChip(
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20)),
+                      onPressed: () => postValidateUser(user: Setup().user),
+                      backgroundColor: Colors.blue,
+                      avatar: Icon(
+                        Icons.refresh,
+                        color: Colors.white,
+                      ),
+                      label: Text('Resend code',
+                          style: TextStyle(fontSize: 18, color: Colors.white)),
+                    ),
+                  ),
+                ],
+              ),
+            )
+          ], // mode == 0
+
+          if (mode == 1) ...[
+            //(Update user details)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+              child: Row(children: [
+                Expanded(
+                  flex: 2,
+                  child: TextFormField(
+                    readOnly: true,
+                    obscureText: true, // it was shown as plain text
+                    decoration: InputDecoration(
+                        border: OutlineInputBorder(),
+                        hintText: '',
+                        labelText: 'Current Password',
+                        labelStyle: labelStyle(context: context)),
+                    textAlign: TextAlign.left,
+                    keyboardType: TextInputType.visiblePassword,
+                    textInputAction: TextInputAction.next,
+                    initialValue: Setup().user.password.toString(),
+                    onChanged: (text) => Setup().user.newPassword = text,
+                    style: textStyle(context: context, color: textColour),
+                  ),
+                ),
+                SizedBox(width: 10),
+                Expanded(
+                  flex: 2,
+                  child: TextFormField(
+                    readOnly: false,
+                    obscureText: true,
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(),
+                      hintText: '',
+                      hintStyle: hintStyle(context: context),
+                      labelText: 'New Password',
+                      labelStyle: labelStyle(context: context),
+                    ),
+                    textAlign: TextAlign.left,
+                    keyboardType: TextInputType.visiblePassword,
+                    textInputAction: TextInputAction.next,
+                    initialValue: Setup().user.newPassword.toString(),
+                    onChanged: (text) => Setup().user.newPassword = text,
+                    style: textStyle(context: context, color: textColour),
+                  ),
+                ),
+              ]),
+            ),
+          ],
+          if (carData) ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+              child: DropdownButtonFormField<String>(
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  labelText: 'Car Manufacturer',
+                ),
+                initialValue: manufacturers[0],
+                items: manufacturers
+                    .map(
+                      (item) => DropdownMenuItem<String>(
+                        value: item,
+                        child: Text(item,
+                            style: Theme.of(context).textTheme.bodyMedium!),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (item) => setState(() =>
+                    manufacturer = manufacturers.indexOf(item.toString())),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+              child: DropdownButtonFormField<String>(
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  labelText: 'Car Model',
+                ),
+                items: models
+                    .map((item) => DropdownMenuItem<String>(
                           value: item,
                           child: Text(item,
                               style: Theme.of(context).textTheme.bodyMedium!),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (item) => setState(() =>
-                      manufacturer = manufacturers.indexOf(item.toString())),
-                ),
+                        ))
+                    .toList(),
+                onChanged: (item) =>
+                    setState(() => model = models.indexOf(item.toString())),
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-                child: DropdownButtonFormField<String>(
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    labelText: 'Car Model',
-                  ),
-                  items: models
-                      .map((item) => DropdownMenuItem<String>(
-                            value: item,
-                            child: Text(item,
-                                style: Theme.of(context).textTheme.bodyMedium!),
-                          ))
-                      .toList(),
-                  onChanged: (item) =>
-                      setState(() => model = models.indexOf(item.toString())),
-                ),
-              )
-            ],
-            if (!isComplete())
-              Align(
-                alignment: Alignment.bottomLeft,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 12, 0, 12),
-                  child: Text('Please fill in ALL the boxes above:',
-                      style:
-                          TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                ),
-              ),
+            )
+          ],
+          if (!isComplete())
             Align(
               alignment: Alignment.bottomLeft,
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 12, 0, 0),
-                child: Text(descriptions[mode],
+                padding: const EdgeInsets.fromLTRB(20, 12, 0, 12),
+                child: Text('Please fill in ALL the boxes above:',
                     style:
-                        TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
               ),
             ),
-          ],
-        ),
+          Align(
+            alignment: Alignment.bottomLeft,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 0, 0),
+              child: Text(descriptions[mode],
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            ),
+          ),
+        ],
       ),
     );
+    return scrolls ? SingleChildScrollView(child: form) : form;
   }
 
   bool isComplete() {

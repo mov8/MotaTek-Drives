@@ -168,6 +168,10 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
   String _typeName = '';
   bool _expanded = false;
 
+  /// Whether the tile is open, for its type box's border alone - rebuilding
+  /// the whole tile would re-open one still being filled in (see build())
+  final ValueNotifier<bool> _open = ValueNotifier(false);
+
   @override
   void initState() {
     super.initState();
@@ -208,6 +212,7 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
     fn1.dispose();
     fn2.dispose();
     _expandController.dispose();
+    _open.dispose();
     _textEditingControllerName.dispose();
     _textEditingControllerDescription.dispose();
     super.dispose();
@@ -249,34 +254,48 @@ class _PointOfInterestTileState extends State<PointOfInterestTile> {
           collapsedBackgroundColor: Colors.white,
           initiallyExpanded: widget.expanded,
           controller: _expandController,
-          title: DropdownMenu(
-            dropdownMenuEntries: getDropdownMenuItems(),
-            textStyle:
-                textStyle(context: context, color: Colors.black, size: 2),
-            initialSelection: widget.pointOfInterest.type
-                .toString(), //New point of interest',
-            selectOnly: true,
-            onSelected: (selected) {
-              int id = 15;
-              fn2.requestFocus();
-              try {
-                id = int.parse(selected ?? '15');
-              } catch (e) {
-                developer.log('error: ${e.toString()}', name: 'error');
-              }
-              setState(() => widget.pointOfInterest.type = id);
-            },
-            menuHeight: 200,
-            leadingIcon: Icon(
-              materialIcon(
-                  poiTypes[widget.pointOfInterest.type]['iconMaterial']),
-              color: Color(poiTypes[17]['colourMaterial']),
+          title: ValueListenableBuilder<bool>(
+            valueListenable: _open,
+            builder: (context, open, _) => DropdownMenu(
+              dropdownMenuEntries: getDropdownMenuItems(),
+              textStyle:
+                  textStyle(context: context, color: Colors.black, size: 2),
+              initialSelection: widget.pointOfInterest.type
+                  .toString(), //New point of interest',
+              selectOnly: true,
+              onSelected: (selected) {
+                int id = 15;
+                fn2.requestFocus();
+                try {
+                  id = int.parse(selected ?? '15');
+                } catch (e) {
+                  developer.log('error: ${e.toString()}', name: 'error');
+                }
+                setState(() => widget.pointOfInterest.type = id);
+              },
+              menuHeight: 200,
+              // Closed, just the type, as a title - the box round it looked
+              // odd on a closed tile
+              inputDecorationTheme: open
+                  ? null
+                  : const InputDecorationThemeData(
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none),
+              leadingIcon: Icon(
+                materialIcon(
+                    poiTypes[widget.pointOfInterest.type]['iconMaterial']),
+                color: Color(poiTypes[17]['colourMaterial']),
+              ),
             ),
           ),
           onExpansionChanged: (value) {
             _expanded =
                 value; // <-- Important allows ExpansionController to work
-            if (widget.pointOfInterest.complete() == 3) {}
+            // after this frame - it's also called while the tile is built
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) _open.value = value;
+            });
           },
           children: [
             Padding(

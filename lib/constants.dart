@@ -602,6 +602,15 @@ enum BottomDrawerItems {
   feedback, // <-- Send feedback: a problem, an idea or a question
 }
 
+/// The menu's label for the user's details - fixed when the menu was built,
+/// it said Register my details after logging in
+String myDetailsLabel() =>
+    Setup().jwt.isEmpty ? 'Register my details' : 'Edit my details';
+
+/// A menu option's label, as it is now (see myDetailsLabel())
+String drawerOptionText(Map option) =>
+    option['key'] == 'register' ? myDetailsLabel() : option['text'] ?? '';
+
 /// This list ensures that the overflow popup menu options are
 /// named correctly, and that when chosen the appropriate
 /// BottomDrawerItems enum is selected.
@@ -618,7 +627,7 @@ List<Map<String, dynamic>> drawerOptions = [
   },
   {
     'key': 'register',
-    'text': Setup().jwt.isEmpty ? 'Register my details' : 'Change my details',
+    'text': 'Register my details', // see drawerOptionText()
     'iconData': Icon(Icons.manage_accounts_outlined, size: 30),
     'method': BottomDrawerItems.settings.index,
     'drawer': BottomDrawerItems.register,
