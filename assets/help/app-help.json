@@ -313,9 +313,9 @@
       "url": "/docs/menu/#menu-myGroups"
     },
     "menu.register": {
-      "hint": "Registers you with Drives, or changes your details - your name, phone number and password.",
+      "hint": "Registers you with Drives, or, once you’re logged in, changes your details - your name, phone number and password.",
       "page": "menu",
-      "title": "Register my details / Change my details",
+      "title": "Register my details / Edit my details",
       "url": "/docs/menu/#menu-register"
     },
     "menu.settings": {
