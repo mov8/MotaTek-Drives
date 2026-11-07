@@ -203,7 +203,19 @@ class MapService {
     if (![1, 2].contains(page)) return;
     await mapFuture;
     await styleReady;
+    _resizeWebMap();
     await setPage(page: page);
+  }
+
+  /// The web map told its size again. Moved between pages, its canvas could
+  /// keep the size it had while hidden - the map then showed zoomed in, with
+  /// the place names stretched sideways. Again after a moment, once the page
+  /// has laid out.
+  void _resizeWebMap() {
+    if (!kIsWeb || controller == null) return;
+    controller!.forceResizeWebMap();
+    Future.delayed(const Duration(milliseconds: 400),
+        () => controller?.forceResizeWebMap());
   }
 
   Future<bool> setPage({required int page}) async {
@@ -309,7 +321,7 @@ class MapService {
           await _drivesRequest!
               .update(bounds: bounds, zoom: zoom, force: !_idleCalled);
           _idleCalled = true;
-          _publishedFilters(bounds);
+          await _publishedFilters(bounds);
         } catch (e) {
           developer.log('Error setting published data: ${e.toString()}',
               name: 'error');
@@ -734,6 +746,9 @@ class MapService {
           iconPitchAlignment: 'map',
           iconAllowOverlap: true,
           iconIgnorePlacement: true,
+          // The arrow is drawn 96 pixels across. A phone shows it at its
+          // screen's density (about a third of that); the web showed all 96.
+          iconSize: kIsWeb ? 0.4 : 1.0,
         ),
         enableInteraction: false,
       );
@@ -927,7 +942,13 @@ class MapService {
     try {
       // A trip's label, or its route - its trip is in its properties
       foundFeatures = await controller!.queryRenderedFeatures(
-          tap, ["route-marker-layer", "planned_routes_highlighted"], null);
+          tap,
+          [
+            publishedHighlightLabel,
+            "route-marker-layer",
+            "planned_routes_highlighted"
+          ],
+          null);
       if (foundFeatures.isEmpty) {
         // A route is a few pixels wide - a near miss counts
         Point p = tap as Point;
@@ -936,7 +957,11 @@ class MapService {
                 center: Offset(p.x.toDouble(), p.y.toDouble()),
                 width: 24,
                 height: 24),
-            ["route-marker-layer", "planned_routes_highlighted"],
+            [
+              publishedHighlightLabel,
+              "route-marker-layer",
+              "planned_routes_highlighted"
+            ],
             null);
       }
       if (foundFeatures.isNotEmpty) {
@@ -986,19 +1011,55 @@ class MapService {
 
   Function(bool)? createTripOnMapIde;
 
-  /// Published's filters, for the view: every trip's label (shieldFilter()
-  /// with no fence) - they were limited to the middle of the view Published
-  /// opened with, and never changed, so labels went missing as the map
-  /// moved - and the highlight for the trips round the middle of the view.
-  void _publishedFilters(LatLngBounds bounds) {
-    var filter = fenceFilter(bounds: bounds, proportion: 0.6);
-    controller!.setFilter("route-marker-layer", [
-      "==",
-      ["get", "group"],
-      "shield"
-    ]);
-    controller!.setFilter("good_roads_highlighted", filter);
-    controller!.setFilter("roads_highlighted", filter);
+  /// Published's filters, for the view: the trip under the crosshair -
+  /// its route glows, and its label is drawn over any others (where trips
+  /// start from the same place only one label had room) - and every other
+  /// trip's label. (The labels were limited to the middle of the view
+  /// Published opened with, so went missing as the map moved; the glow was
+  /// on every trip near the middle.)
+  Future<void> _publishedFilters(LatLngBounds bounds) async {
+    List<String> highlighted = await _tripsUnderCrosshair();
+    // Only when the trip picked out changes: a symbol layer queried while
+    // it's laid out again after a filter change can throw, losing a tap
+    String key = highlighted.join(',');
+    if (key == _highlightedTrips) return;
+    _highlightedTrips = key;
+    controller!
+        .setFilter("route-marker-layer", publishedLabelsFilter(highlighted));
+    controller!.setFilter(publishedHighlightLabel,
+        publishedHighlightFilter(highlighted, 'shield'));
+    controller!.setFilter("good_roads_highlighted",
+        publishedHighlightFilter(highlighted, 'line'));
+    controller!.setFilter(
+        "roads_highlighted", fenceFilter(bounds: bounds, proportion: 0.6));
+  }
+
+  /// The trip picked out last (its uri, '' none) - null before any
+  String? _highlightedTrips;
+
+  /// The published trip whose route is under the crosshair - the nearest,
+  /// if more than one (where routes share a road, both labels were drawn
+  /// over each other). Within a few pixels, as a route is only a few wide.
+  Future<List<String>> _tripsUnderCrosshair() async {
+    try {
+      Point middle = mapMiddle;
+      for (double size in [8, 20]) {
+        List features = await controller!.queryRenderedFeaturesInRect(
+            Rect.fromCenter(
+                center: Offset(middle.x.toDouble(), middle.y.toDouble()),
+                width: size,
+                height: size),
+            ["planned_routes_highlighted"],
+            null);
+        for (var feature in features) {
+          String uri = '${feature['properties']?['uri'] ?? ''}';
+          if (uri.isNotEmpty) return [uri];
+        }
+      }
+    } catch (e) {
+      developer.log('_tripsUnderCrosshair(): ${e.toString()}', name: 'error');
+    }
+    return [];
   }
 
   /// A trip just published: the next time Published opens, the map shows
@@ -1057,9 +1118,11 @@ class MapService {
               LatLngBounds(
                   southwest: LatLng(south, west),
                   northeast: LatLng(north, east)),
-              left: 40,
+              // on the web, clear of the SideDrawer, which opens over the
+              // left of the map
+              left: 40 + (kIsWeb ? mapWidth * 0.4 : 0),
               top: 40,
-              right: 40,
+              right: 80,
               bottom: 40))
           .timeout(const Duration(seconds: 3), onTimeout: () => null);
     } catch (e) {
@@ -1090,7 +1153,7 @@ class MapService {
           /// on the map to correspond to the data.
           await _tripRequest!.update(bounds: bounds, zoom: zoom);
         }
-        if (page == 1) _publishedFilters(bounds);
+        if (page == 1) await _publishedFilters(bounds);
         await controller!.animateCamera(CameraUpdate.zoomBy(0.000001));
       } catch (e) {
         developer.log(
@@ -1141,6 +1204,8 @@ class MapService {
   }
 
   Future<bool> initialiseTrips() async {
+    // Explore changes the label filter - set Published's again
+    _highlightedTrips = null;
     if (kIsWeb) {
       // Replaced by the published trips once they've loaded
       await sideDrawerController!
@@ -1159,9 +1224,9 @@ class MapService {
         page: _page,
         force: true); // <-- Update the drawer contents and map geoJson
     if (kIsWeb) {
-      // The trips are on the map; the user opens the drawer for the list
+      // Open, with the trips in view - it can be closed for more map
       sideDrawerController!.setFixed(fixed: false);
-      sideDrawerController!.close();
+      sideDrawerController!.open();
     }
     return true;
   }

@@ -55,7 +55,7 @@ Future<List<String>> getSuggestions(String value) async {
         if (settlementTypes
             .contains(jResponse["features"][i]["properties"]["type"])) {
           suggestions.add(
-              'jResponse["features"][i]["properties"]["name"] ${jResponse["features"][i]["properties"]["county"] ?? ""} ${jResponse["features"][i]["properties"]["state"] ?? ""}');
+              '${jResponse["features"][i]["properties"]["name"]} ${jResponse["features"][i]["properties"]["county"] ?? ""} ${jResponse["features"][i]["properties"]["state"] ?? ""}');
         }
       }
     }

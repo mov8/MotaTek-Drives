@@ -31,7 +31,12 @@ class HomeController {
   MdStyleSheet getStyle() => _homeState!._styleSheet;
 
   /// Web: puts the summary tiles back in the SideDrawer on returning to Home
-  void fillSideDrawer() => _homeState?.sideBarItems(force: true);
+  /// - or on closing the Markdown editor, when the page goes back to the
+  /// published item it showed (it kept the editor's last text)
+  void fillSideDrawer() {
+    _homeState?.showItem();
+    _homeState?.sideBarItems(force: true);
+  }
 
   /// The pages shown changed - logging in or out, or joining or leaving a
   /// club (ClubService)
@@ -97,6 +102,7 @@ class _HomeState extends State<Home> {
         homeItems.add(HomeItem.fromMap(map: items[i]));
       }
       _backdrop = homeItems.isEmpty ? _placeholderImage : null;
+      _published = homeItems.isNotEmpty;
       if (homeItems.isNotEmpty) {
         mdData = homeItems[0].markdown;
         _styleSheet = MdStyleSheet.fromJson(json: homeItems[0].style);
@@ -207,6 +213,23 @@ Drives helps you organise your club communications. It can act as a blog updatin
     await _dataLoaded;
     sideBarItems(force: true);
   }
+
+  /// The item chosen in the drawer, as published
+  void showItem() {
+    if (!mounted || homeItems.isEmpty) return;
+    HomeItem item = homeItems[_index.clamp(0, homeItems.length - 1)];
+    setState(() {
+      mdData = item.markdown;
+      try {
+        _styleSheet = MdStyleSheet.fromJson(json: item.style);
+      } catch (_) {}
+      _backdrop = _published ? null : _placeholderImage;
+    });
+  }
+
+  /// Whether what's shown came from the server (not the welcome or can't
+  /// reach Drives, which have the picture behind them)
+  bool _published = false;
 
   void updateData(Map<String, dynamic> data) {
     try {

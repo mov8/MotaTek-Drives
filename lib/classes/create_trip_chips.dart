@@ -31,6 +31,15 @@ enum PlanPhase {
 int _waypointCount(CurrentTripItem trip) =>
     trip.routes.isEmpty ? 0 : trip.routes.first.waypoints.length;
 
+/// A tracked trip with nothing in it: no more than its start, a route under
+/// 2 points, and no points of interest or great roads of its own (the start
+/// and end markers - types 12, 17 and 18 - don't count)
+bool nothingTracked(CurrentTripItem trip) =>
+    _waypointCount(trip) < 2 &&
+    (trip.routes.isEmpty || trip.routes.first.lines.length < 2) &&
+    trip.pointsOfInterest.every((poi) => [12, 17, 18].contains(poi.type)) &&
+    trip.goodRoads.every((road) => road.waypoints.isEmpty);
+
 /// waypointIndex is set by MapService().getWaypointState() on each onIdle.
 /// Also true when the route already ends at that waypoint's point, e.g. it
 /// has just been revisited - revisiting it again would add a zero length leg.
@@ -86,7 +95,7 @@ enum TripChip {
   insertWaypoint('Insert waypoint', Icons.pin_drop),
   extendStart('Extend start', Icons.pin_drop),
   extendEnd('Extend end', Icons.pin_drop),
-  extendBoth('Extend both ends', Icons.pin_drop),
+  extendBoth('Extend start and end', Icons.pin_drop),
   removeWaypoint('Remove waypoint', Icons.wrong_location),
   revisitWaypoint('Revisit waypoint', Icons.wrong_location),
   pointOfInterest('Point of interest', Icons.add_photo_alternate),
@@ -225,6 +234,9 @@ List<TripChip> resolveChip(TripChip chip, CurrentTripItem trip) =>
       TripChip.aiAssist when _waypointCount(trip) > 0 && !trip.aiSuggestion =>
         [],
       TripChip.group || TripChip.messages when trip.groupDriveId.isEmpty => [],
+      // Following a trip is for a phone in the car - on the web a saved or
+      // loaded trip has just Edit route and Clear route
+      TripChip.follow when kIsWeb => [],
       _ => [chip],
     };
 
@@ -375,6 +387,9 @@ class CreateTripChips extends StatelessWidget {
     }
     await CurrentTripItem().requestAddManually();
     await _executeChipActions(tripActions: MyTripActions.startManual);
+    // Close enough to place a waypoint exactly
+    await MapService().controller?.animateCamera(CameraUpdate.zoomTo(14),
+        duration: const Duration(milliseconds: 800));
   }
 
   /// Opens AI assist in the drawer - the request, or the trip it suggested
@@ -443,6 +458,10 @@ class CreateTripChips extends StatelessWidget {
   Future<void> endTracking() async {
     await CurrentTripItem().requestEndTracking();
     await _executeChipActions(tripActions: MyTripActions.stopTracking);
+    // Ended before driving anywhere - Track drive tapped by mistake: Explore
+    // goes back to how it was, rather than offering to save a trip that's
+    // just its start
+    if (nothingTracked(CurrentTripItem())) await clear();
   }
 
   Future<void> greatRoad() async {

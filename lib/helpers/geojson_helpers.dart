@@ -181,6 +181,73 @@ const String publishedTripWaypoints = 'published-trip-waypoints';
 const String publishedTripPointsOfInterest =
     'published-trip-points-of-interest';
 
+/// Published: the label of the trip under the crosshair, drawn over any
+/// others (see publishedHighlightLayer())
+const String publishedHighlightLabel = 'published-highlighted-label';
+
+/// The label layer for the trip under the crosshair on Published: a copy of
+/// the trip labels that's always drawn, above them, so where trips start
+/// from the same place the one picked out shows (only one label had room).
+/// Its filter - none at first - is set as the map moves.
+String publishedHighlightLayer(String style) {
+  try {
+    Map<String, dynamic> parsed = jsonDecode(style);
+    List layers = parsed['layers'];
+    int at = layers.indexWhere((l) => l['id'] == 'route-marker-layer');
+    if (at < 0) return style;
+    Map copy = jsonDecode(jsonEncode(layers[at]))
+      ..['id'] = publishedHighlightLabel
+      ..['filter'] = [
+        "==",
+        ["get", "group"],
+        "none"
+      ];
+    copy['layout'] = {
+      ...?copy['layout'],
+      'icon-allow-overlap': true,
+      'text-allow-overlap': true,
+      'icon-padding': 0,
+    };
+    layers.insert(at + 1, copy);
+    return jsonEncode(parsed);
+  } catch (_) {
+    return style;
+  }
+}
+
+/// The trips' labels on Published, all but [highlighted]'s - and the
+/// filters for the highlighted trips' label and their routes' glow
+List publishedLabelsFilter(List<String> highlighted) => [
+      "all",
+      [
+        "==",
+        ["get", "group"],
+        "shield"
+      ],
+      [
+        "!",
+        [
+          "in",
+          ["get", "uri"],
+          ["literal", highlighted]
+        ]
+      ],
+    ];
+
+List publishedHighlightFilter(List<String> highlighted, String group) => [
+      "all",
+      [
+        "==",
+        ["get", "group"],
+        group
+      ],
+      [
+        "in",
+        ["get", "uri"],
+        ["literal", highlighted]
+      ],
+    ];
+
 /// The great roads in published trips, on Explore - their source and layers
 /// (see publishedGreatRoadLayers())
 const String publishedGreatRoadSource = 'published-great-road-data';
@@ -189,9 +256,10 @@ const String publishedGreatRoadNames = 'published-great-road-names';
 
 /// The map style as the app needs it, from the server's - see each change:
 /// waypointsAbovePointsOfInterest(), routeLayers(), publishedTripLayers(),
-/// publishedGreatRoadLayers()
-String appStyle(String style) => publishedGreatRoadLayers(
-    publishedTripLayers(routeLayers(waypointsAbovePointsOfInterest(style))));
+/// publishedHighlightLayer(), publishedGreatRoadLayers()
+String appStyle(String style) =>
+    publishedGreatRoadLayers(publishedHighlightLayer(publishedTripLayers(
+        routeLayers(waypointsAbovePointsOfInterest(style)))));
 
 /// The great roads others have published, shown on Explore so a trip can be
 /// planned along them: a line like the trip's own great roads, a little

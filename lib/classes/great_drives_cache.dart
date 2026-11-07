@@ -222,6 +222,17 @@ class DrivesRequest {
   }
 
   void _showInDrawer(LatLngBounds bounds) {
+    // Only over the trip list - not a form or anything else the user opened
+    // there (it was replaced by the trips as the map moved). It catches up
+    // when the list is back.
+    BottomDrawerItems? showing = kIsWeb
+        ? MapService().sideDrawerController?.content
+        : MapService().bottomDrawerController?.content;
+    if (![BottomDrawerItems.drives, BottomDrawerItems.none, null]
+        .contains(showing)) {
+      _listed = [];
+      return;
+    }
     List<TripItem> trips = inView(bounds);
     List<String> uris = [for (TripItem trip in trips) trip.uri];
     if (listEquals(uris, _listed)) return;

@@ -401,18 +401,35 @@ class _HandleCTFabsState extends State<HandleCTFabs> {
     await CurrentTripItem().refreshMap(change: MapUpdates.pointsOfInterest);
   }
 
+  /// Centres the map on where you are. It moves straight away to the last
+  /// position known, then to a fresh fix if that's somewhere else - waiting
+  /// for the fix (seconds, on the web) made the button seem not to work.
   void updatePosition() async {
     CurrentTripItem().tripValues.autoCentre =
         !CurrentTripItem().tripValues.autoCentre;
-    Position position = await Geolocator.getCurrentPosition();
-    Point point = Point(position.longitude, position.latitude);
-    if (CurrentTripItem().tripValues.autoCentre) {
-      if (CurrentTripItem().tripState != TripState.following) {
-        CurrentTripItem().tripValues.position = point;
-      }
+    LatLng? shown;
+    if (MapService().hasPosition) {
+      shown = MapService().currentPosition;
+      MapService().controller?.animateCamera(CameraUpdate.newLatLng(shown),
+          duration: const Duration(milliseconds: 600));
     }
-    MapService().controller!.animateCamera(
-        CameraUpdate.newLatLng(LatLng(position.latitude, position.longitude)));
+    Position? position = await MapService().currentPositionOrNull();
+    if (position == null) return;
+    LatLng fix = LatLng(position.latitude, position.longitude);
+    MapService().setPosition(latLng: fix);
+    if (CurrentTripItem().tripValues.autoCentre &&
+        CurrentTripItem().tripState != TripState.following) {
+      CurrentTripItem().tripValues.position =
+          Point(position.longitude, position.latitude);
+    }
+    bool moved = shown == null ||
+        Geolocator.distanceBetween(
+                shown.latitude, shown.longitude, fix.latitude, fix.longitude) >
+            30;
+    if (moved) {
+      MapService().controller?.animateCamera(CameraUpdate.newLatLng(fix),
+          duration: const Duration(milliseconds: 600));
+    }
   }
 
   void updateRouteType({String description = '', String sound = ''}) {

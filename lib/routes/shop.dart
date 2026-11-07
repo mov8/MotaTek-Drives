@@ -31,7 +31,12 @@ class ShopController {
   MdStyleSheet getStyle() => _shopState!._styleSheet;
 
   /// Web: puts the summary tiles back in the SideDrawer on returning to Shop
-  void fillSideDrawer() => _shopState?.sideBarItems(force: true);
+  /// - or on closing the Markdown editor, when the page goes back to the
+  /// published item it showed
+  void fillSideDrawer() {
+    _shopState?.showItem();
+    _shopState?.sideBarItems(force: true);
+  }
 
   /// The pages shown changed - logging in or out, or joining or leaving a
   /// club (ClubService)
@@ -111,11 +116,21 @@ class _ShopState extends State<Shop> {
         shopItems.add(ShopItem.fromMap(map: items[i]));
       }
       _backdrop = shopItems.isEmpty ? _placeholderImage : null;
+      _published = shopItems.isNotEmpty;
       if (shopItems.isNotEmpty) {
         mdData = shopItems[0].markdown;
         _styleSheet = MdStyleSheet.fromJson(json: shopItems[0].style);
       } else {
         mdData = _noOffers;
+        // A tile for the drawer, as Home has its welcome - without one the
+        // drawer showed the page's picture as well
+        shopItems = [
+          ShopItem(
+              heading: 'No offers just now',
+              subheading: 'please check back soon',
+              markdown: _noOffers,
+              style: _styleSheet.toJson())
+        ];
       }
     } catch (e) {
       developer.log('Error Shop()_getShopData() : ${e.toString()}',
@@ -207,6 +222,24 @@ main() {
 }
 ```
 ''';
+
+  /// The item chosen in the drawer, as published - on closing the Markdown
+  /// editor, which left its last text on the page
+  void showItem() {
+    if (!mounted || shopItems.isEmpty) return;
+    ShopItem item = shopItems[_index.clamp(0, shopItems.length - 1)];
+    setState(() {
+      mdData = item.markdown;
+      try {
+        _styleSheet = MdStyleSheet.fromJson(json: item.style);
+      } catch (_) {}
+      _backdrop = _published ? null : _placeholderImage;
+    });
+  }
+
+  /// Whether what's shown came from the server (not no offers or can't
+  /// reach Drives, which have the picture behind them)
+  bool _published = false;
 
   void updateData(Map<String, dynamic> data) {
     try {

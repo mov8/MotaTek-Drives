@@ -26,4 +26,34 @@ void main() {
   test('a saved trip can be cleared from the map', () {
     expect(chipsForPhase[PlanPhase.loaded], contains(TripChip.clear));
   });
+
+  test("the chip doing both ends says so: 'Extend start and end'", () {
+    expect(TripChip.extendBoth.label, 'Extend start and end');
+  });
+
+  test('tracking ended before driving anywhere leaves nothing to keep', () {
+    CurrentTripItem trip = CurrentTripItem()
+      ..tripState = TripState.stoppedTracking
+      ..routes = [
+        Route(waypoints: [Waypoint(point: Point(0.0, 51.4))], lines: [
+          [0.0, 51.4]
+        ])
+      ];
+    expect(nothingTracked(trip), isTrue);
+  });
+
+  test('a drive that was tracked is kept', () {
+    CurrentTripItem trip = CurrentTripItem()
+      ..tripState = TripState.stoppedTracking
+      ..routes = [
+        Route(waypoints: [
+          Waypoint(point: Point(0.0, 51.4)),
+          Waypoint(point: Point(0.05, 51.4)),
+        ], lines: [
+          [0.0, 51.4],
+          [0.05, 51.4]
+        ])
+      ];
+    expect(nothingTracked(trip), isFalse);
+  });
 }

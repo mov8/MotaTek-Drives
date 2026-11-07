@@ -12,7 +12,6 @@ import '/tiles/tiles.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:maplibre_gl/maplibre_gl.dart'; // hide LatLng;
-import '/theme.dart';
 
 class CreateTripStackController {
   _CreateTripStackState? _createTripStackState;
@@ -276,16 +275,19 @@ class _CreateTripStackState extends State<CreateTripStack>
               ),
             ),
           ],
-          if (NavigationService().page == 1) ...[
-            CustomPaint(
-              painter: HighlightPainter(
-                boundary: MapService().mapSize(),
-                proportion: 0.6,
-                color: DrivesColours.current.neutral,
-              ),
-            ),
-          ],
         ],
+        // Published: the crosshair picks out the trip under it - its route
+        // glows and its label shows over any others (MapService
+        // ._publishedFilters())
+        if (NavigationService().page == 1)
+          IgnorePointer(
+            child: CustomPaint(
+              painter: TargetPainter(
+                  top: MapService().mapMiddle.y.toDouble(),
+                  left: MapService().mapMiddle.x.toDouble(),
+                  color: Colors.black),
+            ),
+          ),
 
         /// getDirections shows the turn-by-turn navigation details
         getDirections(_directionsIndex),

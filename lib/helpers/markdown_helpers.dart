@@ -389,8 +389,9 @@ MarkdownStyleSheet getBaseStyle() {
         fontSize: 24,
         fontStyle: FontStyle.normal,
         fontWeight: FontWeight.bold),
+    // ink, not blue - blue headings vanished on the pages' blue
     h2: TextStyle(
-        color: Colors.blue,
+        color: Color(0xFF011D33),
         fontSize: 22,
         fontStyle: FontStyle.normal,
         fontWeight: FontWeight.bold),

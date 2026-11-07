@@ -985,8 +985,16 @@ class MapLibreMapController extends MapLibrePlatform
       [e.point.x, e.point.y],
     ]);
     if (geometry == null) return;
-    // Query rendered features in the point box
-    final features = _map.queryRenderedFeatures(geometry);
+    // Query rendered features in the point box. DRIVES PATCH: a query made
+    // while a symbol layer is being laid out again after a filter change can
+    // throw ("feature index out of bounds") - the click was then lost
+    // altogether. It goes on as a click on no feature.
+    List<Feature> features;
+    try {
+      features = _map.queryRenderedFeatures(geometry);
+    } catch (e) {
+      features = [];
+    }
 
     // Keep only interactive-layer features (preserve order)
     final filtered = features

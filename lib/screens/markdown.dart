@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
@@ -129,13 +130,34 @@ class _MarkdownFormState extends State<MarkdownForm> {
 
   @override
   void dispose() {
+    _preview?.cancel();
     // Clean up the focus node when the Form is disposed.
     _textEditingController.dispose();
     super.dispose();
   }
 
+  /// The page beside the drawer shows the Markdown as it's typed - a moment
+  /// after the typing stops, so it isn't redrawn for every key. (It only
+  /// changed at the end of a word or line.)
+  Timer? _preview;
+  String _previewed = '';
+
   void _lastCharacter() {
     final text = _textEditingController.text;
+    if (text != _previewed) {
+      _preview?.cancel();
+      _preview = Timer(const Duration(milliseconds: 250), () {
+        if (!mounted) return;
+        _previewed = text;
+        try {
+          _controller
+              ?.update({'data': text, 'style': _stylesheet, 'images': _images});
+        } catch (e) {
+          developer.log('Markdown preview update error: ${e.toString()}',
+              name: 'error');
+        }
+      });
+    }
     final selection = _textEditingController.selection;
     if (text.isEmpty || !selection.isCollapsed || selection.end <= 0) {
       return;
@@ -145,19 +167,8 @@ class _MarkdownFormState extends State<MarkdownForm> {
         _buffer.isEmpty ||
         lastCharacter == '\n' ||
         lastCharacter == '\t') {
-      // save buffer for each new word and restrict buffer to 100 entries
-      try {
-        _controller?.update({
-          'data': text,
-          'style': _stylesheet,
-          'images': _images
-        }); // _styleSheet.toJson()});
-        addToBuffer(text: text);
-      } catch (e) {
-        developer.log(
-            'Markdown new word controller update error: ${e.toString()}',
-            name: 'error');
-      }
+      // the undo buffer: one entry for each new word, up to 100
+      addToBuffer(text: text);
     }
   }
 

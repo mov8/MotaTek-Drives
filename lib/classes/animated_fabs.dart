@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:record/record.dart';
 import 'autocomplete_widget.dart';
 import '/services/web_helper.dart';
-import '/classes/other_classes.dart';
 import '/helpers/edit_helpers.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:image_picker/image_picker.dart';
@@ -32,7 +31,6 @@ class PlaceFinder extends StatefulWidget {
 }
 
 class _PlaceFinderState extends State<PlaceFinder> {
-  final List<Place> _places = [];
   double _width = 0;
   double _height = 0;
   @override
@@ -71,7 +69,6 @@ class _PlaceFinderState extends State<PlaceFinder> {
                     child: Padding(
                       padding: EdgeInsets.fromLTRB(20, 5, 2, 5),
                       child: AutocompletePlace(
-                        options: _places,
                         optionsMaxHeight: 100,
                         searchLength: 3,
                         style: textStyle(context: context, color: Colors.black),
@@ -86,10 +83,8 @@ class _PlaceFinderState extends State<PlaceFinder> {
                         onSelect: (chosen) =>
                             widget.onSelect!(LatLng(chosen.lat, chosen.lng)),
                         onChange: (text) => (debugPrint('onChange: $text')),
-                        onUpdateOptionsRequest: (query) {
-                          debugPrint('Query: $query');
-                          getDropdownItems(query);
-                        },
+                        onUpdateOptionsRequest: (query) =>
+                            getPlaces(value: query),
                       ),
                     ),
                   ),
@@ -129,12 +124,6 @@ class _PlaceFinderState extends State<PlaceFinder> {
               ),
       ),
     );
-  }
-
-  void getDropdownItems(String query) async {
-    _places.clear();
-    _places.addAll(await getPlaces(value: query));
-    setState(() {});
   }
 }
 

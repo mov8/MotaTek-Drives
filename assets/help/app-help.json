@@ -93,7 +93,7 @@
     "chip.extendBoth": {
       "hint": "Makes the spot under the cross-hairs the trip’s new start and its new end: the trip goes from here to its old start, round, and back here.",
       "page": "my_trip",
-      "title": "Extend both ends",
+      "title": "Extend start and end",
       "url": "/docs/my_trip/#chip-extendBoth"
     },
     "chip.extendEnd": {

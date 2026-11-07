@@ -182,6 +182,26 @@ void main() {
     expect(layer(fixed, 'published_good_roads')['source'], 'good-road-data');
   });
 
+  test(
+      "the trip under the crosshair has its own label layer, always drawn, "
+      "over the others", () {
+    Map fixed = jsonDecode(appStyle(jsonEncode(server())));
+    Map label = layer(fixed, publishedHighlightLabel);
+    expect(label['source'], 'published-data');
+    expect(label['layout']['icon-allow-overlap'], isTrue);
+    expect(label['layout']['text-allow-overlap'], isTrue);
+    List<String> ids = order(jsonEncode(fixed));
+    expect(ids.indexOf(publishedHighlightLabel),
+        ids.indexOf('route-marker-layer') + 1);
+    // the others' labels leave it out, so it isn't drawn twice
+    expect(jsonEncode(publishedLabelsFilter(['a'])), contains('"!"'));
+    expect(publishedHighlightFilter(['a'], 'line')[2], [
+      'in',
+      ['get', 'uri'],
+      ['literal', ['a']]
+    ]);
+  });
+
   test("a published trip's waypoints are numbered; a revisit has no marker",
       () {
     MyTripItem trip = MyTripItem(title: 't', subTitle: '')

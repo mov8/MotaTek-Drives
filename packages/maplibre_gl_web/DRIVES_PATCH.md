@@ -24,6 +24,15 @@ nearly always answered nothing:
 
 Android and iOS have no such check.
 
+## The click patch (2026-11-07)
+
+`_onMapClick()` (same file) catches a throw from its own
+`queryRenderedFeatures()` and carries on as a click on no feature. MapLibre
+can throw "feature index out of bounds" when a symbol layer is queried while
+it's being laid out again after a filter change - Published changes its label
+filters as the crosshair moves over a trip - and the uncaught throw lost the
+click, so tapping a trip's label did nothing.
+
 ## Upgrading maplibre_gl_web
 
 Copy the new version from the pub cache over this folder, reapply the change

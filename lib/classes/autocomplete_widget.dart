@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pointer_interceptor/pointer_interceptor.dart';
 import '/classes/classes.dart';
 import 'package:flutter/services.dart';
 import '/constants.dart' show materialIcon;
@@ -201,15 +202,16 @@ class AutocompletePlace extends StatefulWidget {
   final int searchLength;
   final Function(Place)? onSelect;
   final Function(String)? onChange;
-  final Function(String)? onUpdateOptionsRequest;
-  final List<Place> options;
+
+  /// Fetches the places for the text typed - the server matches the start
+  /// of the name, ignoring case
+  final Future<List<Place>> Function(String)? onUpdateOptionsRequest;
   final TextInputType? keyboardType;
   final InputDecoration? decoration;
   final TextStyle? style;
   final double optionsMaxHeight;
   const AutocompletePlace(
       {super.key,
-      required this.options,
       this.type = 'email',
       this.searchLength = 1,
       this.onSelect,
@@ -225,25 +227,33 @@ class AutocompletePlace extends StatefulWidget {
 }
 
 class _AutocompletePlace extends State<AutocompletePlace> {
-  String _lastReadQuery = '**_|_**';
-  final String _lastFilter = '**__|__**';
-  final List<Place> _options = [];
-  final List<Place> _allOptions = [];
-  late final TextEditingController fieldTextEditingController;
-  @override
-  void initState() {
-    super.initState();
-    fieldTextEditingController = TextEditingController();
+  /// The text last typed - an answer for older text arriving after it is
+  /// cut down to the places that still match
+  String _latestText = '';
+
+  /// Each change asks the server again rather than filtering the last answer
+  /// here: the server returns at most 100 places, so a longer name could be
+  /// missing from a shorter one's answer. Filtering here also matched case,
+  /// and a desktop browser doesn't capitalise like a phone's keyboard, so
+  /// 'london' found nothing.
+  Future<Iterable<Place>> _getOptions(String text) async {
+    _latestText = text;
+    if (text.length < widget.searchLength ||
+        widget.onUpdateOptionsRequest == null) {
+      return const [];
+    }
+    List<Place> places = await widget.onUpdateOptionsRequest!(text);
+    if (text == _latestText) return places;
+    String latest = _latestText.toLowerCase();
+    return places.where((place) => place.name.toLowerCase().startsWith(latest));
   }
 
   @override
   Widget build(BuildContext context) {
     return Autocomplete<Place>(
       optionsMaxHeight: widget.optionsMaxHeight,
-      optionsBuilder: (TextEditingValue textEditingValue) async {
-        _allOptions.addAll(widget.options);
-        return _options;
-      },
+      optionsBuilder: (TextEditingValue textEditingValue) =>
+          _getOptions(textEditingValue.text),
       displayStringForOption: (option) => option.name,
       fieldViewBuilder: (BuildContext context,
           TextEditingController fieldTextEditingController,
@@ -257,26 +267,7 @@ class _AutocompletePlace extends State<AutocompletePlace> {
           focusNode: fieldFocusNode,
           decoration: widget.decoration,
           textCapitalization: TextCapitalization.words,
-          onChanged: (text) {
-            if (text.length < widget.searchLength) {
-              _options.clear();
-            } else {
-              if (_options.isEmpty) {
-                _options.addAll(_allOptions);
-              }
-              _options.retainWhere((place) => place.name.startsWith(text));
-              widget.onChange!(text);
-              if (_lastReadQuery.isEmpty || !text.startsWith(_lastReadQuery)) {
-                widget.onUpdateOptionsRequest!(text);
-                _lastReadQuery = text;
-              } else if (!text.startsWith(_lastFilter)) {
-                _options.clear();
-                _options.addAll(_allOptions);
-                _options.retainWhere((place) => place.name.startsWith(text));
-                widget.onChange!(text);
-              }
-            }
-          },
+          onChanged: (text) => widget.onChange?.call(text),
           onSubmitted: (text) {
             debugPrint('$text submitted');
           },
@@ -284,7 +275,10 @@ class _AutocompletePlace extends State<AutocompletePlace> {
       },
       optionsViewBuilder: (BuildContext context,
           AutocompleteOnSelected<Place> onSelected, Iterable<Place> options) {
-        return Material(
+        // Over the map, the list takes the mouse - on the web a click on a
+        // place went to the map underneath, so the map never moved to it
+        return PointerInterceptor(
+            child: Material(
           color: Colors.white60,
           child: ListView(
             children: options.map((Place option) {
@@ -305,7 +299,7 @@ class _AutocompletePlace extends State<AutocompletePlace> {
               );
             }).toList(),
           ),
-        );
+        ));
       },
       onSelected: (chosen) {
         if (widget.onSelect != null) {

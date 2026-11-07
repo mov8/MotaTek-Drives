@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'dart:math';
 import '/classes/classes.dart';
 import '/models/models.dart';
@@ -131,56 +132,111 @@ class _PhotoCarouselState extends State<PhotoCarousel> {
         images.add(imageMap.values.first);
       }
     }
+    _aspects = [for (Image image in images) await _aspectOf(image.image)];
     return images;
   }
 
+  /// Each photo's width over its height, once loaded (null if it can't be
+  /// read) - so its caption can start at its left edge
+  List<double?> _aspects = [];
+
+  Future<double?> _aspectOf(ImageProvider provider) async {
+    Completer<double?> done = Completer();
+    ImageStream stream = provider.resolve(ImageConfiguration.empty);
+    late ImageStreamListener listener;
+    listener = ImageStreamListener((info, _) {
+      if (!done.isCompleted && info.image.height > 0) {
+        done.complete(info.image.width / info.image.height);
+      }
+      stream.removeListener(listener);
+    }, onError: (_, __) {
+      if (!done.isCompleted) done.complete(null);
+      stream.removeListener(listener);
+    });
+    stream.addListener(listener);
+    return done.future
+        .timeout(const Duration(seconds: 5), onTimeout: () => null);
+  }
+
   /// Each page: the photo at the bottom of its space, so its bottom edge -
-  /// and the caption under it - are in the same place for every photo
+  /// and the caption under it - are in the same place for every photo, and
+  /// the caption starts at the photo's left edge (it started at the page's)
   Widget getPageView(List<Image> imageList, List<Photo> photos) {
     return PageView.builder(
       itemCount: widget.photos.length,
       scrollDirection: Axis.horizontal,
       controller: _pageController,
       itemBuilder: (BuildContext context, int index) {
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(
-              child: Align(
-                alignment: Alignment.bottomCenter,
-                // quarter turns - laid out turned, unlike Transform.rotate,
-                // so a turned photo's bottom is where it's drawn
-                child: RotatedBox(
-                  quarterTurns: photos[index].rotation,
-                  child: InkWell(
-                    onTap: () => _pageController.animateToPage(
-                        index == photos.length - 1 ? 0 : index + 1,
-                        duration: Duration(milliseconds: 500),
-                        curve: Curves.bounceInOut),
-                    child: ClipRRect(
-                        borderRadius:
-                            BorderRadiusGeometry.all(Radius.circular(10.0)),
-                        child: imageList[index]),
+        Widget photo = InkWell(
+          onTap: () => _pageController.animateToPage(
+              index == photos.length - 1 ? 0 : index + 1,
+              duration: Duration(milliseconds: 500),
+              curve: Curves.bounceInOut),
+          child: ClipRRect(
+              borderRadius: BorderRadiusGeometry.all(Radius.circular(10.0)),
+              child: imageList[index]),
+        );
+        Widget caption = SizedBox(
+          height: 20,
+          child: Text(
+            photos[index].caption,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+            ),
+          ),
+        );
+        double? aspect = index < _aspects.length ? _aspects[index] : null;
+        // a quarter turn swaps its width and height
+        if (aspect != null && photos[index].rotation.isOdd) aspect = 1 / aspect;
+        return LayoutBuilder(builder: (context, box) {
+          double height = box.maxHeight - 24; // the caption, and the gap
+          if (aspect == null || aspect <= 0 || height <= 0) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.bottomCenter,
+                    child: RotatedBox(
+                        quarterTurns: photos[index].rotation, child: photo),
                   ),
                 ),
+                const SizedBox(height: 4),
+                caption,
+              ],
+            );
+          }
+          // As big as fits, keeping its shape
+          double width = min(box.maxWidth, height * aspect);
+          return Align(
+            alignment: Alignment.bottomCenter,
+            child: SizedBox(
+              width: width,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: width,
+                    height: width / aspect,
+                    // quarter turns - laid out turned, unlike
+                    // Transform.rotate, so its edges are where it's drawn
+                    child: RotatedBox(
+                      quarterTurns: photos[index].rotation,
+                      child: FittedBox(fit: BoxFit.contain, child: photo),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  caption,
+                ],
               ),
             ),
-            const SizedBox(height: 4),
-            SizedBox(
-              height: 20,
-              child: Text(
-                photos[index].caption,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
-              ),
-            ),
-          ],
-        );
+          );
+        });
       },
     );
   }
