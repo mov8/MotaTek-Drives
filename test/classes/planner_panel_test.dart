@@ -21,7 +21,7 @@ void main() {
     testWidgets('someone not logged in is told first', (tester) async {
       Setup().jwt = '';
       await showPanel(tester);
-      expect(find.text('Log in to use AI assist'), findsOneWidget);
+      expect(find.text('Log in to use Auto-route'), findsOneWidget);
       expect(find.widgetWithText(TextButton, 'Log in'), findsOneWidget);
       TextField request = tester.widget(find.byType(TextField));
       expect(request.enabled, isFalse);

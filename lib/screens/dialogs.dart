@@ -1398,12 +1398,12 @@ Future<void> offerAiAssist() async {
     context: context,
     builder: (context) => AlertDialog(
       icon: const Icon(Icons.auto_awesome),
-      title: const Text('Plan trips with AI assist'),
+      title: const Text('Plan trips with Auto-route'),
       content: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 420),
         child: const Text(
             "Say what sort of drive you'd like - \"a two hour loop with "
-            'something to see, and a pub halfway" - and AI assist plans it '
+            'something to see, and a pub halfway" - and Auto-route plans it '
             'on the map, for you to change and save. It comes with a Drives '
             'subscription, on our website.'),
       ),

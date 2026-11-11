@@ -222,7 +222,7 @@ class _SetupViewState extends State<SetupView> {
             ),
           ),
           SwitchListTile(
-            title: Text('Speech with a male AI voice',
+            title: Text('Speech with a male voice',
                 style: textStyle(context: context, color: _textColor)),
             value: Setup().maleVoice,
             onChanged: (bool value) {

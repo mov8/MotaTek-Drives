@@ -35,10 +35,10 @@ void main() {
   setUp(() => PlannerService().status = PlannerStatus.idle);
 
   for (double keyboard in [0.0, 300.0, 400.0, 500.0]) {
-    testWidgets('AI assist fits with a ${keyboard.round()} high keyboard',
+    testWidgets('Auto-route fits with a ${keyboard.round()} high keyboard',
         (tester) async {
       await showDrawer(tester, keyboard);
-      expect(find.text('AI assist'), findsOneWidget);
+      expect(find.text('Auto-route'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
   }

@@ -76,7 +76,7 @@ class _TripDetailsPanelState extends State<TripDetailsPanel> {
               const SizedBox(height: 6),
               Text(
                   _trip.aiSuggestion
-                      ? 'AI assist wrote these from its plan. Change anything '
+                      ? 'Auto-route wrote these from its plan. Change anything '
                           "you like - if you've changed the trip, Write it for "
                           'me describes it as it is now.'
                       : 'Write your own, or Write it for me writes them from '

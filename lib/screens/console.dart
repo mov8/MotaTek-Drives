@@ -140,7 +140,7 @@ class _ConsoleFormState extends State<ConsoleForm> {
   Widget build(BuildContext context) {
     return ScreensAppBarBottom(
       heading: 'Control panel',
-      prompt: 'How Drives is doing - clubs, payments, AI',
+      prompt: 'How Drives is doing - clubs, payments, Auto-route',
       textColor: DrivesColours.current.ink,
       content: RefreshIndicator(
         onRefresh: _load,
@@ -297,7 +297,7 @@ class _PayerDetailsState extends State<_PayerDetails> {
       Wrap(spacing: 12, runSpacing: 12, children: [
         _section('This month', [
           _figure('Members', '${row['members'] ?? 0}'),
-          _figure('AI so far', _dollars.format(row['ai_month_cost'] ?? 0)),
+          _figure('Auto-route so far', _dollars.format(row['ai_month_cost'] ?? 0)),
           _figure('Income', _pounds.format(row['income_month'] ?? 0)),
           _figure('Balance', _pounds.format(balance), warn: balance < 0),
           if (_club) ...[
@@ -574,13 +574,13 @@ class _PrivateUsersState extends State<_PrivateUsers> {
           ),
       ]),
       _exception(
-          'Heavy AI users this month',
+          'Heavy Auto-route users this month',
           'At least ${_dollars.format(limits['heavy_ai_dollars'] ?? 2)}',
           seen['heavy_ai'],
           (u) => '${name(u)}: ${_dollars.format(u['ai_cost'])} '
               '(${_plural(u['plans'] ?? 0, 'plan')})'),
       _exception(
-          'Often at their daily AI limit',
+          'Often at their daily Auto-route limit',
           'On ${limits['limit_days'] ?? 3} days or more this month - a '
               'scheme with more?',
           seen['at_limit'],
@@ -651,8 +651,8 @@ class _MonthsTableState extends State<_MonthsTable> {
       ),
       ('Members', (m) => '${m['members']}'),
       if (widget.everyone) ('New users', (m) => '${m['new_users'] ?? 0}'),
-      ('AI', (m) => '${_dollars.format(m['ai_cost'])} (${m['ai_plans']})'),
-      ('Trips added', (m) => '${m['trips_added']} (${m['trips_added_ai']} AI)'),
+      ('Auto-route', (m) => '${_dollars.format(m['ai_cost'])} (${m['ai_plans']})'),
+      ('Trips added', (m) => '${m['trips_added']} (${m['trips_added_ai']} Auto-route)'),
       ('Published', (m) => '${m['trips_published']}'),
       ('Driven', (m) => '${m['trips_driven']}'),
       ('Messages', (m) => '${m['messages']}'),
@@ -830,14 +830,14 @@ class _SchemeCardState extends State<_SchemeCard> {
             const SizedBox(width: 8),
             Expanded(
                 child: TextField(
-                    controller: _plans, decoration: _field('AI plans a day'))),
+                    controller: _plans, decoration: _field('Auto-route plans a day'))),
           ]),
           if (_forClubs) ...[
             const SizedBox(height: 8),
             TextField(
                 controller: _budget,
                 decoration:
-                    _field("Club's AI budget, \$ a month (blank: no cap)")),
+                    _field("Club's Auto-route budget, \$ a month (blank: no cap)")),
           ],
           const SizedBox(height: 10),
           Row(children: [

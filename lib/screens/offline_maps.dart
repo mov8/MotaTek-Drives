@@ -51,7 +51,7 @@ class _OfflineMapsScreenState extends State<OfflineMapsScreen> {
             padding: EdgeInsets.fromLTRB(4, 4, 4, 10),
             child: Text(
                 "Download the map along a trip to follow it where there's no "
-                'signal. Working out a new route, AI assist and messages still '
+                'signal. Working out a new route, Auto-route and messages still '
                 'need the Internet.',
                 style: TextStyle(color: Colors.white, fontSize: 16)),
           ),

@@ -274,49 +274,10 @@ class _GroupDriveFormState extends State<GroupDriveForm>
               ),
             ),
           )
-        : Center(
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(20, 100, 20, 0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "No future group events.",
-                    style: headlineStyle(
-                        context: context, size: 1, color: textColor),
-                  ),
-                  SizedBox(height: 10),
-                  Row(children: [
-                    Text(
-                      "1. Create and save a trip.",
-                      style: headlineStyle(
-                          context: context, size: 2, color: textColor),
-                    ),
-                    if (_myTripItems.isNotEmpty)
-                      Icon(Icons.check, color: textColor, size: 30),
-                  ]),
-                  SizedBox(height: 5),
-                  Row(children: [
-                    Text("2. Create a group of participants.",
-                        style: headlineStyle(
-                            context: context, size: 2, color: textColor)),
-                    if (_groups.isNotEmpty)
-                      Icon(Icons.check, color: textColor, size: 30),
-                  ]),
-                  SizedBox(height: 5),
-                  Text(
-                    "3. Invite group members.",
-                    style: headlineStyle(
-                      context: context,
-                      size: 2,
-                      color: textColor,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
+        : NoGroupEvents(
+            hasTrips: _myTripItems.isNotEmpty,
+            hasGroups: _groups.isNotEmpty,
+            textColor: textColor);
   }
 
   void _expansionChange(int index, bool value) {
@@ -551,5 +512,65 @@ class _GroupDriveFormState extends State<GroupDriveForm>
     } catch (e) {
       debugPrint('Error: ${e.toString()}');
     }
+  }
+}
+
+/// Events I've organised, before there are any: the steps to get there, each
+/// ticked once it's done
+class NoGroupEvents extends StatelessWidget {
+  final bool hasTrips;
+  final bool hasGroups;
+  final Color textColor;
+  const NoGroupEvents(
+      {super.key,
+      required this.hasTrips,
+      required this.hasGroups,
+      required this.textColor});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(20, 100, 20, 0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "No future group events.",
+              style:
+                  headlineStyle(context: context, size: 1, color: textColor),
+            ),
+            SizedBox(height: 10),
+            // Flexible: a step wraps beside its tick rather than pushing it
+            // off a narrow phone
+            Row(children: [
+              Flexible(
+                child: Text(
+                  "1. Create and save a trip.",
+                  style: headlineStyle(
+                      context: context, size: 2, color: textColor),
+                ),
+              ),
+              if (hasTrips) Icon(Icons.check, color: textColor, size: 30),
+            ]),
+            SizedBox(height: 5),
+            Row(children: [
+              Flexible(
+                child: Text("2. Create a group of participants.",
+                    style: headlineStyle(
+                        context: context, size: 2, color: textColor)),
+              ),
+              if (hasGroups) Icon(Icons.check, color: textColor, size: 30),
+            ]),
+            SizedBox(height: 5),
+            Text(
+              "3. Invite group members.",
+              style: headlineStyle(context: context, size: 2, color: textColor),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

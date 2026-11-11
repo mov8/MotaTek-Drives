@@ -149,7 +149,7 @@ class _PlannerPanelState extends State<PlannerPanel> {
                 Row(children: [
                   Icon(Icons.auto_awesome, color: DrivesColours.current.ai),
                   const SizedBox(width: 8),
-                  Text('AI assist',
+                  Text('Auto-route',
                       style: Theme.of(context).textTheme.titleLarge),
                 ]),
                 const SizedBox(height: 12),
@@ -230,7 +230,7 @@ class _PlannerPanelState extends State<PlannerPanel> {
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Text('Log in to use AI assist'),
+          const Text('Log in to use Auto-route'),
           TextButton(
               onPressed: () async {
                 if (kIsWeb) {
@@ -260,7 +260,7 @@ class _PlannerPanelState extends State<PlannerPanel> {
           padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
           child:
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(allowance['reason'] ?? "AI assist isn't available"),
+            Text(allowance['reason'] ?? "Auto-route isn't available"),
             if (allowance['subscribed'] == false && urlSubscribe.isNotEmpty)
               TextButton(
                   onPressed: () => launchUrl(Uri.parse(urlSubscribe),
@@ -282,7 +282,7 @@ class _PlannerPanelState extends State<PlannerPanel> {
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Text(
-            "You've had all ${allowance['limit']} of your AI trip plans for "
+            "You've had all ${allowance['limit']} of your Auto-route plans for "
             'the last 24 hours. You can plan another $when.'),
       ),
     );
@@ -292,7 +292,7 @@ class _PlannerPanelState extends State<PlannerPanel> {
   String _left(Map? allowance) {
     if (allowance == null || (allowance['used'] ?? 0) == 0) return '';
     int left = (allowance['limit'] ?? 0) - (allowance['used'] ?? 0);
-    return ' You have $left AI trip plan${left == 1 ? '' : 's'} left for now.';
+    return ' You have $left Auto-route plan${left == 1 ? '' : 's'} left for now.';
   }
 
   /// The user's route preferences before planning - their settings, which
@@ -411,7 +411,7 @@ class _PlannerPanelState extends State<PlannerPanel> {
         const SizedBox(width: 8),
         Expanded(
           child: Text(
-              'AI assist builds trips only from real places in Drives and '
+              'Auto-route builds trips only from real places in Drives and '
               'OpenStreetMap - but check the roads, opening times and food '
               'before you go. Change the route as usual, then Save trip.',
               style: text.bodySmall),
@@ -543,7 +543,7 @@ class _PlannerPanelState extends State<PlannerPanel> {
       line(dot(16), 'Bigger dots: the other choices of places to stop'),
       line(
           dot(10),
-          'Small dots: other places AI assist found. Move the crosshair onto '
+          'Small dots: other places Auto-route found. Move the crosshair onto '
           'one and its name shows under the crosshair - Waypoint adds it'),
     ]);
   }

@@ -198,8 +198,8 @@ class PlannerService extends ChangeNotifier {
         _end(
             PlannerStatus.failed,
             [401, 407, 408].contains(response.statusCode)
-                ? 'Log in to use AI assist'
-                : body['msg'] ?? "AI assist isn't available just now");
+                ? 'Log in to use Auto-route'
+                : body['msg'] ?? "Auto-route isn't available just now");
         return;
       }
       _jobId = body['id'];
@@ -209,7 +209,7 @@ class PlannerService extends ChangeNotifier {
     } catch (e) {
       developer.log('PlannerService._start(): ${e.toString()}', name: 'error');
       _end(PlannerStatus.failed,
-          "Couldn't reach AI assist - check your connection and try again");
+          "Couldn't reach Auto-route - check your connection and try again");
     }
   }
 
@@ -249,7 +249,7 @@ class PlannerService extends ChangeNotifier {
     if (_checking) return;
     if (++_polls > _mostPolls) {
       _end(PlannerStatus.failed,
-          'AI assist is taking too long - please try again');
+          'Auto-route is taking too long - please try again');
       return;
     }
     _checking = true;
@@ -286,7 +286,7 @@ class PlannerService extends ChangeNotifier {
               job['status'] == 'refused'
                   ? PlannerStatus.refused
                   : PlannerStatus.failed,
-              job['message'] ?? "AI assist couldn't plan that trip");
+              job['message'] ?? "Auto-route couldn't plan that trip");
       }
     } catch (e) {
       developer.log('PlannerService._check(): ${e.toString()}', name: 'error');
@@ -332,10 +332,10 @@ class PlannerService extends ChangeNotifier {
           )
       ],
       // The trip's details, for the user to check when they save it
-      title: suggested['title'] ?? 'AI assist trip',
+      title: suggested['title'] ?? 'Auto-route trip',
       subTitle: (suggested['tagline'] ?? '').toString().isNotEmpty
           ? suggested['tagline']
-          : 'Planned with AI assist',
+          : 'Planned with Auto-route',
       // the guide, if it wrote one; they can change it before they save
       body: (suggested['guide'] ?? '').toString().isNotEmpty
           ? suggested['guide']

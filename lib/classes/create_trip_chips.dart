@@ -90,7 +90,7 @@ enum TripChip {
   createManually('Create manually', Icons.touch_app),
   trackDrive('Track drive', Icons.directions_car),
   // The planner - see PlannerService
-  aiAssist('AI assist', Icons.auto_awesome),
+  aiAssist('Auto-route', Icons.auto_awesome),
   waypoint('Waypoint', Icons.pin_drop),
   insertWaypoint('Insert waypoint', Icons.pin_drop),
   extendStart('Extend start', Icons.pin_drop),

@@ -118,7 +118,7 @@ class _HomeState extends State<Home> {
         homeItems = [
           club
               ? HomeItem(
-                  heading: 'Welcome to Drives-AI Club edition',
+                  heading: 'Welcome to Drives Club edition',
                   subheading: ClubService().showingName,
                   markdown: mdData,
                   style: _styleSheet.toJson())
@@ -184,7 +184,7 @@ This page fills in when Drives can be reached again.
 - Create new trips linking published highlights and save them privately or share them
 - Track your trip when you've been out exploring
 - Powerful controllable routing engine - re-route only when you want to
-- Turn-by-turn instructions with AI voice
+- Spoken turn-by-turn instructions
 - Support for groups with email or messaging for news invitations or just chat
 - Group chat messaging and real time group tracking makes group trips easy
 ''';
@@ -193,7 +193,7 @@ This page fills in when Drives can be reached again.
   /// writes some
   static const String _clubWelcome = '''
 
-# Welcome to Drives-AI Club edition
+# Welcome to Drives Club edition
 
 ---
 

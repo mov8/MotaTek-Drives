@@ -51,7 +51,7 @@
     "chip.aiAssist": {
       "hint": "Plans a trip from a description of the drive you’d like.",
       "page": "my_trip",
-      "title": "AI assist",
+      "title": "Auto-route",
       "url": "/docs/my_trip/#chip-aiAssist"
     },
     "chip.clear": {
@@ -241,7 +241,7 @@
       "url": "/docs/menu/#menu-clubs"
     },
     "menu.console": {
-      "hint": "Runs Drives: clubs, payments, AI assist’s use and the app’s use, and the feedback people send.",
+      "hint": "Runs Drives: clubs, payments, Auto-route’s use and the app’s use, and the feedback people send.",
       "page": "menu",
       "title": "Control panel",
       "url": "/docs/menu/#menu-console"
@@ -376,7 +376,7 @@
       "url": "/docs/my_drives/"
     },
     "my_trip": {
-      "summary": "Explore is where you plan a trip, edit it, save it and follow it. Plan one in any of three ways: ask AI assist for the sort of drive you'd like, place the waypoints yourself, or let Drives record a drive as you go. Move the map so the cross-hairs are where you want something, then tap a chip.",
+      "summary": "Explore is where you plan a trip, edit it, save it and follow it. Plan one in any of three ways: ask Drives for the sort of drive you'd like, place the waypoints yourself, or let Drives record a drive as you go. Move the map so the cross-hairs are where you want something, then tap a chip.",
       "title": "Explore",
       "url": "/docs/my_trip/"
     },
